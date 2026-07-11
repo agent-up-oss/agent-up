@@ -119,6 +119,11 @@
     url('/img/workspace-grid.svg');
   background-size: cover;
   box-shadow: 0 30px 80px color-mix(in srgb, var(--agentup-black) 18%, transparent);
+  transition: grid-template-columns 0.22s ease;
+}
+
+.heroVisualCollapsed {
+  grid-template-columns: 56px minmax(0, 1fr);
 }
 
 .windowChrome {
@@ -160,8 +165,17 @@
   gap: 0.7rem;
   padding-left: 1rem;
   padding-right: 1rem;
+  padding-bottom: 1rem;
   background: color-mix(in srgb, var(--agentup-black) 92%, transparent);
   color: #ffffff;
+  transition: padding 0.22s ease;
+}
+
+.workspaceRailCollapsed {
+  align-items: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0.55rem;
 }
 
 .workspaceRail strong {
@@ -170,16 +184,99 @@
   color: var(--agentup-teal-soft);
 }
 
-.workspaceRail div {
+.agentList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.agentEntry {
+  all: unset;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.7rem;
   border-radius: 8px;
   color: color-mix(in srgb, #ffffff 74%, transparent);
   background: color-mix(in srgb, #ffffff 6%, transparent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
 }
 
-.workspaceRail .agentActive {
+.agentEntry:hover {
+  background: color-mix(in srgb, #ffffff 10%, transparent);
+  color: #ffffff;
+}
+
+.agentEntry.agentActive {
   color: #ffffff;
   background: var(--agentup-forest-2);
+}
+
+.agentAvatar {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 10%, transparent);
+  border: 1px solid color-mix(in srgb, #ffffff 18%, transparent);
+  color: color-mix(in srgb, #ffffff 74%, transparent);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.agentAvatar:hover {
+  background: color-mix(in srgb, #ffffff 16%, transparent);
+  color: #ffffff;
+}
+
+.agentAvatarActive {
+  background: var(--agentup-forest-2);
+  border-color: var(--agentup-teal-soft);
+  color: #ffffff;
+}
+
+.collapseToggle {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-top: auto;
+  align-self: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, #ffffff 8%, transparent);
+  color: color-mix(in srgb, #ffffff 54%, transparent);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.collapseToggle:hover {
+  background: color-mix(in srgb, #ffffff 14%, transparent);
+  color: #ffffff;
+}
+
+.workspaceRailCollapsed .agentList {
+  align-items: center;
+  width: auto;
+}
+
+.workspaceRailCollapsed .collapseToggle {
+  align-self: center;
+  margin-top: auto;
 }
 
 .runtimePanel {
@@ -187,13 +284,13 @@
   padding-right: 1.2rem;
 }
 
-.tabs {
+.runtimeTabs {
   display: flex;
   gap: 0.6rem;
   margin-bottom: 1.2rem;
 }
 
-.tabs span {
+.runtimeTabs span {
   padding: 0.62rem 0.78rem;
   border-radius: 8px;
   background: var(--agentup-surface);

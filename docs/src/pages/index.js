@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import styles from './index.module.css';
@@ -70,6 +70,79 @@ const capabilities = [
   'Event-backed diagnostics',
   'Playwright generation',
 ];
+
+function HeroMockup() {
+  const [collapsed, setCollapsed] = useState(false);
+  const [activeAgent, setActiveAgent] = useState('agent-1');
+  const agents = ['agent-1', 'agent-2', 'agent-3'];
+
+  const getInitials = (name) => {
+    const [word, num] = name.split('-');
+    return word[0].toUpperCase() + num;
+  };
+
+  return (
+    <div
+      className={`${styles.heroVisual} ${collapsed ? styles.heroVisualCollapsed : ''}`}
+      aria-label="Agent-Up workspace topology"
+    >
+      <div className={styles.windowChrome}>
+        <span /><span /><span />
+      </div>
+      <div className={`${styles.workspaceRail} ${collapsed ? styles.workspaceRailCollapsed : ''}`}>
+        {!collapsed && <strong>Workspaces</strong>}
+        <div className={styles.agentList}>
+          {agents.map((agent) =>
+            collapsed ? (
+              <button
+                key={agent}
+                type="button"
+                className={`${styles.agentAvatar} ${activeAgent === agent ? styles.agentAvatarActive : ''}`}
+                onClick={() => setActiveAgent(agent)}
+                title={agent}
+              >
+                {getInitials(agent)}
+              </button>
+            ) : (
+              <button
+                key={agent}
+                type="button"
+                className={`${styles.agentEntry} ${activeAgent === agent ? styles.agentActive : ''}`}
+                onClick={() => setActiveAgent(agent)}
+              >
+                {agent}
+              </button>
+            )
+          )}
+        </div>
+        <button
+          type="button"
+          className={styles.collapseToggle}
+          onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? '›' : '‹'}
+        </button>
+      </div>
+      <div className={styles.runtimePanel}>
+        <div className={styles.runtimeTabs}>
+          <span>Frontend</span>
+          <span>API</span>
+          <span>Logs</span>
+        </div>
+        <div className={styles.browserFrame}>
+          <div className={styles.browserBar}>Shared browser session</div>
+          <div className={styles.portGrid}>
+            <span>5100</span>
+            <span>5101</span>
+            <span>5102</span>
+            <span>MCP</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ProblemVisual({problem}) {
   if (problem.layout === 'services') {
@@ -190,35 +263,7 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <div className={styles.heroVisual} aria-label="Agent-Up workspace topology">
-            <div className={styles.windowChrome}>
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className={styles.workspaceRail}>
-              <strong>Workspaces</strong>
-              <div className={styles.agentActive}>agent-1</div>
-              <div>agent-2</div>
-              <div>review</div>
-            </div>
-            <div className={styles.runtimePanel}>
-              <div className={styles.tabs}>
-                <span>Frontend</span>
-                <span>API</span>
-                <span>Logs</span>
-              </div>
-              <div className={styles.browserFrame}>
-                <div className={styles.browserBar}>Shared browser session</div>
-                <div className={styles.portGrid}>
-                  <span>5100</span>
-                  <span>5101</span>
-                  <span>5102</span>
-                  <span>MCP</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <HeroMockup />
         </section>
 
 
