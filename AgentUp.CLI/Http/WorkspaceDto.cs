@@ -1,3 +1,5 @@
+using AgentUp.CLI.Models;
+
 namespace AgentUp.CLI.Http;
 
 public record WorkspaceDto(
@@ -7,4 +9,7 @@ public record WorkspaceDto(
     string WorktreePath,
     string Branch,
     string Commit,
-    string State);
+    string State)
+{
+    public IReadOnlyList<ApplicationDefinition> Applications { get; init; } = [];
+}

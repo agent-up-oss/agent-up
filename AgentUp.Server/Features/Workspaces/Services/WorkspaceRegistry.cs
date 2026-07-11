@@ -46,7 +46,8 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
             WorktreePath = request.WorktreePath,
             Branch = request.Branch,
             Commit = request.Commit,
-            State = WorkspaceState.Stopped
+            State = WorkspaceState.Stopped,
+            Applications = request.Applications
         };
 
         _workspaces[workspace.Id] = workspace;

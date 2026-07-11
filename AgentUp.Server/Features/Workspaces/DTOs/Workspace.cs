@@ -9,4 +9,5 @@ public class Workspace
     public required string Branch { get; init; }
     public required string Commit { get; init; }
     public WorkspaceState State { get; set; } = WorkspaceState.Stopped;
+    public IReadOnlyList<ApplicationDefinition> Applications { get; init; } = [];
 }

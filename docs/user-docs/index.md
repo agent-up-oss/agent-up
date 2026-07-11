@@ -52,6 +52,52 @@ The Server is the single source of truth. Desktop, CLI, and MCP clients are all 
 +---------------+   +---------------+   +------------------+
 ```
 
+## Getting Started
+
+### 1. Start the server
+
+From the repository root:
+
+```bash
+dotnet run --project AgentUp.Server
+```
+
+The server starts on `http://localhost:5233` and keeps workspace state in memory (persisted to disk between restarts).
+
+### 2. Add an `agent-up.json` to your project
+
+Create `agent-up.json` in the root of the repository you want to manage:
+
+```json
+{
+  "name": "My App",
+  "applications": [
+    {
+      "name": "Frontend",
+      "command": "npm run dev",
+      "path": "."
+    }
+  ]
+}
+```
+
+### 3. Push the workspace definition
+
+From your project directory, run the CLI with `dotnet run`:
+
+```bash
+dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5233
+```
+
+Or set the server URL once as an environment variable and omit `--server` on every call:
+
+```bash
+export AGENTUP_SERVER_URL=http://localhost:5233
+dotnet run --project /path/to/AgentUp.CLI -- start
+```
+
+This reads `agent-up.json`, captures the current git branch and commit, and pushes the workspace and application definitions to the server. The server then exposes them at `GET /api/workspaces/{id}/applications` for the desktop app to consume.
+
 ## Documentation Map
 
 - [Workspace](./workspace.md) defines the workspace model.

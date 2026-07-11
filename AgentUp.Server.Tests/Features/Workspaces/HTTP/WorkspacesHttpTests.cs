@@ -174,6 +174,73 @@ public class WorkspacesHttpTests
     }
 
     [Test]
+    public async Task GetApplications_ReturnsEmpty_WhenNoApplicationsDefined()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var apps = await response.Content.ReadFromJsonAsync<List<ApplicationDefinition>>();
+        Assert.That(apps, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetApplications_ReturnsApplications_ForWorkspaceWithApps()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition("Frontend", "npm run dev", "./frontend", "WEB_PORT"),
+                new ApplicationDefinition("Backend", "dotnet run", "./api", null)
+            ]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var apps = await response.Content.ReadFromJsonAsync<List<ApplicationDefinition>>();
+        Assert.That(apps, Has.Count.EqualTo(2));
+        Assert.That(apps![0].Name, Is.EqualTo("Frontend"));
+        Assert.That(apps[0].Command, Is.EqualTo("npm run dev"));
+        Assert.That(apps[0].Path, Is.EqualTo("./frontend"));
+        Assert.That(apps[0].PortVariable, Is.EqualTo("WEB_PORT"));
+        Assert.That(apps[1].Name, Is.EqualTo("Backend"));
+        Assert.That(apps[1].PortVariable, Is.Null);
+    }
+
+    [Test]
+    public async Task GetApplications_ReturnsNotFound_ForUnknownWorkspace()
+    {
+        var response = await _client.GetAsync("/api/workspaces/does-not-exist/applications");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Register_PreservesApplications_OnReRegister()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var updated = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c2")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run build", null, null)]
+        };
+        var reregistered = (await (await _client.PostAsJsonAsync("/api/workspaces", updated)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        Assert.That(reregistered.Id, Is.EqualTo(created.Id));
+        var apps = await _client.GetFromJsonAsync<List<ApplicationDefinition>>($"/api/workspaces/{created.Id}/applications");
+        Assert.That(apps![0].Command, Is.EqualTo("npm run build"));
+    }
+
+    [Test]
     public async Task MultipleWorkspaces_CoexistWithIsolatedState()
     {
         var a = (await (await _client.PostAsJsonAsync("/api/workspaces",

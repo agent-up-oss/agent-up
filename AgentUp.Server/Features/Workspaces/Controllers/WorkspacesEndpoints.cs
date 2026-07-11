@@ -25,6 +25,12 @@ public static class WorkspacesEndpoints
             return Results.Created($"/api/workspaces/{workspace.Id}", workspace);
         });
 
+        group.MapGet("/{id}/applications", (string id, IWorkspaceRegistry registry) =>
+        {
+            var workspace = registry.GetById(id);
+            return workspace is null ? Results.NotFound() : Results.Ok(workspace.Applications);
+        });
+
         group.MapPatch("/{id}/state", async (string id, [FromBody] UpdateWorkspaceStateRequest request, IWorkspaceRegistry registry) =>
         {
             var updated = await registry.UpdateStateAsync(id, request.State);

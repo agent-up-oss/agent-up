@@ -5,4 +5,7 @@ public record RegisterWorkspaceRequest(
     string RepositoryPath,
     string WorktreePath,
     string Branch,
-    string Commit);
+    string Commit)
+{
+    public IReadOnlyList<ApplicationDefinition> Applications { get; init; } = [];
+}

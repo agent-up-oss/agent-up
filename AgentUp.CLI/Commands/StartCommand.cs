@@ -5,13 +5,13 @@ using AgentUp.CLI.Models;
 
 namespace AgentUp.CLI.Commands;
 
-public sealed class RegisterCommand
+public sealed class StartCommand
 {
     private readonly WorkspaceApiClient _client;
     private readonly string _workingDirectory;
     private readonly TextWriter _output;
 
-    public RegisterCommand(WorkspaceApiClient client, string workingDirectory, TextWriter output)
+    public StartCommand(WorkspaceApiClient client, string workingDirectory, TextWriter output)
     {
         _client = client;
         _workingDirectory = workingDirectory;
@@ -55,6 +55,8 @@ public sealed class RegisterCommand
             return 1;
         }
 
+        var applications = config.Applications ?? [];
+
         WorkspaceDto? workspace;
         try
         {
@@ -63,11 +65,14 @@ public sealed class RegisterCommand
                 RepositoryPath: repoRoot,
                 WorktreePath: _workingDirectory,
                 Branch: branch,
-                Commit: commit));
+                Commit: commit)
+            {
+                Applications = applications
+            });
         }
         catch (Exception ex)
         {
-            _output.WriteLine($"Error: Failed to register workspace: {ex.Message}");
+            _output.WriteLine($"Error: Failed to push workspace definition: {ex.Message}");
             return 1;
         }
 
@@ -77,12 +82,21 @@ public sealed class RegisterCommand
             return 1;
         }
 
-        _output.WriteLine($"Registered workspace \"{workspace.DisplayName}\" (id: {workspace.Id})");
+        _output.WriteLine($"Workspace \"{workspace.DisplayName}\" definition pushed (id: {workspace.Id})");
         _output.WriteLine($"  Branch:     {workspace.Branch}");
         _output.WriteLine($"  Commit:     {workspace.Commit}");
-        _output.WriteLine($"  Repository: {workspace.RepositoryPath}");
-        _output.WriteLine($"  Worktree:   {workspace.WorktreePath}");
-        _output.WriteLine($"  State:      {workspace.State}");
+
+        if (applications.Count > 0)
+        {
+            _output.WriteLine($"  Applications ({applications.Count}):");
+            foreach (var app in applications)
+                _output.WriteLine($"    - {app.Name}: {app.Command}");
+        }
+        else
+        {
+            _output.WriteLine("  Applications: none defined");
+        }
+
         return 0;
     }
 }

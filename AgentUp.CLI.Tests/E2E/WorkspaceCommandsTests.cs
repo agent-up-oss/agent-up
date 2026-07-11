@@ -46,22 +46,22 @@ public class WorkspaceCommandsTests
             Directory.Delete(_workspaceDir, recursive: true);
     }
 
+    // ── start ─────────────────────────────────────────────────────────────────
+
     [Test]
-    public async Task Register_ExitsZero_AndPrintsWorkspaceName()
+    public async Task Start_ExitsZero_AndPrintsWorkspaceName()
     {
         var output = new StringWriter();
-        var runner = new CliRunner($"http://localhost:{_port}", _workspaceDir, output);
-
-        var exitCode = await runner.RunAsync(["register"]);
+        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Test Project"));
     }
 
     [Test]
-    public async Task Register_UsesAgentUpJsonName_AsDisplayName()
+    public async Task Start_UsesAgentUpJsonName_AsDisplayName()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -71,9 +71,9 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
-    public async Task Register_PopulatesGitBranchAndCommit()
+    public async Task Start_PopulatesGitBranchAndCommit()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -84,9 +84,9 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
-    public async Task Register_SetsWorktreePath_ToCurrentDirectory()
+    public async Task Start_SetsWorktreePath_ToCurrentDirectory()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -95,10 +95,10 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
-    public async Task Register_Twice_DoesNotDuplicate()
+    public async Task Start_Twice_DoesNotDuplicate()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -107,27 +107,87 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
-    public async Task Register_Fails_WhenAgentUpJsonMissing()
+    public async Task Start_PushesApplicationDefinitions_ToServer()
+    {
+        await WriteAgentUpJsonAsync(_workspaceDir, "My App",
+        [
+            new { name = "Frontend", command = "npm run dev", path = "./ui" },
+            new { name = "Backend", command = "dotnet run", path = "./api" }
+        ]);
+
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.That(workspaces![0].Applications, Has.Count.EqualTo(2));
+        Assert.That(workspaces[0].Applications[0].Name, Is.EqualTo("Frontend"));
+        Assert.That(workspaces[0].Applications[1].Name, Is.EqualTo("Backend"));
+    }
+
+    [Test]
+    public async Task Start_ListsApplications_InOutput()
+    {
+        await WriteAgentUpJsonAsync(_workspaceDir, "My App",
+        [
+            new { name = "Frontend", command = "npm run dev", path = (string?)null }
+        ]);
+
+        var output = new StringWriter();
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+
+        var text = output.ToString();
+        Assert.That(text, Does.Contain("Frontend"));
+        Assert.That(text, Does.Contain("npm run dev"));
+    }
+
+    [Test]
+    public async Task Start_ApplicationsListedViaApi()
+    {
+        await WriteAgentUpJsonAsync(_workspaceDir, "My App",
+        [
+            new { name = "Docs", command = "npm run start", path = "docs" }
+        ]);
+
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var workspaceId = workspaces![0].Id;
+
+        var appsJson = await _serverClient.GetFromJsonAsync<List<JsonElement>>(
+            $"/api/workspaces/{workspaceId}/applications",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.That(appsJson, Has.Count.EqualTo(1));
+        Assert.That(appsJson![0].GetProperty("name").GetString(), Is.EqualTo("Docs"));
+        Assert.That(appsJson[0].GetProperty("command").GetString(), Is.EqualTo("npm run start"));
+    }
+
+    [Test]
+    public async Task Start_Fails_WhenAgentUpJsonMissing()
     {
         File.Delete(Path.Combine(_workspaceDir, "agent-up.json"));
         var output = new StringWriter();
 
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["register"]);
+        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Error"));
     }
 
     [Test]
-    public async Task Register_Fails_WhenServerUnreachable()
+    public async Task Start_Fails_WhenServerUnreachable()
     {
         var output = new StringWriter();
 
-        var exitCode = await new CliRunner("http://localhost:1", _workspaceDir, output).RunAsync(["register"]);
+        var exitCode = await new CliRunner("http://localhost:1", _workspaceDir, output).RunAsync(["start"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Error"));
     }
+
+    // ── list ──────────────────────────────────────────────────────────────────
 
     [Test]
     public async Task List_ShowsEmpty_WhenNoWorkspacesRegistered()
@@ -143,7 +203,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task List_ShowsRegisteredWorkspaces()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var output = new StringWriter();
         var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
@@ -162,8 +222,8 @@ public class WorkspaceCommandsTests
             await InitGitRepoAsync(secondDir);
             await WriteAgentUpJsonAsync(secondDir, "Second Project");
 
-            await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
-            await new CliRunner($"http://localhost:{_port}", secondDir).RunAsync(["register"]);
+            await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+            await new CliRunner($"http://localhost:{_port}", secondDir).RunAsync(["start"]);
 
             var output = new StringWriter();
             await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
@@ -179,10 +239,12 @@ public class WorkspaceCommandsTests
         }
     }
 
+    // ── status ────────────────────────────────────────────────────────────────
+
     [Test]
-    public async Task Status_ShowsCurrentWorkspace_AfterRegister()
+    public async Task Status_ShowsCurrentWorkspace_AfterStart()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var output = new StringWriter();
         var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
@@ -195,7 +257,7 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
-    public async Task Status_ReturnsNonZero_WhenNotRegistered()
+    public async Task Status_ReturnsNonZero_WhenNotStarted()
     {
         var output = new StringWriter();
         var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
@@ -203,6 +265,8 @@ public class WorkspaceCommandsTests
         Assert.That(exitCode, Is.Not.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("No workspace registered"));
     }
+
+    // ── help ──────────────────────────────────────────────────────────────────
 
     [Test]
     public async Task Help_ExitsZero_AndListsCommands()
@@ -212,9 +276,10 @@ public class WorkspaceCommandsTests
 
         Assert.That(exitCode, Is.EqualTo(0));
         var text = output.ToString();
-        Assert.That(text, Does.Contain("register"));
+        Assert.That(text, Does.Contain("start"));
         Assert.That(text, Does.Contain("list"));
         Assert.That(text, Does.Contain("status"));
+        Assert.That(text, Does.Not.Contain("register"));
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -251,6 +316,12 @@ public class WorkspaceCommandsTests
     private static Task WriteAgentUpJsonAsync(string dir, string name) =>
         File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"),
             $$"""{"name":"{{name}}"}""");
+
+    private static Task WriteAgentUpJsonAsync(string dir, string name, IEnumerable<object> applications)
+    {
+        var json = JsonSerializer.Serialize(new { name, applications });
+        return File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"), json);
+    }
 
     private static async Task RunProcessAsync(string executable, string arguments, string workingDir)
     {
