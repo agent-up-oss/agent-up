@@ -1,3 +1,10 @@
 {
-  "name": "Agent Up"
+  "name": "Agent Up",
+  "applications": [
+    {
+      "name": "Docs",
+      "command": "npm run start",
+      "path": "docs"
+    }
+  ]
 }

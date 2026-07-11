@@ -28,9 +28,11 @@ public class WorkspacesHttpTests
             Args = [$"--urls=http://localhost:{port}"]
         });
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
+        builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         _app = builder.Build();
@@ -169,6 +171,235 @@ public class WorkspacesHttpTests
     public async Task Delete_ReturnsNotFound_ForUnknownId()
     {
         var response = await _client.DeleteAsync("/api/workspaces/ghost");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task PostStart_SetsStateToRunning()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var startResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+
+        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        var workspace = await _client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}");
+        Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Running));
+    }
+
+    [Test]
+    public async Task PostStart_ReturnsNotFound_ForUnknownId()
+    {
+        var response = await _client.PostAsync("/api/workspaces/ghost/start", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task PostStart_SetsStateToFailed_AndReturnsProblem_WhenLaunchThrows()
+    {
+        var port = FindFreePort();
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = [$"--urls=http://localhost:{port}"] });
+        builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
+        builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
+        builder.Services.AddSingleton<WorkspaceRegistry>();
+        builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddSingleton<IWorkspaceProcessManager, FailingWorkspaceProcessManager>();
+        builder.Logging.SetMinimumLevel(LogLevel.None);
+        var app = builder.Build();
+        app.MapWorkspaces();
+        await app.StartAsync();
+        using var client = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
+
+        var created = (await (await client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var startResponse = await client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+
+        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+
+        var body = await startResponse.Content.ReadAsStringAsync();
+        Assert.That(body, Does.Contain("No such file or directory"));
+
+        var workspace = await client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}");
+        Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Failed));
+
+        await app.StopAsync();
+        await app.DisposeAsync();
+    }
+
+    [Test]
+    public async Task PostStop_SetsStateToStopped_AfterStart()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+        await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+
+        var stopResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/stop", null);
+
+        Assert.That(stopResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        var workspace = await _client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}");
+        Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Stopped));
+    }
+
+    [Test]
+    public async Task PostStop_ReturnsNotFound_ForUnknownId()
+    {
+        var response = await _client.PostAsync("/api/workspaces/ghost/stop", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task GetApplications_ReturnsEmpty_WhenNoApplicationsDefined()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var apps = await response.Content.ReadFromJsonAsync<List<ApplicationInstance>>();
+        Assert.That(apps, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetApplications_ReturnsApplications_WithStoppedState()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition("Frontend", "npm run dev", "./frontend", "WEB_PORT"),
+                new ApplicationDefinition("Backend", "dotnet run", "./api", null)
+            ]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications");
+
+        Assert.That(apps, Has.Count.EqualTo(2));
+        Assert.That(apps![0].Name, Is.EqualTo("Frontend"));
+        Assert.That(apps[0].Command, Is.EqualTo("npm run dev"));
+        Assert.That(apps[0].State, Is.EqualTo(ApplicationState.Stopped));
+        Assert.That(apps[1].Name, Is.EqualTo("Backend"));
+    }
+
+    [Test]
+    public async Task GetApplications_ReturnsNotFound_ForUnknownWorkspace()
+    {
+        var response = await _client.GetAsync("/api/workspaces/does-not-exist/applications");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Register_UpdatesApplications_OnReRegister()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var updated = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c2")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run build", null, null)]
+        };
+        var reregistered = (await (await _client.PostAsJsonAsync("/api/workspaces", updated)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        Assert.That(reregistered.Id, Is.EqualTo(created.Id));
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications");
+        Assert.That(apps![0].Command, Is.EqualTo("npm run build"));
+    }
+
+    [Test]
+    public async Task PostApplicationStart_SetsAppStateToRunning()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.PostAsync($"/api/workspaces/{created.Id}/applications/Frontend/start", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications");
+        Assert.That(apps![0].State, Is.EqualTo(ApplicationState.Running));
+    }
+
+    [Test]
+    public async Task PostApplicationStop_SetsAppStateToStopped()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+        await _client.PostAsync($"/api/workspaces/{created.Id}/applications/Frontend/start", null);
+
+        var response = await _client.PostAsync($"/api/workspaces/{created.Id}/applications/Frontend/stop", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications");
+        Assert.That(apps![0].State, Is.EqualTo(ApplicationState.Stopped));
+    }
+
+    [Test]
+    public async Task PostApplicationRestart_SetsAppStateToRunning()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.PostAsync($"/api/workspaces/{created.Id}/applications/Frontend/restart", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications");
+        Assert.That(apps![0].State, Is.EqualTo(ApplicationState.Running));
+    }
+
+    [Test]
+    public async Task PostApplicationStart_ReturnsNotFound_ForUnknownApp()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.PostAsync($"/api/workspaces/{created.Id}/applications/ghost/start", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task GetApplicationOutput_ReturnsEmptyList_BeforeAnyOutput()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications/Frontend/output");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var lines = await response.Content.ReadFromJsonAsync<List<string>>();
+        Assert.That(lines, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetApplicationOutput_ReturnsNotFound_ForUnknownApp()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications/ghost/output");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
