@@ -8,5 +8,6 @@ public interface IWorkspaceRegistry
     Workspace? GetById(string id);
     Task<Workspace> RegisterAsync(RegisterWorkspaceRequest request);
     Task<bool> UpdateStateAsync(string id, WorkspaceState state);
+    Task<bool> UpdateApplicationStateAsync(string workspaceId, string appName, ApplicationState state);
     Task<bool> RemoveAsync(string id);
 }

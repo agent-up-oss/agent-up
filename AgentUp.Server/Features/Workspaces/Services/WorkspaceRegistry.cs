@@ -21,6 +21,8 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
         foreach (var workspace in persisted)
         {
             workspace.State = WorkspaceState.Stopped;
+            foreach (var app in workspace.Applications)
+                app.State = ApplicationState.Stopped;
             _workspaces[workspace.Id] = workspace;
         }
     }
@@ -48,6 +50,14 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
             Commit = request.Commit,
             State = WorkspaceState.Stopped,
             Applications = request.Applications
+                .Select(d => new ApplicationInstance
+                {
+                    Name = d.Name,
+                    Command = d.Command,
+                    Path = d.Path,
+                    PortVariable = d.PortVariable
+                })
+                .ToList()
         };
 
         _workspaces[workspace.Id] = workspace;
@@ -61,6 +71,20 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
             return false;
 
         workspace.State = state;
+        await _repository.SaveAllAsync(GetAll());
+        return true;
+    }
+
+    public async Task<bool> UpdateApplicationStateAsync(string workspaceId, string appName, ApplicationState state)
+    {
+        if (!_workspaces.TryGetValue(workspaceId, out var workspace))
+            return false;
+
+        var app = workspace.Applications.FirstOrDefault(a => a.Name == appName);
+        if (app is null)
+            return false;
+
+        app.State = state;
         await _repository.SaveAllAsync(GetAll());
         return true;
     }

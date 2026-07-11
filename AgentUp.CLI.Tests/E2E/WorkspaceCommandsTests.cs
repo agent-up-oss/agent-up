@@ -330,6 +330,7 @@ public class WorkspaceCommandsTests
         builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
+        builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());

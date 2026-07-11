@@ -10,8 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+var dataDir = ResolveDataDirectory();
 builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
-    new JsonWorkspaceRepository(Path.Combine(ResolveDataDirectory(), "workspaces.json")));
+    new JsonWorkspaceRepository(Path.Combine(dataDir, "workspaces.json")));
+builder.Services.AddSingleton<IOutputRepository>(_ =>
+    new FileOutputRepository(dataDir));
 builder.Services.AddSingleton<WorkspaceRegistry>();
 builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
