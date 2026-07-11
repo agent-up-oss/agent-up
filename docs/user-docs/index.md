@@ -54,10 +54,11 @@ The Server is the single source of truth. Desktop, CLI, and MCP clients are all 
 
 ## Documentation Map
 
-- [Architecture](./architecture.md) describes the system boundaries.
 - [Workspace](./workspace.md) defines the workspace model.
-- [Server](./server.md) explains the runtime source of truth.
 - [Browser](./browser.md) covers shared browser sessions and automation.
-- [MCP](./mcp.md) describes the automation interface.
+- [Browser Profiles](./browser-profiles.md) explains per-workspace browser isolation.
+- [CLI](./cli.md) covers the human-friendly command wrapper.
 - [Configuration](./configuration.md) and [agent-up.json](./agent-up-json.md) describe declarative application setup.
 - [Roadmap](./roadmap.md) captures the long-term direction.
+
+Implementation details live in the [Developer Guide](/developer-guide/).

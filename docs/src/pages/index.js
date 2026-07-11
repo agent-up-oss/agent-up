@@ -185,7 +185,7 @@ export default function Home() {
               <Link className={styles.primaryAction} to="/docs/">
                 Read the docs
               </Link>
-              <Link className={styles.secondaryAction} to="/docs/architecture">
+              <Link className={styles.secondaryAction} to="/developer-guide/architecture">
                 See architecture
               </Link>
             </div>

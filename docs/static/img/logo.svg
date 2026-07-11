@@ -1,5 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">
-  <rect width="64" height="64" rx="12" fill="#216869"/>
-  <path d="M14 18h36v10H14zM14 36h16v10H14zM36 36h14v10H36z" fill="#fff"/>
-  <path d="M22 23h20M20 41h4M42 41h2" stroke="#7dcfb6" stroke-width="3" stroke-linecap="round"/>
+<svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 828 736"
+        role="img"
+        aria-label="Agent-Up logo"
+>
+  <defs>
+    <linearGradient id="arch" x1="120" y1="700" x2="600" y2="70">
+      <stop offset="0" stop-color="#08ef75"/>
+      <stop offset="0.48" stop-color="#0cdb70"/>
+      <stop offset="1" stop-color="#075536"/>
+    </linearGradient>
+
+    <linearGradient id="arrow" x1="420" y1="360" x2="760" y2="720">
+      <stop offset="0" stop-color="#0ff080"/>
+      <stop offset="0.46" stop-color="#08b960"/>
+      <stop offset="1" stop-color="#06452e"/>
+    </linearGradient>
+  </defs>
+
+  <path
+          fill="url(#arch)"
+          d="
+      M0 736
+      L135 736
+      L437 196
+      C446 180 463 180 472 196
+      L641 480
+      C646 489 648 485 648 474
+      L648 288
+      C648 279 645 271 641 264
+      L521 48
+      C505 17 485 0 455 0
+      C421 0 402 17 386 47
+      Z
+    "
+  />
+
+  <path
+          fill="url(#arrow)"
+          d="
+      M454 363
+      L324 491
+      L395 491
+      L395 579
+      C395 669 452 736 536 736
+      L663 736
+      C753 736 828 670 828 579
+      L828 270
+      L708 270
+      L708 579
+      C708 614 687 635 654 635
+      L566 635
+      C534 635 512 615 512 579
+      L512 491
+      L582 491
+      Z
+    "
+  />
 </svg>

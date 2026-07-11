@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer').themes.dracula;
 const config = {
   title: 'Agent-Up',
   tagline: 'Workspace management for AI-assisted development',
-  favicon: 'img/favicon.svg',
+  favicon: 'img/favicon.ico',
 
   url: 'https://agent-up.local',
   baseUrl: '/',
@@ -33,6 +33,7 @@ const config = {
       ({
         docs: {
           routeBasePath: '/docs',
+          path: 'user-docs',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: undefined,
         },
@@ -41,6 +42,19 @@ const config = {
           customCss: require.resolve('./src/css/custom.css'),
         },
       }),
+    ],
+  ],
+
+  plugins: [
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'developerGuide',
+        path: 'developer-guide',
+        routeBasePath: '/developer-guide',
+        sidebarPath: require.resolve('./sidebarsDeveloper.js'),
+        editUrl: undefined,
+      },
     ],
   ],
 
@@ -59,12 +73,14 @@ const config = {
             type: 'docSidebar',
             sidebarId: 'docsSidebar',
             position: 'left',
-            label: 'Documentation',
+            label: 'Docs',
           },
           {
-            to: '/',
-            label: 'Product',
+            type: 'docSidebar',
+            docsPluginId: 'developerGuide',
+            sidebarId: 'developerGuideSidebar',
             position: 'left',
+            label: 'Developer Guide',
           },
         ],
       },
@@ -72,19 +88,33 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: 'Core',
             items: [
-              { label: 'Architecture', to: '/docs/architecture' },
-              { label: 'Workspace', to: '/docs/workspace' },
-              { label: 'Configuration', to: '/docs/configuration' },
+              {
+                html: `
+                  <p class="footer-brand__name">Agent-Up</p>
+                  <p class="footer-brand__tagline">
+                    Workspace management for AI-assisted development.
+                    Isolated agents, shared browser context, and server-owned runtime state.
+                  </p>
+                `,
+              },
             ],
           },
           {
-            title: 'Automation',
+            title: 'Docs',
             items: [
-              { label: 'MCP', to: '/docs/mcp' },
-              { label: 'Event Recording', to: '/docs/event-recording' },
-              { label: 'Playwright', to: '/docs/playwright' },
+              { label: 'Overview', to: '/docs/' },
+              { label: 'Workspace', to: '/docs/workspace' },
+              { label: 'Configuration', to: '/docs/configuration' },
+              { label: 'Browser Profiles', to: '/docs/browser-profiles' },
+            ],
+          },
+          {
+            title: 'Developer Guide',
+            items: [
+              { label: 'Architecture', to: '/developer-guide/architecture' },
+              { label: 'Server', to: '/developer-guide/server' },
+              { label: 'MCP', to: '/developer-guide/mcp' },
             ],
           },
         ],

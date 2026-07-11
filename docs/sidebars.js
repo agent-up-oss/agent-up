@@ -4,10 +4,8 @@ const sidebars = {
     'index',
     {
       type: 'category',
-      label: 'Foundations',
+      label: 'Getting Started',
       items: [
-        'design-principles',
-        'architecture',
         'workspace',
         'configuration',
         'agent-up-json',
@@ -15,24 +13,11 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Runtime',
+      label: 'Using Workspaces',
       items: [
-        'server',
-        'desktop',
         'cli',
         'browser',
         'browser-profiles',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Automation',
-      items: [
-        'mcp',
-        'event-recording',
-        'playwright',
-        'diagnostics',
-        'workflows',
       ],
     },
     'roadmap',
