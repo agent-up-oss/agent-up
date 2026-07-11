@@ -13,6 +13,37 @@ Agent-Up has four major components:
 
 The Server is the single source of truth. Every other component is a client.
 
+## Solution Layout
+
+Project directories live directly at the repository root and are included in the root solution. Agent-Up does not use `src/` or `tests/` wrapper directories.
+
+```text
+agent-up.sln
+
+AgentUp.Server/
+  AgentUp.Server.csproj
+
+AgentUp.Desktop/
+  AgentUp.Desktop.csproj
+
+AgentUp.CLI/
+  AgentUp.CLI.csproj
+
+AgentUp.Shared/
+  AgentUp.Shared.csproj
+
+AgentUp.Server.Tests/
+  AgentUp.Server.Tests.csproj
+
+AgentUp.Desktop.Tests/
+  AgentUp.Desktop.Tests.csproj
+
+AgentUp.CLI.Tests/
+  AgentUp.CLI.Tests.csproj
+```
+
+The exact project list may evolve, but the ownership boundaries should remain stable.
+
 ## Component Responsibilities
 
 `AgentUp.Server` performs orchestration:

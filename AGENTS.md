@@ -1,742 +1,387 @@
-# Agent-Up Design Specification
+# General
 
-## Vision
+Agent-Up is a .NET solution for managing AI-assisted development workspaces.
 
-Agent-Up is a cross-platform development workspace manager designed specifically for AI-assisted software development.
+It is not an application framework, deployment tool, IDE, or application orchestrator. Agent-Up owns the running development environment around applications: worktrees, processes, ports, Docker lifecycle, browser profiles, diagnostics, event history, and automation surfaces.
 
-It is **not** an application framework, deployment tool, IDE or application orchestrator.
+The authoritative product and implementation documentation lives in:
 
-Instead, Agent-Up manages **development workspaces**.
+- User docs: `docs/user-docs/`
+- Developer guide: `docs/developer-guide/`
 
-Every AI agent operates inside its own Git worktree. Each workspace has its own runtime environment, browser session, infrastructure and application state.
+# Definition Synchronization
 
-Agent-Up exists to make switching between these workspaces effortless while allowing both developers and AI agents to interact with the exact same running applications.
+`AGENTS.md` and the relevant docs pages are definition sources for the project.
 
----
+Any change that alters behavior, architecture, ownership, project layout, workflows, configuration shape, runtime contracts, testing rules, or implementation guidance must update the matching definition source in the same change.
 
-# Problem Statement
+If code or docs are derived from the current state of `AGENTS.md`, update `AGENTS.md` when that definition changes. If `AGENTS.md` points to a docs page for the detailed definition, update that docs page when the source definition changes.
 
-Modern AI-assisted development introduces several challenges.
+Do not leave implementation, `AGENTS.md`, and docs disagreeing. If the requested change intentionally supersedes existing guidance, update the guidance first or as part of the same commit.
 
-Every AI agent typically owns
+# Architecture
 
-* its own Git worktree
-* its own branch
-* its own runtime
-* its own application state
+Agent-Up is organized around one rule:
 
-However existing tooling assumes a single developer running a single application instance.
+**AgentUp.Server is the single source of truth.**
 
-Typical problems include
+Desktop, CLI, MCP clients, and future integrations are clients of the Server. They may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
-* constantly starting multiple services
-* Docker infrastructure collisions
-* browser tab explosion
-* duplicated authentication
-* inconsistent runtime state
-* manual process management
-* difficult validation of AI-generated implementations
-
-Agent-Up solves these problems without requiring changes to application source code.
-
----
-
-# Core Principles
-
-## Framework Agnostic
-
-Agent-Up must support arbitrary web applications.
-
-It must not contain knowledge about
-
-* ASP.NET
-* Spring
-* React
-* Next.js
-* Angular
-* Vue
-* Express
-* or any other framework.
-
-Applications are described declaratively.
-
----
-
-## Cross Platform
-
-Supported platforms
-
-* Windows
-* Linux
-* macOS
-* NixOS
-
-The desktop application should therefore be implemented using Avalonia.
-
----
-
-## Zero Application Changes
-
-Applications should never reference Agent-Up.
-
-No SDK.
-
-No package.
-
-No runtime dependency.
-
-Only environment variables supplied during launch.
-
----
-
-# High Level Architecture
-
-The system consists of four major components.
+Expected solution shape:
 
 ```text
-                +----------------------+
-                |   AgentUp.Server     |
-                |----------------------|
-                | Workspace Manager    |
-                | Process Manager      |
-                | Browser Manager      |
-                | Port Manager         |
-                | Event Recorder       |
-                | Diagnostics          |
-                | Playwright Generator |
-                | MCP Server           |
-                +----------+-----------+
-                           |
-        +------------------+-------------------+
-        |                  |                   |
-        |                  |                   |
-+---------------+   +---------------+   +------------------+
-| Avalonia UI   |   | AgentUp CLI   |   | MCP Clients      |
-|               |   |               |   | ChatGPT          |
-| Human UI      |   | Thin Wrapper  |   | Claude           |
-|               |   |               |   | Codex            |
-+---------------+   +---------------+   +------------------+
+agent-up.sln
+
+AgentUp.Server/
+  AgentUp.Server.csproj
+
+AgentUp.Desktop/
+  AgentUp.Desktop.csproj
+
+AgentUp.CLI/
+  AgentUp.CLI.csproj
+
+AgentUp.Shared/
+  AgentUp.Shared.csproj
+
+AgentUp.Server.Tests/
+  AgentUp.Server.Tests.csproj
+
+AgentUp.Desktop.Tests/
+  AgentUp.Desktop.Tests.csproj
+
+AgentUp.CLI.Tests/
+  AgentUp.CLI.Tests.csproj
 ```
 
-The **Server is the single source of truth**.
+Project directories live directly at the repository root and are included in the root solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere.
 
-Every other component is a client.
+The exact project list may evolve, but ownership must not drift:
 
----
+| Area | Owns |
+|---|---|
+| `AgentUp.Server` | Workspace registry, process lifecycle, ports, Docker, browser lifecycle, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
+| `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
+| MCP clients | Automation interface; no local orchestration |
+| `AgentUp.Shared` | Cross-boundary contracts only when genuinely shared |
 
-# AgentUp.Server
+Read the full architecture guide before making structural changes: `docs/developer-guide/architecture.md`.
 
-The Server owns all runtime state.
+# New Architecture
 
-Responsibilities include
+The project should be implemented as capability-oriented slices inside each owning project rather than broad technical buckets.
 
-* Workspace registry
-* Process lifecycle
-* Port allocation
-* Docker lifecycle
-* Browser lifecycle
-* Browser profiles
-* Browser session persistence
-* Event recording
-* Diagnostics
-* Health monitoring
-* Playwright generation
-* MCP server
-* REST API
-
-The Server performs all orchestration.
-
-No orchestration logic belongs anywhere else.
-
----
-
-# AgentUp.Desktop
-
-Technology
-
-* .NET
-* Avalonia
-
-Responsibilities
-
-* Display workspaces
-* Display browser tabs
-* Display logs
-* Display diagnostics
-* Display health
-* Display running processes
-
-The Desktop does **not** own runtime state.
-
-It connects to the Server.
-
----
-
-# AgentUp.CLI
-
-Technology
-
-* .NET Console
-
-Purpose
-
-Developer convenience.
-
-The CLI simply forwards commands to the Server.
-
-Example
-
-```bash
-agent-up restart
-
-agent-up stop
-
-agent-up status
-
-agent-up logs
-```
-
-The CLI owns no state.
-
----
-
-# MCP
-
-The Server exposes an MCP server.
-
-This is the primary automation interface.
-
-The CLI becomes a human-friendly wrapper around MCP capabilities.
-
-AI agents should use MCP directly.
-
----
-
-# Configuration
-
-Every repository root contains
+Prefer this:
 
 ```text
-agent-up.json
+AgentUp.Server/
+  Features/
+    Workspaces/
+      Controllers/
+      Services/
+      Repositories/
+      DTOs/
+    Processes/
+      Services/
+      Diagnostics/
+    Browser/
+      Services/
+      Profiles/
+      Automation/
+    Ports/
+      Services/
+      Models/
+    Mcp/
+      Tools/
+      Resources/
 ```
 
-Example
+Avoid this as the primary organizing model:
 
-```json
-{
-    "name": "Inventory",
-
-    "applications": [
-
-        {
-            "name": "Frontend",
-            "command": "dotnet run --project src/Web",
-            "portVariable": "WEB_PORT",
-            "path": "/"
-        },
-
-        {
-            "name": "API",
-            "command": "dotnet run --project src/Api",
-            "portVariable": "API_PORT",
-            "path": "/swagger"
-        }
-
-    ],
-
-    "docker": [
-
-        "docker compose up -d"
-
-    ]
-}
+```text
+AgentUp.Server/
+  Controllers/
+  Services/
+  Repositories/
+  Models/
 ```
 
-No hardcoded ports are allowed.
+The same structure applies to tests:
 
----
+```text
+AgentUp.Server.Tests/
+  Features/
+    Workspaces/
+      HTTP/
+      Unit/
+      Repository/
+    Browser/
+      Unit/
+      Automation/
+    Mcp/
+      Tools/
+      Resources/
+```
 
-# Workspace
+Prefer working only in the slice directly involved in the task.
 
-A workspace consists of
+## Migrations And Persistence
 
-* Repository
-* Git worktree
-* Branch
-* Commit
-* Browser profile
-* Docker infrastructure
-* Running processes
-* Allocated port range
-* Runtime diagnostics
-* Event history
+If persistent storage is introduced, migrations stay together in the owning infrastructure/migration location for the project.
 
----
+Feature separation happens at repository/service boundaries. Do not scatter migration files by feature unless the project explicitly adopts that convention later.
+
+## Inter-Slice Communication
+
+A slice owns its writes.
+
+Read-only cross-slice access is allowed when necessary through a narrow interface. For example, browser automation may need read-only workspace state, but browser automation should not directly mutate workspace registry data.
+
+If a relationship starts to carry its own behavior or lifecycle, promote it to its own slice.
+
+## Relationships
+
+Most relationships should be represented by IDs and owned by the aggregate/capability that controls their lifecycle.
+
+Many-to-many relationships should usually become explicit concepts. For example, if workspaces and applications need a relationship with lifecycle, diagnostics, or state, model that relationship as its own entity/slice rather than hiding it in a join table.
+
+# Server Ownership Rules
+
+The Server owns all orchestration:
+
+- Workspace registry.
+- Git worktree metadata.
+- Process lifecycle.
+- Port allocation.
+- Docker lifecycle.
+- Browser lifecycle.
+- Browser profiles.
+- Browser session persistence.
+- Event recording.
+- Diagnostics.
+- Health monitoring.
+- Playwright generation.
+- MCP server.
+- REST API.
+
+No orchestration logic belongs in Desktop, CLI, or MCP clients.
+
+Full guide: `docs/developer-guide/server.md`.
+
+# Client Rules
+
+## Desktop
+
+The Desktop is an Avalonia client for humans. It displays workspaces, browser tabs, logs, diagnostics, health, and running processes.
+
+It connects to the Server and must not own runtime state. Full guide: `docs/developer-guide/desktop.md`.
+
+## CLI
+
+The CLI is a thin developer convenience wrapper over Server capabilities.
+
+It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/cli.md`.
+
+## MCP
+
+MCP is the primary automation interface for AI agents.
+
+Agents should use MCP directly instead of shelling through the CLI when browser inspection, interaction, diagnostics, logs, screenshots, or Playwright generation are needed. Full guide: `docs/developer-guide/mcp.md`.
+
+# Configuration Rules
+
+Every managed repository is described declaratively with `agent-up.json`.
+
+Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration.
+
+User docs:
+
+- `docs/user-docs/configuration.md`
+- `docs/user-docs/agent-up-json.md`
 
 # Port Allocation
 
 The Server owns all ports.
 
-Every workspace receives a dedicated contiguous port range.
+Each workspace receives a dedicated contiguous port range. Applications consume only environment variables such as `WEB_PORT`, `API_PORT`, and `AUTH_PORT`.
 
-Example
-
-```text
-Workspace A
-
-5000-5099
-
-Workspace B
-
-5100-5199
-
-Workspace C
-
-5200-5299
-```
-
-Applications reference only environment variables.
-
-Example
-
-```text
-WEB_PORT=5100
-
-API_PORT=5101
-
-AUTH_PORT=5102
-```
-
-Applications must never assume localhost ports.
-
----
+Workspace guide: `docs/user-docs/workspace.md`.
 
 # Browser Model
 
-Every workspace owns an isolated browser profile.
+Each workspace owns an isolated browser profile.
 
-The Server manages browser instances.
+The Server manages browser lifecycle and state; the Desktop displays browser sessions. Browser state includes cookies, local storage, session storage, IndexedDB, cache, and navigation state.
 
-The Desktop displays them.
+User docs:
 
-Browser state includes
-
-* Cookies
-* Local Storage
-* Session Storage
-* IndexedDB
-* Cache
-
-Changing workspaces restores browser state instantly.
-
-Restarting applications reloads the browser instead of creating new browser tabs.
-
----
-
-# Browser Experience
-
-The desktop resembles an IDE.
-
-```text
-+---------------------------------------------------------------+
-| Agent-Up                                                      |
-+---------------------------------------------------------------+
-| Agents                    Frontend  Admin  Swagger  Logs      |
-|---------------------------------------------------------------|
-|                                                               |
-|                 Active Browser Session                        |
-|                                                               |
-+---------------------------------------------------------------+
-```
-
-Left
-
-* Workspace selector
-* Health
-* Branch
-* Running state
-
-Top
-
-* Browser tabs
-* Logs
-* Diagnostics
-
-Center
-
-* Embedded browser
-
----
-
-# Browser Abstraction
-
-The browser implementation must be abstracted.
-
-```csharp
-public interface IBrowserHost
-{
-    Task NavigateAsync(Uri uri);
-
-    Task ReloadAsync();
-
-    Task<string> GetHtmlAsync();
-
-    Task ClickAsync(string selector);
-
-    Task FillAsync(string selector, string value);
-
-    Task<byte[]> ScreenshotAsync();
-}
-```
-
-Platform implementations can vary.
-
----
-
-# MCP Resources
-
-Example
-
-```text
-workspace://current
-
-workspace://agent-1
-
-workspace://agent-1/browser
-
-workspace://agent-1/logs
-
-workspace://agent-1/events
-
-workspace://agent-1/frontend
-```
-
-Resources expose current workspace state.
-
----
-
-# MCP Tools
-
-Examples
-
-Restart Workspace
-
-Stop Workspace
-
-List Workspaces
-
-List Applications
-
-Navigate Browser
-
-Click Element
-
-Fill Input
-
-Press Keys
-
-Take Screenshot
-
-Export Playwright
-
-Wait For Selector
-
-Wait For Text
-
-Wait For Navigation
-
-Retrieve Logs
-
-Retrieve Diagnostics
-
-Retrieve Event Stream
-
----
+- `docs/user-docs/browser.md`
+- `docs/user-docs/browser-profiles.md`
 
 # Browser Automation
 
-AI agents interact with applications through MCP.
+AI agents interact with applications through Server-backed browser automation.
 
-Example
+Prefer structured inspection and accessibility data over raw HTML. Every interaction should be recordable as an event that can later support diagnostics, workflow inference, and Playwright generation.
 
-```
-inspect_page
+Developer guides:
 
-↓
-
-click
-
-↓
-
-fill
-
-↓
-
-press
-
-↓
-
-wait
-
-↓
-
-screenshot
-```
-
-The Server executes browser operations.
-
----
-
-# Structured Inspection
-
-The browser should expose
-
-* Accessibility tree
-* Interactive elements
-* Page metadata
-* DOM snapshot
-* HTML
-* Browser history
-* Screenshot
-
-Accessibility data should be preferred over raw HTML.
-
----
-
-# Browser Session Sharing
-
-One of the core ideas behind Agent-Up is that developers and AI agents share the same browser session.
-
-Benefits
-
-* Shared authentication
-* Shared cookies
-* Shared navigation
-* Shared application state
-* No duplicate browser windows
-* No Playwright browser startup
-
----
-
-# Event Recording
-
-Every browser interaction becomes an event.
-
-Examples
-
-* Navigation
-* Click
-* Keyboard
-* Text Entry
-* DOM Mutation
-* Console Message
-* Network Request
-* Screenshot
-* Dialog
-* Notification
-
-This event stream becomes the canonical interaction history.
-
----
-
-# Playwright Generation
-
-Agent-Up can generate Playwright tests from recorded interaction history.
-
-Generated tests should
-
-* Prefer semantic locators
-* Avoid brittle selectors
-* Generate assertions
-* Produce readable code
-* Follow Playwright best practices
-
----
-
-# Workflow Inference
-
-Instead of exporting raw interaction history, Agent-Up should infer user intent.
-
-Example interaction
-
-* Open Orders
-* Create Customer
-* Add Products
-* Submit Order
-* Verify Success
-
-Generated test
-
-```
-Creating an order succeeds
-```
-
-instead of
-
-```
-Click Button 17
-```
-
-Business workflows should be inferred automatically.
-
----
-
-# Automatic Assertions
-
-Agent-Up should infer assertions such as
-
-* Success notification visible
-* Navigation completed
-* Validation error visible
-* Button disabled
-* URL changed
-* Network request completed
-
-The generated Playwright test should validate outcomes rather than replay interactions.
-
----
+- `docs/developer-guide/event-recording.md`
+- `docs/developer-guide/playwright.md`
 
 # Diagnostics
 
-The Server continuously collects
+Diagnostics are collected continuously by the Server and exposed to Desktop, CLI, and MCP clients.
 
-* Console output
-* JavaScript exceptions
-* Failed network requests
-* Performance timings
-* Health information
-* Process status
+Diagnostics include console output, JavaScript exceptions, failed network requests, performance timings, health information, and process status.
 
-Diagnostics are exposed through MCP.
+Full guide: `docs/developer-guide/diagnostics.md`.
 
----
+# Error Handling And Validation
 
-# AI Validation Workflow
+Use structured application errors at host boundaries.
 
-A complete AI workflow
+New code should convert known failures into safe errors with status, title, detail, and validation/error lists where appropriate. Do not allow raw infrastructure, browser, Docker, process, filesystem, or framework exceptions to leak directly through REST or MCP boundaries.
 
-```
-Modify Code
+Guidelines:
 
-↓
+- Convert provider/infrastructure exceptions at meaningful boundaries.
+- Do not add catch blocks at every layer.
+- Validate transport/request models at host boundaries.
+- Keep domain/runtime invariants in the owning slice.
+- Prefer clear typed results or structured exceptions over stringly-typed failure handling.
 
-Restart Workspace
+Every validation rule that affects public behavior requires a focused test at the boundary where that behavior is observed.
 
-↓
+# Testing
 
-Wait Until Healthy
+Any change to a project that has a corresponding test project must include test changes in the same commit.
 
-↓
+This applies to every production/test project pair once created:
 
-Inspect Page
+| Project | Test Project |
+|---|---|
+| `AgentUp.Server` | `AgentUp.Server.Tests` |
+| `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
+| `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 
-↓
+Forbidden:
 
-Navigate
+- Changing production behavior without updating or adding tests for that behavior.
+- Adding REST endpoints or MCP tools without tests for the new contract.
+- Changing request/response/resource shapes without updating tests.
+- Removing behavior without removing or updating tests that covered it.
+- Claiming completion while relevant tests are missing, skipped, or known broken.
 
-↓
+## Test Structure
 
-Interact
-
-↓
-
-Validate
-
-↓
-
-Take Screenshot
-
-↓
-
-Generate Playwright Test
-
-↓
-
-Commit
-```
-
-No browser automation framework should be required outside Agent-Up.
-
----
-
-# Long-Term Vision
-
-Agent-Up evolves beyond being a process launcher.
-
-It becomes the runtime operating system for AI-assisted development.
-
-Git manages source code.
-
-Docker manages containers.
-
-The IDE manages editing.
-
-Agent-Up manages the running development environment.
-
-Developers and AI agents collaborate inside the same live workspace.
-
----
-
-# Documentation Layout
-
-The final repository documentation should be organized as
+Tests should follow the same feature/slice layout as production code.
 
 ```text
-AGENTS.md
-
-docs/
-
-    architecture.md
-
-    workspace.md
-
-    browser.md
-
-    server.md
-
-    desktop.md
-
-    cli.md
-
-    mcp.md
-
-    configuration.md
-
-    agent-up-json.md
-
-    browser-profiles.md
-
-    event-recording.md
-
-    playwright.md
-
-    diagnostics.md
-
-    workflows.md
-
-    design-principles.md
-
-    roadmap.md
+AgentUp.Server.Tests/
+  Features/
+    Workspaces/
+      HTTP/
+      Unit/
+    Browser/
+      Automation/
+      Unit/
+    Mcp/
+      Tools/
+      Resources/
 ```
 
-`AGENTS.md` should act only as an index and high-level overview.
+## Test Strategy
 
-Detailed specifications belong in the `docs/` directory.
+Use layered tests with clear ownership:
 
----
+- Unit tests verify domain/runtime rules and edge cases.
+- HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
+- MCP tests verify tool/resource contracts and safe errors.
+- Repository/infrastructure tests verify persistence, filesystem, process, Docker, or browser integration behavior with realistic dependencies when practical.
+- End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 
-# AI Agent Guidance
+Avoid duplicate tests that assert the same rule through multiple layers.
 
-When implementing Agent-Up
+# Content Sections
 
-* Keep the Server as the single source of truth.
-* Keep Desktop, CLI and MCP clients thin.
-* Preserve framework agnosticism.
-* Never require application source changes.
-* Keep configuration declarative.
-* Prefer MCP over CLI for automation.
-* Design every feature to support multiple concurrent workspaces.
-* Preserve browser session isolation.
-* Favor interfaces over platform-specific implementations.
-* Record interactions as events rather than imperative commands.
-* Treat the event stream as the canonical representation from which Playwright tests, diagnostics and future automation features can be derived.
+The sections below intentionally introduce each concept briefly and point to the canonical docs page. Keep AGENTS.md concise; detailed specifications belong in `docs/`.
+
+## Workspace
+
+A workspace is the unit of isolation for an agent or developer session. It combines repository/worktree metadata, branch, commit, browser profile, Docker infrastructure, running processes, allocated ports, diagnostics, and event history.
+
+Read: `docs/user-docs/workspace.md`.
+
+## Configuration
+
+Agent-Up uses declarative repository configuration through `agent-up.json`. Applications declare launch commands, port environment variables, browser paths, and Docker setup without source-code integration.
+
+Read: `docs/user-docs/configuration.md` and `docs/user-docs/agent-up-json.md`.
+
+## Browser
+
+Agent-Up keeps browser sessions tied to workspaces so developers and agents share authentication and navigation state. Restarting applications should reload the existing workspace browser session rather than create more tabs.
+
+Read: `docs/user-docs/browser.md` and `docs/user-docs/browser-profiles.md`.
+
+## Server
+
+The Server is the runtime authority for Agent-Up. It owns orchestration, state, lifecycle, diagnostics, MCP, and REST APIs.
+
+Read: `docs/developer-guide/server.md`.
+
+## Desktop
+
+The Desktop is the Avalonia UI for humans. It presents Server-owned state and shared browser sessions.
+
+Read: `docs/developer-guide/desktop.md`.
+
+## CLI
+
+The CLI is a convenience client for humans. It forwards commands to the Server and owns no runtime state.
+
+Read: `docs/user-docs/cli.md`.
+
+## MCP
+
+The MCP server is the main automation interface for AI agents. It exposes workspace resources and tools for browser interaction, logs, diagnostics, screenshots, waits, and Playwright export.
+
+Read: `docs/developer-guide/mcp.md`.
+
+## Event Recording
+
+Every browser interaction and relevant runtime signal should become an event. The event stream is the canonical history used for diagnostics, workflow inference, and future automation.
+
+Read: `docs/developer-guide/event-recording.md`.
+
+## Playwright Generation
+
+Playwright tests should be generated from recorded intent and outcomes, not brittle raw click replay. Prefer semantic locators and inferred assertions.
+
+Read: `docs/developer-guide/playwright.md`.
+
+## Diagnostics
+
+Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace.
+
+Read: `docs/developer-guide/diagnostics.md`.
+
+## Workflows
+
+The target AI workflow is: modify code, restart workspace, wait until healthy, inspect page, interact, validate, screenshot, generate Playwright, commit.
+
+Read: `docs/developer-guide/workflows.md`.
+
+## Design Principles
+
+Agent-Up must remain framework agnostic, cross-platform, declarative, and zero-touch for application source code.
+
+Read: `docs/developer-guide/design-principles.md`.
+
+## Roadmap
+
+Agent-Up should evolve into the runtime operating system for AI-assisted development while Git manages source, Docker manages containers, and IDEs manage editing.
+
+Read: `docs/user-docs/roadmap.md`.
