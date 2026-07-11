@@ -1,10 +1,14 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
     new JsonWorkspaceRepository(Path.Combine(ResolveDataDirectory(), "workspaces.json")));

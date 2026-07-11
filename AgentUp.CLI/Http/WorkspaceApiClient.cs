@@ -1,0 +1,26 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+
+namespace AgentUp.CLI.Http;
+
+public sealed class WorkspaceApiClient
+{
+    private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
+
+    private readonly HttpClient _http;
+
+    public WorkspaceApiClient(HttpClient http) => _http = http;
+
+    public async Task<WorkspaceDto?> RegisterAsync(RegisterWorkspaceRequest request)
+    {
+        var response = await _http.PostAsJsonAsync("/api/workspaces", request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WorkspaceDto>(Options);
+    }
+
+    public async Task<List<WorkspaceDto>> ListAsync()
+    {
+        var result = await _http.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces", Options);
+        return result ?? [];
+    }
+}
