@@ -42,6 +42,30 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
 
+        <!-- Application tab bar -->
+        <Style Selector="Border.appTab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover Border.appTab">
+            <Setter Property="Background" Value="#141424"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected Border.appTab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#7c6cf8"/>
+        </Style>
+
+        <!-- Sub-navbar tab -->
+        <Style Selector="Border.subTab">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+        </Style>
+        <Style Selector="Border.subTabActive">
+            <Setter Property="BorderBrush" Value="#5a50c8"/>
+        </Style>
+
         <!-- Workspace entry: normal / hover / selected -->
         <Style Selector="Border.wsEntry">
             <Setter Property="Background" Value="Transparent"/>
@@ -265,75 +289,104 @@
                                HorizontalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Workspace detail -->
+                <!-- Workspace detail: app tabs + sub-navbar + console -->
                 <Border x:Name="WorkspaceDetail"
-                        IsVisible="{Binding SelectedWorkspace, Converter={x:Static ObjectConverters.IsNotNull}}"
-                        Padding="40,32">
-                    <StackPanel DataContext="{Binding SelectedWorkspace}" Spacing="0">
+                        IsVisible="{Binding SelectedWorkspace, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Grid RowDefinitions="Auto,Auto,*">
 
-                        <TextBlock x:Name="DetailWorkspaceName"
-                                   Text="{Binding DisplayName}"
-                                   Foreground="#dcdce8"
-                                   FontSize="24"
-                                   FontWeight="SemiBold"
-                                   Margin="0,0,0,16"/>
-
-                        <!-- State badge -->
-                        <Border CornerRadius="5"
-                                Padding="10,4"
-                                HorizontalAlignment="Left"
-                                Background="#182218"
-                                Margin="0,0,0,32">
-                            <TextBlock Text="{Binding State}"
-                                       Foreground="#4cbe78"
-                                       FontSize="12"
-                                       FontWeight="Medium"/>
+                        <!-- Application tab bar -->
+                        <Border Grid.Row="0"
+                                Background="#12121a"
+                                BorderBrush="#1e1e2a"
+                                BorderThickness="0,0,0,1">
+                            <ListBox x:Name="ApplicationTabs"
+                                     ItemsSource="{Binding SelectedWorkspace.Applications}"
+                                     SelectedItem="{Binding SelectedApplication}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="vm:ApplicationViewModel">
+                                        <Border Classes="appTab" Padding="14,10">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Border Width="6" Height="6" CornerRadius="3"
+                                                        Background="{Binding StateColor}"
+                                                        VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="#c0c0d8"
+                                                           FontSize="12"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
                         </Border>
 
-                        <!-- Detail rows -->
-                        <Grid ColumnDefinitions="110,*"
-                              RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                        <!-- Sub-navbar (visible when an application is selected) -->
+                        <Border Grid.Row="1"
+                                IsVisible="{Binding SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Background="#0e0e16"
+                                BorderBrush="#1e1e2a"
+                                BorderThickness="0,0,0,1"
+                                Padding="16,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Classes="subTab subTabActive" Padding="10,7">
+                                    <TextBlock Text="Console"
+                                               Foreground="#dcdce8"
+                                               FontSize="11"
+                                               FontWeight="Medium"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0"
-                                       Text="Branch"
-                                       Foreground="#3e3e54" FontSize="12" Margin="0,0,0,14"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1"
-                                       Text="{Binding Branch}"
-                                       Foreground="#dcdce8" FontSize="12" Margin="0,0,0,14"/>
+                        <!-- Content area -->
+                        <Panel Grid.Row="2">
 
-                            <TextBlock Grid.Row="1" Grid.Column="0"
-                                       Text="Worktree"
-                                       Foreground="#3e3e54" FontSize="12" Margin="0,0,0,14"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1"
-                                       Text="{Binding WorktreePath}"
-                                       Foreground="#dcdce8" FontSize="12" Margin="0,0,0,14"
-                                       TextTrimming="CharacterEllipsis"/>
+                            <!-- No applications configured -->
+                            <StackPanel IsVisible="{Binding SelectedApplication, Converter={x:Static ObjectConverters.IsNull}}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <TextBlock Text="No applications configured"
+                                           Foreground="#2e2e42"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Add an agent-up.json with an applications list."
+                                           Foreground="#222230"
+                                           FontSize="11"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0"
-                                       Text="Repository"
-                                       Foreground="#3e3e54" FontSize="12" Margin="0,0,0,14"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1"
-                                       Text="{Binding RepositoryPath}"
-                                       Foreground="#dcdce8" FontSize="12" Margin="0,0,0,14"
-                                       TextTrimming="CharacterEllipsis"/>
+                            <!-- Console output -->
+                            <ScrollViewer x:Name="ConsolePane"
+                                          IsVisible="{Binding SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="ConsoleOutput"
+                                              ItemsSource="{Binding ApplicationOutput}"
+                                              Margin="20,14">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}"
+                                                       FontFamily="Consolas,Courier New,monospace"
+                                                       FontSize="11"
+                                                       Foreground="#7878a0"
+                                                       TextWrapping="NoWrap"
+                                                       Margin="0,1"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
 
-                            <TextBlock Grid.Row="3" Grid.Column="0"
-                                       Text="State"
-                                       Foreground="#3e3e54" FontSize="12" Margin="0,0,0,14"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1"
-                                       Text="{Binding State}"
-                                       Foreground="#dcdce8" FontSize="12" Margin="0,0,0,14"/>
+                        </Panel>
 
-                            <TextBlock Grid.Row="4" Grid.Column="0"
-                                       Text="ID"
-                                       Foreground="#3e3e54" FontSize="12" Margin="0,0,0,0"/>
-                            <TextBlock Grid.Row="4" Grid.Column="1"
-                                       Text="{Binding Id}"
-                                       Foreground="#5a5a72" FontSize="11" Margin="0,0,0,0"
-                                       FontFamily="Consolas,Courier New,monospace"/>
-                        </Grid>
-
-                    </StackPanel>
+                    </Grid>
                 </Border>
 
             </Panel>

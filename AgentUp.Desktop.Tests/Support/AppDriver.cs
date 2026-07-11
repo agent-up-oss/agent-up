@@ -44,6 +44,16 @@ internal sealed class AppDriver
         return (driver, handler);
     }
 
+    public static async Task<AppDriver> LaunchWithWorkspacesAndOutputAsync(
+        List<WorkspaceDto> workspaces,
+        Dictionary<string, List<string>> outputLines)
+    {
+        var handler = new FakeHttpMessageHandler(workspaces, outputLines);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var apiClient = new WorkspaceApiClient(http);
+        return await LaunchWithClientAsync(apiClient);
+    }
+
     private static async Task<AppDriver> LaunchAsync(List<WorkspaceDto> workspaces)
     {
         var handler = new FakeHttpMessageHandler(workspaces);

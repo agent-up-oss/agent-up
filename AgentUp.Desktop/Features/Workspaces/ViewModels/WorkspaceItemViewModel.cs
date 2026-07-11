@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Workspaces.Http;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -12,10 +13,12 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public string State { get; }
     public string Initials { get; }
     public string StateColor { get; }
+    public IReadOnlyList<ApplicationViewModel> Applications { get; }
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
-        string repositoryPath, string worktreePath, string state)
+        string repositoryPath, string worktreePath, string state,
+        IReadOnlyList<ApplicationDto>? applications = null)
     {
         Id = id;
         DisplayName = displayName;
@@ -25,6 +28,9 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         State = state;
         Initials = BuildInitials(displayName);
         StateColor = ResolveStateColor(state);
+        Applications = (applications ?? [])
+            .Select(a => new ApplicationViewModel(a.Name, a.Command, a.PortVariable, a.State))
+            .ToList();
     }
 
     private static string ResolveStateColor(string state) => state switch

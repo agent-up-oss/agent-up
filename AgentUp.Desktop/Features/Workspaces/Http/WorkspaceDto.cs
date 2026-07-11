@@ -7,4 +7,7 @@ public sealed record WorkspaceDto(
     string WorktreePath,
     string Branch,
     string Commit,
-    string State);
+    string State)
+{
+    public List<ApplicationDto> Applications { get; init; } = [];
+}

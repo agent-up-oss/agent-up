@@ -3,12 +3,32 @@ using AgentUp.Desktop.Features.Workspaces.Http;
 
 namespace AgentUp.Desktop.Tests.Support;
 
-internal sealed class FakeHttpMessageHandler(List<WorkspaceDto> workspaces) : HttpMessageHandler
+internal sealed class FakeHttpMessageHandler(
+    List<WorkspaceDto> workspaces,
+    Dictionary<string, List<string>>? outputLines = null) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
-        var content = JsonContent.Create(workspaces);
-        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
+        var path = request.RequestUri?.AbsolutePath ?? "";
+
+        if (outputLines is not null && path.EndsWith("/output"))
+        {
+            var key = ExtractOutputKey(path);
+            var lines = outputLines.GetValueOrDefault(key, []);
+            return Task.FromResult(Ok(lines));
+        }
+
+        return Task.FromResult(Ok(workspaces));
+    }
+
+    private static HttpResponseMessage Ok<T>(T value) =>
+        new(System.Net.HttpStatusCode.OK) { Content = JsonContent.Create(value) };
+
+    // /api/workspaces/{id}/applications/{name}/output → "id/name"
+    private static string ExtractOutputKey(string path)
+    {
+        var parts = path.Trim('/').Split('/');
+        return parts.Length >= 6 ? $"{parts[2]}/{parts[4]}" : string.Empty;
     }
 }
 

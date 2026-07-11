@@ -10,11 +10,14 @@ public sealed class MainViewModel : ReactiveObject
     private readonly WorkspaceApiClient _client;
 
     private WorkspaceItemViewModel? _selectedWorkspace;
+    private ApplicationViewModel? _selectedApplication;
     private bool _isSidebarCollapsed;
     private bool _isLoading;
+    private bool _isLoadingOutput;
     private string? _errorMessage;
 
     public ObservableCollection<WorkspaceItemViewModel> Workspaces { get; } = [];
+    public ObservableCollection<string> ApplicationOutput { get; } = [];
 
     public WorkspaceItemViewModel? SelectedWorkspace
     {
@@ -23,7 +26,24 @@ public sealed class MainViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _selectedWorkspace, value);
             this.RaisePropertyChanged(nameof(ShowEmptyState));
+            SelectedApplication = value?.Applications.FirstOrDefault();
         }
+    }
+
+    public ApplicationViewModel? SelectedApplication
+    {
+        get => _selectedApplication;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedApplication, value);
+            _ = LoadApplicationOutputAsync(value);
+        }
+    }
+
+    public bool IsLoadingOutput
+    {
+        get => _isLoadingOutput;
+        set => this.RaiseAndSetIfChanged(ref _isLoadingOutput, value);
     }
 
     public bool IsSidebarCollapsed
@@ -78,6 +98,33 @@ public sealed class MainViewModel : ReactiveObject
 
     public async Task InitializeAsync() => await LoadWorkspacesAsync();
 
+    private async Task LoadApplicationOutputAsync(ApplicationViewModel? app)
+    {
+        ApplicationOutput.Clear();
+        if (app is null || _selectedWorkspace is null) return;
+
+        var workspaceId = _selectedWorkspace.Id;
+        var appName = app.Name;
+
+        IsLoadingOutput = true;
+        try
+        {
+            var lines = await _client.GetApplicationOutputAsync(workspaceId, appName);
+            if (_selectedWorkspace?.Id != workspaceId || _selectedApplication?.Name != appName)
+                return;
+
+            ApplicationOutput.Clear();
+            foreach (var line in lines)
+                ApplicationOutput.Add(line);
+        }
+        catch { /* output fetch failure is non-fatal */ }
+        finally
+        {
+            if (_selectedWorkspace?.Id == workspaceId && _selectedApplication?.Name == appName)
+                IsLoadingOutput = false;
+        }
+    }
+
     private async Task LoadWorkspacesAsync(CancellationToken ct = default)
     {
         IsLoading = true;
@@ -88,7 +135,8 @@ public sealed class MainViewModel : ReactiveObject
             Workspaces.Clear();
             foreach (var ws in workspaces)
                 Workspaces.Add(new WorkspaceItemViewModel(
-                    ws.Id, ws.DisplayName, ws.Branch, ws.RepositoryPath, ws.WorktreePath, ws.State));
+                    ws.Id, ws.DisplayName, ws.Branch, ws.RepositoryPath, ws.WorktreePath, ws.State,
+                    ws.Applications));
 
             if (SelectedWorkspace is null && Workspaces.Count > 0)
                 SelectedWorkspace = Workspaces[0];
