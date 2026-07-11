@@ -185,4 +185,85 @@ public class WorkspaceRegistryTests
         Assert.That(_registry.GetById(a.Id)!.Branch, Is.Not.EqualTo(_registry.GetById(b.Id)!.Branch));
         Assert.That(_registry.GetById(a.Id)!.Commit, Is.Not.EqualTo(_registry.GetById(b.Id)!.Commit));
     }
+
+    [Test]
+    public async Task Register_DockerServices_AreIncluded_InApplicationsList()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Services = [new DockerServiceDefinition("Database", "postgres:16")]
+        };
+
+        var workspace = await _registry.RegisterAsync(request);
+
+        Assert.That(workspace.Applications, Has.Count.EqualTo(1));
+        Assert.That(workspace.Applications[0].Name, Is.EqualTo("Database"));
+        Assert.That(workspace.Applications[0].ServiceType, Is.EqualTo(ServiceType.Docker));
+    }
+
+    [Test]
+    public async Task Register_DockerService_PreservesImage()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Services = [new DockerServiceDefinition("Cache", "redis:7")]
+        };
+
+        var workspace = await _registry.RegisterAsync(request);
+
+        Assert.That(workspace.Applications[0].Image, Is.EqualTo("redis:7"));
+    }
+
+    [Test]
+    public async Task Register_DockerService_PreservesPorts_Environment_Volumes()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Services =
+            [
+                new DockerServiceDefinition(
+                    Name: "Database",
+                    Image: "postgres:16",
+                    Ports: ["5432:5432"],
+                    Environment: new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "secret" },
+                    Volumes: ["pgdata:/var/lib/postgresql/data"])
+            ]
+        };
+
+        var workspace = await _registry.RegisterAsync(request);
+        var db = workspace.Applications[0];
+
+        Assert.That(db.Ports, Is.EqualTo(new[] { "5432:5432" }));
+        Assert.That(db.Environment!["POSTGRES_PASSWORD"], Is.EqualTo("secret"));
+        Assert.That(db.Volumes, Is.EqualTo(new[] { "pgdata:/var/lib/postgresql/data" }));
+    }
+
+    [Test]
+    public async Task Register_MixedApplicationsAndServices_AreAllPresent()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("API", "dotnet run", null, null)],
+            Services = [new DockerServiceDefinition("Database", "postgres:16")]
+        };
+
+        var workspace = await _registry.RegisterAsync(request);
+
+        Assert.That(workspace.Applications, Has.Count.EqualTo(2));
+        Assert.That(workspace.Applications.Single(a => a.Name == "API").ServiceType, Is.EqualTo(ServiceType.Process));
+        Assert.That(workspace.Applications.Single(a => a.Name == "Database").ServiceType, Is.EqualTo(ServiceType.Docker));
+    }
+
+    [Test]
+    public async Task Register_DockerService_DefaultsStateTo_Stopped()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Services = [new DockerServiceDefinition("Database", "postgres:16")]
+        };
+
+        var workspace = await _registry.RegisterAsync(request);
+
+        Assert.That(workspace.Applications[0].State, Is.EqualTo(ApplicationState.Stopped));
+    }
 }

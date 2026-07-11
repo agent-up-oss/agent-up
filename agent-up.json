@@ -6,5 +6,16 @@
       "command": "npm run start",
       "path": "docs"
     }
+  ],
+  "services": [
+    {
+      "name": "Database",
+      "image": "postgres:16",
+      "ports": ["5432:5432"],
+      "environment": { 
+        "POSTGRES_PASSWORD": "secret"
+      },
+      "volumes": ["pgdata:/var/lib/postgresql/data"]
+    }
   ]
 }

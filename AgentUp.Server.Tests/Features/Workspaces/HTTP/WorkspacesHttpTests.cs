@@ -405,6 +405,53 @@ public class WorkspacesHttpTests
     }
 
     [Test]
+    public async Task Register_DockerServices_AppearInApplicationsList_WithDockerType()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Services =
+            [
+                new DockerServiceDefinition(
+                    Name: "Database",
+                    Image: "postgres:16",
+                    Ports: ["5432:5432"],
+                    Environment: new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "secret" },
+                    Volumes: ["pgdata:/var/lib/postgresql/data"])
+            ]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications");
+
+        Assert.That(apps, Has.Count.EqualTo(1));
+        var db = apps![0];
+        Assert.That(db.Name, Is.EqualTo("Database"));
+        Assert.That(db.ServiceType, Is.EqualTo(ServiceType.Docker));
+        Assert.That(db.Image, Is.EqualTo("postgres:16"));
+        Assert.That(db.Ports, Is.EqualTo(new[] { "5432:5432" }));
+        Assert.That(db.Environment!["POSTGRES_PASSWORD"], Is.EqualTo("secret"));
+        Assert.That(db.Volumes, Is.EqualTo(new[] { "pgdata:/var/lib/postgresql/data" }));
+        Assert.That(db.State, Is.EqualTo(ApplicationState.Stopped));
+    }
+
+    [Test]
+    public async Task Register_MixedApplicationsAndServices_BothAppearInList()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("API", "dotnet run", null, null)],
+            Services = [new DockerServiceDefinition("Database", "postgres:16")]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications");
+
+        Assert.That(apps!, Has.Count.EqualTo(2));
+        Assert.That(apps!.Single(a => a.Name == "API").ServiceType, Is.EqualTo(ServiceType.Process));
+        Assert.That(apps!.Single(a => a.Name == "Database").ServiceType, Is.EqualTo(ServiceType.Docker));
+    }
+
+    [Test]
     public async Task MultipleWorkspaces_CoexistWithIsolatedState()
     {
         var a = (await (await _client.PostAsJsonAsync("/api/workspaces",

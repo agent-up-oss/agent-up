@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using Microsoft.Extensions.Hosting;
@@ -7,10 +8,11 @@ using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
 
-public sealed class WorkspaceProcessManager : IWorkspaceProcessManager, IHostedService
+public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, IHostedService
 {
     // key: (workspaceId, appName)
     private readonly ConcurrentDictionary<(string, string), Process> _processes = new();
+    private readonly ConcurrentDictionary<(string, string), string> _containerNames = new();
 
     private readonly IWorkspaceRegistry _registry;
     private readonly IOutputRepository _output;
@@ -41,13 +43,21 @@ public sealed class WorkspaceProcessManager : IWorkspaceProcessManager, IHostedS
         await KillApplicationAsync(workspace.Id, appName);
         await _output.ClearAsync(workspace.Id, appName);
 
+        if (app.ServiceType == ServiceType.Docker)
+        {
+            await LaunchDockerServiceAsync(workspace.Id, app);
+            return;
+        }
+
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/usr/bin/env",
-                ArgumentList = { "bash", "-c", app.Command },
-                WorkingDirectory = workspace.WorktreePath,
+                ArgumentList = { "bash", "-c", app.Command! },
+                WorkingDirectory = app.Path is not null
+                    ? Path.Combine(workspace.WorktreePath, app.Path)
+                    : workspace.WorktreePath,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -88,48 +98,192 @@ public sealed class WorkspaceProcessManager : IWorkspaceProcessManager, IHostedS
         _logger.LogInformation("Started '{App}' (pid {Pid}) in workspace {Id}", appName, process.Id, workspaceId);
     }
 
+    private async Task LaunchDockerServiceAsync(string workspaceId, ApplicationInstance app)
+    {
+        var containerName = GetContainerName(workspaceId, app.Name);
+        _containerNames[(workspaceId, app.Name)] = containerName;
+
+        try
+        {
+            // Remove any stale container with this name
+            await RunDockerAsync("rm", "-f", containerName);
+
+            var runArgs = new List<string> { "run", "-d", "--name", containerName };
+            foreach (var port in app.Ports ?? [])
+            {
+                runArgs.Add("-p");
+                runArgs.Add(port);
+            }
+            foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
+            {
+                runArgs.Add("-e");
+                runArgs.Add($"{key}={value}");
+            }
+            foreach (var volume in app.Volumes ?? [])
+            {
+                runArgs.Add("-v");
+                runArgs.Add(volume);
+            }
+            runArgs.Add(app.Image!);
+
+            var (exitCode, _, stderr) = await RunDockerAsync([.. runArgs]);
+            if (exitCode != 0)
+                throw new InvalidOperationException($"docker run failed for '{app.Name}': {stderr.Trim()}");
+
+            _logger.LogInformation("Started Docker container '{Container}' for '{App}' in workspace {Id}", containerName, app.Name, workspaceId);
+        }
+        catch
+        {
+            _containerNames.TryRemove((workspaceId, app.Name), out _);
+            throw;
+        }
+
+        // Tail logs for output capture
+        var logProcess = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "docker",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            },
+            EnableRaisingEvents = true
+        };
+        logProcess.StartInfo.ArgumentList.Add("logs");
+        logProcess.StartInfo.ArgumentList.Add("-f");
+        logProcess.StartInfo.ArgumentList.Add(containerName);
+
+        var appName = app.Name;
+        logProcess.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data is not null)
+                _ = _output.AppendAsync(workspaceId, appName, e.Data);
+        };
+        logProcess.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data is not null)
+                _ = _output.AppendAsync(workspaceId, appName, "[err] " + e.Data);
+        };
+        logProcess.Exited += (sender, args) =>
+        {
+            _processes.TryRemove((workspaceId, appName), out var exited);
+            exited?.Dispose();
+
+            // Only update state for natural exits (not kills we initiated)
+            if (!_containerNames.ContainsKey((workspaceId, appName)))
+                return;
+
+            _ = Task.Run(async () =>
+            {
+                var containerExitCode = await GetContainerExitCodeAsync(containerName);
+                _containerNames.TryRemove((workspaceId, appName), out _);
+                await RunDockerAsync("rm", "-f", containerName);
+
+                var exitState = containerExitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
+                await _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
+                _logger.LogInformation("Container '{Container}' for '{App}' in workspace {Id} exited with code {Code}", containerName, appName, workspaceId, containerExitCode);
+            });
+        };
+
+        logProcess.Start();
+        logProcess.BeginOutputReadLine();
+        logProcess.BeginErrorReadLine();
+        _processes[(workspaceId, appName)] = logProcess;
+    }
+
     public async Task KillAsync(string workspaceId)
     {
         var appNames = _processes.Keys
             .Where(k => k.Item1 == workspaceId)
             .Select(k => k.Item2)
+            .Union(_containerNames.Keys
+                .Where(k => k.Item1 == workspaceId)
+                .Select(k => k.Item2))
             .ToList();
 
         foreach (var appName in appNames)
             await KillApplicationAsync(workspaceId, appName);
     }
 
-    public Task KillApplicationAsync(string workspaceId, string appName)
+    public async Task KillApplicationAsync(string workspaceId, string appName)
     {
-        if (!_processes.TryRemove((workspaceId, appName), out var process))
-            return Task.CompletedTask;
+        // Remove container tracking before killing so the Exited handler knows it was intentional
+        _containerNames.TryRemove((workspaceId, appName), out var containerName);
 
-        try
+        if (_processes.TryRemove((workspaceId, appName), out var process))
         {
-            if (!process.HasExited)
+            try
             {
-                process.Kill(entireProcessTree: true);
-                _logger.LogInformation("Killed '{App}' (pid {Pid}) in workspace {Id}", appName, process.Id, workspaceId);
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    _logger.LogInformation("Killed '{App}' (pid {Pid}) in workspace {Id}", appName, process.Id, workspaceId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to kill '{App}' in workspace {Id}", appName, workspaceId);
+            }
+            finally
+            {
+                process.Dispose();
             }
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to kill '{App}' in workspace {Id}", appName, workspaceId);
-        }
-        finally
-        {
-            process.Dispose();
-        }
 
-        return Task.CompletedTask;
+        if (containerName is not null)
+        {
+            _logger.LogInformation("Stopping Docker container '{Container}' for '{App}' in workspace {Id}", containerName, appName, workspaceId);
+            await RunDockerAsync("rm", "-f", containerName);
+        }
     }
+
+    private static async Task<int> GetContainerExitCodeAsync(string containerName)
+    {
+        var (_, stdout, _) = await RunDockerAsync("inspect", "--format={{.State.ExitCode}}", containerName);
+        return int.TryParse(stdout.Trim(), out var code) ? code : 1;
+    }
+
+    private static async Task<(int ExitCode, string Stdout, string Stderr)> RunDockerAsync(params string[] args)
+    {
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "docker",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            }
+        };
+        foreach (var arg in args)
+            process.StartInfo.ArgumentList.Add(arg);
+
+        process.Start();
+        var stdout = await process.StandardOutput.ReadToEndAsync();
+        var stderr = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        return (process.ExitCode, stdout, stderr);
+    }
+
+    private static string GetContainerName(string workspaceId, string appName)
+    {
+        var safeId = workspaceId[..Math.Min(8, workspaceId.Length)];
+        var safeName = ContainerNameSanitizer().Replace(appName.ToLower(), "-").Trim('-');
+        return $"agentup-{safeId}-{safeName}";
+    }
+
+    [GeneratedRegex(@"[^a-z0-9]+")]
+    private static partial Regex ContainerNameSanitizer();
 
     Task IHostedService.StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     Task IHostedService.StopAsync(CancellationToken cancellationToken)
     {
         foreach (var (workspaceId, appName) in _processes.Keys.ToList())
-            KillApplicationAsync(workspaceId, appName);
+            _ = KillApplicationAsync(workspaceId, appName);
         return Task.CompletedTask;
     }
 }
