@@ -1,0 +1,81 @@
+name: Agent-Up CI
+
+on: [push]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: zulu
+
+      - name: Install SonarScanner
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+
+      - name: Sonar begin
+        run: |
+          dotnet sonarscanner begin \
+            /k:"agent-up" \
+            /n:"agent-up" \
+            /d:sonar.scanner.skipJreProvisioning=true \
+            /d:sonar.projectBaseDir="${{ github.workspace }}" \
+            /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+
+      - name: Build
+        run: |
+          dotnet build "agent-up.sln" --configuration Release
+
+      - name: Run tests
+        shell: bash
+        run: |
+          found_tests=false
+
+          while IFS= read -r -d '' test_project; do
+            found_tests=true
+            dotnet test "$test_project" \
+              --configuration Release \
+              --no-build \
+              --settings "coverlet.runsettings" \
+              --logger "trx;LogFileName=test-results.trx" \
+              --collect:"XPlat Code Coverage"
+          done < <(find . -name "*Tests.csproj" -print0)
+
+          if [ "$found_tests" = false ]; then
+            echo "No test projects found"
+            exit 1
+          fi
+
+      - name: Sonar end
+        run: |
+          dotnet sonarscanner end \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Test Report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }}
+        with:
+          name: .NET Tests (Agent-Up)
+          path: "**/test-results.trx"
+          reporter: dotnet-trx

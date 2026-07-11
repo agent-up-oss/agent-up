@@ -7,8 +7,8 @@
   Agent-Up
 </h1>
 <p align="center">
-  <a href="https://github.com/themassiveone/agent-up/actions/workflows/cd.yml">
-    <img src="https://github.com/themassiveone/agent-up/actions/workflows/cd.yml/badge.svg" />
+  <a href="https://github.com/themassiveone/agent-up/actions/workflows/ci.yml">
+    <img src="https://github.com/themassiveone/agent-up/actions/workflows/ci.yml/badge.svg" />
   </a>
 </p>
 <p align="center">
