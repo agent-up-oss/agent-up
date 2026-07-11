@@ -41,7 +41,7 @@
 
 .eyebrow {
   margin: 0 0 1rem;
-  color: var(--agentup-teal);
+  color: var(--agentup-orange);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -1226,11 +1226,12 @@
   line-height: 1.78;
 }
 
-.operatingModel p {
-  margin: 0;
+.operatingModel p:last-child {
+  max-width: 760px;
+  margin: 1.4rem auto 0;
   color: var(--agentup-muted);
-  font-size: 1.06rem;
-  line-height: 1.75;
+  font-size: 1.14rem;
+  line-height: 1.78;
 }
 
 .problemSections {
@@ -1289,15 +1290,6 @@
 
 .validation {
   background: transparent;
-}
-
-.problemIndex {
-  margin: 0 0 1rem;
-  color: var(--agentup-coral);
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .problemSection h2 {
@@ -1456,10 +1448,11 @@
   gap: 0.8rem;
   padding: 1rem;
   border-radius: 14px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--agentup-surface) 82%, transparent), color-mix(in srgb, var(--agentup-mist) 72%, transparent)),
-    url('/img/workspace-grid.svg');
-  background-size: cover;
+  background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--agentup-surface) 82%, transparent),
+          color-mix(in srgb, var(--agentup-mist) 72%, transparent)
+  );
 }
 
 .stateVisual strong {

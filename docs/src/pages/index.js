@@ -18,7 +18,7 @@ const problems = [
     headline: 'Parallel branches stop fighting over the same infrastructure.',
     body: 'Each workspace owns its infrastructure lifecycle. Containers, databases, networks, and runtime assumptions stay scoped to the worktree that needs them.',
     layout: 'docker',
-    details: ['agent-1', 'agent-2', 'review'],
+    details: ['agent-1', 'agent-2', 'agent-3'],
   },
   {
     label: 'Tab overload',
@@ -924,7 +924,7 @@ function ProblemSection({problem, index}) {
   return (
     <section className={`${styles.problemSection} ${styles[problem.layout]}`}>
       <div>
-        <p className={styles.problemIndex}>{String(index + 1).padStart(2, '0')} / {problem.label}</p>
+        <p className={styles.eyebrow}>{problem.label}</p>
         <h2>{problem.title}</h2>
         <h3>{problem.headline}</h3>
         <p>{problem.body}</p>

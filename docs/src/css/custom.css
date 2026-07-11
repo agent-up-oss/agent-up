@@ -270,9 +270,9 @@ body {
 
 .menu__link--active {
   color: var(--agentup-ink);
-  background: color-mix(in srgb, var(--agentup-teal) 12%, transparent);
+  background: var(--ifm-background-surface-color);
   font-weight: 800;
-  box-shadow: inset 3px 0 0 var(--agentup-coral);
+  box-shadow: inset 3px 0 0 var(--agentup-forest-2);
 }
 
 .menu__list-item-collapsible {
@@ -481,6 +481,15 @@ body {
 .footer__copyright {
   color: color-mix(in srgb, #f4f7f2 42%, transparent);
   font-size: 0.8rem;
+}
+
+.agentup-eyebrow {
+  margin: 0 0 1rem;
+  color: var(--agentup-orange);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .agentup-callout {
