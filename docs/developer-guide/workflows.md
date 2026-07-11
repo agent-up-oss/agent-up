@@ -37,3 +37,7 @@ AI agents should use the Server's MCP capabilities to inspect, navigate, interac
 ## Shared Human and Agent Context
 
 Because humans and AI agents share the same browser session inside a workspace, validation can reuse authentication and application state instead of recreating it in a separate test browser.
+
+## Continuous Integration
+
+GitHub Actions runs the Agent-Up CI workflow on push. The workflow builds `agent-up.sln`, runs every `*Tests.csproj` project, publishes TRX test results, collects Cobertura coverage through `coverlet.runsettings`, and submits analysis to Sonar using the `agent-up` project key.

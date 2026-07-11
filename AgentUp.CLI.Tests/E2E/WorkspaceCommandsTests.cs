@@ -95,6 +95,18 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
+    public async Task Register_Twice_DoesNotDuplicate()
+    {
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["register"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.That(workspaces, Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public async Task Register_Fails_WhenAgentUpJsonMissing()
     {
         File.Delete(Path.Combine(_workspaceDir, "agent-up.json"));

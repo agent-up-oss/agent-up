@@ -58,6 +58,38 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task Register_SameWorktreePath_RetainsId_AndDoesNotDuplicate()
+    {
+        var first = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var second = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c2"));
+
+        Assert.That(second.Id, Is.EqualTo(first.Id));
+        Assert.That(_registry.GetAll(), Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Register_SameWorktreePath_UpdatesFields()
+    {
+        await _registry.RegisterAsync(new RegisterWorkspaceRequest("Old Name", "/r", "/r/a", "main", "c1"));
+        var updated = await _registry.RegisterAsync(new RegisterWorkspaceRequest("New Name", "/r", "/r/a", "feature", "c2"));
+
+        Assert.That(updated.DisplayName, Is.EqualTo("New Name"));
+        Assert.That(updated.Branch, Is.EqualTo("feature"));
+        Assert.That(updated.Commit, Is.EqualTo("c2"));
+    }
+
+    [Test]
+    public async Task Register_SameWorktreePath_ResetsStateTo_Stopped()
+    {
+        var first = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        await _registry.UpdateStateAsync(first.Id, WorkspaceState.Running);
+
+        var second = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c2"));
+
+        Assert.That(second.State, Is.EqualTo(WorkspaceState.Stopped));
+    }
+
+    [Test]
     public async Task Register_DefaultsStateTo_Stopped()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));

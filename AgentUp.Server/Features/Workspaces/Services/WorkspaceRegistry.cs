@@ -35,9 +35,12 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
 
     public async Task<Workspace> RegisterAsync(RegisterWorkspaceRequest request)
     {
+        var existing = _workspaces.Values.FirstOrDefault(w =>
+            string.Equals(w.WorktreePath, request.WorktreePath, StringComparison.OrdinalIgnoreCase));
+
         var workspace = new Workspace
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = existing?.Id ?? Guid.NewGuid().ToString(),
             DisplayName = request.DisplayName,
             RepositoryPath = request.RepositoryPath,
             WorktreePath = request.WorktreePath,
