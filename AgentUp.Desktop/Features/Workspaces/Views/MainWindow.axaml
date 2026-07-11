@@ -80,7 +80,8 @@
             <DockPanel>
 
                 <!-- Collapse toggle (docked bottom so it stays put) -->
-                <Button DockPanel.Dock="Bottom"
+                <Button x:Name="SidebarToggle"
+                        DockPanel.Dock="Bottom"
                         Command="{Binding ToggleSidebarCommand}"
                         HorizontalAlignment="Right"
                         Margin="0,6,10,14">
@@ -109,10 +110,12 @@
                         IsVisible="{Binding IsSidebarCollapsed}"/>
 
                 <!-- Expanded workspace list -->
-                <ScrollViewer IsVisible="{Binding IsSidebarExpanded}"
+                <ScrollViewer x:Name="WorkspaceListExpanded"
+                              IsVisible="{Binding IsSidebarExpanded}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <ListBox ItemsSource="{Binding Workspaces}"
+                    <ListBox
+                             ItemsSource="{Binding Workspaces}"
                              SelectedItem="{Binding SelectedWorkspace}">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
@@ -139,10 +142,12 @@
                 </ScrollViewer>
 
                 <!-- Collapsed avatar list -->
-                <ScrollViewer IsVisible="{Binding IsSidebarCollapsed}"
+                <ScrollViewer x:Name="WorkspaceListCollapsed"
+                              IsVisible="{Binding IsSidebarCollapsed}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <ListBox ItemsSource="{Binding Workspaces}"
+                    <ListBox
+                             ItemsSource="{Binding Workspaces}"
                              SelectedItem="{Binding SelectedWorkspace}">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
@@ -172,7 +177,8 @@
             <Panel>
 
                 <!-- Loading -->
-                <TextBlock IsVisible="{Binding IsLoading}"
+                <TextBlock x:Name="LoadingIndicator"
+                           IsVisible="{Binding IsLoading}"
                            Text="Connecting to server…"
                            Foreground="#4a4a62"
                            FontSize="14"
@@ -180,7 +186,8 @@
                            VerticalAlignment="Center"/>
 
                 <!-- Error -->
-                <Panel IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <Panel x:Name="ErrorPanel"
+                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <Border HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Background="#130e10"
@@ -203,7 +210,8 @@
                 </Panel>
 
                 <!-- Empty state -->
-                <StackPanel IsVisible="{Binding SelectedWorkspace, Converter={x:Static ObjectConverters.IsNull}}"
+                <StackPanel x:Name="EmptyState"
+                            IsVisible="{Binding ShowEmptyState}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Spacing="10">
@@ -219,11 +227,13 @@
                 </StackPanel>
 
                 <!-- Workspace detail -->
-                <Border IsVisible="{Binding SelectedWorkspace, Converter={x:Static ObjectConverters.IsNotNull}}"
+                <Border x:Name="WorkspaceDetail"
+                        IsVisible="{Binding SelectedWorkspace, Converter={x:Static ObjectConverters.IsNotNull}}"
                         Padding="40,32">
                     <StackPanel DataContext="{Binding SelectedWorkspace}" Spacing="0">
 
-                        <TextBlock Text="{Binding DisplayName}"
+                        <TextBlock x:Name="DetailWorkspaceName"
+                                   Text="{Binding DisplayName}"
                                    Foreground="#dcdce8"
                                    FontSize="24"
                                    FontWeight="SemiBold"

@@ -19,7 +19,11 @@ public sealed class MainViewModel : ReactiveObject
     public WorkspaceItemViewModel? SelectedWorkspace
     {
         get => _selectedWorkspace;
-        set => this.RaiseAndSetIfChanged(ref _selectedWorkspace, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedWorkspace, value);
+            this.RaisePropertyChanged(nameof(ShowEmptyState));
+        }
     }
 
     public bool IsSidebarCollapsed
@@ -43,14 +47,24 @@ public sealed class MainViewModel : ReactiveObject
     public bool IsLoading
     {
         get => _isLoading;
-        set => this.RaiseAndSetIfChanged(ref _isLoading, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isLoading, value);
+            this.RaisePropertyChanged(nameof(ShowEmptyState));
+        }
     }
 
     public string? ErrorMessage
     {
         get => _errorMessage;
-        set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _errorMessage, value);
+            this.RaisePropertyChanged(nameof(ShowEmptyState));
+        }
     }
+
+    public bool ShowEmptyState => _selectedWorkspace is null && _errorMessage is null && !_isLoading;
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleSidebarCommand { get; }

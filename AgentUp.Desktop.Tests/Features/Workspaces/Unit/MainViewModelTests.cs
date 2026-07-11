@@ -1,6 +1,6 @@
-using System.Net.Http.Json;
 using AgentUp.Desktop.Features.Workspaces.Http;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 
@@ -95,11 +95,3 @@ public class MainViewModelTests
     }
 }
 
-file sealed class FakeHttpMessageHandler(List<WorkspaceDto> workspaces) : HttpMessageHandler
-{
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-    {
-        var content = JsonContent.Create(workspaces);
-        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
-    }
-}
