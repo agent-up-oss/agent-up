@@ -11,6 +11,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public string WorktreePath { get; }
     public string State { get; }
     public string Initials { get; }
+    public string StateColor { get; }
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
@@ -23,7 +24,16 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         WorktreePath = worktreePath;
         State = state;
         Initials = BuildInitials(displayName);
+        StateColor = ResolveStateColor(state);
     }
+
+    private static string ResolveStateColor(string state) => state switch
+    {
+        "Running" => "#4cbe78",
+        "Starting" or "Stopping" => "#c8963c",
+        "Failed" => "#b85a5a",
+        _ => "#3a3a50"
+    };
 
     private static string BuildInitials(string name)
     {

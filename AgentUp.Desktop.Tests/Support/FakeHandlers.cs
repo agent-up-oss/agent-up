@@ -17,3 +17,16 @@ internal sealed class ErrorHttpMessageHandler : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable));
 }
+
+internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) : HttpMessageHandler
+{
+    private volatile List<WorkspaceDto> _workspaces = initial;
+
+    public void SetWorkspaces(List<WorkspaceDto> workspaces) => _workspaces = workspaces;
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        var content = JsonContent.Create(_workspaces);
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
+    }
+}

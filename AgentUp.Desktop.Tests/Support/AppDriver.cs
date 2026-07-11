@@ -35,6 +35,15 @@ internal sealed class AppDriver
         return await LaunchWithClientAsync(apiClient);
     }
 
+    public static async Task<(AppDriver Driver, MutableFakeHttpMessageHandler Handler)> LaunchWithMutableWorkspacesAsync(List<WorkspaceDto> initial)
+    {
+        var handler = new MutableFakeHttpMessageHandler(initial);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var apiClient = new WorkspaceApiClient(http);
+        var driver = await LaunchWithClientAsync(apiClient);
+        return (driver, handler);
+    }
+
     private static async Task<AppDriver> LaunchAsync(List<WorkspaceDto> workspaces)
     {
         var handler = new FakeHttpMessageHandler(workspaces);

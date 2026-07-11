@@ -40,4 +40,12 @@ internal sealed class SidebarDriver(MainWindow window)
         Vm.SelectedWorkspace = Vm.Workspaces[index];
         await HeadlessExtensions.FlushAsync();
     }
+
+    public async Task ClickReloadAsync()
+    {
+        var button = window.FindControl<Button>("ReloadButton");
+        if (button is null)
+            throw new InvalidOperationException("ReloadButton not found — sidebar must be expanded to use this overload.");
+        await window.ClickControlAsync(button);
+    }
 }

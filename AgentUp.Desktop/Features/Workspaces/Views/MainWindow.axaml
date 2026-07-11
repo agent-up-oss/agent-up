@@ -79,7 +79,7 @@
                 BorderThickness="0,0,1,0">
             <DockPanel>
 
-                <!-- Collapse toggle (docked bottom so it stays put) -->
+                <!-- Collapse toggle (docked to very bottom) -->
                 <Button x:Name="SidebarToggle"
                         DockPanel.Dock="Bottom"
                         Command="{Binding ToggleSidebarCommand}"
@@ -94,14 +94,47 @@
                     </Border>
                 </Button>
 
-                <!-- Header label (expanded only) -->
+                <!-- Reload button (collapsed only, sits just above toggle) -->
+                <Button x:Name="ReloadButtonCollapsed"
+                        DockPanel.Dock="Bottom"
+                        Command="{Binding RefreshCommand}"
+                        IsVisible="{Binding IsSidebarCollapsed}"
+                        HorizontalAlignment="Center"
+                        Margin="0,4,0,2"
+                        ToolTip.Tip="Reload workspaces">
+                    <Border Width="26" Height="26" CornerRadius="5" Background="#22222e">
+                        <TextBlock Text="↺"
+                                   Foreground="#5a5a72"
+                                   FontSize="14"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                </Button>
+
+                <!-- Header: label + reload button (expanded only) -->
                 <Border DockPanel.Dock="Top"
-                        Padding="16,14,16,6"
+                        Padding="16,12,10,6"
                         IsVisible="{Binding IsSidebarExpanded}">
-                    <TextBlock Text="Workspaces"
-                               Foreground="#4a4a62"
-                               FontSize="11"
-                               FontWeight="SemiBold"/>
+                    <DockPanel>
+                        <Button x:Name="ReloadButton"
+                                DockPanel.Dock="Right"
+                                Command="{Binding RefreshCommand}"
+                                VerticalAlignment="Center"
+                                ToolTip.Tip="Reload workspaces">
+                            <Border Width="22" Height="22" CornerRadius="4" Background="#1c1c26">
+                                <TextBlock Text="↺"
+                                           Foreground="#5a5a72"
+                                           FontSize="13"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                        </Button>
+                        <TextBlock Text="Workspaces"
+                                   Foreground="#4a4a62"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
                 </Border>
 
                 <!-- Spacer above avatar list (collapsed only) -->
@@ -121,18 +154,24 @@
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
                                 <Border Padding="8,2">
                                     <Border Classes="wsEntry" CornerRadius="6" Padding="10,8">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="{Binding DisplayName}"
-                                                       Foreground="#dcdce8"
-                                                       FontSize="13"
-                                                       FontWeight="Medium"/>
+                                        <StackPanel Spacing="3">
+                                            <DockPanel>
+                                                <Border DockPanel.Dock="Left"
+                                                        Width="6" Height="6"
+                                                        CornerRadius="3"
+                                                        Background="{Binding StateColor}"
+                                                        VerticalAlignment="Center"
+                                                        Margin="0,0,7,0"/>
+                                                <TextBlock Text="{Binding DisplayName}"
+                                                           Foreground="#dcdce8"
+                                                           FontSize="13"
+                                                           FontWeight="Medium"
+                                                           VerticalAlignment="Center"/>
+                                            </DockPanel>
                                             <TextBlock Text="{Binding Branch}"
                                                        Foreground="#5a5a72"
-                                                       FontSize="11"/>
-                                            <TextBlock Text="{Binding WorktreePath}"
-                                                       Foreground="#3a3a50"
-                                                       FontSize="10"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       FontSize="11"
+                                                       Margin="13,0,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </Border>

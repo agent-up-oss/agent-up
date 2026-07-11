@@ -69,4 +69,20 @@ public class SidebarBehaviorTests
 
         Assert.That(app.Sidebar.SelectedWorkspaceName, Is.EqualTo(selectedName));
     }
+
+    [AvaloniaTest]
+    public async Task Sidebar_updatesWorkspaceList_whenReloadButtonClicked()
+    {
+        var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(WorkspaceFixtures.Multiple());
+        Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(3));
+
+        var updated = WorkspaceFixtures.Multiple();
+        updated.Add(new AgentUp.Desktop.Features.Workspaces.Http.WorkspaceDto(
+            "ws-4", "New Service", "/repo/new", "/worktrees/new", "main", "aaa000", "Stopped"));
+        handler.SetWorkspaces(updated);
+
+        await app.Sidebar.ClickReloadAsync();
+
+        Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(4));
+    }
 }

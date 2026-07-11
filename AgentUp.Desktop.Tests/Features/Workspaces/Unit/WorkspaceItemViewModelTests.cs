@@ -21,6 +21,19 @@ public class WorkspaceItemViewModelTests
     }
 
     [Test]
+    [TestCase("Running", "#4cbe78")]
+    [TestCase("Starting", "#c8963c")]
+    [TestCase("Stopping", "#c8963c")]
+    [TestCase("Failed", "#b85a5a")]
+    [TestCase("Stopped", "#3a3a50")]
+    [TestCase("Unknown", "#3a3a50")]
+    public void StateColor_reflectsWorkspaceState(string state, string expectedColor)
+    {
+        var vm = new WorkspaceItemViewModel("id", "App", "main", "/repo", "/worktree", state);
+        Assert.That(vm.StateColor, Is.EqualTo(expectedColor));
+    }
+
+    [Test]
     public void Properties_matchConstructorArguments()
     {
         var vm = new WorkspaceItemViewModel("ws-1", "My Workspace", "feat/foo", "/repo", "/worktree", "Running");
