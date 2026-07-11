@@ -23,4 +23,34 @@ public sealed class WorkspaceApiClient
         var result = await _http.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces", Options);
         return result ?? [];
     }
+
+    public async Task StartWorkspaceAsync(string id)
+    {
+        var response = await _http.PostAsync($"/api/workspaces/{id}/start", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+    }
+
+    public async Task StopWorkspaceAsync(string id)
+    {
+        var response = await _http.PostAsync($"/api/workspaces/{id}/stop", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+    }
+
+    private static async Task<string> ReadProblemDetailAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("detail", out var detail))
+                return detail.GetString() ?? body;
+            return body;
+        }
+        catch
+        {
+            return $"HTTP {(int)response.StatusCode}";
+        }
+    }
 }

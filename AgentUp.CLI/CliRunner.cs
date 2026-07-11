@@ -24,10 +24,11 @@ public sealed class CliRunner
 
         return command switch
         {
-            "register" => await new RegisterCommand(client, _workingDirectory, _output).RunAsync(),
-            "list"     => await new ListCommand(client, _output).RunAsync(),
-            "status"   => await new StatusCommand(client, _workingDirectory, _output).RunAsync(),
-            _          => PrintHelp()
+            "start"  => await new StartCommand(client, _workingDirectory, _output).RunAsync(),
+            "stop"   => await new StopCommand(client, _workingDirectory, _output).RunAsync(),
+            "list"   => await new ListCommand(client, _output).RunAsync(),
+            "status" => await new StatusCommand(client, _workingDirectory, _output).RunAsync(),
+            _        => PrintHelp()
         };
     }
 
@@ -35,9 +36,10 @@ public sealed class CliRunner
     {
         _output.WriteLine("Usage: agent-up <command> [--server <url>]");
         _output.WriteLine("Commands:");
-        _output.WriteLine("  register  Register the current directory as a workspace");
-        _output.WriteLine("  list      List all registered workspaces");
-        _output.WriteLine("  status    Show status of the current workspace");
+        _output.WriteLine("  start   Read agent-up.json and launch all applications");
+        _output.WriteLine("  stop    Stop all running applications for the current workspace");
+        _output.WriteLine("  list    List all workspaces on the server");
+        _output.WriteLine("  status  Show status of the current workspace");
         _output.WriteLine();
         _output.WriteLine("Options:");
         _output.WriteLine("  --server <url>  Server URL (default: $AGENTUP_SERVER_URL or http://localhost:5000)");
