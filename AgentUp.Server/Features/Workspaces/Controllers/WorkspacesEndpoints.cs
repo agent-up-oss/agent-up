@@ -31,6 +31,36 @@ public static class WorkspacesEndpoints
             return workspace is null ? Results.NotFound() : Results.Ok(workspace.Applications);
         });
 
+        group.MapPost("/{id}/start", async (string id, IWorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
+        {
+            var workspace = registry.GetById(id);
+            if (workspace is null) return Results.NotFound();
+
+            await registry.UpdateStateAsync(id, WorkspaceState.Starting);
+            try
+            {
+                await processes.LaunchAsync(workspace);
+                await registry.UpdateStateAsync(id, WorkspaceState.Running);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                await registry.UpdateStateAsync(id, WorkspaceState.Failed);
+                return Results.Problem(detail: ex.Message, statusCode: 500);
+            }
+        });
+
+        group.MapPost("/{id}/stop", async (string id, IWorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
+        {
+            var workspace = registry.GetById(id);
+            if (workspace is null) return Results.NotFound();
+
+            await registry.UpdateStateAsync(id, WorkspaceState.Stopping);
+            await processes.KillAsync(id);
+            await registry.UpdateStateAsync(id, WorkspaceState.Stopped);
+            return Results.NoContent();
+        });
+
         group.MapPatch("/{id}/state", async (string id, [FromBody] UpdateWorkspaceStateRequest request, IWorkspaceRegistry registry) =>
         {
             var updated = await registry.UpdateStateAsync(id, request.State);

@@ -31,6 +31,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         _app = builder.Build();
@@ -169,6 +170,84 @@ public class WorkspacesHttpTests
     public async Task Delete_ReturnsNotFound_ForUnknownId()
     {
         var response = await _client.DeleteAsync("/api/workspaces/ghost");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task PostStart_SetsStateToRunning()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var startResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+
+        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        var workspace = await _client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}");
+        Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Running));
+    }
+
+    [Test]
+    public async Task PostStart_ReturnsNotFound_ForUnknownId()
+    {
+        var response = await _client.PostAsync("/api/workspaces/ghost/start", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task PostStart_SetsStateToFailed_AndReturnsProblem_WhenLaunchThrows()
+    {
+        var port = FindFreePort();
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = [$"--urls=http://localhost:{port}"] });
+        builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
+        builder.Services.AddSingleton<WorkspaceRegistry>();
+        builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddSingleton<IWorkspaceProcessManager, FailingWorkspaceProcessManager>();
+        builder.Logging.SetMinimumLevel(LogLevel.None);
+        var app = builder.Build();
+        app.MapWorkspaces();
+        await app.StartAsync();
+        using var client = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
+
+        var created = (await (await client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+
+        var startResponse = await client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+
+        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+
+        var body = await startResponse.Content.ReadAsStringAsync();
+        Assert.That(body, Does.Contain("No such file or directory"));
+
+        var workspace = await client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}");
+        Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Failed));
+
+        await app.StopAsync();
+        await app.DisposeAsync();
+    }
+
+    [Test]
+    public async Task PostStop_SetsStateToStopped_AfterStart()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>())!;
+        await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+
+        var stopResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/stop", null);
+
+        Assert.That(stopResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        var workspace = await _client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}");
+        Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Stopped));
+    }
+
+    [Test]
+    public async Task PostStop_ReturnsNotFound_ForUnknownId()
+    {
+        var response = await _client.PostAsync("/api/workspaces/ghost/stop", null);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }

@@ -25,6 +25,7 @@ public sealed class CliRunner
         return command switch
         {
             "start"  => await new StartCommand(client, _workingDirectory, _output).RunAsync(),
+            "stop"   => await new StopCommand(client, _workingDirectory, _output).RunAsync(),
             "list"   => await new ListCommand(client, _output).RunAsync(),
             "status" => await new StatusCommand(client, _workingDirectory, _output).RunAsync(),
             _        => PrintHelp()
@@ -35,7 +36,8 @@ public sealed class CliRunner
     {
         _output.WriteLine("Usage: agent-up <command> [--server <url>]");
         _output.WriteLine("Commands:");
-        _output.WriteLine("  start   Push workspace and application definitions to the server");
+        _output.WriteLine("  start   Read agent-up.json and launch all applications");
+        _output.WriteLine("  stop    Stop all running applications for the current workspace");
         _output.WriteLine("  list    List all workspaces on the server");
         _output.WriteLine("  status  Show status of the current workspace");
         _output.WriteLine();

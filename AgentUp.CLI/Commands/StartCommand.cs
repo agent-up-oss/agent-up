@@ -82,19 +82,25 @@ public sealed class StartCommand
             return 1;
         }
 
-        _output.WriteLine($"Workspace \"{workspace.DisplayName}\" definition pushed (id: {workspace.Id})");
-        _output.WriteLine($"  Branch:     {workspace.Branch}");
-        _output.WriteLine($"  Commit:     {workspace.Commit}");
+        try
+        {
+            await _client.StartWorkspaceAsync(workspace.Id);
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"Error: {ex.Message}");
+            return 1;
+        }
+
+        _output.WriteLine($"Started workspace \"{workspace.DisplayName}\"");
+        _output.WriteLine($"  Branch:  {workspace.Branch}");
+        _output.WriteLine($"  Commit:  {workspace.Commit}");
 
         if (applications.Count > 0)
         {
             _output.WriteLine($"  Applications ({applications.Count}):");
             foreach (var app in applications)
                 _output.WriteLine($"    - {app.Name}: {app.Command}");
-        }
-        else
-        {
-            _output.WriteLine("  Applications: none defined");
         }
 
         return 0;

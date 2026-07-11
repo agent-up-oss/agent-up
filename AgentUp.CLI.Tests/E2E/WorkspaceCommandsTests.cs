@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using AgentUp.CLI.Http;
 using AgentUp.CLI.Tests.Fake;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Builder;
@@ -187,6 +188,42 @@ public class WorkspaceCommandsTests
         Assert.That(output.ToString(), Does.Contain("Error"));
     }
 
+    // ── stop ──────────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Stop_ExitsZero_AndPrintsWorkspaceName()
+    {
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+
+        var output = new StringWriter();
+        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
+
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output.ToString(), Does.Contain("Test Project"));
+    }
+
+    [Test]
+    public async Task Stop_SetsWorkspaceState_ToStopped()
+    {
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["stop"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.That(workspaces![0].State, Is.EqualTo("Stopped"));
+    }
+
+    [Test]
+    public async Task Stop_Fails_WhenWorkspaceNotStarted()
+    {
+        var output = new StringWriter();
+        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
+
+        Assert.That(exitCode, Is.Not.EqualTo(0));
+        Assert.That(output.ToString(), Does.Contain("Error"));
+    }
+
     // ── list ──────────────────────────────────────────────────────────────────
 
     [Test]
@@ -253,7 +290,7 @@ public class WorkspaceCommandsTests
         var text = output.ToString();
         Assert.That(text, Does.Contain("Test Project"));
         Assert.That(text, Does.Contain(_workspaceDir));
-        Assert.That(text, Does.Contain("Stopped"));
+        Assert.That(text, Does.Contain("Running"));
     }
 
     [Test]
@@ -296,6 +333,7 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         var app = builder.Build();

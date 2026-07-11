@@ -15,6 +15,9 @@ builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
 builder.Services.AddSingleton<WorkspaceRegistry>();
 builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
+builder.Services.AddSingleton<WorkspaceProcessManager>();
+builder.Services.AddSingleton<IWorkspaceProcessManager>(sp => sp.GetRequiredService<WorkspaceProcessManager>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceProcessManager>());
 
 var app = builder.Build();
 
