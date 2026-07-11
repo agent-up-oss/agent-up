@@ -110,7 +110,8 @@
   position: relative;
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
-  min-height: 460px;
+  min-width: 520px;
+  min-height: 560px;
   overflow: hidden;
   border: 1px solid var(--agentup-line);
   border-radius: 18px;
@@ -193,16 +194,18 @@
 
 .agentEntry {
   all: unset;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 0.06rem;
   width: 100%;
   box-sizing: border-box;
-  padding: 0.7rem;
+  padding: 0.55rem 0.7rem;
   border-radius: 8px;
   color: color-mix(in srgb, #ffffff 74%, transparent);
   background: color-mix(in srgb, #ffffff 6%, transparent);
   cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   text-align: left;
 }
 
@@ -214,6 +217,28 @@
 .agentEntry.agentActive {
   color: #ffffff;
   background: var(--agentup-forest-2);
+}
+
+.agentBranch {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: color-mix(in srgb, #ffffff 40%, transparent);
+  word-break: break-all;
+}
+
+.agentActive .agentBranch {
+  color: color-mix(in srgb, #ffffff 65%, transparent);
+}
+
+.agentPath {
+  font-size: 0.6rem;
+  font-family: var(--ifm-font-family-monospace);
+  color: color-mix(in srgb, #ffffff 25%, transparent);
+  word-break: break-all;
+}
+
+.agentActive .agentPath {
+  color: color-mix(in srgb, #ffffff 45%, transparent);
 }
 
 .agentAvatar {
@@ -409,7 +434,7 @@
 .dashboardMockup {
   height: 100%;
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
+  grid-template-columns: 106px minmax(0, 1fr);
   overflow: hidden;
   background: var(--agentup-surface);
 }
@@ -940,7 +965,7 @@
 
 .dbMockup {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: 110px minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
   background: var(--agentup-surface);
@@ -1556,6 +1581,531 @@
   text-align: center;
 }
 
+/* ── Demo hint below the visual ── */
+
+.heroVisualWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.demoHint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--agentup-muted);
+  letter-spacing: 0.02em;
+}
+
+.demoHint::before {
+  content: '⬆ ';
+  opacity: 0.6;
+}
+
+/* ── URL bar ── */
+
+.urlBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.28rem 0.75rem;
+  background: color-mix(in srgb, var(--agentup-surface) 90%, transparent);
+  border-bottom: 1px solid var(--agentup-line);
+  flex-shrink: 0;
+}
+
+.urlLock {
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.urlText {
+  font-size: 0.72rem;
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--agentup-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Console warning line ── */
+
+.consoleWarn {
+  display: flex;
+  gap: 0.55rem;
+  color: var(--agentup-gold);
+}
+
+/* ── Website mockup nav links ── */
+
+.mockupNavLink {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: color-mix(in srgb, #ffffff 60%, transparent);
+}
+
+.mockupNavLink:hover {
+  color: #ffffff;
+}
+
+.mockupNavLinkActive {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Pricing page ── */
+
+.pricingPage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.9rem 0.75rem 0.7rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--agentup-mist), var(--agentup-paper));
+}
+
+.pricingHeadline {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  margin-bottom: 0.7rem;
+  text-align: center;
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.pricingTier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--agentup-line);
+  background: var(--agentup-surface);
+}
+
+.pricingFeatured {
+  border-color: var(--agentup-forest-2);
+  background: color-mix(in srgb, var(--agentup-forest-2) 8%, var(--agentup-surface));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--agentup-forest-2) 18%, transparent);
+}
+
+.pricingTierName {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--agentup-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pricingPrice {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  line-height: 1;
+}
+
+.pricingPrice span {
+  font-size: 0.67rem;
+  font-weight: 600;
+  color: var(--agentup-muted);
+  margin-left: 0.2rem;
+}
+
+.pricingFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  flex: 1;
+  margin: 0.2rem 0;
+}
+
+.pricingFeature {
+  font-size: 0.7rem;
+  color: var(--agentup-muted);
+  padding-left: 0.8rem;
+  position: relative;
+}
+
+.pricingFeature::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--agentup-forest);
+  font-weight: 700;
+}
+
+/* ── Docs page ── */
+
+.docsPage {
+  flex: 1;
+  padding: 0.75rem 0.9rem;
+  background: var(--agentup-surface);
+  overflow: hidden;
+}
+
+.docsPageTitle {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.42rem;
+  border-bottom: 1px solid var(--agentup-line);
+}
+
+.docsItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.44rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: var(--agentup-ink);
+  border-bottom: 1px solid color-mix(in srgb, var(--agentup-line) 50%, transparent);
+}
+
+.docsItem:last-child {
+  border-bottom: none;
+}
+
+.docsItem:hover {
+  background: var(--agentup-surface-soft);
+}
+
+.docsArrow {
+  color: var(--agentup-muted);
+  font-size: 0.88rem;
+}
+
+/* ── Dashboard full-width table (users view) ── */
+
+.dashboardTableFull {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--agentup-line);
+  border-radius: 8px;
+}
+
+.dashboardTableHeaderFull {
+  display: grid;
+  grid-template-columns: 1fr 64px 88px 68px;
+  padding: 0.33rem 0.6rem;
+  background: var(--agentup-surface-soft);
+  border-bottom: 1px solid var(--agentup-line);
+  font-size: 0.67rem;
+  font-weight: 800;
+  color: var(--agentup-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.dashboardTableRowFull {
+  display: grid;
+  grid-template-columns: 1fr 64px 88px 68px;
+  padding: 0.36rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--agentup-line) 50%, transparent);
+  font-size: 0.75rem;
+  color: var(--agentup-ink);
+  align-items: center;
+}
+
+.dashboardTableRowFull:last-child {
+  border-bottom: none;
+}
+
+.dashMuted {
+  color: var(--agentup-muted);
+  font-size: 0.72rem;
+}
+
+/* ── Analytics chart ── */
+
+.analyticsChart {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.65rem;
+  border: 1px solid var(--agentup-line);
+  border-radius: 8px;
+  background: var(--agentup-surface-soft);
+  overflow: hidden;
+}
+
+.analyticsTitle {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--agentup-ink);
+  flex-shrink: 0;
+}
+
+.analyticsBars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  min-height: 0;
+}
+
+.analyticsBar {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--agentup-forest-2) 70%, transparent);
+  min-height: 4px;
+  transition: background 0.15s ease;
+}
+
+.analyticsBar:last-child {
+  background: var(--agentup-coral);
+}
+
+.analyticsLabels {
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.analyticsLabels span {
+  font-size: 0.6rem;
+  color: var(--agentup-muted);
+}
+
+/* ── Settings form ── */
+
+.settingsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.1rem 0;
+}
+
+.settingsRow {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+}
+
+.settingsRow label {
+  color: var(--agentup-muted);
+  font-weight: 700;
+  font-size: 0.73rem;
+}
+
+.settingsInput {
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--agentup-line);
+  background: var(--agentup-surface-soft);
+  color: var(--agentup-ink);
+  font-size: 0.76rem;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+/* ── Store banner ── */
+
+.storeBanner {
+  padding: 0.9rem 1rem 0.8rem;
+  background: linear-gradient(135deg, var(--agentup-black), var(--agentup-forest));
+  flex-shrink: 0;
+}
+
+.storeBannerTitle {
+  font-size: 1.08rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+  margin-bottom: 0.2rem;
+}
+
+.storeBannerSub {
+  font-size: 0.78rem;
+  color: color-mix(in srgb, #ffffff 68%, transparent);
+  margin-bottom: 0.55rem;
+}
+
+.storeBannerCta {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--agentup-forest);
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ── Store nav links ── */
+
+.storeNavLink {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: var(--agentup-muted);
+}
+
+.storeNavLink:hover {
+  color: var(--agentup-ink);
+}
+
+.storeNavActive {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: var(--agentup-ink);
+  font-weight: 700;
+  border-bottom: 2px solid var(--agentup-forest);
+  padding-bottom: 1px;
+}
+
+/* ── Store about page ── */
+
+.storeAbout {
+  flex: 1;
+  padding: 1rem 1rem;
+  background: var(--agentup-surface);
+  overflow: hidden;
+}
+
+.storeAboutTitle {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  margin-bottom: 0.5rem;
+}
+
+.storeAboutText {
+  font-size: 0.76rem;
+  color: var(--agentup-muted);
+  line-height: 1.6;
+  margin-bottom: 0.85rem;
+}
+
+.storeAboutStats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.storeAboutStats div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.storeAboutStats strong {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--agentup-forest);
+  line-height: 1;
+}
+
+.storeAboutStats span {
+  font-size: 0.68rem;
+  color: var(--agentup-muted);
+  font-weight: 600;
+}
+
+/* ── Store grid full (products page) ── */
+
+.storeGridFull {
+  align-content: start;
+}
+
+/* ── Admin panel tabs ── */
+
+.adminTab {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--agentup-muted);
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+}
+
+.adminTab:hover {
+  color: var(--agentup-ink);
+  background: var(--agentup-surface-soft);
+}
+
+.adminTabActive {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--agentup-ink);
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  background: var(--agentup-surface);
+  box-shadow: inset 0 0 0 1px var(--agentup-line);
+}
+
+/* ── Admin inventory table header ── */
+
+.adminTableHeaderInv {
+  display: grid;
+  grid-template-columns: 62px 1fr 80px 72px;
+  padding: 0.32rem 0.8rem;
+  background: var(--agentup-surface-soft);
+  border-bottom: 1px solid var(--agentup-line);
+  font-size: 0.67rem;
+  font-weight: 800;
+  color: var(--agentup-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+/* ── DB table button ── */
+
+.dbTableBtn {
+  all: unset;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.3rem 0.45rem;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--agentup-muted);
+  font-family: var(--ifm-font-family-monospace);
+  cursor: pointer;
+  text-align: left;
+}
+
+.dbTableBtn:hover {
+  color: var(--agentup-ink);
+  background: color-mix(in srgb, var(--agentup-line) 40%, transparent);
+}
+
+/* ── DB table scroll wrapper ── */
+
+.dbTableScroll {
+  flex: 1;
+  overflow: auto;
+}
+
 @media (max-width: 996px) {
   .hero,
   .problemIntro,
@@ -1567,11 +2117,6 @@
     min-height: auto;
     gap: 2.5rem;
     padding-top: 3.5rem;
-  }
-
-  .heroVisual {
-    grid-template-columns: 126px minmax(0, 1fr);
-    min-height: 400px;
   }
 
   .problemSection,
@@ -1603,14 +2148,6 @@
 
   .heroText h1 {
     font-size: 3rem;
-  }
-
-  .heroVisual {
-    grid-template-columns: 1fr;
-  }
-
-  .workspaceRail {
-    display: none;
   }
 
   .steps {
