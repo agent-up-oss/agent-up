@@ -24,7 +24,7 @@ const problems = [
     label: 'Tab overload',
     title: 'Browser tab explosion',
     headline: 'The browser becomes workspace state, not loose debris.',
-    body: 'A workspace has one isolated browser profile and stable application tabs. Restarting apps reloads the active session instead of scattering more tabs across your desktop.',
+    body: 'A workspace has one isolated browser profile and stable application tabs. Restarting apps reloads the active session instead of scattering more tabs across your browser.',
     layout: 'tabs',
     details: ['Frontend', 'Admin', 'Swagger'],
   },
@@ -84,7 +84,6 @@ const agentServiceConfig = {
       MarketingSite: { secondaryTabs: ['Port 8080', 'Console', 'Metrics'] },
       Dashboard:     { secondaryTabs: ['Port 3000', 'Console', 'Metrics'] },
       Backend:       { secondaryTabs: ['OpenAPI', 'Console', 'Metrics'] },
-      Worker:        { secondaryTabs: ['Console', 'Metrics'] },
       Postgres:      { secondaryTabs: ['Console', 'Metrics'] },
     },
     defaultService: 'MarketingSite',
@@ -763,6 +762,10 @@ function HeroMockup() {
       <div className={styles.windowChrome}>
         <span /><span /><span />
       </div>
+      <div className={styles.interactiveBadge}>
+        <span className={styles.badgePulse} aria-hidden="true" />
+        Live interactive demo
+      </div>
       <div className={`${styles.workspaceRail} ${collapsed ? styles.workspaceRailCollapsed : ''}`}>
         {!collapsed && <strong>Workspaces</strong>}
         <div className={styles.agentList}>
@@ -945,23 +948,21 @@ export default function Home() {
             <p className={styles.eyebrow}>AI-assisted development workspaces</p>
             <h1>See what your AI built. Instantly.</h1>
             <p className={styles.lede}>
-              Every AI gets its own workspace.
-              No tabs. No ports. No setup. Just review.
+              Every AI hosts its own workspace.<br/>
+              No manual setup. Just review.
             </p>
             <div className={styles.actions}>
               <Link className={styles.primaryAction} to="/docs/">
-                Read the docs
-              </Link>
-              <Link className={styles.secondaryAction} to="/developer-guide/architecture">
-                See architecture
+                Download now
               </Link>
             </div>
           </div>
           <div className={styles.heroVisualWrap}>
             <HeroMockup />
-            <p className={styles.demoHint}>
-              Interactive demo — click agents, services, and pages to explore
-            </p>
+            <div className={styles.demoHint}>
+              <span>Try the demo above</span>
+              <span>Agents, services, runtime tabs, and page controls are clickable.</span>
+            </div>
           </div>
         </section>
 

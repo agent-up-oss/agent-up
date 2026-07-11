@@ -135,9 +135,133 @@
   transition: grid-template-columns 0.22s ease;
 }
 
+
 .heroVisualCollapsed {
   grid-template-columns: 56px minmax(0, 1fr);
 }
+
+.interactiveBadge {
+  position: absolute;
+  top: 0.38rem;
+  right: 0.65rem;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.52rem;
+  min-height: 30px;
+  padding: 0.28rem 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--agentup-forest-accent-2) 48%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--agentup-black) 84%, transparent);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--agentup-black) 24%, transparent);
+  pointer-events: none;
+}
+
+.badgePulse {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--agentup-accent-soft);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--agentup-accent-soft) 42%, transparent);
+  animation: badgePulse 1.8s ease-out infinite;
+}
+
+.demoCallout {
+  position: absolute;
+  z-index: 8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  filter: drop-shadow(0 12px 22px color-mix(in srgb, var(--agentup-black) 24%, transparent));
+}
+
+.demoCallout span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0.42rem 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--agentup-accent-soft) 38%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--agentup-forest) 94%, transparent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--agentup-forest-accent) 11%, transparent);
+}
+
+.demoCallout::after {
+  content: '';
+  display: block;
+  width: 54px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--agentup-accent-soft), transparent);
+}
+
+.demoCallout::before {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--agentup-accent-soft);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--agentup-accent-soft) 18%, transparent);
+}
+
+.demoCalloutAgents {
+  top: 4.7rem;
+  left: 1rem;
+}
+
+.demoCalloutAgents::before {
+  right: -58px;
+}
+
+.demoCalloutServices {
+  top: 3.45rem;
+  right: 8.6rem;
+  flex-direction: row-reverse;
+}
+
+.demoCalloutServices::after {
+  transform: rotate(180deg);
+}
+
+.demoCalloutServices::before {
+  left: -58px;
+}
+
+.demoCalloutTabs {
+  top: 6.85rem;
+  right: 3.25rem;
+  flex-direction: row-reverse;
+}
+
+.demoCalloutTabs::after {
+  transform: rotate(180deg);
+}
+
+.demoCalloutTabs::before {
+  left: -58px;
+}
+
+@keyframes badgePulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--agentup-accent-soft) 42%, transparent);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 11px transparent;
+  }
+}
+
 
 .windowChrome {
   position: absolute;
@@ -219,11 +343,14 @@
   font: inherit;
   font-size: 0.85rem;
   text-align: left;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .agentEntry:hover {
   background: color-mix(in srgb, #ffffff 10%, transparent);
   color: #ffffff;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--agentup-accent-soft) 32%, transparent);
+  transform: translateX(2px);
 }
 
 .agentEntry.agentActive {
@@ -269,11 +396,14 @@
   letter-spacing: 0.02em;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .agentAvatar:hover {
   background: color-mix(in srgb, #ffffff 16%, transparent);
   color: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--agentup-accent-soft) 28%, transparent);
+  transform: translateX(2px);
 }
 
 .agentAvatarActive {
@@ -392,10 +522,13 @@
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .serviceTab:hover {
   color: var(--agentup-ink);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 10%, transparent);
+  box-shadow: inset 0 -2px 0 var(--agentup-accent);
 }
 
 .serviceTabActive {
@@ -423,16 +556,27 @@
   font-weight: 700;
   color: var(--agentup-muted);
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .secondaryTab:hover {
   color: var(--agentup-ink);
   background: color-mix(in srgb, var(--agentup-surface-soft) 80%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--agentup-forest-accent) 14%, transparent);
 }
 
 .secondaryTabActive {
   color: #ffffff;
   background: var(--agentup-forest-2);
+}
+
+.agentEntry:focus-visible,
+.agentAvatar:focus-visible,
+.collapseToggle:focus-visible,
+.serviceTab:focus-visible,
+.secondaryTab:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--agentup-accent-soft) 72%, transparent);
+  outline-offset: 2px;
 }
 
 .contentPane {
@@ -1589,6 +1733,7 @@
 /* ── Demo hint below the visual ── */
 
 .heroVisualWrap {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -1597,17 +1742,41 @@
 }
 
 .demoHint {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem 0.85rem;
+  align-items: center;
   margin: 0;
-  text-align: center;
-  font-size: 0.76rem;
-  font-weight: 600;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--agentup-forest-accent) 24%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--agentup-surface) 88%, transparent);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--agentup-black) 8%, transparent);
   color: var(--agentup-muted);
-  letter-spacing: 0.02em;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
 }
 
 .demoHint::before {
-  content: '⬆ ';
-  opacity: 0.6;
+  content: '';
+  grid-row: 1 / span 2;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, var(--agentup-forest-accent), var(--agentup-forest-accent-2));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--agentup-forest-accent) 10%, transparent);
+}
+
+.demoHint span:first-child {
+  color: var(--agentup-ink);
+  font-size: 0.96rem;
+  font-weight: 900;
+}
+
+.demoHint span:last-child {
+  font-weight: 650;
 }
 
 /* ── URL bar ── */
@@ -2139,6 +2308,37 @@
   .steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .demoCallout {
+    font-size: 0.7rem;
+  }
+
+  .demoCallout span {
+    min-height: 31px;
+    padding: 0.32rem 0.55rem;
+  }
+
+  .demoCalloutAgents {
+    top: 4.45rem;
+  }
+
+  .demoCalloutServices,
+  .demoCalloutTabs {
+    right: 1rem;
+  }
+
+  .demoCallout::after {
+    width: 34px;
+  }
+
+  .demoCalloutServices::before,
+  .demoCalloutTabs::before {
+    left: -38px;
+  }
+
+  .demoCalloutAgents::before {
+    right: -38px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2175,5 +2375,20 @@
   .stateVisual,
   .processVisual {
     grid-template-columns: 1fr;
+  }
+
+  .interactiveBadge {
+    right: 0.45rem;
+    max-width: calc(100% - 1rem);
+    font-size: 0.62rem;
+  }
+
+  .demoCallout {
+    display: none;
+  }
+
+  .demoHint {
+    grid-template-columns: 1fr;
+    padding: 0.75rem 0.85rem;
   }
 }
