@@ -156,7 +156,7 @@
 
 .workspaceRail,
 .runtimePanel {
-  padding-top: 62px;
+  padding-top: 42px;
 }
 
 .workspaceRail {
@@ -279,9 +279,43 @@
   margin-top: auto;
 }
 
+/* ── Expanded sidebar project sections ── */
+
+.projectSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.projectSectionBorder {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
+}
+
+.projectLabel {
+  padding: 0 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #ffffff 34%, transparent);
+}
+
+/* ── Collapsed sidebar project divider ── */
+
+.projectDivider {
+  width: 20px;
+  height: 1px;
+  background: color-mix(in srgb, #ffffff 16%, transparent);
+  margin: 0.15rem auto;
+  flex-shrink: 0;
+}
+
 .runtimePanel {
-  padding-left: 1.2rem;
-  padding-right: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .runtimeTabs {
@@ -298,6 +332,806 @@
   font-size: 0.82rem;
   font-weight: 800;
   box-shadow: 0 8px 22px rgba(11, 17, 16, 0.08);
+}
+
+/* ── Service / secondary tabs ── */
+
+.serviceTabs {
+  display: flex;
+  gap: 0;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--agentup-line);
+  background: color-mix(in srgb, var(--agentup-surface-soft) 80%, transparent);
+  flex-shrink: 0;
+}
+
+.serviceTab {
+  all: unset;
+  padding: 0.58rem 0.78rem;
+  font: inherit;
+  font-size: 0.79rem;
+  font-weight: 700;
+  color: var(--agentup-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.serviceTab:hover {
+  color: var(--agentup-ink);
+}
+
+.serviceTabActive {
+  color: var(--agentup-ink);
+  font-weight: 800;
+  border-bottom-color: var(--agentup-coral);
+  background: color-mix(in srgb, var(--agentup-surface) 70%, transparent);
+}
+
+.secondaryBar {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--agentup-line);
+  background: color-mix(in srgb, var(--agentup-surface) 70%, transparent);
+  flex-shrink: 0;
+}
+
+.secondaryTab {
+  all: unset;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--agentup-muted);
+  cursor: pointer;
+}
+
+.secondaryTab:hover {
+  color: var(--agentup-ink);
+  background: color-mix(in srgb, var(--agentup-surface-soft) 80%, transparent);
+}
+
+.secondaryTabActive {
+  color: #ffffff;
+  background: var(--agentup-forest-2);
+}
+
+.contentPane {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Dashboard mockup ── */
+
+.dashboardMockup {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--agentup-surface);
+}
+
+.dashboardSidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.4rem;
+  background: var(--agentup-surface-soft);
+  border-right: 1px solid var(--agentup-line);
+  gap: 0.15rem;
+}
+
+.dashboardNavItem {
+  padding: 0.36rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--agentup-muted);
+}
+
+.dashboardNavActive {
+  color: var(--agentup-ink);
+  background: var(--agentup-surface);
+  font-weight: 800;
+  box-shadow: inset 2px 0 0 var(--agentup-coral);
+}
+
+.dashboardMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.6rem 0.65rem;
+  overflow: hidden;
+}
+
+.dashboardStatRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.dashboardStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 8px;
+  background: var(--agentup-surface-soft);
+  border: 1px solid var(--agentup-line);
+}
+
+.dashboardStatValue {
+  font-size: 1.08rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  line-height: 1;
+}
+
+.dashboardStatLabel {
+  font-size: 0.67rem;
+  color: var(--agentup-muted);
+}
+
+.dashboardTable {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--agentup-line);
+  border-radius: 8px;
+}
+
+.dashboardTableHeader {
+  display: grid;
+  grid-template-columns: 1fr 68px 58px;
+  padding: 0.33rem 0.6rem;
+  background: var(--agentup-surface-soft);
+  border-bottom: 1px solid var(--agentup-line);
+  font-size: 0.67rem;
+  font-weight: 800;
+  color: var(--agentup-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.dashboardTableRow {
+  display: grid;
+  grid-template-columns: 1fr 68px 58px;
+  padding: 0.36rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--agentup-line) 50%, transparent);
+  font-size: 0.75rem;
+  color: var(--agentup-ink);
+  align-items: center;
+}
+
+.dashboardTableRow:last-child {
+  border-bottom: none;
+}
+
+.statusActive {
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: #16a34a;
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.statusTrial {
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: var(--agentup-orange);
+  background: color-mix(in srgb, var(--agentup-orange) 12%, transparent);
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+/* ── Website mockup ── */
+
+.websiteMockup {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--agentup-surface);
+  overflow: hidden;
+}
+
+.mockupNavBar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--agentup-black);
+  flex-shrink: 0;
+}
+
+.mockupBrand {
+  font-weight: 900;
+  font-size: 0.88rem;
+  color: #ffffff;
+}
+
+.mockupNavLinks {
+  display: flex;
+  gap: 1.2rem;
+  font-size: 0.76rem;
+  color: color-mix(in srgb, #ffffff 60%, transparent);
+}
+
+.mockupNavCta {
+  margin-left: auto;
+  padding: 0.28rem 0.7rem;
+  border-radius: 6px;
+  background: var(--agentup-forest-2);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.mockupHeroSection {
+  padding: 1.6rem 1.2rem 0.8rem;
+  background: linear-gradient(135deg, var(--agentup-mist), var(--agentup-paper));
+  flex: 1;
+}
+
+.mockupHeadline {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  line-height: 1.1;
+  margin-bottom: 0.45rem;
+}
+
+.mockupSubline {
+  font-size: 0.8rem;
+  color: var(--agentup-muted);
+  margin-bottom: 0.85rem;
+}
+
+.mockupCtaRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mockupPrimaryBtn {
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  background: var(--agentup-forest);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.mockupSecondaryBtn {
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--agentup-line);
+  color: var(--agentup-ink);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.mockupCardRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: var(--agentup-paper);
+  flex-shrink: 0;
+}
+
+.mockupCard {
+  height: 48px;
+  border-radius: 8px;
+  background: var(--agentup-surface);
+  border: 1px solid var(--agentup-line);
+}
+
+.mockupCard:nth-child(1) { border-top: 2px solid var(--agentup-coral); }
+.mockupCard:nth-child(2) { border-top: 2px solid var(--agentup-teal-soft); }
+.mockupCard:nth-child(3) { border-top: 2px solid var(--agentup-gold); }
+
+.mockupHeroV2 {
+  background: linear-gradient(135deg, var(--agentup-black), var(--agentup-forest));
+}
+
+.mockupHeroV2 .mockupHeadline {
+  color: #ffffff;
+}
+
+.mockupHeroV2 .mockupSubline {
+  color: color-mix(in srgb, #ffffff 68%, transparent);
+}
+
+.mockupCardRowV2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* ── Storefront mockup ── */
+
+.storefrontMockup {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--agentup-surface);
+  overflow: hidden;
+}
+
+.storeNav {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--agentup-line);
+  background: var(--agentup-surface);
+  flex-shrink: 0;
+}
+
+.storeBrand {
+  font-weight: 900;
+  font-size: 0.88rem;
+  color: var(--agentup-ink);
+  letter-spacing: -0.02em;
+}
+
+.storeNavLinks {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.76rem;
+  color: var(--agentup-muted);
+}
+
+.storeCart {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--agentup-forest);
+  background: color-mix(in srgb, var(--agentup-forest-3) 10%, transparent);
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+}
+
+.storeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+  padding: 0.8rem 0.9rem;
+  flex: 1;
+  align-content: start;
+}
+
+.storeProduct {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.storeProductImg {
+  position: relative;
+  height: 90px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--agentup-mist), var(--agentup-surface-soft));
+  border: 1px solid var(--agentup-line);
+}
+
+.storeProductTag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.1rem 0.38rem;
+  border-radius: 4px;
+  background: var(--agentup-coral);
+  color: #ffffff;
+}
+
+.storeProductName {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--agentup-ink);
+}
+
+.storeProductPrice {
+  font-size: 0.76rem;
+  font-weight: 900;
+  color: var(--agentup-forest);
+}
+
+/* ── Admin panel mockup ── */
+
+.adminMockup {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--agentup-surface);
+  overflow: hidden;
+}
+
+.adminHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid var(--agentup-line);
+  flex-shrink: 0;
+}
+
+.adminTitle {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+}
+
+.adminBadge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--agentup-muted);
+  background: var(--agentup-surface-soft);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--agentup-line);
+}
+
+.adminTableWrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.adminTableHeader {
+  display: grid;
+  grid-template-columns: 62px 1fr 80px 72px;
+  padding: 0.32rem 0.8rem;
+  background: var(--agentup-surface-soft);
+  border-bottom: 1px solid var(--agentup-line);
+  font-size: 0.67rem;
+  font-weight: 800;
+  color: var(--agentup-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.adminTableRow {
+  display: grid;
+  grid-template-columns: 62px 1fr 80px 72px;
+  padding: 0.38rem 0.8rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--agentup-line) 50%, transparent);
+  font-size: 0.75rem;
+  color: var(--agentup-ink);
+  align-items: center;
+}
+
+.adminTableRow:last-child {
+  border-bottom: none;
+}
+
+.adminOrderId {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--agentup-muted);
+}
+
+.orderShipped {
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.orderDelivered {
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: #16a34a;
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.orderPending {
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: var(--agentup-orange);
+  background: color-mix(in srgb, var(--agentup-orange) 12%, transparent);
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+/* ── OpenAPI mockup ── */
+
+.openApiMockup {
+  padding: 0.7rem 0.75rem;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--agentup-surface);
+  box-sizing: border-box;
+}
+
+.apiTitle {
+  font-size: 0.77rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--agentup-line);
+}
+
+.apiTitle span {
+  font-weight: 500;
+  color: var(--agentup-muted);
+  margin-left: 0.45rem;
+}
+
+.apiEndpoint {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 6px;
+  margin-bottom: 0.22rem;
+  background: color-mix(in srgb, var(--agentup-surface-soft) 60%, transparent);
+  border: 1px solid var(--agentup-line);
+}
+
+.methodBadge {
+  flex-shrink: 0;
+  width: 50px;
+  padding: 0.16rem 0;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.methodGET {
+  background: color-mix(in srgb, #22c55e 14%, transparent);
+  color: #16a34a;
+}
+
+.methodPOST {
+  background: color-mix(in srgb, #3b82f6 14%, transparent);
+  color: #2563eb;
+}
+
+.methodPUT {
+  background: color-mix(in srgb, var(--agentup-orange) 14%, transparent);
+  color: var(--agentup-orange);
+}
+
+.methodDELETE {
+  background: color-mix(in srgb, #ef4444 14%, transparent);
+  color: #dc2626;
+}
+
+.apiPath {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--agentup-ink);
+  font-family: var(--ifm-font-family-monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apiDesc {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--agentup-muted);
+}
+
+/* ── DB console mockup ── */
+
+.dbMockup {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+  background: var(--agentup-surface);
+}
+
+.dbTableList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.45rem;
+  background: var(--agentup-surface-soft);
+  border-right: 1px solid var(--agentup-line);
+  overflow-y: auto;
+}
+
+.dbListHeader {
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--agentup-muted);
+  margin-bottom: 0.25rem;
+}
+
+.dbTableItem {
+  padding: 0.3rem 0.45rem;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--agentup-muted);
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.dbTableActive {
+  padding: 0.3rem 0.45rem;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--agentup-forest);
+  background: color-mix(in srgb, var(--agentup-forest-3) 10%, transparent);
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.dbResultPanel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dbQueryBar {
+  padding: 0.42rem 0.7rem;
+  background: var(--agentup-black);
+  color: var(--agentup-teal-soft);
+  font-size: 0.71rem;
+  font-family: var(--ifm-font-family-monospace);
+  border-bottom: 1px solid var(--agentup-line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.dbTable {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.dbTable th {
+  padding: 0.38rem 0.6rem;
+  text-align: left;
+  font-weight: 800;
+  font-size: 0.69rem;
+  color: var(--agentup-muted);
+  border-bottom: 1px solid var(--agentup-line);
+  background: var(--agentup-surface-soft);
+}
+
+.dbTable td {
+  padding: 0.36rem 0.6rem;
+  color: var(--agentup-ink);
+  border-bottom: 1px solid color-mix(in srgb, var(--agentup-line) 50%, transparent);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.71rem;
+}
+
+.dbTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Console mockup ── */
+
+.consoleMockup {
+  padding: 0.7rem 0.9rem;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--agentup-black);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.77rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.consoleCmd {
+  display: flex;
+  gap: 0.55rem;
+  color: #ffffff;
+}
+
+.consoleLine {
+  display: flex;
+  gap: 0.55rem;
+  color: color-mix(in srgb, #ffffff 58%, transparent);
+}
+
+.consolePrefix {
+  flex-shrink: 0;
+  width: 1em;
+  color: var(--agentup-teal-soft);
+  font-weight: 700;
+}
+
+.consoleCmd .consolePrefix {
+  color: var(--agentup-coral);
+}
+
+/* ── Metrics mockup ── */
+
+.metricsMockup {
+  padding: 0.8rem 0.9rem;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: var(--agentup-surface);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  padding: 0.55rem 0.5rem;
+  border-radius: 8px;
+  background: var(--agentup-surface-soft);
+  border: 1px solid var(--agentup-line);
+}
+
+.metricValue {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--agentup-ink);
+  line-height: 1;
+}
+
+.metricLabel {
+  font-size: 0.67rem;
+  color: var(--agentup-muted);
+  font-weight: 600;
+}
+
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  flex: 1;
+  min-height: 60px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: var(--agentup-surface-soft);
+  border: 1px solid var(--agentup-line);
+}
+
+.sparkline span {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--agentup-forest-2) 65%, transparent);
+  min-height: 4px;
+}
+
+.sparkline span:last-child {
+  background: var(--agentup-coral);
 }
 
 .browserFrame {
