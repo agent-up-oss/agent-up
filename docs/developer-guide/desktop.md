@@ -8,8 +8,22 @@ title: Desktop
 
 Technology:
 
-- .NET
-- Avalonia
+- .NET 9
+- Avalonia 11 (Fluent dark theme)
+- ReactiveUI (MVVM)
+
+## Structure
+
+The project follows capability-oriented slices:
+
+```text
+AgentUp.Desktop/
+  Features/
+    Workspaces/
+      Http/         WorkspaceApiClient, WorkspaceDto
+      ViewModels/   MainViewModel, WorkspaceItemViewModel
+      Views/        MainWindow.axaml
+```
 
 ## Responsibilities
 
