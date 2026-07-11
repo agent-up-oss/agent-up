@@ -4,7 +4,7 @@
 </a>
 </p>
 <h1 align="center" style="margin-top: 0; padding: 0">
-  Roommate
+  Agent-Up
 </h1>
 <p align="center">
   <a href="https://github.com/themassiveone/agent-up/actions/workflows/cd.yml">
