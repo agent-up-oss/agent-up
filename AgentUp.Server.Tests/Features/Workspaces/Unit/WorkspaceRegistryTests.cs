@@ -1,6 +1,6 @@
-using AgentUp.Server.Features.Workspaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
+using AgentUp.Server.Tests.Fake;
 
 namespace AgentUp.Server.Tests.Features.Workspaces.Unit;
 
@@ -12,7 +12,7 @@ public class WorkspaceRegistryTests
     [SetUp]
     public void SetUp()
     {
-        _registry = new WorkspaceRegistry();
+        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository());
     }
 
     [Test]
@@ -22,7 +22,7 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
-    public void Register_ReturnsWorkspace_WithAllSuppliedFields()
+    public async Task Register_ReturnsWorkspace_WithAllSuppliedFields()
     {
         var request = new RegisterWorkspaceRequest(
             DisplayName: "Agent 1",
@@ -31,7 +31,7 @@ public class WorkspaceRegistryTests
             Branch: "feature/auth",
             Commit: "abc1234");
 
-        var workspace = _registry.Register(request);
+        var workspace = await _registry.RegisterAsync(request);
 
         Assert.That(workspace.DisplayName, Is.EqualTo("Agent 1"));
         Assert.That(workspace.RepositoryPath, Is.EqualTo("/repos/app"));
@@ -41,43 +41,43 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
-    public void Register_AssignsNonEmptyId()
+    public async Task Register_AssignsNonEmptyId()
     {
-        var workspace = _registry.Register(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
 
         Assert.That(workspace.Id, Is.Not.Empty);
     }
 
     [Test]
-    public void Register_AssignsUniqueIds()
+    public async Task Register_AssignsUniqueIds()
     {
-        var a = _registry.Register(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
-        var b = _registry.Register(new RegisterWorkspaceRequest("B", "/r", "/r/b", "main", "c2"));
+        var a = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var b = await _registry.RegisterAsync(new RegisterWorkspaceRequest("B", "/r", "/r/b", "main", "c2"));
 
         Assert.That(a.Id, Is.Not.EqualTo(b.Id));
     }
 
     [Test]
-    public void Register_DefaultsStateTo_Stopped()
+    public async Task Register_DefaultsStateTo_Stopped()
     {
-        var workspace = _registry.Register(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
 
         Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Stopped));
     }
 
     [Test]
-    public void GetAll_ReturnsAllRegisteredWorkspaces()
+    public async Task GetAll_ReturnsAllRegisteredWorkspaces()
     {
-        _registry.Register(new RegisterWorkspaceRequest("Alpha", "/r", "/r/a", "main", "c1"));
-        _registry.Register(new RegisterWorkspaceRequest("Beta", "/r", "/r/b", "main", "c2"));
+        await _registry.RegisterAsync(new RegisterWorkspaceRequest("Alpha", "/r", "/r/a", "main", "c1"));
+        await _registry.RegisterAsync(new RegisterWorkspaceRequest("Beta", "/r", "/r/b", "main", "c2"));
 
         Assert.That(_registry.GetAll(), Has.Count.EqualTo(2));
     }
 
     [Test]
-    public void GetById_ReturnsWorkspace_WhenExists()
+    public async Task GetById_ReturnsWorkspace_WhenExists()
     {
-        var registered = _registry.Register(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var registered = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
 
         var found = _registry.GetById(registered.Id);
 
@@ -88,47 +88,45 @@ public class WorkspaceRegistryTests
     [Test]
     public void GetById_ReturnsNull_WhenNotFound()
     {
-        var result = _registry.GetById("does-not-exist");
-
-        Assert.That(result, Is.Null);
+        Assert.That(_registry.GetById("does-not-exist"), Is.Null);
     }
 
     [Test]
-    public void UpdateState_ChangesState_WhenWorkspaceExists()
+    public async Task UpdateState_ChangesState_WhenWorkspaceExists()
     {
-        var workspace = _registry.Register(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
 
-        var updated = _registry.UpdateState(workspace.Id, WorkspaceState.Running);
+        var updated = await _registry.UpdateStateAsync(workspace.Id, WorkspaceState.Running);
 
         Assert.That(updated, Is.True);
         Assert.That(_registry.GetById(workspace.Id)!.State, Is.EqualTo(WorkspaceState.Running));
     }
 
     [Test]
-    public void UpdateState_ReturnsFalse_WhenWorkspaceNotFound()
+    public async Task UpdateState_ReturnsFalse_WhenWorkspaceNotFound()
     {
-        var result = _registry.UpdateState("ghost", WorkspaceState.Running);
+        var result = await _registry.UpdateStateAsync("ghost", WorkspaceState.Running);
 
         Assert.That(result, Is.False);
     }
 
     [Test]
-    public void UpdateState_DoesNotAffect_OtherWorkspaces()
+    public async Task UpdateState_DoesNotAffect_OtherWorkspaces()
     {
-        var a = _registry.Register(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
-        var b = _registry.Register(new RegisterWorkspaceRequest("B", "/r", "/r/b", "main", "c2"));
+        var a = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var b = await _registry.RegisterAsync(new RegisterWorkspaceRequest("B", "/r", "/r/b", "main", "c2"));
 
-        _registry.UpdateState(a.Id, WorkspaceState.Running);
+        await _registry.UpdateStateAsync(a.Id, WorkspaceState.Running);
 
         Assert.That(_registry.GetById(b.Id)!.State, Is.EqualTo(WorkspaceState.Stopped));
     }
 
     [Test]
-    public void Remove_RemovesWorkspace_WhenExists()
+    public async Task Remove_RemovesWorkspace_WhenExists()
     {
-        var workspace = _registry.Register(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
 
-        var removed = _registry.Remove(workspace.Id);
+        var removed = await _registry.RemoveAsync(workspace.Id);
 
         Assert.That(removed, Is.True);
         Assert.That(_registry.GetById(workspace.Id), Is.Null);
@@ -136,19 +134,19 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
-    public void Remove_ReturnsFalse_WhenNotFound()
+    public async Task Remove_ReturnsFalse_WhenNotFound()
     {
-        var result = _registry.Remove("ghost");
+        var result = await _registry.RemoveAsync("ghost");
 
         Assert.That(result, Is.False);
     }
 
     [Test]
-    public void MultipleWorkspaces_HaveIsolated_Fields()
+    public async Task MultipleWorkspaces_HaveIsolated_Fields()
     {
-        var a = _registry.Register(new RegisterWorkspaceRequest(
+        var a = await _registry.RegisterAsync(new RegisterWorkspaceRequest(
             "Alpha", "/repos/app", "/repos/app/.worktrees/alpha", "feature/alpha", "aaa0001"));
-        var b = _registry.Register(new RegisterWorkspaceRequest(
+        var b = await _registry.RegisterAsync(new RegisterWorkspaceRequest(
             "Beta", "/repos/app", "/repos/app/.worktrees/beta", "feature/beta", "bbb0002"));
 
         Assert.That(_registry.GetById(a.Id)!.WorktreePath, Is.Not.EqualTo(_registry.GetById(b.Id)!.WorktreePath));

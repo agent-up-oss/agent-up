@@ -19,21 +19,21 @@ public static class WorkspacesEndpoints
             return workspace is null ? Results.NotFound() : Results.Ok(workspace);
         });
 
-        group.MapPost("/", (RegisterWorkspaceRequest request, IWorkspaceRegistry registry) =>
+        group.MapPost("/", async (RegisterWorkspaceRequest request, IWorkspaceRegistry registry) =>
         {
-            var workspace = registry.Register(request);
+            var workspace = await registry.RegisterAsync(request);
             return Results.Created($"/api/workspaces/{workspace.Id}", workspace);
         });
 
-        group.MapPatch("/{id}/state", (string id, [FromBody] UpdateWorkspaceStateRequest request, IWorkspaceRegistry registry) =>
+        group.MapPatch("/{id}/state", async (string id, [FromBody] UpdateWorkspaceStateRequest request, IWorkspaceRegistry registry) =>
         {
-            var updated = registry.UpdateState(id, request.State);
+            var updated = await registry.UpdateStateAsync(id, request.State);
             return updated ? Results.NoContent() : Results.NotFound();
         });
 
-        group.MapDelete("/{id}", (string id, IWorkspaceRegistry registry) =>
+        group.MapDelete("/{id}", async (string id, IWorkspaceRegistry registry) =>
         {
-            var removed = registry.Remove(id);
+            var removed = await registry.RemoveAsync(id);
             return removed ? Results.NoContent() : Results.NotFound();
         });
 

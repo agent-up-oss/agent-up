@@ -1,10 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
-using AgentUp.Server.Features.Workspaces;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,7 +27,10 @@ public class WorkspacesHttpTests
         {
             Args = [$"--urls=http://localhost:{port}"]
         });
-        builder.Services.AddSingleton<IWorkspaceRegistry, WorkspaceRegistry>();
+        builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
+        builder.Services.AddSingleton<WorkspaceRegistry>();
+        builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         _app = builder.Build();
