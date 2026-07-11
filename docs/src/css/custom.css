@@ -5,8 +5,8 @@
   --agentup-forest: #103f35;
   --agentup-forest-2: #17614f;
   --agentup-forest-3: #2f8a70;
-  --agentup-orange: #d96727;
-  --agentup-orange-2: #f08a3c;
+  --agentup-forest-accent: #17614f;
+  --agentup-forest-accent-2: #2f8a70;
   --agentup-cream: #f7f4ed;
   --agentup-mist: #e7efe9;
   --agentup-line: rgba(11, 17, 16, 0.12);
@@ -15,9 +15,9 @@
   --agentup-surface: #ffffff;
   --agentup-surface-soft: #f3f7f2;
   --agentup-teal: var(--agentup-forest);
-  --agentup-teal-soft: #9ccdbd;
-  --agentup-coral: var(--agentup-orange);
-  --agentup-gold: var(--agentup-orange-2);
+  --agentup-teal-soft: #79a98f;
+  --agentup-accent: var(--agentup-forest-accent);
+  --agentup-accent-soft: var(--agentup-forest-accent-2);
   --agentup-paper: #fbfaf6;
   --ifm-color-primary: #17614f;
   --ifm-color-primary-dark: #145745;
@@ -41,7 +41,7 @@
   --ifm-font-color-base: var(--agentup-ink);
   --ifm-heading-color: var(--agentup-ink);
   --ifm-link-color: var(--agentup-forest-2);
-  --ifm-link-hover-color: var(--agentup-orange);
+  --ifm-link-hover-color: var(--agentup-forest-accent);
   --ifm-code-background: rgba(16, 63, 53, 0.08);
   --ifm-code-color: var(--agentup-forest);
   --ifm-global-radius: 8px;
@@ -57,17 +57,17 @@
   --agentup-paper: #070d0c;
   --agentup-surface: #0d1715;
   --agentup-surface-soft: #10231f;
-  --agentup-teal: #73c4a7;
-  --agentup-teal-soft: #9ccdbd;
-  --agentup-coral: #f08a3c;
-  --agentup-gold: #ffb15f;
-  --ifm-color-primary: #73c4a7;
-  --ifm-color-primary-dark: #5bb796;
-  --ifm-color-primary-darker: #4cad8b;
-  --ifm-color-primary-darkest: #368d70;
-  --ifm-color-primary-light: #8bcfb7;
-  --ifm-color-primary-lighter: #9bd6c2;
-  --ifm-color-primary-lightest: #bee7d8;
+  --agentup-teal: #4f9f6f;
+  --agentup-teal-soft: #79a98f;
+  --agentup-accent: #4f9f6f;
+  --agentup-accent-soft: #6fad83;
+  --ifm-color-primary: #4f9f6f;
+  --ifm-color-primary-dark: #438d62;
+  --ifm-color-primary-darker: #397c55;
+  --ifm-color-primary-darkest: #2e6846;
+  --ifm-color-primary-light: #63ad80;
+  --ifm-color-primary-lighter: #76b98f;
+  --ifm-color-primary-lightest: #8fc8a3;
   --ifm-color-emphasis-200: rgba(231, 239, 233, 0.12);
   --ifm-color-emphasis-300: rgba(231, 239, 233, 0.18);
   --ifm-background-color: var(--agentup-paper);
@@ -76,15 +76,21 @@
   --ifm-navbar-shadow: 0 1px 0 var(--agentup-line);
   --ifm-font-color-base: var(--agentup-ink);
   --ifm-heading-color: var(--agentup-ink);
-  --ifm-link-color: #9bd6c2;
-  --ifm-link-hover-color: var(--agentup-orange-2);
+  --ifm-link-color: #8fc8a3;
+  --ifm-link-hover-color: var(--agentup-forest-accent-2);
   --ifm-code-background: rgba(115, 196, 167, 0.12);
-  --ifm-code-color: #bee7d8;
+  --ifm-code-color: #8fc8a3;
 }
 
 html,
 body {
-  background: var(--agentup-paper);
+  background:
+    linear-gradient(color-mix(in srgb, var(--agentup-forest-2) 2.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--agentup-forest-2) 2.5%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 84% 5rem, color-mix(in srgb, var(--agentup-forest-3) 5%, transparent), transparent 28rem),
+    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-forest-3) 4%, transparent), transparent 34rem),
+    var(--agentup-paper);
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
 }
 
 html {
@@ -113,13 +119,38 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--agentup-coral) 42%, transparent);
+  background: color-mix(in srgb, var(--agentup-accent) 42%, transparent);
 }
 
 .main-wrapper {
   background:
-    radial-gradient(circle at 88% 4rem, color-mix(in srgb, var(--agentup-orange) 8%, transparent), transparent 22rem),
-    linear-gradient(180deg, var(--agentup-paper), var(--agentup-paper));
+    linear-gradient(color-mix(in srgb, var(--agentup-forest-2) 2.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--agentup-forest-2) 2.5%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 84% 5rem, color-mix(in srgb, var(--agentup-forest-3) 5%, transparent), transparent 28rem),
+    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-forest-3) 4%, transparent), transparent 34rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--agentup-mist) 18%, var(--agentup-paper)), var(--agentup-paper) 34rem);
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
+}
+
+[data-theme='dark'] html,
+[data-theme='dark'] body {
+  background:
+    linear-gradient(color-mix(in srgb, var(--agentup-teal-soft) 3.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--agentup-teal-soft) 3.5%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 84% 5rem, color-mix(in srgb, var(--agentup-teal) 7%, transparent), transparent 28rem),
+    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-teal) 5%, transparent), transparent 34rem),
+    var(--agentup-paper);
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
+}
+
+[data-theme='dark'] .main-wrapper {
+  background:
+    linear-gradient(color-mix(in srgb, var(--agentup-teal-soft) 3.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--agentup-teal-soft) 3.5%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 84% 5rem, color-mix(in srgb, var(--agentup-teal) 7%, transparent), transparent 28rem),
+    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-teal) 5%, transparent), transparent 34rem),
+    linear-gradient(180deg, #08100f, var(--agentup-paper) 34rem);
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
 }
 
 .hero--primary {
@@ -144,7 +175,7 @@ body {
   height: 4px;
   margin-top: 1.35rem;
   border-radius: 999px;
-  background: var(--agentup-coral);
+  background: var(--agentup-accent);
 }
 
 .theme-doc-markdown h2,
@@ -202,7 +233,7 @@ body {
 }
 
 .theme-doc-markdown blockquote {
-  border-left: 4px solid var(--agentup-coral);
+  border-left: 4px solid var(--agentup-accent);
   color: var(--agentup-muted);
   background: color-mix(in srgb, var(--agentup-surface-soft) 72%, transparent);
   border-radius: 0 8px 8px 0;
@@ -255,7 +286,7 @@ body {
 
 .navbar__link:hover,
 .menu__link:hover {
-  color: var(--agentup-coral);
+  color: var(--agentup-accent);
 }
 
 .menu__link {
@@ -302,7 +333,7 @@ body {
 }
 
 [class*='codeBlockTitle'] {
-  color: var(--agentup-coral);
+  color: var(--agentup-accent);
   background: color-mix(in srgb, var(--agentup-mist) 70%, var(--agentup-surface));
   border-bottom: 1px solid var(--agentup-line);
   font-size: 0.8rem;
@@ -314,8 +345,8 @@ body {
 }
 
 [class*='copyButton']:hover {
-  color: var(--agentup-coral);
-  background: color-mix(in srgb, var(--agentup-orange) 12%, transparent);
+  color: var(--agentup-accent);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 12%, transparent);
 }
 
 .tabs {
@@ -330,8 +361,8 @@ body {
 }
 
 .tabs__item--active {
-  color: var(--agentup-coral);
-  border-bottom-color: var(--agentup-coral);
+  color: var(--agentup-accent);
+  border-bottom-color: var(--agentup-accent);
 }
 
 .table-of-contents {
@@ -344,7 +375,7 @@ body {
 
 .table-of-contents__link--active,
 .table-of-contents__link:hover {
-  color: var(--agentup-coral);
+  color: var(--agentup-accent);
 }
 
 .breadcrumbs {
@@ -358,8 +389,8 @@ body {
 }
 
 .breadcrumbs__item--active .breadcrumbs__link {
-  color: var(--agentup-coral);
-  background: color-mix(in srgb, var(--agentup-orange) 10%, transparent);
+  color: var(--agentup-accent);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 10%, transparent);
 }
 
 .pagination-nav {
@@ -375,7 +406,7 @@ body {
 }
 
 .pagination-nav__link:hover {
-  border-color: var(--agentup-coral);
+  border-color: var(--agentup-accent);
 }
 
 .pagination-nav__sublabel {
@@ -389,8 +420,8 @@ body {
 .footer--dark {
   --ifm-footer-background-color: var(--agentup-black);
   --ifm-footer-link-color: color-mix(in srgb, #f4f7f2 62%, transparent);
-  --ifm-footer-link-hover-color: var(--agentup-orange-2);
-  --ifm-footer-title-color: var(--agentup-orange-2);
+  --ifm-footer-link-hover-color: var(--agentup-forest-accent-2);
+  --ifm-footer-title-color: var(--agentup-forest-accent-2);
   background-color: var(--agentup-black) !important;
 }
 
@@ -405,9 +436,9 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    color-mix(in srgb, var(--agentup-orange) 18%, transparent) 24%,
+    color-mix(in srgb, var(--agentup-forest-accent) 18%, transparent) 24%,
     color-mix(in srgb, var(--agentup-teal) 46%, transparent) 50%,
-    color-mix(in srgb, var(--agentup-orange) 18%, transparent) 76%,
+    color-mix(in srgb, var(--agentup-forest-accent) 18%, transparent) 76%,
     transparent 100%
   );
 }
@@ -440,7 +471,7 @@ body {
 }
 
 .footer__title {
-  color: var(--agentup-orange-2);
+  color: var(--agentup-forest-accent-2);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -469,7 +500,7 @@ body {
 }
 
 .footer a:hover {
-  color: var(--agentup-orange-2);
+  color: var(--agentup-forest-accent-2);
 }
 
 .footer__bottom {
@@ -485,7 +516,7 @@ body {
 
 .agentup-eyebrow {
   margin: 0 0 1rem;
-  color: var(--agentup-orange);
+  color: var(--agentup-forest-accent);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -493,7 +524,7 @@ body {
 }
 
 .agentup-callout {
-  border-left: 4px solid var(--agentup-coral);
+  border-left: 4px solid var(--agentup-accent);
   background: var(--ifm-background-surface-color);
   padding: 1rem;
   margin: 1rem 0;
@@ -512,8 +543,8 @@ body {
 }
 
 .alert--warning {
-  background: color-mix(in srgb, var(--agentup-orange) 9%, transparent);
-  border-left-color: var(--agentup-coral);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 9%, transparent);
+  border-left-color: var(--agentup-accent);
 }
 
 .alert--success {

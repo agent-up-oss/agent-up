@@ -1,14 +1,22 @@
 .page {
   color: var(--agentup-ink);
   background:
-    radial-gradient(circle at 78% 6%, color-mix(in srgb, var(--agentup-orange) 13%, transparent), transparent 28rem),
-    linear-gradient(180deg, var(--agentup-mist) 0%, var(--agentup-paper) 38%, var(--agentup-paper) 100%);
+    linear-gradient(color-mix(in srgb, var(--agentup-forest-2) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--agentup-forest-2) 3%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 82% 7%, color-mix(in srgb, var(--agentup-forest-3) 6%, transparent), transparent 32rem),
+    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-forest-3) 5%, transparent), transparent 36rem),
+    linear-gradient(180deg, #f9fbf8 0%, var(--agentup-paper) 45%, var(--agentup-paper) 100%);
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
 }
 
 :global([data-theme='dark']) .page {
   background:
-    radial-gradient(circle at 78% 6%, color-mix(in srgb, var(--agentup-orange-2) 14%, transparent), transparent 30rem),
-    linear-gradient(180deg, var(--agentup-mist) 0%, var(--agentup-paper) 40%, var(--agentup-paper) 100%);
+    linear-gradient(color-mix(in srgb, var(--agentup-teal-soft) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--agentup-teal-soft) 4%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 82% 7%, color-mix(in srgb, var(--agentup-teal) 7%, transparent), transparent 32rem),
+    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-teal) 5%, transparent), transparent 36rem),
+    linear-gradient(180deg, #08100f 0%, var(--agentup-paper) 45%, var(--agentup-paper) 100%);
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
 }
 
 .hero {
@@ -41,7 +49,7 @@
 
 .eyebrow {
   margin: 0 0 1rem;
-  color: var(--agentup-orange);
+  color: var(--agentup-forest-accent);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -86,8 +94,8 @@
 }
 
 .secondaryAction:hover {
-  color: var(--agentup-coral);
-  border-color: var(--agentup-coral);
+  color: var(--agentup-accent);
+  border-color: var(--agentup-accent);
   text-decoration: none;
 }
 
@@ -98,7 +106,7 @@
 
 :global([data-theme='dark']) .primaryAction:hover {
   color: var(--agentup-black);
-  background: var(--agentup-orange-2);
+  background: var(--agentup-forest-accent-2);
 }
 
 :global([data-theme='dark']) .secondaryAction {
@@ -107,6 +115,10 @@
 }
 
 .heroVisual {
+  --agentup-accent: #17614f;
+  --agentup-accent-soft: #2f8a70;
+  --agentup-forest-accent: #17614f;
+  --agentup-forest-accent-2: #2f8a70;
   position: relative;
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
@@ -144,11 +156,11 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: var(--agentup-coral);
+  background: var(--agentup-accent);
 }
 
 .windowChrome span:nth-child(2) {
-  background: var(--agentup-gold);
+  background: var(--agentup-accent-soft);
 }
 
 .windowChrome span:nth-child(3) {
@@ -389,7 +401,7 @@
 .serviceTabActive {
   color: var(--agentup-ink);
   font-weight: 800;
-  border-bottom-color: var(--agentup-coral);
+  border-bottom-color: var(--agentup-accent);
   background: color-mix(in srgb, var(--agentup-surface) 70%, transparent);
 }
 
@@ -460,7 +472,7 @@
   color: var(--agentup-ink);
   background: var(--agentup-surface);
   font-weight: 800;
-  box-shadow: inset 2px 0 0 var(--agentup-coral);
+  box-shadow: inset 2px 0 0 var(--agentup-accent);
 }
 
 .dashboardMain {
@@ -550,8 +562,8 @@
 .statusTrial {
   font-size: 0.67rem;
   font-weight: 700;
-  color: var(--agentup-orange);
-  background: color-mix(in srgb, var(--agentup-orange) 12%, transparent);
+  color: var(--agentup-forest-accent);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 12%, transparent);
   padding: 0.1rem 0.38rem;
   border-radius: 999px;
   width: fit-content;
@@ -658,9 +670,9 @@
   border: 1px solid var(--agentup-line);
 }
 
-.mockupCard:nth-child(1) { border-top: 2px solid var(--agentup-coral); }
+.mockupCard:nth-child(1) { border-top: 2px solid var(--agentup-accent); }
 .mockupCard:nth-child(2) { border-top: 2px solid var(--agentup-teal-soft); }
-.mockupCard:nth-child(3) { border-top: 2px solid var(--agentup-gold); }
+.mockupCard:nth-child(3) { border-top: 2px solid var(--agentup-accent-soft); }
 
 .mockupHeroV2 {
   background: linear-gradient(135deg, var(--agentup-black), var(--agentup-forest));
@@ -753,7 +765,7 @@
   font-weight: 800;
   padding: 0.1rem 0.38rem;
   border-radius: 4px;
-  background: var(--agentup-coral);
+  background: var(--agentup-accent);
   color: #ffffff;
 }
 
@@ -869,8 +881,8 @@
 .orderPending {
   font-size: 0.67rem;
   font-weight: 700;
-  color: var(--agentup-orange);
-  background: color-mix(in srgb, var(--agentup-orange) 12%, transparent);
+  color: var(--agentup-forest-accent);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 12%, transparent);
   padding: 0.1rem 0.38rem;
   border-radius: 999px;
   width: fit-content;
@@ -934,8 +946,8 @@
 }
 
 .methodPUT {
-  background: color-mix(in srgb, var(--agentup-orange) 14%, transparent);
-  color: var(--agentup-orange);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 14%, transparent);
+  color: var(--agentup-forest-accent);
 }
 
 .methodDELETE {
@@ -1090,7 +1102,7 @@
 }
 
 .consoleCmd .consolePrefix {
-  color: var(--agentup-coral);
+  color: var(--agentup-accent);
 }
 
 /* ── Metrics mockup ── */
@@ -1156,7 +1168,7 @@
 }
 
 .sparkline span:last-child {
-  background: var(--agentup-coral);
+  background: var(--agentup-accent);
 }
 
 .browserFrame {
@@ -1189,7 +1201,7 @@
   place-items: center;
   border-radius: 10px;
   color: var(--agentup-ink);
-  background: linear-gradient(135deg, var(--agentup-mist), color-mix(in srgb, var(--agentup-orange) 12%, var(--agentup-surface)));
+  background: linear-gradient(135deg, var(--agentup-mist), color-mix(in srgb, var(--agentup-forest-accent) 12%, var(--agentup-surface)));
   font-weight: 900;
 }
 
@@ -1344,7 +1356,7 @@
 .serviceVisual div:nth-child(even) {
   margin-left: 3rem;
   background: var(--agentup-forest-2);
-  box-shadow: 12px 12px 0 color-mix(in srgb, var(--agentup-orange) 24%, transparent);
+  box-shadow: 12px 12px 0 color-mix(in srgb, var(--agentup-forest-accent) 24%, transparent);
 }
 
 .dockerVisual {
@@ -1383,8 +1395,8 @@
   width: 70%;
   height: 52px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--agentup-orange) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--agentup-orange) 32%, transparent);
+  background: color-mix(in srgb, var(--agentup-forest-accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--agentup-forest-accent) 32%, transparent);
 }
 
 .tabStack span:nth-child(1) { top: 0; left: 16%; }
@@ -1438,8 +1450,8 @@
 
 .authVisual strong {
   color: #ffffff;
-  background: var(--agentup-coral);
-  box-shadow: 0 18px 40px color-mix(in srgb, var(--agentup-orange) 28%, transparent);
+  background: var(--agentup-accent);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--agentup-forest-accent) 28%, transparent);
 }
 
 .stateVisual {
@@ -1520,7 +1532,7 @@
   height: 14px;
   transform: translateY(-50%);
   border-radius: 999px;
-  background: var(--agentup-coral);
+  background: var(--agentup-accent);
 }
 
 .operatingModel {
@@ -1543,7 +1555,7 @@
 
 .operatingModel li {
   padding: 0.9rem 1rem;
-  border-left: 4px solid var(--agentup-coral);
+  border-left: 4px solid var(--agentup-accent);
   border-radius: 8px;
   background: var(--agentup-surface);
   color: var(--agentup-ink);
@@ -1629,7 +1641,7 @@
 .consoleWarn {
   display: flex;
   gap: 0.55rem;
-  color: var(--agentup-gold);
+  color: var(--agentup-accent-soft);
 }
 
 /* ── Website mockup nav links ── */
@@ -1866,7 +1878,7 @@
 }
 
 .analyticsBar:last-child {
-  background: var(--agentup-coral);
+  background: var(--agentup-accent);
 }
 
 .analyticsLabels {
