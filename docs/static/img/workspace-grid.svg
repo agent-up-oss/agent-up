@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#111827"/>
+  <g stroke="#7dcfb6" stroke-opacity=".22" stroke-width="2">
+    <path d="M120 140h1360M120 300h1360M120 460h1360M120 620h1360M120 780h1360"/>
+    <path d="M200 80v760M480 80v760M760 80v760M1040 80v760M1320 80v760"/>
+  </g>
+  <g fill="#216869" stroke="#c9ede2" stroke-width="3">
+    <rect x="180" y="150" width="240" height="96" rx="10"/>
+    <rect x="500" y="330" width="240" height="96" rx="10"/>
+    <rect x="820" y="150" width="240" height="96" rx="10"/>
+    <rect x="1140" y="510" width="240" height="96" rx="10"/>
+  </g>
+  <g stroke="#ffffff" stroke-opacity=".72" stroke-width="4" fill="none">
+    <path d="M420 198c90 0 0 180 80 180"/>
+    <path d="M740 378c120 0-10-180 80-180"/>
+    <path d="M1060 198c180 0-20 360 80 360"/>
+  </g>
+</svg>
