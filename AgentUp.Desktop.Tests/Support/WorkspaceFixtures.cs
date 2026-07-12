@@ -20,8 +20,8 @@ internal static class WorkspaceFixtures
         {
             Applications =
             [
-                new ApplicationDto("API", "cargo run", null, null, "Running"),
-                new ApplicationDto("Docs", "npm run start", "docs", null, "Running"),
+                new ApplicationDto("API", "cargo run", null, "Running"),
+                new ApplicationDto("Docs", "npm run start", "docs", "Running"),
             ]
         };
 

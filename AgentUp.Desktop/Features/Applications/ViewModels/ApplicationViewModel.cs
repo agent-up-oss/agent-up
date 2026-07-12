@@ -1,20 +1,22 @@
+using AgentUp.Desktop.Features.Ports.Http;
+
 namespace AgentUp.Desktop.Features.Applications.ViewModels;
 
 public sealed class ApplicationViewModel
 {
     public string Name { get; }
     public string Command { get; }
-    public string? PortVariable { get; }
     public string State { get; }
     public string StateColor { get; }
+    public IReadOnlyList<PortMappingDto> AllocatedPorts { get; }
 
-    public ApplicationViewModel(string name, string command, string? portVariable, string state)
+    public ApplicationViewModel(string name, string command, string state, IReadOnlyList<PortMappingDto>? allocatedPorts = null)
     {
         Name = name;
         Command = command;
-        PortVariable = portVariable;
         State = state;
         StateColor = ResolveStateColor(state);
+        AllocatedPorts = allocatedPorts ?? [];
     }
 
     private static string ResolveStateColor(string state) => state switch

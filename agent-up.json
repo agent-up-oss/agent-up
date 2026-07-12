@@ -4,15 +4,20 @@
     {
       "name": "Docs",
       "command": "npm run start",
-      "path": "docs"
+      "path": "docs",
+      "ports": [
+        { "variable": "PORT", "defaultPort": 3000 }
+      ]
     }
   ],
   "services": [
     {
       "name": "Database",
       "image": "postgres:16",
-      "ports": ["5432:5432"],
-      "environment": { 
+      "ports": [
+        { "variable": "POSTGRES_PORT", "defaultPort": 5432 }
+      ],
+      "environment": {
         "POSTGRES_PASSWORD": "secret"
       },
       "volumes": ["pgdata:/var/lib/postgresql/data"]

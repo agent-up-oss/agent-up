@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Ports.Models;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
@@ -13,7 +14,7 @@ public class WorkspaceRegistryTests
     [SetUp]
     public void SetUp()
     {
-        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository());
+        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
     }
 
     [Test]
@@ -225,7 +226,7 @@ public class WorkspaceRegistryTests
                 new DockerServiceDefinition(
                     Name: "Database",
                     Image: "postgres:16",
-                    Ports: ["5432:5432"],
+                    Ports: [new PortDeclaration("DB_PORT", 5432)],
                     Environment: new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "secret" },
                     Volumes: ["pgdata:/var/lib/postgresql/data"])
             ]
@@ -234,7 +235,10 @@ public class WorkspaceRegistryTests
         var workspace = await _registry.RegisterAsync(request);
         var db = workspace.Applications[0];
 
-        Assert.That(db.Ports, Is.EqualTo(new[] { "5432:5432" }));
+        Assert.That(db.Ports, Has.Count.EqualTo(1));
+        Assert.That(db.Ports[0].DefaultPort, Is.EqualTo(5432));
+        Assert.That(db.AllocatedPorts, Has.Count.EqualTo(1));
+        Assert.That(db.AllocatedPorts[0].AllocatedPort, Is.GreaterThanOrEqualTo(10000));
         Assert.That(db.Environment!["POSTGRES_PASSWORD"], Is.EqualTo("secret"));
         Assert.That(db.Volumes, Is.EqualTo(new[] { "pgdata:/var/lib/postgresql/data" }));
     }
@@ -244,7 +248,7 @@ public class WorkspaceRegistryTests
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
-            Applications = [new ApplicationDefinition("API", "dotnet run", null, null)],
+            Applications = [new ApplicationDefinition("API", "dotnet run", null)],
             Services = [new DockerServiceDefinition("Database", "postgres:16")]
         };
 

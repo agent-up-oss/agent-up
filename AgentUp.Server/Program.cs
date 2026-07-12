@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
+using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Repositories;
@@ -19,6 +20,10 @@ builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
     new JsonWorkspaceRepository(Path.Combine(dataDir, "workspaces.json")));
 builder.Services.AddSingleton<IOutputRepository>(_ =>
     new FileOutputRepository(dataDir));
+builder.Services.AddSingleton<IPortAllocationService>(sp =>
+    new PortAllocationService(
+        Path.Combine(dataDir, "port-ranges.json"),
+        sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PortAllocationService>>()));
 builder.Services.AddSingleton<WorkspaceRegistry>();
 builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());

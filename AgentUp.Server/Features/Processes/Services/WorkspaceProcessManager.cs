@@ -51,20 +51,27 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "/usr/bin/env",
+            ArgumentList = { "bash", "-c", app.Command! },
+            WorkingDirectory = app.Path is not null
+                ? Path.Combine(workspace.WorktreePath, app.Path)
+                : workspace.WorktreePath,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        foreach (var mapping in app.AllocatedPorts)
+        {
+            if (mapping.Variable is not null)
+                startInfo.Environment[mapping.Variable] = mapping.AllocatedPort.ToString();
+        }
+
         var process = new Process
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "/usr/bin/env",
-                ArgumentList = { "bash", "-c", app.Command! },
-                WorkingDirectory = app.Path is not null
-                    ? Path.Combine(workspace.WorktreePath, app.Path)
-                    : workspace.WorktreePath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            },
+            StartInfo = startInfo,
             EnableRaisingEvents = true
         };
 
@@ -111,10 +118,10 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             await RunDockerAsync("rm", "-f", containerName);
 
             var runArgs = new List<string> { "run", "-d", "--name", containerName };
-            foreach (var port in app.Ports ?? [])
+            foreach (var mapping in app.AllocatedPorts)
             {
                 runArgs.Add("-p");
-                runArgs.Add(port);
+                runArgs.Add($"{mapping.AllocatedPort}:{mapping.DefaultPort}");
             }
             foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
             {

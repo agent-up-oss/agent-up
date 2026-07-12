@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.CLI.Http;
 using AgentUp.CLI.Tests.Fake;
+using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -335,6 +336,7 @@ public class WorkspaceCommandsTests
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
+        builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
@@ -361,7 +363,7 @@ public class WorkspaceCommandsTests
     {
         await WriteAgentUpJsonAsync(_workspaceDir, "My App",
             applications: [],
-            services: [new { name = "Database", image = "postgres:16", ports = new[] { "5432:5432" } }]);
+            services: [new { name = "Database", image = "postgres:16", ports = new[] { new { variable = "DB_PORT", defaultPort = 5432 } } }]);
 
         await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 

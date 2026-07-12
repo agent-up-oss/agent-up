@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using Microsoft.Extensions.Hosting;
@@ -10,10 +12,12 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
 {
     private readonly ConcurrentDictionary<string, Workspace> _workspaces = new();
     private readonly IWorkspaceRepository _repository;
+    private readonly IPortAllocationService _ports;
 
-    public WorkspaceRegistry(IWorkspaceRepository repository)
+    public WorkspaceRegistry(IWorkspaceRepository repository, IPortAllocationService ports)
     {
         _repository = repository;
+        _ports = ports;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -41,9 +45,17 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
         var existing = _workspaces.Values.FirstOrDefault(w =>
             string.Equals(w.WorktreePath, request.WorktreePath, StringComparison.OrdinalIgnoreCase));
 
+        var workspaceId = existing?.Id ?? Guid.NewGuid().ToString();
+
+        var basePort = await _ports.GetBasePortAsync(workspaceId);
+        var portCounter = basePort;
+
+        IReadOnlyList<PortMapping> AllocatePorts(IReadOnlyList<PortDeclaration>? declarations) =>
+            (declarations ?? []).Select(d => new PortMapping(d.Variable, d.DefaultPort, portCounter++)).ToList();
+
         var workspace = new Workspace
         {
-            Id = existing?.Id ?? Guid.NewGuid().ToString(),
+            Id = workspaceId,
             DisplayName = request.DisplayName,
             RepositoryPath = request.RepositoryPath,
             WorktreePath = request.WorktreePath,
@@ -56,14 +68,16 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
                     Name = d.Name,
                     Command = d.Command,
                     Path = d.Path,
-                    PortVariable = d.PortVariable
+                    Ports = d.Ports ?? [],
+                    AllocatedPorts = AllocatePorts(d.Ports)
                 })
                 .Concat(request.Services.Select(s => new ApplicationInstance
                 {
                     Name = s.Name,
                     ServiceType = ServiceType.Docker,
                     Image = s.Image,
-                    Ports = s.Ports,
+                    Ports = s.Ports ?? [],
+                    AllocatedPorts = AllocatePorts(s.Ports),
                     Environment = s.Environment,
                     Volumes = s.Volumes
                 }))
@@ -104,6 +118,7 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
         if (!_workspaces.TryRemove(id, out _))
             return false;
 
+        await _ports.ReleaseAsync(id);
         await _repository.SaveAllAsync(GetAll());
         return true;
     }

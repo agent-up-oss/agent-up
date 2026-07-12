@@ -4,6 +4,8 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -43,6 +45,7 @@ public class ApplicationsHttpTests
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
+        builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
@@ -92,8 +95,9 @@ public class ApplicationsHttpTests
         {
             Applications =
             [
-                new ApplicationDefinition("Frontend", "npm run dev", "./frontend", "WEB_PORT"),
-                new ApplicationDefinition("Backend", "dotnet run", "./api", null)
+                new ApplicationDefinition("Frontend", "npm run dev", "./frontend",
+                    [new PortDeclaration("WEB_PORT", 3000)]),
+                new ApplicationDefinition("Backend", "dotnet run", "./api")
             ]
         };
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
@@ -120,13 +124,13 @@ public class ApplicationsHttpTests
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
-            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null)]
         };
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
 
         var updated = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c2")
         {
-            Applications = [new ApplicationDefinition("Frontend", "npm run build", null, null)]
+            Applications = [new ApplicationDefinition("Frontend", "npm run build", null)]
         };
         var reregistered = (await (await _client.PostAsJsonAsync("/api/workspaces", updated)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
 
@@ -140,7 +144,7 @@ public class ApplicationsHttpTests
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
-            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null)]
         };
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
 
@@ -156,7 +160,7 @@ public class ApplicationsHttpTests
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
-            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null)]
         };
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
         await _client.PostAsync($"/api/workspaces/{created.Id}/applications/Frontend/start", null);
@@ -173,7 +177,7 @@ public class ApplicationsHttpTests
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
-            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null)]
         };
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
 
@@ -200,7 +204,7 @@ public class ApplicationsHttpTests
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
-            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null, null)]
+            Applications = [new ApplicationDefinition("Frontend", "npm run dev", null)]
         };
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
 
@@ -232,7 +236,7 @@ public class ApplicationsHttpTests
                 new DockerServiceDefinition(
                     Name: "Database",
                     Image: "postgres:16",
-                    Ports: ["5432:5432"],
+                    Ports: [new PortDeclaration("DB_PORT", 5432)],
                     Environment: new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "secret" },
                     Volumes: ["pgdata:/var/lib/postgresql/data"])
             ]
@@ -246,7 +250,9 @@ public class ApplicationsHttpTests
         Assert.That(db.Name, Is.EqualTo("Database"));
         Assert.That(db.ServiceType, Is.EqualTo(ServiceType.Docker));
         Assert.That(db.Image, Is.EqualTo("postgres:16"));
-        Assert.That(db.Ports, Is.EqualTo(new[] { "5432:5432" }));
+        Assert.That(db.Ports, Has.Count.EqualTo(1));
+        Assert.That(db.Ports[0].DefaultPort, Is.EqualTo(5432));
+        Assert.That(db.AllocatedPorts, Has.Count.EqualTo(1));
         Assert.That(db.Environment!["POSTGRES_PASSWORD"], Is.EqualTo("secret"));
         Assert.That(db.Volumes, Is.EqualTo(new[] { "pgdata:/var/lib/postgresql/data" }));
         Assert.That(db.State, Is.EqualTo(ApplicationState.Stopped));
@@ -257,7 +263,7 @@ public class ApplicationsHttpTests
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
-            Applications = [new ApplicationDefinition("API", "dotnet run", null, null)],
+            Applications = [new ApplicationDefinition("API", "dotnet run", null)],
             Services = [new DockerServiceDefinition("Database", "postgres:16")]
         };
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
