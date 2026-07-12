@@ -56,6 +56,7 @@ public sealed class StartCommand
         }
 
         var applications = config.Applications ?? [];
+        var services = config.Services ?? [];
 
         WorkspaceDto? workspace;
         try
@@ -67,7 +68,8 @@ public sealed class StartCommand
                 Branch: branch,
                 Commit: commit)
             {
-                Applications = applications
+                Applications = applications,
+                Services = services
             });
         }
         catch (Exception ex)
@@ -101,6 +103,13 @@ public sealed class StartCommand
             _output.WriteLine($"  Applications ({applications.Count}):");
             foreach (var app in applications)
                 _output.WriteLine($"    - {app.Name}: {app.Command}");
+        }
+
+        if (services.Count > 0)
+        {
+            _output.WriteLine($"  Services ({services.Count}):");
+            foreach (var svc in services)
+                _output.WriteLine($"    - {svc.Name}: {svc.Image}");
         }
 
         return 0;

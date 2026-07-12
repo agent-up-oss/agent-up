@@ -57,6 +57,15 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
                     Path = d.Path,
                     PortVariable = d.PortVariable
                 })
+                .Concat(request.Services.Select(s => new ApplicationInstance
+                {
+                    Name = s.Name,
+                    ServiceType = ServiceType.Docker,
+                    Image = s.Image,
+                    Ports = s.Ports,
+                    Environment = s.Environment,
+                    Volumes = s.Volumes
+                }))
                 .ToList()
         };
 

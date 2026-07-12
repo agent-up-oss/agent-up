@@ -1,0 +1,41 @@
+using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Repositories;
+using AgentUp.Server.Features.Workspaces.Services;
+using AgentUp.Server.Tests.Fake;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace AgentUp.Server.Tests.Features.Workspaces.Unit;
+
+[TestFixture]
+public class WorkspaceProcessManagerTests
+{
+    private InMemoryOutputRepository _output = null!;
+    private WorkspaceRegistry _registry = null!;
+    private WorkspaceProcessManager _manager = null!;
+
+    [SetUp]
+    public async Task SetUp()
+    {
+        _output = new InMemoryOutputRepository();
+        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository());
+        await ((IHostedService)_registry).StartAsync(CancellationToken.None);
+        _manager = new WorkspaceProcessManager(_registry, _output, NullLogger<WorkspaceProcessManager>.Instance);
+    }
+
+    [Test]
+    public async Task LaunchDockerService_WritesStderr_ToOutputRepository_OnStartupFailure()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Services = [new DockerServiceDefinition("Db", "agent-up-nonexistent-image-xyz:latest")]
+        });
+
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _manager.LaunchApplicationAsync(workspace, "Db"));
+
+        var lines = await _output.GetAsync(workspace.Id, "Db");
+        Assert.That(lines, Is.Not.Empty);
+        Assert.That(lines, Has.Some.StartsWith("[err]"));
+    }
+}
