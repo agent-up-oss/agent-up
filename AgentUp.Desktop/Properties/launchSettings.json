@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "AgentUp.Desktop": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "AGENTUP_SERVER_URL": "http://localhost:5000"
+      }
+    },
+    "AgentUp.Desktop (NixOS)": {
+      "commandName": "Executable",
+      "executablePath": "bash",
+      "commandLineArgs": "run-desktop.sh",
+      "workingDirectory": "$(SolutionDir)",
+      "environmentVariables": {
+        "AGENTUP_SERVER_URL": "http://localhost:5000"
+      }
+    }
+  }
+}
