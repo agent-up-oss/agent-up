@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.CLI.Http;
 using AgentUp.CLI.Tests.Fake;
+using AgentUp.Server.Features.Processes.Repositories;
+using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
@@ -327,8 +329,10 @@ public class WorkspaceCommandsTests
         {
             Args = [$"--urls=http://localhost:{port}"]
         });
-        builder.Services.ConfigureHttpJsonOptions(options =>
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        builder.Services.AddControllers()
+            .AddApplicationPart(typeof(WorkspacesController).Assembly)
+            .AddJsonOptions(opts =>
+                opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
@@ -338,7 +342,7 @@ public class WorkspaceCommandsTests
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         var app = builder.Build();
-        app.MapWorkspaces();
+        app.MapControllers();
         return app;
     }
 

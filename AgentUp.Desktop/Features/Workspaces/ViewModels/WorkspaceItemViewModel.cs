@@ -1,4 +1,5 @@
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Applications.Http;
+using AgentUp.Desktop.Features.Applications.ViewModels;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -36,9 +37,8 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     private static string ResolveStateColor(string state) => state switch
     {
         "Running" => "#4cbe78",
-        "Starting" or "Stopping" => "#c8963c",
         "Failed" => "#b85a5a",
-        _ => "#3a3a50"
+        _ => "#5a5a72"
     };
 
     private static string BuildInitials(string name)

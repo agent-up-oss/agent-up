@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Applications.Http;
 using AgentUp.Desktop.Features.Workspaces.Http;
 
 namespace AgentUp.Desktop.Tests.Support;

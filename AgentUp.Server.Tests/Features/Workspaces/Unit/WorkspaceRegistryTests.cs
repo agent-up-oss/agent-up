@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;

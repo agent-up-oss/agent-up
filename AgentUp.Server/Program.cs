@@ -1,14 +1,18 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
-using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Processes.Repositories;
+using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+        opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var dataDir = ResolveDataDirectory();
 builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
@@ -24,7 +28,9 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceProcessMa
 
 var app = builder.Build();
 
-app.MapWorkspaces();
+app.UseSwagger();
+app.UseSwaggerUI();
+app.MapControllers();
 
 app.Run();
 

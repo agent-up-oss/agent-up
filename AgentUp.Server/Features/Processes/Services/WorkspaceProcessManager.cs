@@ -1,12 +1,14 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Features.Workspaces.Repositories;
+using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace AgentUp.Server.Features.Workspaces.Services;
+namespace AgentUp.Server.Features.Processes.Services;
 
 public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, IHostedService
 {

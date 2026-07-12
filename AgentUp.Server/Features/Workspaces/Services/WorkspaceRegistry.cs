@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using Microsoft.Extensions.Hosting;

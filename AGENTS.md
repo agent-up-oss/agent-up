@@ -85,6 +85,9 @@ AgentUp.Server/
     Processes/
       Services/
       Diagnostics/
+    Applications/
+      Controllers/
+      DTOs/
     Browser/
       Services/
       Profiles/
@@ -95,6 +98,19 @@ AgentUp.Server/
     Mcp/
       Tools/
       Resources/
+
+AgentUp.Desktop/
+  Features/
+    Workspaces/       (sidebar navigation: workspace list, loading, error, collapse)
+      Http/
+      ViewModels/
+      Views/
+    Applications/     (application tab bar: list and selection per workspace)
+      Http/
+      ViewModels/
+    Console/          (console output/logs for the selected application)
+      Http/
+      ViewModels/
 ```
 
 Avoid this as the primary organizing model:
@@ -284,12 +300,28 @@ AgentUp.Server.Tests/
     Workspaces/
       HTTP/
       Unit/
+      Repository/
+    Applications/
+      HTTP/
+    Processes/
+      Unit/
     Browser/
       Automation/
       Unit/
     Mcp/
       Tools/
       Resources/
+
+AgentUp.Desktop.Tests/
+  Features/
+    Workspaces/
+      Headless/     (Avalonia headless tests for sidebar/workspace-list UI)
+      Unit/         (ViewModel unit tests, no UI)
+    Applications/
+      Headless/     (Avalonia headless tests for application panel UI)
+    Console/
+      Headless/     (Avalonia headless tests for console output panel UI)
+  Support/          (AppDriver, SidebarDriver, ContentDriver, WorkspaceFixtures)
 ```
 
 ## Test Strategy

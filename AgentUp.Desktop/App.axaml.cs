@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using AgentUp.Desktop.Features.Console.Http;
 using AgentUp.Desktop.Features.Workspaces.Http;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
@@ -20,8 +21,9 @@ public class App : Application
         {
             var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
             var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
-            var apiClient = new WorkspaceApiClient(http);
-            var viewModel = new MainViewModel(apiClient);
+            var workspaceClient = new WorkspaceApiClient(http);
+            var consoleClient = new ConsoleApiClient(http);
+            var viewModel = new MainViewModel(workspaceClient, consoleClient);
 
             desktop.MainWindow = new MainWindow { DataContext = viewModel };
 

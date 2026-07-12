@@ -1,3 +1,5 @@
+using AgentUp.Server.Features.Applications.DTOs;
+
 namespace AgentUp.Server.Features.Workspaces.DTOs;
 
 public class Workspace

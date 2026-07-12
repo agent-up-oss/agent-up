@@ -1,4 +1,4 @@
-namespace AgentUp.Server.Features.Workspaces.Repositories;
+namespace AgentUp.Server.Features.Processes.Repositories;
 
 public interface IOutputRepository
 {

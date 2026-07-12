@@ -1,3 +1,5 @@
+using AgentUp.Desktop.Features.Applications.Http;
+
 namespace AgentUp.Desktop.Features.Workspaces.Http;
 
 public sealed record WorkspaceDto(

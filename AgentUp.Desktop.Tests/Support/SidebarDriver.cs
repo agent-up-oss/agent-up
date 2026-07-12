@@ -8,10 +8,10 @@ internal sealed class SidebarDriver(MainWindow window)
 {
     private MainViewModel Vm => (MainViewModel)window.DataContext!;
 
-    public bool IsExpanded => Vm.IsSidebarExpanded;
-    public bool IsCollapsed => Vm.IsSidebarCollapsed;
+    public bool IsExpanded => Vm.Sidebar.IsExpanded;
+    public bool IsCollapsed => Vm.Sidebar.IsCollapsed;
 
-    public int WorkspaceCount => Vm.Workspaces.Count;
+    public int WorkspaceCount => Vm.Sidebar.Workspaces.Count;
 
     public bool IsShowingNames =>
         window.FindControl<ScrollViewer>("WorkspaceListExpanded")?.IsVisible ?? false;
@@ -19,25 +19,25 @@ internal sealed class SidebarDriver(MainWindow window)
     public bool IsShowingAvatars =>
         window.FindControl<ScrollViewer>("WorkspaceListCollapsed")?.IsVisible ?? false;
 
-    public string? SelectedWorkspaceName => Vm.SelectedWorkspace?.DisplayName;
+    public string? SelectedWorkspaceName => Vm.Sidebar.SelectedWorkspace?.DisplayName;
 
     public async Task CollapseAsync()
     {
-        if (Vm.IsSidebarCollapsed) return;
+        if (Vm.Sidebar.IsCollapsed) return;
         var toggle = window.FindControl<Button>("SidebarToggle")!;
         await window.ClickControlAsync(toggle);
     }
 
     public async Task ExpandAsync()
     {
-        if (Vm.IsSidebarExpanded) return;
+        if (Vm.Sidebar.IsExpanded) return;
         var toggle = window.FindControl<Button>("SidebarToggle")!;
         await window.ClickControlAsync(toggle);
     }
 
     public async Task SelectWorkspaceAtIndexAsync(int index)
     {
-        Vm.SelectedWorkspace = Vm.Workspaces[index];
+        Vm.Sidebar.SelectedWorkspace = Vm.Sidebar.Workspaces[index];
         await HeadlessExtensions.FlushAsync();
     }
 
