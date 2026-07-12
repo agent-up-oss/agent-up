@@ -12,6 +12,7 @@ public sealed class PortSubTabViewModel : SubTabViewModel
     public int AllocatedPort { get; }
 
     public override string Label => $"{DefaultPort}:{AllocatedPort}";
+    public string Url => $"http://localhost:{AllocatedPort}/";
 
     public bool IsOpen
     {

@@ -422,10 +422,9 @@
                                 </ItemsControl>
                             </ScrollViewer>
 
-                            <!-- Port view placeholder -->
-                            <Border x:Name="PortPane"
-                                    IsVisible="{Binding ShowPortView}"
-                                    Background="Transparent"/>
+                            <!-- Port view: browser WebViews are added/swapped here in code-behind -->
+                            <Panel x:Name="PortPane"
+                                   IsVisible="{Binding ShowPortView}"/>
 
                         </Panel>
 

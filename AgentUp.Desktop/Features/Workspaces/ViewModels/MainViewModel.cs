@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.Http;
 using AgentUp.Desktop.Features.Console.ViewModels;
@@ -26,6 +27,10 @@ public sealed class MainViewModel : ReactiveObject
 
     public bool ShowConsole => SelectedSubTab is ConsoleSubTabViewModel;
     public bool ShowPortView => SelectedSubTab is PortSubTabViewModel;
+
+    // Emits (workspaceId, url) when the browser should navigate.
+    // workspaceId drives which isolated session to use; url is the destination.
+    public IObservable<(string? WorkspaceId, string? Url)> BrowserNavigation { get; }
 
     public MainViewModel(WorkspaceApiClient workspaceClient, ConsoleApiClient consoleClient)
     {
@@ -58,6 +63,17 @@ public sealed class MainViewModel : ReactiveObject
                 if (tab is PortSubTabViewModel portTab)
                     _ = portTab.ProbeAsync();
             });
+
+        // Emit a navigation event whenever workspace or sub-tab changes.
+        var workspaceChanged = Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
+            .Select(ws => (WorkspaceId: ws?.Id, Url: (string?)null));
+
+        var tabChanged = this.WhenAnyValue(x => x.SelectedSubTab)
+            .Select(tab => tab is PortSubTabViewModel pt
+                ? (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)pt.Url)
+                : (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)null));
+
+        BrowserNavigation = workspaceChanged.Merge(tabChanged);
     }
 
     private void RebuildSubTabs(ApplicationViewModel? app)
