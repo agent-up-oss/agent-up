@@ -18,6 +18,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: DeterminateSystems/nix-installer-action@v14
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
@@ -48,24 +50,25 @@ jobs:
           dotnet build "agent-up.sln" --configuration Release
 
       - name: Run tests
-        shell: bash
         run: |
-          found_tests=false
+          nix-shell shell.nix --run '
+            found_tests=false
 
-          while IFS= read -r -d '' test_project; do
-            found_tests=true
-            dotnet test "$test_project" \
-              --configuration Release \
-              --no-build \
-              --settings "coverlet.runsettings" \
-              --logger "trx;LogFileName=test-results.trx" \
-              --collect:"XPlat Code Coverage"
-          done < <(find . -name "*Tests.csproj" -print0)
+            while IFS= read -r -d "" test_project; do
+              found_tests=true
+              dotnet test "$test_project" \
+                --configuration Release \
+                --no-build \
+                --settings "coverlet.runsettings" \
+                --logger "trx;LogFileName=test-results.trx" \
+                --collect:"XPlat Code Coverage"
+            done < <(find . -name "*Tests.csproj" -print0)
 
-          if [ "$found_tests" = false ]; then
-            echo "No test projects found"
-            exit 1
-          fi
+            if [ "$found_tests" = false ]; then
+              echo "No test projects found"
+              exit 1
+            fi
+          '
 
       - name: Sonar end
         run: |

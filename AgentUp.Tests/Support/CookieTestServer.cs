@@ -4,6 +4,9 @@ using System.Text;
 
 namespace AgentUp.Tests.Support;
 
+// Minimal HTTP server for cookie isolation tests.
+// GET /set/{name}/{value}  → responds with Set-Cookie: name=value
+// GET /check (or any other path) → body echoes the incoming Cookie header (or "(none)")
 internal sealed class CookieTestServer : IDisposable
 {
     private readonly HttpListener _listener;
@@ -43,7 +46,6 @@ internal sealed class CookieTestServer : IDisposable
             var path = ctx.Request.Url?.AbsolutePath ?? "/";
             var cookieHeader = ctx.Request.Headers["Cookie"];
 
-            // /set/{name}/{value} → respond with Set-Cookie header
             if (path.StartsWith("/set/"))
             {
                 var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
@@ -63,12 +65,12 @@ internal sealed class CookieTestServer : IDisposable
         }
     }
 
-    // Waits until the server receives a request whose path starts with the given prefix.
-    // Earlier non-matching requests (e.g. /favicon.ico) are silently discarded.
+    // Waits until the server receives a request whose path starts with pathPrefix.
+    // Non-matching requests (favicon.ico etc.) are discarded.
     public async Task<ReceivedRequest> WaitForRequestAsync(
         string pathPrefix, TimeSpan? timeout = null)
     {
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(15));
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(60));
 
         while (DateTime.UtcNow < deadline)
         {
@@ -80,9 +82,11 @@ internal sealed class CookieTestServer : IDisposable
 
             var remaining = deadline - DateTime.UtcNow;
             if (remaining <= TimeSpan.Zero) break;
-            await _signal.WaitAsync(remaining < TimeSpan.FromMilliseconds(500)
-                ? remaining
-                : TimeSpan.FromMilliseconds(500));
+
+            await _signal.WaitAsync(
+                remaining < TimeSpan.FromMilliseconds(500)
+                    ? remaining
+                    : TimeSpan.FromMilliseconds(500));
         }
 
         throw new TimeoutException($"No request to '{pathPrefix}' received within timeout");

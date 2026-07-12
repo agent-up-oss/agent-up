@@ -30,8 +30,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal void NavigateTo(string workspaceId, string url) => HandleNavigation(workspaceId, url);
 
+    private static void NavLog(string msg)
+    {
+        System.IO.File.AppendAllText("/tmp/agentup-nav.log", msg + "\n");
+    }
+
     private void HandleNavigation(string? workspaceId, string? url)
     {
+        NavLog($"HandleNavigation ws={workspaceId} url={url}");
         // When the active workspace changes, show/hide the cached WebView for it.
         if (workspaceId != _activeWorkspaceId)
         {
@@ -44,26 +50,37 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 existing.IsVisible = true;
         }
 
+        NavLog($"After workspace-switch section, url-section? {url is not null && workspaceId is not null}");
+
         // A port tab was selected — create the WebView lazily and navigate.
         if (url is not null && workspaceId is not null)
         {
             if (!_webViews.TryGetValue(workspaceId, out var webView))
             {
+                NavLog($"Creating new WebView for {workspaceId}");
                 try
                 {
                     webView = new WebView();
+                    NavLog($"new WebView() succeeded for {workspaceId}");
                     _webViews[workspaceId] = webView;
                     PortPane.Children.Add(webView);
+                    NavLog($"WebView added to PortPane for {workspaceId}");
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // WebView platform not initialized (e.g., headless test environment).
+                    NavLog($"WebView creation FAILED for {workspaceId}: {ex.GetType().Name}: {ex.Message}\n{ex}");
                     return;
                 }
+            }
+            else
+            {
+                NavLog($"Reusing existing WebView for {workspaceId}");
             }
 
             webView.IsVisible = true;
             webView.Url = new Uri(url);
+            NavLog($"Url set for {workspaceId}: {url}");
         }
+        NavLog($"HandleNavigation done ws={workspaceId}");
     }
 }
