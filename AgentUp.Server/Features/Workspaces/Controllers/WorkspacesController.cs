@@ -38,6 +38,7 @@ public sealed class WorkspacesController(IWorkspaceRegistry registry, IWorkspace
             await registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
         try
         {
+            await registry.ReallocatePortsAsync(id);
             await processes.LaunchAsync(workspace);
             await registry.UpdateStateAsync(id, WorkspaceState.Running);
             foreach (var app in workspace.Applications)

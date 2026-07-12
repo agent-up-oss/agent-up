@@ -5,21 +5,26 @@ namespace AgentUp.CLI.Tests.Fake;
 internal sealed class InMemoryPortAllocationService : IPortAllocationService
 {
     private readonly Dictionary<string, int> _ranges = new();
+    private readonly Queue<int> _freeRanges = new();
     private int _next = 0;
 
     public Task<int> GetBasePortAsync(string workspaceId)
     {
         if (!_ranges.TryGetValue(workspaceId, out var idx))
         {
-            idx = _next++;
+            idx = _freeRanges.Count > 0 ? _freeRanges.Dequeue() : _next++;
             _ranges[workspaceId] = idx;
         }
         return Task.FromResult(10000 + idx * 100);
     }
 
+    public Task<int> GetConflictFreeBasePortAsync(string workspaceId, int portCount) =>
+        GetBasePortAsync(workspaceId);
+
     public Task ReleaseAsync(string workspaceId)
     {
-        _ranges.Remove(workspaceId);
+        if (_ranges.Remove(workspaceId, out var idx))
+            _freeRanges.Enqueue(idx);
         return Task.CompletedTask;
     }
 }

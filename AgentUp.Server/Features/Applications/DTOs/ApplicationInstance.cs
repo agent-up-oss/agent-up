@@ -18,7 +18,7 @@ public class ApplicationInstance
 
     // Port declarations (shared by process and docker apps)
     public IReadOnlyList<PortDeclaration> Ports { get; init; } = [];
-    public IReadOnlyList<PortMapping> AllocatedPorts { get; init; } = [];
+    public IReadOnlyList<PortMapping> AllocatedPorts { get; set; } = [];
 
     public ApplicationState State { get; set; } = ApplicationState.Stopped;
 }

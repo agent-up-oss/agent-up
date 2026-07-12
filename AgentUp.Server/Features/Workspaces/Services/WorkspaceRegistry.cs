@@ -113,6 +113,23 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
         return true;
     }
 
+    public async Task ReallocatePortsAsync(string workspaceId)
+    {
+        if (!_workspaces.TryGetValue(workspaceId, out var workspace))
+            return;
+
+        var portCount = workspace.Applications.Sum(a => a.Ports.Count);
+        var basePort = await _ports.GetConflictFreeBasePortAsync(workspaceId, portCount);
+        var portCounter = basePort;
+
+        foreach (var app in workspace.Applications)
+            app.AllocatedPorts = app.Ports
+                .Select(p => new PortMapping(p.Variable, p.DefaultPort, portCounter++))
+                .ToList();
+
+        await _repository.SaveAllAsync(GetAll());
+    }
+
     public async Task<bool> RemoveAsync(string id)
     {
         if (!_workspaces.TryRemove(id, out _))

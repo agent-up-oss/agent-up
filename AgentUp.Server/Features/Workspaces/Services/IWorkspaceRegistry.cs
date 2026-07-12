@@ -11,4 +11,5 @@ public interface IWorkspaceRegistry
     Task<bool> UpdateStateAsync(string id, WorkspaceState state);
     Task<bool> UpdateApplicationStateAsync(string workspaceId, string appName, ApplicationState state);
     Task<bool> RemoveAsync(string id);
+    Task ReallocatePortsAsync(string workspaceId);
 }
