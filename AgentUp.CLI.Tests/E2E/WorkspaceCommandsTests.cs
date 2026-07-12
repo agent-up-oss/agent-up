@@ -352,6 +352,36 @@ public class WorkspaceCommandsTests
         await RunProcessAsync("git", "commit -m init", dir);
     }
 
+    [Test]
+    public async Task Start_PushesDockerServices_ToServer()
+    {
+        await WriteAgentUpJsonAsync(_workspaceDir, "My App",
+            applications: [],
+            services: [new { name = "Database", image = "postgres:16", ports = new[] { "5432:5432" } }]);
+
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.That(workspaces![0].Applications, Has.Count.EqualTo(1));
+        Assert.That(workspaces[0].Applications[0].Name, Is.EqualTo("Database"));
+    }
+
+    [Test]
+    public async Task Start_ListsDockerServices_InOutput()
+    {
+        await WriteAgentUpJsonAsync(_workspaceDir, "My App",
+            applications: [],
+            services: [new { name = "Database", image = "postgres:16" }]);
+
+        var output = new StringWriter();
+        await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+
+        var text = output.ToString();
+        Assert.That(text, Does.Contain("Database"));
+        Assert.That(text, Does.Contain("postgres:16"));
+    }
+
     private static Task WriteAgentUpJsonAsync(string dir, string name) =>
         File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"),
             $$"""{"name":"{{name}}"}""");
@@ -359,6 +389,12 @@ public class WorkspaceCommandsTests
     private static Task WriteAgentUpJsonAsync(string dir, string name, IEnumerable<object> applications)
     {
         var json = JsonSerializer.Serialize(new { name, applications });
+        return File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"), json);
+    }
+
+    private static Task WriteAgentUpJsonAsync(string dir, string name, IEnumerable<object> applications, IEnumerable<object> services)
+    {
+        var json = JsonSerializer.Serialize(new { name, applications, services });
         return File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"), json);
     }
 

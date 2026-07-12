@@ -7,6 +7,13 @@ public record ApplicationDefinition(
     string? Path,
     string? PortVariable);
 
+public record DockerServiceDefinition(
+    string Name,
+    string Image,
+    IReadOnlyList<string>? Ports = null,
+    IReadOnlyDictionary<string, string>? Environment = null,
+    IReadOnlyList<string>? Volumes = null);
+
 public record RegisterWorkspaceRequest(
     string DisplayName,
     string RepositoryPath,
@@ -15,4 +22,5 @@ public record RegisterWorkspaceRequest(
     string Commit)
 {
     public IReadOnlyList<ApplicationDefinition> Applications { get; init; } = [];
+    public IReadOnlyList<DockerServiceDefinition> Services { get; init; } = [];
 }
