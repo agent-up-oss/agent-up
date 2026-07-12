@@ -353,7 +353,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Spacing="8">
-                                <TextBlock Text="No applications configured"
+                                <TextBlock Text="No apps in this workspace"
                                            Foreground="#2e2e42"
                                            FontSize="14"
                                            FontWeight="Medium"

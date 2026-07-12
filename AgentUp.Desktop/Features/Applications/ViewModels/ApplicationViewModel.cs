@@ -20,8 +20,7 @@ public sealed class ApplicationViewModel
     private static string ResolveStateColor(string state) => state switch
     {
         "Running" => "#4cbe78",
-        "Starting" or "Stopping" => "#c8963c",
         "Failed" => "#b85a5a",
-        _ => "#3a3a50"
+        _ => "#5a5a72"
     };
 }
