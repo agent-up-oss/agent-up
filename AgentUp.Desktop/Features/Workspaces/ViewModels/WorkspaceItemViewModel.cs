@@ -1,4 +1,5 @@
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Applications.Http;
+using AgentUp.Desktop.Features.Applications.ViewModels;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;

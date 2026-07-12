@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AgentUp.Desktop.Features.Workspaces.ViewModels"
+        xmlns:appVm="using:AgentUp.Desktop.Features.Applications.ViewModels"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         Width="1100" Height="700"
         MinWidth="640" MinHeight="400"
@@ -97,7 +98,7 @@
 
         <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
         <Border Grid.Column="0"
-                Width="{Binding SidebarWidth}"
+                Width="{Binding Sidebar.Width}"
                 Background="#16161a"
                 BorderBrush="#252530"
                 BorderThickness="0,0,1,0">
@@ -106,11 +107,11 @@
                 <!-- Collapse toggle (docked to very bottom) -->
                 <Button x:Name="SidebarToggle"
                         DockPanel.Dock="Bottom"
-                        Command="{Binding ToggleSidebarCommand}"
+                        Command="{Binding Sidebar.ToggleCommand}"
                         HorizontalAlignment="Right"
                         Margin="0,6,10,14">
                     <Border Width="26" Height="26" CornerRadius="5" Background="#22222e">
-                        <TextBlock Text="{Binding SidebarToggleIcon}"
+                        <TextBlock Text="{Binding Sidebar.ToggleIcon}"
                                    Foreground="#5a5a72"
                                    FontSize="14"
                                    HorizontalAlignment="Center"
@@ -121,8 +122,8 @@
                 <!-- Reload button (collapsed only, sits just above toggle) -->
                 <Button x:Name="ReloadButtonCollapsed"
                         DockPanel.Dock="Bottom"
-                        Command="{Binding RefreshCommand}"
-                        IsVisible="{Binding IsSidebarCollapsed}"
+                        Command="{Binding Sidebar.RefreshCommand}"
+                        IsVisible="{Binding Sidebar.IsCollapsed}"
                         HorizontalAlignment="Center"
                         Margin="0,4,0,2"
                         ToolTip.Tip="Reload workspaces">
@@ -138,11 +139,11 @@
                 <!-- Header: label + reload button (expanded only) -->
                 <Border DockPanel.Dock="Top"
                         Padding="16,12,10,6"
-                        IsVisible="{Binding IsSidebarExpanded}">
+                        IsVisible="{Binding Sidebar.IsExpanded}">
                     <DockPanel>
                         <Button x:Name="ReloadButton"
                                 DockPanel.Dock="Right"
-                                Command="{Binding RefreshCommand}"
+                                Command="{Binding Sidebar.RefreshCommand}"
                                 VerticalAlignment="Center"
                                 ToolTip.Tip="Reload workspaces">
                             <Border Width="22" Height="22" CornerRadius="4" Background="#1c1c26">
@@ -164,16 +165,16 @@
                 <!-- Spacer above avatar list (collapsed only) -->
                 <Border DockPanel.Dock="Top"
                         Height="14"
-                        IsVisible="{Binding IsSidebarCollapsed}"/>
+                        IsVisible="{Binding Sidebar.IsCollapsed}"/>
 
                 <!-- Expanded workspace list -->
                 <ScrollViewer x:Name="WorkspaceListExpanded"
-                              IsVisible="{Binding IsSidebarExpanded}"
+                              IsVisible="{Binding Sidebar.IsExpanded}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <ListBox
-                             ItemsSource="{Binding Workspaces}"
-                             SelectedItem="{Binding SelectedWorkspace}">
+                             ItemsSource="{Binding Sidebar.Workspaces}"
+                             SelectedItem="{Binding Sidebar.SelectedWorkspace}">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
                                 <Border Padding="8,2">
@@ -206,12 +207,12 @@
 
                 <!-- Collapsed avatar list -->
                 <ScrollViewer x:Name="WorkspaceListCollapsed"
-                              IsVisible="{Binding IsSidebarCollapsed}"
+                              IsVisible="{Binding Sidebar.IsCollapsed}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <ListBox
-                             ItemsSource="{Binding Workspaces}"
-                             SelectedItem="{Binding SelectedWorkspace}">
+                             ItemsSource="{Binding Sidebar.Workspaces}"
+                             SelectedItem="{Binding Sidebar.SelectedWorkspace}">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
                                 <Border HorizontalAlignment="Center" Padding="0,4">
@@ -241,7 +242,7 @@
 
                 <!-- Loading -->
                 <TextBlock x:Name="LoadingIndicator"
-                           IsVisible="{Binding IsLoading}"
+                           IsVisible="{Binding Sidebar.IsLoading}"
                            Text="Connecting to server…"
                            Foreground="#4a4a62"
                            FontSize="14"
@@ -250,7 +251,7 @@
 
                 <!-- Error -->
                 <Panel x:Name="ErrorPanel"
-                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                       IsVisible="{Binding Sidebar.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <Border HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Background="#130e10"
@@ -259,10 +260,10 @@
                             CornerRadius="8"
                             Padding="24,20">
                         <StackPanel Spacing="14">
-                            <TextBlock Text="{Binding ErrorMessage}"
+                            <TextBlock Text="{Binding Sidebar.ErrorMessage}"
                                        Foreground="#b85a5a"
                                        FontSize="13"/>
-                            <Button Command="{Binding RefreshCommand}"
+                            <Button Command="{Binding Sidebar.RefreshCommand}"
                                     HorizontalAlignment="Center">
                                 <Border Background="#22222e" CornerRadius="5" Padding="14,7">
                                     <TextBlock Text="Retry" Foreground="#dcdce8" FontSize="12"/>
@@ -274,7 +275,7 @@
 
                 <!-- Empty state -->
                 <StackPanel x:Name="EmptyState"
-                            IsVisible="{Binding ShowEmptyState}"
+                            IsVisible="{Binding Sidebar.ShowEmptyState}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Spacing="10">
@@ -291,7 +292,7 @@
 
                 <!-- Workspace detail: app tabs + sub-navbar + console -->
                 <Border x:Name="WorkspaceDetail"
-                        IsVisible="{Binding SelectedWorkspace, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        IsVisible="{Binding Sidebar.SelectedWorkspace, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <Grid RowDefinitions="Auto,Auto,*">
 
                         <!-- Application tab bar -->
@@ -300,8 +301,8 @@
                                 BorderBrush="#1e1e2a"
                                 BorderThickness="0,0,0,1">
                             <ListBox x:Name="ApplicationTabs"
-                                     ItemsSource="{Binding SelectedWorkspace.Applications}"
-                                     SelectedItem="{Binding SelectedApplication}"
+                                     ItemsSource="{Binding Applications.Applications}"
+                                     SelectedItem="{Binding Applications.SelectedApplication}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                      ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                 <ListBox.ItemsPanel>
@@ -310,7 +311,7 @@
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
-                                    <DataTemplate DataType="vm:ApplicationViewModel">
+                                    <DataTemplate DataType="appVm:ApplicationViewModel">
                                         <Border Classes="appTab" Padding="14,10">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <Border Width="6" Height="6" CornerRadius="3"
@@ -329,7 +330,7 @@
 
                         <!-- Sub-navbar (visible when an application is selected) -->
                         <Border Grid.Row="1"
-                                IsVisible="{Binding SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 Background="#0e0e16"
                                 BorderBrush="#1e1e2a"
                                 BorderThickness="0,0,0,1"
@@ -348,7 +349,7 @@
                         <Panel Grid.Row="2">
 
                             <!-- No applications configured -->
-                            <StackPanel IsVisible="{Binding SelectedApplication, Converter={x:Static ObjectConverters.IsNull}}"
+                            <StackPanel IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNull}}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Spacing="8">
@@ -365,11 +366,11 @@
 
                             <!-- Console output -->
                             <ScrollViewer x:Name="ConsolePane"
-                                          IsVisible="{Binding SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                          IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Auto">
                                 <ItemsControl x:Name="ConsoleOutput"
-                                              ItemsSource="{Binding ApplicationOutput}"
+                                              ItemsSource="{Binding Console.Lines}"
                                               Margin="20,14">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

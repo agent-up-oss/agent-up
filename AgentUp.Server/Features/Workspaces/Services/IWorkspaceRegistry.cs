@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
 
 namespace AgentUp.Server.Features.Workspaces.Services;

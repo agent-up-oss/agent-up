@@ -20,22 +20,22 @@ internal sealed class ContentDriver(MainWindow window)
     public bool ShowsWorkspaceDetail =>
         window.FindControl<Border>("WorkspaceDetail")?.IsVisible ?? false;
 
-    public string? DisplayedWorkspaceName => Vm.SelectedWorkspace?.DisplayName;
+    public string? DisplayedWorkspaceName => Vm.Sidebar.SelectedWorkspace?.DisplayName;
 
-    public string? ErrorMessage => Vm.ErrorMessage;
+    public string? ErrorMessage => Vm.Sidebar.ErrorMessage;
 
     // ── Application panel ────────────────────────────────────────────────────
 
     public bool HasApplications =>
-        (Vm.SelectedWorkspace?.Applications.Count ?? 0) > 0;
+        Vm.Applications.Applications.Count > 0;
 
-    public string? SelectedApplicationName => Vm.SelectedApplication?.Name;
+    public string? SelectedApplicationName => Vm.Applications.SelectedApplication?.Name;
 
-    public IReadOnlyList<string> ConsoleLines => [.. Vm.ApplicationOutput];
+    public IReadOnlyList<string> ConsoleLines => [.. Vm.Console.Lines];
 
     public async Task SelectApplicationByIndexAsync(int index)
     {
-        Vm.SelectedApplication = Vm.SelectedWorkspace!.Applications[index];
+        Vm.Applications.SelectedApplication = Vm.Applications.Applications[index];
         await HeadlessExtensions.FlushAsync();
     }
 }

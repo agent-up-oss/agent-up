@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Console.Http;
 using AgentUp.Desktop.Features.Workspaces.Http;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
@@ -31,16 +32,18 @@ internal sealed class AppDriver
     {
         var handler = new ErrorHttpMessageHandler();
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var apiClient = new WorkspaceApiClient(http);
-        return await LaunchWithClientAsync(apiClient);
+        var workspaceClient = new WorkspaceApiClient(http);
+        var consoleClient = new ConsoleApiClient(http);
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient);
     }
 
     public static async Task<(AppDriver Driver, MutableFakeHttpMessageHandler Handler)> LaunchWithMutableWorkspacesAsync(List<WorkspaceDto> initial)
     {
         var handler = new MutableFakeHttpMessageHandler(initial);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var apiClient = new WorkspaceApiClient(http);
-        var driver = await LaunchWithClientAsync(apiClient);
+        var workspaceClient = new WorkspaceApiClient(http);
+        var consoleClient = new ConsoleApiClient(http);
+        var driver = await LaunchWithClientsAsync(workspaceClient, consoleClient);
         return (driver, handler);
     }
 
@@ -50,21 +53,23 @@ internal sealed class AppDriver
     {
         var handler = new FakeHttpMessageHandler(workspaces, outputLines);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var apiClient = new WorkspaceApiClient(http);
-        return await LaunchWithClientAsync(apiClient);
+        var workspaceClient = new WorkspaceApiClient(http);
+        var consoleClient = new ConsoleApiClient(http);
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient);
     }
 
     private static async Task<AppDriver> LaunchAsync(List<WorkspaceDto> workspaces)
     {
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var apiClient = new WorkspaceApiClient(http);
-        return await LaunchWithClientAsync(apiClient);
+        var workspaceClient = new WorkspaceApiClient(http);
+        var consoleClient = new ConsoleApiClient(http);
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient);
     }
 
-    private static async Task<AppDriver> LaunchWithClientAsync(WorkspaceApiClient apiClient)
+    private static async Task<AppDriver> LaunchWithClientsAsync(WorkspaceApiClient workspaceClient, ConsoleApiClient consoleClient)
     {
-        var vm = new MainViewModel(apiClient);
+        var vm = new MainViewModel(workspaceClient, consoleClient);
         var window = new MainWindow { DataContext = vm };
         window.Show();
 

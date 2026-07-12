@@ -1,4 +1,4 @@
-namespace AgentUp.Server.Features.Workspaces.DTOs;
+namespace AgentUp.Server.Features.Applications.DTOs;
 
 public class ApplicationInstance
 {

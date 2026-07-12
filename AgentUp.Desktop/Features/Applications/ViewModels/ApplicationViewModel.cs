@@ -1,4 +1,4 @@
-namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
+namespace AgentUp.Desktop.Features.Applications.ViewModels;
 
 public sealed class ApplicationViewModel
 {

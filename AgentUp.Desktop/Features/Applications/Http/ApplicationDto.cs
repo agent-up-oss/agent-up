@@ -1,4 +1,4 @@
-namespace AgentUp.Desktop.Features.Workspaces.Http;
+namespace AgentUp.Desktop.Features.Applications.Http;
 
 public sealed record ApplicationDto(
     string Name,

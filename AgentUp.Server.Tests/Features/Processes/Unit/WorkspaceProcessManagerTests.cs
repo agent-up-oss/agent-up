@@ -1,11 +1,13 @@
+using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Processes.Repositories;
+using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace AgentUp.Server.Tests.Features.Workspaces.Unit;
+namespace AgentUp.Server.Tests.Features.Processes.Unit;
 
 [TestFixture]
 public class WorkspaceProcessManagerTests

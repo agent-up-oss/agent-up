@@ -1,6 +1,6 @@
 using AgentUp.Server.Features.Workspaces.DTOs;
 
-namespace AgentUp.Server.Features.Workspaces.Services;
+namespace AgentUp.Server.Features.Processes.Services;
 
 public interface IWorkspaceProcessManager
 {
