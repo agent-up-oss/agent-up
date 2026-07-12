@@ -128,7 +128,11 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
             var (exitCode, _, stderr) = await RunDockerAsync([.. runArgs]);
             if (exitCode != 0)
+            {
+                foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    await _output.AppendAsync(workspaceId, app.Name, "[err] " + line.TrimEnd('\r'));
                 throw new InvalidOperationException($"docker run failed for '{app.Name}': {stderr.Trim()}");
+            }
 
             _logger.LogInformation("Started Docker container '{Container}' for '{App}' in workspace {Id}", containerName, app.Name, workspaceId);
         }
