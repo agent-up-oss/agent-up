@@ -30,7 +30,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         Initials = BuildInitials(displayName);
         StateColor = ResolveStateColor(state);
         Applications = (applications ?? [])
-            .Select(a => new ApplicationViewModel(a.Name, a.Command, a.PortVariable, a.State))
+            .Select(a => new ApplicationViewModel(a.Name, a.Command, a.State, a.AllocatedPorts))
             .ToList();
     }
 

@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -43,6 +44,7 @@ public class WorkspacesHttpTests
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
+        builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
@@ -258,6 +260,7 @@ public class WorkspacesHttpTests
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
+        builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());

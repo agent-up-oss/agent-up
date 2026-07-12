@@ -20,7 +20,7 @@ public class WorkspaceProcessManagerTests
     public async Task SetUp()
     {
         _output = new InMemoryOutputRepository();
-        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository());
+        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
         await ((IHostedService)_registry).StartAsync(CancellationToken.None);
         _manager = new WorkspaceProcessManager(_registry, _output, NullLogger<WorkspaceProcessManager>.Instance);
     }

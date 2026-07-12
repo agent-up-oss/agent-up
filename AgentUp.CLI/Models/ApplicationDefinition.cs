@@ -4,7 +4,7 @@ public record ApplicationDefinition(
     string Name,
     string Command,
     string? Path,
-    string? PortVariable)
+    IReadOnlyList<PortDeclaration>? Ports = null)
 {
     public string? State { get; init; }
 }

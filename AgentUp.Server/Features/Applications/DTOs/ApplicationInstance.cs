@@ -1,3 +1,5 @@
+using AgentUp.Server.Features.Ports.Models;
+
 namespace AgentUp.Server.Features.Applications.DTOs;
 
 public class ApplicationInstance
@@ -8,13 +10,15 @@ public class ApplicationInstance
     // Process fields
     public string? Command { get; init; }
     public string? Path { get; init; }
-    public string? PortVariable { get; init; }
 
     // Docker fields
     public string? Image { get; init; }
-    public IReadOnlyList<string>? Ports { get; init; }
     public IReadOnlyDictionary<string, string>? Environment { get; init; }
     public IReadOnlyList<string>? Volumes { get; init; }
+
+    // Port declarations (shared by process and docker apps)
+    public IReadOnlyList<PortDeclaration> Ports { get; init; } = [];
+    public IReadOnlyList<PortMapping> AllocatedPorts { get; set; } = [];
 
     public ApplicationState State { get; set; } = ApplicationState.Stopped;
 }
