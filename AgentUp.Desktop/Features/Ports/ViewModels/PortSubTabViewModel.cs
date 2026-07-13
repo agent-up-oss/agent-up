@@ -10,8 +10,11 @@ public sealed class PortSubTabViewModel : SubTabViewModel
     public string? Variable { get; }
     public int DefaultPort { get; }
     public int AllocatedPort { get; }
+    public string Protocol { get; }
+    public bool IsHttp => Protocol == "http";
 
     public override string Label => $"{DefaultPort}:{AllocatedPort}";
+    public string Url => $"http://localhost:{AllocatedPort}/";
 
     public bool IsOpen
     {
@@ -21,11 +24,12 @@ public sealed class PortSubTabViewModel : SubTabViewModel
 
     public string StatusColor => IsOpen ? "#4cbe78" : "#b85a5a";
 
-    public PortSubTabViewModel(string? variable, int defaultPort, int allocatedPort)
+    public PortSubTabViewModel(string? variable, int defaultPort, int allocatedPort, string protocol = "http")
     {
         Variable = variable;
         DefaultPort = defaultPort;
         AllocatedPort = allocatedPort;
+        Protocol = protocol;
     }
 
     public async Task ProbeAsync()

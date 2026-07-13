@@ -51,7 +51,7 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
         var portCounter = basePort;
 
         IReadOnlyList<PortMapping> AllocatePorts(IReadOnlyList<PortDeclaration>? declarations) =>
-            (declarations ?? []).Select(d => new PortMapping(d.Variable, d.DefaultPort, portCounter++)).ToList();
+            (declarations ?? []).Select(d => new PortMapping(d.Variable, d.DefaultPort, portCounter++, d.Protocol)).ToList();
 
         var workspace = new Workspace
         {
@@ -124,7 +124,7 @@ public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
 
         foreach (var app in workspace.Applications)
             app.AllocatedPorts = app.Ports
-                .Select(p => new PortMapping(p.Variable, p.DefaultPort, portCounter++))
+                .Select(p => new PortMapping(p.Variable, p.DefaultPort, portCounter++, p.Protocol))
                 .ToList();
 
         await _repository.SaveAllAsync(GetAll());

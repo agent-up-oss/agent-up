@@ -12,16 +12,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.6" />
+<PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentUp.CLI\AgentUp.CLI.csproj" />
-    <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
+    <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
   </ItemGroup>
 
 </Project>

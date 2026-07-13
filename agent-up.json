@@ -15,7 +15,7 @@
       "name": "Database",
       "image": "postgres:16",
       "ports": [
-        { "variable": "POSTGRES_PORT", "defaultPort": 5432 }
+        { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
       ],
       "environment": {
         "POSTGRES_PASSWORD": "secret"
