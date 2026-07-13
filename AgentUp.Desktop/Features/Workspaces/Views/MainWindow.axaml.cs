@@ -1,16 +1,14 @@
 using Avalonia.Controls;
+using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
-using AvaloniaWebView;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
 
 public partial class MainWindow : ReactiveWindow<MainViewModel>
 {
-    // One WebView per workspace — created lazily on first port-tab selection.
-    // Each is kept alive so its session persists while the app runs.
-    private readonly Dictionary<string, WebView> _webViews = new();
+    private readonly Dictionary<string, NativeWebView> _webViews = new();
     private string? _activeWorkspaceId;
 
     public MainWindow()
@@ -38,7 +36,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private void HandleNavigation(string? workspaceId, string? url)
     {
         NavLog($"HandleNavigation ws={workspaceId} url={url}");
-        // When the active workspace changes, show/hide the cached WebView for it.
         if (workspaceId != _activeWorkspaceId)
         {
             if (_activeWorkspaceId is not null && _webViews.TryGetValue(_activeWorkspaceId, out var prev))
@@ -52,34 +49,45 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         NavLog($"After workspace-switch section, url-section? {url is not null && workspaceId is not null}");
 
-        // A port tab was selected — create the WebView lazily and navigate.
         if (url is not null && workspaceId is not null)
         {
             if (!_webViews.TryGetValue(workspaceId, out var webView))
             {
-                NavLog($"Creating new WebView for {workspaceId}");
+                NavLog($"Creating new NativeWebView for {workspaceId}");
                 try
                 {
-                    webView = new WebView();
-                    NavLog($"new WebView() succeeded for {workspaceId}");
+                    webView = new NativeWebView();
+                    var capturedId = workspaceId;
+                    webView.EnvironmentRequested += (_, e) =>
+                    {
+                        if (e is GtkWebViewEnvironmentRequestedEventArgs gtk)
+                        {
+                            var profileRoot = Path.Combine(
+                                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                "agentup", "profiles", capturedId);
+                            gtk.BaseDataDirectory = Path.Combine(profileRoot, "data");
+                            gtk.BaseCacheDirectory = Path.Combine(profileRoot, "cache");
+                        }
+                    };
+                    NavLog($"new NativeWebView() succeeded for {workspaceId}");
                     _webViews[workspaceId] = webView;
                     PortPane.Children.Add(webView);
-                    NavLog($"WebView added to PortPane for {workspaceId}");
+                    NavLog($"NativeWebView added to PortPane for {workspaceId}");
                 }
                 catch (Exception ex)
                 {
-                    NavLog($"WebView creation FAILED for {workspaceId}: {ex.GetType().Name}: {ex.Message}\n{ex}");
+                    NavLog($"NativeWebView creation FAILED for {workspaceId}: {ex.GetType().Name}: {ex.Message}\n{ex}");
                     return;
                 }
             }
             else
             {
-                NavLog($"Reusing existing WebView for {workspaceId}");
+                NavLog($"Reusing existing NativeWebView for {workspaceId}");
             }
 
             webView.IsVisible = true;
-            webView.Url = new Uri(url);
-            NavLog($"Url set for {workspaceId}: {url}");
+            webView.Source = new Uri(url);
+            NavLog($"Source set for {workspaceId}: {url}");
         }
         NavLog($"HandleNavigation done ws={workspaceId}");
     }

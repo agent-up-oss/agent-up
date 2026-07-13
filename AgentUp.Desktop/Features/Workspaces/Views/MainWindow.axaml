@@ -4,6 +4,7 @@
         xmlns:appVm="using:AgentUp.Desktop.Features.Applications.ViewModels"
         xmlns:portVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
+        x:CompileBindings="False"
         Width="1100" Height="700"
         MinWidth="640" MinHeight="400"
         Title="Agent-Up"
@@ -425,6 +426,22 @@
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->
                             <Panel x:Name="PortPane"
                                    IsVisible="{Binding ShowPortView}"/>
+
+                            <!-- TCP port placeholder -->
+                            <StackPanel IsVisible="{Binding ShowTcpInfo}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <TextBlock Text="TCP port"
+                                           Foreground="#2e2e42"
+                                           FontSize="14"
+                                           FontWeight="Medium"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="This port is not an HTTP service."
+                                           Foreground="#222230"
+                                           FontSize="11"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
 
                         </Panel>
 

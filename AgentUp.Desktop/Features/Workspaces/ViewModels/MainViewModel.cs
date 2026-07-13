@@ -26,7 +26,8 @@ public sealed class MainViewModel : ReactiveObject
     }
 
     public bool ShowConsole => SelectedSubTab is ConsoleSubTabViewModel;
-    public bool ShowPortView => SelectedSubTab is PortSubTabViewModel;
+    public bool ShowPortView => SelectedSubTab is PortSubTabViewModel { IsHttp: true };
+    public bool ShowTcpInfo => SelectedSubTab is PortSubTabViewModel { IsHttp: false };
 
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
@@ -60,6 +61,7 @@ public sealed class MainViewModel : ReactiveObject
             {
                 this.RaisePropertyChanged(nameof(ShowConsole));
                 this.RaisePropertyChanged(nameof(ShowPortView));
+                this.RaisePropertyChanged(nameof(ShowTcpInfo));
                 if (tab is PortSubTabViewModel portTab)
                     _ = portTab.ProbeAsync();
             });
@@ -69,7 +71,7 @@ public sealed class MainViewModel : ReactiveObject
             .Select(ws => (WorkspaceId: ws?.Id, Url: (string?)null));
 
         var tabChanged = this.WhenAnyValue(x => x.SelectedSubTab)
-            .Select(tab => tab is PortSubTabViewModel pt
+            .Select(tab => tab is PortSubTabViewModel { IsHttp: true } pt
                 ? (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)pt.Url)
                 : (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)null));
 
@@ -83,7 +85,7 @@ public sealed class MainViewModel : ReactiveObject
 
         SubTabs.Add(new ConsoleSubTabViewModel());
         foreach (var port in app.AllocatedPorts)
-            SubTabs.Add(new PortSubTabViewModel(port.Variable, port.DefaultPort, port.AllocatedPort));
+            SubTabs.Add(new PortSubTabViewModel(port.Variable, port.DefaultPort, port.AllocatedPort, port.Protocol));
 
         SelectedSubTab = SubTabs[0];
 

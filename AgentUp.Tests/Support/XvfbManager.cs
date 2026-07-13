@@ -1,19 +1,13 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.ReactiveUI;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
-using Avalonia.WebView.Desktop;
-using AvaloniaWebView;
 
 namespace AgentUp.Tests;
 
-// Starts a virtual X server and the Avalonia platform before any test runs.
-// Both Xvfb and Avalonia are started with explicit timeouts so a hang is
-// surfaced as a test failure rather than a silent freeze.
 [SetUpFixture]
 public sealed class XvfbManager
 {
@@ -29,6 +23,9 @@ public sealed class XvfbManager
 
     private void StartXvfb()
     {
+        // WebKit's bwrap-based process sandbox can fail in headless/CI environments.
+        Environment.SetEnvironmentVariable("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
+
         if (Environment.GetEnvironmentVariable("DISPLAY") is not null)
             return;
 
@@ -44,51 +41,6 @@ public sealed class XvfbManager
         Thread.Sleep(500);
     }
 
-    // Pre-initialize the WebKit default context so that NetworkProcess has been
-    // started and connected before the GLib main loop begins. Calling this from
-    // AfterSetup (before StartWithClassicDesktopLifetime enters g_main_loop_run)
-    // allows WebKit to spin g_main_context_iteration() internally to wait for the
-    // process IPC handshake — something it cannot do from within a dispatcher
-    // callback because that would require the very same main context it already owns.
-    [DllImport("libwebkit2gtk-4.1.so.0")]
-    private static extern IntPtr webkit_web_context_get_default();
-
-    private static void PreWarmWebKit()
-    {
-        try
-        {
-            NavLog("PreWarmWebKit: calling webkit_web_context_get_default");
-            _ = webkit_web_context_get_default();
-            NavLog("PreWarmWebKit: webkit_web_context_get_default returned");
-        }
-        catch (Exception ex)
-        {
-            NavLog($"PreWarmWebKit: FAILED {ex.GetType().Name}: {ex.Message}");
-        }
-    }
-
-    // Pre-run the AvaloniaWebView.WebView static constructor and exercise the
-    // instance constructor before the GLib main loop starts. This lets any
-    // blocking one-time initialization (WebKit process spawning, etc.) complete
-    // with free access to g_main_context_iteration rather than deadlocking inside
-    // a GLib dispatch callback.
-    private static void PreWarmWebViewType()
-    {
-        try
-        {
-            NavLog("PreWarmWebViewType: creating warmup WebView");
-            var wv = new WebView();
-            NavLog("PreWarmWebViewType: warmup WebView created successfully");
-        }
-        catch (Exception ex)
-        {
-            NavLog($"PreWarmWebViewType: FAILED {ex.GetType().Name}: {ex.Message}");
-        }
-    }
-
-    private static void NavLog(string msg) =>
-        System.IO.File.AppendAllText("/tmp/agentup-nav.log", $"[XvfbMgr] {msg}\n");
-
     private static void StartAvalonia()
     {
         var thread = new Thread(() =>
@@ -96,11 +48,8 @@ public sealed class XvfbManager
             AppBuilder.Configure<E2ETestApp>()
                 .UsePlatformDetect()
                 .UseReactiveUI()
-                .UseDesktopWebView()
                 .AfterSetup(_ =>
                 {
-                    PreWarmWebKit();
-                    PreWarmWebViewType();
                     Dispatcher.UIThread.Post(() => _avaloniaReady.Set());
                 })
                 .StartWithClassicDesktopLifetime([], ShutdownMode.OnExplicitShutdown);
