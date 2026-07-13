@@ -24,6 +24,12 @@ internal sealed class ContentDriver(MainWindow window)
 
     public string? ErrorMessage => Vm.Sidebar.ErrorMessage;
 
+    public bool PortPaneShowsError =>
+        window.FindControl<Border>("WebViewErrorBanner")?.IsVisible ?? false;
+
+    public string? WebViewErrorMessage =>
+        window.FindControl<TextBlock>("WebViewErrorText")?.Text;
+
     // ── Application panel ────────────────────────────────────────────────────
 
     public bool HasApplications =>

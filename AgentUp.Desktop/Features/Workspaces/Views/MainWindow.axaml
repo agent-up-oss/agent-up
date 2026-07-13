@@ -425,7 +425,24 @@
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->
                             <Panel x:Name="PortPane"
-                                   IsVisible="{Binding ShowPortView}"/>
+                                   IsVisible="{Binding ShowPortView}">
+                                <!-- Shown only when NativeWebView creation fails for the active workspace -->
+                                <Border x:Name="WebViewErrorBanner"
+                                        IsVisible="False"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#130e10"
+                                        BorderBrush="#3d1e28"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="24,20">
+                                    <TextBlock x:Name="WebViewErrorText"
+                                               Foreground="#b85a5a"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="400"/>
+                                </Border>
+                            </Panel>
 
                             <!-- TCP port placeholder -->
                             <StackPanel IsVisible="{Binding ShowTcpInfo}"

@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Features.Applications.Http;
+using AgentUp.Desktop.Features.Ports.Http;
 using AgentUp.Desktop.Features.Workspaces.Http;
 
 namespace AgentUp.Desktop.Tests.Support;
@@ -22,6 +23,18 @@ internal static class WorkspaceFixtures
             [
                 new ApplicationDto("API", "cargo run", null, "Running"),
                 new ApplicationDto("Docs", "npm run start", "docs", "Running"),
+            ]
+        };
+
+    public static WorkspaceDto WithHttpPort(string id = "ws-1", int port = 3000) =>
+        new(id, id, $"/repo/{id}", $"/worktrees/{id}", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, port, port)]
+                }
             ]
         };
 

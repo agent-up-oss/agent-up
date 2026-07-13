@@ -9,33 +9,39 @@ namespace AgentUp.Desktop.Features.Workspaces.Views;
 public partial class MainWindow : ReactiveWindow<MainViewModel>
 {
     private readonly Dictionary<string, NativeWebView> _webViews = new();
+    private readonly Dictionary<string, string> _webViewErrors = new();
     private string? _activeWorkspaceId;
 
-    public MainWindow()
-    {
-        InitializeComponent();
-    }
+    // Overrideable in tests to inject a factory that throws without needing GTK.
+    internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
+
+    public MainWindow() { InitializeComponent(); }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-
         if (DataContext is not MainViewModel vm) return;
-
         vm.BrowserNavigation.Subscribe(nav =>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)));
     }
 
-    internal void NavigateTo(string workspaceId, string url) => HandleNavigation(workspaceId, url);
+    internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
 
-    private static void NavLog(string msg)
+    private void UpdateErrorDisplay(string? workspaceId)
     {
-        System.IO.File.AppendAllText("/tmp/agentup-nav.log", msg + "\n");
+        if (workspaceId is not null && _webViewErrors.TryGetValue(workspaceId, out var error))
+        {
+            WebViewErrorText.Text = error;
+            WebViewErrorBanner.IsVisible = true;
+        }
+        else
+        {
+            WebViewErrorBanner.IsVisible = false;
+        }
     }
 
     private void HandleNavigation(string? workspaceId, string? url)
     {
-        NavLog($"HandleNavigation ws={workspaceId} url={url}");
         if (workspaceId != _activeWorkspaceId)
         {
             if (_activeWorkspaceId is not null && _webViews.TryGetValue(_activeWorkspaceId, out var prev))
@@ -45,50 +51,50 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
             if (workspaceId is not null && _webViews.TryGetValue(workspaceId, out var existing))
                 existing.IsVisible = true;
-        }
 
-        NavLog($"After workspace-switch section, url-section? {url is not null && workspaceId is not null}");
+            UpdateErrorDisplay(workspaceId);
+        }
 
         if (url is not null && workspaceId is not null)
         {
             if (!_webViews.TryGetValue(workspaceId, out var webView))
             {
-                NavLog($"Creating new NativeWebView for {workspaceId}");
                 try
                 {
-                    webView = new NativeWebView();
+                    webView = WebViewFactory();
                     var capturedId = workspaceId;
                     webView.EnvironmentRequested += (_, e) =>
                     {
                         if (e is GtkWebViewEnvironmentRequestedEventArgs gtk)
                         {
-                            var profileRoot = Path.Combine(
-                                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                                "agentup", "profiles", capturedId);
+                            var profileRoot = BrowserUrlStore.ProfilePath(capturedId);
                             gtk.BaseDataDirectory = Path.Combine(profileRoot, "data");
                             gtk.BaseCacheDirectory = Path.Combine(profileRoot, "cache");
                         }
                     };
-                    NavLog($"new NativeWebView() succeeded for {workspaceId}");
+                    webView.NavigationCompleted += (_, e) =>
+                    {
+                        if (e.IsSuccess && e.Request is { } uri)
+                            BrowserUrlStore.Write(capturedId, uri.ToString());
+                    };
                     _webViews[workspaceId] = webView;
+                    _webViewErrors.Remove(workspaceId);
                     PortPane.Children.Add(webView);
-                    NavLog($"NativeWebView added to PortPane for {workspaceId}");
+                    UpdateErrorDisplay(workspaceId);
+
+                    // On first load, restore the last-visited page if it's on the same port.
+                    url = BrowserUrlStore.Read(workspaceId, url) ?? url;
                 }
                 catch (Exception ex)
                 {
-                    NavLog($"NativeWebView creation FAILED for {workspaceId}: {ex.GetType().Name}: {ex.Message}\n{ex}");
+                    _webViewErrors[workspaceId] = $"Could not start the browser: {ex.Message}";
+                    UpdateErrorDisplay(workspaceId);
                     return;
                 }
-            }
-            else
-            {
-                NavLog($"Reusing existing NativeWebView for {workspaceId}");
             }
 
             webView.IsVisible = true;
             webView.Source = new Uri(url);
-            NavLog($"Source set for {workspaceId}: {url}");
         }
-        NavLog($"HandleNavigation done ws={workspaceId}");
     }
 }

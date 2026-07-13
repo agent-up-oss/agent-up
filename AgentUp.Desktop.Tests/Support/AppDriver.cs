@@ -12,6 +12,8 @@ internal sealed class AppDriver
     public SidebarDriver Sidebar { get; }
     public ContentDriver Content { get; }
 
+    internal MainWindow Window => _window;
+
     private AppDriver(MainWindow window)
     {
         _window = window;
