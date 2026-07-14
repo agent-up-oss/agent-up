@@ -7,6 +7,9 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
 
@@ -48,7 +51,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         if (!_webViews.TryGetValue(workspaceId, out var webView)) return null;
         // InvokeScript is synchronous but touches UI state — run it on the UI thread.
-        return await Dispatcher.UIThread.InvokeAsync(() => webView.InvokeScript(script));
+        var result = await Dispatcher.UIThread.InvokeAsync(() => webView.InvokeScript(script));
+        return NormalizeScriptResult(result);
     }
 
     private void UpdateErrorDisplay(string? workspaceId)
@@ -95,12 +99,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                     };
                     webView.EnvironmentRequested += (_, e) =>
                     {
-                        if (e is GtkWebViewEnvironmentRequestedEventArgs gtk)
-                        {
-                            var profileRoot = BrowserUrlStore.ProfilePath(capturedId);
-                            gtk.BaseDataDirectory = Path.Combine(profileRoot, "data");
-                            gtk.BaseCacheDirectory = Path.Combine(profileRoot, "cache");
-                        }
+                        ConfigureWebViewProfile(capturedId, e);
                     };
                     var firstNavDone = false;
                     webView.NavigationCompleted += (_, e) =>
@@ -227,16 +226,72 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal static string? TryReadHttpLocation(string? scriptResult)
     {
+        scriptResult = NormalizeScriptResult(scriptResult);
         if (string.IsNullOrWhiteSpace(scriptResult)) return null;
 
         var candidate = scriptResult.Trim();
-        if (candidate.Length >= 2 && candidate[0] == '"' && candidate[^1] == '"')
-            candidate = candidate[1..^1].Replace("\\/", "/").Replace("\\\"", "\"");
 
         return Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
                && uri.Scheme is "http" or "https"
             ? uri.ToString()
             : null;
+    }
+
+    internal static string? NormalizeScriptResult(string? scriptResult)
+    {
+        if (string.IsNullOrWhiteSpace(scriptResult)) return scriptResult;
+
+        var candidate = scriptResult.Trim();
+        if (candidate.Length < 2 || candidate[0] != '"' || candidate[^1] != '"')
+            return scriptResult;
+
+        try
+        {
+            return JsonSerializer.Deserialize<string>(candidate);
+        }
+        catch (JsonException)
+        {
+            return candidate[1..^1].Replace("\\/", "/").Replace("\\\"", "\"");
+        }
+    }
+
+    internal static void ConfigureWebViewProfile(string workspaceId, WebViewEnvironmentRequestedEventArgs e)
+    {
+        var profileRoot = BrowserUrlStore.ProfilePath(workspaceId);
+
+        switch (e)
+        {
+            case GtkWebViewEnvironmentRequestedEventArgs gtk:
+                gtk.BaseDataDirectory = Path.Combine(profileRoot, "data");
+                gtk.BaseCacheDirectory = Path.Combine(profileRoot, "cache");
+                break;
+            case LinuxWpeWebViewEnvironmentRequestedEventArgs wpe:
+                wpe.DataDirectory = Path.Combine(profileRoot, "data");
+                wpe.CacheDirectory = Path.Combine(profileRoot, "cache");
+                break;
+            case WindowsWebView2EnvironmentRequestedEventArgs webView2:
+                webView2.UserDataFolder = Path.Combine(profileRoot, "webview2");
+                webView2.ProfileName = SafeProfileName(workspaceId);
+                break;
+            case AppleWKWebViewEnvironmentRequestedEventArgs apple:
+                apple.DataStoreIdentifier = StableGuid(workspaceId);
+                break;
+        }
+    }
+
+    private static string SafeProfileName(string workspaceId)
+    {
+        var builder = new StringBuilder(workspaceId.Length);
+        foreach (var c in workspaceId)
+            builder.Append(char.IsLetterOrDigit(c) || c is '-' or '_' ? c : '-');
+
+        return builder.Length > 0 ? builder.ToString() : "workspace";
+    }
+
+    private static Guid StableGuid(string value)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return new Guid(hash[..16]);
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)

@@ -72,6 +72,12 @@ Because the native WebView does not always raise managed navigation updates for 
 
 Reloading workspaces keeps the selected workspace by ID but rebinds it to the refreshed Server state, so the selected application's active HTTP port is navigated again after a sidebar reload.
 
+## Browser Profile Isolation
+
+Each workspace gets its own `NativeWebView` instance and platform-native profile storage. The `EnvironmentRequested` handler maps `BrowserUrlStore.ProfilePath(workspaceId)` to GTK/WPE data and cache directories on Linux, WebView2 user data folders on Windows, and WKWebView data store identifiers on macOS.
+
+Cookies, local storage, cache, and navigation state must be shared by applications within the same workspace and isolated from every other workspace.
+
 ## Thin Client Rule
 
 The Desktop does not own runtime state and should not duplicate orchestration rules from the Server.
