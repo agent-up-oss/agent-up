@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -9,6 +10,7 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
 
@@ -26,10 +28,24 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     public MainWindow()
     {
         InitializeComponent();
+        SetWindowIcon();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += (_, _) => _ = PollActiveBrowserAddressAsync();
         _addressPollTimer.Start();
+    }
+
+    private void SetWindowIcon()
+    {
+        try
+        {
+            using var stream = AssetLoader.Open(new Uri("avares://AgentUp.Desktop/media/logo.png"));
+            Icon = new WindowIcon(stream);
+        }
+        catch
+        {
+            // Window icons are best-effort and should never block Desktop startup.
+        }
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -40,6 +56,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)));
         vm.BrowserCommands.Subscribe(command =>
             Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)));
+        vm.Tutorial.WhenAnyValue(t => t.IsVisible)
+            .DistinctUntilChanged()
+            .Subscribe(isVisible =>
+                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)));
+        ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
     }
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
@@ -55,6 +76,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void UpdateErrorDisplay(string? workspaceId)
     {
+        if (IsTutorialVisible())
+        {
+            WebViewErrorBanner.IsVisible = false;
+            return;
+        }
+
         if (workspaceId is not null && _webViewErrors.TryGetValue(workspaceId, out var error))
         {
             WebViewErrorText.Text = error;
@@ -68,6 +95,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void HandleNavigation(string? workspaceId, string? url)
     {
+        var tutorialVisible = IsTutorialVisible();
         if (workspaceId != _activeWorkspaceId)
         {
             if (_activeWorkspaceId is not null && _webViews.TryGetValue(_activeWorkspaceId, out var prev))
@@ -76,7 +104,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             _activeWorkspaceId = workspaceId;
 
             if (workspaceId is not null && _webViews.TryGetValue(workspaceId, out var existing))
-                existing.IsVisible = true;
+                existing.IsVisible = !tutorialVisible;
 
             UpdateErrorDisplay(workspaceId);
         }
@@ -145,7 +173,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 }
             }
 
-            webView!.IsVisible = true;
+            webView!.IsVisible = !tutorialVisible;
             var destination = new Uri(url);
             if (!isNew && string.Equals(webView.Source?.ToString(), destination.ToString(), StringComparison.Ordinal))
             {
@@ -157,6 +185,27 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 webView.Source = destination;
             }
         }
+    }
+
+    private bool IsTutorialVisible()
+        => DataContext is MainViewModel { Tutorial.IsVisible: true };
+
+    private void ApplyTutorialWebViewVisibility(bool tutorialVisible)
+    {
+        foreach (var webView in _webViews.Values)
+            webView.IsVisible = false;
+
+        if (tutorialVisible)
+        {
+            WebViewErrorBanner.IsVisible = false;
+            return;
+        }
+        UpdateErrorDisplay(_activeWorkspaceId);
+        if (_activeWorkspaceId is null) return;
+        if (!_webViews.TryGetValue(_activeWorkspaceId, out var active)) return;
+        if (DataContext is not MainViewModel { ShowPortView: true }) return;
+
+        active.IsVisible = true;
     }
 
     private void HandleBrowserCommand(BrowserCommand command)

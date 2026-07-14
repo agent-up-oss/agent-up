@@ -4,6 +4,8 @@ public interface IFirstRunTutorialChecks
 {
     Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default);
 
+    Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default);
+
     Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default);
 
     Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default);

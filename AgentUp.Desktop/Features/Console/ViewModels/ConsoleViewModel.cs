@@ -11,6 +11,8 @@ public sealed class ConsoleViewModel : ReactiveObject
 
     public ObservableCollection<string> Lines { get; } = [];
 
+    public string ConsoleText => string.Join(Environment.NewLine, Lines);
+
     public bool IsLoading
     {
         get => _isLoading;
@@ -22,7 +24,11 @@ public sealed class ConsoleViewModel : ReactiveObject
         _client = client;
     }
 
-    public void Clear() => Lines.Clear();
+    public void Clear()
+    {
+        Lines.Clear();
+        this.RaisePropertyChanged(nameof(ConsoleText));
+    }
 
     public async Task LoadAsync(string workspaceId, string appName, CancellationToken ct = default)
     {
@@ -34,6 +40,7 @@ public sealed class ConsoleViewModel : ReactiveObject
             Lines.Clear();
             foreach (var line in lines)
                 Lines.Add(line);
+            this.RaisePropertyChanged(nameof(ConsoleText));
         }
         catch { /* output fetch failure is non-fatal */ }
         finally

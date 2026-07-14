@@ -29,6 +29,28 @@ public class FirstRunTutorialViewModelTests
     }
 
     [Test]
+    public async Task InitializeAsync_cleansOldTutorialWorkspaces_whenTutorialStarts()
+    {
+        var checks = new CountingTutorialChecks();
+        var vm = CreateViewModel(new FirstRunTutorialSettings(false, false, 5), checks: checks);
+
+        await vm.InitializeAsync();
+
+        Assert.That(checks.CleanupCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task InitializeAsync_doesNotCleanTutorialWorkspaces_whenTutorialIsHidden()
+    {
+        var checks = new CountingTutorialChecks();
+        var vm = CreateViewModel(new FirstRunTutorialSettings(true, false, 7), checks: checks);
+
+        await vm.InitializeAsync();
+
+        Assert.That(checks.CleanupCount, Is.EqualTo(0));
+    }
+
+    [Test]
     public async Task ContinueCommand_doesNotAdvance_untilDockerCheckSucceeds()
     {
         var vm = CreateViewModel(new FirstRunTutorialSettings(false, false, 0));
@@ -77,6 +99,7 @@ public class FirstRunTutorialViewModelTests
         await vm.ContinueCommand.Execute().FirstAsync();
         await vm.MarkDuplicateStartedCommand.Execute().FirstAsync();
         await vm.CheckDuplicateCommand.Execute().FirstAsync();
+        await vm.ContinueCommand.Execute().FirstAsync();
         await vm.ContinueCommand.Execute().FirstAsync();
 
         Assert.That(vm.IsVisible, Is.False);
@@ -176,6 +199,9 @@ public class FirstRunTutorialViewModelTests
 
     private class PassingTutorialChecks : IFirstRunTutorialChecks
     {
+        public virtual Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public virtual Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
 
@@ -225,5 +251,16 @@ public class FirstRunTutorialViewModelTests
     {
         public override Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Failure("start failed\nstderr:\nboom"));
+    }
+
+    private sealed class CountingTutorialChecks : PassingTutorialChecks
+    {
+        public int CleanupCount { get; private set; }
+
+        public override Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
+        {
+            CleanupCount++;
+            return Task.CompletedTask;
+        }
     }
 }

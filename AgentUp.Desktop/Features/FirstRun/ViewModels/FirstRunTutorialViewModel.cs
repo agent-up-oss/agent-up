@@ -12,7 +12,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
           "applications": [
             {
               "name": "React SPA",
-              "command": "npm install && npm run dev",
+              "command": "rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev",
               "path": "web",
               "ports": [
                 { "variable": "WEB_PORT", "defaultPort": 5173, "protocol": "http" }
@@ -20,7 +20,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
             },
             {
               "name": "Express API",
-              "command": "npm install && npm run dev",
+              "command": "rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev",
               "path": "api",
               "ports": [
                 { "variable": "API_PORT", "defaultPort": 3001, "protocol": "http" }
@@ -110,6 +110,8 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     public bool ShowStartStep => CurrentStep == 6;
 
     public bool ShowDuplicateStep => CurrentStep == 7;
+
+    public bool ShowSuccessStep => CurrentStep == 8;
 
     public bool CanGoBack => CurrentStep > 1;
 
@@ -276,7 +278,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         }
     }
 
-    public string PrimaryButtonText => CurrentStep == 7 ? "Enter Agent-Up" : "Continue";
+    public string PrimaryButtonText => CurrentStep == 8 ? "Enter Agent-Up" : "Continue";
 
     public bool CanContinue => CurrentStep switch
     {
@@ -287,6 +289,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         5 => AgentUpJsonCheckPassed,
         6 => WorkspaceCheckPassed,
         7 => DuplicateCheckPassed,
+        8 => true,
         _ => false
     };
 
@@ -336,8 +339,10 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         WorkspaceCheckPassed = settings.CompletedStep >= 6;
         DuplicateActionTaken = settings.CompletedStep >= 7;
         DuplicateCheckPassed = settings.CompletedStep >= 7;
-        CurrentStep = Math.Clamp(settings.CompletedStep + 1, 1, 7);
+        CurrentStep = Math.Clamp(settings.CompletedStep + 1, 1, 8);
         IsVisible = !settings.TutorialCompleted && !settings.TutorialSkipped;
+        if (IsVisible)
+            await _checks.CleanupTutorialWorkspacesAsync();
     }
 
     private async Task CheckDockerAsync()
@@ -457,7 +462,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     {
         if (!CanContinue) return;
 
-        if (CurrentStep < 7)
+        if (CurrentStep < 8)
         {
             CurrentStep++;
             StatusMessage = null;
@@ -497,6 +502,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(ShowAgentUpJsonStep));
         this.RaisePropertyChanged(nameof(ShowStartStep));
         this.RaisePropertyChanged(nameof(ShowDuplicateStep));
+        this.RaisePropertyChanged(nameof(ShowSuccessStep));
         this.RaisePropertyChanged(nameof(CanGoBack));
         this.RaisePropertyChanged(nameof(TutorialRoot));
         this.RaisePropertyChanged(nameof(ShowProjectFileCheckSection));

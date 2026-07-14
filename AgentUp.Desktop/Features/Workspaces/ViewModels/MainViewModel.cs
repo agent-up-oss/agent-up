@@ -107,6 +107,14 @@ public sealed class MainViewModel : ReactiveObject
                 }
             });
 
+        Tutorial.WhenAnyValue(t => t.CurrentStep)
+            .Skip(1)
+            .Where(_ => Tutorial.IsVisible)
+            .Subscribe(_step =>
+            {
+                _ = ReloadWorkspaceBehindTutorialAsync();
+            });
+
         // Emit a navigation event whenever workspace or sub-tab changes.
         var workspaceChanged = Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
             .Select(ws => (WorkspaceId: ws?.Id, Url: (string?)null));
@@ -143,6 +151,12 @@ public sealed class MainViewModel : ReactiveObject
             .Switch();
 
         BrowserNavigation = workspaceChanged.Merge(tabChanged).Merge(portOpenChanged).Merge(_addressNavigations);
+    }
+
+    private async Task ReloadWorkspaceBehindTutorialAsync()
+    {
+        await Sidebar.LoadAsync();
+        _browserCommands.OnNext(BrowserCommand.Reload);
     }
 
     private void NavigateAddress()

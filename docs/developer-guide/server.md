@@ -33,3 +33,7 @@ This rule keeps concurrent agents, human developers, and automation clients alig
 ## Orchestration Rule
 
 If a feature starts, stops, restarts, navigates, records, allocates, diagnoses, or exports workspace behavior, that logic belongs in the Server.
+
+## Tutorial Cleanup
+
+`POST /api/workspaces/tutorial/cleanup` is a Desktop onboarding support endpoint. It stops and removes every registered workspace when the first-run tutorial starts, so stale workspace state cannot render behind onboarding or affect the guided sample setup.

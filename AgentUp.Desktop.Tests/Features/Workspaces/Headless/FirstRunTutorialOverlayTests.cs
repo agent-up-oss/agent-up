@@ -33,6 +33,47 @@ public class FirstRunTutorialOverlayTests
         Assert.That(store.Settings.TutorialSkipped, Is.True);
     }
 
+    [AvaloniaTest]
+    public async Task JavaScriptTutorialFlow_advancesThroughSuccessPage_withButtonClicks()
+    {
+        var store = new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0));
+        var tutorial = new FirstRunTutorialViewModel(store, new PassingTutorialChecks());
+        var app = await AppDriver.LaunchEmptyAsync(tutorial);
+
+        await app.Content.ClickTutorialButtonAsync("TutorialCheckPrerequisitesButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialSelectJavaScriptButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialCheckNodeButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialCreateProjectFilesButton");
+
+        Assert.That(app.Content.TutorialButtonIsVisible("TutorialCheckProjectFilesButton"), Is.True);
+
+        await app.Content.ClickTutorialButtonAsync("TutorialCheckProjectFilesButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialCreateAgentUpJsonButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialCheckAgentUpJsonButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialStartWorkspaceButton");
+
+        Assert.That(app.Content.TutorialButtonIsVisible("TutorialCheckWorkspaceButton"), Is.True);
+
+        await app.Content.ClickTutorialButtonAsync("TutorialCheckWorkspaceButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialCreateDuplicateButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialCheckDuplicateButton");
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+
+        Assert.That(app.Content.TutorialCurrentStep, Is.EqualTo(8));
+        Assert.That(app.Content.ShowsFirstRunTutorial, Is.True);
+
+        await app.Content.ClickTutorialButtonAsync("TutorialContinueButton");
+
+        Assert.That(app.Content.ShowsFirstRunTutorial, Is.False);
+        Assert.That(store.Settings.TutorialCompleted, Is.True);
+    }
+
     private sealed class InMemoryTutorialSettingsStore(FirstRunTutorialSettings settings) : IFirstRunTutorialSettingsStore
     {
         public FirstRunTutorialSettings Settings { get; private set; } = settings;
@@ -48,6 +89,9 @@ public class FirstRunTutorialOverlayTests
 
     private sealed class PassingTutorialChecks : IFirstRunTutorialChecks
     {
+        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
 

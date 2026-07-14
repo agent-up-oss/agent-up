@@ -8,6 +8,18 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
 {
     private static readonly string[] RequiredApplicationNames = ["React SPA", "Express API", "Postgres"];
 
+    public async Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await workspaceClient.CleanupTutorialWorkspacesAsync(cancellationToken);
+        }
+        catch
+        {
+            // Cleanup is best-effort. The regular checks will surface any Server issue later.
+        }
+    }
+
     public async Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -83,6 +95,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             await File.WriteAllTextAsync(Path.Combine(webDirectory, "package.json"), WebPackageJson, cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(webDirectory, "index.html"), WebIndexHtml, cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(webDirectory, "src-App.jsx"), WebAppJsx, cancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(webDirectory, "vite.config.mjs"), WebViteConfig, cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(apiDirectory, "package.json"), ApiPackageJson, cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(apiDirectory, "server.js"), ApiServerJs, cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(normalized, "docker-compose.yaml"), DockerComposeYaml, cancellationToken);
@@ -265,6 +278,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
                      Path.Combine(fullPath, "web", "package.json"),
                      Path.Combine(fullPath, "web", "index.html"),
                      Path.Combine(fullPath, "web", "src-App.jsx"),
+                     Path.Combine(fullPath, "web", "vite.config.mjs"),
                      Path.Combine(fullPath, "api", "package.json"),
                      Path.Combine(fullPath, "api", "server.js"),
                      Path.Combine(fullPath, "docker-compose.yaml")
@@ -504,7 +518,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
           "applications": [
             {
               "name": "React SPA",
-              "command": "npm install && npm run dev",
+              "command": "rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev",
               "path": "web",
               "ports": [
                 { "variable": "WEB_PORT", "defaultPort": 5173, "protocol": "http" }
@@ -512,7 +526,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             },
             {
               "name": "Express API",
-              "command": "npm install && npm run dev",
+              "command": "rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev",
               "path": "api",
               "ports": [
                 { "variable": "API_PORT", "defaultPort": 3001, "protocol": "http" }
@@ -552,13 +566,27 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             "dev": "vite --host 0.0.0.0"
           },
           "dependencies": {
-            "@vitejs/plugin-react": "latest",
-            "vite": "latest",
-            "react": "latest",
-            "react-dom": "latest"
+            "@vitejs/plugin-react": "4.3.4",
+            "vite": "5.4.11",
+            "react": "18.3.1",
+            "react-dom": "18.3.1"
           },
           "devDependencies": {}
         }
+        """;
+
+    private const string WebViteConfig = """
+        import { defineConfig } from 'vite';
+        import react from '@vitejs/plugin-react';
+
+        export default defineConfig({
+          plugins: [react()],
+          server: {
+            host: '0.0.0.0',
+            port: Number(process.env.WEB_PORT || 5173),
+            strictPort: true
+          }
+        });
         """;
 
     private const string WebIndexHtml = """
@@ -588,8 +616,8 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             "dev": "node server.js"
           },
           "dependencies": {
-            "express": "latest",
-            "pg": "latest"
+            "express": "4.18.3",
+            "pg": "8.12.0"
           },
           "devDependencies": {}
         }

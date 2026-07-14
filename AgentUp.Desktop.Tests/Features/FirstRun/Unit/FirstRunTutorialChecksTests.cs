@@ -36,11 +36,33 @@ public class FirstRunTutorialChecksTests
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.ProjectDirectory, Is.EqualTo(_testRoot));
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "package.json")), Is.True);
+        var packageJson = File.ReadAllText(Path.Combine(_testRoot, "web", "package.json"));
+        Assert.That(packageJson, Does.Contain("\"vite\": \"5.4.11\""));
+        Assert.That(packageJson, Does.Not.Contain("\"latest\""));
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "index.html")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "src-App.jsx")), Is.True);
+        Assert.That(File.Exists(Path.Combine(_testRoot, "web", "vite.config.mjs")), Is.True);
+        Assert.That(File.ReadAllText(Path.Combine(_testRoot, "web", "vite.config.mjs")), Does.Contain("process.env.WEB_PORT"));
         Assert.That(File.Exists(Path.Combine(_testRoot, "api", "package.json")), Is.True);
+        var apiPackageJson = File.ReadAllText(Path.Combine(_testRoot, "api", "package.json"));
+        Assert.That(apiPackageJson, Does.Contain("\"express\": \"4.18.3\""));
+        Assert.That(apiPackageJson, Does.Contain("\"pg\": \"8.12.0\""));
+        Assert.That(apiPackageJson, Does.Not.Contain("\"latest\""));
         Assert.That(File.Exists(Path.Combine(_testRoot, "api", "server.js")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "docker-compose.yaml")), Is.True);
+    }
+
+    [Test]
+    public async Task CreateAgentUpJsonAsync_usesCleanPinnedNpmInstallCommand()
+    {
+        var checks = CreateChecks([]);
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        var result = await checks.CreateAgentUpJsonAsync(_testRoot);
+
+        Assert.That(result.IsSuccess, Is.True);
+        var agentUpJson = File.ReadAllText(Path.Combine(_testRoot, "agent-up.json"));
+        Assert.That(agentUpJson, Does.Contain("rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev"));
     }
 
     [Test]

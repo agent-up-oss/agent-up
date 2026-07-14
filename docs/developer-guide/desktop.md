@@ -53,6 +53,7 @@ The first-run flow is:
 5. Create `agent-up.json` at the project root. The tutorial shows the copyable file and also provides an auto-create button. The check for this step is that `agent-up.json` exists and is parseable with at least one application.
 6. Run `agent-up start` in the sample project directory. The tutorial provides an automatic button that uses `agent-up start` or the local CLI project fallback. The check for this step is that the Server registered a workspace containing `React SPA`, `Express API`, and `Postgres`.
 7. Duplicate the sample directory. Desktop copies `example-agent1` to `example-agent2` under the same `/tmp/<random-guid>/agent-up-tutorial/` root and runs `agent-up start` in the duplicate. The tutorial checks that two matching workspaces exist and that their allocated ports do not collide.
+8. Show a success page explaining that the user has just created two isolated workspaces from the same JavaScript project and why Server-owned workspace identity, processes, Docker, browser profiles, diagnostics, and ports matter.
 
 Completing the final step saves the tutorial as completed. The Skip button hides the entire tutorial and persists skipped state, so it does not reappear on the next launch.
 
@@ -61,6 +62,14 @@ Multi-action steps reveal one section at a time. Follow-up actions such as Open 
 Users can navigate back to a previous step. Going back invalidates that step and all later step checks, so the user must complete them again.
 
 The tutorial is rendered as an overlay above the full Desktop window. The underlying application remains visible behind a dimmed blurred layer, but the overlay consumes input while it is visible.
+
+Console output should render as one wrapped, multiline-selectable text surface for copying diagnostics, but not editable.
+
+Generated tutorial sample dependencies should be pinned to known-compatible versions instead of `latest`, so the first-run flow does not break because of upstream package engine changes. The generated `agent-up.json` commands clear stale `node_modules` and `package-lock.json` before installing, so rerunning the tutorial does not keep an incompatible Vite or native bundler package from an older sample.
+
+Native WebView surfaces must be hidden while the first-run tutorial is visible. Native browser widgets can render outside normal XAML z-order, so the Desktop explicitly hides active WebViews and browser error banners during onboarding and restores the active WebView after the tutorial closes.
+
+While the tutorial overlay is visible, Desktop reloads the workspace list and asks the active browser view to reload after every step transition. This keeps the application state behind the overlay current without letting Desktop own workspace orchestration.
 
 ## Browser Experience
 

@@ -38,6 +38,12 @@ internal sealed class AppDriver
         Func<NativeWebView> webViewFactory)
         => await LaunchAsync([workspace], webViewFactory);
 
+    public static async Task<AppDriver> LaunchWithWorkspaceAsync(
+        WorkspaceDto workspace,
+        Func<NativeWebView> webViewFactory,
+        FirstRunTutorialViewModel tutorial)
+        => await LaunchAsync([workspace], webViewFactory, tutorial);
+
     public static async Task<AppDriver> LaunchWithWorkspacesAsync(List<WorkspaceDto> workspaces)
         => await LaunchAsync(workspaces);
 
@@ -120,6 +126,9 @@ internal sealed class AppDriver
 
     private sealed class PassingTutorialChecks : IFirstRunTutorialChecks
     {
+        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
 

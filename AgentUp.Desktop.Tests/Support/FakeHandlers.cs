@@ -42,10 +42,13 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
 {
     private volatile List<WorkspaceDto> _workspaces = initial;
 
+    public int RequestCount { get; private set; }
+
     public void SetWorkspaces(List<WorkspaceDto> workspaces) => _workspaces = workspaces;
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
+        RequestCount++;
         var content = JsonContent.Create(_workspaces);
         return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
     }

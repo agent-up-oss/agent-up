@@ -68,6 +68,29 @@ public sealed class WorkspacesController(IWorkspaceRegistry registry, IWorkspace
         return NoContent();
     }
 
+    [HttpPost("tutorial/cleanup")]
+    public async Task<IActionResult> CleanupTutorialWorkspaces()
+    {
+        var workspaces = registry.GetAll().ToList();
+
+        foreach (var workspace in workspaces)
+        {
+            try
+            {
+                await processes.KillAsync(workspace.Id);
+            }
+            catch
+            {
+                // Cleanup is best-effort. Stale tutorial registry entries should still be removed
+                // even when their old process tree no longer exists or cannot be stopped.
+            }
+
+            await registry.RemoveAsync(workspace.Id);
+        }
+
+        return Ok(new { removed = workspaces.Count });
+    }
+
     [HttpPatch("{id}/state")]
     public async Task<IActionResult> UpdateState(string id, UpdateWorkspaceStateRequest request)
     {
