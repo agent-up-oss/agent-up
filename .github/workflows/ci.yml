@@ -99,6 +99,20 @@ jobs:
           while IFS= read -r -d "" test_project; do
             found_tests=true
             test_project_name="$(basename "$(dirname "$test_project")")"
+
+            if [ "${{ matrix.platform }}" = "macos" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
+              mkdir -p "$test_project_name/TestResults"
+              dotnet run \
+                --project "$test_project" \
+                --configuration Release \
+                --no-build \
+                -- \
+                --workers=0 \
+                --timeout=120000 \
+                "--result=$test_project_name/TestResults/test-results.xml;format=nunit3"
+              continue
+            fi
+
             test_command=(
               dotnet test "$test_project"
               --configuration Release
@@ -110,10 +124,6 @@ jobs:
 
             if [ "$test_project_name" = "AgentUp.Tests" ]; then
               test_command+=(--blame-hang --blame-hang-timeout 120s)
-            fi
-
-            if [ "${{ matrix.platform }}" = "macos" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
-              test_command+=(-- NUnit.NumberOfTestWorkers=0)
             fi
 
             if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
