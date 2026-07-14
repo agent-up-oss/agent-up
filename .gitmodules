@@ -1,0 +1,3 @@
+[submodule "Xcepto.NET"]
+	path = Xcepto.NET
+	url = https://github.com/xcepto/Xcepto.NET

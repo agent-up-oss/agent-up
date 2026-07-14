@@ -9,6 +9,12 @@ using AgentUp.Server.Features.Workspaces.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSystemd();
+builder.Host.UseWindowsService(options =>
+{
+    options.ServiceName = "Agent-Up Server";
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
         opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));

@@ -13,6 +13,9 @@ const config = {
   baseUrl: '/',
   organizationName: 'agent-up',
   projectName: 'agent-up',
+  customFields: {
+    artifactDownloadUrl: process.env.AGENTUP_ARTIFACT_DOWNLOAD_URL || '',
+  },
 
   onBrokenLinks: 'throw',
   markdown: {

@@ -34,7 +34,9 @@ Future work should deepen the Server-owned runtime model, improve workflow infer
 | MCP automation interface | In progress |
 | Event recording | Planned |
 | Playwright generation | Planned |
-| Stable installers | Planned |
-| Broad platform support | Planned |
+| CI platform packaging | Experimental |
+| Stable installers | In progress |
+| Broad platform support | In progress |
+| Service-aware updates | Planned |
 
 See [Current Limitations](./limitations.md) for the practical release status.

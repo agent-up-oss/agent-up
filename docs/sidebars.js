@@ -10,6 +10,7 @@ const sidebars = {
         'workspace',
         'configuration',
         'agent-up-json',
+        'releases',
         'limitations',
       ],
     },

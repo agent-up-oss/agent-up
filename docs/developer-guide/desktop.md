@@ -73,3 +73,9 @@ Reloading workspaces keeps the selected workspace by ID but rebinds it to the re
 ## Thin Client Rule
 
 The Desktop does not own runtime state and should not duplicate orchestration rules from the Server.
+
+## Installed Runtime
+
+Installed Desktop artifacts are paired with a local `AgentUp.Server` service. The installer or package service assets are responsible for installing and starting `agent-up-server`; the Desktop still behaves as a client and connects to `http://localhost:5000` by default.
+
+For development, `AGENTUP_SERVER_URL` can point Desktop at a manually started Server.
