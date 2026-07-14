@@ -111,6 +111,108 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task InitializeAsync_setsAddressBarToFirstHttpPortUrl_whenApplicationHasPorts()
+    {
+        const int port = 5100;
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto("WEB_PORT", 3000, port)]
+                }
+            ]
+        };
+        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+
+        Assert.That(vm.AddressBarUrl, Is.EqualTo($"http://localhost:{port}/"));
+    }
+
+    [Test]
+    public async Task NavigateAddressCommand_emitsEditedAddress_whenHttpPortTabSelected()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+        vm.AddressBarUrl = "http://localhost:3000/settings";
+        vm.NavigateAddressCommand.Execute().Subscribe();
+
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:3000/settings"));
+    }
+
+    [Test]
+    public async Task NavigateAddressCommand_prefixesHttpScheme_whenEditedAddressHasNoScheme()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+        vm.AddressBarUrl = "localhost:3000/settings";
+        vm.NavigateAddressCommand.Execute().Subscribe();
+
+        Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:3000/settings"));
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:3000/settings"));
+    }
+
+    [Test]
+    public async Task UpdateAddressFromBrowser_updatesAddressBar_whenSelectedHttpPortNavigates()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        vm.UpdateAddressFromBrowser("ws-1", "http://localhost:3000/dashboard");
+
+        Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:3000/dashboard"));
+    }
+
+    [Test]
+    public void BrowserCommands_emitRequestedBrowserActions()
+    {
+        var vm = new MainViewModel(NullWorkspaceClient(), NullConsoleClient());
+        var commands = new List<BrowserCommand>();
+        vm.BrowserCommands.Subscribe(commands.Add);
+
+        vm.BrowserBackCommand.Execute().Subscribe();
+        vm.BrowserForwardCommand.Execute().Subscribe();
+        vm.BrowserReloadCommand.Execute().Subscribe();
+
+        Assert.That(commands, Is.EqualTo([BrowserCommand.Back, BrowserCommand.Forward, BrowserCommand.Reload]));
+    }
+
+    [Test]
+    public async Task SidebarReload_reselectsRefreshedWorkspaceAndEmitsSelectedPortNavigation()
+    {
+        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var handler = new MutableFakeHttpMessageHandler([initial]);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = new MainViewModel(new WorkspaceApiClient(http), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+        var previousSelected = vm.Sidebar.SelectedWorkspace;
+        emissions.Clear();
+        handler.SetWorkspaces([refreshed]);
+        await vm.Sidebar.LoadAsync();
+
+        Assert.That(vm.Sidebar.SelectedWorkspace, Is.Not.SameAs(previousSelected));
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:3000/"));
+    }
+
+    [Test]
     public async Task InitializeAsync_selectsConsoleSubTab_whenApplicationHasNoPorts()
     {
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
@@ -124,6 +226,7 @@ public class MainViewModelTests
         Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["Console"]));
         Assert.That(vm.SelectedSubTab, Is.TypeOf<ConsoleSubTabViewModel>());
         Assert.That(vm.ShowConsole, Is.True);
+        Assert.That(vm.AddressBarUrl, Is.Null);
     }
 
     [Test]

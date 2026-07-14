@@ -81,6 +81,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
         ErrorMessage = null;
         try
         {
+            var selectedId = SelectedWorkspace?.Id;
             var workspaces = await _client.ListAsync(ct);
             Workspaces.Clear();
             foreach (var ws in workspaces)
@@ -88,8 +89,9 @@ public sealed class WorkspaceListViewModel : ReactiveObject
                     ws.Id, ws.DisplayName, ws.Branch, ws.RepositoryPath, ws.WorktreePath, ws.State,
                     ws.Applications));
 
-            if (SelectedWorkspace is null && Workspaces.Count > 0)
-                SelectedWorkspace = Workspaces[0];
+            SelectedWorkspace = selectedId is null
+                ? Workspaces.FirstOrDefault()
+                : Workspaces.FirstOrDefault(ws => ws.Id == selectedId) ?? Workspaces.FirstOrDefault();
         }
         catch (Exception ex)
         {

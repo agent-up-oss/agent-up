@@ -30,6 +30,37 @@ internal sealed class ContentDriver(MainWindow window)
     public string? WebViewErrorMessage =>
         window.FindControl<TextBlock>("WebViewErrorText")?.Text;
 
+    public bool ShowsAddressNavBar =>
+        window.FindControl<Border>("AddressNavBar")?.IsVisible ?? false;
+
+    public string? AddressBarText =>
+        window.FindControl<TextBox>("AddressBar")?.Text;
+
+    public bool ShowsBrowserBackButton =>
+        window.FindControl<Button>("BrowserBackButton")?.IsVisible ?? false;
+
+    public bool ShowsBrowserForwardButton =>
+        window.FindControl<Button>("BrowserForwardButton")?.IsVisible ?? false;
+
+    public bool ShowsBrowserReloadButton =>
+        window.FindControl<Button>("BrowserReloadButton")?.IsVisible ?? false;
+
+    public bool AddressBarIsFocused =>
+        window.FindControl<TextBox>("AddressBar")?.IsFocused ?? false;
+
+    public async Task FocusAddressBarAsync()
+    {
+        window.FindControl<TextBox>("AddressBar")?.Focus();
+        await HeadlessExtensions.FlushAsync();
+    }
+
+    public async Task ClickWorkspaceDetailAsync()
+    {
+        var detail = window.FindControl<Border>("WorkspaceDetail")
+            ?? throw new InvalidOperationException("Workspace detail was not found.");
+        await window.ClickControlAsync(detail);
+    }
+
     // ── Application panel ────────────────────────────────────────────────────
 
     public bool HasApplications =>

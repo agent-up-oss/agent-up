@@ -1,7 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
@@ -15,7 +19,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
 
-    public MainWindow() { InitializeComponent(); }
+    public MainWindow()
+    {
+        InitializeComponent();
+        AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -23,6 +31,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel vm) return;
         vm.BrowserNavigation.Subscribe(nav =>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)));
+        vm.BrowserCommands.Subscribe(command =>
+            Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)));
     }
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
@@ -73,6 +83,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 {
                     webView = WebViewFactory();
                     var capturedId = workspaceId;
+                    webView.PropertyChanged += (_, e) =>
+                    {
+                        if (e.Property.Name != nameof(NativeWebView.Source)) return;
+                        UpdateAddressFromWebView(capturedId, webView.Source);
+                    };
                     webView.EnvironmentRequested += (_, e) =>
                     {
                         if (e is GtkWebViewEnvironmentRequestedEventArgs gtk)
@@ -86,7 +101,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                     webView.NavigationCompleted += (_, e) =>
                     {
                         if (!e.IsSuccess || e.Request is not { } uri) return;
-                        BrowserUrlStore.Write(capturedId, uri.ToString());
+                        UpdateAddressFromWebView(capturedId, uri);
                         if (firstNavDone) return;
                         firstNavDone = true;
                         // WebKit renders content into the native window but GTK only composites
@@ -124,7 +139,59 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             }
 
             webView!.IsVisible = true;
-            webView.Source = new Uri(url);
+            var destination = new Uri(url);
+            if (!isNew && string.Equals(webView.Source?.ToString(), destination.ToString(), StringComparison.Ordinal))
+            {
+                webView.Source = new Uri("about:blank");
+                Dispatcher.UIThread.Post(() => webView.Source = destination, DispatcherPriority.Background);
+            }
+            else
+            {
+                webView.Source = destination;
+            }
         }
+    }
+
+    private void HandleBrowserCommand(BrowserCommand command)
+    {
+        if (_activeWorkspaceId is null) return;
+        if (!_webViews.TryGetValue(_activeWorkspaceId, out var webView)) return;
+
+        switch (command)
+        {
+            case BrowserCommand.Back:
+                if (webView.CanGoBack)
+                    webView.GoBack();
+                break;
+            case BrowserCommand.Forward:
+                if (webView.CanGoForward)
+                    webView.GoForward();
+                break;
+            case BrowserCommand.Reload:
+                var url = (DataContext as MainViewModel)?.AddressBarUrl ?? webView.Source?.ToString();
+                if (!string.IsNullOrWhiteSpace(url))
+                    HandleNavigation(_activeWorkspaceId, url);
+                break;
+        }
+    }
+
+    private void UpdateAddressFromWebView(string workspaceId, Uri? uri)
+    {
+        if (uri is null) return;
+        if (uri.Scheme is not ("http" or "https")) return;
+
+        var navigatedUrl = uri.ToString();
+        BrowserUrlStore.Write(workspaceId, navigatedUrl);
+        if (workspaceId == _activeWorkspaceId && DataContext is MainViewModel vm)
+            vm.UpdateAddressFromBrowser(workspaceId, navigatedUrl);
+    }
+
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (FocusManager?.GetFocusedElement() != AddressBar) return;
+        if (e.Source is not Visual source) return;
+        if (ReferenceEquals(source, AddressBar) || AddressBar.IsVisualAncestorOf(source)) return;
+
+        FocusSink.Focus(NavigationMethod.Pointer);
     }
 }

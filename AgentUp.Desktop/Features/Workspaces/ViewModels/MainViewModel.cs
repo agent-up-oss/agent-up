@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Reactive;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.Http;
 using AgentUp.Desktop.Features.Console.ViewModels;
@@ -12,6 +14,9 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 public sealed class MainViewModel : ReactiveObject
 {
     private SubTabViewModel? _selectedSubTab;
+    private string? _addressBarUrl;
+    private readonly Subject<(string? WorkspaceId, string? Url)> _addressNavigations = new();
+    private readonly Subject<BrowserCommand> _browserCommands = new();
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -29,15 +34,32 @@ public sealed class MainViewModel : ReactiveObject
     public bool ShowPortView => SelectedSubTab is PortSubTabViewModel { IsHttp: true };
     public bool ShowTcpInfo => SelectedSubTab is PortSubTabViewModel { IsHttp: false };
 
+    public string? AddressBarUrl
+    {
+        get => _addressBarUrl;
+        set => this.RaiseAndSetIfChanged(ref _addressBarUrl, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> NavigateAddressCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowserBackCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowserForwardCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowserReloadCommand { get; }
+
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
     public IObservable<(string? WorkspaceId, string? Url)> BrowserNavigation { get; }
+    public IObservable<BrowserCommand> BrowserCommands => _browserCommands;
 
     public MainViewModel(WorkspaceApiClient workspaceClient, ConsoleApiClient consoleClient)
     {
         Sidebar = new WorkspaceListViewModel(workspaceClient);
         Applications = new ApplicationListViewModel();
         Console = new ConsoleViewModel(consoleClient);
+
+        NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
+        BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
+        BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
+        BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
 
         Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
             .Subscribe(ws =>
@@ -63,7 +85,17 @@ public sealed class MainViewModel : ReactiveObject
                 this.RaisePropertyChanged(nameof(ShowPortView));
                 this.RaisePropertyChanged(nameof(ShowTcpInfo));
                 if (tab is PortSubTabViewModel portTab)
+                {
+                    if (portTab.IsHttp)
+                        AddressBarUrl = portTab.Url;
+                    else
+                        AddressBarUrl = null;
                     _ = portTab.ProbeAsync();
+                }
+                else
+                {
+                    AddressBarUrl = null;
+                }
             });
 
         // Emit a navigation event whenever workspace or sub-tab changes.
@@ -98,10 +130,37 @@ public sealed class MainViewModel : ReactiveObject
                 : pt.WhenAnyValue(t => t.IsOpen)
                       .Skip(1)
                       .Where(open => open)
-                      .Select(_ => ((string?)Sidebar.SelectedWorkspace?.Id, (string?)pt.Url)))
+                      .Select(_ => ((string?)Sidebar.SelectedWorkspace?.Id, (string?)(pt.IsHttp ? AddressBarUrl ?? pt.Url : pt.Url))))
             .Switch();
 
-        BrowserNavigation = workspaceChanged.Merge(tabChanged).Merge(portOpenChanged);
+        BrowserNavigation = workspaceChanged.Merge(tabChanged).Merge(portOpenChanged).Merge(_addressNavigations);
+    }
+
+    private void NavigateAddress()
+    {
+        if (SelectedSubTab is not PortSubTabViewModel { IsHttp: true }) return;
+        if (string.IsNullOrWhiteSpace(AddressBarUrl)) return;
+
+        var normalized = NormalizeAddress(AddressBarUrl);
+        AddressBarUrl = normalized;
+        _addressNavigations.OnNext((Sidebar.SelectedWorkspace?.Id, normalized));
+    }
+
+    internal void UpdateAddressFromBrowser(string workspaceId, string url)
+    {
+        if (Sidebar.SelectedWorkspace?.Id != workspaceId) return;
+        if (!ShowPortView) return;
+
+        AddressBarUrl = url;
+    }
+
+    private static string NormalizeAddress(string address)
+    {
+        var trimmed = address.Trim();
+        return Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? uri.ToString()
+            : $"http://{trimmed}";
     }
 
     private void RebuildSubTabs(ApplicationViewModel? app)
