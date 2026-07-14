@@ -10,8 +10,8 @@ using Avalonia.Threading;
 
 namespace AgentUp.Tests.Features.Browser;
 
-// These tests drive the real MainWindow with real WebKitGTK and a real X display
-// (provided by XvfbManager when DISPLAY is not already set).
+// These tests drive the real MainWindow with the platform WebView backend selected
+// by the AgentUp.Fixtures.* adapter for the current test runner OS.
 //
 // Each NavigateTo call is dispatched to the UI thread, then the test thread waits
 // for the HTTP server to receive the request. This keeps the UI thread free to

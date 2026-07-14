@@ -97,13 +97,6 @@ jobs:
           found_tests=false
 
           while IFS= read -r -d "" test_project; do
-            if [ "${{ matrix.platform }}" = "macos" ] || [ "${{ matrix.platform }}" = "windows" ]; then
-              if [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
-                echo "Skipping $test_project on ${{ matrix.platform }}; browser E2E uses Linux Xvfb/WebKitGTK."
-                continue
-              fi
-            fi
-
             found_tests=true
             test_command=(
               dotnet test "$test_project"
@@ -174,7 +167,6 @@ jobs:
   docs:
     name: Docs
     runs-on: ubuntu-latest
-    needs: platform
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v4
@@ -191,7 +183,6 @@ jobs:
   sonar:
     name: Sonar
     runs-on: ubuntu-latest
-    needs: platform
     if: ${{ github.ref == 'refs/heads/main' }}
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -217,7 +208,7 @@ jobs:
         run: |
           dotnet tool install --global dotnet-sonarscanner
 
-      - name: Install browser test dependencies
+      - name: Install Ubuntu browser test dependencies
         if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
         run: |
           sudo apt-get update
