@@ -83,7 +83,18 @@ jobs:
         if: ${{ matrix.platform == 'ubuntu' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb x11-utils
+          sudo apt-get install -y xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
+          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
+            sudo apt-get install -y libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev
+            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.1.so/{print $NF; exit}')"
+          else
+            sudo apt-get install -y libwebkit2gtk-4.0-37 libwebkit2gtk-4.0-dev
+            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.0.so/{print $NF; exit}')"
+          fi
+          if [ -n "$webkit_lib" ] && [ ! -e /usr/local/lib/libwebkit2gtk.so ]; then
+            sudo ln -s "$webkit_lib" /usr/local/lib/libwebkit2gtk.so
+            sudo ldconfig
+          fi
 
       - name: Run tests on Nix
         if: ${{ matrix.use-nix }}
