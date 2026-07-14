@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.agent-up.server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server</string>
+    <string>--urls</string>
+    <string>http://127.0.0.1:5000</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>ASPNETCORE_URLS</key>
+    <string>http://127.0.0.1:5000</string>
+    <key>Storage__DataDirectory</key>
+    <string>/Library/Application Support/Agent-Up</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/agent-up-server.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/agent-up-server.err.log</string>
+</dict>
+</plist>

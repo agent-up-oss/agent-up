@@ -8,52 +8,68 @@ permissions:
   checks: write
 
 jobs:
-  tests:
-    name: Tests
-    runs-on: ubuntu-latest
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
+  platform:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu
+            os: ubuntu-latest
+            platform: ubuntu
+            rid: linux-x64
+            use-nix: false
+          - name: NixOS package
+            os: ubuntu-latest
+            platform: nixos
+            rid: linux-x64
+            use-nix: true
+          - name: macOS
+            os: macos-latest
+            platform: macos
+            rid: osx-arm64
+            use-nix: false
+          - name: Windows
+            os: windows-latest
+            platform: windows
+            rid: win-x64
+            use-nix: false
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@v14
+        if: ${{ matrix.use-nix }}
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: zulu
-
-      - name: Install SonarScanner
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet tool install --global dotnet-sonarscanner
-
-      - name: Sonar begin
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet sonarscanner begin \
-            /k:"agent-up" \
-            /n:"agent-up" \
-            /d:sonar.scanner.skipJreProvisioning=true \
-            /d:sonar.projectBaseDir="${{ github.workspace }}" \
-            /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
-            /d:sonar.token="$SONAR_TOKEN" \
-            /d:sonar.host.url="$SONAR_HOST_URL"
-
       - name: Build
         run: |
           dotnet build "agent-up.sln" --configuration Release
 
-      - name: Run tests
+      - name: Install Ubuntu browser test dependencies
+        if: ${{ matrix.platform == 'ubuntu' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
+          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
+            sudo apt-get install -y libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev
+            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.1.so/{print $NF; exit}')"
+          else
+            sudo apt-get install -y libwebkit2gtk-4.0-37 libwebkit2gtk-4.0-dev
+            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.0.so/{print $NF; exit}')"
+          fi
+          if [ -n "$webkit_lib" ] && [ ! -e /usr/local/lib/libwebkit2gtk.so ]; then
+            sudo ln -s "$webkit_lib" /usr/local/lib/libwebkit2gtk.so
+            sudo ldconfig
+          fi
+
+      - name: Run tests on Nix
+        if: ${{ matrix.use-nix }}
         run: |
           nix-shell shell.nix --run '
             found_tests=false
@@ -74,16 +90,78 @@ jobs:
             fi
           '
 
-      - name: Sonar end
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+      - name: Run tests
+        if: ${{ !matrix.use-nix }}
+        shell: bash
         run: |
-          dotnet sonarscanner end \
-            /d:sonar.token="$SONAR_TOKEN"
+          found_tests=false
 
-      - name: Build docs
+          while IFS= read -r -d "" test_project; do
+            if [ "${{ matrix.platform }}" = "macos" ] || [ "${{ matrix.platform }}" = "windows" ]; then
+              if [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
+                echo "Skipping $test_project on ${{ matrix.platform }}; browser E2E uses Linux Xvfb/WebKitGTK."
+                continue
+              fi
+            fi
+
+            found_tests=true
+            test_command=(
+              dotnet test "$test_project"
+              --configuration Release
+              --no-build
+              --settings "coverlet.runsettings"
+              --logger "trx;LogFileName=test-results.trx"
+              --collect:"XPlat Code Coverage"
+            )
+
+            if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
+              LIBGL_ALWAYS_SOFTWARE=1 \
+              GALLIUM_DRIVER=llvmpipe \
+              WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+              WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+              xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"
+            else
+              "${test_command[@]}"
+            fi
+          done < <(find . -name "*Tests.csproj" -print0)
+
+          if [ "$found_tests" = false ]; then
+            echo "No test projects found"
+            exit 1
+          fi
+
+      - name: Package release artifact
+        shell: bash
         run: |
-          npm --prefix docs ci
-          npm --prefix docs run build
+          ./scripts/package-release.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "0.0.0-ci" "release-artifacts"
+
+      - name: Smoke test packaged artifact
+        shell: bash
+        run: |
+          ./.github/scripts/smoke-package.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
+
+      - name: Smoke test installed service
+        shell: bash
+        run: |
+          ./.github/scripts/smoke-installed-service.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
+
+      - name: Install mc
+        shell: bash
+        run: ./.github/scripts/install-mc.sh
+
+      - name: Upload package to CI artifact bucket
+        shell: bash
+        env:
+          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
+          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
+          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
+          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
+        run: |
+          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
+          mc mb --ignore-existing "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET"
+          mc mirror --overwrite --remove \
+            release-artifacts \
+            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/${{ matrix.platform }}-${{ matrix.rid }}"
 
       - name: Test Report
         uses: dorny/test-reporter@v2
@@ -92,3 +170,175 @@ jobs:
           name: .NET Tests (Agent-Up)
           path: "**/test-results.trx"
           reporter: dotnet-trx
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    needs: platform
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build docs
+        run: |
+          npm --prefix docs ci
+          npm --prefix docs run build
+
+  sonar:
+    name: Sonar
+    runs-on: ubuntu-latest
+    needs: platform
+    if: ${{ github.ref == 'refs/heads/main' }}
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Set up JDK 17
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: zulu
+
+      - name: Install SonarScanner
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+
+      - name: Install browser test dependencies
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
+          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
+            sudo apt-get install -y libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev
+            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.1.so/{print $NF; exit}')"
+          else
+            sudo apt-get install -y libwebkit2gtk-4.0-37 libwebkit2gtk-4.0-dev
+            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.0.so/{print $NF; exit}')"
+          fi
+          if [ -n "$webkit_lib" ] && [ ! -e /usr/local/lib/libwebkit2gtk.so ]; then
+            sudo ln -s "$webkit_lib" /usr/local/lib/libwebkit2gtk.so
+            sudo ldconfig
+          fi
+
+      - name: Sonar begin
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"agent-up" \
+            /n:"agent-up" \
+            /d:sonar.scanner.skipJreProvisioning=true \
+            /d:sonar.projectBaseDir="${{ github.workspace }}" \
+            /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.host.url="$SONAR_HOST_URL"
+
+      - name: Build
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          dotnet build "agent-up.sln" --configuration Release
+
+      - name: Run tests
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        shell: bash
+        run: |
+          found_tests=false
+
+          while IFS= read -r -d "" test_project; do
+            found_tests=true
+            test_command=(
+              dotnet test "$test_project"
+              --configuration Release
+              --no-build
+              --settings "coverlet.runsettings"
+              --logger "trx;LogFileName=test-results.trx"
+              --collect:"XPlat Code Coverage"
+            )
+
+            if [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
+              LIBGL_ALWAYS_SOFTWARE=1 \
+              GALLIUM_DRIVER=llvmpipe \
+              WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+              WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+              xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"
+            else
+              "${test_command[@]}"
+            fi
+          done < <(find . -name "*Tests.csproj" -print0)
+
+          if [ "$found_tests" = false ]; then
+            echo "No test projects found"
+            exit 1
+          fi
+
+      - name: Sonar end
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          dotnet sonarscanner end \
+            /d:sonar.token="$SONAR_TOKEN"
+
+      - name: Sonar skipped
+        if: ${{ env.SONAR_TOKEN == '' || env.SONAR_HOST_URL == '' }}
+        run: |
+          echo "Skipping Sonar because SONAR_TOKEN or SONAR_HOST_URL is not configured."
+
+  release:
+    name: Release to MinIO
+    runs-on: ubuntu-latest
+    needs: [platform, docs, sonar]
+    if: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install release tooling
+        run: npm install
+
+      - name: Install mc
+        run: ./.github/scripts/install-mc.sh
+
+      - name: Download packages from CI artifact bucket
+        env:
+          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
+          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
+          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
+          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
+        run: |
+          mkdir -p release-artifacts
+          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
+          mc cp --recursive \
+            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/" \
+            release-artifacts/
+          find release-artifacts -mindepth 2 -type f -exec mv {} release-artifacts/ \;
+          find release-artifacts -mindepth 1 -type d -empty -delete
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AGENTUP_RELEASE_BUCKET: ${{ secrets.AGENTUP_RELEASE_BUCKET }}
+          AGENTUP_RELEASE_S3_ENDPOINT: ${{ secrets.AGENTUP_RELEASE_S3_ENDPOINT }}
+          AGENTUP_RELEASE_S3_ACCESS_KEY: ${{ secrets.AGENTUP_RELEASE_S3_ACCESS_KEY }}
+          AGENTUP_RELEASE_S3_SECRET_KEY: ${{ secrets.AGENTUP_RELEASE_S3_SECRET_KEY }}
+        run: npx semantic-release

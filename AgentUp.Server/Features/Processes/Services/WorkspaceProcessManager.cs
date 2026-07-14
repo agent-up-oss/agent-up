@@ -145,6 +145,18 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
             _logger.LogInformation("Started Docker container '{Container}' for '{App}' in workspace {Id}", containerName, app.Name, workspaceId);
         }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            _containerNames.TryRemove((workspaceId, app.Name), out _);
+            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message);
+            throw new InvalidOperationException($"docker failed for '{app.Name}': {ex.Message}", ex);
+        }
+        catch (InvalidOperationException ex) when (ex.InnerException is System.ComponentModel.Win32Exception)
+        {
+            _containerNames.TryRemove((workspaceId, app.Name), out _);
+            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message);
+            throw;
+        }
         catch
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
@@ -274,7 +286,15 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         foreach (var arg in args)
             process.StartInfo.ArgumentList.Add(arg);
 
-        process.Start();
+        try
+        {
+            process.Start();
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            throw new InvalidOperationException($"docker could not be started: {ex.Message}", ex);
+        }
+
         var stdout = await process.StandardOutput.ReadToEndAsync();
         var stderr = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();

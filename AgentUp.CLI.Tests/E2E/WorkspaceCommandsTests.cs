@@ -46,8 +46,7 @@ public class WorkspaceCommandsTests
         _serverClient.Dispose();
         await _server.StopAsync();
         await _server.DisposeAsync();
-        if (Directory.Exists(_workspaceDir))
-            Directory.Delete(_workspaceDir, recursive: true);
+        DeleteDirectoryIfExists(_workspaceDir);
     }
 
     // ── start ─────────────────────────────────────────────────────────────────
@@ -274,8 +273,7 @@ public class WorkspaceCommandsTests
         }
         finally
         {
-            if (Directory.Exists(secondDir))
-                Directory.Delete(secondDir, recursive: true);
+            DeleteDirectoryIfExists(secondDir);
         }
     }
 
@@ -420,6 +418,41 @@ public class WorkspaceCommandsTests
             var err = await p.StandardError.ReadToEndAsync();
             throw new InvalidOperationException($"{executable} {arguments} failed: {err}");
         }
+    }
+
+    private static void DeleteDirectoryIfExists(string directory)
+    {
+        if (!Directory.Exists(directory))
+            return;
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                ClearReadOnlyAttributes(directory);
+                Directory.Delete(directory, recursive: true);
+                return;
+            }
+            catch (UnauthorizedAccessException) when (attempt < 4)
+            {
+                Thread.Sleep(100);
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                Thread.Sleep(100);
+            }
+        }
+
+        ClearReadOnlyAttributes(directory);
+        Directory.Delete(directory, recursive: true);
+    }
+
+    private static void ClearReadOnlyAttributes(string directory)
+    {
+        foreach (var path in Directory.EnumerateFileSystemEntries(directory, "*", SearchOption.AllDirectories))
+            File.SetAttributes(path, FileAttributes.Normal);
+
+        File.SetAttributes(directory, FileAttributes.Normal);
     }
 
     private static int FindFreePort()

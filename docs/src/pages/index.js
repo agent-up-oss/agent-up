@@ -952,8 +952,8 @@ export default function Home() {
               No manual setup. Just review.
             </p>
             <div className={styles.actions}>
-              <Link className={styles.primaryAction} to="/docs/">
-                Run from source
+              <Link className={styles.secondaryAction} to="/docs/downloads">
+                Download
               </Link>
             </div>
           </div>

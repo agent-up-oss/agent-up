@@ -96,8 +96,12 @@ public sealed class XvfbManager
     {
         // WebKit's bwrap-based process sandbox can fail in headless/CI environments.
         Environment.SetEnvironmentVariable("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
+        Environment.SetEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE", "1");
+        Environment.SetEnvironmentVariable("GALLIUM_DRIVER", "llvmpipe");
+        Environment.SetEnvironmentVariable("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        Environment.SetEnvironmentVariable("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
 
-        if (Environment.GetEnvironmentVariable("DISPLAY") is not null)
+        if (Environment.GetEnvironmentVariable("DISPLAY") is not null && IsDisplayReady())
             return;
 
         _xvfb = Process.Start(new ProcessStartInfo
@@ -106,10 +110,48 @@ public sealed class XvfbManager
             Arguments = ":99 -screen 0 1280x720x24",
             UseShellExecute = false,
             RedirectStandardError = true,
-        });
+        }) ?? throw new InvalidOperationException("Failed to start Xvfb.");
 
         Environment.SetEnvironmentVariable("DISPLAY", ":99");
-        Thread.Sleep(500);
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (_xvfb.HasExited)
+                throw new InvalidOperationException($"Xvfb exited before DISPLAY was ready: {_xvfb.StandardError.ReadToEnd()}");
+
+            if (IsDisplayReady())
+                return;
+
+            Thread.Sleep(100);
+        }
+
+        throw new TimeoutException("Xvfb did not make DISPLAY=:99 available within 10 seconds.");
+    }
+
+    private static bool IsDisplayReady()
+    {
+        try
+        {
+            using var proc = Process.Start(new ProcessStartInfo
+            {
+                FileName = "xdpyinfo",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            });
+
+            if (proc is null)
+                return false;
+
+            proc.WaitForExit(1000);
+            return proc.HasExited && proc.ExitCode == 0;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Thread.Sleep(500);
+            return true;
+        }
     }
 
     private static void StartAvalonia()
@@ -136,11 +178,20 @@ public sealed class XvfbManager
     [OneTimeTearDown]
     public void Stop()
     {
-        Dispatcher.UIThread.Post(() =>
+        try
         {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lt)
-                lt.Shutdown();
-        });
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lt)
+                    lt.Shutdown();
+            }).GetAwaiter().GetResult();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
 
         try { _xvfb?.Kill(); } catch { /* already gone */ }
         _xvfb?.Dispose();

@@ -29,13 +29,14 @@ public sealed class BrowserCookieIsolationTests
     public void SetUp() => _server = new CookieTestServer();
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
-        _server.Dispose();
         var w = _window;
         _window = null;
         if (w is not null)
-            Dispatcher.UIThread.Post(() => w.Close());
+            await Dispatcher.UIThread.InvokeAsync(() => w.Close());
+
+        _server.Dispose();
     }
 
     // Scenario 1: Two workspaces, two apps each.

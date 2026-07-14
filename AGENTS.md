@@ -27,6 +27,8 @@ Agent-Up is organized around one rule:
 
 Desktop, CLI, MCP clients, and future integrations are clients of the Server. They may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
+Packaged Desktop installations include the Server and run it as the local `agent-up-server` service. This is an installation/lifecycle concern only: Desktop remains a client and the Server remains the single source of truth.
+
 Expected solution shape:
 
 ```text
@@ -194,6 +196,8 @@ Full guide: `docs/developer-guide/server.md`.
 The Desktop is an Avalonia client for humans. It displays workspaces, browser tabs, logs, diagnostics, health, and running processes.
 
 It connects to the Server and must not own runtime state. Full guide: `docs/developer-guide/desktop.md`.
+
+Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
 ## CLI
 
