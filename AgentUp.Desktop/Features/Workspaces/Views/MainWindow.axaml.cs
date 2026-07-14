@@ -247,4 +247,33 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         FocusSink.Focus(NavigationMethod.Pointer);
     }
+
+    private void OnWindowChromePointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (e.Source is Visual source && IsWindowControlSource(source)) return;
+
+        if (e.ClickCount == 2)
+            ToggleMaximized();
+        else
+            BeginMoveDrag(e);
+    }
+
+    private bool IsWindowControlSource(Visual source)
+        => CloseWindowButton.IsVisualAncestorOf(source)
+           || MinimizeWindowButton.IsVisualAncestorOf(source)
+           || RestoreWindowButton.IsVisualAncestorOf(source)
+           || SidebarToggle.IsVisualAncestorOf(source)
+           || ReloadButton.IsVisualAncestorOf(source);
+
+    private void OnCloseWindowClicked(object? sender, RoutedEventArgs e) => Close();
+
+    private void OnMinimizeWindowClicked(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void OnRestoreWindowClicked(object? sender, RoutedEventArgs e) => ToggleMaximized();
+
+    private void ToggleMaximized()
+        => WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
 }

@@ -8,8 +8,8 @@ title: Desktop
 
 Technology:
 
-- .NET 9
-- Avalonia 11 (Fluent dark theme)
+- .NET 10
+- Avalonia 12 (Fluent dark theme)
 - ReactiveUI (MVVM)
 
 ## Structure
@@ -40,21 +40,23 @@ It connects to the Server and renders server-owned state.
 
 ## Browser Experience
 
-The desktop should resemble an IDE:
+The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome, green/teal active states, rounded workspace entries, and a browser-first runtime surface.
+
+The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Sidebar toggle, workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the sidebar/reload controls and is green when the Desktop can reach the Server and red when it cannot.
 
 ```text
 +---------------------------------------------------------------+
-| Agent-Up                                                      |
+| ☰ ↺ SERVER ONLINE              Agent-Up               _  □  × |
 +---------------------------------------------------------------+
-| Agents                    Frontend  Admin  Swagger  Logs      |
-|---------------------------------------------------------------|
-|                                                               |
-|                 Active Browser Session                        |
-|                                                               |
+| Agents | Frontend  Admin  Swagger  Logs                       |
+| Agent1 |------------------------------------------------------|
+| Agent2 |                                                      |
+|        |        Active Browser Session                        |
+|        |                                                      |
 +---------------------------------------------------------------+
 ```
 
-The left side shows workspace selection, health, branch, and running state. The top area shows browser tabs, logs, and diagnostics. The center contains the embedded browser.
+The left side shows workspace selection, health, branch, and running state. Sidebar collapse and reload are controlled from the title bar so the sidebar rail remains dedicated to workspace content. Expanded workspace rows fill the sidebar width, use the last segment of the repository path as the title, show the branch underneath, and expose the full repository path as the hover tooltip. The top area shows browser tabs, logs, and diagnostics. The center contains the embedded browser.
 
 ## Application Tabs
 
