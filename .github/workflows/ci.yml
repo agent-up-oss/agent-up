@@ -143,7 +143,11 @@ jobs:
             )
 
             if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
-              xvfb-run -a --server-args="-screen 0 1280x720x24" "${test_command[@]}"
+              LIBGL_ALWAYS_SOFTWARE=1 \
+              GALLIUM_DRIVER=llvmpipe \
+              WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+              WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+              xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"
             else
               "${test_command[@]}"
             fi
