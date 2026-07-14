@@ -24,9 +24,17 @@ public sealed class BrowserCookieIsolationTests
 {
     private CookieTestServer _server = null!;
     private MainWindow? _window;
+    private string _profileRoot = null!;
+    private string _savedProfileRoot = null!;
 
     [SetUp]
-    public void SetUp() => _server = new CookieTestServer();
+    public void SetUp()
+    {
+        _profileRoot = Path.Combine(Path.GetTempPath(), $"agentup-e2e-cookie-{Guid.NewGuid()}");
+        _savedProfileRoot = BrowserUrlStore.RootPath;
+        BrowserUrlStore.RootPath = _profileRoot;
+        _server = new CookieTestServer();
+    }
 
     [TearDown]
     public async Task TearDown()
@@ -37,6 +45,8 @@ public sealed class BrowserCookieIsolationTests
             await Dispatcher.UIThread.InvokeAsync(() => w.Close());
 
         _server.Dispose();
+        BrowserUrlStore.RootPath = _savedProfileRoot;
+        TryDeleteProfileRoot();
     }
 
     // Scenario 1: Two workspaces, two apps each.
@@ -152,6 +162,19 @@ public sealed class BrowserCookieIsolationTests
     private void Navigate(string workspaceId, string url)
     {
         Dispatcher.UIThread.Post(() => _window!.NavigateTo(workspaceId, url));
+    }
+
+    private void TryDeleteProfileRoot()
+    {
+        try
+        {
+            if (Directory.Exists(_profileRoot))
+                Directory.Delete(_profileRoot, recursive: true);
+        }
+        catch
+        {
+            // Native WebView backends may release profile files asynchronously.
+        }
     }
 
     private async Task<CookieTestServer.ReceivedRequest> WaitForCookieHeaderAsync(

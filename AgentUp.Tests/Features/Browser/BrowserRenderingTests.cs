@@ -23,10 +23,15 @@ public sealed class BrowserRenderingTests
 {
     private HtmlTestServer _server = null!;
     private MainWindow? _window;
+    private string _profileRoot = null!;
+    private string _savedProfileRoot = null!;
 
     [SetUp]
     public void SetUp()
     {
+        _profileRoot = Path.Combine(Path.GetTempPath(), $"agentup-e2e-rendering-{Guid.NewGuid()}");
+        _savedProfileRoot = BrowserUrlStore.RootPath;
+        BrowserUrlStore.RootPath = _profileRoot;
         _server = new HtmlTestServer("""
             <!DOCTYPE html>
             <html><body>
@@ -52,6 +57,8 @@ public sealed class BrowserRenderingTests
             await Dispatcher.UIThread.InvokeAsync(() => w.Close());
 
         _server.Dispose();
+        BrowserUrlStore.RootPath = _savedProfileRoot;
+        TryDeleteProfileRoot();
     }
 
     [Test, CancelAfter(60000)]
@@ -121,6 +128,19 @@ public sealed class BrowserRenderingTests
                 }
             ]
         };
+
+    private void TryDeleteProfileRoot()
+    {
+        try
+        {
+            if (Directory.Exists(_profileRoot))
+                Directory.Delete(_profileRoot, recursive: true);
+        }
+        catch
+        {
+            // Native WebView backends may release profile files asynchronously.
+        }
+    }
 }
 
 sealed class HtmlTestServer : IDisposable
