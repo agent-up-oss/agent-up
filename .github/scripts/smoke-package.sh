@@ -51,7 +51,15 @@ extract_zip() {
   local archive="$1"
   local destination="$2"
 
-  if command -v unzip >/dev/null 2>&1; then
+  if [ "${RUNNER_OS:-}" = "Windows" ] && command -v powershell.exe >/dev/null 2>&1; then
+    local ps_archive="$archive"
+    local ps_destination="$destination"
+    if command -v cygpath >/dev/null 2>&1; then
+      ps_archive="$(cygpath -w "$archive")"
+      ps_destination="$(cygpath -w "$destination")"
+    fi
+    powershell.exe -NoProfile -Command "Expand-Archive -LiteralPath '$ps_archive' -DestinationPath '$ps_destination' -Force"
+  elif command -v unzip >/dev/null 2>&1; then
     unzip -q "$archive" -d "$destination"
   else
     powershell.exe -NoProfile -Command "Expand-Archive -LiteralPath '$archive' -DestinationPath '$destination' -Force"
