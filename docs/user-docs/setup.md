@@ -99,7 +99,7 @@ This reads `agent-up.json`, captures the current Git branch and commit, and regi
 dotnet test agent-up.sln
 ```
 
-`AgentUp.Tests` runs the full Desktop E2E suite through platform fixture adapters. Linux uses Xvfb and WebKitGTK, macOS uses the native macOS desktop/WebView backend, and Windows uses the native Windows desktop/WebView backend.
+`AgentUp.Tests` runs the full Desktop E2E suite through platform fixture adapters. Linux uses Xvfb and WebKitGTK, macOS uses the native macOS desktop/WebView backend, and Windows uses the native Windows desktop/WebView backend. macOS CI invokes the test project executable directly so Avalonia Native initializes on the process main thread.
 
 On NixOS or headless Linux setups:
 
