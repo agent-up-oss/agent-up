@@ -14,6 +14,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 {
     private readonly Dictionary<string, NativeWebView> _webViews = new();
     private readonly Dictionary<string, string> _webViewErrors = new();
+    private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
+    private readonly DispatcherTimer _addressPollTimer;
     private string? _activeWorkspaceId;
 
     // Overrideable in tests to inject a factory that throws without needing GTK.
@@ -23,6 +25,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         InitializeComponent();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+        _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _addressPollTimer.Tick += (_, _) => _ = PollActiveBrowserAddressAsync();
+        _addressPollTimer.Start();
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -180,10 +185,58 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (uri is null) return;
         if (uri.Scheme is not ("http" or "https")) return;
 
-        var navigatedUrl = uri.ToString();
+        UpdateAddressFromWebView(workspaceId, uri.ToString());
+    }
+
+    private void UpdateAddressFromWebView(string workspaceId, string navigatedUrl)
+    {
+        var previousUrl = _lastKnownBrowserUrls.GetValueOrDefault(workspaceId);
+        _lastKnownBrowserUrls[workspaceId] = navigatedUrl;
         BrowserUrlStore.Write(workspaceId, navigatedUrl);
-        if (workspaceId == _activeWorkspaceId && DataContext is MainViewModel vm)
+
+        if (workspaceId != _activeWorkspaceId || DataContext is not MainViewModel vm)
+            return;
+
+        var addressHasUserEdit =
+            FocusManager?.GetFocusedElement() == AddressBar
+            && !string.Equals(vm.AddressBarUrl, previousUrl, StringComparison.Ordinal);
+
+        if (!addressHasUserEdit)
             vm.UpdateAddressFromBrowser(workspaceId, navigatedUrl);
+    }
+
+    private async Task PollActiveBrowserAddressAsync()
+    {
+        if (_activeWorkspaceId is null) return;
+        if (DataContext is not MainViewModel { ShowPortView: true }) return;
+        if (!_webViews.TryGetValue(_activeWorkspaceId, out var webView)) return;
+        if (!webView.IsVisible) return;
+
+        try
+        {
+            var result = await webView.InvokeScript("window.location.href");
+            var url = TryReadHttpLocation(result);
+            if (url is not null)
+                UpdateAddressFromWebView(_activeWorkspaceId, url);
+        }
+        catch
+        {
+            // The page may still be loading or the native WebView may not be ready yet.
+        }
+    }
+
+    internal static string? TryReadHttpLocation(string? scriptResult)
+    {
+        if (string.IsNullOrWhiteSpace(scriptResult)) return null;
+
+        var candidate = scriptResult.Trim();
+        if (candidate.Length >= 2 && candidate[0] == '"' && candidate[^1] == '"')
+            candidate = candidate[1..^1].Replace("\\/", "/").Replace("\\\"", "\"");
+
+        return Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
+               && uri.Scheme is "http" or "https"
+            ? uri.ToString()
+            : null;
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)

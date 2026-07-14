@@ -66,6 +66,8 @@ For applications without configured ports, Console is selected by default.
 
 When the selected tab is an HTTP port, the Desktop shows a third row with back, forward, and reload controls followed by an editable browser address field. The field contains the full URL, such as `http://localhost:3000/`, for the selected port. Pressing Enter in the field navigates the workspace WebView to that URL, and successful HTTP/HTTPS WebView navigations update the field to the current page URL. Non-HTTP ports do not show the address row.
 
+Because the native WebView does not always raise managed navigation updates for in-page link clicks, the Desktop also polls `window.location.href` for the active HTTP WebView and mirrors HTTP/HTTPS changes into the address field.
+
 Reloading workspaces keeps the selected workspace by ID but rebinds it to the refreshed Server state, so the selected application's active HTTP port is navigated again after a sidebar reload.
 
 ## Thin Client Rule
