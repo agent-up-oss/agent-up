@@ -27,6 +27,19 @@ public sealed class DesktopFixtureHost
 
     private static void StartAvalonia(IDesktopFixtureAdapter adapter)
     {
+        if (adapter.RequiresSetupThreadAvalonia)
+        {
+            var lifetime = new ClassicDesktopStyleApplicationLifetime
+            {
+                ShutdownMode = ShutdownMode.OnExplicitShutdown
+            };
+            DesktopFixtureAdapter.ConfigureAvalonia<E2ETestApp>()
+                .SetupWithLifetime(lifetime);
+
+            MarkAvaloniaReady();
+            return;
+        }
+
         var thread = new Thread(() =>
         {
             DesktopFixtureAdapter.ConfigureAvalonia<E2ETestApp>()

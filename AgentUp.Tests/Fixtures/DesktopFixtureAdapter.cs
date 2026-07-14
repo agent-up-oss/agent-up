@@ -7,6 +7,7 @@ public interface IDesktopFixtureAdapter : IDisposable
 {
     string Name { get; }
     bool RequiresStaThread { get; }
+    bool RequiresSetupThreadAvalonia { get; }
     string StartupFailureHint { get; }
     void SetUp();
 }

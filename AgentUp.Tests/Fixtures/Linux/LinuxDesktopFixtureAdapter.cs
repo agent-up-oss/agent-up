@@ -11,6 +11,7 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
 
     public string Name => "AgentUp.Fixtures.Linux";
     public bool RequiresStaThread => false;
+    public bool RequiresSetupThreadAvalonia => false;
     public string StartupFailureHint => "Check that DISPLAY points at Xvfb or another reachable X server and that WebKitGTK native libraries are installed.";
 
     public void SetUp()
