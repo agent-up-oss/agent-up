@@ -98,6 +98,7 @@ jobs:
 
           while IFS= read -r -d "" test_project; do
             found_tests=true
+            test_project_name="$(basename "$(dirname "$test_project")")"
             test_command=(
               dotnet test "$test_project"
               --configuration Release
@@ -107,7 +108,15 @@ jobs:
               --collect:"XPlat Code Coverage"
             )
 
-            if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
+            if [ "$test_project_name" = "AgentUp.Tests" ]; then
+              test_command+=(--blame-hang --blame-hang-timeout 120s)
+            fi
+
+            if [ "${{ matrix.platform }}" = "macos" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
+              test_command+=(-- NUnit.NumberOfTestWorkers=0)
+            fi
+
+            if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
               LIBGL_ALWAYS_SOFTWARE=1 \
               GALLIUM_DRIVER=llvmpipe \
               WEBKIT_DISABLE_COMPOSITING_MODE=1 \
@@ -250,6 +259,7 @@ jobs:
 
           while IFS= read -r -d "" test_project; do
             found_tests=true
+            test_project_name="$(basename "$(dirname "$test_project")")"
             test_command=(
               dotnet test "$test_project"
               --configuration Release
@@ -259,7 +269,9 @@ jobs:
               --collect:"XPlat Code Coverage"
             )
 
-            if [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
+            if [ "$test_project_name" = "AgentUp.Tests" ]; then
+              test_command+=(--blame-hang --blame-hang-timeout 120s)
+
               LIBGL_ALWAYS_SOFTWARE=1 \
               GALLIUM_DRIVER=llvmpipe \
               WEBKIT_DISABLE_COMPOSITING_MODE=1 \
