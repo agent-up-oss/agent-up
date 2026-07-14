@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Ports.Services;
@@ -58,9 +59,14 @@ string ResolveDataDirectory()
         return Path.Combine(Path.GetTempPath(), "AgentUp", checkoutId);
     }
 
-    return Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AgentUp");
+    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    if (!string.IsNullOrWhiteSpace(localAppData))
+        return Path.Combine(localAppData, "AgentUp");
+
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        return Path.Combine("/Library", "Application Support", "Agent-Up");
+
+    return Path.Combine("/var", "lib", "agent-up");
 }
 
 namespace AgentUp.Server

@@ -24,11 +24,13 @@ create_zip() {
   shift
 
   if [ "${RUNNER_OS:-}" = "Windows" ] && command -v powershell.exe >/dev/null 2>&1; then
-    local ps_items=""
+    local ps_items=()
     for item in "$@"; do
-      ps_items="${ps_items}'${item//\'/\'\'}',"
+      ps_items+=("'${item//\'/\'\'}'")
     done
-    powershell.exe -NoProfile -Command "\$items = @($ps_items); Compress-Archive -LiteralPath \$items -DestinationPath '$output' -Force"
+    local joined
+    joined="$(IFS=,; echo "${ps_items[*]}")"
+    powershell.exe -NoProfile -Command "\$items = @($joined); Compress-Archive -LiteralPath \$items -DestinationPath '$output' -Force"
   elif command -v zip >/dev/null 2>&1; then
     zip -qr "$output" "$@"
   elif tar --help 2>/dev/null | grep -q -- '-a'; then
@@ -42,6 +44,7 @@ create_zip() {
 rm -rf "$stage"
 mkdir -p "$stage/desktop" "$stage/server" "$stage/cli" "$root/$output_dir"
 
+dotnet restore "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" --runtime "$rid"
 dotnet publish "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" \
   --configuration "$configuration" \
   --runtime "$rid" \
@@ -50,6 +53,7 @@ dotnet publish "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" \
   -p:Version="$version" \
   -o "$stage/desktop"
 
+dotnet restore "$root/AgentUp.Server/AgentUp.Server.csproj" --runtime "$rid"
 dotnet publish "$root/AgentUp.Server/AgentUp.Server.csproj" \
   --configuration "$configuration" \
   --runtime "$rid" \
@@ -58,6 +62,7 @@ dotnet publish "$root/AgentUp.Server/AgentUp.Server.csproj" \
   -p:Version="$version" \
   -o "$stage/server"
 
+dotnet restore "$root/AgentUp.CLI/AgentUp.CLI.csproj" --runtime "$rid"
 dotnet publish "$root/AgentUp.CLI/AgentUp.CLI.csproj" \
   --configuration "$configuration" \
   --runtime "$rid" \
@@ -134,6 +139,7 @@ UNINSTALL
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo mkdir -p /opt/agent-up
+sudo mkdir -p /var/lib/agent-up
 sudo rm -rf /opt/agent-up/desktop /opt/agent-up/server /opt/agent-up/cli
 sudo cp -a "$root/desktop" /opt/agent-up/desktop
 sudo cp -a "$root/server" /opt/agent-up/server
@@ -164,10 +170,10 @@ UNINSTALL
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
     serviceConfig = {
-      ExecStart = "/opt/agent-up/server/AgentUp.Server";
+      ExecStart = "/opt/agent-up/server/AgentUp.Server --urls http://127.0.0.1:5000";
       Restart = "on-failure";
       RestartSec = 5;
-      Environment = "ASPNETCORE_URLS=http://localhost:5000";
+      Environment = "ASPNETCORE_URLS=http://127.0.0.1:5000";
     };
   };
 }

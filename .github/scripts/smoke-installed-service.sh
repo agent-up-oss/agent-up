@@ -10,7 +10,7 @@ platform="$1"
 rid="$2"
 artifact_dir="$3"
 work_dir="$(pwd)/artifacts/service-smoke/$platform-$rid"
-server_url="http://localhost:5000"
+server_url="http://127.0.0.1:5000"
 cli=""
 uninstall_command=()
 

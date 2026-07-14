@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/agent-up/server/AgentUp.Server
-Environment=ASPNETCORE_URLS=http://localhost:5000
+ExecStart=/opt/agent-up/server/AgentUp.Server --urls http://127.0.0.1:5000
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
 Restart=on-failure
 RestartSec=5
 

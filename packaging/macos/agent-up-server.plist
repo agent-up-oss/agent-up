@@ -7,11 +7,13 @@
   <key>ProgramArguments</key>
   <array>
     <string>/Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server</string>
+    <string>--urls</string>
+    <string>http://127.0.0.1:5000</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>ASPNETCORE_URLS</key>
-    <string>http://localhost:5000</string>
+    <string>http://127.0.0.1:5000</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
