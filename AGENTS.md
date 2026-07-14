@@ -111,6 +111,8 @@ AgentUp.Desktop/
     Console/          (console output/logs for the selected application)
       Http/
       ViewModels/
+    Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
+      ViewModels/
 ```
 
 Avoid this as the primary organizing model:
@@ -282,6 +284,8 @@ This applies to every production/test project pair once created:
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 
+`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application against a real display (Xvfb) and WebKitGTK. These tests are part of the normal test run; Xvfb is managed by the test infrastructure so they work in CI without a physical display.
+
 Forbidden:
 
 - Changing production behavior without updating or adding tests for that behavior.
@@ -367,6 +371,8 @@ Read: `docs/developer-guide/server.md`.
 ## Desktop
 
 The Desktop is the Avalonia UI for humans. It presents Server-owned state and shared browser sessions.
+
+**Per-workspace browser isolation:** Each workspace gets its own `NativeWebView` instance. Isolation is achieved by handling the `EnvironmentRequested` event to point GTK data and cache directories at a workspace-scoped path (managed by `BrowserUrlStore.ProfilePath`). The last-visited URL per workspace is persisted by `BrowserUrlStore` and restored when the workspace is reopened.
 
 Read: `docs/developer-guide/desktop.md`.
 

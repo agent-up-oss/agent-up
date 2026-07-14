@@ -83,4 +83,28 @@ public sealed class BrowserUrlStoreTests
         Assert.That(BrowserUrlStore.Read("ws-1", "http://localhost:3000/"), Is.EqualTo("http://localhost:3000/ws1-page"));
         Assert.That(BrowserUrlStore.Read("ws-2", "http://localhost:3000/"), Is.EqualTo("http://localhost:3000/ws2-page"));
     }
+
+    [Test]
+    public void TryReadHttpLocation_returnsRawHttpUrl()
+    {
+        var result = MainWindow.TryReadHttpLocation("http://localhost:3000/docs");
+
+        Assert.That(result, Is.EqualTo("http://localhost:3000/docs"));
+    }
+
+    [Test]
+    public void TryReadHttpLocation_returnsQuotedHttpUrl()
+    {
+        var result = MainWindow.TryReadHttpLocation("\"http://localhost:3000/docs\"");
+
+        Assert.That(result, Is.EqualTo("http://localhost:3000/docs"));
+    }
+
+    [Test]
+    public void TryReadHttpLocation_ignoresNonHttpUrl()
+    {
+        var result = MainWindow.TryReadHttpLocation("about:blank");
+
+        Assert.That(result, Is.Null);
+    }
 }

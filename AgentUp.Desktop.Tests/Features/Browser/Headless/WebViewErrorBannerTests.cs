@@ -11,8 +11,9 @@ public sealed class WebViewErrorBannerTests
     public async Task PortPane_showsErrorBanner_whenWebViewCreationFails()
     {
         var ws = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var app = await AppDriver.LaunchWithWorkspaceAsync(ws);
-        app.Window.WebViewFactory = () => throw new InvalidOperationException("no WebKit installed");
+        var app = await AppDriver.LaunchWithWorkspaceAsync(
+            ws,
+            () => throw new InvalidOperationException("no WebKit installed"));
 
         app.Window.NavigateTo("ws-1", "http://localhost:3000/");
         await HeadlessExtensions.FlushAsync();
@@ -26,8 +27,9 @@ public sealed class WebViewErrorBannerTests
     {
         var ws1 = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
         var ws2 = WorkspaceFixtures.WithHttpPort("ws-2", 4000);
-        var app = await AppDriver.LaunchWithWorkspacesAsync([ws1, ws2]);
-        app.Window.WebViewFactory = () => throw new InvalidOperationException("no WebKit");
+        var app = await AppDriver.LaunchWithWorkspacesAsync(
+            [ws1, ws2],
+            () => throw new InvalidOperationException("no WebKit"));
 
         // Force an error on ws-1.
         app.Window.NavigateTo("ws-1", "http://localhost:3000/");
@@ -45,8 +47,9 @@ public sealed class WebViewErrorBannerTests
     {
         var ws1 = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
         var ws2 = WorkspaceFixtures.WithHttpPort("ws-2", 4000);
-        var app = await AppDriver.LaunchWithWorkspacesAsync([ws1, ws2]);
-        app.Window.WebViewFactory = () => throw new InvalidOperationException("no WebKit");
+        var app = await AppDriver.LaunchWithWorkspacesAsync(
+            [ws1, ws2],
+            () => throw new InvalidOperationException("no WebKit"));
 
         app.Window.NavigateTo("ws-1", "http://localhost:3000/");
         await HeadlessExtensions.FlushAsync();
