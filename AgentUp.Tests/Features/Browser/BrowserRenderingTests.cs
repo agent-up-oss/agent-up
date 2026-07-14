@@ -58,7 +58,6 @@ public sealed class BrowserRenderingTests
 
         _server.Dispose();
         BrowserUrlStore.RootPath = _savedProfileRoot;
-        TryDeleteProfileRoot();
     }
 
     [Test, CancelAfter(60000)]
@@ -129,18 +128,6 @@ public sealed class BrowserRenderingTests
             ]
         };
 
-    private void TryDeleteProfileRoot()
-    {
-        try
-        {
-            if (Directory.Exists(_profileRoot))
-                Directory.Delete(_profileRoot, recursive: true);
-        }
-        catch
-        {
-            // Native WebView backends may release profile files asynchronously.
-        }
-    }
 }
 
 sealed class HtmlTestServer : IDisposable

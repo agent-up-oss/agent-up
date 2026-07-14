@@ -46,7 +46,6 @@ public sealed class BrowserCookieIsolationTests
 
         _server.Dispose();
         BrowserUrlStore.RootPath = _savedProfileRoot;
-        TryDeleteProfileRoot();
     }
 
     // Scenario 1: Two workspaces, two apps each.
@@ -162,19 +161,6 @@ public sealed class BrowserCookieIsolationTests
     private void Navigate(string workspaceId, string url)
     {
         Dispatcher.UIThread.Post(() => _window!.NavigateTo(workspaceId, url));
-    }
-
-    private void TryDeleteProfileRoot()
-    {
-        try
-        {
-            if (Directory.Exists(_profileRoot))
-                Directory.Delete(_profileRoot, recursive: true);
-        }
-        catch
-        {
-            // Native WebView backends may release profile files asynchronously.
-        }
     }
 
     private async Task<CookieTestServer.ReceivedRequest> WaitForCookieHeaderAsync(
