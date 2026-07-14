@@ -23,7 +23,13 @@ create_zip() {
   local output="$1"
   shift
 
-  if command -v zip >/dev/null 2>&1; then
+  if [ "${RUNNER_OS:-}" = "Windows" ] && command -v powershell.exe >/dev/null 2>&1; then
+    local ps_items=""
+    for item in "$@"; do
+      ps_items="${ps_items}'${item//\'/\'\'}',"
+    done
+    powershell.exe -NoProfile -Command "\$items = @($ps_items); Compress-Archive -LiteralPath \$items -DestinationPath '$output' -Force"
+  elif command -v zip >/dev/null 2>&1; then
     zip -qr "$output" "$@"
   elif tar --help 2>/dev/null | grep -q -- '-a'; then
     tar -a -cf "$output" "$@"
@@ -93,7 +99,11 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo rm -rf /Applications/Agent-Up.app
 sudo cp -R "$root/Agent-Up.app" /Applications/Agent-Up.app
+sudo chmod +x /Applications/Agent-Up.app/Contents/MacOS/AgentUp.Desktop
+sudo chmod +x /Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server
 sudo cp "$root/agent-up-server.plist" /Library/LaunchDaemons/dev.agent-up.server.plist
+sudo chown root:wheel /Library/LaunchDaemons/dev.agent-up.server.plist
+sudo chmod 644 /Library/LaunchDaemons/dev.agent-up.server.plist
 sudo launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
 sudo launchctl bootstrap system /Library/LaunchDaemons/dev.agent-up.server.plist
 sudo launchctl kickstart -k system/dev.agent-up.server
@@ -128,6 +138,7 @@ sudo rm -rf /opt/agent-up/desktop /opt/agent-up/server /opt/agent-up/cli
 sudo cp -a "$root/desktop" /opt/agent-up/desktop
 sudo cp -a "$root/server" /opt/agent-up/server
 sudo cp -a "$root/cli" /opt/agent-up/cli
+sudo chmod +x /opt/agent-up/desktop/AgentUp.Desktop /opt/agent-up/server/AgentUp.Server /opt/agent-up/cli/AgentUp.CLI
 sudo cp "$root/share/agent-up-server.service" /etc/systemd/system/agent-up-server.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now agent-up-server.service

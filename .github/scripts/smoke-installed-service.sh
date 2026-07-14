@@ -41,7 +41,25 @@ wait_for_server() {
   done
 
   echo "Installed service did not become ready at $server_url" >&2
+  print_service_diagnostics
   exit 1
+}
+
+print_service_diagnostics() {
+  case "$platform" in
+    ubuntu)
+      sudo systemctl status agent-up-server.service --no-pager >&2 || true
+      sudo journalctl -u agent-up-server.service --no-pager -n 200 >&2 || true
+      ;;
+    macos)
+      sudo launchctl print system/dev.agent-up.server >&2 || true
+      sudo tail -n 200 /tmp/agent-up-server.out.log >&2 || true
+      sudo tail -n 200 /tmp/agent-up-server.err.log >&2 || true
+      ;;
+    windows)
+      powershell.exe -NoProfile -Command "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *" >&2 || true
+      ;;
+  esac
 }
 
 smoke_cli_workspace() {

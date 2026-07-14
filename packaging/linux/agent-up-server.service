@@ -3,7 +3,7 @@ Description=Agent-Up Server
 After=network.target
 
 [Service]
-Type=notify
+Type=simple
 ExecStart=/opt/agent-up/server/AgentUp.Server
 Environment=ASPNETCORE_URLS=http://localhost:5000
 Restart=on-failure
