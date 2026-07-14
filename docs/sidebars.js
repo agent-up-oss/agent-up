@@ -6,10 +6,12 @@ const sidebars = {
       type: 'category',
       label: 'Getting Started',
       items: [
+        'downloads',
         'setup',
         'workspace',
         'configuration',
         'agent-up-json',
+        'releases',
         'limitations',
       ],
     },

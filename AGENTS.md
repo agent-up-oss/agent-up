@@ -27,6 +27,8 @@ Agent-Up is organized around one rule:
 
 Desktop, CLI, MCP clients, and future integrations are clients of the Server. They may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
+Packaged Desktop installations include the Server and run it as the local `agent-up-server` service. This is an installation/lifecycle concern only: Desktop remains a client and the Server remains the single source of truth.
+
 Expected solution shape:
 
 ```text
@@ -195,6 +197,8 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 It connects to the Server and must not own runtime state. Full guide: `docs/developer-guide/desktop.md`.
 
+Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
+
 ## CLI
 
 The CLI is a thin developer convenience wrapper over Server capabilities.
@@ -284,7 +288,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 
-`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application against a real display (Xvfb) and WebKitGTK. These tests are part of the normal test run; Xvfb is managed by the test infrastructure so they work in CI without a physical display.
+`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run.
 
 Forbidden:
 
@@ -372,7 +376,7 @@ Read: `docs/developer-guide/server.md`.
 
 The Desktop is the Avalonia UI for humans. It presents Server-owned state and shared browser sessions.
 
-**Per-workspace browser isolation:** Each workspace gets its own `NativeWebView` instance. Isolation is achieved by handling the `EnvironmentRequested` event to point GTK data and cache directories at a workspace-scoped path (managed by `BrowserUrlStore.ProfilePath`). The last-visited URL per workspace is persisted by `BrowserUrlStore` and restored when the workspace is reopened.
+**Per-workspace browser isolation:** Each workspace gets its own `NativeWebView` instance. Isolation is achieved by handling the `EnvironmentRequested` event and assigning platform-native profile storage from `BrowserUrlStore.ProfilePath`: GTK/WPE data and cache directories on Linux, WebView2 user data folders on Windows, and WKWebView data store identifiers on macOS. The last-visited URL per workspace is persisted by `BrowserUrlStore` and restored when the workspace is reopened.
 
 Read: `docs/developer-guide/desktop.md`.
 

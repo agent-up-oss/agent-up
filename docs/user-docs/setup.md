@@ -4,9 +4,9 @@ title: Setup
 
 # Setup
 
-Agent-Up is currently a source-only development preview. There are no stable desktop downloads or general-purpose installers.
+Agent-Up is currently a development preview. CI now produces preliminary platform artifacts, but the source workflow remains the most reliable path while installer signing, update behavior, and service hardening evolve.
 
-Agent-Up may work on additional platforms, but the current development setup has only been verified on NixOS.
+Installed Desktop artifacts are expected to run the Server as a local background service. Desktop, CLI, and MCP clients connect to that service at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points elsewhere.
 
 ## Requirements
 
@@ -26,6 +26,10 @@ dotnet build agent-up.sln
 ```
 
 ## Start the Server
+
+When using an installed Desktop artifact, the Server should already be running as the local `agent-up-server` service.
+
+For source development:
 
 ```bash
 dotnet run --project AgentUp.Server
@@ -52,6 +56,10 @@ On NixOS:
 ```
 
 The script runs the desktop inside `shell.nix`, which provides the native libraries needed by Avalonia, SkiaSharp, and WebKitGTK.
+
+## Release Artifacts
+
+See [Releases](./releases.md) for the CI-produced macOS, Windows, Ubuntu, and NixOS artifact shape and MinIO/S3 upload configuration.
 
 ## Configure a Repository
 
@@ -90,6 +98,8 @@ This reads `agent-up.json`, captures the current Git branch and commit, and regi
 ```bash
 dotnet test agent-up.sln
 ```
+
+`AgentUp.Tests` runs the full Desktop E2E suite through platform fixture adapters. Linux uses Xvfb and WebKitGTK, macOS uses the native macOS desktop/WebView backend, and Windows uses the native Windows desktop/WebView backend.
 
 On NixOS or headless Linux setups:
 

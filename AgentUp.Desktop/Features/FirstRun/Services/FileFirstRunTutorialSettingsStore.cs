@@ -4,6 +4,7 @@ namespace AgentUp.Desktop.Features.FirstRun.Services;
 
 public sealed class FileFirstRunTutorialSettingsStore : IFirstRunTutorialSettingsStore
 {
+    public const string SkipTutorialEnvironmentVariable = "AGENTUP_SKIP_FIRST_RUN_TUTORIAL";
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
     private readonly string _settingsPath;
 
@@ -22,6 +23,9 @@ public sealed class FileFirstRunTutorialSettingsStore : IFirstRunTutorialSetting
 
     public async Task<FirstRunTutorialSettings> LoadAsync()
     {
+        if (ShouldSkipFromEnvironment())
+            return new FirstRunTutorialSettings(false, true, 0);
+
         if (!File.Exists(_settingsPath))
             return new FirstRunTutorialSettings(false, false, 0);
 
@@ -49,5 +53,12 @@ public sealed class FileFirstRunTutorialSettingsStore : IFirstRunTutorialSetting
 
         await using var stream = File.Create(_settingsPath);
         await JsonSerializer.SerializeAsync(stream, settings, Options);
+    }
+
+    private static bool ShouldSkipFromEnvironment()
+    {
+        var value = Environment.GetEnvironmentVariable(SkipTutorialEnvironmentVariable);
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
     }
 }

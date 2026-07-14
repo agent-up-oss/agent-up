@@ -101,6 +101,14 @@ public sealed class BrowserUrlStoreTests
     }
 
     [Test]
+    public void NormalizeScriptResult_returnsUnquotedWebView2String()
+    {
+        var result = MainWindow.NormalizeScriptResult("\"Agent-Up Rendered\"");
+
+        Assert.That(result, Is.EqualTo("Agent-Up Rendered"));
+    }
+
+    [Test]
     public void TryReadHttpLocation_ignoresNonHttpUrl()
     {
         var result = MainWindow.TryReadHttpLocation("about:blank");

@@ -17,6 +17,7 @@ public class FileFirstRunTutorialSettingsStoreTests
     [TearDown]
     public void TearDown()
     {
+        Environment.SetEnvironmentVariable(FileFirstRunTutorialSettingsStore.SkipTutorialEnvironmentVariable, null);
         if (Directory.Exists(_testRoot))
             Directory.Delete(_testRoot, recursive: true);
     }
@@ -59,5 +60,20 @@ public class FileFirstRunTutorialSettingsStoreTests
         Assert.That(settings.TutorialCompleted, Is.True);
         Assert.That(settings.TutorialSkipped, Is.False);
         Assert.That(settings.CompletedStep, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task LoadAsync_returnsSkippedSettings_whenEnvironmentSkipIsSet()
+    {
+        Environment.SetEnvironmentVariable(FileFirstRunTutorialSettingsStore.SkipTutorialEnvironmentVariable, "1");
+        var path = Path.Combine(_testRoot, "settings.json");
+        await File.WriteAllTextAsync(path, """{"TutorialCompleted":false,"TutorialSkipped":false,"CompletedStep":4}""");
+        var store = new FileFirstRunTutorialSettingsStore(path);
+
+        var settings = await store.LoadAsync();
+
+        Assert.That(settings.TutorialCompleted, Is.False);
+        Assert.That(settings.TutorialSkipped, Is.True);
+        Assert.That(settings.CompletedStep, Is.EqualTo(0));
     }
 }

@@ -28,6 +28,17 @@ The Server manages:
 
 Desktop, CLI, and MCP clients connect to the Server. They do not keep authoritative copies of workspace state.
 
+## Service Hosting
+
+Packaged installations run `AgentUp.Server` as the local `agent-up-server` service:
+
+- macOS uses launchd.
+- Windows uses Windows Service hosting.
+- Ubuntu uses systemd.
+- NixOS uses a systemd service definition through a Nix module.
+
+This service shape is packaging and lifecycle behavior only. Runtime ownership remains unchanged: all orchestration stays in `AgentUp.Server`, and Desktop stays a client.
+
 This rule keeps concurrent agents, human developers, and automation clients aligned around the same running environment.
 
 ## Orchestration Rule
