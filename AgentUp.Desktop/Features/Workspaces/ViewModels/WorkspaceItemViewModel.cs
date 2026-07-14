@@ -10,6 +10,8 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public string DisplayName { get; }
     public string Branch { get; }
     public string RepositoryPath { get; }
+    public string RepositoryName { get; }
+    public string RepositoryToolTip { get; }
     public string WorktreePath { get; }
     public string State { get; }
     public string Initials { get; }
@@ -25,6 +27,10 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         DisplayName = displayName;
         Branch = branch;
         RepositoryPath = repositoryPath;
+        RepositoryName = LastPathSegment(repositoryPath);
+        if (string.IsNullOrWhiteSpace(RepositoryName))
+            RepositoryName = displayName;
+        RepositoryToolTip = repositoryPath;
         WorktreePath = worktreePath;
         State = state;
         Initials = BuildInitials(displayName);
@@ -40,6 +46,11 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         "Failed" => "#b85a5a",
         _ => "#5a5a72"
     };
+
+    private static string LastPathSegment(string path)
+        => path.TrimEnd('/', '\\')
+            .Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries)
+            .LastOrDefault() ?? string.Empty;
 
     private static string BuildInitials(string name)
     {
