@@ -50,6 +50,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _isLoading, value);
             this.RaisePropertyChanged(nameof(ShowEmptyState));
+            this.RaisePropertyChanged(nameof(ServerStatusText));
+            this.RaisePropertyChanged(nameof(ServerStatusColor));
         }
     }
 
@@ -60,10 +62,16 @@ public sealed class WorkspaceListViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _errorMessage, value);
             this.RaisePropertyChanged(nameof(ShowEmptyState));
+            this.RaisePropertyChanged(nameof(ServerStatusText));
+            this.RaisePropertyChanged(nameof(ServerStatusColor));
         }
     }
 
     public bool ShowEmptyState => _selectedWorkspace is null && _errorMessage is null && !_isLoading;
+    public string ServerStatusText => _errorMessage is not null
+        ? "SERVER OFFLINE"
+        : _isLoading ? "CONNECTING" : "SERVER ONLINE";
+    public string ServerStatusColor => _errorMessage is null ? "#35a98b" : "#d84f4f";
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }

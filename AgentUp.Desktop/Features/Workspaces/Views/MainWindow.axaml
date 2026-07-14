@@ -8,31 +8,32 @@
         Width="1100" Height="700"
         MinWidth="640" MinHeight="400"
         Title="Agent-Up"
-        Background="#0d0d0f">
+        WindowDecorations="None"
+        Background="#07110f">
 
     <Window.DataTemplates>
         <!-- Console sub-tab -->
         <DataTemplate DataType="portVm:ConsoleSubTabViewModel">
-            <Border Classes="subTab" Padding="10,7">
+            <Border Classes="subTab" Padding="13,7">
                 <TextBlock Text="Console"
-                           Foreground="#dcdce8"
-                           FontSize="11"
-                           FontWeight="Medium"/>
+                           Foreground="#aab7b0"
+                           FontSize="12"
+                           FontWeight="Bold"/>
             </Border>
         </DataTemplate>
 
         <!-- Port sub-tab -->
         <DataTemplate DataType="portVm:PortSubTabViewModel">
-            <Border Classes="subTab" Padding="10,7">
+            <Border Classes="subTab" Padding="13,7">
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <Border Width="6" Height="6"
                             CornerRadius="3"
                             Background="{Binding StatusColor}"
                             VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding Label}"
-                               Foreground="#dcdce8"
-                               FontSize="11"
-                               FontWeight="Medium"
+                               Foreground="#f5fbf7"
+                               FontSize="12"
+                               FontWeight="Bold"
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
@@ -49,6 +50,12 @@
         <Style Selector="ListBoxItem">
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="ListBoxItem /template/ ContentPresenter">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
@@ -74,6 +81,51 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
 
+        <!-- Integrated window chrome -->
+        <Style Selector="Border.chromeButton">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.chromeButton">
+            <Setter Property="Background" Value="#183a31"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.chromeClose">
+            <Setter Property="Background" Value="#c42b1c"/>
+        </Style>
+        <Style Selector="TextBlock.chromeIcon">
+            <Setter Property="Foreground" Value="#f5fbf7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="LineHeight" Value="16"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.chromeMinimizeIcon">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="LineHeight" Value="15"/>
+            <Setter Property="Margin" Value="0,7,0,0"/>
+        </Style>
+        <Style Selector="TextBlock.chromeRestoreIcon">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="LineHeight" Value="14"/>
+            <Setter Property="Margin" Value="0,1,0,0"/>
+        </Style>
+        <Style Selector="TextBlock.chromeCloseIcon">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="LineHeight" Value="19"/>
+            <Setter Property="Margin" Value="0,-5,0,0"/>
+        </Style>
+        <Style Selector="Border.titleToolButton">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.titleToolButton">
+            <Setter Property="Background" Value="#183a31"/>
+        </Style>
+
         <!-- Application tab bar -->
         <Style Selector="Border.appTab">
             <Setter Property="Background" Value="Transparent"/>
@@ -81,79 +133,79 @@
             <Setter Property="BorderThickness" Value="0,0,0,2"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.appTab">
-            <Setter Property="Background" Value="#141424"/>
+            <Setter Property="Background" Value="#12251f"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.appTab">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="#7c6cf8"/>
+            <Setter Property="Background" Value="#102b24"/>
+            <Setter Property="BorderBrush" Value="#17614f"/>
         </Style>
 
         <!-- Sub-navbar tab -->
         <Style Selector="Border.subTab">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="999"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.subTab">
-            <Setter Property="Background" Value="#141424"/>
+            <Setter Property="Background" Value="#14251f"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.subTab">
-            <Setter Property="BorderBrush" Value="#5a50c8"/>
+            <Setter Property="Background" Value="#17614f"/>
         </Style>
 
         <!-- Browser address bar -->
         <Style Selector="TextBox.addressBar">
-            <Setter Property="Background" Value="#11111a"/>
-            <Setter Property="BorderBrush" Value="#242436"/>
+            <Setter Property="Background" Value="#091613"/>
+            <Setter Property="BorderBrush" Value="#1d3b32"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="5"/>
-            <Setter Property="Foreground" Value="#dcdce8"/>
-            <Setter Property="CaretBrush" Value="#dcdce8"/>
-            <Setter Property="SelectionBrush" Value="#3a356c"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Foreground" Value="#c9d7d0"/>
+            <Setter Property="CaretBrush" Value="#c9d7d0"/>
+            <Setter Property="SelectionBrush" Value="#17614f"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="FontSize" Value="12"/>
         </Style>
         <Style Selector="TextBox.addressBar:focus">
-            <Setter Property="BorderBrush" Value="#5a50c8"/>
+            <Setter Property="BorderBrush" Value="#35a98b"/>
         </Style>
         <Style Selector="Border.browserButton">
             <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
-            <Setter Property="CornerRadius" Value="5"/>
-            <Setter Property="Background" Value="#171722"/>
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="Background" Value="#10211c"/>
         </Style>
         <Style Selector="Button:pointerover Border.browserButton">
-            <Setter Property="Background" Value="#222238"/>
+            <Setter Property="Background" Value="#183a31"/>
         </Style>
 
         <!-- Workspace entry: normal / hover / selected -->
         <Style Selector="Border.wsEntry">
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Background" Value="#18211e"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.wsEntry">
-            <Setter Property="Background" Value="#1a1a28"/>
+            <Setter Property="Background" Value="#1f332d"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.wsEntry">
-            <Setter Property="Background" Value="#1e1c3a"/>
+            <Setter Property="Background" Value="#17614f"/>
         </Style>
 
         <!-- Collapsed avatar: highlight selected -->
         <Style Selector="Border.wsAvatar">
-            <Setter Property="Background" Value="#22222e"/>
+            <Setter Property="Background" Value="#18211e"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.wsAvatar">
-            <Setter Property="Background" Value="#2a2846"/>
+            <Setter Property="Background" Value="#1f332d"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.wsAvatar">
-            <Setter Property="Background" Value="#1e1c3a"/>
+            <Setter Property="Background" Value="#17614f"/>
         </Style>
     </Window.Styles>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+    <Border Background="#07110f"
+            BorderBrush="#1f3b33"
+            BorderThickness="1">
+    <Grid RowDefinitions="42,*">
 
         <Control x:Name="FocusSink"
                  Width="1"
@@ -162,70 +214,115 @@
                  Focusable="True"
                  IsHitTestVisible="False"/>
 
+        <!-- Integrated window controls / drag surface -->
+        <Border Grid.Row="0"
+                x:Name="WindowChrome"
+                Background="#07110f"
+                PointerPressed="OnWindowChromePointerPressed">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center">
+                    <Button x:Name="SidebarToggle"
+                            Command="{Binding Sidebar.ToggleCommand}"
+                            ToolTip.Tip="Toggle sidebar">
+                        <Border Classes="titleToolButton">
+                            <TextBlock Classes="chromeIcon" Text="☰" FontSize="16"/>
+                        </Border>
+                    </Button>
+                    <Button x:Name="ReloadButton"
+                            Command="{Binding Sidebar.RefreshCommand}"
+                            ToolTip.Tip="Reload workspaces">
+                        <Border Classes="titleToolButton">
+                            <TextBlock Classes="chromeIcon" Text="↺" FontSize="15"/>
+                        </Border>
+                    </Button>
+                    <Border x:Name="ServerStatusBadge"
+                            Margin="6,0,0,0"
+                            Padding="12,5"
+                            CornerRadius="999"
+                            BorderBrush="{Binding Sidebar.ServerStatusColor}"
+                            BorderThickness="1"
+                            Background="#091613"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Border Width="9"
+                                    Height="9"
+                                    CornerRadius="5"
+                                    Background="{Binding Sidebar.ServerStatusColor}"
+                                    VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ServerStatusText"
+                                       Text="{Binding Sidebar.ServerStatusText}"
+                                       Foreground="#f5fbf7"
+                                       FontSize="11"
+                                       FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="Agent-Up"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="#f5fbf7"
+                           FontSize="13"
+                           FontWeight="Bold"/>
+
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <Button x:Name="MinimizeWindowButton"
+                            Click="OnMinimizeWindowClicked"
+                            ToolTip.Tip="Minimize">
+                        <Border Classes="chromeButton">
+                            <TextBlock Classes="chromeIcon chromeMinimizeIcon" Text="─"/>
+                        </Border>
+                    </Button>
+                    <Button x:Name="RestoreWindowButton"
+                            Click="OnRestoreWindowClicked"
+                            ToolTip.Tip="Restore">
+                        <Border Classes="chromeButton">
+                            <TextBlock Classes="chromeIcon chromeRestoreIcon" Text="□"/>
+                        </Border>
+                    </Button>
+                    <Button x:Name="CloseWindowButton"
+                            Click="OnCloseWindowClicked"
+                            ToolTip.Tip="Close">
+                        <Border Classes="chromeButton chromeClose">
+                            <TextBlock Classes="chromeIcon chromeCloseIcon" Text="×"/>
+                        </Border>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
         <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
         <Border Grid.Column="0"
+                x:Name="SidebarRail"
                 Width="{Binding Sidebar.Width}"
-                Background="#16161a"
-                BorderBrush="#252530"
+                Background="#09110f"
+                BorderBrush="#13241f"
                 BorderThickness="0,0,1,0">
             <DockPanel>
 
-                <!-- Collapse toggle (docked to very bottom) -->
-                <Button x:Name="SidebarToggle"
-                        DockPanel.Dock="Bottom"
-                        Command="{Binding Sidebar.ToggleCommand}"
-                        HorizontalAlignment="Right"
-                        Margin="0,6,10,14">
-                    <Border Width="26" Height="26" CornerRadius="5" Background="#22222e">
-                        <TextBlock Text="{Binding Sidebar.ToggleIcon}"
-                                   Foreground="#5a5a72"
-                                   FontSize="14"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
-                    </Border>
-                </Button>
-
-                <!-- Reload button (collapsed only, sits just above toggle) -->
-                <Button x:Name="ReloadButtonCollapsed"
-                        DockPanel.Dock="Bottom"
-                        Command="{Binding Sidebar.RefreshCommand}"
-                        IsVisible="{Binding Sidebar.IsCollapsed}"
-                        HorizontalAlignment="Center"
-                        Margin="0,4,0,2"
-                        ToolTip.Tip="Reload workspaces">
-                    <Border Width="26" Height="26" CornerRadius="5" Background="#22222e">
-                        <TextBlock Text="↺"
-                                   Foreground="#5a5a72"
-                                   FontSize="14"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
-                    </Border>
-                </Button>
-
-                <!-- Header: label + reload button (expanded only) -->
+                <!-- Header (expanded only) -->
                 <Border DockPanel.Dock="Top"
-                        Padding="16,12,10,6"
+                        Padding="16,12,16,6"
                         IsVisible="{Binding Sidebar.IsExpanded}">
-                    <DockPanel>
-                        <Button x:Name="ReloadButton"
-                                DockPanel.Dock="Right"
-                                Command="{Binding Sidebar.RefreshCommand}"
-                                VerticalAlignment="Center"
-                                ToolTip.Tip="Reload workspaces">
-                            <Border Width="22" Height="22" CornerRadius="4" Background="#1c1c26">
-                                <TextBlock Text="↺"
-                                           Foreground="#5a5a72"
-                                           FontSize="13"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
-                            </Border>
-                        </Button>
-                        <TextBlock Text="Workspaces"
-                                   Foreground="#4a4a62"
-                                   FontSize="11"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"/>
-                    </DockPanel>
+                    <TextBlock Text="Workspaces"
+                               Foreground="#70b099"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
                 </Border>
 
                 <!-- Spacer above avatar list (collapsed only) -->
@@ -238,13 +335,24 @@
                               IsVisible="{Binding Sidebar.IsExpanded}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <ListBox
+                    <ListBox HorizontalAlignment="Stretch"
+                             Width="{Binding #SidebarRail.Bounds.Width}"
                              ItemsSource="{Binding Sidebar.Workspaces}"
                              SelectedItem="{Binding Sidebar.SelectedWorkspace}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Vertical"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
-                                <Border Padding="8,2">
-                                    <Border Classes="wsEntry" CornerRadius="6" Padding="10,8">
+                                <Border Padding="10,2"
+                                        HorizontalAlignment="Stretch">
+                                    <Border Classes="wsEntry"
+                                            CornerRadius="8"
+                                            Padding="14,10"
+                                            HorizontalAlignment="Stretch"
+                                            ToolTip.Tip="{Binding RepositoryToolTip}">
                                         <StackPanel Spacing="3">
                                             <DockPanel>
                                                 <Border DockPanel.Dock="Left"
@@ -253,15 +361,17 @@
                                                         Background="{Binding StateColor}"
                                                         VerticalAlignment="Center"
                                                         Margin="0,0,7,0"/>
-                                                <TextBlock Text="{Binding DisplayName}"
-                                                           Foreground="#dcdce8"
-                                                           FontSize="13"
+                                                <TextBlock Text="{Binding RepositoryName}"
+                                                           Foreground="#f5fbf7"
+                                                           FontSize="15"
                                                            FontWeight="Medium"
+                                                           TextTrimming="CharacterEllipsis"
                                                            VerticalAlignment="Center"/>
                                             </DockPanel>
                                             <TextBlock Text="{Binding Branch}"
-                                                       Foreground="#5a5a72"
-                                                       FontSize="11"
+                                                       Foreground="#9aa8a1"
+                                                       FontSize="12"
+                                                       TextTrimming="CharacterEllipsis"
                                                        Margin="13,0,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -284,10 +394,10 @@
                                 <Border HorizontalAlignment="Center" Padding="0,4">
                                     <Border Classes="wsAvatar"
                                             Width="36" Height="36"
-                                            CornerRadius="8"
+                                            CornerRadius="18"
                                             ToolTip.Tip="{Binding DisplayName}">
                                         <TextBlock Text="{Binding Initials}"
-                                                   Foreground="#7c6cf8"
+                                                   Foreground="#f5fbf7"
                                                    FontSize="12"
                                                    FontWeight="SemiBold"
                                                    HorizontalAlignment="Center"
@@ -303,14 +413,14 @@
         </Border>
 
         <!-- ── Main content ───────────────────────────────────────────────────── -->
-        <Border Grid.Column="1" Background="#0d0d0f">
+        <Border Grid.Column="1" Background="#07110f">
             <Panel>
 
                 <!-- Loading -->
                 <TextBlock x:Name="LoadingIndicator"
                            IsVisible="{Binding Sidebar.IsLoading}"
                            Text="Connecting to server…"
-                           Foreground="#4a4a62"
+                           Foreground="#70b099"
                            FontSize="14"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
@@ -320,19 +430,19 @@
                        IsVisible="{Binding Sidebar.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <Border HorizontalAlignment="Center"
                             VerticalAlignment="Center"
-                            Background="#130e10"
-                            BorderBrush="#3d1e28"
+                            Background="#140f0f"
+                            BorderBrush="#552d2d"
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="24,20">
                         <StackPanel Spacing="14">
                             <TextBlock Text="{Binding Sidebar.ErrorMessage}"
-                                       Foreground="#b85a5a"
+                                       Foreground="#e48989"
                                        FontSize="13"/>
                             <Button Command="{Binding Sidebar.RefreshCommand}"
                                     HorizontalAlignment="Center">
-                                <Border Background="#22222e" CornerRadius="5" Padding="14,7">
-                                    <TextBlock Text="Retry" Foreground="#dcdce8" FontSize="12"/>
+                                <Border Background="#17614f" CornerRadius="7" Padding="14,7">
+                                    <TextBlock Text="Retry" Foreground="#f5fbf7" FontSize="12"/>
                                 </Border>
                             </Button>
                         </StackPanel>
@@ -346,12 +456,12 @@
                             VerticalAlignment="Center"
                             Spacing="10">
                     <TextBlock Text="No workspaces registered"
-                               Foreground="#2e2e42"
+                               Foreground="#70b099"
                                FontSize="16"
                                FontWeight="Medium"
                                HorizontalAlignment="Center"/>
                     <TextBlock Text="Run  agent-up register  in your project directory to get started."
-                               Foreground="#222230"
+                               Foreground="#596963"
                                FontSize="12"
                                HorizontalAlignment="Center"/>
                 </StackPanel>
@@ -363,8 +473,8 @@
 
                         <!-- Application tab bar -->
                         <Border Grid.Row="0"
-                                Background="#12121a"
-                                BorderBrush="#1e1e2a"
+                                Background="#0c1c18"
+                                BorderBrush="#173029"
                                 BorderThickness="0,0,0,1">
                             <ListBox x:Name="ApplicationTabs"
                                      ItemsSource="{Binding Applications.Applications}"
@@ -378,14 +488,15 @@
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="appVm:ApplicationViewModel">
-                                        <Border Classes="appTab" Padding="14,10">
+                                        <Border Classes="appTab" Padding="18,13">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <Border Width="6" Height="6" CornerRadius="3"
                                                         Background="{Binding StateColor}"
                                                         VerticalAlignment="Center"/>
                                                 <TextBlock Text="{Binding Name}"
-                                                           Foreground="#c0c0d8"
-                                                           FontSize="12"
+                                                           Foreground="#aab7b0"
+                                                           FontSize="14"
+                                                           FontWeight="Bold"
                                                            VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
@@ -397,10 +508,10 @@
                         <!-- Sub-navbar: Console + port tabs for the selected app -->
                         <Border Grid.Row="1"
                                 IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                Background="#0e0e16"
-                                BorderBrush="#1e1e2a"
+                                Background="#0a1714"
+                                BorderBrush="#173029"
                                 BorderThickness="0,0,0,1"
-                                Padding="16,0">
+                                Padding="14,8">
                             <ListBox x:Name="SubNavBar"
                                      ItemsSource="{Binding SubTabs}"
                                      SelectedItem="{Binding SelectedSubTab}"
@@ -419,10 +530,10 @@
                         <Border Grid.Row="2"
                                 x:Name="AddressNavBar"
                                 IsVisible="{Binding ShowPortView}"
-                                Background="#101018"
-                                BorderBrush="#1e1e2a"
+                                Background="#091613"
+                                BorderBrush="#173029"
                                 BorderThickness="0,0,0,1"
-                                Padding="16,8">
+                                Padding="16,7">
                             <Grid ColumnDefinitions="Auto,Auto,Auto,*"
                                   ColumnSpacing="6">
                                 <Button Grid.Column="0"
@@ -522,13 +633,13 @@
                                         IsVisible="False"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        Background="#130e10"
-                                        BorderBrush="#3d1e28"
+                                        Background="#140f0f"
+                                        BorderBrush="#552d2d"
                                         BorderThickness="1"
                                         CornerRadius="8"
                                         Padding="24,20">
                                     <TextBlock x:Name="WebViewErrorText"
-                                               Foreground="#b85a5a"
+                                               Foreground="#e48989"
                                                FontSize="13"
                                                TextWrapping="Wrap"
                                                MaxWidth="400"/>
@@ -558,5 +669,7 @@
 
             </Panel>
         </Border>
+        </Grid>
     </Grid>
+    </Border>
 </Window>

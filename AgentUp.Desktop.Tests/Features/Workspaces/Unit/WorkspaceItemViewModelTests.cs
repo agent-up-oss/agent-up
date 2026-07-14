@@ -44,8 +44,22 @@ public class WorkspaceItemViewModelTests
             Assert.That(vm.DisplayName, Is.EqualTo("My Workspace"));
             Assert.That(vm.Branch, Is.EqualTo("feat/foo"));
             Assert.That(vm.RepositoryPath, Is.EqualTo("/repo"));
+            Assert.That(vm.RepositoryName, Is.EqualTo("repo"));
+            Assert.That(vm.RepositoryToolTip, Is.EqualTo("/repo"));
             Assert.That(vm.WorktreePath, Is.EqualTo("/worktree"));
             Assert.That(vm.State, Is.EqualTo("Running"));
         });
+    }
+
+    [Test]
+    [TestCase("/home/dev/project-a", "project-a")]
+    [TestCase("/home/dev/project-a/", "project-a")]
+    [TestCase("C:\\repos\\project-b", "project-b")]
+    public void RepositoryName_usesLastRepositoryPathSegment(string repositoryPath, string expectedName)
+    {
+        var vm = new WorkspaceItemViewModel("ws-1", "Fallback", "main", repositoryPath, "/worktree", "Running");
+
+        Assert.That(vm.RepositoryName, Is.EqualTo(expectedName));
+        Assert.That(vm.RepositoryToolTip, Is.EqualTo(repositoryPath));
     }
 }
