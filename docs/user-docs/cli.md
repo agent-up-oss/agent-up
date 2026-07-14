@@ -34,6 +34,8 @@ Reads `agent-up.json` from the current directory and pushes the workspace and ap
 dotnet run --project AgentUp.CLI -- start --server http://localhost:5000
 ```
 
+The workspace identity is the current directory path. Git metadata is optional: when the directory is not a Git repository, the workspace is still registered and its branch is shown as `not on a git branch`.
+
 ### list
 
 Lists all workspaces currently known to the server.

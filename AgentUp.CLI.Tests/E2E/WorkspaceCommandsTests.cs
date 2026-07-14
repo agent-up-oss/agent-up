@@ -88,6 +88,35 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
+    public async Task Start_RegistersWorkspace_WhenDirectoryIsNotGitRepository()
+    {
+        var plainDir = Path.Combine(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
+        try
+        {
+            Directory.CreateDirectory(plainDir);
+            await WriteAgentUpJsonAsync(plainDir, "Plain Project");
+            var output = new StringWriter();
+
+            var exitCode = await new CliRunner($"http://localhost:{_port}", plainDir, output).RunAsync(["start"]);
+
+            Assert.That(exitCode, Is.EqualTo(0));
+            var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var workspace = workspaces!.Single(w => w.DisplayName == "Plain Project");
+            Assert.That(workspace.RepositoryPath, Is.EqualTo(plainDir));
+            Assert.That(workspace.WorktreePath, Is.EqualTo(plainDir));
+            Assert.That(workspace.Branch, Is.EqualTo("not on a git branch"));
+            Assert.That(workspace.Commit, Is.Empty);
+            Assert.That(output.ToString(), Does.Contain("not on a git branch"));
+        }
+        finally
+        {
+            if (Directory.Exists(plainDir))
+                Directory.Delete(plainDir, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task Start_SetsWorktreePath_ToCurrentDirectory()
     {
         await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);

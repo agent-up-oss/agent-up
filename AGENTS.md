@@ -169,7 +169,7 @@ Many-to-many relationships should usually become explicit concepts. For example,
 The Server owns all orchestration:
 
 - Workspace registry.
-- Git worktree metadata.
+- Project path identity and optional Git worktree metadata.
 - Process lifecycle.
 - Port allocation.
 - Docker lifecycle.
@@ -346,7 +346,7 @@ The sections below intentionally introduce each concept briefly and point to the
 
 ## Workspace
 
-A workspace is the unit of isolation for an agent or developer session. It combines repository/worktree metadata, branch, commit, browser profile, Docker infrastructure, running processes, allocated ports, diagnostics, and event history.
+A workspace is the unit of isolation for an agent or developer session. It is identified by project path and may include repository/worktree metadata, branch, commit, browser profile, Docker infrastructure, running processes, allocated ports, diagnostics, and event history. Non-Git project paths are valid and should display as `not on a git branch`.
 
 Read: `docs/user-docs/workspace.md`.
 

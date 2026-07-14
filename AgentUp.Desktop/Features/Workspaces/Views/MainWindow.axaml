@@ -819,46 +819,52 @@
                                            Foreground="#f5fbf7"
                                            FontSize="18"
                                            FontWeight="Bold"/>
-                                <TextBlock Text="Choose a folder for the sample project. Agent-Up Desktop will create single-file React and Express applications plus docker-compose.yaml for the Postgres database."
+                                <TextBlock Text="Agent-Up Desktop will create a tutorial workspace at /tmp/&lt;random-guid&gt;/agent-up-tutorial/example-agent1 with single-file React and Express applications plus docker-compose.yaml for the Postgres database."
                                            Foreground="#b7c8c0"
                                            FontSize="13"
                                            TextWrapping="Wrap"/>
-                                <Grid ColumnDefinitions="*,Auto,Auto"
-                                      ColumnSpacing="10">
-                                    <TextBox Grid.Column="0"
-                                             x:Name="TutorialProjectDirectory"
-                                             PlaceholderText="Sample project folder"
-                                             Text="{Binding Tutorial.ProjectDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                <Button Command="{Binding Tutorial.CreateSampleProjectCommand}"
+                                        HorizontalAlignment="Left">
+                                    <Border Classes="tutorialSecondaryButton">
+                                        <TextBlock Classes="tutorialButtonText" Text="Create Project Files"/>
+                                    </Border>
+                                </Button>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowProjectFileCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding Tutorial.ProjectDirectory}"
+                                               Foreground="#cde0d8"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <TextBlock Text="Review the generated files, then run the smoke check."
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <TextBox IsVisible="{Binding Tutorial.ShowDirectoryTree}"
+                                             Text="{Binding Tutorial.DirectoryTree}"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             TextWrapping="NoWrap"
+                                             FontFamily="Consolas,Courier New,monospace"
+                                             FontSize="12"
+                                             MinHeight="130"
                                              Background="#07110f"
                                              BorderBrush="#23483f"
                                              Foreground="#d8e7e1"
-                                             Padding="10,8"/>
-                                    <Button Grid.Column="1"
-                                            x:Name="ChooseTutorialFolderButton"
-                                            Click="OnChooseTutorialFolderClicked">
-                                        <Border Classes="tutorialSecondaryButton">
-                                            <TextBlock Classes="tutorialButtonText" Text="Choose Folder"/>
-                                        </Border>
-                                    </Button>
-                                    <Button Grid.Column="2"
-                                            Command="{Binding Tutorial.CreateSampleProjectCommand}">
-                                        <Border Classes="tutorialSecondaryButton">
-                                            <TextBlock Classes="tutorialButtonText" Text="Create Files"/>
-                                        </Border>
-                                    </Button>
-                                </Grid>
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <Button x:Name="OpenTutorialFolderButton"
-                                            Click="OnOpenTutorialFolderClicked">
-                                        <Border Classes="tutorialSecondaryButton">
-                                            <TextBlock Classes="tutorialButtonText" Text="Open File Explorer"/>
-                                        </Border>
-                                    </Button>
-                                    <Button Command="{Binding Tutorial.CheckProjectFilesCommand}">
-                                        <Border Classes="tutorialSecondaryButton">
-                                            <TextBlock Classes="tutorialButtonText" Text="Check Project Files"/>
-                                        </Border>
-                                    </Button>
+                                             Padding="12"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Button x:Name="OpenTutorialFolderButton"
+                                                Click="OnOpenTutorialFolderClicked">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Classes="tutorialButtonText" Text="Open File Explorer"/>
+                                            </Border>
+                                        </Button>
+                                        <Button Command="{Binding Tutorial.CheckProjectFilesCommand}">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Classes="tutorialButtonText" Text="Check Project Files"/>
+                                            </Border>
+                                        </Button>
+                                    </StackPanel>
                                 </StackPanel>
                             </StackPanel>
 
@@ -882,13 +888,33 @@
                                          BorderBrush="#23483f"
                                          Foreground="#d8e7e1"
                                          Padding="12"/>
+                                <StackPanel Spacing="10" Margin="0,8,0,0">
+                                    <TextBlock Text="Create the file yourself, or let Agent-Up Desktop write it for you."
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                     <Button Command="{Binding Tutorial.CreateAgentUpJsonCommand}">
                                         <Border Classes="tutorialSecondaryButton">
                                             <TextBlock Classes="tutorialButtonText" Text="Auto Create"/>
                                         </Border>
                                     </Button>
-                                    <Button Command="{Binding Tutorial.CheckAgentUpJsonCommand}">
+                                    <Button Command="{Binding Tutorial.MarkAgentUpJsonCreatedCommand}">
+                                        <Border Classes="tutorialSecondaryButton">
+                                            <TextBlock Classes="tutorialButtonText" Text="I Created It"/>
+                                        </Border>
+                                    </Button>
+                                </StackPanel>
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowAgentUpJsonCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="Now check that agent-up.json exists and can be parsed."
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <Button Command="{Binding Tutorial.CheckAgentUpJsonCommand}"
+                                            HorizontalAlignment="Left">
                                         <Border Classes="tutorialSecondaryButton">
                                             <TextBlock Classes="tutorialButtonText" Text="Check agent-up.json"/>
                                         </Border>
@@ -905,13 +931,42 @@
                                            Foreground="#b7c8c0"
                                            FontSize="13"
                                            TextWrapping="Wrap"/>
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <Button Command="{Binding Tutorial.StartWorkspaceCommand}">
+                                <StackPanel Spacing="10" Margin="0,8,0,0">
+                                    <Button Command="{Binding Tutorial.StartWorkspaceCommand}"
+                                            HorizontalAlignment="Left">
                                         <Border Classes="tutorialSecondaryButton">
                                             <TextBlock Classes="tutorialButtonText" Text="Run agent-up start"/>
                                         </Border>
                                     </Button>
-                                    <Button Command="{Binding Tutorial.CheckWorkspaceCommand}">
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowCommandOutput}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="Command output"
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               FontWeight="Bold"/>
+                                    <TextBox Text="{Binding Tutorial.CommandOutput}"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             FontFamily="Consolas,Courier New,monospace"
+                                             FontSize="12"
+                                             MinHeight="120"
+                                             Background="#07110f"
+                                             BorderBrush="#23483f"
+                                             Foreground="#d8e7e1"
+                                             Padding="12"/>
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowWorkspaceCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="The command succeeded. Check that the Server registered the workspace."
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <Button Command="{Binding Tutorial.CheckWorkspaceCommand}"
+                                            HorizontalAlignment="Left">
                                         <Border Classes="tutorialSecondaryButton">
                                             <TextBlock Classes="tutorialButtonText" Text="Check Workspace"/>
                                         </Border>
@@ -924,16 +979,30 @@
                                            Foreground="#f5fbf7"
                                            FontSize="18"
                                            FontWeight="Bold"/>
-                                <TextBlock Text="Duplicate the entire sample directory and run `agent-up start` in the duplicate as well. The Server should register a second workspace with the same apps while assigning non-colliding ports."
+                                <TextBlock Text="Agent-Up Desktop will copy example-agent1 to example-agent2 under the same tutorial root and run `agent-up start` in the duplicate. The Server should register a second workspace with the same apps while assigning non-colliding ports."
                                            Foreground="#b7c8c0"
                                            FontSize="13"
                                            TextWrapping="Wrap"/>
-                                <Button Command="{Binding Tutorial.CheckDuplicateCommand}"
+                                <Button Command="{Binding Tutorial.MarkDuplicateStartedCommand}"
                                         HorizontalAlignment="Left">
                                     <Border Classes="tutorialSecondaryButton">
-                                        <TextBlock Classes="tutorialButtonText" Text="Check Duplicate"/>
+                                        <TextBlock Classes="tutorialButtonText" Text="Create and Start example-agent2"/>
                                     </Border>
                                 </Button>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowDuplicateCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="Now check that both workspaces are registered and their ports do not collide."
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <Button Command="{Binding Tutorial.CheckDuplicateCommand}"
+                                            HorizontalAlignment="Left">
+                                        <Border Classes="tutorialSecondaryButton">
+                                            <TextBlock Classes="tutorialButtonText" Text="Check Duplicate"/>
+                                        </Border>
+                                    </Button>
+                                </StackPanel>
                             </StackPanel>
 
                             <Border IsVisible="{Binding Tutorial.StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
@@ -952,7 +1021,7 @@
                     </ScrollViewer>
 
                     <Grid Grid.Row="2"
-                          ColumnDefinitions="Auto,*,Auto,Auto"
+                          ColumnDefinitions="Auto,*,Auto,Auto,Auto"
                           ColumnSpacing="10">
                         <TextBlock Grid.Column="0"
                                    Text="{Binding Tutorial.CurrentStep, StringFormat='Step {0} of 7'}"
@@ -961,6 +1030,13 @@
                                    FontWeight="Bold"
                                    VerticalAlignment="Center"/>
                         <Button Grid.Column="2"
+                                Command="{Binding Tutorial.BackCommand}"
+                                IsEnabled="{Binding Tutorial.CanGoBack}">
+                            <Border Classes="tutorialSecondaryButton">
+                                <TextBlock Classes="tutorialButtonText" Text="Back"/>
+                            </Border>
+                        </Button>
+                        <Button Grid.Column="3"
                                 Command="{Binding Tutorial.ContinueCommand}"
                                 IsEnabled="{Binding Tutorial.CanContinue}">
                             <Border Classes="tutorialButton">
@@ -968,7 +1044,7 @@
                                            Text="{Binding Tutorial.PrimaryButtonText}"/>
                             </Border>
                         </Button>
-                        <Button Grid.Column="3"
+                        <Button Grid.Column="4"
                                 x:Name="SkipTutorialButton"
                                 Command="{Binding Tutorial.SkipCommand}">
                             <Border Classes="tutorialSecondaryButton">

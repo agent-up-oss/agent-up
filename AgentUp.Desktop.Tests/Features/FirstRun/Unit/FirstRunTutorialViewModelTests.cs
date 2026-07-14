@@ -66,14 +66,16 @@ public class FirstRunTutorialViewModelTests
         await vm.ContinueCommand.Execute().FirstAsync();
         await vm.CheckNodeCommand.Execute().FirstAsync();
         await vm.ContinueCommand.Execute().FirstAsync();
-        vm.ProjectDirectory = "/tmp/example";
         await vm.CreateSampleProjectCommand.Execute().FirstAsync();
+        await vm.CheckProjectFilesCommand.Execute().FirstAsync();
         await vm.ContinueCommand.Execute().FirstAsync();
         await vm.CreateAgentUpJsonCommand.Execute().FirstAsync();
+        await vm.CheckAgentUpJsonCommand.Execute().FirstAsync();
         await vm.ContinueCommand.Execute().FirstAsync();
         await vm.StartWorkspaceCommand.Execute().FirstAsync();
         await vm.CheckWorkspaceCommand.Execute().FirstAsync();
         await vm.ContinueCommand.Execute().FirstAsync();
+        await vm.MarkDuplicateStartedCommand.Execute().FirstAsync();
         await vm.CheckDuplicateCommand.Execute().FirstAsync();
         await vm.ContinueCommand.Execute().FirstAsync();
 
@@ -93,6 +95,62 @@ public class FirstRunTutorialViewModelTests
 
         Assert.That(vm.IsVisible, Is.False);
         Assert.That(store.Settings.TutorialSkipped, Is.True);
+    }
+
+    [Test]
+    public async Task CreateSampleProjectCommand_revealsDirectoryTree_andProjectFileCheckSection()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"agent-up-vm-tree-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var vm = CreateViewModel(checks: new FileCreatingTutorialChecks());
+            await vm.InitializeAsync();
+            vm.ProjectDirectory = root;
+            await vm.CreateSampleProjectCommand.Execute().FirstAsync();
+
+            Assert.That(vm.ProjectDirectory, Is.EqualTo(root));
+            Assert.That(vm.ShowProjectFileCheckSection, Is.True);
+            Assert.That(vm.ShowDirectoryTree, Is.True);
+            Assert.That(vm.DirectoryTree, Does.Contain("docker-compose.yaml"));
+            Assert.That(vm.DirectoryTree, Does.Contain("web/"));
+            Assert.That(vm.DirectoryTree, Does.Contain("api/"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task BackCommand_movesToPreviousStep_andRequiresStepToBeCompletedAgain()
+    {
+        var vm = CreateViewModel();
+        await vm.InitializeAsync();
+        await vm.CheckDockerCommand.Execute().FirstAsync();
+        await vm.ContinueCommand.Execute().FirstAsync();
+
+        Assert.That(vm.CurrentStep, Is.EqualTo(2));
+
+        vm.BackCommand.Execute().Subscribe();
+
+        Assert.That(vm.CurrentStep, Is.EqualTo(1));
+        Assert.That(vm.CanContinue, Is.False);
+    }
+
+    [Test]
+    public async Task StartWorkspaceCommand_showsOutput_butDoesNotRevealWorkspaceCheck_whenCommandFails()
+    {
+        var vm = CreateViewModel(checks: new FailingStartTutorialChecks());
+        await vm.InitializeAsync();
+        vm.ProjectDirectory = "/tmp/example";
+
+        await vm.StartWorkspaceCommand.Execute().FirstAsync();
+
+        Assert.That(vm.ShowCommandOutput, Is.True);
+        Assert.That(vm.CommandOutput, Does.Contain("start failed"));
+        Assert.That(vm.ShowWorkspaceCheckSection, Is.False);
     }
 
     private static FirstRunTutorialViewModel CreateViewModel(
@@ -116,33 +174,56 @@ public class FirstRunTutorialViewModelTests
         }
     }
 
-    private sealed class PassingTutorialChecks : IFirstRunTutorialChecks
+    private class PassingTutorialChecks : IFirstRunTutorialChecks
     {
-        public Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
 
-        public Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Node works."));
 
-        public Task<FirstRunCheckResult> CreateJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Sample created."));
+        public virtual Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", currentProjectDirectory ?? "/tmp/tutorial/agent-up-tutorial/example-agent1"));
 
-        public Task<FirstRunCheckResult> CheckJavaScriptProjectFilesAsync(string projectDirectory, CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> CheckJavaScriptProjectFilesAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Project files work."));
 
-        public Task<FirstRunCheckResult> CreateAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> CreateAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("agent-up.json created."));
 
-        public Task<FirstRunCheckResult> CheckAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> CheckAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("agent-up.json works."));
 
-        public Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Started."));
 
-        public Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Workspace works."));
 
-        public Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
+        public virtual Task<FirstRunCheckResult> CreateDuplicatedJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Duplicate created."));
+
+        public virtual Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Duplicate works."));
+    }
+
+    private sealed class FileCreatingTutorialChecks : PassingTutorialChecks
+    {
+        public override Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
+        {
+            var projectDirectory = currentProjectDirectory ?? Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-tutorial", "example-agent1");
+            Directory.CreateDirectory(Path.Combine(projectDirectory, "web"));
+            Directory.CreateDirectory(Path.Combine(projectDirectory, "api"));
+            File.WriteAllText(Path.Combine(projectDirectory, "docker-compose.yaml"), "services: {}");
+            File.WriteAllText(Path.Combine(projectDirectory, "web", "package.json"), "{}");
+            File.WriteAllText(Path.Combine(projectDirectory, "api", "package.json"), "{}");
+            return Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", projectDirectory));
+        }
+    }
+
+    private sealed class FailingStartTutorialChecks : PassingTutorialChecks
+    {
+        public override Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Failure("start failed\nstderr:\nboom"));
     }
 }

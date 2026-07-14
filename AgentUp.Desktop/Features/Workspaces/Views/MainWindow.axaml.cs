@@ -5,7 +5,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
-using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -279,21 +278,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         => WindowState = WindowState == WindowState.Maximized
             ? WindowState.Normal
             : WindowState.Maximized;
-
-    private async void OnChooseTutorialFolderClicked(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        var result = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "Choose sample project folder",
-            AllowMultiple = false
-        });
-
-        var folder = result.FirstOrDefault();
-        if (folder?.Path.LocalPath is { Length: > 0 } path)
-            vm.Tutorial.ProjectDirectory = path;
-    }
 
     private void OnOpenTutorialFolderClicked(object? sender, RoutedEventArgs e)
     {

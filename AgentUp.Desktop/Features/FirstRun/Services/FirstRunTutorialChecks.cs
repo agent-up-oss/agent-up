@@ -68,11 +68,9 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
         }
     }
 
-    public async Task<FirstRunCheckResult> CreateJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
+    public async Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
     {
-        var normalized = NormalizeProjectDirectory(projectDirectory);
-        if (normalized is null)
-            return FirstRunCheckResult.Failure("Choose a folder where Agent-Up can create the JavaScript sample project.");
+        var normalized = ResolveAgent1Directory(currentProjectDirectory);
 
         try
         {
@@ -89,11 +87,11 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             await File.WriteAllTextAsync(Path.Combine(apiDirectory, "server.js"), ApiServerJs, cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(normalized, "docker-compose.yaml"), DockerComposeYaml, cancellationToken);
 
-            return FirstRunCheckResult.Success("Created the React SPA, Express API, and docker-compose.yaml files.");
+            return FirstRunSampleProjectResult.Success($"Created the sample project at {normalized}.", normalized);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return FirstRunCheckResult.Failure($"The sample project could not be created: {ex.Message}");
+            return FirstRunSampleProjectResult.Failure($"The sample project could not be created: {ex.Message}");
         }
     }
 
@@ -147,11 +145,9 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             fullPath);
 
         if (result.ExitCode == 0)
-            return FirstRunCheckResult.Success("Started the sample workspace. Check the Server registration before continuing.");
+            return FirstRunCheckResult.Success(FormatCommandOutput("agent-up start succeeded. Check the Server registration before continuing.", result));
 
-        return FirstRunCheckResult.Failure(string.IsNullOrWhiteSpace(result.Stderr)
-            ? "agent-up start failed."
-            : result.Stderr);
+        return FirstRunCheckResult.Failure(FormatCommandOutput("agent-up start failed.", result));
     }
 
     public async Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
@@ -183,6 +179,47 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             return FirstRunCheckResult.Failure($"The workspace is missing: {string.Join(", ", missing)}.");
 
         return FirstRunCheckResult.Success("The sample workspace is registered and all three components are present.");
+    }
+
+    public async Task<FirstRunCheckResult> CreateDuplicatedJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
+    {
+        var agent1Directory = NormalizeProjectDirectory(projectDirectory);
+        if (agent1Directory is null)
+            return FirstRunCheckResult.Failure("Create the first sample project before duplicating it.");
+
+        if (!Directory.Exists(agent1Directory))
+            return FirstRunCheckResult.Failure("The first sample project directory does not exist.");
+
+        var tutorialRoot = Directory.GetParent(agent1Directory)?.FullName;
+        if (tutorialRoot is null)
+            return FirstRunCheckResult.Failure("Could not infer the tutorial root directory.");
+
+        var agent2Directory = Path.Combine(tutorialRoot, "example-agent2");
+        try
+        {
+            if (Directory.Exists(agent2Directory))
+                Directory.Delete(agent2Directory, recursive: true);
+
+            CopyDirectory(agent1Directory, agent2Directory);
+            var agentUpCommand = await ResolveAgentUpCommandAsync(cancellationToken);
+            if (agentUpCommand is null)
+                return FirstRunCheckResult.Failure("Copied example-agent2, but Agent-Up CLI was not found.");
+
+            var result = await RunProcessAsync(
+                agentUpCommand.FileName,
+                $"{agentUpCommand.ArgumentsPrefix} start".Trim(),
+                TimeSpan.FromSeconds(30),
+                cancellationToken,
+                agent2Directory);
+
+            return result.ExitCode == 0
+                ? FirstRunCheckResult.Success(FormatCommandOutput($"Created and started duplicated workspace at {agent2Directory}.", result))
+                : FirstRunCheckResult.Failure(FormatCommandOutput($"Created example-agent2 at {agent2Directory}, but agent-up start failed.", result));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return FirstRunCheckResult.Failure($"The duplicate project could not be created: {ex.Message}");
+        }
     }
 
     public async Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
@@ -293,6 +330,58 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             ? null
             : Path.GetFullPath(Environment.ExpandEnvironmentVariables(projectDirectory.Trim()));
 
+    private static string ResolveAgent1Directory(string? currentProjectDirectory)
+    {
+        if (!string.IsNullOrWhiteSpace(currentProjectDirectory))
+        {
+            var normalized = Path.GetFullPath(Environment.ExpandEnvironmentVariables(currentProjectDirectory.Trim()));
+            var parent = Directory.GetParent(normalized);
+            if (string.Equals(Path.GetFileName(normalized), "example-agent1", StringComparison.Ordinal)
+                && parent is not null
+                && string.Equals(Path.GetFileName(parent.FullName), "agent-up-tutorial", StringComparison.Ordinal)
+                && !ProjectFilesExist(normalized))
+            {
+                return normalized;
+            }
+        }
+
+        return CreateFreshAgent1Directory();
+    }
+
+    private static string CreateFreshAgent1Directory()
+    {
+        while (true)
+        {
+            var candidate = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-tutorial", "example-agent1");
+            if (!Directory.Exists(candidate))
+                return candidate;
+        }
+    }
+
+    private static bool ProjectFilesExist(string directory)
+        => File.Exists(Path.Combine(directory, "docker-compose.yaml"))
+           || Directory.Exists(Path.Combine(directory, "web"))
+           || Directory.Exists(Path.Combine(directory, "api"))
+           || File.Exists(Path.Combine(directory, "agent-up.json"));
+
+    private static void CopyDirectory(string sourceDirectory, string destinationDirectory)
+    {
+        Directory.CreateDirectory(destinationDirectory);
+        foreach (var directory in Directory.EnumerateDirectories(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sourceDirectory, directory);
+            Directory.CreateDirectory(Path.Combine(destinationDirectory, relative));
+        }
+
+        foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sourceDirectory, file);
+            var destination = Path.Combine(destinationDirectory, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(file, destination, overwrite: true);
+        }
+    }
+
     private static async Task<(int ExitCode, string Stdout, string Stderr)> RunProcessAsync(
         string fileName,
         string arguments,
@@ -370,6 +459,10 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
+            var direct = Path.Combine(directory.FullName, "AgentUp.CLI.csproj");
+            if (File.Exists(direct))
+                return direct;
+
             var candidate = Path.Combine(directory.FullName, "AgentUp.CLI", "AgentUp.CLI.csproj");
             if (File.Exists(candidate))
                 return candidate;
@@ -377,6 +470,23 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
         }
 
         return null;
+    }
+
+    private static string FormatCommandOutput(string summary, (int ExitCode, string Stdout, string Stderr) result)
+    {
+        var parts = new List<string>
+        {
+            summary,
+            $"Exit code: {result.ExitCode}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(result.Stdout))
+            parts.Add($"stdout:{Environment.NewLine}{result.Stdout}");
+
+        if (!string.IsNullOrWhiteSpace(result.Stderr))
+            parts.Add($"stderr:{Environment.NewLine}{result.Stderr}");
+
+        return string.Join(Environment.NewLine + Environment.NewLine, parts);
     }
 
     private static async Task<bool> WaitForExitAsync(Process process, TimeSpan timeout, CancellationToken cancellationToken)

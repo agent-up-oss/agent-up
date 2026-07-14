@@ -49,12 +49,16 @@ The first-run flow is:
 1. Check Docker and Agent-Up CLI. Docker is checked with `docker version`. Agent-Up CLI is checked with `agent-up --help`; if that is unavailable, Desktop may fall back to `dotnet run --project <repo>/AgentUp.CLI/AgentUp.CLI.csproj -- --help` when the CLI project can be inferred from the Desktop binary location. The user cannot continue until Docker and one Agent-Up CLI path work.
 2. Choose a development environment from a visual grid. The JavaScript path is the active path and creates a React SPA, Express API, and Postgres sample.
 3. Check Node.js by running `node --version` and `npm --version`. The JavaScript path requires Node.js 20 or newer. If Node is installed while Desktop is already running, the tutorial tells the user to restart Desktop so the process receives the updated `PATH`.
-4. Choose a folder with the platform folder picker. Desktop creates the sample React and Express project files and `docker-compose.yaml` in that folder. The smoke check for this step is that the expected project files, including `docker-compose.yaml`, exist. Desktop also provides an Open File Explorer button for the selected folder.
+4. Create the sample project files. Desktop chooses a fresh path shaped like `/tmp/<random-guid>/agent-up-tutorial/example-agent1` and writes the React and Express project files plus `docker-compose.yaml`. If the step is repeated and the previous path already contains project files, Desktop chooses a new GUID root. The smoke check for this step is that the expected project files, including `docker-compose.yaml`, exist. Desktop also provides an Open File Explorer button for the generated folder.
 5. Create `agent-up.json` at the project root. The tutorial shows the copyable file and also provides an auto-create button. The check for this step is that `agent-up.json` exists and is parseable with at least one application.
 6. Run `agent-up start` in the sample project directory. The tutorial provides an automatic button that uses `agent-up start` or the local CLI project fallback. The check for this step is that the Server registered a workspace containing `React SPA`, `Express API`, and `Postgres`.
-7. Duplicate the sample directory and run `agent-up start` in the duplicate. The tutorial checks that two matching workspaces exist and that their allocated ports do not collide.
+7. Duplicate the sample directory. Desktop copies `example-agent1` to `example-agent2` under the same `/tmp/<random-guid>/agent-up-tutorial/` root and runs `agent-up start` in the duplicate. The tutorial checks that two matching workspaces exist and that their allocated ports do not collide.
 
 Completing the final step saves the tutorial as completed. The Skip button hides the entire tutorial and persists skipped state, so it does not reappear on the next launch.
+
+Multi-action steps reveal one section at a time. Follow-up actions such as Open File Explorer, smoke checks, `agent-up.json` checks, workspace checks, and duplicate checks should only appear after the preceding action has been taken. The Continue button remains disabled until the step's final check succeeds and the result banner is visible. The project-file step renders a directory tree from .NET filesystem APIs instead of relying on a platform `tree` command. The `agent-up start` step shows command output before revealing the Server workspace check.
+
+Users can navigate back to a previous step. Going back invalidates that step and all later step checks, so the user must complete them again.
 
 The tutorial is rendered as an overlay above the full Desktop window. The underlying application remains visible behind a dimmed blurred layer, but the overlay consumes input while it is visible.
 

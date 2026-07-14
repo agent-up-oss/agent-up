@@ -54,8 +54,8 @@ public class FirstRunTutorialOverlayTests
         public Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Node works."));
 
-        public Task<FirstRunCheckResult> CreateJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Sample created."));
+        public Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", currentProjectDirectory ?? "/tmp/tutorial/agent-up-tutorial/example-agent1"));
 
         public Task<FirstRunCheckResult> CheckJavaScriptProjectFilesAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Project files work."));
@@ -71,6 +71,9 @@ public class FirstRunTutorialOverlayTests
 
         public Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Workspace works."));
+
+        public Task<FirstRunCheckResult> CreateDuplicatedJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Duplicate created."));
 
         public Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
             => Task.FromResult(FirstRunCheckResult.Success("Duplicate works."));

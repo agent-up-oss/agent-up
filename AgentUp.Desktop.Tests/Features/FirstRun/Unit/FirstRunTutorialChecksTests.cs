@@ -14,15 +14,16 @@ public class FirstRunTutorialChecksTests
     [SetUp]
     public void SetUp()
     {
-        _testRoot = Path.Combine(Path.GetTempPath(), $"agent-up-js-sample-{Guid.NewGuid():N}");
+        _testRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-tutorial", "example-agent1");
         Directory.CreateDirectory(_testRoot);
     }
 
     [TearDown]
     public void TearDown()
     {
-        if (Directory.Exists(_testRoot))
-            Directory.Delete(_testRoot, recursive: true);
+        var guidRoot = Directory.GetParent(_testRoot)?.Parent?.FullName;
+        if (guidRoot is not null && Directory.Exists(guidRoot))
+            Directory.Delete(guidRoot, recursive: true);
     }
 
     [Test]
@@ -33,12 +34,26 @@ public class FirstRunTutorialChecksTests
         var result = await checks.CreateJavaScriptSampleAsync(_testRoot);
 
         Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.ProjectDirectory, Is.EqualTo(_testRoot));
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "package.json")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "index.html")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "src-App.jsx")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "api", "package.json")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "api", "server.js")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "docker-compose.yaml")), Is.True);
+    }
+
+    [Test]
+    public async Task CreateJavaScriptSampleAsync_generatesExampleAgent1Path_whenNoPathExists()
+    {
+        var checks = CreateChecks([]);
+
+        var result = await checks.CreateJavaScriptSampleAsync();
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.ProjectDirectory, Does.EndWith(Path.Combine("agent-up-tutorial", "example-agent1")));
+        Assert.That(File.Exists(Path.Combine(result.ProjectDirectory!, "docker-compose.yaml")), Is.True);
+        Directory.Delete(Directory.GetParent(result.ProjectDirectory!)!.Parent!.FullName, recursive: true);
     }
 
     [Test]

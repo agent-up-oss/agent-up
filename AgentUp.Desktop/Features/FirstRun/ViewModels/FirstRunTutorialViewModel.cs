@@ -44,12 +44,18 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     private bool _dockerCheckPassed;
     private bool _environmentSelected;
     private bool _nodeCheckPassed;
+    private bool _projectFilesCreated;
     private bool _projectFilesCheckPassed;
+    private bool _agentUpJsonActionTaken;
     private bool _agentUpJsonCheckPassed;
+    private bool _startCommandSucceeded;
     private bool _workspaceCheckPassed;
+    private bool _duplicateActionTaken;
     private bool _duplicateCheckPassed;
     private string? _statusMessage;
     private string? _projectDirectory;
+    private string? _directoryTree;
+    private string? _commandOutput;
 
     public FirstRunTutorialViewModel(
         IFirstRunTutorialSettingsStore settingsStore,
@@ -63,12 +69,15 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         CheckNodeCommand = ReactiveCommand.CreateFromTask(CheckNodeAsync);
         CreateSampleProjectCommand = ReactiveCommand.CreateFromTask(CreateSampleProjectAsync);
         CheckProjectFilesCommand = ReactiveCommand.CreateFromTask(CheckProjectFilesAsync);
+        MarkAgentUpJsonCreatedCommand = ReactiveCommand.Create(MarkAgentUpJsonCreated);
         CreateAgentUpJsonCommand = ReactiveCommand.CreateFromTask(CreateAgentUpJsonAsync);
         CheckAgentUpJsonCommand = ReactiveCommand.CreateFromTask(CheckAgentUpJsonAsync);
         StartWorkspaceCommand = ReactiveCommand.CreateFromTask(StartWorkspaceAsync);
         CheckWorkspaceCommand = ReactiveCommand.CreateFromTask(CheckWorkspaceAsync);
+        MarkDuplicateStartedCommand = ReactiveCommand.CreateFromTask(CreateDuplicateAsync);
         CheckDuplicateCommand = ReactiveCommand.CreateFromTask(CheckDuplicateAsync);
         ContinueCommand = ReactiveCommand.CreateFromTask(ContinueAsync);
+        BackCommand = ReactiveCommand.Create(GoBack);
         SkipCommand = ReactiveCommand.CreateFromTask(SkipAsync);
     }
 
@@ -101,6 +110,24 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     public bool ShowStartStep => CurrentStep == 6;
 
     public bool ShowDuplicateStep => CurrentStep == 7;
+
+    public bool CanGoBack => CurrentStep > 1;
+
+    public string TutorialRoot => ProjectDirectory is { Length: > 0 } path
+        ? Directory.GetParent(path)?.FullName ?? ""
+        : "";
+
+    public bool ShowProjectFileCheckSection => ProjectFilesCreated;
+
+    public bool ShowDirectoryTree => !string.IsNullOrWhiteSpace(DirectoryTree);
+
+    public bool ShowAgentUpJsonCheckSection => AgentUpJsonActionTaken;
+
+    public bool ShowWorkspaceCheckSection => StartCommandSucceeded && !string.IsNullOrWhiteSpace(CommandOutput);
+
+    public bool ShowCommandOutput => !string.IsNullOrWhiteSpace(CommandOutput);
+
+    public bool ShowDuplicateCheckSection => DuplicateActionTaken;
 
     public bool DockerCheckPassed
     {
@@ -142,6 +169,26 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         }
     }
 
+    public bool ProjectFilesCreated
+    {
+        get => _projectFilesCreated;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _projectFilesCreated, value);
+            this.RaisePropertyChanged(nameof(ShowProjectFileCheckSection));
+        }
+    }
+
+    public bool AgentUpJsonActionTaken
+    {
+        get => _agentUpJsonActionTaken;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _agentUpJsonActionTaken, value);
+            this.RaisePropertyChanged(nameof(ShowAgentUpJsonCheckSection));
+        }
+    }
+
     public bool AgentUpJsonCheckPassed
     {
         get => _agentUpJsonCheckPassed;
@@ -172,6 +219,16 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         }
     }
 
+    public bool DuplicateActionTaken
+    {
+        get => _duplicateActionTaken;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _duplicateActionTaken, value);
+            this.RaisePropertyChanged(nameof(ShowDuplicateCheckSection));
+        }
+    }
+
     public string? StatusMessage
     {
         get => _statusMessage;
@@ -181,7 +238,42 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     public string? ProjectDirectory
     {
         get => _projectDirectory;
-        set => this.RaiseAndSetIfChanged(ref _projectDirectory, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _projectDirectory, value);
+            this.RaisePropertyChanged(nameof(TutorialRoot));
+        }
+    }
+
+    public string? DirectoryTree
+    {
+        get => _directoryTree;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _directoryTree, value);
+            this.RaisePropertyChanged(nameof(ShowDirectoryTree));
+        }
+    }
+
+    public string? CommandOutput
+    {
+        get => _commandOutput;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _commandOutput, value);
+            this.RaisePropertyChanged(nameof(ShowCommandOutput));
+            this.RaisePropertyChanged(nameof(ShowWorkspaceCheckSection));
+        }
+    }
+
+    public bool StartCommandSucceeded
+    {
+        get => _startCommandSucceeded;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _startCommandSucceeded, value);
+            this.RaisePropertyChanged(nameof(ShowWorkspaceCheckSection));
+        }
     }
 
     public string PrimaryButtonText => CurrentStep == 7 ? "Enter Agent-Up" : "Continue";
@@ -210,6 +302,8 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> CheckProjectFilesCommand { get; }
 
+    public ReactiveCommand<Unit, Unit> MarkAgentUpJsonCreatedCommand { get; }
+
     public ReactiveCommand<Unit, Unit> CreateAgentUpJsonCommand { get; }
 
     public ReactiveCommand<Unit, Unit> CheckAgentUpJsonCommand { get; }
@@ -218,9 +312,13 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> CheckWorkspaceCommand { get; }
 
+    public ReactiveCommand<Unit, Unit> MarkDuplicateStartedCommand { get; }
+
     public ReactiveCommand<Unit, Unit> CheckDuplicateCommand { get; }
 
     public ReactiveCommand<Unit, Unit> ContinueCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> BackCommand { get; }
 
     public ReactiveCommand<Unit, Unit> SkipCommand { get; }
 
@@ -230,9 +328,13 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         DockerCheckPassed = settings.CompletedStep >= 1;
         EnvironmentSelected = settings.CompletedStep >= 2;
         NodeCheckPassed = settings.CompletedStep >= 3;
+        ProjectFilesCreated = settings.CompletedStep >= 4;
         ProjectFilesCheckPassed = settings.CompletedStep >= 4;
+        AgentUpJsonActionTaken = settings.CompletedStep >= 5;
         AgentUpJsonCheckPassed = settings.CompletedStep >= 5;
+        StartCommandSucceeded = settings.CompletedStep >= 6;
         WorkspaceCheckPassed = settings.CompletedStep >= 6;
+        DuplicateActionTaken = settings.CompletedStep >= 7;
         DuplicateCheckPassed = settings.CompletedStep >= 7;
         CurrentStep = Math.Clamp(settings.CompletedStep + 1, 1, 7);
         IsVisible = !settings.TutorialCompleted && !settings.TutorialSkipped;
@@ -268,11 +370,11 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     private async Task CreateSampleProjectAsync()
     {
         StatusMessage = "Creating the JavaScript sample project...";
-        var result = await _checks.CreateJavaScriptSampleAsync(ProjectDirectory ?? string.Empty);
-        ProjectFilesCheckPassed = result.IsSuccess;
+        var result = await _checks.CreateJavaScriptSampleAsync(ProjectDirectory);
+        ProjectFilesCreated = result.IsSuccess;
+        ProjectDirectory = result.ProjectDirectory ?? ProjectDirectory;
+        DirectoryTree = result.IsSuccess ? BuildDirectoryTree(ProjectDirectory ?? string.Empty) : null;
         StatusMessage = result.Message;
-        if (result.IsSuccess)
-            await SaveProgressAsync(4);
     }
 
     private async Task CheckProjectFilesAsync()
@@ -289,10 +391,14 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     {
         StatusMessage = "Creating agent-up.json...";
         var result = await _checks.CreateAgentUpJsonAsync(ProjectDirectory ?? string.Empty);
-        AgentUpJsonCheckPassed = result.IsSuccess;
+        AgentUpJsonActionTaken = result.IsSuccess;
         StatusMessage = result.Message;
-        if (result.IsSuccess)
-            await SaveProgressAsync(5);
+    }
+
+    private void MarkAgentUpJsonCreated()
+    {
+        AgentUpJsonActionTaken = true;
+        StatusMessage = "Ready to check agent-up.json.";
     }
 
     private async Task CheckAgentUpJsonAsync()
@@ -309,7 +415,11 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     {
         StatusMessage = "Running agent-up start...";
         var result = await _checks.StartJavaScriptWorkspaceAsync(ProjectDirectory ?? string.Empty);
-        StatusMessage = result.Message;
+        StartCommandSucceeded = result.IsSuccess;
+        CommandOutput = result.Message;
+        StatusMessage = result.IsSuccess
+            ? "agent-up start succeeded. Review the output, then check the workspace."
+            : "agent-up start failed. Review the output below.";
     }
 
     private async Task CheckWorkspaceAsync()
@@ -332,6 +442,17 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
             await SaveProgressAsync(7);
     }
 
+    private async Task CreateDuplicateAsync()
+    {
+        StatusMessage = "Creating and starting example-agent2...";
+        var result = await _checks.CreateDuplicatedJavaScriptSampleAsync(ProjectDirectory ?? string.Empty);
+        DuplicateActionTaken = result.IsSuccess;
+        CommandOutput = result.Message;
+        StatusMessage = result.IsSuccess
+            ? "example-agent2 was created and started. Review the output, then check duplicate workspaces."
+            : "Creating or starting example-agent2 failed. Review the output below.";
+    }
+
     private async Task ContinueAsync()
     {
         if (!CanContinue) return;
@@ -340,6 +461,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         {
             CurrentStep++;
             StatusMessage = null;
+            CommandOutput = null;
             return;
         }
 
@@ -351,6 +473,16 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
     {
         await _settingsStore.SaveAsync(new FirstRunTutorialSettings(false, true, Math.Max(0, Math.Min(CurrentStep - 1, 7))));
         IsVisible = false;
+    }
+
+    private void GoBack()
+    {
+        if (CurrentStep <= 1) return;
+
+        CurrentStep--;
+        InvalidateFromStep(CurrentStep);
+        StatusMessage = null;
+        CommandOutput = null;
     }
 
     private async Task SaveProgressAsync(int completedStep)
@@ -365,7 +497,138 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(ShowAgentUpJsonStep));
         this.RaisePropertyChanged(nameof(ShowStartStep));
         this.RaisePropertyChanged(nameof(ShowDuplicateStep));
+        this.RaisePropertyChanged(nameof(CanGoBack));
+        this.RaisePropertyChanged(nameof(TutorialRoot));
+        this.RaisePropertyChanged(nameof(ShowProjectFileCheckSection));
+        this.RaisePropertyChanged(nameof(ShowDirectoryTree));
+        this.RaisePropertyChanged(nameof(ShowAgentUpJsonCheckSection));
+        this.RaisePropertyChanged(nameof(ShowWorkspaceCheckSection));
+        this.RaisePropertyChanged(nameof(ShowCommandOutput));
+        this.RaisePropertyChanged(nameof(ShowDuplicateCheckSection));
         this.RaisePropertyChanged(nameof(PrimaryButtonText));
         this.RaisePropertyChanged(nameof(CanContinue));
+    }
+
+    private void InvalidateFromStep(int step)
+    {
+        if (step <= 1)
+        {
+            DockerCheckPassed = false;
+            EnvironmentSelected = false;
+            NodeCheckPassed = false;
+            ProjectFilesCreated = false;
+            ProjectFilesCheckPassed = false;
+            AgentUpJsonActionTaken = false;
+            AgentUpJsonCheckPassed = false;
+            StartCommandSucceeded = false;
+            WorkspaceCheckPassed = false;
+            DuplicateActionTaken = false;
+            DuplicateCheckPassed = false;
+            DirectoryTree = null;
+            return;
+        }
+
+        if (step <= 2)
+        {
+            EnvironmentSelected = false;
+            NodeCheckPassed = false;
+            ProjectFilesCreated = false;
+            ProjectFilesCheckPassed = false;
+            AgentUpJsonActionTaken = false;
+            AgentUpJsonCheckPassed = false;
+            StartCommandSucceeded = false;
+            WorkspaceCheckPassed = false;
+            DuplicateActionTaken = false;
+            DuplicateCheckPassed = false;
+            DirectoryTree = null;
+            return;
+        }
+
+        if (step <= 3)
+        {
+            NodeCheckPassed = false;
+            ProjectFilesCreated = false;
+            ProjectFilesCheckPassed = false;
+            AgentUpJsonActionTaken = false;
+            AgentUpJsonCheckPassed = false;
+            StartCommandSucceeded = false;
+            WorkspaceCheckPassed = false;
+            DuplicateActionTaken = false;
+            DuplicateCheckPassed = false;
+            DirectoryTree = null;
+            return;
+        }
+
+        if (step <= 4)
+        {
+            ProjectFilesCreated = false;
+            ProjectFilesCheckPassed = false;
+            AgentUpJsonActionTaken = false;
+            AgentUpJsonCheckPassed = false;
+            StartCommandSucceeded = false;
+            WorkspaceCheckPassed = false;
+            DuplicateActionTaken = false;
+            DuplicateCheckPassed = false;
+            DirectoryTree = null;
+            return;
+        }
+
+        if (step <= 5)
+        {
+            AgentUpJsonActionTaken = false;
+            AgentUpJsonCheckPassed = false;
+            StartCommandSucceeded = false;
+            WorkspaceCheckPassed = false;
+            DuplicateActionTaken = false;
+            DuplicateCheckPassed = false;
+            return;
+        }
+
+        if (step <= 6)
+        {
+            StartCommandSucceeded = false;
+            WorkspaceCheckPassed = false;
+            DuplicateActionTaken = false;
+            DuplicateCheckPassed = false;
+            return;
+        }
+
+        DuplicateActionTaken = false;
+        DuplicateCheckPassed = false;
+    }
+
+    private static string? BuildDirectoryTree(string projectDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(projectDirectory)) return null;
+        var root = Path.GetFullPath(Environment.ExpandEnvironmentVariables(projectDirectory.Trim()));
+        if (!Directory.Exists(root)) return null;
+
+        var lines = new List<string> { $"{Path.GetFileName(root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))}/" };
+        AppendDirectory(lines, root, "", 0);
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static void AppendDirectory(List<string> lines, string directory, string indent, int depth)
+    {
+        if (depth >= 3) return;
+
+        var entries = Directory.EnumerateDirectories(directory)
+            .Select(path => (Path: path, Name: Path.GetFileName(path), IsDirectory: true))
+            .Concat(Directory.EnumerateFiles(directory)
+                .Select(path => (Path: path, Name: Path.GetFileName(path), IsDirectory: false)))
+            .OrderBy(entry => entry.IsDirectory ? 0 : 1)
+            .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(40)
+            .ToList();
+
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            var isLast = i == entries.Count - 1;
+            var branch = isLast ? "`-- " : "|-- ";
+            lines.Add($"{indent}{branch}{entry.Name}{(entry.IsDirectory ? "/" : "")}");
+            if (entry.IsDirectory)
+                AppendDirectory(lines, entry.Path, indent + (isLast ? "    " : "|   "), depth + 1);
+        }
     }
 }
