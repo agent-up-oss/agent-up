@@ -3,8 +3,7 @@ name: Agent-Up CI
 on: [push]
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
   pull-requests: write
   checks: write
 
@@ -12,6 +11,9 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +24,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -31,10 +33,12 @@ jobs:
           distribution: zulu
 
       - name: Install SonarScanner
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
         run: |
           dotnet tool install --global dotnet-sonarscanner
 
       - name: Sonar begin
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
         run: |
           dotnet sonarscanner begin \
             /k:"agent-up" \
@@ -42,8 +46,8 @@ jobs:
             /d:sonar.scanner.skipJreProvisioning=true \
             /d:sonar.projectBaseDir="${{ github.workspace }}" \
             /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
-            /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.host.url="$SONAR_HOST_URL"
 
       - name: Build
         run: |
@@ -71,9 +75,15 @@ jobs:
           '
 
       - name: Sonar end
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
         run: |
           dotnet sonarscanner end \
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+            /d:sonar.token="$SONAR_TOKEN"
+
+      - name: Build docs
+        run: |
+          npm --prefix docs ci
+          npm --prefix docs run build
 
       - name: Test Report
         uses: dorny/test-reporter@v2

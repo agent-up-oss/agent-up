@@ -18,7 +18,7 @@
         { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
       ],
       "environment": {
-        "POSTGRES_PASSWORD": "secret"
+        "POSTGRES_PASSWORD": "not-a-real-value"
       },
       "volumes": ["pgdata:/var/lib/postgresql/data"]
     }

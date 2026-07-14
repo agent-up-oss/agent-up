@@ -5,3 +5,6 @@ docs/build
 **/obj/**
 **/bin/**
 *DotSettings.user
+.env
+.env.*
+!.env.example

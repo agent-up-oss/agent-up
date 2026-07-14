@@ -56,7 +56,7 @@ const problems = [
     label: 'Weak validation',
     title: 'Difficult validation of AI-generated implementations',
     headline: 'Review behavior with browser evidence, not just diffs.',
-    body: 'Agents can restart a workspace, inspect the shared browser, interact through MCP, retrieve diagnostics, capture screenshots, and generate Playwright tests from the recorded session.',
+    body: 'The intended workflow is for agents to restart a workspace, inspect the shared browser, interact through MCP, retrieve diagnostics, capture screenshots, and generate Playwright tests from recorded intent.',
     layout: 'validation',
     details: ['Inspect', 'Interact', 'Screenshot', 'Playwright'],
   },
@@ -66,9 +66,9 @@ const capabilities = [
   'Server-owned runtime state',
   'Per-workspace port ranges',
   'Isolated browser profiles',
-  'MCP-first automation',
-  'Event-backed diagnostics',
-  'Playwright generation',
+  'MCP-first automation (in progress)',
+  'Event-backed diagnostics (planned)',
+  'Playwright generation (planned)',
 ];
 
 // ── Projects ──────────────────────────────────────────────────────────────────
@@ -953,15 +953,15 @@ export default function Home() {
             </p>
             <div className={styles.actions}>
               <Link className={styles.primaryAction} to="/docs/">
-                Download now
+                Run from source
               </Link>
             </div>
           </div>
           <div className={styles.heroVisualWrap}>
             <HeroMockup />
             <div className={styles.demoHint}>
-              <span>Try the demo above</span>
-              <span>Agents, services, runtime tabs, and page controls are clickable.</span>
+              <span>Conceptual preview</span>
+              <span>Agents, services, runtime tabs, and page controls show the intended workspace experience.</span>
             </div>
           </div>
         </section>

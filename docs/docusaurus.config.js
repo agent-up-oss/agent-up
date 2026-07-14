@@ -82,6 +82,11 @@ const config = {
             position: 'left',
             label: 'Developer Guide',
           },
+          {
+            href: 'https://github.com/themassiveone/agent-up',
+            label: 'GitHub',
+            position: 'right',
+          },
         ],
       },
       footer: {
@@ -104,6 +109,8 @@ const config = {
             title: 'Docs',
             items: [
               { label: 'Overview', to: '/docs/' },
+              { label: 'Setup', to: '/docs/setup' },
+              { label: 'Current Limitations', to: '/docs/limitations' },
               { label: 'Workspace', to: '/docs/workspace' },
               { label: 'Configuration', to: '/docs/configuration' },
               { label: 'Browser Profiles', to: '/docs/browser-profiles' },
@@ -117,8 +124,17 @@ const config = {
               { label: 'MCP', to: '/developer-guide/mcp' },
             ],
           },
+          {
+            title: 'Project',
+            items: [
+              { label: 'GitHub', href: 'https://github.com/themassiveone/agent-up' },
+              { label: 'Contributing', href: 'https://github.com/themassiveone/agent-up/blob/main/CONTRIBUTING.md' },
+              { label: 'Security', href: 'https://github.com/themassiveone/agent-up/blob/main/SECURITY.md' },
+              { label: 'License', href: 'https://github.com/themassiveone/agent-up/blob/main/LICENSE' },
+            ],
+          },
         ],
-        copyright: `Copyright ${new Date().getFullYear()} Agent-Up.`,
+        copyright: `Copyright ${new Date().getFullYear()} Agent-Up. Licensed under Apache-2.0.`,
       },
       prism: {
         theme: lightCodeTheme,
