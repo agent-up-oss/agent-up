@@ -351,11 +351,37 @@ POSTRM
           pkgs = import nixpkgs { inherit system; };
         in
         {
-          agent-up = pkgs.stdenvNoCC.mkDerivation {
+          agent-up = pkgs.stdenv.mkDerivation {
             pname = "agent-up";
             version = "@AGENT_UP_VERSION@";
             src = ./payload;
+            nativeBuildInputs = [
+              pkgs.autoPatchelfHook
+              pkgs.makeWrapper
+            ];
+            autoPatchelfIgnoreMissingDeps = [
+              "liblttng-ust.so.0"
+            ];
+            buildInputs = [
+              pkgs.fontconfig.lib
+              pkgs.freetype
+              pkgs.glib
+              pkgs.gtk3
+              pkgs.icu
+              pkgs.libGL
+              pkgs.libice
+              pkgs.libsm
+              pkgs.libx11
+              pkgs.lttng-ust
+              pkgs.openssl
+              pkgs.stdenv.cc.cc.lib
+              pkgs.webkitgtk_4_1
+              pkgs.zlib
+            ];
+            dontConfigure = true;
+            dontBuild = true;
             installPhase = ''
+              runHook preInstall
               mkdir -p $out/opt/agent-up $out/bin
               cp -R desktop server cli $out/opt/agent-up/
               chmod +x $out/opt/agent-up/desktop/AgentUp.Desktop
@@ -364,6 +390,32 @@ POSTRM
               ln -s $out/opt/agent-up/desktop/AgentUp.Desktop $out/bin/agent-up-desktop
               ln -s $out/opt/agent-up/server/AgentUp.Server $out/bin/agent-up-server
               ln -s $out/opt/agent-up/cli/AgentUp.CLI $out/bin/agent-up
+              runHook postInstall
+            '';
+            postFixup = ''
+              runtime_libs="${pkgs.lib.makeLibraryPath [
+                pkgs.fontconfig.lib
+                pkgs.freetype
+                pkgs.glib
+                pkgs.gtk3
+                pkgs.icu
+                pkgs.libGL
+                pkgs.libice
+                pkgs.libsm
+                pkgs.libx11
+                pkgs.lttng-ust
+                pkgs.openssl
+                pkgs.stdenv.cc.cc.lib
+                pkgs.webkitgtk_4_1
+                pkgs.zlib
+              ]}"
+
+              wrapProgram $out/opt/agent-up/desktop/AgentUp.Desktop \
+                --prefix LD_LIBRARY_PATH : "$runtime_libs"
+              wrapProgram $out/opt/agent-up/server/AgentUp.Server \
+                --prefix LD_LIBRARY_PATH : "$runtime_libs"
+              wrapProgram $out/opt/agent-up/cli/AgentUp.CLI \
+                --prefix LD_LIBRARY_PATH : "$runtime_libs"
             '';
           };
           default = self.packages.${system}.agent-up;

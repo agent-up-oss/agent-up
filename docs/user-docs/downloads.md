@@ -48,12 +48,51 @@ The package installs Agent-Up under `/opt/agent-up`, registers `agent-up-server.
 
 ## NixOS
 
-You can create a temporary shell containing agent-up using this:
+Use the package-set tarball as a flake input, then install `agent-up` from that input.
 
-```bash
-nix shell "tarball+https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-nixos-pkgs.tar.gz#agent-up"
+```nix
+{
+  inputs.agent-up.url = "tarball+https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-nixos-pkgs.tar.gz";
+
+  outputs = { nixpkgs, agent-up, ... }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs { inherit system; };
+      agentUp = agent-up.packages.${system}.agent-up;
+    in
+    {
+      nixosConfigurations.example = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          {
+            environment.systemPackages = [ agentUp ];
+
+            systemd.services.agent-up-server = {
+              description = "Agent-Up Server";
+              wantedBy = [ "multi-user.target" ];
+              after = [ "network.target" ];
+              serviceConfig = {
+                ExecStart = "${agentUp}/bin/agent-up-server --urls http://127.0.0.1:5000";
+                Restart = "on-failure";
+                RestartSec = 5;
+                StateDirectory = "agent-up";
+                Environment = [
+                  "ASPNETCORE_URLS=http://127.0.0.1:5000"
+                  "Storage__DataDirectory=/var/lib/agent-up"
+                ];
+              };
+            };
+          }
+        ];
+      };
+    };
+}
 ```
 
-The shell exposes `agent-up`, `agent-up-server`, and `agent-up-desktop`.
+For a temporary shell, use `--no-write-lock-file` unless you are inside a flake workspace where Nix can update `flake.lock`:
+
+```bash
+nix shell --no-write-lock-file "tarball+https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-nixos-pkgs.tar.gz#agent-up"
+```
 
 NixOS does not use the Windows, macOS, or Ubuntu binary installers.
