@@ -56,6 +56,14 @@ The desktop should resemble an IDE:
 
 The left side shows workspace selection, health, branch, and running state. The top area shows browser tabs, logs, and diagnostics. The center contains the embedded browser.
 
+## Application Tabs
+
+The first tab row lists the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application.
+
+For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console remains available after the port tabs.
+
+For applications without configured ports, Console is selected by default.
+
 ## Thin Client Rule
 
 The Desktop does not own runtime state and should not duplicate orchestration rules from the Server.

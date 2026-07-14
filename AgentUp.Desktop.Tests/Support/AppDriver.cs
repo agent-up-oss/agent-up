@@ -2,6 +2,7 @@ using AgentUp.Desktop.Features.Console.Http;
 using AgentUp.Desktop.Features.Workspaces.Http;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
+using Avalonia.Controls;
 
 namespace AgentUp.Desktop.Tests.Support;
 
@@ -27,8 +28,18 @@ internal sealed class AppDriver
     public static async Task<AppDriver> LaunchWithWorkspaceAsync(WorkspaceDto workspace)
         => await LaunchAsync([workspace]);
 
+    public static async Task<AppDriver> LaunchWithWorkspaceAsync(
+        WorkspaceDto workspace,
+        Func<NativeWebView> webViewFactory)
+        => await LaunchAsync([workspace], webViewFactory);
+
     public static async Task<AppDriver> LaunchWithWorkspacesAsync(List<WorkspaceDto> workspaces)
         => await LaunchAsync(workspaces);
+
+    public static async Task<AppDriver> LaunchWithWorkspacesAsync(
+        List<WorkspaceDto> workspaces,
+        Func<NativeWebView> webViewFactory)
+        => await LaunchAsync(workspaces, webViewFactory);
 
     public static async Task<AppDriver> LaunchWithServerErrorAsync()
     {
@@ -60,19 +71,26 @@ internal sealed class AppDriver
         return await LaunchWithClientsAsync(workspaceClient, consoleClient);
     }
 
-    private static async Task<AppDriver> LaunchAsync(List<WorkspaceDto> workspaces)
+    private static async Task<AppDriver> LaunchAsync(
+        List<WorkspaceDto> workspaces,
+        Func<NativeWebView>? webViewFactory = null)
     {
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
-        return await LaunchWithClientsAsync(workspaceClient, consoleClient);
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient, webViewFactory);
     }
 
-    private static async Task<AppDriver> LaunchWithClientsAsync(WorkspaceApiClient workspaceClient, ConsoleApiClient consoleClient)
+    private static async Task<AppDriver> LaunchWithClientsAsync(
+        WorkspaceApiClient workspaceClient,
+        ConsoleApiClient consoleClient,
+        Func<NativeWebView>? webViewFactory = null)
     {
         var vm = new MainViewModel(workspaceClient, consoleClient);
         var window = new MainWindow { DataContext = vm };
+        if (webViewFactory is not null)
+            window.WebViewFactory = webViewFactory;
         window.Show();
 
         await vm.InitializeAsync();

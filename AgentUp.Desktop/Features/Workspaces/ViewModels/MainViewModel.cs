@@ -106,18 +106,15 @@ public sealed class MainViewModel : ReactiveObject
 
     private void RebuildSubTabs(ApplicationViewModel? app)
     {
-        var wasOnPortTab = _selectedSubTab is PortSubTabViewModel;
-
         SubTabs.Clear();
         if (app is null) return;
 
-        SubTabs.Add(new ConsoleSubTabViewModel());
         foreach (var port in app.AllocatedPorts)
             SubTabs.Add(new PortSubTabViewModel(port.Variable, port.DefaultPort, port.AllocatedPort, port.Protocol));
+        SubTabs.Add(new ConsoleSubTabViewModel());
 
-        SelectedSubTab = wasOnPortTab
-            ? (SubTabViewModel?)SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault() ?? SubTabs[0]
-            : SubTabs[0];
+        SelectedSubTab = SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault()
+            ?? (SubTabViewModel)SubTabs[0];
 
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
             _ = portTab.ProbeAsync();

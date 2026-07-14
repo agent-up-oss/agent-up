@@ -84,6 +84,49 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task InitializeAsync_selectsFirstConfiguredPortSubTab_whenApplicationHasPorts()
+    {
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts =
+                    [
+                        new PortMappingDto("WEB_PORT", 3000, 5100),
+                        new PortMappingDto("API_PORT", 5000, 5101)
+                    ]
+                }
+            ]
+        };
+        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+
+        Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["3000:5100", "5000:5101", "Console"]));
+        Assert.That(vm.SelectedSubTab, Is.TypeOf<PortSubTabViewModel>());
+        Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5100));
+        Assert.That(vm.ShowPortView, Is.True);
+    }
+
+    [Test]
+    public async Task InitializeAsync_selectsConsoleSubTab_whenApplicationHasNoPorts()
+    {
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications = [new ApplicationDto("Worker", "cmd", null, "Running")]
+        };
+        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+
+        Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["Console"]));
+        Assert.That(vm.SelectedSubTab, Is.TypeOf<ConsoleSubTabViewModel>());
+        Assert.That(vm.ShowConsole, Is.True);
+    }
+
+    [Test]
     public async Task BrowserNavigation_emitsPortUrl_whenPortSubTabSelected()
     {
         const int port = 3000;
@@ -104,7 +147,7 @@ public class MainViewModelTests
 
         await vm.InitializeAsync();
 
-        // Auto-selects first app → Console sub-tab; now explicitly select the port sub-tab.
+        // Auto-selects the first app and its first port; selecting it again keeps this assertion explicit.
         var portTab = vm.SubTabs.OfType<PortSubTabViewModel>().First();
         vm.SelectedSubTab = portTab;
 
