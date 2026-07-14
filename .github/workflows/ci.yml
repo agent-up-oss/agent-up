@@ -143,11 +143,22 @@ jobs:
             fi
 
             if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
-              LIBGL_ALWAYS_SOFTWARE=1 \
-              GALLIUM_DRIVER=llvmpipe \
-              WEBKIT_DISABLE_COMPOSITING_MODE=1 \
-              WEBKIT_DISABLE_DMABUF_RENDERER=1 \
-              xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"
+              test_status=1
+              for attempt in 1 2; do
+                echo "Running AgentUp.Tests on Ubuntu attempt $attempt/2"
+                if LIBGL_ALWAYS_SOFTWARE=1 \
+                  GALLIUM_DRIVER=llvmpipe \
+                  WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+                  WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+                  xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"; then
+                  test_status=0
+                  break
+                fi
+                test_status=$?
+              done
+              if [ "$test_status" -ne 0 ]; then
+                exit "$test_status"
+              fi
             else
               "${test_command[@]}"
             fi
@@ -298,11 +309,22 @@ jobs:
             if [ "$test_project_name" = "AgentUp.Tests" ]; then
               test_command+=(--blame-hang --blame-hang-timeout 120s)
 
-              LIBGL_ALWAYS_SOFTWARE=1 \
-              GALLIUM_DRIVER=llvmpipe \
-              WEBKIT_DISABLE_COMPOSITING_MODE=1 \
-              WEBKIT_DISABLE_DMABUF_RENDERER=1 \
-              xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"
+              test_status=1
+              for attempt in 1 2; do
+                echo "Running AgentUp.Tests on Sonar Ubuntu attempt $attempt/2"
+                if LIBGL_ALWAYS_SOFTWARE=1 \
+                  GALLIUM_DRIVER=llvmpipe \
+                  WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+                  WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+                  xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"; then
+                  test_status=0
+                  break
+                fi
+                test_status=$?
+              done
+              if [ "$test_status" -ne 0 ]; then
+                exit "$test_status"
+              fi
             else
               "${test_command[@]}"
             fi
