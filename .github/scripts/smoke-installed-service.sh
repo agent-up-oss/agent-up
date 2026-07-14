@@ -14,10 +14,14 @@ server_url="http://127.0.0.1:5000"
 fallback_server_url="http://localhost:5000"
 cli=""
 uninstall_command=()
+mounted_dmg=""
 
 cleanup() {
   if [ "${#uninstall_command[@]}" -gt 0 ]; then
     "${uninstall_command[@]}" || true
+  fi
+  if [ -n "$mounted_dmg" ]; then
+    hdiutil detach "$mounted_dmg" -quiet 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
@@ -118,22 +122,24 @@ mkdir -p "$work_dir"
 
 case "$platform" in
   macos)
-    extract_zip "$artifact_dir/agent-up-macos-$rid.zip" "$work_dir"
-    cli="$work_dir/cli/AgentUp.CLI"
-    uninstall_command=(sudo "$work_dir/uninstall.sh")
-    sudo "$work_dir/install.sh"
+    mkdir -p "$work_dir/mount"
+    hdiutil attach "$artifact_dir/agent-up-macos-$rid.dmg" -quiet -nobrowse -mountpoint "$work_dir/mount"
+    mounted_dmg="$work_dir/mount"
+    cli="$mounted_dmg/cli/AgentUp.CLI"
+    uninstall_command=(sudo "$mounted_dmg/uninstall.sh")
+    sudo "$mounted_dmg/install.sh"
     ;;
   windows)
-    extract_zip "$artifact_dir/agent-up-windows-$rid.zip" "$work_dir"
-    cli="$work_dir/cli/AgentUp.CLI.exe"
-    uninstall_command=(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$work_dir/tools/uninstall-agent-up-server.ps1")
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$work_dir/tools/install-agent-up-server.ps1"
+    install_dir="$work_dir/installed"
+    "$artifact_dir/agent-up-windows-$rid.exe" --install-dir "$install_dir" --quiet
+    cli="$install_dir/cli/AgentUp.CLI.exe"
+    uninstall_command=(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$install_dir/tools/uninstall-agent-up-server.ps1")
     ;;
   ubuntu)
-    tar -xzf "$artifact_dir/agent-up-ubuntu-$rid.tar.gz" -C "$work_dir"
-    cli="$work_dir/cli/AgentUp.CLI"
-    uninstall_command=(sudo "$work_dir/uninstall.sh")
-    sudo "$work_dir/install.sh"
+    deb_path="$(cd "$artifact_dir" && pwd)/agent-up-ubuntu-$rid.deb"
+    sudo apt-get install -y "$deb_path"
+    cli="/opt/agent-up/cli/AgentUp.CLI"
+    uninstall_command=(sudo apt-get purge -y agent-up)
     ;;
   nixos)
     echo "Skipping installed-service smoke for NixOS because this CI job runs on Ubuntu with Nix, not a booted NixOS systemd host."

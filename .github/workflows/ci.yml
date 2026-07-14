@@ -166,8 +166,6 @@ jobs:
 
       - name: Build docs
         if: ${{ matrix.platform == 'ubuntu' }}
-        env:
-          AGENTUP_ARTIFACT_DOWNLOAD_URL: ${{ vars.AGENTUP_ARTIFACT_DOWNLOAD_URL }}
         run: |
           npm --prefix docs ci
           npm --prefix docs run build
@@ -195,17 +193,15 @@ jobs:
         shell: bash
         env:
           AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
-          AGENTUP_CI_ARTIFACT_PREFIX: ${{ vars.AGENTUP_CI_ARTIFACT_PREFIX || 'agent-up-ci' }}
           AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
           AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
           AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
-          AGENTUP_S3_ALIAS: agentup-ci
         run: |
-          mc alias set "$AGENTUP_S3_ALIAS" "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
-          mc mb --ignore-existing "$AGENTUP_S3_ALIAS/$AGENTUP_CI_ARTIFACT_BUCKET"
+          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
+          mc mb --ignore-existing "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET"
           mc mirror --overwrite --remove \
             release-artifacts \
-            "$AGENTUP_S3_ALIAS/$AGENTUP_CI_ARTIFACT_BUCKET/$AGENTUP_CI_ARTIFACT_PREFIX/runs/${{ github.run_id }}/${{ matrix.platform }}-${{ matrix.rid }}"
+            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/${{ matrix.platform }}-${{ matrix.rid }}"
 
       - name: Test Report
         uses: dorny/test-reporter@v2
@@ -242,16 +238,14 @@ jobs:
       - name: Download packages from CI artifact bucket
         env:
           AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
-          AGENTUP_CI_ARTIFACT_PREFIX: ${{ vars.AGENTUP_CI_ARTIFACT_PREFIX || 'agent-up-ci' }}
           AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
           AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
           AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
-          AGENTUP_S3_ALIAS: agentup-ci
         run: |
           mkdir -p release-artifacts
-          mc alias set "$AGENTUP_S3_ALIAS" "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
+          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
           mc cp --recursive \
-            "$AGENTUP_S3_ALIAS/$AGENTUP_CI_ARTIFACT_BUCKET/$AGENTUP_CI_ARTIFACT_PREFIX/runs/${{ github.run_id }}/" \
+            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/" \
             release-artifacts/
           find release-artifacts -mindepth 2 -type f -exec mv {} release-artifacts/ \;
           find release-artifacts -mindepth 1 -type d -empty -delete
@@ -260,8 +254,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AGENTUP_RELEASE_BUCKET: ${{ secrets.AGENTUP_RELEASE_BUCKET }}
-          AGENTUP_RELEASE_PREFIX: ${{ vars.AGENTUP_RELEASE_PREFIX || 'agent-up' }}
-          AGENTUP_DOWNLOAD_BASE_URL: ${{ vars.AGENTUP_DOWNLOAD_BASE_URL }}
           AGENTUP_RELEASE_S3_ENDPOINT: ${{ secrets.AGENTUP_RELEASE_S3_ENDPOINT }}
           AGENTUP_RELEASE_S3_ACCESS_KEY: ${{ secrets.AGENTUP_RELEASE_S3_ACCESS_KEY }}
           AGENTUP_RELEASE_S3_SECRET_KEY: ${{ secrets.AGENTUP_RELEASE_S3_SECRET_KEY }}

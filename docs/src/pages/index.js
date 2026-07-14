@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import styles from './index.module.css';
 
 const problems = [
@@ -939,9 +938,6 @@ function ProblemSection({problem, index}) {
 }
 
 export default function Home() {
-  const {siteConfig} = useDocusaurusContext();
-  const artifactDownloadUrl = siteConfig.customFields?.artifactDownloadUrl;
-
   return (
     <Layout
       title="Agent-Up"
@@ -956,14 +952,9 @@ export default function Home() {
               No manual setup. Just review.
             </p>
             <div className={styles.actions}>
-              <Link className={styles.primaryAction} to="/docs/">
-                Run from source
+              <Link className={styles.secondaryAction} to="/docs/downloads">
+                Download
               </Link>
-              {artifactDownloadUrl && (
-                <a className={styles.secondaryAction} href={artifactDownloadUrl}>
-                  Download artifact
-                </a>
-              )}
             </div>
           </div>
           <div className={styles.heroVisualWrap}>

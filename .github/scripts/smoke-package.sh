@@ -12,11 +12,15 @@ artifact_dir="$3"
 work_dir="$(pwd)/artifacts/package-smoke/$platform-$rid"
 port="$((45000 + (RANDOM % 10000)))"
 server_pid=""
+mounted_dmg=""
 
 cleanup() {
   if [ -n "$server_pid" ]; then
     kill "$server_pid" 2>/dev/null || true
     wait "$server_pid" 2>/dev/null || true
+  fi
+  if [ -n "$mounted_dmg" ]; then
+    hdiutil detach "$mounted_dmg" -quiet 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
@@ -121,30 +125,57 @@ JSON
   grep -Fq "State:      Running" "$work_dir/cli-status.log"
 }
 
+smoke_cli_workspace_from_path() {
+  local cli_name="$1"
+  local repo="$work_dir/example-workspace-nix"
+  mkdir -p "$repo"
+
+  git -C "$repo" init -q
+  git -C "$repo" config user.email "ci@agent-up.local"
+  git -C "$repo" config user.name "Agent-Up CI"
+  cat > "$repo/agent-up.json" <<'JSON'
+{
+  "name": "Nix Package Smoke Workspace",
+  "applications": []
+}
+JSON
+  git -C "$repo" add agent-up.json
+  git -C "$repo" commit -q -m "Add nix package smoke workspace"
+
+  (cd "$repo" && AGENTUP_SERVER_URL="http://localhost:$port" "$cli_name" start) > "$work_dir/nix-cli-start.log"
+  (cd "$repo" && AGENTUP_SERVER_URL="http://localhost:$port" "$cli_name" status) > "$work_dir/nix-cli-status.log"
+
+  grep -Fq 'Started workspace "Nix Package Smoke Workspace"' "$work_dir/nix-cli-start.log"
+  grep -Fq "Name:       Nix Package Smoke Workspace" "$work_dir/nix-cli-status.log"
+  grep -Fq "State:      Running" "$work_dir/nix-cli-status.log"
+}
+
 rm -rf "$work_dir"
 mkdir -p "$work_dir"
 
 case "$platform" in
   macos)
-    archive="$artifact_dir/agent-up-macos-$rid.zip"
+    archive="$artifact_dir/agent-up-macos-$rid.dmg"
     assert_file "$archive"
-    extract_zip "$archive" "$work_dir"
-    assert_executable "$work_dir/Agent-Up.app/Contents/MacOS/AgentUp.Desktop"
-    assert_executable "$work_dir/Agent-Up.app/Contents/Resources/server/AgentUp.Server"
-    assert_executable "$work_dir/cli/AgentUp.CLI"
-    assert_file "$work_dir/Agent-Up.app/Contents/Info.plist"
-    assert_file "$work_dir/agent-up-server.plist"
-    assert_file "$work_dir/install.sh"
-    assert_file "$work_dir/uninstall.sh"
-    assert_contains "$work_dir/agent-up-server.plist" "/Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server"
-    assert_contains "$work_dir/install.sh" "launchctl bootstrap system"
-    start_server_and_probe "$work_dir/Agent-Up.app/Contents/Resources/server/AgentUp.Server"
-    smoke_cli_workspace "$work_dir/cli/AgentUp.CLI"
+    mkdir -p "$work_dir/mount"
+    hdiutil attach "$archive" -quiet -nobrowse -mountpoint "$work_dir/mount"
+    mounted_dmg="$work_dir/mount"
+    assert_executable "$mounted_dmg/Agent-Up.app/Contents/MacOS/AgentUp.Desktop"
+    assert_executable "$mounted_dmg/Agent-Up.app/Contents/Resources/server/AgentUp.Server"
+    assert_executable "$mounted_dmg/cli/AgentUp.CLI"
+    assert_file "$mounted_dmg/Agent-Up.app/Contents/Info.plist"
+    assert_file "$mounted_dmg/agent-up-server.plist"
+    assert_file "$mounted_dmg/install.sh"
+    assert_file "$mounted_dmg/uninstall.sh"
+    assert_contains "$mounted_dmg/agent-up-server.plist" "/Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server"
+    assert_contains "$mounted_dmg/install.sh" "launchctl bootstrap system"
+    start_server_and_probe "$mounted_dmg/Agent-Up.app/Contents/Resources/server/AgentUp.Server"
+    smoke_cli_workspace "$mounted_dmg/cli/AgentUp.CLI"
     ;;
   windows)
-    archive="$artifact_dir/agent-up-windows-$rid.zip"
-    assert_file "$archive"
-    extract_zip "$archive" "$work_dir"
+    installer="$artifact_dir/agent-up-windows-$rid.exe"
+    assert_file "$installer"
+    "$installer" --extract "$work_dir" --quiet
     assert_file "$work_dir/desktop/AgentUp.Desktop.exe"
     assert_file "$work_dir/server/AgentUp.Server.exe"
     assert_file "$work_dir/cli/AgentUp.CLI.exe"
@@ -155,24 +186,40 @@ case "$platform" in
     start_server_and_probe "$work_dir/server/AgentUp.Server.exe"
     smoke_cli_workspace "$work_dir/cli/AgentUp.CLI.exe"
     ;;
-  ubuntu|nixos)
-    archive="$artifact_dir/agent-up-$platform-$rid.tar.gz"
+  ubuntu)
+    archive="$artifact_dir/agent-up-ubuntu-$rid.deb"
+    assert_file "$archive"
+    dpkg-deb -x "$archive" "$work_dir/root"
+    dpkg-deb -e "$archive" "$work_dir/control"
+    assert_executable "$work_dir/root/opt/agent-up/desktop/AgentUp.Desktop"
+    assert_executable "$work_dir/root/opt/agent-up/server/AgentUp.Server"
+    assert_executable "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
+    assert_file "$work_dir/root/etc/systemd/system/agent-up-server.service"
+    assert_file "$work_dir/control/postinst"
+    assert_file "$work_dir/control/prerm"
+    assert_contains "$work_dir/root/etc/systemd/system/agent-up-server.service" "ExecStart=/opt/agent-up/server/AgentUp.Server"
+    assert_contains "$work_dir/control/postinst" "systemctl enable --now agent-up-server.service"
+    start_server_and_probe "$work_dir/root/opt/agent-up/server/AgentUp.Server"
+    smoke_cli_workspace "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
+    ;;
+  nixos)
+    archive="$artifact_dir/agent-up-nixos-pkgs.tar.gz"
     assert_file "$archive"
     tar -xzf "$archive" -C "$work_dir"
-    assert_executable "$work_dir/desktop/AgentUp.Desktop"
-    assert_executable "$work_dir/server/AgentUp.Server"
-    assert_executable "$work_dir/cli/AgentUp.CLI"
-    assert_file "$work_dir/share/agent-up-server.service"
-    assert_file "$work_dir/install.sh"
-    assert_file "$work_dir/uninstall.sh"
-    assert_contains "$work_dir/share/agent-up-server.service" "ExecStart=/opt/agent-up/server/AgentUp.Server"
-    assert_contains "$work_dir/install.sh" "systemctl enable --now agent-up-server.service"
-    if [ "$platform" = "nixos" ]; then
-      assert_file "$work_dir/share/agent-up-nixos-module.nix"
-      assert_contains "$work_dir/share/agent-up-nixos-module.nix" "systemd.services.agent-up-server"
-    fi
-    start_server_and_probe "$work_dir/server/AgentUp.Server"
-    smoke_cli_workspace "$work_dir/cli/AgentUp.CLI"
+    assert_file "$work_dir/flake.nix"
+    assert_executable "$work_dir/payload/desktop/AgentUp.Desktop"
+    assert_executable "$work_dir/payload/server/AgentUp.Server"
+    assert_executable "$work_dir/payload/cli/AgentUp.CLI"
+    assert_contains "$work_dir/flake.nix" "agent-up = pkgs.stdenvNoCC.mkDerivation"
+    assert_contains "$work_dir/flake.nix" "packages = forAllSystems"
+    nix build --extra-experimental-features "nix-command flakes" --no-link --print-out-paths "path:$work_dir#agent-up" > "$work_dir/nix-out-path.txt"
+    nix_out="$(cat "$work_dir/nix-out-path.txt")"
+    assert_executable "$nix_out/bin/agent-up"
+    assert_executable "$nix_out/bin/agent-up-server"
+    assert_executable "$nix_out/bin/agent-up-desktop"
+    start_server_and_probe "$nix_out/bin/agent-up-server"
+    nix shell --extra-experimental-features "nix-command flakes" "path:$work_dir#agent-up" --command bash -lc 'command -v agent-up && command -v agent-up-server && command -v agent-up-desktop'
+    nix shell --extra-experimental-features "nix-command flakes" "path:$work_dir#agent-up" --command bash -lc "$(declare -f smoke_cli_workspace_from_path); work_dir='$work_dir'; port='$port'; smoke_cli_workspace_from_path agent-up"
     ;;
   *)
     echo "Unsupported platform: $platform" >&2
