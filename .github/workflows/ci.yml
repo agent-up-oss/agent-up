@@ -79,6 +79,12 @@ jobs:
         run: |
           dotnet build "agent-up.sln" --configuration Release
 
+      - name: Install Ubuntu browser test dependencies
+        if: ${{ matrix.platform == 'ubuntu' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-utils
+
       - name: Run tests on Nix
         if: ${{ matrix.use-nix }}
         run: |
@@ -108,6 +114,13 @@ jobs:
           found_tests=false
 
           while IFS= read -r -d "" test_project; do
+            if [ "${{ matrix.platform }}" = "macos" ] || [ "${{ matrix.platform }}" = "windows" ]; then
+              if [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
+                echo "Skipping $test_project on ${{ matrix.platform }}; browser E2E uses Linux Xvfb/WebKitGTK."
+                continue
+              fi
+            fi
+
             found_tests=true
             dotnet test "$test_project" \
               --configuration Release \
