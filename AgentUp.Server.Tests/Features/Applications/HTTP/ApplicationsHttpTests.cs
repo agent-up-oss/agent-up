@@ -237,7 +237,7 @@ public class ApplicationsHttpTests
                     Name: "Database",
                     Image: "postgres:16",
                     Ports: [new PortDeclaration("DB_PORT", 5432)],
-                    Environment: new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "secret" },
+                    Environment: new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "not-a-real-value" },
                     Volumes: ["pgdata:/var/lib/postgresql/data"])
             ]
         };
@@ -253,7 +253,7 @@ public class ApplicationsHttpTests
         Assert.That(db.Ports, Has.Count.EqualTo(1));
         Assert.That(db.Ports[0].DefaultPort, Is.EqualTo(5432));
         Assert.That(db.AllocatedPorts, Has.Count.EqualTo(1));
-        Assert.That(db.Environment!["POSTGRES_PASSWORD"], Is.EqualTo("secret"));
+        Assert.That(db.Environment!["POSTGRES_PASSWORD"], Is.EqualTo("not-a-real-value"));
         Assert.That(db.Volumes, Is.EqualTo(new[] { "pgdata:/var/lib/postgresql/data" }));
         Assert.That(db.State, Is.EqualTo(ApplicationState.Stopped));
     }

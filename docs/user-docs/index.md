@@ -5,11 +5,15 @@ slug: /
 
 # Agent-Up
 
-Agent-Up is a cross-platform development workspace manager for AI-assisted software development.
+Agent-Up is a local runtime control plane for parallel AI-assisted software development.
 
-It manages development workspaces. It is not an application framework, deployment tool, IDE, or application orchestrator.
+It manages the running development environment around applications: workspaces, Git worktrees, application processes, port allocation, Docker services, isolated browser profiles, logs, diagnostics, event history, and automation surfaces.
 
-Every AI agent works in its own Git worktree with its own branch, runtime environment, browser profile, infrastructure, application state, diagnostics, and event history. Agent-Up makes switching between these isolated workspaces effortless while letting developers and AI agents interact with the same running applications.
+Agent-Up is not an application framework, deployment tool, IDE, Docker replacement, Git replacement, or production orchestrator.
+
+> **Development Preview:** Agent-Up is under active development. It currently runs primarily from source, with preliminary NixOS-oriented setup. There are no stable binaries or general-purpose installers. APIs, configuration, and workflows may change without notice.
+
+Every AI agent can work in its own Git worktree with its own branch, runtime environment, browser profile, infrastructure, application state, diagnostics, and event history. Agent-Up is being built to make switching between these isolated workspaces practical while letting developers and AI agents interact with the same running applications.
 
 ## What Agent-Up Solves
 
@@ -54,6 +58,8 @@ The Server is the single source of truth. Desktop, CLI, and MCP clients are all 
 
 ## Getting Started
 
+See [Current Limitations](./limitations.md) for the current implementation status of each major area.
+
 ### 1. Start the server
 
 From the repository root:
@@ -62,7 +68,7 @@ From the repository root:
 dotnet run --project AgentUp.Server
 ```
 
-The server starts on `http://localhost:5233` and keeps workspace state in memory (persisted to disk between restarts).
+The server starts on `http://localhost:5000` in the current development launch profile.
 
 ### 2. Add an `agent-up.json` to your project
 
@@ -86,13 +92,13 @@ Create `agent-up.json` in the root of the repository you want to manage:
 From your project directory, run the CLI with `dotnet run`:
 
 ```bash
-dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5233
+dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5000
 ```
 
 Or set the server URL once as an environment variable and omit `--server` on every call:
 
 ```bash
-export AGENTUP_SERVER_URL=http://localhost:5233
+export AGENTUP_SERVER_URL=http://localhost:5000
 dotnet run --project /path/to/AgentUp.CLI -- start
 ```
 
@@ -101,6 +107,8 @@ This reads `agent-up.json`, captures the current git branch and commit, and push
 ## Documentation Map
 
 - [Workspace](./workspace.md) defines the workspace model.
+- [Setup](./setup.md) describes the current source-first development workflow.
+- [Current Limitations](./limitations.md) explains what is implemented, experimental, in progress, and planned.
 - [Browser](./browser.md) covers shared browser sessions and automation.
 - [Browser Profiles](./browser-profiles.md) explains per-workspace browser isolation.
 - [CLI](./cli.md) covers the human-friendly command wrapper.

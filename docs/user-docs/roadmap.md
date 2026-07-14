@@ -18,3 +18,23 @@ Developers and AI agents collaborate inside the same live workspace.
 ## Direction
 
 Future work should deepen the Server-owned runtime model, improve workflow inference, enrich diagnostics, strengthen browser session sharing, and make MCP the primary path for AI automation.
+
+## Status Labels
+
+| Area | Status |
+|---|---|
+| Server-owned workspace registry | Implemented |
+| Feature-sliced Server, Desktop, and CLI projects | Implemented |
+| Source-first CLI workflow | Experimental |
+| Desktop workspace and application views | Implemented |
+| Per-workspace port allocation | Implemented |
+| Docker lifecycle management | Experimental |
+| Browser profile persistence | Experimental |
+| Diagnostics | Experimental |
+| MCP automation interface | In progress |
+| Event recording | Planned |
+| Playwright generation | Planned |
+| Stable installers | Planned |
+| Broad platform support | Planned |
+
+See [Current Limitations](./limitations.md) for the practical release status.
