@@ -24,13 +24,23 @@ create_zip() {
   shift
 
   if [ "${RUNNER_OS:-}" = "Windows" ] && command -v powershell.exe >/dev/null 2>&1; then
+    local ps_output="$output"
+    if command -v cygpath >/dev/null 2>&1; then
+      ps_output="$(cygpath -w "$output")"
+    fi
+
     local ps_items=()
     for item in "$@"; do
-      ps_items+=("'${item//\'/\'\'}'")
+      local ps_item="$item"
+      if command -v cygpath >/dev/null 2>&1; then
+        ps_item="$(cygpath -w "$item")"
+      fi
+      ps_items+=("'${ps_item//\'/\'\'}'")
     done
+
     local joined
     joined="$(IFS=,; echo "${ps_items[*]}")"
-    powershell.exe -NoProfile -Command "\$items = @($joined); Compress-Archive -LiteralPath \$items -DestinationPath '$output' -Force"
+    powershell.exe -NoProfile -Command "\$items = @($joined); \$destination = '$ps_output'; New-Item -ItemType Directory -Force -Path (Split-Path -Parent \$destination) | Out-Null; Compress-Archive -LiteralPath \$items -DestinationPath \$destination -Force"
   elif command -v zip >/dev/null 2>&1; then
     zip -qr "$output" "$@"
   elif tar --help 2>/dev/null | grep -q -- '-a'; then
@@ -106,6 +116,7 @@ sudo rm -rf /Applications/Agent-Up.app
 sudo cp -R "$root/Agent-Up.app" /Applications/Agent-Up.app
 sudo chmod +x /Applications/Agent-Up.app/Contents/MacOS/AgentUp.Desktop
 sudo chmod +x /Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server
+sudo mkdir -p "/Library/Application Support/Agent-Up"
 sudo cp "$root/agent-up-server.plist" /Library/LaunchDaemons/dev.agent-up.server.plist
 sudo chown root:wheel /Library/LaunchDaemons/dev.agent-up.server.plist
 sudo chmod 644 /Library/LaunchDaemons/dev.agent-up.server.plist
@@ -120,6 +131,7 @@ INSTALL
 set -euo pipefail
 sudo launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
 sudo rm -f /Library/LaunchDaemons/dev.agent-up.server.plist
+sudo rm -rf "/Library/Application Support/Agent-Up"
 sudo rm -rf /Applications/Agent-Up.app
 UNINSTALL
     chmod +x "$stage/uninstall.sh"
@@ -173,7 +185,10 @@ UNINSTALL
       ExecStart = "/opt/agent-up/server/AgentUp.Server --urls http://127.0.0.1:5000";
       Restart = "on-failure";
       RestartSec = 5;
-      Environment = "ASPNETCORE_URLS=http://127.0.0.1:5000";
+      Environment = [
+        "ASPNETCORE_URLS=http://127.0.0.1:5000"
+        "Storage__DataDirectory=/var/lib/agent-up"
+      ];
     };
   };
 }

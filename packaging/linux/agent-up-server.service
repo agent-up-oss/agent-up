@@ -6,6 +6,7 @@ After=network.target
 Type=simple
 ExecStart=/opt/agent-up/server/AgentUp.Server --urls http://127.0.0.1:5000
 Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+Environment=Storage__DataDirectory=/var/lib/agent-up
 Restart=on-failure
 RestartSec=5
 

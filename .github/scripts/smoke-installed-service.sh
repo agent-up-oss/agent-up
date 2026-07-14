@@ -11,6 +11,7 @@ rid="$2"
 artifact_dir="$3"
 work_dir="$(pwd)/artifacts/service-smoke/$platform-$rid"
 server_url="http://127.0.0.1:5000"
+fallback_server_url="http://localhost:5000"
 cli=""
 uninstall_command=()
 
@@ -37,6 +38,10 @@ wait_for_server() {
     if curl -fsS "$server_url/api/workspaces" > "$work_dir/service-workspaces-before.json"; then
       return 0
     fi
+    if curl -fsS "$fallback_server_url/api/workspaces" > "$work_dir/service-workspaces-before.json"; then
+      server_url="$fallback_server_url"
+      return 0
+    fi
     sleep 1
   done
 
@@ -50,11 +55,17 @@ print_service_diagnostics() {
     ubuntu)
       sudo systemctl status agent-up-server.service --no-pager >&2 || true
       sudo journalctl -u agent-up-server.service --no-pager -n 200 >&2 || true
+      ps -ef | grep '[A]gentUp.Server' >&2 || true
+      ss -ltnp >&2 || true
+      sudo ls -la /var/lib/agent-up >&2 || true
       ;;
     macos)
       sudo launchctl print system/dev.agent-up.server >&2 || true
       sudo tail -n 200 /tmp/agent-up-server.out.log >&2 || true
       sudo tail -n 200 /tmp/agent-up-server.err.log >&2 || true
+      ps aux | grep '[A]gentUp.Server' >&2 || true
+      lsof -nP -iTCP -sTCP:LISTEN >&2 || true
+      sudo ls -la "/Library/Application Support/Agent-Up" >&2 || true
       ;;
     windows)
       powershell.exe -NoProfile -Command "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *" >&2 || true
