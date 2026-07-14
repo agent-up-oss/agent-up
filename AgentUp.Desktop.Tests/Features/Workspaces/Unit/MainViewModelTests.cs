@@ -1,4 +1,7 @@
+using AgentUp.Desktop.Features.Applications.Http;
 using AgentUp.Desktop.Features.Console.Http;
+using AgentUp.Desktop.Features.Ports.Http;
+using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Http;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
@@ -78,6 +81,36 @@ public class MainViewModelTests
 
         Assert.That(vm.Sidebar.SelectedWorkspace, Is.Not.Null);
         Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+    }
+
+    [Test]
+    public async Task BrowserNavigation_emitsPortUrl_whenPortSubTabSelected()
+    {
+        const int port = 3000;
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, port, port)]
+                }
+            ]
+        };
+        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+
+        // Auto-selects first app → Console sub-tab; now explicitly select the port sub-tab.
+        var portTab = vm.SubTabs.OfType<PortSubTabViewModel>().First();
+        vm.SelectedSubTab = portTab;
+
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == $"http://localhost:{port}/"),
+            "Selecting the port sub-tab must emit the workspace id and the port's HTTP URL");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

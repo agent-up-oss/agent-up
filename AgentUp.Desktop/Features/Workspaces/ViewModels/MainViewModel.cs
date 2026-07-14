@@ -75,11 +75,39 @@ public sealed class MainViewModel : ReactiveObject
                 ? (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)pt.Url)
                 : (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)null));
 
-        BrowserNavigation = workspaceChanged.Merge(tabChanged);
+        var selectedPortTab = this.WhenAnyValue(x => x.SelectedSubTab)
+            .Select(tab => tab as PortSubTabViewModel);
+
+        // Re-probe the selected port every 3 s so IsOpen stays current while the tab is visible.
+        selectedPortTab
+            .Select(pt => pt is null
+                ? Observable.Empty<PortSubTabViewModel>()
+                : Observable.Timer(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3), RxApp.TaskpoolScheduler)
+                      .ObserveOn(RxApp.MainThreadScheduler)
+                      .Select(_ => pt))
+            .Switch()
+            .Subscribe(pt => _ = pt.ProbeAsync());
+
+        // Re-navigate when IsOpen flips false → true on the selected port tab.
+        // The initial probe fires ~50 ms after tab-select, so this also re-navigates the
+        // WebView after GTK has had time to realize the native widget (fixing blank-on-first-load).
+        // It also catches backend restarts while the user is watching the port tab.
+        var portOpenChanged = selectedPortTab
+            .Select(pt => pt is null
+                ? Observable.Empty<(string?, string?)>()
+                : pt.WhenAnyValue(t => t.IsOpen)
+                      .Skip(1)
+                      .Where(open => open)
+                      .Select(_ => ((string?)Sidebar.SelectedWorkspace?.Id, (string?)pt.Url)))
+            .Switch();
+
+        BrowserNavigation = workspaceChanged.Merge(tabChanged).Merge(portOpenChanged);
     }
 
     private void RebuildSubTabs(ApplicationViewModel? app)
     {
+        var wasOnPortTab = _selectedSubTab is PortSubTabViewModel;
+
         SubTabs.Clear();
         if (app is null) return;
 
@@ -87,7 +115,9 @@ public sealed class MainViewModel : ReactiveObject
         foreach (var port in app.AllocatedPorts)
             SubTabs.Add(new PortSubTabViewModel(port.Variable, port.DefaultPort, port.AllocatedPort, port.Protocol));
 
-        SelectedSubTab = SubTabs[0];
+        SelectedSubTab = wasOnPortTab
+            ? (SubTabViewModel?)SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault() ?? SubTabs[0]
+            : SubTabs[0];
 
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
             _ = portTab.ProbeAsync();

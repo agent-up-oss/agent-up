@@ -27,6 +27,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
 
+    // Evaluates a JavaScript expression in the WebView for the given workspace and returns
+    // the result as a string. Returns null if no WebView exists for that workspace yet.
+    internal async Task<string?> EvalAsync(string workspaceId, string script)
+    {
+        if (!_webViews.TryGetValue(workspaceId, out var webView)) return null;
+        // InvokeScript is synchronous but touches UI state — run it on the UI thread.
+        return await Dispatcher.UIThread.InvokeAsync(() => webView.InvokeScript(script));
+    }
+
     private void UpdateErrorDisplay(string? workspaceId)
     {
         if (workspaceId is not null && _webViewErrors.TryGetValue(workspaceId, out var error))
@@ -57,7 +66,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         if (url is not null && workspaceId is not null)
         {
-            if (!_webViews.TryGetValue(workspaceId, out var webView))
+            var isNew = !_webViews.TryGetValue(workspaceId, out var webView);
+            if (isNew)
             {
                 try
                 {
@@ -72,18 +82,38 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                             gtk.BaseCacheDirectory = Path.Combine(profileRoot, "cache");
                         }
                     };
+                    var firstNavDone = false;
                     webView.NavigationCompleted += (_, e) =>
                     {
-                        if (e.IsSuccess && e.Request is { } uri)
-                            BrowserUrlStore.Write(capturedId, uri.ToString());
+                        if (!e.IsSuccess || e.Request is not { } uri) return;
+                        BrowserUrlStore.Write(capturedId, uri.ToString());
+                        if (firstNavDone) return;
+                        firstNavDone = true;
+                        // WebKit renders content into the native window but GTK only composites
+                        // it when XMapWindow fires an Expose event on the embedded window.
+                        // The window was already mapped before the first navigation completed,
+                        // so no Expose arrives — content loads but stays invisible.
+                        // A hide→show at separate dispatcher priorities forces XMapWindow,
+                        // which sends the Expose that causes WebKit to repaint.
+                        // Background priority ensures the show runs after layout/render have
+                        // already processed the hide (unmapping the native window first).
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            if (!webView.IsVisible) return;
+                            webView.IsVisible = false;
+                            Dispatcher.UIThread.Post(
+                                () => webView.IsVisible = true,
+                                DispatcherPriority.Background);
+                        });
                     };
                     _webViews[workspaceId] = webView;
                     _webViewErrors.Remove(workspaceId);
+
+                    // Restore last-visited URL before the first navigation.
+                    url = BrowserUrlStore.Read(workspaceId, url) ?? url;
+
                     PortPane.Children.Add(webView);
                     UpdateErrorDisplay(workspaceId);
-
-                    // On first load, restore the last-visited page if it's on the same port.
-                    url = BrowserUrlStore.Read(workspaceId, url) ?? url;
                 }
                 catch (Exception ex)
                 {
@@ -93,7 +123,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 }
             }
 
-            webView.IsVisible = true;
+            webView!.IsVisible = true;
             webView.Source = new Uri(url);
         }
     }
