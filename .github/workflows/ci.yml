@@ -122,12 +122,20 @@ jobs:
             fi
 
             found_tests=true
-            dotnet test "$test_project" \
-              --configuration Release \
-              --no-build \
-              --settings "coverlet.runsettings" \
-              --logger "trx;LogFileName=test-results.trx" \
+            test_command=(
+              dotnet test "$test_project"
+              --configuration Release
+              --no-build
+              --settings "coverlet.runsettings"
+              --logger "trx;LogFileName=test-results.trx"
               --collect:"XPlat Code Coverage"
+            )
+
+            if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$(basename "$(dirname "$test_project")")" = "AgentUp.Tests" ]; then
+              xvfb-run -a --server-args="-screen 0 1280x720x24" "${test_command[@]}"
+            else
+              "${test_command[@]}"
+            fi
           done < <(find . -name "*Tests.csproj" -print0)
 
           if [ "$found_tests" = false ]; then

@@ -97,7 +97,7 @@ public sealed class XvfbManager
         // WebKit's bwrap-based process sandbox can fail in headless/CI environments.
         Environment.SetEnvironmentVariable("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
 
-        if (Environment.GetEnvironmentVariable("DISPLAY") is not null)
+        if (Environment.GetEnvironmentVariable("DISPLAY") is not null && IsDisplayReady())
             return;
 
         _xvfb = Process.Start(new ProcessStartInfo
