@@ -44,13 +44,14 @@ public sealed class BrowserRenderingTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
-        _server.Dispose();
         var w = _window;
         _window = null;
         if (w is not null)
-            Dispatcher.UIThread.Post(() => w.Close());
+            await Dispatcher.UIThread.InvokeAsync(() => w.Close());
+
+        _server.Dispose();
     }
 
     [Test, CancelAfter(60000)]

@@ -178,11 +178,20 @@ public sealed class XvfbManager
     [OneTimeTearDown]
     public void Stop()
     {
-        Dispatcher.UIThread.Post(() =>
+        try
         {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lt)
-                lt.Shutdown();
-        });
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lt)
+                    lt.Shutdown();
+            }).GetAwaiter().GetResult();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
 
         try { _xvfb?.Kill(); } catch { /* already gone */ }
         _xvfb?.Dispose();
