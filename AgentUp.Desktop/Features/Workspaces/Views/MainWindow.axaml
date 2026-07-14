@@ -1046,6 +1046,13 @@
                                 <TextBlock TextWrapping="Wrap"
                                            Foreground="#b7c8c0"
                                            FontSize="16">
+                                    <Run Text="The second workspace also has "/>
+                                    <Run Text="different seeded product data" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=", so the React dashboard table makes it obvious which isolated environment you are viewing."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="16">
                                     <Run Text="That matters because agents can now work in parallel on duplicate environments while sharing the same runtime rules: "/>
                                     <Run Text="workspace identity, process lifecycle, Docker, browser profiles, diagnostics, and ports all stay Server-owned." FontWeight="Bold" Foreground="#f5fbf7"/>
                                 </TextBlock>

@@ -41,14 +41,33 @@ public class FirstRunTutorialChecksTests
         Assert.That(packageJson, Does.Not.Contain("\"latest\""));
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "index.html")), Is.True);
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "src-App.jsx")), Is.True);
+        var appJsx = File.ReadAllText(Path.Combine(_testRoot, "web", "src-App.jsx"));
+        Assert.That(appJsx, Does.Contain("Product Operations Dashboard"));
+        Assert.That(appJsx, Does.Contain("/api/products"));
+        Assert.That(appJsx, Does.Contain("Unit Price"));
         Assert.That(File.Exists(Path.Combine(_testRoot, "web", "vite.config.mjs")), Is.True);
-        Assert.That(File.ReadAllText(Path.Combine(_testRoot, "web", "vite.config.mjs")), Does.Contain("process.env.WEB_PORT"));
+        var viteConfig = File.ReadAllText(Path.Combine(_testRoot, "web", "vite.config.mjs"));
+        Assert.That(viteConfig, Does.Contain("process.env.WEB_PORT"));
+        Assert.That(viteConfig, Does.Contain("process.env.API_PORT"));
+        Assert.That(viteConfig, Does.Contain("__API_PORT__"));
         Assert.That(File.Exists(Path.Combine(_testRoot, "api", "package.json")), Is.True);
         var apiPackageJson = File.ReadAllText(Path.Combine(_testRoot, "api", "package.json"));
         Assert.That(apiPackageJson, Does.Contain("\"express\": \"4.18.3\""));
         Assert.That(apiPackageJson, Does.Contain("\"pg\": \"8.12.0\""));
         Assert.That(apiPackageJson, Does.Not.Contain("\"latest\""));
         Assert.That(File.Exists(Path.Combine(_testRoot, "api", "server.js")), Is.True);
+        var serverJs = File.ReadAllText(Path.Combine(_testRoot, "api", "server.js"));
+        Assert.That(serverJs, Does.Contain("openapi: '3.0.3'"));
+        Assert.That(serverJs, Does.Contain("Product API Explorer"));
+        Assert.That(serverJs, Does.Contain("app.get('/openapi.json'"));
+        Assert.That(serverJs, Does.Contain("app.get('/',"));
+        Assert.That(serverJs, Does.Contain("create table if not exists products"));
+        Assert.That(serverJs, Does.Contain("select sku, name, category, status, region, inventory, unit_price, margin, updated_at"));
+        Assert.That(serverJs, Does.Contain("app.get('/api/products'"));
+        Assert.That(serverJs, Does.Contain("Express API querying Postgres"));
+        Assert.That(serverJs, Does.Contain("Seeded ${products.length} product row(s) into Postgres."));
+        Assert.That(File.Exists(Path.Combine(_testRoot, "api", "products.json")), Is.True);
+        Assert.That(File.ReadAllText(Path.Combine(_testRoot, "api", "products.json")), Does.Contain("Atlas Analytics Seat"));
         Assert.That(File.Exists(Path.Combine(_testRoot, "docker-compose.yaml")), Is.True);
     }
 
@@ -63,6 +82,7 @@ public class FirstRunTutorialChecksTests
         Assert.That(result.IsSuccess, Is.True);
         var agentUpJson = File.ReadAllText(Path.Combine(_testRoot, "agent-up.json"));
         Assert.That(agentUpJson, Does.Contain("rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev"));
+        Assert.That(agentUpJson, Does.Contain("docker compose up database -d && docker compose logs -f database"));
     }
 
     [Test]
@@ -100,7 +120,7 @@ public class FirstRunTutorialChecksTests
 
         Assert.That(create.IsSuccess, Is.True);
         Assert.That(check.IsSuccess, Is.True);
-        Assert.That(File.ReadAllText(Path.Combine(_testRoot, "agent-up.json")), Does.Contain("docker compose up database -d"));
+        Assert.That(File.ReadAllText(Path.Combine(_testRoot, "agent-up.json")), Does.Contain("docker compose logs -f database"));
     }
 
     [Test]

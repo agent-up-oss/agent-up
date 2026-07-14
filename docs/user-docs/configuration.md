@@ -35,7 +35,7 @@ Configuration is declarative. Applications describe how they should be launched,
 
 Applications reference environment variables supplied by Agent-Up. Applications must not assume fixed localhost ports.
 
-The Server owns port allocation and injects values into each launched process.
+The Server owns port allocation and injects the workspace's full allocated port map into each launched local process. Applications should read the relevant environment variables instead of assuming fixed localhost ports.
 
 ## No Framework Knowledge
 

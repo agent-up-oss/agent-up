@@ -28,7 +28,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
             },
             {
               "name": "Postgres",
-              "command": "docker compose up database -d",
+              "command": "docker compose up database -d && docker compose logs -f database",
               "ports": [
                 { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
               ]

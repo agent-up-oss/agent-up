@@ -26,7 +26,7 @@ title: agent-up.json
 
 ## Port Variables
 
-Agent-Up allocates ports per workspace and writes those values into environment variables.
+Agent-Up allocates ports per workspace and writes those values into environment variables. Each launched local application receives the full workspace port map, so a frontend can discover the API port and an API can discover infrastructure ports without hardcoding localhost values.
 
 ```text
 WEB_PORT=5100

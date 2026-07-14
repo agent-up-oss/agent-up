@@ -63,7 +63,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        foreach (var mapping in app.AllocatedPorts)
+        foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts))
         {
             if (mapping.Variable is not null)
                 startInfo.Environment[mapping.Variable] = mapping.AllocatedPort.ToString();
