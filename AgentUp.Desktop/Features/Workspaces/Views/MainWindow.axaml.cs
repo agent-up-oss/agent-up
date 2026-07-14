@@ -1,8 +1,11 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
+using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -276,4 +279,40 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         => WindowState = WindowState == WindowState.Maximized
             ? WindowState.Normal
             : WindowState.Maximized;
+
+    private async void OnChooseTutorialFolderClicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var result = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Choose sample project folder",
+            AllowMultiple = false
+        });
+
+        var folder = result.FirstOrDefault();
+        if (folder?.Path.LocalPath is { Length: > 0 } path)
+            vm.Tutorial.ProjectDirectory = path;
+    }
+
+    private void OnOpenTutorialFolderClicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel { Tutorial.ProjectDirectory: { Length: > 0 } path }) return;
+        if (!Directory.Exists(path)) return;
+
+        var (fileName, arguments) = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? ("explorer.exe", $"\"{path}\"")
+            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? ("open", $"\"{path}\"")
+                : ("xdg-open", $"\"{path}\"");
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = false });
+        }
+        catch
+        {
+            // Opening the file manager is a convenience action; setup checks remain authoritative.
+        }
+    }
 }

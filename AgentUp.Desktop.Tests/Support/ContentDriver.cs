@@ -33,6 +33,12 @@ internal sealed class ContentDriver(MainWindow window)
     public bool ShowsAddressNavBar =>
         window.FindControl<Border>("AddressNavBar")?.IsVisible ?? false;
 
+    public bool ShowsFirstRunTutorial =>
+        window.FindControl<Panel>("FirstRunTutorialOverlay")?.IsVisible ?? false;
+
+    public string? TutorialStatusMessage =>
+        window.FindControl<TextBlock>("TutorialStatusMessage")?.Text;
+
     public string? AddressBarText =>
         window.FindControl<TextBox>("AddressBar")?.Text;
 
@@ -59,6 +65,13 @@ internal sealed class ContentDriver(MainWindow window)
         var detail = window.FindControl<Border>("WorkspaceDetail")
             ?? throw new InvalidOperationException("Workspace detail was not found.");
         await window.ClickControlAsync(detail);
+    }
+
+    public async Task ClickSkipTutorialAsync()
+    {
+        var button = window.FindControl<Button>("SkipTutorialButton")
+            ?? throw new InvalidOperationException("Skip tutorial button was not found.");
+        await window.ClickControlAsync(button);
     }
 
     // ── Application panel ────────────────────────────────────────────────────

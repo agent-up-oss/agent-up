@@ -38,6 +38,26 @@ The Desktop displays:
 
 It connects to the Server and renders server-owned state.
 
+## First-Run Tutorial
+
+On first start, the Desktop shows a required setup tutorial over the normal application shell unless the user has already completed or skipped it. Tutorial progress is stored in the Desktop user settings file under the user's local application data directory.
+
+The tutorial is a Desktop concern because it guides local workstation setup before the user can use Agent-Up successfully. It must not duplicate Server orchestration state. It may run local readiness checks that are prerequisites for using the Desktop, such as verifying that Docker is installed and responding and that Agent-Up CLI can be invoked.
+
+The first-run flow is:
+
+1. Check Docker and Agent-Up CLI. Docker is checked with `docker version`. Agent-Up CLI is checked with `agent-up --help`; if that is unavailable, Desktop may fall back to `dotnet run --project <repo>/AgentUp.CLI/AgentUp.CLI.csproj -- --help` when the CLI project can be inferred from the Desktop binary location. The user cannot continue until Docker and one Agent-Up CLI path work.
+2. Choose a development environment from a visual grid. The JavaScript path is the active path and creates a React SPA, Express API, and Postgres sample.
+3. Check Node.js by running `node --version` and `npm --version`. The JavaScript path requires Node.js 20 or newer. If Node is installed while Desktop is already running, the tutorial tells the user to restart Desktop so the process receives the updated `PATH`.
+4. Choose a folder with the platform folder picker. Desktop creates the sample React and Express project files and `docker-compose.yaml` in that folder. The smoke check for this step is that the expected project files, including `docker-compose.yaml`, exist. Desktop also provides an Open File Explorer button for the selected folder.
+5. Create `agent-up.json` at the project root. The tutorial shows the copyable file and also provides an auto-create button. The check for this step is that `agent-up.json` exists and is parseable with at least one application.
+6. Run `agent-up start` in the sample project directory. The tutorial provides an automatic button that uses `agent-up start` or the local CLI project fallback. The check for this step is that the Server registered a workspace containing `React SPA`, `Express API`, and `Postgres`.
+7. Duplicate the sample directory and run `agent-up start` in the duplicate. The tutorial checks that two matching workspaces exist and that their allocated ports do not collide.
+
+Completing the final step saves the tutorial as completed. The Skip button hides the entire tutorial and persists skipped state, so it does not reappear on the next launch.
+
+The tutorial is rendered as an overlay above the full Desktop window. The underlying application remains visible behind a dimmed blurred layer, but the overlay consumes input while it is visible.
+
 ## Browser Experience
 
 The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome, green/teal active states, rounded workspace entries, and a browser-first runtime surface.

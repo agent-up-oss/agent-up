@@ -5,6 +5,8 @@ using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.Http;
 using AgentUp.Desktop.Features.Console.ViewModels;
+using AgentUp.Desktop.Features.FirstRun.Services;
+using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Http;
 using ReactiveUI;
@@ -21,6 +23,7 @@ public sealed class MainViewModel : ReactiveObject
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
     public ConsoleViewModel Console { get; }
+    public FirstRunTutorialViewModel Tutorial { get; }
 
     public ObservableCollection<SubTabViewModel> SubTabs { get; } = [];
 
@@ -50,11 +53,17 @@ public sealed class MainViewModel : ReactiveObject
     public IObservable<(string? WorkspaceId, string? Url)> BrowserNavigation { get; }
     public IObservable<BrowserCommand> BrowserCommands => _browserCommands;
 
-    public MainViewModel(WorkspaceApiClient workspaceClient, ConsoleApiClient consoleClient)
+    public MainViewModel(
+        WorkspaceApiClient workspaceClient,
+        ConsoleApiClient consoleClient,
+        FirstRunTutorialViewModel? tutorial = null)
     {
         Sidebar = new WorkspaceListViewModel(workspaceClient);
         Applications = new ApplicationListViewModel();
         Console = new ConsoleViewModel(consoleClient);
+        Tutorial = tutorial ?? new FirstRunTutorialViewModel(
+            new FileFirstRunTutorialSettingsStore(),
+            new FirstRunTutorialChecks(workspaceClient));
 
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
@@ -179,5 +188,9 @@ public sealed class MainViewModel : ReactiveObject
             _ = portTab.ProbeAsync();
     }
 
-    public async Task InitializeAsync() => await Sidebar.LoadAsync();
+    public async Task InitializeAsync()
+    {
+        await Tutorial.InitializeAsync();
+        await Sidebar.LoadAsync();
+    }
 }
