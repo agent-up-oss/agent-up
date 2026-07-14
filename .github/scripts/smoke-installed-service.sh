@@ -42,7 +42,7 @@ extract_zip() {
 }
 
 wait_for_server() {
-  for _ in {1..90}; do
+  for attempt in {1..90}; do
     if curl -fsS "$server_url/api/workspaces" > "$work_dir/service-workspaces-before.json"; then
       return 0
     fi
@@ -51,6 +51,11 @@ wait_for_server() {
       return 0
     fi
     sleep 1
+
+    if [ "$attempt" = "15" ] && [ "$platform" = "ubuntu" ]; then
+      echo "Server not ready after 15 seconds; printing interim diagnostics." >&2
+      print_service_diagnostics
+    fi
   done
 
   echo "Installed service did not become ready at $server_url" >&2
@@ -63,6 +68,8 @@ print_service_diagnostics() {
     ubuntu)
       sudo systemctl status agent-up-server.service --no-pager >&2 || true
       sudo journalctl -u agent-up-server.service --no-pager -n 200 >&2 || true
+      sudo tail -n 200 /var/log/agent-up-server.log >&2 || true
+      sudo tail -n 200 /var/log/agent-up-server.err.log >&2 || true
       ps -ef | grep '[A]gentUp.Server' >&2 || true
       ss -ltnp >&2 || true
       sudo ls -la /var/lib/agent-up >&2 || true

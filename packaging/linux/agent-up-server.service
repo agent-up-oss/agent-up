@@ -4,9 +4,15 @@ After=network.target
 
 [Service]
 Type=simple
+WorkingDirectory=/opt/agent-up/server
 ExecStart=/opt/agent-up/server/AgentUp.Server --urls http://127.0.0.1:5000
 Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
 Environment=Storage__DataDirectory=/var/lib/agent-up
+Environment=DOTNET_CONTENTROOT=/opt/agent-up/server
+Environment=ASPNETCORE_CONTENTROOT=/opt/agent-up/server
+Environment=Logging__LogLevel__Default=Debug
+StandardOutput=append:/var/log/agent-up-server.log
+StandardError=append:/var/log/agent-up-server.err.log
 Restart=on-failure
 RestartSec=5
 

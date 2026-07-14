@@ -152,6 +152,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo mkdir -p /opt/agent-up
 sudo mkdir -p /var/lib/agent-up
+sudo touch /var/log/agent-up-server.log /var/log/agent-up-server.err.log
 sudo rm -rf /opt/agent-up/desktop /opt/agent-up/server /opt/agent-up/cli
 sudo cp -a "$root/desktop" /opt/agent-up/desktop
 sudo cp -a "$root/server" /opt/agent-up/server
