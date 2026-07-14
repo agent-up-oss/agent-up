@@ -29,6 +29,12 @@ public sealed class DesktopFixtureHost
     {
         if (adapter.RequiresSetupThreadAvalonia)
         {
+            if (Application.Current is not null)
+            {
+                MarkAvaloniaReady();
+                return;
+            }
+
             var lifetime = new ClassicDesktopStyleApplicationLifetime
             {
                 ShutdownMode = ShutdownMode.OnExplicitShutdown
@@ -79,7 +85,7 @@ public sealed class DesktopFixtureHost
     }
 }
 
-file sealed class E2ETestApp : Application
+internal sealed class E2ETestApp : Application
 {
     public override void Initialize() => Styles.Add(new FluentTheme());
 }

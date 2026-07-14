@@ -109,7 +109,23 @@ jobs:
                 -- \
                 --workers=0 \
                 --timeout=120000 \
-                "--result=$test_project_name/TestResults/test-results.xml;format=nunit3"
+                "--result=$test_project_name/TestResults/test-results.xml;format=nunit3" &
+
+              test_pid=$!
+              elapsed=0
+              while kill -0 "$test_pid" 2>/dev/null; do
+                sleep 5
+                elapsed=$((elapsed + 5))
+                if [ "$elapsed" -ge 180 ]; then
+                  echo "macOS AgentUp.Tests exceeded 180 seconds; terminating test process."
+                  kill -TERM "$test_pid" 2>/dev/null || true
+                  sleep 5
+                  kill -KILL "$test_pid" 2>/dev/null || true
+                  wait "$test_pid" || true
+                  exit 124
+                fi
+              done
+              wait "$test_pid"
               continue
             fi
 
