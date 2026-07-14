@@ -25,10 +25,15 @@ jobs:
             platform: nixos
             rid: linux-x64
             use-nix: true
-          - name: macOS
+          - name: macOS Apple Silicon
             os: macos-latest
             platform: macos
             rid: osx-arm64
+            use-nix: false
+          - name: macOS Intel
+            os: macos-13
+            platform: macos
+            rid: osx-x64
             use-nix: false
           - name: Windows
             os: windows-latest

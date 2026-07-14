@@ -20,7 +20,8 @@ CI builds artifacts for:
 
 | Platform | Artifact |
 |---|---|
-| macOS | `.dmg` containing `Agent-Up.app`, launchd service plist, and install/uninstall scripts |
+| macOS Apple Silicon | `.dmg` containing `Agent-Up.app`, launchd service plist, and install/uninstall scripts |
+| macOS Intel | `.dmg` containing `Agent-Up.app`, launchd service plist, and install/uninstall scripts |
 | Windows | `.exe` installer containing Desktop, CLI, Server, and Windows Service scripts |
 | Ubuntu | `.deb` package installing Desktop, CLI, Server, and `agent-up-server.service` |
 | NixOS | package-set tarball consumed as a flake input exposing `agentsPkgs.agent-up` |

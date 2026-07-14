@@ -18,9 +18,11 @@ After installation, start Agent-Up from the installed Desktop application. CLI c
 
 ## macOS
 
-Use the macOS disk image:
+Use the macOS disk image for your processor:
 
-<a className="button button--primary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-macos-osx-arm64.dmg">Download macOS disk image</a>
+<a className="button button--primary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-macos-osx-arm64.dmg">Download macOS Apple Silicon disk image</a>
+
+<a className="button button--secondary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-macos-osx-x64.dmg">Download macOS Intel disk image</a>
 
 Open the `.dmg`, run `install.sh`, then start `Agent-Up.app` from `/Applications`.
 
