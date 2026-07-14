@@ -360,8 +360,14 @@ jobs:
           mc cp --recursive \
             "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/" \
             release-artifacts/
-          find release-artifacts -mindepth 2 -type f -exec mv {} release-artifacts/ \;
+          while IFS= read -r -d "" artifact; do
+            target="release-artifacts/$(basename "$artifact")"
+            echo "Collecting $artifact -> $target"
+            mv "$artifact" "$target"
+          done < <(find release-artifacts -mindepth 2 -type f -print0)
           find release-artifacts -mindepth 1 -type d -empty -delete
+          ./.github/scripts/upload-release-artifacts.sh --check-only
+          find release-artifacts -maxdepth 1 -type f -printf "Ready artifact: %f (%s bytes)\n" | sort
 
       - name: Release
         env:
