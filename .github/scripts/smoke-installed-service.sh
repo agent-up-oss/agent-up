@@ -142,7 +142,7 @@ case "$platform" in
     if command -v cygpath >/dev/null 2>&1; then
       ps_install_dir="$(cygpath -w "$install_dir")"
     fi
-    powershell.exe -NoProfile -Command "\$installDir = '$ps_install_dir'; \$key = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Agent-Up'; if (-not (Test-Path \$key)) { throw 'Agent-Up uninstall registration missing' }; \$path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); \$bin = Join-Path \$installDir 'bin'; if ((\$path -split ';') -notcontains \$bin) { throw \"Agent-Up PATH entry missing: \$bin\" }"
+    powershell.exe -NoProfile -Command "\$installDir = [System.IO.Path]::GetFullPath('$ps_install_dir'); \$key = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Agent-Up'; if (-not (Test-Path \$key)) { throw 'Agent-Up uninstall registration missing' }; \$path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); \$bin = [System.IO.Path]::GetFullPath((Join-Path \$installDir 'bin')).TrimEnd('\\'); \$entries = (\$path -split ';' | Where-Object { \$_ } | ForEach-Object { [System.IO.Path]::GetFullPath(\$_).TrimEnd('\\') }); if (-not (\$entries | Where-Object { [string]::Equals(\$_, \$bin, [System.StringComparison]::OrdinalIgnoreCase) })) { Write-Host \"Machine PATH: \$path\"; throw \"Agent-Up PATH entry missing: \$bin\" }"
     ;;
   ubuntu)
     deb_path="$(cd "$artifact_dir" && pwd)/agent-up-ubuntu-$rid.deb"

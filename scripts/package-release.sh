@@ -118,6 +118,8 @@ for (var i = 0; i < args.Length; i++)
     }
 }
 
+installDir = Path.GetFullPath(installDir);
+
 if (extractOnly)
 {
     ExtractPayload(installDir);
