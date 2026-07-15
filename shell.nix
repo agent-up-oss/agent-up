@@ -17,6 +17,7 @@ pkgs.mkShell {
     gtk3
     glib
     xvfb
+    xdpyinfo
   ];
 
   shellHook = ''

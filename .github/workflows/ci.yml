@@ -81,12 +81,20 @@ jobs:
 
             while IFS= read -r -d "" test_project; do
               found_tests=true
-              dotnet test "$test_project" \
+              test_project_name="$(basename "$(dirname "$test_project")")"
+              test_command=(
+                dotnet test "$test_project"
                 --configuration Release \
                 --no-build \
                 --settings "coverlet.runsettings" \
                 --logger "trx;LogFileName=test-results.trx" \
                 --collect:"XPlat Code Coverage"
+              )
+
+              if [ "$test_project_name" = "AgentUp.Tests" ]; then
+                test_command+=(--blame-hang --blame-hang-timeout 120s)
+              fi
+              "${test_command[@]}"
             done < <(find . -name "*Tests.csproj" -print0)
 
             if [ "$found_tests" = false ]; then

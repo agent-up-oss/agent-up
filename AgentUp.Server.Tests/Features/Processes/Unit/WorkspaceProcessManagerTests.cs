@@ -73,8 +73,9 @@ public class WorkspaceProcessManagerTests
 
             var webPort = workspace.Applications.Single(app => app.Name == "Web").AllocatedPorts.Single().AllocatedPort;
             var apiPort = workspace.Applications.Single(app => app.Name == "Api").AllocatedPorts.Single().AllocatedPort;
-            var lines = await WaitForOutputAsync(workspace.Id, "Web");
-            Assert.That(lines, Has.Some.EqualTo($"{webPort}|{apiPort}"));
+            var expectedOutput = $"{webPort}|{apiPort}";
+            var lines = await WaitForOutputAsync(workspace.Id, "Web", expectedOutput);
+            Assert.That(lines, Has.Some.EqualTo(expectedOutput));
         }
         finally
         {
@@ -83,12 +84,12 @@ public class WorkspaceProcessManagerTests
         }
     }
 
-    private async Task<IReadOnlyList<string>> WaitForOutputAsync(string workspaceId, string appName)
+    private async Task<IReadOnlyList<string>> WaitForOutputAsync(string workspaceId, string appName, string expectedOutput)
     {
-        for (var attempt = 0; attempt < 20; attempt++)
+        for (var attempt = 0; attempt < 100; attempt++)
         {
             var lines = await _output.GetAsync(workspaceId, appName);
-            if (lines.Count > 0)
+            if (lines.Contains(expectedOutput))
                 return lines;
 
             await Task.Delay(50);
