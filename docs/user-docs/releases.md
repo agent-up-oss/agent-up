@@ -6,7 +6,7 @@ title: Releases
 
 Agent-Up release artifacts are built by CI after the Ubuntu .NET build and test job passes.
 
-The Ubuntu build job builds the solution, runs the broad .NET test suite, publishes the reusable Packaging and PackageSmoke console artifacts, and publishes single-file self-contained Desktop, Server, and CLI payloads for each release runtime. Native platform jobs download only their own runtime's prebuilt payloads from the CI bucket, build only the native package format, and smoke-test the package before upload. Package smoke tests consume the artifact on the target runner and check the expected package contract. Where the package exposes payload files directly, smoke tests also start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`. Windows WiX/Burn artifacts are validated through layout/package checks first, then through the installed-service smoke path.
+The Ubuntu build job builds the solution, runs the broad .NET test suite, publishes the reusable Packaging and PackageSmoke console artifacts, and publishes single-file self-contained Desktop, Server, and CLI payloads for each release runtime. Native platform jobs download only their own runtime's prebuilt payloads from short-lived GitHub Actions artifacts, delete those consumed CI-transfer artifacts, build only the native package format, and smoke-test the package before upload. Package smoke tests consume the artifact on the target runner and check the expected package contract. Where the package exposes payload files directly, smoke tests also start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`. Windows WiX/Burn artifacts are validated through layout/package checks first, then through the installed-service smoke path.
 
 Shared installer planning, validation, and platform install contracts live in `AgentUp.Installers` and are tested by `AgentUp.Installers.Tests`. The shared guided installer UX lives in `AgentUp.InstallerApp` and is tested by `AgentUp.InstallerApp.Tests` plus native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`; packaging code consumes the shared installer contracts instead of redefining platform behavior. Package and installed-service smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator for artifact, installer-flow, install, service, CLI, diagnostics, and uninstall checks. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
 
@@ -73,28 +73,12 @@ Required CI secrets:
 
 | Secret | Purpose |
 |---|---|
-| `AGENTUP_CI_ARTIFACT_BUCKET` | Private bucket used to pass platform packages from matrix jobs to the release job |
-| `AGENTUP_CI_S3_ENDPOINT` | MinIO/S3-compatible endpoint URL for the private CI bucket |
-| `AGENTUP_CI_S3_ACCESS_KEY` | Read/write access key for the private CI bucket |
-| `AGENTUP_CI_S3_SECRET_KEY` | Read/write secret key for the private CI bucket |
 | `AGENTUP_RELEASE_BUCKET` | Public-read release bucket name |
 | `AGENTUP_RELEASE_S3_ENDPOINT` | MinIO/S3-compatible endpoint URL for the release bucket |
 | `AGENTUP_RELEASE_S3_ACCESS_KEY` | Private write access key for the release bucket |
 | `AGENTUP_RELEASE_S3_SECRET_KEY` | Private write secret key for the release bucket |
 
-CI does not use GitHub Actions artifacts. The Ubuntu build job uploads reusable .NET payloads and tools to:
-
-```text
-agent-up-ci/runs/{github-run-id}/dotnet-ci/
-```
-
-Platform jobs upload package outputs directly to:
-
-```text
-agent-up-ci/runs/{github-run-id}/{platform-runtime}/
-```
-
-The release job downloads only the native package objects from MinIO, then publishes the final release artifacts.
+CI transfer uses GitHub Actions artifacts rather than the release S3 endpoint. The Ubuntu build job uploads one `dotnet-ci-{platform}-{runtime}` artifact per platform job with one-day retention. Each platform job deletes its consumed .NET artifact immediately after download. Platform jobs upload one `package-{platform}-{runtime}` artifact with one-day retention. The release job downloads those package artifacts, deletes them immediately, then publishes the final release artifacts to the release bucket.
 
 CI publishes artifacts under both:
 

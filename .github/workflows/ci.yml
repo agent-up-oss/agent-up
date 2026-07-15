@@ -6,6 +6,7 @@ permissions:
   contents: read
   pull-requests: write
   checks: write
+  actions: write
 
 jobs:
   dotnet-build-test:
@@ -128,23 +129,60 @@ jobs:
         run: |
           ./.github/scripts/publish-dotnet-ci-artifacts.sh "0.0.0-ci" "artifacts/dotnet-ci"
 
-      - name: Install mc
+      - name: Prepare per-platform .NET CI artifacts
         shell: bash
-        run: ./.github/scripts/install-mc.sh
-
-      - name: Upload .NET artifacts to CI artifact bucket
-        shell: bash
-        env:
-          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
-          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
-          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
-          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
         run: |
-          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
-          mc mb --ignore-existing "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET"
-          mc mirror --overwrite --remove \
-            artifacts/dotnet-ci \
-            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/dotnet-ci"
+          rm -rf artifacts/ci-transfer
+          for entry in \
+            ubuntu-linux-x64:linux-x64 \
+            nixos-linux-x64:linux-x64 \
+            macos-osx-arm64:osx-arm64 \
+            macos-osx-x64:osx-x64 \
+            windows-win-x64:win-x64
+          do
+            platform_rid="${entry%%:*}"
+            rid="${entry##*:}"
+            target="artifacts/ci-transfer/$platform_rid/dotnet-ci"
+            mkdir -p "$target/tools/$rid" "$target/payloads"
+            cp -a "artifacts/dotnet-ci/tools/$rid/packaging" "$target/tools/$rid/"
+            cp -a "artifacts/dotnet-ci/tools/$rid/package-smoke" "$target/tools/$rid/"
+            cp -a "artifacts/dotnet-ci/payloads/$rid" "$target/payloads/"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-ci-ubuntu-linux-x64
+          path: artifacts/ci-transfer/ubuntu-linux-x64/dotnet-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-ci-nixos-linux-x64
+          path: artifacts/ci-transfer/nixos-linux-x64/dotnet-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-ci-macos-osx-arm64
+          path: artifacts/ci-transfer/macos-osx-arm64/dotnet-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-ci-macos-osx-x64
+          path: artifacts/ci-transfer/macos-osx-x64/dotnet-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-ci-windows-win-x64
+          path: artifacts/ci-transfer/windows-win-x64/dotnet-ci
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Test Report
         uses: dorny/test-reporter@v2
@@ -195,34 +233,25 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v14
         if: ${{ matrix.use-nix }}
 
-      - name: Install mc
-        shell: bash
-        run: ./.github/scripts/install-mc.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: dotnet-ci-${{ matrix.platform }}-${{ matrix.rid }}
+          path: dotnet-ci
 
-      - name: Download .NET artifacts from CI artifact bucket
+      - name: Delete consumed .NET CI artifact
         shell: bash
         env:
-          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
-          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
-          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
-          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
-          rm -rf dotnet-ci
-          mkdir -p \
-            "dotnet-ci/tools/${{ matrix.rid }}/packaging" \
-            "dotnet-ci/tools/${{ matrix.rid }}/package-smoke" \
-            "dotnet-ci/payloads/${{ matrix.rid }}"
-          artifact_prefix="agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/dotnet-ci"
-          mc cp --recursive \
-            "$artifact_prefix/tools/${{ matrix.rid }}/packaging/" \
-            "dotnet-ci/tools/${{ matrix.rid }}/packaging/"
-          mc cp --recursive \
-            "$artifact_prefix/tools/${{ matrix.rid }}/package-smoke/" \
-            "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/"
-          mc cp --recursive \
-            "$artifact_prefix/payloads/${{ matrix.rid }}/" \
-            "dotnet-ci/payloads/${{ matrix.rid }}/"
+          artifact_name="dotnet-ci-${{ matrix.platform }}-${{ matrix.rid }}"
+          artifact_id="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id" | head -n 1)"
+          if [ -n "$artifact_id" ]; then
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id"
+          fi
+
+      - name: Mark downloaded tools executable
+        shell: bash
+        run: |
           if [ "${{ runner.os }}" != "Windows" ]; then
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging" || true
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke" || true
@@ -273,19 +302,12 @@ jobs:
           export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
           ./.github/scripts/smoke-installed-service.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
 
-      - name: Upload package to CI artifact bucket
-        shell: bash
-        env:
-          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
-          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
-          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
-          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
-        run: |
-          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
-          mc mb --ignore-existing "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET"
-          mc mirror --overwrite --remove \
-            release-artifacts \
-            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/${{ matrix.platform }}-${{ matrix.rid }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.platform }}-${{ matrix.rid }}
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 1
 
   docs:
     name: Docs
@@ -309,6 +331,7 @@ jobs:
     needs: [platform, docs]
     if: ${{ github.ref == 'refs/heads/main' }}
     permissions:
+      actions: write
       contents: write
       issues: write
       pull-requests: write
@@ -327,31 +350,25 @@ jobs:
       - name: Install mc
         run: ./.github/scripts/install-mc.sh
 
-      - name: Download packages from CI artifact bucket
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Delete consumed package artifacts
         env:
-          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
-          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
-          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
-          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p ci-release-download release-artifacts
-          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
-          mc cp --recursive \
-            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/" \
-            ci-release-download/
-          for package_dir in \
-            ubuntu-linux-x64 \
-            nixos-linux-x64 \
-            macos-osx-arm64 \
-            macos-osx-x64 \
-            windows-win-x64
-          do
-            while IFS= read -r -d "" artifact; do
-              target="release-artifacts/$(basename "$artifact")"
-              echo "Collecting $artifact -> $target"
-              cp "$artifact" "$target"
-            done < <(find "ci-release-download/$package_dir" -maxdepth 1 -type f -print0)
-          done
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select(.name | startswith("package-")) | .id' |
+            while IFS= read -r artifact_id; do
+              if [ -n "$artifact_id" ]; then
+                gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id"
+              fi
+            done
+
+      - name: Validate downloaded release artifacts
+        run: |
           ./.github/scripts/upload-release-artifacts.sh --check-only
           find release-artifacts -maxdepth 1 -type f -printf "Ready artifact: %f (%s bytes)\n" | sort
 
