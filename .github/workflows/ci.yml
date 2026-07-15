@@ -31,7 +31,7 @@ jobs:
             rid: osx-arm64
             use-nix: false
           - name: macOS Intel
-            os: macos-15-intel
+            os: macos-15-intelA
             platform: macos
             rid: osx-x64
             use-nix: false

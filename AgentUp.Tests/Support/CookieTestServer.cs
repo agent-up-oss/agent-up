@@ -46,15 +46,30 @@ internal sealed class CookieTestServer : IDisposable
             var path = ctx.Request.Url?.AbsolutePath ?? "/";
             var cookieHeader = ctx.Request.Headers["Cookie"];
 
+            string bodyText;
             if (path.StartsWith("/set/"))
             {
                 var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length >= 3)
+                {
                     ctx.Response.AppendCookie(new Cookie(parts[1], parts[2]) { Path = "/" });
+                    bodyText =
+                        "<html><body>"
+                        + $"{WebUtility.HtmlEncode(cookieHeader ?? "(none)")}"
+                        + $"<script>document.cookie = '{parts[1]}={parts[2]}; path=/';</script>"
+                        + "</body></html>";
+                }
+                else
+                {
+                    bodyText = $"<html><body>{WebUtility.HtmlEncode(cookieHeader ?? "(none)")}</body></html>";
+                }
+            }
+            else
+            {
+                bodyText = $"<html><body>{WebUtility.HtmlEncode(cookieHeader ?? "(none)")}</body></html>";
             }
 
-            var body = Encoding.UTF8.GetBytes(
-                $"<html><body>{cookieHeader ?? "(none)"}</body></html>");
+            var body = Encoding.UTF8.GetBytes(bodyText);
             ctx.Response.ContentType = "text/html";
             ctx.Response.ContentLength64 = body.Length;
             await ctx.Response.OutputStream.WriteAsync(body);

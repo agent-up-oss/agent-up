@@ -59,9 +59,11 @@ public sealed class BrowserCookieIsolationTests
 
         Navigate("ws-1", $"http://localhost:{port}/set/session/ws1");
         await _server.WaitForRequestAsync("/set/session/ws1");
+        await WaitForDocumentCookieAsync("ws-1", "session=ws1");
 
         Navigate("ws-2", $"http://localhost:{port}/set/session/ws2");
         await _server.WaitForRequestAsync("/set/session/ws2");
+        await WaitForDocumentCookieAsync("ws-2", "session=ws2");
 
         var req = await WaitForCookieHeaderAsync("ws-1", "ws1-after-ws2", contains: "session=ws1");
         Assert.That(req.CookieHeader, Does.Contain("session=ws1"),
@@ -77,6 +79,7 @@ public sealed class BrowserCookieIsolationTests
 
         Navigate("ws-1", $"http://localhost:{port}/set/logged_in/true");
         await _server.WaitForRequestAsync("/set/logged_in/true");
+        await WaitForDocumentCookieAsync("ws-1", "logged_in=true");
 
         var ws1Req = await WaitForCookieHeaderAsync("ws-1", "ws1-login", contains: "logged_in=true");
         Assert.That(ws1Req.CookieHeader, Does.Contain("logged_in=true"),
@@ -109,6 +112,7 @@ public sealed class BrowserCookieIsolationTests
         // WS1/App1 sets a cookie.
         Navigate("ws-1", $"http://localhost:{port}/set/session/ws1");
         await _server.WaitForRequestAsync("/set/session/ws1");
+        await WaitForDocumentCookieAsync("ws-1", "session=ws1");
 
         // WS1/App2 reads — must share the cookie from App1 (same browser profile).
         var ws1App2First = await WaitForCookieHeaderAsync("ws-1", "ws1-app2-first", contains: "session=ws1");
@@ -118,6 +122,7 @@ public sealed class BrowserCookieIsolationTests
         // WS2/App1 sets the same-named cookie with a different value.
         Navigate("ws-2", $"http://localhost:{port}/set/session/ws2");
         await _server.WaitForRequestAsync("/set/session/ws2");
+        await WaitForDocumentCookieAsync("ws-2", "session=ws2");
 
         // WS2/App2 reads — must share WS2's cookie, not WS1's.
         var ws2App2 = await WaitForCookieHeaderAsync("ws-2", "ws2-app2", contains: "session=ws2", excludes: "session=ws1");
@@ -193,6 +198,38 @@ public sealed class BrowserCookieIsolationTests
             + $" for workspace '{workspaceId}', but last header was '{lastRequest?.CookieHeader ?? "(null)"}'.");
 
         throw new InvalidOperationException("Assert.Fail did not throw.");
+    }
+
+    private async Task WaitForDocumentCookieAsync(
+        string workspaceId,
+        string contains,
+        TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(15));
+        string? lastCookie = null;
+        Exception? lastException = null;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                lastCookie = await _window!.EvalAsync(workspaceId, "document.cookie");
+                lastException = null;
+                if (lastCookie?.Contains(contains, StringComparison.Ordinal) == true)
+                    return;
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+            }
+
+            await Task.Delay(250);
+        }
+
+        Assert.Fail(
+            $"Expected document.cookie containing '{contains}' for workspace '{workspaceId}',"
+            + $" but last value was '{lastCookie ?? "(null)"}'"
+            + (lastException is null ? "." : $" and last error was '{lastException.Message}'."));
     }
 
     // Each workspace has two apps (App1 and App2) both pointing at the same

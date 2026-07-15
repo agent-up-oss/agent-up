@@ -10,7 +10,18 @@ case "${RUNNER_OS:-Linux}" in
     output="$bin_dir/mc"
     ;;
   macOS)
-    url="https://dl.min.io/client/mc/release/darwin-arm64/mc"
+    case "${RUNNER_ARCH:-$(uname -m)}" in
+      ARM64|arm64)
+        url="https://dl.min.io/client/mc/release/darwin-arm64/mc"
+        ;;
+      X64|x64|x86_64)
+        url="https://dl.min.io/client/mc/release/darwin-amd64/mc"
+        ;;
+      *)
+        echo "Unsupported macOS runner architecture: ${RUNNER_ARCH:-$(uname -m)}" >&2
+        exit 1
+        ;;
+    esac
     output="$bin_dir/mc"
     ;;
   Windows)
