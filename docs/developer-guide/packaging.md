@@ -10,7 +10,7 @@ Packaged installations install Agent-Up as three user-visible components backed 
 - `AgentUp.CLI` is available globally as `agent-up`.
 - `AgentUp.Desktop` is installed in the native application location.
 
-Installer and packaging behavior is product behavior and must be testable. Shared installer planning, payload, adapter, progress, and validation logic lives in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. The guided installer UX lives in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume or mirror the shared contract instead of growing untested platform-only logic.
+Installer and packaging behavior is product behavior and must be testable. Shared installer planning, payload, adapter, progress, and validation logic lives in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. The guided installer UX lives in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume or mirror the shared contract instead of growing untested platform-only logic.
 
 ## Ownership
 
@@ -99,7 +99,7 @@ Docker must not be installed silently. If Docker is unavailable, the installer r
 Installer changes follow the same production/test pairing rule as other projects:
 
 - Changes to `AgentUp.Installers` require focused tests in `AgentUp.Installers.Tests`.
-- Changes to `AgentUp.InstallerApp` require Avalonia headless tests in `AgentUp.InstallerApp.Tests`.
+- Changes to `AgentUp.InstallerApp` require Avalonia headless tests in `AgentUp.InstallerApp.Tests`; installer flow behavior that must work on real desktop backends also requires native-display coverage in `AgentUp.Tests`.
 - Native package changes require `AgentUp.Packaging.Tests` coverage for generated metadata/tool calls and package smoke updates when the installed contract changes.
 - Package and installed-service smoke validation changes require focused tests in `AgentUp.PackageSmoke.Tests`.
 - Nix wrapper changes require tests that pin the wrapper and shell contract.

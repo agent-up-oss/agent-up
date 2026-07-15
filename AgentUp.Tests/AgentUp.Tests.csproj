@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
+    <ProjectReference Include="..\AgentUp.InstallerApp\AgentUp.InstallerApp.csproj" />
   </ItemGroup>
 
 </Project>
