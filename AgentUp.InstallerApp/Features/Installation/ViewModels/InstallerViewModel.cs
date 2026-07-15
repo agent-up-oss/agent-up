@@ -5,6 +5,7 @@ using AgentUp.Installers.Features.Execution;
 using AgentUp.Installers.Features.Flow;
 using AgentUp.Installers.Features.Payloads;
 using AgentUp.Installers.Features.Prerequisites;
+using AgentUp.InstallerApp.Features.Installation.Services;
 
 namespace AgentUp.InstallerApp.Features.Installation.ViewModels;
 
@@ -101,7 +102,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         var version = new Version(0, 0, 0);
         return new InstallerViewModel(
             InstallerSession.CreateDefault("Agent-Up", version, DefaultInstallRoot(), PayloadSelection.Bundled(version)),
-            new FakeInstallerPlatformAdapter(CurrentPlatformName()));
+            InstallerAdapterFactory.Create());
     }
 
     internal async Task MoveNextAsync()
@@ -178,15 +179,6 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         if (OperatingSystem.IsMacOS())
             return "/Applications/Agent-Up.app";
         return "/opt/agent-up";
-    }
-
-    private static string CurrentPlatformName()
-    {
-        if (OperatingSystem.IsWindows())
-            return "Windows dry run";
-        if (OperatingSystem.IsMacOS())
-            return "macOS dry run";
-        return "Linux dry run";
     }
 
     private void RaiseAll()

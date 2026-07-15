@@ -31,6 +31,8 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Optional online update from release metadata when available.
 - Adapter-driven elevation only when privileged native operations are required.
 
+Ubuntu is the first real installer adapter behind the guided app. The app still defaults to the dry-run adapter for development and tests. Setting `AGENTUP_INSTALLER_REAL_UBUNTU=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the Ubuntu adapter, which installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
+
 `AgentUp.Packaging` owns release artifact build orchestration:
 
 - Component publish plans.
