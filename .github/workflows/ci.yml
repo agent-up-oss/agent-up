@@ -11,6 +11,9 @@ jobs:
   dotnet-build-test:
     name: .NET build, tests, and payloads
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,6 +22,30 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+
+      - name: Set up JDK 17 for Sonar
+        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: zulu
+
+      - name: Install SonarScanner
+        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+
+      - name: Sonar begin
+        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"agent-up" \
+            /n:"agent-up" \
+            /d:sonar.scanner.skipJreProvisioning=true \
+            /d:sonar.projectBaseDir="${{ github.workspace }}" \
+            /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.host.url="$SONAR_HOST_URL"
 
       - name: Build
         run: |
@@ -84,6 +111,17 @@ jobs:
             echo "No test projects found"
             exit 1
           fi
+
+      - name: Sonar end
+        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
+        run: |
+          dotnet sonarscanner end \
+            /d:sonar.token="$SONAR_TOKEN"
+
+      - name: Sonar skipped
+        if: ${{ github.ref == 'refs/heads/main' && (env.SONAR_TOKEN == '' || env.SONAR_HOST_URL == '') }}
+        run: |
+          echo "Skipping Sonar because SONAR_TOKEN or SONAR_HOST_URL is not configured."
 
       - name: Publish .NET CI artifacts
         shell: bash
@@ -254,130 +292,10 @@ jobs:
           npm --prefix docs ci
           npm --prefix docs run build
 
-  sonar:
-    name: Sonar
-    runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Set up JDK 17
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: zulu
-
-      - name: Install SonarScanner
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet tool install --global dotnet-sonarscanner
-
-      - name: Install Ubuntu browser test dependencies
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
-          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
-            sudo apt-get install -y libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev
-            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.1.so/{print $NF; exit}')"
-          else
-            sudo apt-get install -y libwebkit2gtk-4.0-37 libwebkit2gtk-4.0-dev
-            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.0.so/{print $NF; exit}')"
-          fi
-          if [ -n "$webkit_lib" ] && [ ! -e /usr/local/lib/libwebkit2gtk.so ]; then
-            sudo ln -s "$webkit_lib" /usr/local/lib/libwebkit2gtk.so
-            sudo ldconfig
-          fi
-
-      - name: Sonar begin
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet sonarscanner begin \
-            /k:"agent-up" \
-            /n:"agent-up" \
-            /d:sonar.scanner.skipJreProvisioning=true \
-            /d:sonar.projectBaseDir="${{ github.workspace }}" \
-            /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
-            /d:sonar.token="$SONAR_TOKEN" \
-            /d:sonar.host.url="$SONAR_HOST_URL"
-
-      - name: Build
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet build "agent-up.sln" --configuration Release
-
-      - name: Run tests
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        shell: bash
-        run: |
-          found_tests=false
-
-          while IFS= read -r -d "" test_project; do
-            found_tests=true
-            test_project_name="$(basename "$(dirname "$test_project")")"
-            test_command=(
-              dotnet test "$test_project"
-              --configuration Release
-              --no-build
-              --settings "coverlet.runsettings"
-              --logger "trx;LogFileName=test-results.trx"
-              --collect:"XPlat Code Coverage"
-            )
-
-            if [ "$test_project_name" = "AgentUp.Tests" ]; then
-              test_command+=(--blame-hang --blame-hang-timeout 120s)
-
-              test_status=1
-              for attempt in 1 2; do
-                echo "Running AgentUp.Tests on Sonar Ubuntu attempt $attempt/2"
-                if LIBGL_ALWAYS_SOFTWARE=1 \
-                  GALLIUM_DRIVER=llvmpipe \
-                  WEBKIT_DISABLE_COMPOSITING_MODE=1 \
-                  WEBKIT_DISABLE_DMABUF_RENDERER=1 \
-                  xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"; then
-                  test_status=0
-                  break
-                fi
-                test_status=$?
-              done
-              if [ "$test_status" -ne 0 ]; then
-                exit "$test_status"
-              fi
-            else
-              "${test_command[@]}"
-            fi
-          done < <(find . -name "*Tests.csproj" -print0)
-
-          if [ "$found_tests" = false ]; then
-            echo "No test projects found"
-            exit 1
-          fi
-
-      - name: Sonar end
-        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet sonarscanner end \
-            /d:sonar.token="$SONAR_TOKEN"
-
-      - name: Sonar skipped
-        if: ${{ env.SONAR_TOKEN == '' || env.SONAR_HOST_URL == '' }}
-        run: |
-          echo "Skipping Sonar because SONAR_TOKEN or SONAR_HOST_URL is not configured."
-
   release:
     name: Release to MinIO
     runs-on: ubuntu-latest
-    needs: [platform, docs, sonar]
+    needs: [platform, docs]
     if: ${{ github.ref == 'refs/heads/main' }}
     permissions:
       contents: write
