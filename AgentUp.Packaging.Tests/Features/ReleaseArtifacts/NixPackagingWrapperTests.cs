@@ -6,7 +6,7 @@ public class NixPackagingWrapperTests
     private static readonly string Root = FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
 
     [TestCase("ubuntu", "dpkg", "fakeroot")]
-    [TestCase("windows", "msitools", "osslsigncode")]
+    [TestCase("windows", "dotnet tool restore", "dotnet-tools.json")]
     [TestCase("macos", "hdiutil", "pkgbuild")]
     public void NixShell_declaresPlatformPackagingEnvironment(string platform, string requiredText, string expectedDiagnosticOrTool)
     {
@@ -17,6 +17,11 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Contain($"AGENTUP_PACKAGING_TARGET={platform}"));
         Assert.That(text, Does.Contain(requiredText));
         Assert.That(text, Does.Contain(expectedDiagnosticOrTool));
+        if (platform == "windows")
+        {
+            Assert.That(text, Does.Contain("cd \"$AGENTUP_REPO_ROOT/packaging/windows\""));
+            Assert.That(text, Does.Contain("dotnet tool run wix"));
+        }
     }
 
     [TestCase("ubuntu")]
@@ -31,7 +36,16 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Contain($"AGENTUP_PACKAGING_TARGET:-}}\" != \"{platform}\""));
         Assert.That(text, Does.Contain($"packaging/nix/{platform}-package.nix"));
         Assert.That(text, Does.Contain("printf \"%q \" \"$0\" \"$@\""));
-        Assert.That(text, Does.Contain($"package-release.sh\" {platform}"));
+        if (platform == "windows")
+        {
+            Assert.That(text, Does.Contain("AgentUp.Packaging.csproj"));
+            Assert.That(text, Does.Contain("package windows"));
+            Assert.That(text, Does.Contain("command -v wix"));
+        }
+        else
+        {
+            Assert.That(text, Does.Contain($"package-release.sh\" {platform}"));
+        }
     }
 
     private static string FindRepositoryRoot(string startDirectory)

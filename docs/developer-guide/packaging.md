@@ -43,10 +43,12 @@ Use the platform wrapper scripts when building packages from NixOS or another ma
 The wrappers enter a target-specific shell under `packaging/nix/` and then delegate to `scripts/package-release.sh`.
 
 - Ubuntu wrapper provides Debian tooling such as `dpkg-deb` and `fakeroot`.
-- Windows wrapper provides cross-packaging helpers where available, such as archive tooling, MSI inspection tools, signing helpers, and Wine.
+- Windows wrapper provides cross-packaging helpers where available, such as archive tooling, MSI inspection tools, and signing helpers. WiX is supplied through the pinned local .NET tool manifest at `packaging/windows/dotnet-tools.json`; the wrapper restores that tool and exposes a `wix` shim on PATH before packaging starts.
 - macOS wrapper is Darwin-only because Apple packaging, signing, and notarization tools are platform tools: `hdiutil`, `pkgbuild`, `productbuild`, `codesign`, and `notarytool`.
 
-When a native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
+Windows packaging is migrating to WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for `Product.msi` and `Setup.exe`. Tests assert the generated WiX service, PATH, shortcut, MSI chain, and exact `wix` command shape with an isolated fake command runner.
+
+When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
 Platform packaging owns native registration:
 

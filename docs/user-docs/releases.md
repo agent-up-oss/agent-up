@@ -20,6 +20,8 @@ Developers should use the Nix packaging wrappers when building release artifacts
 
 The macOS wrapper must run on Darwin because Apple package/sign/notarization tools are not available on Linux.
 
+Windows packaging is moving from the legacy generated installer toward WiX-generated `Product.msi` and `Setup.exe` artifacts orchestrated by `AgentUp.Packaging`.
+
 The intended installed shape is:
 
 - Desktop is the human UI.

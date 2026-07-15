@@ -14,4 +14,11 @@ if [ "${AGENTUP_PACKAGING_TARGET:-}" != "windows" ]; then
   exec nix-shell "$ROOT/packaging/nix/windows-package.nix" --run "$command_line"
 fi
 
-exec "$ROOT/scripts/package-release.sh" windows "$@"
+if ! command -v wix >/dev/null 2>&1; then
+  echo "WiX CLI 'wix' is required for Windows packaging." >&2
+  echo "The Windows Nix wrapper should restore the pinned WiX .NET tool from packaging/windows/dotnet-tools.json." >&2
+  exit 127
+fi
+
+exec dotnet run --project "$ROOT/AgentUp.Packaging/AgentUp.Packaging.csproj" --configuration "${CONFIGURATION:-Release}" -- \
+  package windows "$@"
