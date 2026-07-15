@@ -4,12 +4,13 @@ title: Architecture
 
 # Architecture
 
-Agent-Up has six major component areas:
+Agent-Up has seven major component areas:
 
 - `AgentUp.Server`
 - `AgentUp.Desktop`
 - `AgentUp.CLI`
 - `AgentUp.Installers`
+- `AgentUp.InstallerApp`
 - `AgentUp.Packaging`
 - `AgentUp.PackageSmoke`
 - MCP clients
@@ -38,6 +39,9 @@ AgentUp.Shared/
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
+AgentUp.InstallerApp/
+  AgentUp.InstallerApp.csproj
+
 AgentUp.Packaging/
   AgentUp.Packaging.csproj
 
@@ -55,6 +59,9 @@ AgentUp.CLI.Tests/
 
 AgentUp.Installers.Tests/
   AgentUp.Installers.Tests.csproj
+
+AgentUp.InstallerApp.Tests/
+  AgentUp.InstallerApp.Tests.csproj
 
 AgentUp.Packaging.Tests/
   AgentUp.Packaging.Tests.csproj
@@ -85,7 +92,9 @@ The exact project list may evolve, but the ownership boundaries should remain st
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
 
-`AgentUp.Installers` owns testable installer prerequisite, component-selection, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
+`AgentUp.Installers` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
+
+`AgentUp.InstallerApp` owns the shared Avalonia guided installer UX. It presents the common installer flow and delegates platform-specific execution to installer adapters.
 
 `AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
 

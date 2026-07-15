@@ -1,17 +1,20 @@
 using AgentUp.PackageSmoke.Features.Platforms;
 using AgentUp.PackageSmoke.Features.Validation;
 using AgentUp.PackageSmoke.Features.InstalledServices;
+using AgentUp.PackageSmoke.Features.InstallerFlow;
 
-if (args.Length != 5 || args[0] is not ("validate-package" or "validate-installed-service"))
+if ((args.Length != 5 || args[0] is not ("validate-package" or "validate-installed-service"))
+    && (args.Length != 3 || args[0] != "validate-installer-flow"))
 {
     Console.Error.WriteLine("Usage: AgentUp.PackageSmoke <validate-package|validate-installed-service> <platform> <runtime-id> <artifact-dir> <work-dir>");
+    Console.Error.WriteLine("   or: AgentUp.PackageSmoke validate-installer-flow <platform> <work-dir>");
     return 2;
 }
 
 var platform = args[1];
-var runtimeId = args[2];
-var artifactDirectory = Path.GetFullPath(args[3]);
-var workDirectory = Path.GetFullPath(args[4]);
+var runtimeId = args[0] == "validate-installer-flow" ? "" : args[2];
+var artifactDirectory = args[0] == "validate-installer-flow" ? "" : Path.GetFullPath(args[3]);
+var workDirectory = Path.GetFullPath(args[0] == "validate-installer-flow" ? args[2] : args[4]);
 
 if (Directory.Exists(workDirectory))
     Directory.Delete(workDirectory, recursive: true);
@@ -25,6 +28,13 @@ if (args[0] == "validate-package")
     var validator = PackageValidatorFactory.Create(request.Platform, commands);
     var result = await validator.ValidateAsync(request);
     await File.WriteAllTextAsync(Path.Combine(request.WorkDirectory, "package-smoke.env"), result.ToEnvironmentFile());
+    WriteFindings(result.Findings);
+    return result.Succeeded ? 0 : 1;
+}
+
+if (args[0] == "validate-installer-flow")
+{
+    var result = await new InstallerFlowSmokeValidator().ValidateAsync(platform, workDirectory);
     WriteFindings(result.Findings);
     return result.Succeeded ? 0 : 1;
 }

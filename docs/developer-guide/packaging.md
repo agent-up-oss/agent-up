@@ -10,7 +10,7 @@ Packaged installations install Agent-Up as three user-visible components backed 
 - `AgentUp.CLI` is available globally as `agent-up`.
 - `AgentUp.Desktop` is installed in the native application location.
 
-Installer and packaging behavior is product behavior and must be testable. Shared installer planning and validation logic lives in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume or mirror the shared contract instead of growing untested platform-only logic.
+Installer and packaging behavior is product behavior and must be testable. Shared installer planning, payload, adapter, progress, and validation logic lives in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. The guided installer UX lives in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume or mirror the shared contract instead of growing untested platform-only logic.
 
 ## Ownership
 
@@ -18,9 +18,18 @@ Installer and packaging behavior is product behavior and must be testable. Share
 
 - Docker prerequisite classification.
 - Component selection and install summary state.
+- Bundled and online release payload selection.
+- Platform adapter contracts for native execution, elevation, progress, validation, and rollback.
 - PATH add/remove planning.
 - Post-install validation results.
 - Uninstall-mode planning.
+
+`AgentUp.InstallerApp` owns the shared guided installer:
+
+- Welcome, license, prerequisite, Docker, component, location, server configuration, payload, summary, progress, and completion pages.
+- Offline install from bundled payload by default.
+- Optional online update from release metadata when available.
+- Adapter-driven elevation only when privileged native operations are required.
 
 `AgentUp.Packaging` owns release artifact build orchestration:
 
@@ -36,6 +45,7 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Platform adapter checks for Desktop, Server, CLI, service, launcher, and uninstall metadata.
 - A shared `package-smoke.env` handoff that reports package-local Server and CLI paths back to CI scripts.
 - Native install, service readiness, installed CLI workspace registration, diagnostics, and uninstall cleanup for installed-service smoke tests.
+- Dry-run guided installer flow validation through `validate-installer-flow`.
 
 ## Nix Packaging Wrappers
 
@@ -60,6 +70,8 @@ macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The p
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
 Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS, Windows, and Ubuntu artifact contract checks. Installed-service smoke scripts must use `AgentUp.PackageSmoke validate-installed-service` for native installation, service readiness, installed CLI validation, diagnostics, and uninstall cleanup. Shell smoke code should stay limited to argument forwarding and runner setup.
+
+The shared installer app is the target user-facing install flow. During migration, native `.pkg`, WiX/MSI/Burn, and `.deb` artifacts may still perform direct native install work, but new behavior should move toward wrapping or launching `AgentUp.InstallerApp` with a bundled release payload.
 
 Platform packaging owns native registration:
 
@@ -87,6 +99,7 @@ Docker must not be installed silently. If Docker is unavailable, the installer r
 Installer changes follow the same production/test pairing rule as other projects:
 
 - Changes to `AgentUp.Installers` require focused tests in `AgentUp.Installers.Tests`.
+- Changes to `AgentUp.InstallerApp` require Avalonia headless tests in `AgentUp.InstallerApp.Tests`.
 - Native package changes require `AgentUp.Packaging.Tests` coverage for generated metadata/tool calls and package smoke updates when the installed contract changes.
 - Package and installed-service smoke validation changes require focused tests in `AgentUp.PackageSmoke.Tests`.
 - Nix wrapper changes require tests that pin the wrapper and shell contract.

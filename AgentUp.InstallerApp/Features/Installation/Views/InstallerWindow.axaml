@@ -1,0 +1,82 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AgentUp.InstallerApp.Features.Installation.Views.InstallerWindow"
+        x:CompileBindings="False"
+        Width="840" Height="560"
+        MinWidth="720" MinHeight="480"
+        Title="Agent-Up Installer"
+        Background="#07110f">
+    <Window.Styles>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#3ddc97"/>
+            <Setter Property="Foreground" Value="#06110e"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="18,10"/>
+        </Style>
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="#14251f"/>
+            <Setter Property="Foreground" Value="#f5fbf7"/>
+            <Setter Property="BorderBrush" Value="#28483d"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="18,10"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="28">
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="Agent-Up Installer"
+                       Foreground="#8ee8bd"
+                       FontSize="13"
+                       FontWeight="Bold"/>
+            <TextBlock Name="StepTitle"
+                       Text="{Binding StepTitle}"
+                       Foreground="#f5fbf7"
+                       FontSize="30"
+                       FontWeight="Bold"/>
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,28,0,24"
+                Padding="24"
+                Background="#0d1d18"
+                BorderBrush="#1e3c33"
+                BorderThickness="1"
+                CornerRadius="8">
+            <StackPanel Spacing="18">
+                <TextBlock Name="BodyText"
+                           Text="{Binding BodyText}"
+                           Foreground="#dbe7e1"
+                           FontSize="16"
+                           TextWrapping="Wrap"/>
+                <CheckBox Name="LicenseCheck"
+                          IsVisible="{Binding ShowLicenseCheck}"
+                          IsChecked="{Binding LicenseAccepted}"
+                          Foreground="#f5fbf7"
+                          Content="I accept the license agreement"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
+            <TextBlock Text="{Binding Step}"
+                       Foreground="#6f887d"
+                       VerticalAlignment="Center"/>
+            <Button Name="BackButton"
+                    Grid.Column="1"
+                    Classes="secondary"
+                    Command="{Binding BackCommand}"
+                    IsEnabled="{Binding CanGoBack}"
+                    Margin="0,0,12,0">
+                Back
+            </Button>
+            <Button Name="NextButton"
+                    Grid.Column="2"
+                    Classes="primary"
+                    Command="{Binding NextCommand}"
+                    IsEnabled="{Binding CanGoNext}">
+                <TextBlock Text="{Binding NextButtonText}"/>
+            </Button>
+        </Grid>
+    </Grid>
+</Window>

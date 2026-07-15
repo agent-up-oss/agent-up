@@ -49,6 +49,9 @@ AgentUp.Shared/
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
+AgentUp.InstallerApp/
+  AgentUp.InstallerApp.csproj
+
 AgentUp.Packaging/
   AgentUp.Packaging.csproj
 
@@ -67,6 +70,9 @@ AgentUp.CLI.Tests/
 AgentUp.Installers.Tests/
   AgentUp.Installers.Tests.csproj
 
+AgentUp.InstallerApp.Tests/
+  AgentUp.InstallerApp.Tests.csproj
+
 AgentUp.Packaging.Tests/
   AgentUp.Packaging.Tests.csproj
 
@@ -84,6 +90,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.Installers` | Testable installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
+| `AgentUp.InstallerApp` | Shared Avalonia guided installer UX over platform installer adapters |
 | `AgentUp.Packaging` | Testable release artifact staging, package metadata generation, and native packaging tool orchestration |
 | `AgentUp.PackageSmoke` | Testable package and installed-service smoke validation adapters used by CI smoke scripts |
 | MCP clients | Automation interface; no local orchestration |
@@ -327,6 +334,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.Installers` | `AgentUp.Installers.Tests` |
+| `AgentUp.InstallerApp` | `AgentUp.InstallerApp.Tests` |
 | `AgentUp.Packaging` | `AgentUp.Packaging.Tests` |
 | `AgentUp.PackageSmoke` | `AgentUp.PackageSmoke.Tests` |
 
@@ -460,7 +468,7 @@ Read: `docs/developer-guide/workflows.md`.
 
 ## Packaging And Installers
 
-Installer and packaging behavior is testable product behavior. Shared installer planning and validation logic belongs in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should delegate native artifact, install, service, CLI, diagnostics, and uninstall checks to this console app and keep shell code limited to selecting arguments and runner setup. Native package assets stay under `packaging/` and should consume or mirror the shared contract rather than accumulating untested script-only behavior.
+Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, and validation logic belongs in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. The shared guided installer UX belongs in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests`; native package formats should wrap or launch that guided installer rather than owning divergent install flows. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should delegate native artifact, install, service, CLI, diagnostics, and uninstall checks to this console app and keep shell code limited to selecting arguments and runner setup. Native package assets stay under `packaging/` and should consume or mirror the shared contract rather than accumulating untested script-only behavior.
 
 Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 

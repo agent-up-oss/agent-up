@@ -8,7 +8,7 @@ Agent-Up release artifacts are built by CI after the platform test matrix passes
 
 Each platform job also smoke-tests the package it just built before upload. The smoke tests consume the artifact on the target runner, check the expected Desktop, Server, CLI, installer, and service files, start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`.
 
-Shared installer planning and validation logic lives in `AgentUp.Installers` and is tested by `AgentUp.Installers.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`. Package and installed-service smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator for artifact, install, service, CLI, diagnostics, and uninstall checks. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
+Shared installer planning and validation logic lives in `AgentUp.Installers` and is tested by `AgentUp.Installers.Tests`. The shared guided installer UX lives in `AgentUp.InstallerApp` and is tested by `AgentUp.InstallerApp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`. Package and installed-service smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator for artifact, installer-flow, install, service, CLI, diagnostics, and uninstall checks. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
 
 Developers should use the Nix packaging wrappers when building release artifacts from NixOS or when they want a pinned packaging environment:
 
@@ -23,6 +23,8 @@ The macOS wrapper must run on Darwin because Apple package/sign/notarization too
 Windows packaging is moving from the legacy generated installer toward WiX-generated `Product.msi` and `Setup.exe` artifacts orchestrated by `AgentUp.Packaging`.
 
 macOS packaging is moving from the legacy `.dmg` script installer toward a `Product.pkg` artifact orchestrated by `AgentUp.Packaging`.
+
+The intended installer direction is a shared Avalonia guided installer distributed through platform-native wrappers. Each release wrapper should include a bundled payload for offline installation, while the installer can offer an online newer payload when release metadata is reachable.
 
 The intended installed shape is:
 
