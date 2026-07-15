@@ -2,6 +2,7 @@ using AgentUp.InstallerApp.Features.Installation.Services;
 using AgentUp.Installers.Features.Execution;
 using AgentUp.Installers.Features.MacOs;
 using AgentUp.Installers.Features.Ubuntu;
+using AgentUp.Installers.Features.Windows;
 
 namespace AgentUp.InstallerApp.Tests.Features.Installation.Unit;
 
@@ -11,12 +12,14 @@ public class InstallerAdapterFactoryTests
     private string? _realUbuntu;
     private string? _payloadRoot;
     private string? _realMacOs;
+    private string? _realWindows;
 
     [SetUp]
     public void SetUp()
     {
         _realUbuntu = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_UBUNTU");
         _realMacOs = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_MACOS");
+        _realWindows = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_WINDOWS");
         _payloadRoot = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT");
     }
 
@@ -25,6 +28,7 @@ public class InstallerAdapterFactoryTests
     {
         Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_UBUNTU", _realUbuntu);
         Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_MACOS", _realMacOs);
+        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_WINDOWS", _realWindows);
         Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT", _payloadRoot);
     }
 
@@ -65,5 +69,19 @@ public class InstallerAdapterFactoryTests
         var adapter = InstallerAdapterFactory.Create();
 
         Assert.That(adapter, Is.TypeOf<MacOsInstallerPlatformAdapter>());
+    }
+
+    [Test]
+    public void Create_usesWindowsAdapterOnWindowsWhenExplicitlyEnabledAndPayloadIsProvided()
+    {
+        if (!OperatingSystem.IsWindows())
+            Assert.Ignore("Windows adapter selection is Windows-specific.");
+
+        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_WINDOWS", "1");
+        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT", @"C:\payload");
+
+        var adapter = InstallerAdapterFactory.Create();
+
+        Assert.That(adapter, Is.TypeOf<WindowsInstallerPlatformAdapter>());
     }
 }

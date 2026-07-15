@@ -33,7 +33,7 @@ public class WindowsWixSourceGeneratorTests
         Directory.CreateDirectory(layout.InstallerSourceDirectory);
         File.WriteAllText(Path.Combine(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
-        var xml = new WindowsWixSourceGenerator(WindowsInstallerManifest.From(request)).ProductWxs(layout);
+        var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).ProductWxs(layout);
 
         Assert.That(xml, Does.Contain("Name=\"Agent-Up\""));
         Assert.That(xml, Does.Contain("ServiceInstall"));
@@ -52,7 +52,7 @@ public class WindowsWixSourceGeneratorTests
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
         var layout = WindowsPackageLayout.From(request);
 
-        var xml = new WindowsWixSourceGenerator(WindowsInstallerManifest.From(request)).BundleWxs(layout);
+        var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).BundleWxs(layout);
 
         Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication.RtfLicense"));
         Assert.That(xml, Does.Contain("MsiPackage"));

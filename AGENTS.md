@@ -151,13 +151,16 @@ AgentUp.Installers/
     Path/             (idempotent PATH add/remove planning)
     Validation/       (post-install validation contracts)
     Uninstall/        (uninstall-mode planning)
+    Ubuntu/           (systemd service, CLI, desktop launcher install adapter contracts)
+    MacOs/            (launchd service, CLI, app bundle install adapter contracts)
+    Windows/          (Windows Service, PATH, Start Menu, WiX install adapter contracts)
 
 AgentUp.Packaging/
   Features/
     ReleaseArtifacts/ (artifact requests, repository paths, command execution)
     Ubuntu/           (Debian package layout, metadata, staging, dpkg orchestration)
-    Windows/          (WiX/Burn orchestration when implemented)
-    MacOs/            (pkg/signing/notarization orchestration when implemented)
+    Windows/          (WiX/Burn orchestration)
+    MacOs/            (pkg/signing/notarization orchestration)
     NixOs/            (flake package-set orchestration when implemented)
 ```
 

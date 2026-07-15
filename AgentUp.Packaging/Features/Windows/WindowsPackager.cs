@@ -44,10 +44,11 @@ public sealed class WindowsPackager
             layout.CliPublishDirectory,
             cancellationToken);
 
-        var manifest = WindowsInstallerManifest.From(request);
+        var manifest = WindowsPackageManifest.From(request);
         var generator = new WindowsWixSourceGenerator(manifest);
-        _writer.WriteText(Path.Combine(layout.InstallerSourceDirectory, manifest.CliShimName),
-            "@echo off\r\n\"%~dp0..\\cli\\AgentUp.CLI.exe\" %*\r\n");
+        _writer.WriteText(
+            Path.Combine(layout.InstallerSourceDirectory, manifest.InstallerManifest.CliShimName),
+            WindowsWixSourceGenerator.CliShimText());
         _writer.WriteText(layout.ProductWxsPath, generator.ProductWxs(layout));
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));
         _writer.WriteText(layout.LicenseRtfPath, WindowsWixSourceGenerator.LicenseRtf());

@@ -31,11 +31,13 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Optional online update from release metadata when available.
 - Adapter-driven elevation only when privileged native operations are required.
 
-Ubuntu and macOS have real installer adapters behind the guided app. The app still defaults to the dry-run adapter for development and tests.
+Ubuntu, macOS, and Windows have real installer adapters behind the guided app. The app still defaults to the dry-run adapter for development and tests.
 
 Setting `AGENTUP_INSTALLER_REAL_UBUNTU=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the Ubuntu adapter, which installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
 
 Setting `AGENTUP_INSTALLER_REAL_MACOS=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the macOS adapter, which installs the staged Desktop bundle into `/Applications/Agent-Up.app`, installs Server and CLI payloads into native system locations, registers the `dev.agent-up.server` launchd service, creates `/usr/local/bin` symlinks, and validates the installed state through `launchctl` and a fresh-shell CLI lookup.
+
+Setting `AGENTUP_INSTALLER_REAL_WINDOWS=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the Windows adapter, which installs the staged Desktop, Server, and CLI payload under `Program Files\Agent-Up`, registers and starts the `agent-up-server` Windows Service with restart policy, writes the CLI shim, adds the installer-managed `bin` directory to machine `PATH` without duplicating it, creates the Start Menu shortcut, and validates the installed state through `sc.exe` and a fresh-shell CLI lookup.
 
 `AgentUp.Packaging` owns release artifact build orchestration:
 
@@ -69,7 +71,7 @@ The wrappers enter a target-specific shell under `packaging/nix/` and then deleg
 - Windows wrapper provides cross-packaging helpers where available, such as archive tooling, MSI inspection tools, and signing helpers. WiX is supplied through the pinned local .NET tool manifest at `packaging/windows/dotnet-tools.json`; the wrapper restores that tool and exposes a `wix` shim on PATH before packaging starts.
 - macOS wrapper is Darwin-only because Apple packaging, signing, and notarization tools are platform tools: `hdiutil`, `pkgbuild`, `productbuild`, `codesign`, and `notarytool`.
 
-Windows packaging is migrating to WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for `Product.msi` and `Setup.exe`. Tests assert the generated WiX service, PATH, shortcut, MSI chain, and exact `wix` command shape with an isolated fake command runner.
+Windows packaging is migrating to WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for `Product.msi` and `Setup.exe` while consuming Windows install metadata, WiX generation, service, PATH, and shortcut contracts from `AgentUp.Installers`. Tests assert the generated WiX service, PATH, shortcut, MSI chain, and exact `wix` command shape with an isolated fake command runner.
 
 macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 

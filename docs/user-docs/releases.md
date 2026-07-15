@@ -26,7 +26,7 @@ macOS packaging is moving from the legacy `.dmg` script installer toward a `Prod
 
 The intended installer direction is a shared Avalonia guided installer distributed through platform-native wrappers. Each release wrapper should include a bundled payload for offline installation, while the installer can offer an online newer payload when release metadata is reachable.
 
-Ubuntu and macOS have real guided-installer adapters. They are currently opt-in for the installer app while packaging migration continues; CI still validates the native package and installed-service paths.
+Ubuntu, macOS, and Windows have real guided-installer adapters. They are currently opt-in for the installer app while packaging migration continues; CI still validates the native package and installed-service paths.
 
 The intended installed shape is:
 

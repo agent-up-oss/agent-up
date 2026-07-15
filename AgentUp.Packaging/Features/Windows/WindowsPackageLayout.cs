@@ -1,4 +1,5 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Installers.Features.Windows;
 
 namespace AgentUp.Packaging.Features.Windows;
 
@@ -30,4 +31,13 @@ public sealed record WindowsPackageLayout(
             ProductMsiPath: Path.Combine(stage, "Product.msi"),
             SetupExePath: Path.Combine(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.exe"));
     }
+
+    public WindowsInstallerLayout ToInstallerLayout()
+        => new(
+            InstallerSourceDirectory,
+            DesktopPublishDirectory,
+            ServerPublishDirectory,
+            CliPublishDirectory,
+            LicenseRtfPath,
+            ProductMsiPath);
 }

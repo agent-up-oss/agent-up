@@ -1,6 +1,7 @@
 using AgentUp.Installers.Features.Execution;
 using AgentUp.Installers.Features.MacOs;
 using AgentUp.Installers.Features.Ubuntu;
+using AgentUp.Installers.Features.Windows;
 
 namespace AgentUp.InstallerApp.Features.Installation.Services;
 
@@ -20,6 +21,13 @@ internal static class InstallerAdapterFactory
             && TryCreateMacOsAdapter() is { } macOs)
         {
             return macOs;
+        }
+
+        if (OperatingSystem.IsWindows()
+            && Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_WINDOWS") == "1"
+            && TryCreateWindowsAdapter() is { } windows)
+        {
+            return windows;
         }
 
         return new FakeInstallerPlatformAdapter(CurrentPlatformName());
@@ -60,6 +68,23 @@ internal static class InstallerAdapterFactory
             new ProcessInstallerCommandRunner(),
             new MacOsInstallerFileSystem(),
             new MacOsInstallerOptions(payload, MacOsInstallerPaths.SystemDefault()));
+    }
+
+    private static IInstallerPlatformAdapter? TryCreateWindowsAdapter()
+    {
+        var payloadRoot = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT");
+        if (string.IsNullOrWhiteSpace(payloadRoot))
+            return null;
+
+        var payload = new WindowsInstallPayload(
+            DesktopDirectory: Path.Combine(payloadRoot, "desktop"),
+            ServerDirectory: Path.Combine(payloadRoot, "server"),
+            CliDirectory: Path.Combine(payloadRoot, "cli"));
+
+        return new WindowsInstallerPlatformAdapter(
+            new ProcessInstallerCommandRunner(),
+            new WindowsInstallerFileSystem(),
+            new WindowsInstallerOptions(payload, WindowsInstallerPaths.SystemDefault()));
     }
 
     private static string CurrentPlatformName()
