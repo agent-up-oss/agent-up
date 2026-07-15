@@ -10,6 +10,7 @@ Agent-Up has five major component areas:
 - `AgentUp.Desktop`
 - `AgentUp.CLI`
 - `AgentUp.Installers`
+- `AgentUp.Packaging`
 - MCP clients
 
 The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. Installer code owns machine installation planning and validation only; it does not own runtime state.
@@ -36,6 +37,9 @@ AgentUp.Shared/
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
+AgentUp.Packaging/
+  AgentUp.Packaging.csproj
+
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
 
@@ -47,6 +51,9 @@ AgentUp.CLI.Tests/
 
 AgentUp.Installers.Tests/
   AgentUp.Installers.Tests.csproj
+
+AgentUp.Packaging.Tests/
+  AgentUp.Packaging.Tests.csproj
 ```
 
 The exact project list may evolve, but the ownership boundaries should remain stable.
@@ -72,6 +79,8 @@ The exact project list may evolve, but the ownership boundaries should remain st
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
 
 `AgentUp.Installers` owns testable installer prerequisite, component-selection, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
+
+`AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
 
 MCP clients are the primary automation clients. AI agents should use MCP directly instead of shelling through the CLI.
 

@@ -19,6 +19,12 @@ configuration="${CONFIGURATION:-Release}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 stage="$root/artifacts/stage/$platform-$rid"
 
+if [ "$platform" = "ubuntu" ]; then
+  dotnet run --project "$root/AgentUp.Packaging/AgentUp.Packaging.csproj" --configuration "$configuration" -- \
+    package "$platform" "$rid" "$version" "$output_dir"
+  exit 0
+fi
+
 create_zip() {
   local output="$1"
   shift
@@ -642,95 +648,6 @@ MACGUI
     cp "$root/packaging/windows/uninstall-agent-up-server.ps1" "$stage/tools/"
     (cd "$stage" && create_zip "$stage/payload.zip" desktop server cli tools)
     create_windows_installer "$stage/payload.zip" "$root/$output_dir/agent-up-windows-$rid.exe"
-    ;;
-  ubuntu)
-    mkdir -p "$stage/share"
-    cp "$root/packaging/linux/agent-up-server.service" "$stage/share/"
-    cat > "$stage/install.sh" <<'INSTALL'
-#!/usr/bin/env bash
-set -euo pipefail
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-sudo mkdir -p /opt/agent-up
-sudo mkdir -p /var/lib/agent-up
-sudo touch /var/log/agent-up-server.log /var/log/agent-up-server.err.log
-sudo rm -rf /opt/agent-up/desktop /opt/agent-up/server /opt/agent-up/cli
-sudo cp -a "$root/desktop" /opt/agent-up/desktop
-sudo cp -a "$root/server" /opt/agent-up/server
-sudo cp -a "$root/cli" /opt/agent-up/cli
-sudo chmod +x /opt/agent-up/desktop/AgentUp.Desktop /opt/agent-up/server/AgentUp.Server /opt/agent-up/cli/AgentUp.CLI
-sudo cp "$root/share/agent-up-server.service" /etc/systemd/system/agent-up-server.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now agent-up-server.service
-echo "Agent-Up installed. Start Desktop with /opt/agent-up/desktop/AgentUp.Desktop"
-INSTALL
-    chmod +x "$stage/install.sh"
-    cat > "$stage/uninstall.sh" <<'UNINSTALL'
-#!/usr/bin/env bash
-set -euo pipefail
-sudo systemctl disable --now agent-up-server.service || true
-sudo rm -f /etc/systemd/system/agent-up-server.service
-sudo systemctl daemon-reload
-sudo rm -rf /opt/agent-up
-UNINSTALL
-    chmod +x "$stage/uninstall.sh"
-    deb_root="$stage/deb-root"
-    mkdir -p "$deb_root/DEBIAN" "$deb_root/opt/agent-up" "$deb_root/etc/systemd/system" "$deb_root/usr/bin" "$deb_root/usr/share/applications" "$deb_root/usr/share/pixmaps"
-    cp -a "$stage/desktop" "$deb_root/opt/agent-up/desktop"
-    cp -a "$stage/server" "$deb_root/opt/agent-up/server"
-    cp -a "$stage/cli" "$deb_root/opt/agent-up/cli"
-    cp "$root/media/logo.png" "$deb_root/usr/share/pixmaps/agent-up.png"
-    cp "$stage/share/agent-up-server.service" "$deb_root/etc/systemd/system/agent-up-server.service"
-    chmod +x "$deb_root/opt/agent-up/desktop/AgentUp.Desktop" "$deb_root/opt/agent-up/server/AgentUp.Server" "$deb_root/opt/agent-up/cli/AgentUp.CLI"
-    ln -s /opt/agent-up/cli/AgentUp.CLI "$deb_root/usr/bin/agent-up"
-    deb_version="${version#v}"
-    cat > "$deb_root/usr/share/applications/agent-up.desktop" <<DESKTOP
-[Desktop Entry]
-Type=Application
-Name=Agent-Up
-Comment=Agent-Up desktop workspace client
-Exec=/opt/agent-up/desktop/AgentUp.Desktop
-Icon=agent-up
-Terminal=false
-Categories=Development;
-StartupNotify=true
-X-AgentUp-Version=$deb_version
-DESKTOP
-    cat > "$deb_root/DEBIAN/control" <<CONTROL
-Package: agent-up
-Version: $deb_version
-Section: devel
-Priority: optional
-Architecture: amd64
-Maintainer: Agent-Up <ci@agent-up.local>
-Description: Local Agent-Up desktop, CLI, and server service.
-CONTROL
-    cat > "$deb_root/DEBIAN/postinst" <<'POSTINST'
-#!/usr/bin/env bash
-set -e
-mkdir -p /var/lib/agent-up
-touch /var/log/agent-up-server.log /var/log/agent-up-server.err.log
-chmod +x /opt/agent-up/desktop/AgentUp.Desktop /opt/agent-up/server/AgentUp.Server /opt/agent-up/cli/AgentUp.CLI
-systemctl daemon-reload
-systemctl enable --now agent-up-server.service
-if command -v update-desktop-database >/dev/null 2>&1; then
-  update-desktop-database /usr/share/applications || true
-fi
-POSTINST
-    cat > "$deb_root/DEBIAN/prerm" <<'PRERM'
-#!/usr/bin/env bash
-set -e
-systemctl disable --now agent-up-server.service 2>/dev/null || true
-PRERM
-    cat > "$deb_root/DEBIAN/postrm" <<'POSTRM'
-#!/usr/bin/env bash
-set -e
-systemctl daemon-reload
-if command -v update-desktop-database >/dev/null 2>&1; then
-  update-desktop-database /usr/share/applications || true
-fi
-POSTRM
-    chmod 755 "$deb_root/DEBIAN/postinst" "$deb_root/DEBIAN/prerm" "$deb_root/DEBIAN/postrm"
-    dpkg-deb --build "$deb_root" "$root/$output_dir/agent-up-ubuntu-$rid.deb"
     ;;
   nixos)
     pkgs_root="$stage/nixos-pkgs"
