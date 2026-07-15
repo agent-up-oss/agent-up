@@ -36,7 +36,7 @@ public class InstallerWindowBehaviorTests
     }
 
     [AvaloniaTest]
-    public async Task DryRun_canCompleteGuidedInstallFlow()
+    public async Task FakeAdapter_canCompleteGuidedInstallFlow()
     {
         var app = await LaunchAsync();
         await AdvanceAsync(app); // License
@@ -51,7 +51,7 @@ public class InstallerWindowBehaviorTests
 
     private static async Task<InstallerWindow> LaunchAsync()
     {
-        var window = new InstallerWindow { DataContext = InstallerViewModel.CreateDryRun() };
+        var window = new InstallerWindow { DataContext = InstallerViewModel.CreateFakeForTests() };
         window.Show();
         await HeadlessExtensions.FlushAsync();
         return window;

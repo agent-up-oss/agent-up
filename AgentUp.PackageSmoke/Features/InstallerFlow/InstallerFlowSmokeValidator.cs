@@ -21,7 +21,7 @@ public sealed class InstallerFlowSmokeValidator
             version,
             DefaultInstallRoot(platform),
             PayloadSelection.Bundled(version));
-        var adapter = new FakeInstallerPlatformAdapter($"{platform} dry run");
+        var adapter = InstallerPlatformAdapterFactory.Create();
 
         session = InstallerWorkflow.GoNext(session);
         session = InstallerWorkflow.AcceptLicense(session, true);

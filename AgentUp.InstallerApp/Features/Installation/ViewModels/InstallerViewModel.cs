@@ -97,12 +97,20 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
 
     public string NextButtonText => Step == InstallerStep.Summary ? "Install" : Step == InstallerStep.Completion ? "Close" : "Next";
 
-    public static InstallerViewModel CreateDryRun()
+    public static InstallerViewModel CreateDefault()
     {
         var version = new Version(0, 0, 0);
         return new InstallerViewModel(
             InstallerSession.CreateDefault("Agent-Up", version, DefaultInstallRoot(), PayloadSelection.Bundled(version)),
             InstallerAdapterFactory.Create());
+    }
+
+    public static InstallerViewModel CreateFakeForTests()
+    {
+        var version = new Version(0, 0, 0);
+        return new InstallerViewModel(
+            InstallerSession.CreateDefault("Agent-Up", version, DefaultInstallRoot(), PayloadSelection.Bundled(version)),
+            InstallerPlatformAdapterFactory.CreateFake(DefaultInstallRoot() + " dry run"));
     }
 
     internal async Task MoveNextAsync()

@@ -31,13 +31,13 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Optional online update from release metadata when available.
 - Adapter-driven elevation only when privileged native operations are required.
 
-Ubuntu, macOS, and Windows have real installer adapters behind the guided app. The app still defaults to the dry-run adapter for development and tests.
+Ubuntu, macOS, and Windows have real installer adapters behind the guided app. The app uses the real adapter by default and requires `AGENTUP_INSTALLER_PAYLOAD_ROOT` to point at a payload root containing `desktop`, `server`, and `cli` directories. Tests and local non-privileged flow checks opt into the fake adapter with `AGENTUP_INSTALLER_FAKE=1`.
 
-Setting `AGENTUP_INSTALLER_REAL_UBUNTU=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the Ubuntu adapter, which installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
+On Ubuntu, the default adapter installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
 
-Setting `AGENTUP_INSTALLER_REAL_MACOS=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the macOS adapter, which installs the staged Desktop bundle into `/Applications/Agent-Up.app`, installs Server and CLI payloads into native system locations, registers the `dev.agent-up.server` launchd service, creates `/usr/local/bin` symlinks, and validates the installed state through `launchctl` and a fresh-shell CLI lookup.
+On macOS, the default adapter installs the staged Desktop bundle into `/Applications/Agent-Up.app`, installs Server and CLI payloads into native system locations, registers the `dev.agent-up.server` launchd service, creates `/usr/local/bin` symlinks, and validates the installed state through `launchctl` and a fresh-shell CLI lookup.
 
-Setting `AGENTUP_INSTALLER_REAL_WINDOWS=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the Windows adapter, which installs the staged Desktop, Server, and CLI payload under `Program Files\Agent-Up`, registers and starts the `agent-up-server` Windows Service with restart policy, writes the CLI shim, adds the installer-managed `bin` directory to machine `PATH` without duplicating it, creates the Start Menu shortcut, and validates the installed state through `sc.exe` and a fresh-shell CLI lookup.
+On Windows, the default adapter installs the staged Desktop, Server, and CLI payload under `Program Files\Agent-Up`, registers and starts the `agent-up-server` Windows Service with restart policy, writes the CLI shim, adds the installer-managed `bin` directory to machine `PATH` without duplicating it, creates the Start Menu shortcut, and validates the installed state through `sc.exe` and a fresh-shell CLI lookup.
 
 `AgentUp.Packaging` owns release artifact build orchestration:
 
@@ -53,7 +53,7 @@ Setting `AGENTUP_INSTALLER_REAL_WINDOWS=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` 
 - Platform adapter checks for Desktop, Server, CLI, service, launcher, and uninstall metadata.
 - A shared `package-smoke.env` handoff that reports package-local Server and CLI paths back to CI scripts.
 - Native install, service readiness, installed CLI workspace registration, diagnostics, and uninstall cleanup for installed-service smoke tests.
-- Dry-run guided installer flow validation through `validate-installer-flow`.
+- Guided installer flow validation through `validate-installer-flow`; this uses the default real adapter unless `AGENTUP_INSTALLER_FAKE=1` is set.
 
 ## Nix Packaging Wrappers
 
@@ -77,7 +77,7 @@ macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The p
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
-Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS, Windows, and Ubuntu artifact contract checks. Installed-service smoke scripts must use `AgentUp.PackageSmoke validate-installed-service` for native installation, service readiness, installed CLI validation, diagnostics, and uninstall cleanup. Shell smoke code should stay limited to argument forwarding and runner setup.
+Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS, Windows, and Ubuntu artifact contract checks. Installed-service smoke scripts must use `AgentUp.PackageSmoke validate-installed-service` for native installation, service readiness, installed CLI validation, diagnostics, and uninstall cleanup. Guided installer smoke uses `AgentUp.PackageSmoke validate-installer-flow <platform> <work-dir> [payload-root]`; passing a payload root lets the real platform adapter perform the installer work, while `AGENTUP_INSTALLER_FAKE=1` keeps tests non-privileged. Shell smoke code should stay limited to argument forwarding and runner setup.
 
 The shared installer app is the target user-facing install flow. During migration, native `.pkg`, WiX/MSI/Burn, and `.deb` artifacts may still perform direct native install work, but new behavior should move toward wrapping or launching `AgentUp.InstallerApp` with a bundled release payload.
 

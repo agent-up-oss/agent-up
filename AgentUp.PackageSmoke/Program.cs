@@ -2,12 +2,13 @@ using AgentUp.PackageSmoke.Features.Platforms;
 using AgentUp.PackageSmoke.Features.Validation;
 using AgentUp.PackageSmoke.Features.InstalledServices;
 using AgentUp.PackageSmoke.Features.InstallerFlow;
+using AgentUp.Installers.Features.Execution;
 
 if ((args.Length != 5 || args[0] is not ("validate-package" or "validate-installed-service"))
-    && (args.Length != 3 || args[0] != "validate-installer-flow"))
+    && (args.Length is not (3 or 4) || args[0] != "validate-installer-flow"))
 {
     Console.Error.WriteLine("Usage: AgentUp.PackageSmoke <validate-package|validate-installed-service> <platform> <runtime-id> <artifact-dir> <work-dir>");
-    Console.Error.WriteLine("   or: AgentUp.PackageSmoke validate-installer-flow <platform> <work-dir>");
+    Console.Error.WriteLine("   or: AgentUp.PackageSmoke validate-installer-flow <platform> <work-dir> [payload-root]");
     return 2;
 }
 
@@ -34,6 +35,9 @@ if (args[0] == "validate-package")
 
 if (args[0] == "validate-installer-flow")
 {
+    if (args.Length == 4)
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, Path.GetFullPath(args[3]));
+
     var result = await new InstallerFlowSmokeValidator().ValidateAsync(platform, workDirectory);
     WriteFindings(result.Findings);
     return result.Succeeded ? 0 : 1;

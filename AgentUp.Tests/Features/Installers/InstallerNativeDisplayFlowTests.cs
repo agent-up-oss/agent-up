@@ -20,11 +20,11 @@ public sealed class InstallerNativeDisplayFlowTests
     }
 
     [Test, CancelAfter(60000)]
-    public async Task Installer_completesDryRunFlow_onNativeDisplayBackend()
+    public async Task Installer_completesFakeAdapterFlow_onNativeDisplayBackend()
     {
         _window = await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            var window = new InstallerWindow { DataContext = InstallerViewModel.CreateDryRun() };
+            var window = new InstallerWindow { DataContext = InstallerViewModel.CreateFakeForTests() };
             window.Show();
             return window;
         });

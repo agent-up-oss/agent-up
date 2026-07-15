@@ -19,7 +19,7 @@ public class App : Application
         {
             desktop.MainWindow = new InstallerWindow
             {
-                DataContext = InstallerViewModel.CreateDryRun()
+                DataContext = InstallerViewModel.CreateDefault()
             };
         }
 

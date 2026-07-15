@@ -9,34 +9,28 @@ namespace AgentUp.InstallerApp.Tests.Features.Installation.Unit;
 [TestFixture]
 public class InstallerAdapterFactoryTests
 {
-    private string? _realUbuntu;
     private string? _payloadRoot;
-    private string? _realMacOs;
-    private string? _realWindows;
+    private string? _fakeInstaller;
 
     [SetUp]
     public void SetUp()
     {
-        _realUbuntu = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_UBUNTU");
-        _realMacOs = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_MACOS");
-        _realWindows = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_WINDOWS");
-        _payloadRoot = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT");
+        _fakeInstaller = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable);
+        _payloadRoot = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable);
     }
 
     [TearDown]
     public void TearDown()
     {
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_UBUNTU", _realUbuntu);
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_MACOS", _realMacOs);
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_WINDOWS", _realWindows);
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT", _payloadRoot);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, _fakeInstaller);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, _payloadRoot);
     }
 
     [Test]
-    public void Create_usesDryRunAdapterByDefault()
+    public void Create_usesFakeAdapterWhenExplicitlyEnabled()
     {
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_UBUNTU", null);
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT", null);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, "1");
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
 
         var adapter = InstallerAdapterFactory.Create();
 
@@ -44,13 +38,24 @@ public class InstallerAdapterFactoryTests
     }
 
     [Test]
-    public void Create_usesUbuntuAdapterOnLinuxWhenExplicitlyEnabledAndPayloadIsProvided()
+    public void Create_requiresPayloadRootForRealInstaller()
+    {
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+
+        Assert.That(
+            () => InstallerAdapterFactory.Create(),
+            Throws.InvalidOperationException.With.Message.Contains(InstallerPlatformAdapterFactory.PayloadRootVariable));
+    }
+
+    [Test]
+    public void Create_usesUbuntuAdapterByDefaultOnLinuxWhenPayloadIsProvided()
     {
         if (!OperatingSystem.IsLinux())
             Assert.Ignore("Ubuntu adapter selection is Linux-specific.");
 
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_UBUNTU", "1");
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT", "/payload");
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, "/payload");
 
         var adapter = InstallerAdapterFactory.Create();
 
@@ -58,13 +63,13 @@ public class InstallerAdapterFactoryTests
     }
 
     [Test]
-    public void Create_usesMacOsAdapterOnMacOsWhenExplicitlyEnabledAndPayloadIsProvided()
+    public void Create_usesMacOsAdapterByDefaultOnMacOsWhenPayloadIsProvided()
     {
         if (!OperatingSystem.IsMacOS())
             Assert.Ignore("macOS adapter selection is macOS-specific.");
 
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_MACOS", "1");
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT", "/payload");
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, "/payload");
 
         var adapter = InstallerAdapterFactory.Create();
 
@@ -72,13 +77,13 @@ public class InstallerAdapterFactoryTests
     }
 
     [Test]
-    public void Create_usesWindowsAdapterOnWindowsWhenExplicitlyEnabledAndPayloadIsProvided()
+    public void Create_usesWindowsAdapterByDefaultOnWindowsWhenPayloadIsProvided()
     {
         if (!OperatingSystem.IsWindows())
             Assert.Ignore("Windows adapter selection is Windows-specific.");
 
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_REAL_WINDOWS", "1");
-        Environment.SetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT", @"C:\payload");
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, @"C:\payload");
 
         var adapter = InstallerAdapterFactory.Create();
 
