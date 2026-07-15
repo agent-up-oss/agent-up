@@ -4,15 +4,35 @@ using AgentUp.Desktop.Features.Workspaces.Http;
 
 namespace AgentUp.Desktop.Features.FirstRun.Services;
 
-public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) : IFirstRunTutorialChecks
+public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 {
     private static readonly string[] RequiredApplicationNames = ["React SPA", "Express API", "Postgres"];
+    private readonly WorkspaceApiClient _workspaceClient;
+    private readonly ProcessRunner _runProcessAsync;
+
+    public FirstRunTutorialChecks(WorkspaceApiClient workspaceClient)
+        : this(workspaceClient, RunProcessAsync)
+    {
+    }
+
+    internal FirstRunTutorialChecks(WorkspaceApiClient workspaceClient, ProcessRunner runProcessAsync)
+    {
+        _workspaceClient = workspaceClient;
+        _runProcessAsync = runProcessAsync;
+    }
+
+    internal delegate Task<(int ExitCode, string Stdout, string Stderr)> ProcessRunner(
+        string fileName,
+        string arguments,
+        TimeSpan timeout,
+        CancellationToken cancellationToken,
+        string? workingDirectory = null);
 
     public async Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            await workspaceClient.CleanupTutorialWorkspacesAsync(cancellationToken);
+            await _workspaceClient.CleanupTutorialWorkspacesAsync(cancellationToken);
         }
         catch
         {
@@ -24,23 +44,33 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
     {
         try
         {
-            var docker = await RunProcessAsync(
+            var docker = await _runProcessAsync(
                 "docker",
-                "version --format {{.Server.Version}}",
-                TimeSpan.FromSeconds(8),
+                "--version",
+                TimeSpan.FromSeconds(5),
                 cancellationToken);
             if (docker.ExitCode != 0)
                 return FirstRunCheckResult.Failure(string.IsNullOrWhiteSpace(docker.Stderr)
-                    ? "Docker is not responding. Start Docker Desktop or the Docker daemon, then try again."
+                    ? "Docker was found but did not report a version. Start Docker Desktop or the Docker daemon, then try again."
                     : docker.Stderr);
+
+            var engine = await _runProcessAsync(
+                "docker",
+                "info",
+                TimeSpan.FromSeconds(8),
+                cancellationToken);
+            if (engine.ExitCode != 0)
+                return FirstRunCheckResult.Failure(string.IsNullOrWhiteSpace(engine.Stderr)
+                    ? "Docker is installed, but the engine is not responding. Start Docker Desktop or the Docker daemon, then try again."
+                    : engine.Stderr);
 
             var agentUp = await CheckAgentUpCommandAsync(cancellationToken);
             if (!agentUp.IsSuccess)
                 return agentUp;
 
             var dockerMessage = string.IsNullOrWhiteSpace(docker.Stdout)
-                ? "Docker is installed and responding"
-                : $"Docker is installed and responding ({docker.Stdout})";
+                ? "Docker is installed and the engine is responding"
+                : $"Docker is installed and the engine is responding ({docker.Stdout})";
             return FirstRunCheckResult.Success($"{dockerMessage}. {agentUp.Message}");
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
@@ -53,7 +83,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
     {
         try
         {
-            var (exitCode, output, error) = await RunProcessAsync(
+            var (exitCode, output, error) = await _runProcessAsync(
                 "node",
                 "--version",
                 TimeSpan.FromSeconds(5),
@@ -68,7 +98,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             if (!int.TryParse(majorText, out var major) || major < 20)
                 return FirstRunCheckResult.Failure($"Node {output.Trim()} was found. Install Node.js 20 or newer, then restart Agent-Up Desktop.");
 
-            var npm = await RunProcessAsync("npm", "--version", TimeSpan.FromSeconds(5), cancellationToken);
+            var npm = await _runProcessAsync("npm", "--version", TimeSpan.FromSeconds(5), cancellationToken);
             if (npm.ExitCode != 0)
                 return FirstRunCheckResult.Failure("Node was found, but npm is not available in this desktop session. Restart Agent-Up Desktop and try again.");
 
@@ -151,7 +181,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
         if (agentUpCommand is null)
             return FirstRunCheckResult.Failure("Agent-Up CLI was not found. Install `agent-up` or run from a checkout that contains AgentUp.CLI.csproj.");
 
-        var result = await RunProcessAsync(
+        var result = await _runProcessAsync(
             agentUpCommand.FileName,
             $"{agentUpCommand.ArgumentsPrefix} start".Trim(),
             TimeSpan.FromSeconds(30),
@@ -220,7 +250,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             if (agentUpCommand is null)
                 return FirstRunCheckResult.Failure("Copied example-agent2, but Agent-Up CLI was not found.");
 
-            var result = await RunProcessAsync(
+            var result = await _runProcessAsync(
                 agentUpCommand.FileName,
                 $"{agentUpCommand.ArgumentsPrefix} start".Trim(),
                 TimeSpan.FromSeconds(30),
@@ -333,7 +363,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
     {
         try
         {
-            return (await workspaceClient.ListAsync(cancellationToken), null);
+            return (await _workspaceClient.ListAsync(cancellationToken), null);
         }
         catch (HttpRequestException ex)
         {
@@ -441,11 +471,11 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
             : "Agent-Up CLI is available on PATH.");
     }
 
-    private static async Task<AgentUpCommand?> ResolveAgentUpCommandAsync(CancellationToken cancellationToken)
+    private async Task<AgentUpCommand?> ResolveAgentUpCommandAsync(CancellationToken cancellationToken)
     {
         try
         {
-            var installed = await RunProcessAsync("agent-up", "--help", TimeSpan.FromSeconds(5), cancellationToken);
+            var installed = await _runProcessAsync("agent-up", "--help", TimeSpan.FromSeconds(5), cancellationToken);
             if (installed.ExitCode == 0)
                 return new AgentUpCommand("agent-up", "", false);
         }
@@ -459,7 +489,7 @@ public sealed class FirstRunTutorialChecks(WorkspaceApiClient workspaceClient) :
 
         try
         {
-            var fallback = await RunProcessAsync("dotnet", $"run --project \"{cliProject}\" -- --help", TimeSpan.FromSeconds(15), cancellationToken);
+            var fallback = await _runProcessAsync("dotnet", $"run --project \"{cliProject}\" -- --help", TimeSpan.FromSeconds(15), cancellationToken);
             return fallback.ExitCode == 0
                 ? new AgentUpCommand("dotnet", $"run --project \"{cliProject}\" --", true)
                 : null;

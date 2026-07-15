@@ -27,6 +27,54 @@ public class FirstRunTutorialChecksTests
     }
 
     [Test]
+    public async Task CheckDockerAsync_checksDockerCliThenEngineBeforeAgentUpCli()
+    {
+        var calls = new List<string>();
+        var checks = CreateChecks([], (fileName, arguments, _, _, _) =>
+        {
+            calls.Add($"{fileName} {arguments}");
+            var stdout = fileName == "docker" && arguments == "--version"
+                ? "Docker version 27.0.0"
+                : "";
+            return Task.FromResult((0, stdout, ""));
+        });
+
+        var result = await checks.CheckDockerAsync();
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Message, Does.Contain("Docker version 27.0.0"));
+        Assert.That(calls, Is.EqualTo(new[]
+        {
+            "docker --version",
+            "docker info",
+            "agent-up --help"
+        }));
+    }
+
+    [Test]
+    public async Task CheckDockerAsync_failsBeforeAgentUpCli_whenDockerEngineIsDown()
+    {
+        var calls = new List<string>();
+        var checks = CreateChecks([], (fileName, arguments, _, _, _) =>
+        {
+            calls.Add($"{fileName} {arguments}");
+            return Task.FromResult(arguments == "info"
+                ? (1, "", "Cannot connect to the Docker daemon")
+                : (0, "Docker version 27.0.0", ""));
+        });
+
+        var result = await checks.CheckDockerAsync();
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.Message, Does.Contain("Cannot connect to the Docker daemon"));
+        Assert.That(calls, Is.EqualTo(new[]
+        {
+            "docker --version",
+            "docker info"
+        }));
+    }
+
+    [Test]
     public async Task CreateJavaScriptSampleAsync_writesReactAndExpressSampleFiles()
     {
         var checks = CreateChecks([]);
@@ -197,6 +245,15 @@ public class FirstRunTutorialChecksTests
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         return new FirstRunTutorialChecks(new WorkspaceApiClient(http));
+    }
+
+    private static FirstRunTutorialChecks CreateChecks(
+        List<WorkspaceDto> workspaces,
+        FirstRunTutorialChecks.ProcessRunner processRunner)
+    {
+        var handler = new FakeHttpMessageHandler(workspaces);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        return new FirstRunTutorialChecks(new WorkspaceApiClient(http), processRunner);
     }
 
     private static WorkspaceDto SampleWorkspace(string path, int webPort, int apiPort, int postgresPort)
