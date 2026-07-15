@@ -26,6 +26,43 @@ public class UbuntuPackagerTests
         Assert.That(writer.CreatedDirectories, Does.Contain(Path.Combine("/repo", "out")));
     }
 
+    [Test]
+    public async Task PackageAsync_withPayloadRootCopiesPayloadAndSkipsDotNetPublish()
+    {
+        var commands = new RecordingCommandRunner();
+        var writer = new RecordingPackageWriter();
+        var root = Path.Combine(Path.GetTempPath(), "AgentUp-UbuntuPackagerTests", Guid.NewGuid().ToString());
+        var payloadRoot = Path.Combine(root, "payload");
+        var request = new PackageRequest(root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", payloadRoot);
+
+        try
+        {
+            WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
+            WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
+            WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
+
+            await new UbuntuPackager(commands, writer).PackageAsync(request);
+
+            Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "ubuntu-linux-x64", "desktop", "AgentUp.Desktop")), Is.True);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "ubuntu-linux-x64", "server", "AgentUp.Server")), Is.True);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "ubuntu-linux-x64", "cli", "AgentUp.CLI")), Is.True);
+            Assert.That(commands.Commands.Last().FileName, Is.EqualTo("dpkg-deb"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static void WritePayloadFile(string payloadRoot, string component, string fileName)
+    {
+        var directory = Path.Combine(payloadRoot, component);
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, fileName), "");
+    }
+
     private sealed class RecordingCommandRunner : ICommandRunner
     {
         public List<CommandSpec> Commands { get; } = [];

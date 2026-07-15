@@ -4,9 +4,9 @@ title: Releases
 
 # Releases
 
-Agent-Up release artifacts are built by CI after the platform test matrix passes.
+Agent-Up release artifacts are built by CI after the Ubuntu .NET build and test job passes.
 
-Each platform job also smoke-tests the package it just built before upload. Package smoke tests consume the artifact on the target runner and check the expected package contract. Where the package exposes payload files directly, smoke tests also start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`. Windows WiX/Burn artifacts are validated through layout/package checks first, then through the installed-service smoke path.
+The Ubuntu build job builds the solution, runs the broad .NET test suite, publishes the reusable Packaging and PackageSmoke console artifacts, and publishes Desktop, Server, and CLI payloads for each release runtime. Native platform jobs download those prebuilt payloads from the CI bucket, build only the native package format, and smoke-test the package before upload. Package smoke tests consume the artifact on the target runner and check the expected package contract. Where the package exposes payload files directly, smoke tests also start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`. Windows WiX/Burn artifacts are validated through layout/package checks first, then through the installed-service smoke path.
 
 Shared installer planning, validation, and platform install contracts live in `AgentUp.Installers` and are tested by `AgentUp.Installers.Tests`. The shared guided installer UX lives in `AgentUp.InstallerApp` and is tested by `AgentUp.InstallerApp.Tests` plus native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`; packaging code consumes the shared installer contracts instead of redefining platform behavior. Package and installed-service smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator for artifact, installer-flow, install, service, CLI, diagnostics, and uninstall checks. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
 
@@ -82,13 +82,19 @@ Required CI secrets:
 | `AGENTUP_RELEASE_S3_ACCESS_KEY` | Private write access key for the release bucket |
 | `AGENTUP_RELEASE_S3_SECRET_KEY` | Private write secret key for the release bucket |
 
-CI does not use GitHub Actions artifacts. Platform jobs upload package outputs directly to:
+CI does not use GitHub Actions artifacts. The Ubuntu build job uploads reusable .NET payloads and tools to:
+
+```text
+agent-up-ci/runs/{github-run-id}/dotnet-ci/
+```
+
+Platform jobs upload package outputs directly to:
 
 ```text
 agent-up-ci/runs/{github-run-id}/{platform-runtime}/
 ```
 
-The release job downloads those objects from MinIO, then publishes the final release artifacts.
+The release job downloads only the native package objects from MinIO, then publishes the final release artifacts.
 
 CI publishes artifacts under both:
 
@@ -98,6 +104,8 @@ agent-up/latest/
 ```
 
 The `agent-up/latest/` prefix is overwritten on every release, so the stable download URLs in the Downloads page always point at the latest release.
+
+The release upload also writes `manifest.json` and `checksums.sha256` beside the versioned and latest artifacts so installers and update checks can consume a stable release contract.
 
 ## Update Direction
 

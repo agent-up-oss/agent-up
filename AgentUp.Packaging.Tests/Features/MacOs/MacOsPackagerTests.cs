@@ -33,6 +33,44 @@ public class MacOsPackagerTests
         Assert.That(commands.Commands.Last().Arguments, Does.Contain(Path.Combine(root, "out", "agent-up-macos-osx-arm64.pkg")));
     }
 
+    [Test]
+    public async Task PackageAsync_withPayloadRootCopiesPayloadAndSkipsDotNetPublish()
+    {
+        var commands = new RecordingCommandRunner();
+        var writer = new RecordingMacOsPackageWriter();
+        var root = Path.Combine(Path.GetTempPath(), "AgentUp-MacOsPackagerTests", Guid.NewGuid().ToString());
+        var payloadRoot = Path.Combine(root, "payload");
+        var request = new PackageRequest(root, "macos", "osx-arm64", "1.2.3", "out", "Release", payloadRoot);
+
+        try
+        {
+            WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
+            WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
+            WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
+
+            await new MacOsPackager(commands, writer).PackageAsync(request);
+
+            Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "desktop", "AgentUp.Desktop")), Is.True);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "server", "AgentUp.Server")), Is.True);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "cli", "AgentUp.CLI")), Is.True);
+            Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(3));
+            Assert.That(commands.Commands.Last().FileName, Is.EqualTo("productbuild"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static void WritePayloadFile(string payloadRoot, string component, string fileName)
+    {
+        var directory = Path.Combine(payloadRoot, component);
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, fileName), "");
+    }
+
     private sealed class RecordingCommandRunner : ICommandRunner
     {
         public List<CommandSpec> Commands { get; } = [];

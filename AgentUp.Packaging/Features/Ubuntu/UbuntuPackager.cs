@@ -21,27 +21,36 @@ public sealed class UbuntuPackager
 
         _writer.ResetDirectory(request.StageDirectory);
         _writer.CreateDirectory(request.OutputRoot);
-        await publisher.PublishDotNetProjectAsync(
-            Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
-            request.RuntimeId,
-            request.Configuration,
-            request.Version,
-            layout.DesktopPublishDirectory,
-            cancellationToken);
-        await publisher.PublishDotNetProjectAsync(
-            Path.Combine(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
-            request.RuntimeId,
-            request.Configuration,
-            request.Version,
-            layout.ServerPublishDirectory,
-            cancellationToken);
-        await publisher.PublishDotNetProjectAsync(
-            Path.Combine(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
-            request.RuntimeId,
-            request.Configuration,
-            request.Version,
-            layout.CliPublishDirectory,
-            cancellationToken);
+        if (request.PayloadRoot is null)
+        {
+            await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.DesktopPublishDirectory,
+                cancellationToken);
+            await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.ServerPublishDirectory,
+                cancellationToken);
+            await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.CliPublishDirectory,
+                cancellationToken);
+        }
+        else
+        {
+            PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, layout.DesktopPublishDirectory);
+            PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, layout.ServerPublishDirectory);
+            PackagePublisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, layout.CliPublishDirectory);
+        }
 
         new UbuntuPackageStager(_writer).Stage(request, layout, manifest);
         await _commands.RunAsync(new CommandSpec("dpkg-deb", ["--build", layout.DebRoot, layout.DebOutputPath]), cancellationToken);

@@ -77,9 +77,16 @@ extract_zip() {
   fi
 }
 
+run_package_smoke() {
+  if [ -n "${AGENTUP_PACKAGE_SMOKE_COMMAND:-}" ]; then
+    "$AGENTUP_PACKAGE_SMOKE_COMMAND" "$@"
+  else
+    dotnet run --project AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj --configuration Release -- "$@"
+  fi
+}
+
 validate_package_contract() {
-  dotnet run --project AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj --configuration Release -- \
-    validate-package "$platform" "$rid" "$artifact_dir" "$work_dir"
+  run_package_smoke validate-package "$platform" "$rid" "$artifact_dir" "$work_dir"
 
   # shellcheck disable=SC1091
   . "$work_dir/package-smoke.env"
@@ -189,8 +196,7 @@ case "$platform" in
     smoke_cli_workspace "$CLI_PATH"
     ;;
   windows)
-    dotnet run --project AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj --configuration Release -- \
-      validate-package "$platform" "$rid" "$artifact_dir" "$work_dir"
+    run_package_smoke validate-package "$platform" "$rid" "$artifact_dir" "$work_dir"
     ;;
   ubuntu)
     validate_package_contract

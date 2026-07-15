@@ -11,5 +11,9 @@ rid="$2"
 artifact_dir="$3"
 work_dir="$(pwd)/artifacts/service-smoke/$platform-$rid"
 
+if [ -n "${AGENTUP_PACKAGE_SMOKE_COMMAND:-}" ]; then
+  exec "$AGENTUP_PACKAGE_SMOKE_COMMAND" validate-installed-service "$platform" "$rid" "$artifact_dir" "$work_dir"
+fi
+
 exec dotnet run --project AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj --configuration Release -- \
   validate-installed-service "$platform" "$rid" "$artifact_dir" "$work_dir"

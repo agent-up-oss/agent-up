@@ -41,11 +41,13 @@ On Windows, the default adapter installs the staged Desktop, Server, and CLI pay
 
 `AgentUp.Packaging` owns release artifact build orchestration:
 
-- Component publish plans.
+- Component publish plans and prebuilt payload consumption.
 - Native package staging layouts.
 - Package metadata generation.
 - Native packaging tool invocation.
 - Artifact path and naming rules.
+
+CI uses prebuilt payload mode: the Ubuntu build job publishes Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime, uploads them to the CI bucket, and native package jobs pass `--payload-root` to package those exact payloads. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
 
 `AgentUp.PackageSmoke` owns smoke validation:
 
@@ -76,6 +78,8 @@ Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app genera
 macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
+
+`AgentUp.Packaging package <platform> <runtime-id> <version> [output-dir] --payload-root <path>` packages an existing payload root containing `desktop`, `server`, and `cli` directories. Without `--payload-root`, the command keeps the local developer fallback of publishing those projects before packaging.
 
 Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS, Windows, and Ubuntu artifact contract checks. Installed-service smoke scripts must use `AgentUp.PackageSmoke validate-installed-service` for native installation, service readiness, installed CLI validation, diagnostics, and uninstall cleanup. Guided installer smoke uses `AgentUp.PackageSmoke validate-installer-flow <platform> <work-dir> [payload-root]`; passing a payload root lets the real platform adapter perform the installer work, while `AGENTUP_INSTALLER_FAKE=1` keeps tests non-privileged. Shell smoke code should stay limited to argument forwarding and runner setup.
 

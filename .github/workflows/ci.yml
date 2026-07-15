@@ -8,45 +8,13 @@ permissions:
   checks: write
 
 jobs:
-  platform:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Ubuntu
-            os: ubuntu-latest
-            platform: ubuntu
-            rid: linux-x64
-            use-nix: false
-          - name: NixOS package
-            os: ubuntu-latest
-            platform: nixos
-            rid: linux-x64
-            use-nix: true
-          - name: macOS Apple Silicon
-            os: macos-latest
-            platform: macos
-            rid: osx-arm64
-            use-nix: false
-          - name: macOS Intel
-            os: macos-15-intel
-            platform: macos
-            rid: osx-x64
-            use-nix: false
-          - name: Windows
-            os: windows-latest
-            platform: windows
-            rid: win-x64
-            use-nix: false
+  dotnet-build-test:
+    name: .NET build, tests, and payloads
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - uses: DeterminateSystems/nix-installer-action@v14
-        if: ${{ matrix.use-nix }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -57,7 +25,6 @@ jobs:
           dotnet build "agent-up.sln" --configuration Release
 
       - name: Install Ubuntu browser test dependencies
-        if: ${{ matrix.platform == 'ubuntu' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
@@ -73,38 +40,7 @@ jobs:
             sudo ldconfig
           fi
 
-      - name: Run tests on Nix
-        if: ${{ matrix.use-nix }}
-        run: |
-          nix-shell shell.nix --run '
-            found_tests=false
-
-            while IFS= read -r -d "" test_project; do
-              found_tests=true
-              test_project_name="$(basename "$(dirname "$test_project")")"
-              test_command=(
-                dotnet test "$test_project"
-                --configuration Release \
-                --no-build \
-                --settings "coverlet.runsettings" \
-                --logger "trx;LogFileName=test-results.trx" \
-                --collect:"XPlat Code Coverage"
-              )
-
-              if [ "$test_project_name" = "AgentUp.Tests" ]; then
-                test_command+=(--blame-hang --blame-hang-timeout 120s)
-              fi
-              "${test_command[@]}"
-            done < <(find . -name "*Tests.csproj" -print0)
-
-            if [ "$found_tests" = false ]; then
-              echo "No test projects found"
-              exit 1
-            fi
-          '
-
       - name: Run tests
-        if: ${{ !matrix.use-nix }}
         shell: bash
         run: |
           found_tests=false
@@ -112,36 +48,6 @@ jobs:
           while IFS= read -r -d "" test_project; do
             found_tests=true
             test_project_name="$(basename "$(dirname "$test_project")")"
-
-            if [ "${{ matrix.platform }}" = "macos" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
-              mkdir -p "$test_project_name/TestResults"
-              dotnet run \
-                --project "$test_project" \
-                --configuration Release \
-                --no-build \
-                -- \
-                --workers=0 \
-                --timeout=120000 \
-                "--result=$test_project_name/TestResults/test-results.xml;format=nunit3" &
-
-              test_pid=$!
-              elapsed=0
-              while kill -0 "$test_pid" 2>/dev/null; do
-                sleep 5
-                elapsed=$((elapsed + 5))
-                if [ "$elapsed" -ge 180 ]; then
-                  echo "macOS AgentUp.Tests exceeded 180 seconds; terminating test process."
-                  kill -TERM "$test_pid" 2>/dev/null || true
-                  sleep 5
-                  kill -KILL "$test_pid" 2>/dev/null || true
-                  wait "$test_pid" || true
-                  exit 124
-                fi
-              done
-              wait "$test_pid"
-              continue
-            fi
-
             test_command=(
               dotnet test "$test_project"
               --configuration Release
@@ -153,9 +59,6 @@ jobs:
 
             if [ "$test_project_name" = "AgentUp.Tests" ]; then
               test_command+=(--blame-hang --blame-hang-timeout 120s)
-            fi
-
-            if [ "${{ matrix.platform }}" = "ubuntu" ] && [ "$test_project_name" = "AgentUp.Tests" ]; then
               test_status=1
               for attempt in 1 2; do
                 echo "Running AgentUp.Tests on Ubuntu attempt $attempt/2"
@@ -182,24 +85,144 @@ jobs:
             exit 1
           fi
 
-      - name: Package release artifact
+      - name: Publish .NET CI artifacts
         shell: bash
         run: |
-          ./scripts/package-release.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "0.0.0-ci" "release-artifacts"
-
-      - name: Smoke test packaged artifact
-        shell: bash
-        run: |
-          ./.github/scripts/smoke-package.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
-
-      - name: Smoke test installed service
-        shell: bash
-        run: |
-          ./.github/scripts/smoke-installed-service.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
+          ./.github/scripts/publish-dotnet-ci-artifacts.sh "0.0.0-ci" "artifacts/dotnet-ci"
 
       - name: Install mc
         shell: bash
         run: ./.github/scripts/install-mc.sh
+
+      - name: Upload .NET artifacts to CI artifact bucket
+        shell: bash
+        env:
+          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
+          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
+          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
+          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
+        run: |
+          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
+          mc mb --ignore-existing "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET"
+          mc mirror --overwrite --remove \
+            artifacts/dotnet-ci \
+            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/dotnet-ci"
+
+      - name: Test Report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }}
+        with:
+          name: .NET Tests (Agent-Up)
+          path: "**/test-results.trx"
+          reporter: dotnet-trx
+
+  platform:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    needs: dotnet-build-test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu package
+            os: ubuntu-latest
+            platform: ubuntu
+            rid: linux-x64
+            use-nix: false
+          - name: NixOS package
+            os: ubuntu-latest
+            platform: nixos
+            rid: linux-x64
+            use-nix: true
+          - name: macOS Apple Silicon package
+            os: macos-latest
+            platform: macos
+            rid: osx-arm64
+            use-nix: false
+          - name: macOS Intel package
+            os: macos-15-intel
+            platform: macos
+            rid: osx-x64
+            use-nix: false
+          - name: Windows package
+            os: windows-latest
+            platform: windows
+            rid: win-x64
+            use-nix: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@v14
+        if: ${{ matrix.use-nix }}
+
+      - name: Install mc
+        shell: bash
+        run: ./.github/scripts/install-mc.sh
+
+      - name: Download .NET artifacts from CI artifact bucket
+        shell: bash
+        env:
+          AGENTUP_CI_ARTIFACT_BUCKET: ${{ secrets.AGENTUP_CI_ARTIFACT_BUCKET }}
+          AGENTUP_CI_S3_ENDPOINT: ${{ secrets.AGENTUP_CI_S3_ENDPOINT }}
+          AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
+          AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
+        run: |
+          mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
+          rm -rf dotnet-ci
+          mc cp --recursive \
+            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/dotnet-ci/" \
+            dotnet-ci/
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            chmod +x "dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging" || true
+            chmod +x "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke" || true
+            chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/desktop/AgentUp.Desktop" || true
+            chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/server/AgentUp.Server" || true
+            chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/cli/AgentUp.CLI" || true
+          fi
+
+      - name: Package release artifact
+        shell: bash
+        run: |
+          tool_suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tool_suffix=".exe"
+          fi
+          export AGENTUP_PACKAGING_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging$tool_suffix"
+          ./scripts/package-release.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "0.0.0-ci" "release-artifacts" \
+            --payload-root "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
+
+      - name: Smoke test packaged artifact
+        shell: bash
+        run: |
+          tool_suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tool_suffix=".exe"
+          fi
+          export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
+          ./.github/scripts/smoke-package.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
+
+      - name: Smoke test guided installer flow
+        if: ${{ matrix.platform != 'nixos' }}
+        shell: bash
+        run: |
+          tool_suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tool_suffix=".exe"
+          fi
+          export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
+          ./.github/scripts/smoke-installer-flow.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
+
+      - name: Smoke test installed service
+        shell: bash
+        run: |
+          tool_suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tool_suffix=".exe"
+          fi
+          export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
+          ./.github/scripts/smoke-installed-service.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
 
       - name: Upload package to CI artifact bucket
         shell: bash
@@ -214,14 +237,6 @@ jobs:
           mc mirror --overwrite --remove \
             release-artifacts \
             "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/${{ matrix.platform }}-${{ matrix.rid }}"
-
-      - name: Test Report
-        uses: dorny/test-reporter@v2
-        if: ${{ !cancelled() }}
-        with:
-          name: .NET Tests (Agent-Up)
-          path: "**/test-results.trx"
-          reporter: dotnet-trx
 
   docs:
     name: Docs
@@ -390,17 +405,24 @@ jobs:
           AGENTUP_CI_S3_ACCESS_KEY: ${{ secrets.AGENTUP_CI_S3_ACCESS_KEY }}
           AGENTUP_CI_S3_SECRET_KEY: ${{ secrets.AGENTUP_CI_S3_SECRET_KEY }}
         run: |
-          mkdir -p release-artifacts
+          mkdir -p ci-release-download release-artifacts
           mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
           mc cp --recursive \
             "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/" \
-            release-artifacts/
-          while IFS= read -r -d "" artifact; do
-            target="release-artifacts/$(basename "$artifact")"
-            echo "Collecting $artifact -> $target"
-            mv "$artifact" "$target"
-          done < <(find release-artifacts -mindepth 2 -type f -print0)
-          find release-artifacts -mindepth 1 -type d -empty -delete
+            ci-release-download/
+          for package_dir in \
+            ubuntu-linux-x64 \
+            nixos-linux-x64 \
+            macos-osx-arm64 \
+            macos-osx-x64 \
+            windows-win-x64
+          do
+            while IFS= read -r -d "" artifact; do
+              target="release-artifacts/$(basename "$artifact")"
+              echo "Collecting $artifact -> $target"
+              cp "$artifact" "$target"
+            done < <(find "ci-release-download/$package_dir" -maxdepth 1 -type f -print0)
+          done
           ./.github/scripts/upload-release-artifacts.sh --check-only
           find release-artifacts -maxdepth 1 -type f -printf "Ready artifact: %f (%s bytes)\n" | sort
 

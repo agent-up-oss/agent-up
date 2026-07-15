@@ -37,6 +37,45 @@ public class WindowsPackagerTests
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("agent-up.cmd", StringComparison.Ordinal)), Is.True);
     }
 
+    [Test]
+    public async Task PackageAsync_withPayloadRootCopiesPayloadAndSkipsDotNetPublish()
+    {
+        var commands = new RecordingCommandRunner();
+        var writer = new RecordingWindowsPackageWriter();
+        var root = Path.Combine(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
+        var payloadRoot = Path.Combine(root, "payload");
+        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot);
+
+        try
+        {
+            WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop.exe");
+            WritePayloadFile(payloadRoot, "server", "AgentUp.Server.exe");
+            WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI.exe");
+
+            await new WindowsPackager(commands, writer).PackageAsync(request);
+
+            Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
+            Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
+            Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
+            Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static void WritePayloadFile(string payloadRoot, string component, string fileName)
+    {
+        var directory = Path.Combine(payloadRoot, component);
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, fileName), "");
+    }
+
     private sealed class RecordingCommandRunner : ICommandRunner
     {
         public List<CommandSpec> Commands { get; } = [];

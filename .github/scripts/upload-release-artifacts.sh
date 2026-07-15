@@ -46,6 +46,33 @@ if [ "$check_only" = true ]; then
   exit 0
 fi
 
+manifest="$artifact_dir/manifest.json"
+checksum_file="$artifact_dir/checksums.sha256"
+(
+  cd "$artifact_dir"
+  printf "" > "$(basename "$checksum_file")"
+  for artifact in "${expected_artifacts[@]}"; do
+    sha256sum "$artifact" >> "$(basename "$checksum_file")"
+  done
+)
+
+cat > "$manifest" <<JSON
+{
+  "version": "$version",
+  "commit": "${GITHUB_SHA:-unknown}",
+  "artifacts": [
+    "agent-up-macos-osx-arm64.pkg",
+    "agent-up-macos-osx-x64.pkg",
+    "agent-up-nixos-pkgs.tar.gz",
+    "agent-up-ubuntu-linux-x64.deb",
+    "agent-up-windows-win-x64.exe"
+  ],
+  "checksums": "checksums.sha256"
+}
+JSON
+
+release_artifacts=("${expected_artifacts[@]}" "manifest.json" "checksums.sha256")
+
 bucket="${AGENTUP_RELEASE_BUCKET:?AGENTUP_RELEASE_BUCKET is required}"
 endpoint="${AGENTUP_RELEASE_S3_ENDPOINT:?AGENTUP_RELEASE_S3_ENDPOINT is required}"
 access_key="${AGENTUP_RELEASE_S3_ACCESS_KEY:?AGENTUP_RELEASE_S3_ACCESS_KEY is required}"
@@ -56,14 +83,14 @@ mc alias set "$alias_name" "$endpoint" "$access_key" "$secret_key"
 mc mb --ignore-existing "$alias_name/$bucket"
 
 echo "Publishing release artifacts to $alias_name/$bucket/$prefix/releases/$version"
-for artifact in "${expected_artifacts[@]}"; do
+for artifact in "${release_artifacts[@]}"; do
   destination="$alias_name/$bucket/$prefix/releases/$version/$artifact"
   echo "Uploading $artifact_dir/$artifact -> $destination"
   mc cp "$artifact_dir/$artifact" "$destination"
 done
 
 echo "Publishing release artifacts to $alias_name/$bucket/$prefix/latest"
-for artifact in "${expected_artifacts[@]}"; do
+for artifact in "${release_artifacts[@]}"; do
   destination="$alias_name/$bucket/$prefix/latest/$artifact"
   echo "Uploading $artifact_dir/$artifact -> $destination"
   mc cp "$artifact_dir/$artifact" "$destination"

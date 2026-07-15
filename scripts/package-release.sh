@@ -2,11 +2,11 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <platform> <runtime-id> <version> [output-dir]" >&2
+  echo "Usage: $0 <platform> <runtime-id> <version> [output-dir] [--payload-root <path>]" >&2
   echo "Platforms: ubuntu, nixos, macos, windows" >&2
 }
 
-if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+if [ "$#" -lt 3 ] || [ "$#" -gt 6 ]; then
   usage
   exit 2
 fi
@@ -14,10 +14,32 @@ fi
 platform="$1"
 rid="$2"
 version="$3"
-output_dir="${4:-artifacts}"
+shift 3
+output_dir="artifacts"
+payload_root="${AGENTUP_PACKAGE_PAYLOAD_ROOT:-}"
 configuration="${CONFIGURATION:-Release}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 stage="$root/artifacts/stage/$platform-$rid"
+
+if [ "$#" -gt 0 ] && [ "$1" != "--payload-root" ]; then
+  output_dir="$1"
+  shift
+fi
+
+if [ "$#" -gt 0 ]; then
+  if [ "$#" -ne 2 ] || [ "$1" != "--payload-root" ]; then
+    usage
+    exit 2
+  fi
+
+  payload_root="$2"
+  shift 2
+fi
+
+if [ "$#" -ne 0 ]; then
+  usage
+  exit 2
+fi
 
 ensure_wix_cli() {
   if command -v wix >/dev/null 2>&1; then
@@ -45,40 +67,57 @@ if [ "$platform" = "ubuntu" ] || [ "$platform" = "macos" ] || [ "$platform" = "w
     ensure_wix_cli
   fi
 
-  dotnet run --project "$root/AgentUp.Packaging/AgentUp.Packaging.csproj" --configuration "$configuration" -- \
-    package "$platform" "$rid" "$version" "$output_dir"
+  packaging_command=("$root/AgentUp.Packaging/bin/$configuration/net10.0/AgentUp.Packaging")
+  if [ -n "${AGENTUP_PACKAGING_COMMAND:-}" ]; then
+    packaging_command=("$AGENTUP_PACKAGING_COMMAND")
+  elif [ ! -x "${packaging_command[0]}" ]; then
+    packaging_command=(dotnet run --project "$root/AgentUp.Packaging/AgentUp.Packaging.csproj" --configuration "$configuration" --)
+  fi
+
+  package_args=(package "$platform" "$rid" "$version" "$output_dir")
+  if [ -n "$payload_root" ]; then
+    package_args+=(--payload-root "$payload_root")
+  fi
+
+  "${packaging_command[@]}" "${package_args[@]}"
   exit 0
 fi
 
 rm -rf "$stage"
 mkdir -p "$stage/desktop" "$stage/server" "$stage/cli" "$root/$output_dir"
 
-dotnet restore "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" --runtime "$rid"
-dotnet publish "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" \
-  --configuration "$configuration" \
-  --runtime "$rid" \
-  --self-contained true \
-  -p:PublishSingleFile=false \
-  -p:Version="$version" \
-  -o "$stage/desktop"
+if [ -n "$payload_root" ]; then
+  cp -a "$payload_root/desktop/." "$stage/desktop/"
+  cp -a "$payload_root/server/." "$stage/server/"
+  cp -a "$payload_root/cli/." "$stage/cli/"
+else
+  dotnet restore "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" --runtime "$rid"
+  dotnet publish "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" \
+    --configuration "$configuration" \
+    --runtime "$rid" \
+    --self-contained true \
+    -p:PublishSingleFile=false \
+    -p:Version="$version" \
+    -o "$stage/desktop"
 
-dotnet restore "$root/AgentUp.Server/AgentUp.Server.csproj" --runtime "$rid"
-dotnet publish "$root/AgentUp.Server/AgentUp.Server.csproj" \
-  --configuration "$configuration" \
-  --runtime "$rid" \
-  --self-contained true \
-  -p:PublishSingleFile=false \
-  -p:Version="$version" \
-  -o "$stage/server"
+  dotnet restore "$root/AgentUp.Server/AgentUp.Server.csproj" --runtime "$rid"
+  dotnet publish "$root/AgentUp.Server/AgentUp.Server.csproj" \
+    --configuration "$configuration" \
+    --runtime "$rid" \
+    --self-contained true \
+    -p:PublishSingleFile=false \
+    -p:Version="$version" \
+    -o "$stage/server"
 
-dotnet restore "$root/AgentUp.CLI/AgentUp.CLI.csproj" --runtime "$rid"
-dotnet publish "$root/AgentUp.CLI/AgentUp.CLI.csproj" \
-  --configuration "$configuration" \
-  --runtime "$rid" \
-  --self-contained true \
-  -p:PublishSingleFile=false \
-  -p:Version="$version" \
-  -o "$stage/cli"
+  dotnet restore "$root/AgentUp.CLI/AgentUp.CLI.csproj" --runtime "$rid"
+  dotnet publish "$root/AgentUp.CLI/AgentUp.CLI.csproj" \
+    --configuration "$configuration" \
+    --runtime "$rid" \
+    --self-contained true \
+    -p:PublishSingleFile=false \
+    -p:Version="$version" \
+    -o "$stage/cli"
+fi
 
 case "$platform" in
   nixos)

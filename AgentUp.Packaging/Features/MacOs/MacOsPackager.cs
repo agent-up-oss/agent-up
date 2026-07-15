@@ -20,27 +20,36 @@ public sealed class MacOsPackager
 
         _writer.ResetDirectory(request.StageDirectory);
         _writer.CreateDirectory(request.OutputRoot);
-        await publisher.PublishDotNetProjectAsync(
-            Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
-            request.RuntimeId,
-            request.Configuration,
-            request.Version,
-            layout.DesktopPublishDirectory,
-            cancellationToken);
-        await publisher.PublishDotNetProjectAsync(
-            Path.Combine(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
-            request.RuntimeId,
-            request.Configuration,
-            request.Version,
-            layout.ServerPublishDirectory,
-            cancellationToken);
-        await publisher.PublishDotNetProjectAsync(
-            Path.Combine(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
-            request.RuntimeId,
-            request.Configuration,
-            request.Version,
-            layout.CliPublishDirectory,
-            cancellationToken);
+        if (request.PayloadRoot is null)
+        {
+            await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.DesktopPublishDirectory,
+                cancellationToken);
+            await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.ServerPublishDirectory,
+                cancellationToken);
+            await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.CliPublishDirectory,
+                cancellationToken);
+        }
+        else
+        {
+            PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, layout.DesktopPublishDirectory);
+            PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, layout.ServerPublishDirectory);
+            PackagePublisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, layout.CliPublishDirectory);
+        }
 
         new MacOsPackageStager(_writer).Stage(layout, MacOsPackageManifest.From(request));
 
