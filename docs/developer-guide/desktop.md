@@ -79,6 +79,8 @@ The desktop should visually align with the interactive demo on the docs marketin
 
 The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Sidebar toggle, workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the sidebar/reload controls and is green when the Desktop can reach the Server and red when it cannot.
 
+Desktop sets a runtime `WindowIcon` from `media/logo.png` so Linux/Xorg window switchers can display the app icon. The Desktop project must also declare `ApplicationIcon` pointing at `media/logo.ico`; Windows shell surfaces such as Alt+Tab use the executable icon resource rather than only Avalonia's runtime window icon.
+
 ```text
 +---------------------------------------------------------------+
 | ☰ ↺ SERVER ONLINE              Agent-Up               _  □  × |

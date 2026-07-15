@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AgentUp.Desktop</RootNamespace>
+    <ApplicationIcon>..\media\logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
