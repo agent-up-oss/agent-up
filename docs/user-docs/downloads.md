@@ -12,9 +12,9 @@ Use the Windows installer:
 
 <a className="button button--primary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-windows-win-x64.exe">Download Windows installer</a>
 
-Run the installer from an elevated PowerShell session. It installs Desktop, CLI, and the Server payload, then starts the Server as the `agent-up-server` Windows Service.
+Run the installer normally. It prompts for elevation when needed, then lets you install, upgrade, or uninstall Agent-Up.
 
-After installation, start Agent-Up from the installed Desktop application. CLI commands connect to the local Server at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points somewhere else.
+The installer registers Agent-Up under Windows Apps, adds a Start Menu entry, adds `agent-up` to PATH, installs the Server as the `agent-up-server` Windows Service, and removes all of those components on uninstall. CLI commands connect to the local Server at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points somewhere else.
 
 ## macOS
 
@@ -24,9 +24,9 @@ Use the macOS disk image for your processor:
 
 <a className="button button--secondary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-macos-osx-x64.dmg">Download macOS Intel disk image</a>
 
-Open the `.dmg`, run `install.sh`, then start `Agent-Up.app` from `/Applications`.
+Open the `.dmg`, then run `Agent-Up Installer.command`. The installer prompts for administrator access and lets you install, upgrade, or uninstall Agent-Up.
 
-The installer copies `Agent-Up.app` into `/Applications` and starts the bundled Server as the `dev.agent-up.server` launchd service.
+The installer copies `Agent-Up.app` into `/Applications`, adds `agent-up` CLI symlinks under `/usr/local/bin`, and starts the bundled Server as the `dev.agent-up.server` launchd service. Uninstall removes those registrations and installed assets.
 
 ## Ubuntu
 

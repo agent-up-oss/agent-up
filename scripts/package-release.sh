@@ -64,8 +64,10 @@ create_windows_installer() {
   cat > "$installer_src/AgentUp.Installer.csproj" <<'CSPROJ'
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -79,10 +81,14 @@ CSPROJ
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
+using System.Security.Principal;
+using Microsoft.Win32;
+using System.Windows.Forms;
 
 var installDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Agent-Up");
 var extractOnly = false;
 var quiet = false;
+var requestedAction = "";
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -98,23 +104,128 @@ for (var i = 0; i < args.Length; i++)
         case "--quiet":
             quiet = true;
             break;
+        case "--install":
+            requestedAction = "install";
+            break;
+        case "--upgrade":
+            requestedAction = "upgrade";
+            break;
+        case "--uninstall":
+            requestedAction = "uninstall";
+            break;
         default:
             throw new ArgumentException($"Unknown argument: {args[i]}");
     }
 }
 
-Directory.CreateDirectory(installDir);
-
-await using var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload.zip")
-    ?? throw new InvalidOperationException("Embedded payload.zip was not found.");
-using (var archive = new ZipArchive(payload, ZipArchiveMode.Read))
+if (extractOnly)
 {
-    archive.ExtractToDirectory(installDir, overwriteFiles: true);
+    ExtractPayload(installDir);
+    return 0;
 }
 
-if (!extractOnly)
+if (!IsAdministrator())
 {
-    var installScript = Path.Combine(installDir, "tools", "install-agent-up-server.ps1");
+    RelaunchElevated(args);
+    return 0;
+}
+
+var existing = IsInstalled(installDir);
+var action = requestedAction;
+if (string.IsNullOrWhiteSpace(action))
+    action = quiet ? (existing ? "upgrade" : "install") : ChooseAction(existing);
+
+if (action == "cancel")
+    return 0;
+
+try
+{
+    switch (action)
+    {
+        case "install":
+            await InstallAsync(installDir, uninstallFirst: false);
+            break;
+        case "upgrade":
+            await InstallAsync(installDir, uninstallFirst: true);
+            break;
+        case "uninstall":
+            await UninstallAsync(installDir);
+            break;
+        default:
+            throw new InvalidOperationException($"Unknown installer action: {action}");
+    }
+
+    if (!quiet)
+        MessageBox.Show($"Agent-Up {action} completed.", "Agent-Up Installer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+    return 0;
+}
+catch (Exception ex)
+{
+    if (!quiet)
+        MessageBox.Show(ex.Message, "Agent-Up Installer", MessageBoxButtons.OK, MessageBoxIcon.Error);
+    Console.Error.WriteLine(ex);
+    return 1;
+}
+
+async Task InstallAsync(string targetDir, bool uninstallFirst)
+{
+    if (uninstallFirst)
+        await UninstallAsync(targetDir);
+
+    Directory.CreateDirectory(targetDir);
+    ExtractPayload(targetDir);
+    CopySelfToInstallDir(targetDir);
+    await RunPowerShellAsync(Path.Combine(targetDir, "tools", "install-agent-up-server.ps1"));
+    CreateCliShim(targetDir);
+    AddToMachinePath(Path.Combine(targetDir, "bin"));
+    CreateStartMenuShortcut(targetDir);
+    RegisterApp(targetDir);
+}
+
+async Task UninstallAsync(string targetDir)
+{
+    var uninstallScript = Path.Combine(targetDir, "tools", "uninstall-agent-up-server.ps1");
+    if (File.Exists(uninstallScript))
+        await RunPowerShellAsync(uninstallScript);
+
+    RemoveFromMachinePath(Path.Combine(targetDir, "bin"));
+    RemoveStartMenuShortcut();
+    UnregisterApp();
+
+    if (Directory.Exists(targetDir) && IsCurrentExecutableUnder(targetDir))
+    {
+        ScheduleDirectoryDelete(targetDir);
+    }
+    else if (Directory.Exists(targetDir))
+    {
+        Directory.Delete(targetDir, recursive: true);
+    }
+}
+
+void ExtractPayload(string targetDir)
+{
+    Directory.CreateDirectory(targetDir);
+    using var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload.zip")
+        ?? throw new InvalidOperationException("Embedded payload.zip was not found.");
+    using var archive = new ZipArchive(payload, ZipArchiveMode.Read);
+    archive.ExtractToDirectory(targetDir, overwriteFiles: true);
+}
+
+void CopySelfToInstallDir(string targetDir)
+{
+    var currentExe = Environment.ProcessPath;
+    if (string.IsNullOrWhiteSpace(currentExe) || !File.Exists(currentExe))
+        return;
+
+    File.Copy(currentExe, Path.Combine(targetDir, "AgentUp.Installer.exe"), overwrite: true);
+}
+
+async Task RunPowerShellAsync(string script)
+{
+    if (!File.Exists(script))
+        throw new FileNotFoundException($"Installer script not found: {script}", script);
+
     var startInfo = new ProcessStartInfo
     {
         FileName = "powershell.exe",
@@ -124,24 +235,205 @@ if (!extractOnly)
     startInfo.ArgumentList.Add("-ExecutionPolicy");
     startInfo.ArgumentList.Add("Bypass");
     startInfo.ArgumentList.Add("-File");
-    startInfo.ArgumentList.Add(installScript);
+    startInfo.ArgumentList.Add(script);
 
     using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start PowerShell.");
     await process.WaitForExitAsync();
     if (process.ExitCode != 0)
-    {
-        return process.ExitCode;
-    }
+        throw new InvalidOperationException($"{Path.GetFileName(script)} exited with code {process.ExitCode}.");
 }
 
-if (!quiet)
+void CreateCliShim(string targetDir)
 {
-    Console.WriteLine($"Agent-Up installed to {installDir}.");
-    Console.WriteLine(Path.Combine(installDir, "desktop", "AgentUp.Desktop.exe"));
+    var binDir = Path.Combine(targetDir, "bin");
+    Directory.CreateDirectory(binDir);
+    File.WriteAllText(Path.Combine(binDir, "agent-up.cmd"),
+        "@echo off\r\n\"%~dp0..\\cli\\AgentUp.CLI.exe\" %*\r\n");
 }
 
-return 0;
+void CreateStartMenuShortcut(string targetDir)
+{
+    var programs = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
+    Directory.CreateDirectory(programs);
+    var shortcut = Path.Combine(programs, "Agent-Up.lnk");
+    var shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell")!);
+    var link = shell!.GetType().InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, null, shell, [shortcut])!;
+    link.GetType().InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, null, link, [Path.Combine(targetDir, "desktop", "AgentUp.Desktop.exe")]);
+    link.GetType().InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, null, link, [Path.Combine(targetDir, "desktop")]);
+    link.GetType().InvokeMember("IconLocation", System.Reflection.BindingFlags.SetProperty, null, link, [Path.Combine(targetDir, "desktop", "AgentUp.Desktop.exe")]);
+    link.GetType().InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, null, link, null);
+}
+
+void RemoveStartMenuShortcut()
+{
+    var shortcut = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), "Agent-Up.lnk");
+    if (File.Exists(shortcut))
+        File.Delete(shortcut);
+}
+
+void RegisterApp(string targetDir)
+{
+    using var key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up");
+    key.SetValue("DisplayName", "Agent-Up");
+    key.SetValue("DisplayVersion", "@AGENT_UP_VERSION@");
+    key.SetValue("Publisher", "Agent-Up");
+    key.SetValue("InstallLocation", targetDir);
+    key.SetValue("DisplayIcon", Path.Combine(targetDir, "desktop", "AgentUp.Desktop.exe"));
+    key.SetValue("UninstallString", $"\"{Path.Combine(targetDir, "AgentUp.Installer.exe")}\" --uninstall");
+    key.SetValue("QuietUninstallString", $"\"{Path.Combine(targetDir, "AgentUp.Installer.exe")}\" --uninstall --quiet");
+    key.SetValue("NoModify", 1, RegistryValueKind.DWord);
+    key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
+}
+
+void UnregisterApp()
+{
+    Registry.LocalMachine.DeleteSubKeyTree(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up", throwOnMissingSubKey: false);
+}
+
+bool IsCurrentExecutableUnder(string targetDir)
+{
+    var currentExe = Environment.ProcessPath;
+    if (string.IsNullOrWhiteSpace(currentExe))
+        return false;
+
+    var current = Path.GetFullPath(currentExe).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    var target = Path.GetFullPath(targetDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    return current.StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+}
+
+void ScheduleDirectoryDelete(string targetDir)
+{
+    var startInfo = new ProcessStartInfo
+    {
+        FileName = "cmd.exe",
+        UseShellExecute = false,
+        CreateNoWindow = true
+    };
+    startInfo.ArgumentList.Add("/c");
+    startInfo.ArgumentList.Add($"ping 127.0.0.1 -n 3 > nul & rmdir /s /q \"{targetDir}\"");
+    Process.Start(startInfo);
+}
+
+void AddToMachinePath(string path)
+{
+    using var env = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Session Manager\Environment", writable: true)
+        ?? throw new InvalidOperationException("Machine environment registry key was not found.");
+    var current = (env.GetValue("Path", "", RegistryValueOptions.DoNotExpandEnvironmentNames) as string) ?? "";
+    var parts = current.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    if (parts.Any(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase)))
+        return;
+
+    env.SetValue("Path", string.IsNullOrWhiteSpace(current) ? path : current.TrimEnd(';') + ";" + path, RegistryValueKind.ExpandString);
+    BroadcastEnvironmentChange();
+}
+
+void RemoveFromMachinePath(string path)
+{
+    using var env = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Session Manager\Environment", writable: true);
+    if (env is null) return;
+
+    var current = (env.GetValue("Path", "", RegistryValueOptions.DoNotExpandEnvironmentNames) as string) ?? "";
+    var updated = string.Join(";", current.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(p => !string.Equals(p, path, StringComparison.OrdinalIgnoreCase)));
+    env.SetValue("Path", updated, RegistryValueKind.ExpandString);
+    BroadcastEnvironmentChange();
+}
+
+void BroadcastEnvironmentChange()
+{
+    const int HWND_BROADCAST = 0xffff;
+    const int WM_SETTINGCHANGE = 0x001A;
+    SendMessageTimeout((IntPtr)HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "Environment", 0, 5000, out _);
+}
+
+bool IsInstalled(string targetDir) =>
+    Directory.Exists(targetDir)
+    || Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up") is not null;
+
+bool IsAdministrator()
+{
+    using var identity = WindowsIdentity.GetCurrent();
+    return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+}
+
+void RelaunchElevated(string[] originalArgs)
+{
+    var exe = Environment.ProcessPath ?? throw new InvalidOperationException("Cannot determine installer executable path.");
+    var startInfo = new ProcessStartInfo
+    {
+        FileName = exe,
+        UseShellExecute = true,
+        Verb = "runas"
+    };
+    foreach (var arg in originalArgs)
+        startInfo.ArgumentList.Add(arg);
+    Process.Start(startInfo);
+}
+
+string ChooseAction(bool existingInstall)
+{
+    Application.EnableVisualStyles();
+    using var form = new Form
+    {
+        Text = "Agent-Up Installer",
+        Width = 360,
+        Height = existingInstall ? 180 : 140,
+        StartPosition = FormStartPosition.CenterScreen,
+        FormBorderStyle = FormBorderStyle.FixedDialog,
+        MaximizeBox = false,
+        MinimizeBox = false
+    };
+
+    var label = new Label
+    {
+        Text = existingInstall
+            ? "Agent-Up is already installed. Choose an action."
+            : "Install Agent-Up Desktop, CLI, and Server service.",
+        Left = 20,
+        Top = 20,
+        Width = 300,
+        Height = 40
+    };
+    form.Controls.Add(label);
+
+    var result = "cancel";
+    var left = 20;
+    void AddButton(string text, string action)
+    {
+        var button = new Button { Text = text, Left = left, Top = 80, Width = 95, Height = 32 };
+        left += 105;
+        button.Click += (_, _) => { result = action; form.Close(); };
+        form.Controls.Add(button);
+    }
+
+    if (existingInstall)
+    {
+        AddButton("Upgrade", "upgrade");
+        AddButton("Uninstall", "uninstall");
+    }
+    else
+    {
+        AddButton("Install", "install");
+    }
+    AddButton("Cancel", "cancel");
+
+    form.ShowDialog();
+    return result;
+}
+
+[System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+static extern IntPtr SendMessageTimeout(
+    IntPtr hWnd,
+    int Msg,
+    IntPtr wParam,
+    string lParam,
+    int fuFlags,
+    int uTimeout,
+    out IntPtr lpdwResult);
 CS
+
+  sed -i.bak "s|@AGENT_UP_VERSION@|${version#v}|g" "$installer_src/Program.cs"
+  rm -f "$installer_src/Program.cs.bak"
 
   dotnet publish "$installer_src/AgentUp.Installer.csproj" \
     --configuration "$configuration" \
@@ -215,29 +507,95 @@ PLIST
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-sudo rm -rf /Applications/Agent-Up.app
-sudo cp -R "$root/Agent-Up.app" /Applications/Agent-Up.app
-sudo chmod +x /Applications/Agent-Up.app/Contents/MacOS/AgentUp.Desktop
-sudo chmod +x /Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server
-sudo mkdir -p "/Library/Application Support/Agent-Up"
-sudo cp "$root/agent-up-server.plist" /Library/LaunchDaemons/dev.agent-up.server.plist
-sudo chown root:wheel /Library/LaunchDaemons/dev.agent-up.server.plist
-sudo chmod 644 /Library/LaunchDaemons/dev.agent-up.server.plist
-sudo launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
-sudo launchctl bootstrap system /Library/LaunchDaemons/dev.agent-up.server.plist
-sudo launchctl kickstart -k system/dev.agent-up.server
-echo "Agent-Up installed. Start Desktop from /Applications/Agent-Up.app"
+action="${1:-install}"
+
+uninstall_agent_up() {
+  launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
+  rm -f /Library/LaunchDaemons/dev.agent-up.server.plist
+  rm -f /usr/local/bin/agent-up /usr/local/bin/agent-up-server /usr/local/bin/agent-up-desktop
+  rm -rf /usr/local/agent-up
+  rm -rf "/Library/Application Support/Agent-Up"
+  rm -rf /Applications/Agent-Up.app
+}
+
+install_agent_up() {
+  rm -rf /Applications/Agent-Up.app
+  cp -R "$root/Agent-Up.app" /Applications/Agent-Up.app
+  chmod +x /Applications/Agent-Up.app/Contents/MacOS/AgentUp.Desktop
+  chmod +x /Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server
+
+  mkdir -p "/Library/Application Support/Agent-Up"
+  mkdir -p /usr/local/agent-up/cli /usr/local/bin
+  rm -rf /usr/local/agent-up/cli
+  cp -R "$root/cli" /usr/local/agent-up/cli
+  chmod +x /usr/local/agent-up/cli/AgentUp.CLI
+  ln -sf /usr/local/agent-up/cli/AgentUp.CLI /usr/local/bin/agent-up
+  ln -sf /Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server /usr/local/bin/agent-up-server
+  ln -sf /Applications/Agent-Up.app/Contents/MacOS/AgentUp.Desktop /usr/local/bin/agent-up-desktop
+
+  cp "$root/agent-up-server.plist" /Library/LaunchDaemons/dev.agent-up.server.plist
+  chown root:wheel /Library/LaunchDaemons/dev.agent-up.server.plist
+  chmod 644 /Library/LaunchDaemons/dev.agent-up.server.plist
+  launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
+  launchctl bootstrap system /Library/LaunchDaemons/dev.agent-up.server.plist
+  launchctl kickstart -k system/dev.agent-up.server
+}
+
+case "$action" in
+  install)
+    install_agent_up
+    echo "Agent-Up installed. Start Desktop from /Applications/Agent-Up.app"
+    ;;
+  upgrade)
+    uninstall_agent_up
+    install_agent_up
+    echo "Agent-Up upgraded. Start Desktop from /Applications/Agent-Up.app"
+    ;;
+  uninstall)
+    uninstall_agent_up
+    echo "Agent-Up uninstalled."
+    ;;
+  *)
+    echo "Usage: $0 [install|upgrade|uninstall]" >&2
+    exit 2
+    ;;
+esac
 INSTALL
     chmod +x "$stage/install.sh"
     cat > "$stage/uninstall.sh" <<'UNINSTALL'
 #!/usr/bin/env bash
 set -euo pipefail
-sudo launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
-sudo rm -f /Library/LaunchDaemons/dev.agent-up.server.plist
-sudo rm -rf "/Library/Application Support/Agent-Up"
-sudo rm -rf /Applications/Agent-Up.app
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$(id -u)" -eq 0 ]; then
+  "$root/install.sh" uninstall
+else
+  sudo "$root/install.sh" uninstall
+fi
 UNINSTALL
     chmod +x "$stage/uninstall.sh"
+    cat > "$stage/Agent-Up Installer.command" <<'MACGUI'
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -d /Applications/Agent-Up.app ] || [ -f /Library/LaunchDaemons/dev.agent-up.server.plist ]; then
+  action="$(osascript -e 'button returned of (display dialog "Agent-Up is already installed. Choose an action." buttons {"Cancel", "Uninstall", "Upgrade"} default button "Upgrade" cancel button "Cancel" with title "Agent-Up Installer")' || true)"
+else
+  action="$(osascript -e 'button returned of (display dialog "Install Agent-Up Desktop, CLI, and Server service?" buttons {"Cancel", "Install"} default button "Install" cancel button "Cancel" with title "Agent-Up Installer")' || true)"
+fi
+
+case "$action" in
+  Install|Upgrade|Uninstall)
+    lower="$(printf "%s" "$action" | tr '[:upper:]' '[:lower:]')"
+    osascript -e "do shell script quoted form of \"$root/install.sh\" & \" $lower\" with administrator privileges"
+    osascript -e "display dialog \"Agent-Up $lower completed.\" buttons {\"OK\"} default button \"OK\" with title \"Agent-Up Installer\""
+    ;;
+  *)
+    exit 0
+    ;;
+esac
+MACGUI
+    chmod +x "$stage/Agent-Up Installer.command"
     dmg_root="$stage/dmg-root"
     mkdir -p "$dmg_root"
     cp -R "$stage/Agent-Up.app" "$dmg_root/"
@@ -245,6 +603,7 @@ UNINSTALL
     cp "$stage/agent-up-server.plist" "$dmg_root/"
     cp "$stage/install.sh" "$dmg_root/"
     cp "$stage/uninstall.sh" "$dmg_root/"
+    cp "$stage/Agent-Up Installer.command" "$dmg_root/"
     if command -v hdiutil >/dev/null 2>&1; then
       hdiutil create -volname "Agent-Up" -srcfolder "$dmg_root" -ov -format UDZO "$root/$output_dir/agent-up-macos-$rid.dmg"
     else
