@@ -8,7 +8,7 @@ Agent-Up release artifacts are built by CI after the platform test matrix passes
 
 Each platform job also smoke-tests the package it just built before upload. The smoke tests consume the artifact on the target runner, check the expected Desktop, Server, CLI, installer, and service files, start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`.
 
-Shared installer planning and validation logic lives in `AgentUp.Installers` and is tested by `AgentUp.Installers.Tests`. The shared guided installer UX lives in `AgentUp.InstallerApp` and is tested by `AgentUp.InstallerApp.Tests` plus native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`. Package and installed-service smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator for artifact, installer-flow, install, service, CLI, diagnostics, and uninstall checks. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
+Shared installer planning, validation, and platform install contracts live in `AgentUp.Installers` and are tested by `AgentUp.Installers.Tests`. The shared guided installer UX lives in `AgentUp.InstallerApp` and is tested by `AgentUp.InstallerApp.Tests` plus native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`; packaging code consumes the shared installer contracts instead of redefining platform behavior. Package and installed-service smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator for artifact, installer-flow, install, service, CLI, diagnostics, and uninstall checks. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
 
 Developers should use the Nix packaging wrappers when building release artifacts from NixOS or when they want a pinned packaging environment:
 
@@ -26,7 +26,7 @@ macOS packaging is moving from the legacy `.dmg` script installer toward a `Prod
 
 The intended installer direction is a shared Avalonia guided installer distributed through platform-native wrappers. Each release wrapper should include a bundled payload for offline installation, while the installer can offer an online newer payload when release metadata is reachable.
 
-Ubuntu is the first platform with a real guided-installer adapter. It is currently opt-in for the installer app while packaging migration continues; CI still validates the native package and installed-service paths.
+Ubuntu and macOS have real guided-installer adapters. They are currently opt-in for the installer app while packaging migration continues; CI still validates the native package and installed-service paths.
 
 The intended installed shape is:
 

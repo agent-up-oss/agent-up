@@ -1,4 +1,5 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Installers.Features.Ubuntu;
 
 namespace AgentUp.Packaging.Features.Ubuntu;
 
@@ -14,16 +15,19 @@ public sealed record UbuntuPackageManifest(
     string IconPath)
 {
     public static UbuntuPackageManifest From(PackageRequest request)
-        => new(
-            PackageName: "agent-up",
+    {
+        var paths = UbuntuInstallerPaths.SystemDefault();
+        return new UbuntuPackageManifest(
+            PackageName: UbuntuInstallerManifest.PackageName,
             Version: request.NormalizedVersion,
             Architecture: "amd64",
             Maintainer: "Agent-Up <ci@agent-up.local>",
             Description: "Local Agent-Up desktop, CLI, and server service.",
-            ServiceName: "agent-up-server.service",
-            CliSymlinkTarget: "/opt/agent-up/cli/AgentUp.CLI",
-            DesktopEntryPath: "/usr/share/applications/agent-up.desktop",
-            IconPath: "/usr/share/pixmaps/agent-up.png");
+            ServiceName: UbuntuInstallerManifest.ServiceName,
+            CliSymlinkTarget: paths.CliExecutable,
+            DesktopEntryPath: paths.DesktopEntryPath,
+            IconPath: paths.IconPath);
+    }
 
     public string ControlFileText()
         => $"""
@@ -37,47 +41,14 @@ public sealed record UbuntuPackageManifest(
            """ + Environment.NewLine;
 
     public string DesktopEntryText()
-        => $"""
-           [Desktop Entry]
-           Type=Application
-           Name=Agent-Up
-           Comment=Agent-Up desktop workspace client
-           Exec=/opt/agent-up/desktop/AgentUp.Desktop
-           Icon=agent-up
-           Terminal=false
-           Categories=Development;
-           StartupNotify=true
-           X-AgentUp-Version={Version}
-           """ + Environment.NewLine;
+        => UbuntuInstallerManifest.DesktopEntryText(Version);
 
     public static string PostInstallScript()
-        => """
-           #!/usr/bin/env bash
-           set -e
-           mkdir -p /var/lib/agent-up
-           touch /var/log/agent-up-server.log /var/log/agent-up-server.err.log
-           chmod +x /opt/agent-up/desktop/AgentUp.Desktop /opt/agent-up/server/AgentUp.Server /opt/agent-up/cli/AgentUp.CLI
-           systemctl daemon-reload
-           systemctl enable --now agent-up-server.service
-           if command -v update-desktop-database >/dev/null 2>&1; then
-             update-desktop-database /usr/share/applications || true
-           fi
-           """ + Environment.NewLine;
+        => UbuntuInstallerManifest.PostInstallScript();
 
     public static string PreRemoveScript()
-        => """
-           #!/usr/bin/env bash
-           set -e
-           systemctl disable --now agent-up-server.service 2>/dev/null || true
-           """ + Environment.NewLine;
+        => UbuntuInstallerManifest.PreRemoveScript();
 
     public static string PostRemoveScript()
-        => """
-           #!/usr/bin/env bash
-           set -e
-           systemctl daemon-reload
-           if command -v update-desktop-database >/dev/null 2>&1; then
-             update-desktop-database /usr/share/applications || true
-           fi
-           """ + Environment.NewLine;
+        => UbuntuInstallerManifest.PostRemoveScript();
 }

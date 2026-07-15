@@ -9,7 +9,7 @@ public static class MacOsDistributionGenerator
             new XDeclaration("1.0", "UTF-8", null),
             new XElement("installer-gui-script",
                 new XAttribute("minSpecVersion", "1"),
-                new XElement("title", manifest.ProductName),
+                new XElement("title", manifest.InstallerManifest.ProductName),
                 new XElement("options",
                     new XAttribute("customize", "never"),
                     new XAttribute("require-scripts", "false")),

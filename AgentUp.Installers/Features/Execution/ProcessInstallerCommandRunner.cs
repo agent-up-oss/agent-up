@@ -1,8 +1,8 @@
 using AgentUp.Installers.Features.Prerequisites;
 
-namespace AgentUp.Installers.Features.Ubuntu;
+namespace AgentUp.Installers.Features.Execution;
 
-public sealed class UbuntuInstallerCommandRunner : ICommandRunner
+public sealed class ProcessInstallerCommandRunner : ICommandRunner
 {
     public async Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
     {

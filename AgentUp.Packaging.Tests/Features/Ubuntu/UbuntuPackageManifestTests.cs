@@ -1,5 +1,6 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
 using AgentUp.Packaging.Features.Ubuntu;
+using AgentUp.Installers.Features.Ubuntu;
 
 namespace AgentUp.Packaging.Tests.Features.Ubuntu;
 
@@ -14,9 +15,11 @@ public class UbuntuPackageManifestTests
         var manifest = UbuntuPackageManifest.From(request);
 
         Assert.That(manifest.Version, Is.EqualTo("1.2.3"));
-        Assert.That(manifest.CliSymlinkTarget, Is.EqualTo("/opt/agent-up/cli/AgentUp.CLI"));
-        Assert.That(manifest.DesktopEntryPath, Is.EqualTo("/usr/share/applications/agent-up.desktop"));
-        Assert.That(manifest.IconPath, Is.EqualTo("/usr/share/pixmaps/agent-up.png"));
+        Assert.That(manifest.PackageName, Is.EqualTo(UbuntuInstallerManifest.PackageName));
+        Assert.That(manifest.ServiceName, Is.EqualTo(UbuntuInstallerManifest.ServiceName));
+        Assert.That(manifest.CliSymlinkTarget, Is.EqualTo(UbuntuInstallerPaths.SystemDefault().CliExecutable));
+        Assert.That(manifest.DesktopEntryPath, Is.EqualTo(UbuntuInstallerPaths.SystemDefault().DesktopEntryPath));
+        Assert.That(manifest.IconPath, Is.EqualTo(UbuntuInstallerPaths.SystemDefault().IconPath));
     }
 
     [Test]

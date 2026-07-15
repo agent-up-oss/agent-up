@@ -10,7 +10,7 @@ Packaged installations install Agent-Up as three user-visible components backed 
 - `AgentUp.CLI` is available globally as `agent-up`.
 - `AgentUp.Desktop` is installed in the native application location.
 
-Installer and packaging behavior is product behavior and must be testable. Shared installer planning, payload, adapter, progress, and validation logic lives in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. The guided installer UX lives in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume or mirror the shared contract instead of growing untested platform-only logic.
+Installer and packaging behavior is product behavior and must be testable. Shared installer planning, payload, adapter, progress, validation, and platform install contracts live in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. The guided installer UX lives in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume shared installer contracts instead of growing untested platform-only logic.
 
 ## Ownership
 
@@ -31,7 +31,11 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Optional online update from release metadata when available.
 - Adapter-driven elevation only when privileged native operations are required.
 
-Ubuntu is the first real installer adapter behind the guided app. The app still defaults to the dry-run adapter for development and tests. Setting `AGENTUP_INSTALLER_REAL_UBUNTU=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the Ubuntu adapter, which installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
+Ubuntu and macOS have real installer adapters behind the guided app. The app still defaults to the dry-run adapter for development and tests.
+
+Setting `AGENTUP_INSTALLER_REAL_UBUNTU=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the Ubuntu adapter, which installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
+
+Setting `AGENTUP_INSTALLER_REAL_MACOS=1` and `AGENTUP_INSTALLER_PAYLOAD_ROOT` enables the macOS adapter, which installs the staged Desktop bundle into `/Applications/Agent-Up.app`, installs Server and CLI payloads into native system locations, registers the `dev.agent-up.server` launchd service, creates `/usr/local/bin` symlinks, and validates the installed state through `launchctl` and a fresh-shell CLI lookup.
 
 `AgentUp.Packaging` owns release artifact build orchestration:
 
@@ -67,7 +71,7 @@ The wrappers enter a target-specific shell under `packaging/nix/` and then deleg
 
 Windows packaging is migrating to WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for `Product.msi` and `Setup.exe`. Tests assert the generated WiX service, PATH, shortcut, MSI chain, and exact `wix` command shape with an isolated fake command runner.
 
-macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
+macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 

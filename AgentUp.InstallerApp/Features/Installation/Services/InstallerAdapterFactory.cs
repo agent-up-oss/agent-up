@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.MacOs;
 using AgentUp.Installers.Features.Ubuntu;
 
 namespace AgentUp.InstallerApp.Features.Installation.Services;
@@ -12,6 +13,13 @@ internal static class InstallerAdapterFactory
             && TryCreateUbuntuAdapter() is { } ubuntu)
         {
             return ubuntu;
+        }
+
+        if (OperatingSystem.IsMacOS()
+            && Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_REAL_MACOS") == "1"
+            && TryCreateMacOsAdapter() is { } macOs)
+        {
+            return macOs;
         }
 
         return new FakeInstallerPlatformAdapter(CurrentPlatformName());
@@ -32,9 +40,26 @@ internal static class InstallerAdapterFactory
             IconPath: Path.Combine(repositoryRoot, "media", "logo.png"));
 
         return new UbuntuInstallerPlatformAdapter(
-            new UbuntuInstallerCommandRunner(),
+            new ProcessInstallerCommandRunner(),
             new UbuntuInstallerFileSystem(),
             new UbuntuInstallerOptions(payload, UbuntuInstallerPaths.SystemDefault()));
+    }
+
+    private static IInstallerPlatformAdapter? TryCreateMacOsAdapter()
+    {
+        var payloadRoot = Environment.GetEnvironmentVariable("AGENTUP_INSTALLER_PAYLOAD_ROOT");
+        if (string.IsNullOrWhiteSpace(payloadRoot))
+            return null;
+
+        var payload = new MacOsInstallPayload(
+            DesktopDirectory: Path.Combine(payloadRoot, "desktop"),
+            ServerDirectory: Path.Combine(payloadRoot, "server"),
+            CliDirectory: Path.Combine(payloadRoot, "cli"));
+
+        return new MacOsInstallerPlatformAdapter(
+            new ProcessInstallerCommandRunner(),
+            new MacOsInstallerFileSystem(),
+            new MacOsInstallerOptions(payload, MacOsInstallerPaths.SystemDefault()));
     }
 
     private static string CurrentPlatformName()
