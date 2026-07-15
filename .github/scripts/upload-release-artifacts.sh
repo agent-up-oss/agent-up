@@ -22,6 +22,7 @@ fi
 
 expected_artifacts=(
   "agent-up-macos-osx-arm64.dmg"
+  "agent-up-macos-osx-x64.dmg"
   "agent-up-nixos-pkgs.tar.gz"
   "agent-up-ubuntu-linux-x64.deb"
   "agent-up-windows-win-x64.exe"

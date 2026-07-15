@@ -20,10 +20,11 @@ CI builds artifacts for:
 
 | Platform | Artifact |
 |---|---|
-| macOS | `.dmg` containing `Agent-Up.app`, launchd service plist, and install/uninstall scripts |
+| macOS Apple Silicon | `.dmg` containing `Agent-Up.app`, launchd service plist, and install/uninstall scripts |
+| macOS Intel | `.dmg` containing `Agent-Up.app`, launchd service plist, and install/uninstall scripts |
 | Windows | `.exe` installer containing Desktop, CLI, Server, and Windows Service scripts |
 | Ubuntu | `.deb` package installing Desktop, CLI, Server, and `agent-up-server.service` |
-| NixOS | package-set tarball consumed as a flake input exposing `agentsPkgs.agent-up` |
+| NixOS | package-set tarball consumed as a flake input exposing `agent-up.packages.${system}.agent-up` |
 
 The Server remains the runtime authority. Packaging the Server with Desktop only changes installation and startup; it does not move orchestration into Desktop.
 
@@ -32,7 +33,7 @@ The smoke test validates service wiring by checking the package's service regist
 - macOS package install uses `launchctl bootstrap system` for `dev.agent-up.server`.
 - Windows package install uses `New-Service` and `Start-Service` for `agent-up-server`.
 - Ubuntu package install uses `systemctl enable --now agent-up-server.service`.
-- NixOS package smoke validates that the package-set tarball exposes `agentsPkgs.agent-up` through its flake output.
+- NixOS package smoke validates that the package-set tarball exposes `agent-up.packages.${system}.agent-up`, patches the bundled Linux binaries through Nix, and wraps the required native runtime libraries.
 
 CI also runs a privileged installed-service smoke test where the runner can host that service:
 
