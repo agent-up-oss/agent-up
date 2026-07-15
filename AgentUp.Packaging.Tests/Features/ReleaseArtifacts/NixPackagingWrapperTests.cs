@@ -36,11 +36,12 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Contain($"AGENTUP_PACKAGING_TARGET:-}}\" != \"{platform}\""));
         Assert.That(text, Does.Contain($"packaging/nix/{platform}-package.nix"));
         Assert.That(text, Does.Contain("printf \"%q \" \"$0\" \"$@\""));
-        if (platform == "windows")
+        if (platform is "windows" or "macos")
         {
             Assert.That(text, Does.Contain("AgentUp.Packaging.csproj"));
-            Assert.That(text, Does.Contain("package windows"));
-            Assert.That(text, Does.Contain("command -v wix"));
+            Assert.That(text, Does.Contain($"package {platform}"));
+            if (platform == "windows")
+                Assert.That(text, Does.Contain("command -v wix"));
         }
         else
         {

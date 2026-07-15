@@ -127,12 +127,10 @@ mkdir -p "$work_dir"
 
 case "$platform" in
   macos)
-    mkdir -p "$work_dir/mount"
-    hdiutil attach "$artifact_dir/agent-up-macos-$rid.dmg" -quiet -nobrowse -mountpoint "$work_dir/mount"
-    mounted_dmg="$work_dir/mount"
+    pkg="$artifact_dir/agent-up-macos-$rid.pkg"
     cli="/usr/local/bin/agent-up"
-    uninstall_command=(sudo "$mounted_dmg/uninstall.sh")
-    sudo "$mounted_dmg/install.sh"
+    uninstall_command=(sudo bash -c 'launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true; rm -f /Library/LaunchDaemons/dev.agent-up.server.plist; rm -f /usr/local/bin/agent-up /usr/local/bin/agent-up-server /usr/local/bin/agent-up-desktop; rm -rf /usr/local/agent-up; rm -rf /Applications/Agent-Up.app')
+    sudo installer -pkg "$pkg" -target /
     test -x /usr/local/bin/agent-up
     test -x /usr/local/bin/agent-up-server
     test -x /usr/local/bin/agent-up-desktop

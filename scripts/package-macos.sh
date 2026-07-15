@@ -14,4 +14,5 @@ if [ "${AGENTUP_PACKAGING_TARGET:-}" != "macos" ]; then
   exec nix-shell "$ROOT/packaging/nix/macos-package.nix" --run "$command_line"
 fi
 
-exec "$ROOT/scripts/package-release.sh" macos "$@"
+exec dotnet run --project "$ROOT/AgentUp.Packaging/AgentUp.Packaging.csproj" --configuration "${CONFIGURATION:-Release}" -- \
+  package macos "$@"

@@ -1,4 +1,5 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Features.MacOs;
 using AgentUp.Packaging.Features.Ubuntu;
 using AgentUp.Packaging.Features.Windows;
 
@@ -27,6 +28,14 @@ if (platform == "windows")
 {
     var request = new PackageRequest(root, platform, rid, version, outputDir, configuration);
     var packager = new WindowsPackager(new ProcessCommandRunner(), new WindowsFileSystemPackageWriter());
+    await packager.PackageAsync(request);
+    return 0;
+}
+
+if (platform == "macos")
+{
+    var request = new PackageRequest(root, platform, rid, version, outputDir, configuration);
+    var packager = new MacOsPackager(new ProcessCommandRunner(), new MacOsFileSystemPackageWriter());
     await packager.PackageAsync(request);
     return 0;
 }

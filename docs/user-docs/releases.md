@@ -22,6 +22,8 @@ The macOS wrapper must run on Darwin because Apple package/sign/notarization too
 
 Windows packaging is moving from the legacy generated installer toward WiX-generated `Product.msi` and `Setup.exe` artifacts orchestrated by `AgentUp.Packaging`.
 
+macOS packaging is moving from the legacy `.dmg` script installer toward a `Product.pkg` artifact orchestrated by `AgentUp.Packaging`.
+
 The intended installed shape is:
 
 - Desktop is the human UI.
@@ -34,8 +36,8 @@ CI builds artifacts for:
 
 | Platform | Artifact |
 |---|---|
-| macOS Apple Silicon | `.dmg` containing `Agent-Up.app`, CLI payload, launchd service plist, GUI installer app, and install/uninstall scripts |
-| macOS Intel | `.dmg` containing `Agent-Up.app`, CLI payload, launchd service plist, GUI installer app, and install/uninstall scripts |
+| macOS Apple Silicon | `.pkg` containing Desktop, CLI, Server launchd service, and package scripts |
+| macOS Intel | `.pkg` containing Desktop, CLI, Server launchd service, and package scripts |
 | Windows | self-elevating `.exe` GUI installer containing Desktop, CLI, Server, Windows Service scripts, Windows Apps registration, Start Menu entry, and PATH setup |
 | Ubuntu | `.deb` package installing Desktop, CLI, Server, and `agent-up-server.service` |
 | NixOS | package-set tarball consumed as a flake input exposing a package, overlay, NixOS module, and Home Manager module |
