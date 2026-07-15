@@ -15,7 +15,14 @@ public class UbuntuPackagerTests
 
         await new UbuntuPackager(commands, writer).PackageAsync(request);
 
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(3));
+        var publishCommands = commands.Commands
+            .Where(command => command.FileName == "dotnet" && command.Arguments.Contains("publish"))
+            .ToList();
+
+        Assert.That(publishCommands, Has.Count.EqualTo(3));
+        Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:PublishSingleFile=true")));
+        Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeNativeLibrariesForSelfExtract=true")));
+        Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeAllContentForSelfExtract=true")));
         Assert.That(commands.Commands.Last().FileName, Is.EqualTo("dpkg-deb"));
         Assert.That(commands.Commands.Last().Arguments, Is.EqualTo(new[]
         {

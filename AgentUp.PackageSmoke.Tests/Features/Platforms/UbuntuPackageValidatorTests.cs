@@ -50,7 +50,7 @@ public class UbuntuPackageValidatorTests
         File.CreateSymbolicLink(Path.Combine(root, "usr", "bin", "agent-up"), "/opt/agent-up/cli/AgentUp.CLI");
         WriteText(Path.Combine(root, "usr", "share", "applications", "agent-up.desktop"), "Exec=/opt/agent-up/desktop/AgentUp.Desktop\nIcon=agent-up\n");
         WriteText(Path.Combine(root, "usr", "share", "pixmaps", "agent-up.png"), "png");
-        WriteText(Path.Combine(root, "etc", "systemd", "system", "agent-up-server.service"), "ExecStart=/opt/agent-up/server/AgentUp.Server\nRestartSec=5\n");
+        WriteText(Path.Combine(root, "etc", "systemd", "system", "agent-up-server.service"), "ExecStart=/opt/agent-up/server/AgentUp.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up\nCacheDirectory=agent-up\nRestartSec=5\n");
     }
 
     private static void CreateUbuntuControl(string control)

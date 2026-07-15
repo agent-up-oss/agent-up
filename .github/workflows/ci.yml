@@ -209,9 +209,20 @@ jobs:
         run: |
           mc alias set agentup-ci "$AGENTUP_CI_S3_ENDPOINT" "$AGENTUP_CI_S3_ACCESS_KEY" "$AGENTUP_CI_S3_SECRET_KEY"
           rm -rf dotnet-ci
+          mkdir -p \
+            "dotnet-ci/tools/${{ matrix.rid }}/packaging" \
+            "dotnet-ci/tools/${{ matrix.rid }}/package-smoke" \
+            "dotnet-ci/payloads/${{ matrix.rid }}"
+          artifact_prefix="agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/dotnet-ci"
           mc cp --recursive \
-            "agentup-ci/$AGENTUP_CI_ARTIFACT_BUCKET/agent-up-ci/runs/${{ github.run_id }}/dotnet-ci/" \
-            dotnet-ci/
+            "$artifact_prefix/tools/${{ matrix.rid }}/packaging/" \
+            "dotnet-ci/tools/${{ matrix.rid }}/packaging/"
+          mc cp --recursive \
+            "$artifact_prefix/tools/${{ matrix.rid }}/package-smoke/" \
+            "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/"
+          mc cp --recursive \
+            "$artifact_prefix/payloads/${{ matrix.rid }}/" \
+            "dotnet-ci/payloads/${{ matrix.rid }}/"
           if [ "${{ runner.os }}" != "Windows" ]; then
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging" || true
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke" || true

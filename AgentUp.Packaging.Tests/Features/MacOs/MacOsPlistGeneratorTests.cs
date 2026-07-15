@@ -31,6 +31,8 @@ public class MacOsPlistGeneratorTests
         Assert.That(plist, Does.Contain("dev.agent-up.server"));
         Assert.That(plist, Does.Contain("/Library/Application Support/Agent-Up/server/AgentUp.Server"));
         Assert.That(plist, Does.Contain("http://127.0.0.1:5000"));
+        Assert.That(plist, Does.Contain("DOTNET_BUNDLE_EXTRACT_BASE_DIR"));
+        Assert.That(plist, Does.Contain("/Library/Application Support/Agent-Up/bundle-cache"));
         Assert.That(plist, Does.Contain("/Library/Logs/Agent-Up/server.out.log"));
         Assert.That(plist, Does.Contain("<integer>5</integer>"));
     }

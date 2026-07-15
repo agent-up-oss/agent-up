@@ -37,6 +37,8 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         assert.FileExists(Path.Combine(root, "usr", "share", "pixmaps", "agent-up.png"), "ubuntu.icon");
         assert.Contains(Path.Combine(root, "etc", "systemd", "system", "agent-up-server.service"), "ExecStart=/opt/agent-up/server/AgentUp.Server", "ubuntu.service.exec");
         assert.Contains(Path.Combine(root, "etc", "systemd", "system", "agent-up-server.service"), "RestartSec=5", "ubuntu.service.restart");
+        assert.Contains(Path.Combine(root, "etc", "systemd", "system", "agent-up-server.service"), "DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up", "ubuntu.service.bundle.extract");
+        assert.Contains(Path.Combine(root, "etc", "systemd", "system", "agent-up-server.service"), "CacheDirectory=agent-up", "ubuntu.service.cache");
         assert.Contains(Path.Combine(root, "usr", "share", "applications", "agent-up.desktop"), "Exec=/opt/agent-up/desktop/AgentUp.Desktop", "ubuntu.desktop.exec");
         assert.Contains(Path.Combine(root, "usr", "share", "applications", "agent-up.desktop"), "Icon=agent-up", "ubuntu.desktop.icon");
         assert.Contains(Path.Combine(control, "postinst"), "systemctl enable --now agent-up-server.service", "ubuntu.postinst");

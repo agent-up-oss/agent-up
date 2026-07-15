@@ -47,7 +47,7 @@ On Windows, the default adapter installs the staged Desktop, Server, and CLI pay
 - Native packaging tool invocation.
 - Artifact path and naming rules.
 
-CI uses prebuilt payload mode: the Ubuntu build job publishes Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime, uploads them to the CI bucket, and native package jobs pass `--payload-root` to package those exact payloads. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
+CI uses prebuilt payload mode: the Ubuntu build job publishes single-file self-contained Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime, uploads them to the CI bucket, and native package jobs download only their own runtime slice before passing `--payload-root` to package those exact payloads. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
 
 `AgentUp.PackageSmoke` owns smoke validation:
 

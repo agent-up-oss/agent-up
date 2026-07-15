@@ -21,7 +21,11 @@ publish_project() {
     --configuration "$configuration" \
     --runtime "$rid" \
     --self-contained true \
-    -p:PublishSingleFile=false \
+    -p:PublishSingleFile=true \
+    -p:IncludeNativeLibrariesForSelfExtract=true \
+    -p:IncludeAllContentForSelfExtract=true \
+    -p:DebugType=none \
+    -p:DebugSymbols=false \
     -p:Version="$version" \
     -o "$destination"
 }

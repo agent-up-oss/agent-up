@@ -25,7 +25,11 @@ public sealed class PackagePublisher
             "--configuration", configuration,
             "--runtime", runtimeId,
             "--self-contained", "true",
-            "-p:PublishSingleFile=false",
+            "-p:PublishSingleFile=true",
+            "-p:IncludeNativeLibrariesForSelfExtract=true",
+            "-p:IncludeAllContentForSelfExtract=true",
+            "-p:DebugType=none",
+            "-p:DebugSymbols=false",
             $"-p:Version={version}",
             "-o", outputDirectory
         ]), cancellationToken);
