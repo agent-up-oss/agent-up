@@ -8,7 +8,7 @@ Agent-Up release artifacts are built by CI after the platform test matrix passes
 
 Each platform job also smoke-tests the package it just built before upload. The smoke tests consume the artifact on the target runner, check the expected Desktop, Server, CLI, installer, and service files, start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`.
 
-Shared installer planning and validation logic lives in `AgentUp.Installers` and is tested by `AgentUp.Installers.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
+Shared installer planning and validation logic lives in `AgentUp.Installers` and is tested by `AgentUp.Installers.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`. Package smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator before performing runner-specific live probes. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
 
 Developers should use the Nix packaging wrappers when building release artifacts from NixOS or when they want a pinned packaging environment:
 

@@ -77,6 +77,19 @@ extract_zip() {
   fi
 }
 
+validate_package_contract() {
+  dotnet run --project AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj --configuration Release -- \
+    validate-package "$platform" "$rid" "$artifact_dir" "$work_dir"
+
+  # shellcheck disable=SC1091
+  . "$work_dir/package-smoke.env"
+
+  if [ -z "${SERVER_PATH:-}" ] || [ -z "${CLI_PATH:-}" ]; then
+    echo "Package validator did not report SERVER_PATH and CLI_PATH." >&2
+    exit 1
+  fi
+}
+
 start_server_and_probe() {
   local server="$1"
   local data_dir="$work_dir/data"
@@ -170,73 +183,22 @@ mkdir -p "$work_dir"
 
 case "$platform" in
   macos)
-    archive="$artifact_dir/agent-up-macos-$rid.pkg"
-    assert_file "$archive"
-    pkg_root="$work_dir/pkg-expanded"
-    pkgutil --expand-full "$archive" "$pkg_root"
-    desktop_exe="$(find "$pkg_root" -path '*/Applications/Agent-Up.app/Contents/MacOS/AgentUp.Desktop' -type f | head -n 1)"
-    server_exe="$(find "$pkg_root" -path '*/Library/Application Support/Agent-Up/server/AgentUp.Server' -type f | head -n 1)"
-    cli_exe="$(find "$pkg_root" -path '*/usr/local/agent-up/cli/AgentUp.CLI' -type f | head -n 1)"
-    desktop_plist="$(find "$pkg_root" -path '*/Applications/Agent-Up.app/Contents/Info.plist' -type f | head -n 1)"
-    launchd_plist="$(find "$pkg_root" -path '*/Library/LaunchDaemons/dev.agent-up.server.plist' -type f | head -n 1)"
-    distribution="$(find "$pkg_root" -name Distribution -type f | head -n 1)"
-    postinstall="$(find "$pkg_root" -path '*/Scripts/postinstall' -type f | head -n 1)"
-    assert_executable "$desktop_exe"
-    assert_executable "$server_exe"
-    assert_executable "$cli_exe"
-    assert_file "$desktop_plist"
-    assert_file "$launchd_plist"
-    assert_file "$distribution"
-    assert_file "$postinstall"
-    assert_contains "$launchd_plist" "/Library/Application Support/Agent-Up/server/AgentUp.Server"
-    assert_contains "$launchd_plist" "<key>ThrottleInterval</key>"
-    assert_contains "$distribution" "DesktopApp.pkg"
-    assert_contains "$distribution" "Server.pkg"
-    assert_contains "$distribution" "CLI.pkg"
-    assert_contains "$postinstall" "launchctl bootstrap system"
-    smoke_cli_version "$cli_exe"
-    start_server_and_probe "$server_exe"
-    smoke_cli_workspace "$cli_exe"
+    validate_package_contract
+    smoke_cli_version "$CLI_PATH"
+    start_server_and_probe "$SERVER_PATH"
+    smoke_cli_workspace "$CLI_PATH"
     ;;
   windows)
-    installer="$artifact_dir/agent-up-windows-$rid.exe"
-    assert_file "$installer"
-    "$installer" --extract "$work_dir" --quiet
-    assert_file "$work_dir/desktop/AgentUp.Desktop.exe"
-    assert_file "$work_dir/server/AgentUp.Server.exe"
-    assert_file "$work_dir/cli/AgentUp.CLI.exe"
-    assert_file "$work_dir/tools/install-agent-up-server.ps1"
-    assert_file "$work_dir/tools/uninstall-agent-up-server.ps1"
-    assert_contains "$work_dir/tools/install-agent-up-server.ps1" "New-Service"
-    assert_contains "$work_dir/tools/install-agent-up-server.ps1" "Start-Service"
-    assert_contains "$work_dir/tools/install-agent-up-server.ps1" "sc.exe failure"
-    assert_contains "$work_dir/tools/install-agent-up-server.ps1" "http://127.0.0.1:5000"
-    smoke_cli_version "$work_dir/cli/AgentUp.CLI.exe"
-    start_server_and_probe "$work_dir/server/AgentUp.Server.exe"
-    smoke_cli_workspace "$work_dir/cli/AgentUp.CLI.exe"
+    validate_package_contract
+    smoke_cli_version "$CLI_PATH"
+    start_server_and_probe "$SERVER_PATH"
+    smoke_cli_workspace "$CLI_PATH"
     ;;
   ubuntu)
-    archive="$artifact_dir/agent-up-ubuntu-$rid.deb"
-    assert_file "$archive"
-    dpkg-deb -x "$archive" "$work_dir/root"
-    dpkg-deb -e "$archive" "$work_dir/control"
-    assert_executable "$work_dir/root/opt/agent-up/desktop/AgentUp.Desktop"
-    assert_executable "$work_dir/root/opt/agent-up/server/AgentUp.Server"
-    assert_executable "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
-    assert_symlink "$work_dir/root/usr/bin/agent-up"
-    assert_file "$work_dir/root/usr/share/applications/agent-up.desktop"
-    assert_file "$work_dir/root/usr/share/pixmaps/agent-up.png"
-    assert_file "$work_dir/root/etc/systemd/system/agent-up-server.service"
-    assert_file "$work_dir/control/postinst"
-    assert_file "$work_dir/control/prerm"
-    assert_contains "$work_dir/root/etc/systemd/system/agent-up-server.service" "ExecStart=/opt/agent-up/server/AgentUp.Server"
-    assert_contains "$work_dir/root/etc/systemd/system/agent-up-server.service" "RestartSec=5"
-    assert_contains "$work_dir/root/usr/share/applications/agent-up.desktop" "Exec=/opt/agent-up/desktop/AgentUp.Desktop"
-    assert_contains "$work_dir/root/usr/share/applications/agent-up.desktop" "Icon=agent-up"
-    assert_contains "$work_dir/control/postinst" "systemctl enable --now agent-up-server.service"
-    smoke_cli_version "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
-    start_server_and_probe "$work_dir/root/opt/agent-up/server/AgentUp.Server"
-    smoke_cli_workspace "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
+    validate_package_contract
+    smoke_cli_version "$CLI_PATH"
+    start_server_and_probe "$SERVER_PATH"
+    smoke_cli_workspace "$CLI_PATH"
     ;;
   nixos)
     archive="$artifact_dir/agent-up-nixos-pkgs.tar.gz"

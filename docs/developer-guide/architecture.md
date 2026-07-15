@@ -4,13 +4,14 @@ title: Architecture
 
 # Architecture
 
-Agent-Up has five major component areas:
+Agent-Up has six major component areas:
 
 - `AgentUp.Server`
 - `AgentUp.Desktop`
 - `AgentUp.CLI`
 - `AgentUp.Installers`
 - `AgentUp.Packaging`
+- `AgentUp.PackageSmoke`
 - MCP clients
 
 The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. Installer code owns machine installation planning and validation only; it does not own runtime state.
@@ -40,6 +41,9 @@ AgentUp.Installers/
 AgentUp.Packaging/
   AgentUp.Packaging.csproj
 
+AgentUp.PackageSmoke/
+  AgentUp.PackageSmoke.csproj
+
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
 
@@ -54,6 +58,9 @@ AgentUp.Installers.Tests/
 
 AgentUp.Packaging.Tests/
   AgentUp.Packaging.Tests.csproj
+
+AgentUp.PackageSmoke.Tests/
+  AgentUp.PackageSmoke.Tests.csproj
 ```
 
 The exact project list may evolve, but the ownership boundaries should remain stable.
@@ -81,6 +88,8 @@ The exact project list may evolve, but the ownership boundaries should remain st
 `AgentUp.Installers` owns testable installer prerequisite, component-selection, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 
 `AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
+
+`AgentUp.PackageSmoke` owns the shared package smoke validator used by CI smoke scripts. It validates the same abstract installed-package properties through platform adapters while keeping shell scripts focused on runner setup and live process probing.
 
 MCP clients are the primary automation clients. AI agents should use MCP directly instead of shelling through the CLI.
 

@@ -1,0 +1,42 @@
+using System.Diagnostics;
+
+namespace AgentUp.PackageSmoke.Features.Validation;
+
+public sealed class ProcessCommandRunner : ICommandRunner
+{
+    public async Task<CommandResult> RunAsync(CommandSpec command, CancellationToken cancellationToken = default)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = command.FileName,
+            WorkingDirectory = command.WorkingDirectory ?? Environment.CurrentDirectory,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        foreach (var argument in command.Arguments)
+            startInfo.ArgumentList.Add(argument);
+
+        Process? process;
+        try
+        {
+            process = Process.Start(startInfo);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or FileNotFoundException)
+        {
+            return new CommandResult(127, "", ex.Message);
+        }
+
+        if (process is null)
+            return new CommandResult(127, "", $"Failed to start {command.FileName}.");
+
+        using (process)
+        {
+            var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            return new CommandResult(process.ExitCode, await stdout, await stderr);
+        }
+    }
+}
