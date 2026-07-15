@@ -52,15 +52,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
-        var workingDirectory = app.Path is not null
-            ? Path.Combine(workspace.WorktreePath, app.Path)
-            : workspace.WorktreePath;
-        var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
-        foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts))
-        {
-            if (mapping.Variable is not null)
-                startInfo.Environment[mapping.Variable] = mapping.AllocatedPort.ToString();
-        }
+        var startInfo = CreateLocalProcessStartInfo(workspace, app);
 
         var process = new Process
         {
@@ -292,6 +284,21 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         var stderr = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
         return (process.ExitCode, stdout, stderr);
+    }
+
+    internal static ProcessStartInfo CreateLocalProcessStartInfo(Workspace workspace, ApplicationInstance app)
+    {
+        var workingDirectory = app.Path is not null
+            ? Path.Combine(workspace.WorktreePath, app.Path)
+            : workspace.WorktreePath;
+        var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
+        foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts))
+        {
+            if (mapping.Variable is not null)
+                startInfo.Environment[mapping.Variable] = mapping.AllocatedPort.ToString();
+        }
+
+        return startInfo;
     }
 
     private static ProcessStartInfo CreateShellStartInfo(string command, string workingDirectory)
