@@ -61,7 +61,7 @@ The script runs the desktop inside `shell.nix`, which provides the native librar
 
 ## Release Artifacts
 
-See [Releases](./releases.md) for the CI-produced macOS, Windows, Ubuntu, and NixOS artifact shape and MinIO/S3 upload configuration. Installer contracts and test ownership are defined in the [Packaging And Installers](../developer-guide/packaging.md) developer guide.
+See [Releases](./releases.md) for the CI-produced macOS, Windows, Ubuntu, and NixOS artifact shape and MinIO/S3 upload configuration. Installer contracts and test ownership are defined in the [Packaging And Installers](/developer-guide/packaging) developer guide.
 
 ## Configure a Repository
 
