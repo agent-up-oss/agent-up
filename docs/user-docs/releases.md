@@ -24,7 +24,7 @@ CI builds artifacts for:
 | macOS Intel | `.dmg` containing `Agent-Up.app`, launchd service plist, and install/uninstall scripts |
 | Windows | `.exe` installer containing Desktop, CLI, Server, and Windows Service scripts |
 | Ubuntu | `.deb` package installing Desktop, CLI, Server, and `agent-up-server.service` |
-| NixOS | package-set tarball consumed as a flake input exposing `agent-up.packages.${system}.agent-up` |
+| NixOS | package-set tarball consumed as a flake input exposing a package, overlay, NixOS module, and Home Manager module |
 
 The Server remains the runtime authority. Packaging the Server with Desktop only changes installation and startup; it does not move orchestration into Desktop.
 
@@ -33,7 +33,9 @@ The smoke test validates service wiring by checking the package's service regist
 - macOS package install uses `launchctl bootstrap system` for `dev.agent-up.server`.
 - Windows package install uses `New-Service` and `Start-Service` for `agent-up-server`.
 - Ubuntu package install uses `systemctl enable --now agent-up-server.service`.
-- NixOS package smoke validates that the package-set tarball exposes `agent-up.packages.${system}.agent-up`, patches the bundled Linux binaries through Nix, and wraps the required native runtime libraries.
+- NixOS package smoke validates that the package-set tarball is a valid locked flake, exposes `packages.x86_64-linux.agent-up`, `overlays.default`, `nixosModules.default`, and `homeManagerModules.default`, patches the bundled Linux binaries through Nix, wraps the required native runtime libraries, and includes `logo.png` at `/opt/agent-up/logo.png` for the Home Manager desktop entry.
+
+Auto-restarting service definitions must use a 5 second restart throttle so port conflicts or other startup failures do not create a tight restart loop.
 
 CI also runs a privileged installed-service smoke test where the runner can host that service:
 

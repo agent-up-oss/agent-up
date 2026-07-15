@@ -330,10 +330,11 @@ POSTRM
     ;;
   nixos)
     pkgs_root="$stage/nixos-pkgs"
-    mkdir -p "$pkgs_root/payload"
-    cp -a "$stage/desktop" "$pkgs_root/payload/desktop"
-    cp -a "$stage/server" "$pkgs_root/payload/server"
-    cp -a "$stage/cli" "$pkgs_root/payload/cli"
+    mkdir -p "$pkgs_root/package/opt/agent-up"
+    cp -a "$stage/desktop" "$pkgs_root/package/opt/agent-up/desktop"
+    cp -a "$stage/server" "$pkgs_root/package/opt/agent-up/server"
+    cp -a "$stage/cli" "$pkgs_root/package/opt/agent-up/cli"
+    cp -a "$root/media/logo.png" "$pkgs_root/package/opt/agent-up/logo.png"
     cat > "$pkgs_root/flake.nix" <<'NIX'
 {
   description = "Agent-Up package set";
@@ -344,6 +345,74 @@ POSTRM
     let
       systems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
+      packageFor = pkgs: pkgs.stdenv.mkDerivation {
+        pname = "agent-up";
+        version = "@AGENT_UP_VERSION@";
+        src = ./package;
+        nativeBuildInputs = [
+          pkgs.autoPatchelfHook
+          pkgs.makeWrapper
+        ];
+        autoPatchelfIgnoreMissingDeps = [
+          "liblttng-ust.so.0"
+        ];
+        buildInputs = [
+          pkgs.fontconfig.lib
+          pkgs.freetype
+          pkgs.glib
+          pkgs.gtk3
+          pkgs.icu
+          pkgs.libGL
+          pkgs.libice
+          pkgs.libsm
+          pkgs.libx11
+          pkgs.lttng-ust
+          pkgs.openssl
+          pkgs.stdenv.cc.cc.lib
+          pkgs.webkitgtk_4_1
+          pkgs.zlib
+        ];
+        dontConfigure = true;
+        dontBuild = true;
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out
+          cp -R opt $out/
+          chmod +x $out/opt/agent-up/desktop/AgentUp.Desktop
+          chmod +x $out/opt/agent-up/server/AgentUp.Server
+          chmod +x $out/opt/agent-up/cli/AgentUp.CLI
+          mkdir -p $out/bin
+          ln -s $out/opt/agent-up/desktop/AgentUp.Desktop $out/bin/agent-up-desktop
+          ln -s $out/opt/agent-up/server/AgentUp.Server $out/bin/agent-up-server
+          ln -s $out/opt/agent-up/cli/AgentUp.CLI $out/bin/agent-up
+          runHook postInstall
+        '';
+        postFixup = ''
+          runtime_libs="${pkgs.lib.makeLibraryPath [
+            pkgs.fontconfig.lib
+            pkgs.freetype
+            pkgs.glib
+            pkgs.gtk3
+            pkgs.icu
+            pkgs.libGL
+            pkgs.libice
+            pkgs.libsm
+            pkgs.libx11
+            pkgs.lttng-ust
+            pkgs.openssl
+            pkgs.stdenv.cc.cc.lib
+            pkgs.webkitgtk_4_1
+            pkgs.zlib
+          ]}"
+
+          wrapProgram $out/opt/agent-up/desktop/AgentUp.Desktop \
+            --prefix LD_LIBRARY_PATH : "$runtime_libs"
+          wrapProgram $out/opt/agent-up/server/AgentUp.Server \
+            --prefix LD_LIBRARY_PATH : "$runtime_libs"
+          wrapProgram $out/opt/agent-up/cli/AgentUp.CLI \
+            --prefix LD_LIBRARY_PATH : "$runtime_libs"
+        '';
+      };
     in
     {
       packages = forAllSystems (system:
@@ -351,80 +420,81 @@ POSTRM
           pkgs = import nixpkgs { inherit system; };
         in
         {
-          agent-up = pkgs.stdenv.mkDerivation {
-            pname = "agent-up";
-            version = "@AGENT_UP_VERSION@";
-            src = ./payload;
-            nativeBuildInputs = [
-              pkgs.autoPatchelfHook
-              pkgs.makeWrapper
-            ];
-            autoPatchelfIgnoreMissingDeps = [
-              "liblttng-ust.so.0"
-            ];
-            buildInputs = [
-              pkgs.fontconfig.lib
-              pkgs.freetype
-              pkgs.glib
-              pkgs.gtk3
-              pkgs.icu
-              pkgs.libGL
-              pkgs.libice
-              pkgs.libsm
-              pkgs.libx11
-              pkgs.lttng-ust
-              pkgs.openssl
-              pkgs.stdenv.cc.cc.lib
-              pkgs.webkitgtk_4_1
-              pkgs.zlib
-            ];
-            dontConfigure = true;
-            dontBuild = true;
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out/opt/agent-up $out/bin
-              cp -R desktop server cli $out/opt/agent-up/
-              chmod +x $out/opt/agent-up/desktop/AgentUp.Desktop
-              chmod +x $out/opt/agent-up/server/AgentUp.Server
-              chmod +x $out/opt/agent-up/cli/AgentUp.CLI
-              ln -s $out/opt/agent-up/desktop/AgentUp.Desktop $out/bin/agent-up-desktop
-              ln -s $out/opt/agent-up/server/AgentUp.Server $out/bin/agent-up-server
-              ln -s $out/opt/agent-up/cli/AgentUp.CLI $out/bin/agent-up
-              runHook postInstall
-            '';
-            postFixup = ''
-              runtime_libs="${pkgs.lib.makeLibraryPath [
-                pkgs.fontconfig.lib
-                pkgs.freetype
-                pkgs.glib
-                pkgs.gtk3
-                pkgs.icu
-                pkgs.libGL
-                pkgs.libice
-                pkgs.libsm
-                pkgs.libx11
-                pkgs.lttng-ust
-                pkgs.openssl
-                pkgs.stdenv.cc.cc.lib
-                pkgs.webkitgtk_4_1
-                pkgs.zlib
-              ]}"
-
-              wrapProgram $out/opt/agent-up/desktop/AgentUp.Desktop \
-                --prefix LD_LIBRARY_PATH : "$runtime_libs"
-              wrapProgram $out/opt/agent-up/server/AgentUp.Server \
-                --prefix LD_LIBRARY_PATH : "$runtime_libs"
-              wrapProgram $out/opt/agent-up/cli/AgentUp.CLI \
-                --prefix LD_LIBRARY_PATH : "$runtime_libs"
-            '';
-          };
+          agent-up = packageFor pkgs;
           default = self.packages.${system}.agent-up;
         });
+
+      overlays.default = final: prev: {
+        agent-up = self.packages.${final.system}.agent-up;
+      };
+
+      nixosModules.default = { config, lib, pkgs, ... }:
+        let
+          cfg = config.services.agent-up;
+          package = self.packages.${pkgs.system}.agent-up;
+        in
+        {
+          options.services.agent-up = {
+            enable = lib.mkEnableOption "agent-up server";
+            port = lib.mkOption {
+              type = lib.types.port;
+              default = 5000;
+              description = "Loopback port for the Agent-Up server.";
+            };
+            dataDir = lib.mkOption {
+              type = lib.types.str;
+              default = "/var/lib/agent-up";
+              description = "Directory used by Agent-Up for persistent server data.";
+            };
+          };
+
+          config = lib.mkIf cfg.enable {
+            environment.systemPackages = [ package ];
+            systemd.services.agent-up = {
+              description = "Agent-Up Server";
+              wantedBy = [ "multi-user.target" ];
+              after = [ "network.target" ];
+              serviceConfig = {
+                ExecStart = "${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}";
+                Restart = "on-failure";
+                RestartSec = 5;
+                StateDirectory = "agent-up";
+                Environment = [
+                  "ASPNETCORE_URLS=http://127.0.0.1:${toString cfg.port}"
+                  "Storage__DataDirectory=${cfg.dataDir}"
+                ];
+              };
+            };
+          };
+        };
+
+      homeManagerModules.default = { config, lib, pkgs, ... }:
+        let
+          cfg = config.programs.agent-up;
+          package = self.packages.${pkgs.system}.agent-up;
+        in
+        {
+          options.programs.agent-up.enable = lib.mkEnableOption "agent-up desktop";
+
+          config = lib.mkIf cfg.enable {
+            home.packages = [ package ];
+            home.file.".local/share/icons/hicolor/256x256/apps/agent-up.png".source =
+              "${package}/opt/agent-up/logo.png";
+            xdg.desktopEntries.agent-up = {
+              name = "Agent Up";
+              exec = "agent-up-desktop";
+              icon = "agent-up";
+              terminal = false;
+              categories = [ "Utility" ];
+            };
+          };
+        };
     };
 }
 NIX
     sed -i.bak "s|@AGENT_UP_VERSION@|${version#v}|g" "$pkgs_root/flake.nix"
     rm -f "$pkgs_root/flake.nix.bak"
+    nix --extra-experimental-features "nix-command flakes" flake lock "path:$pkgs_root"
     tar -C "$pkgs_root" -czf "$root/$output_dir/agent-up-nixos-pkgs.tar.gz" .
     ;;
   *)

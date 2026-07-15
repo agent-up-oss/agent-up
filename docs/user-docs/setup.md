@@ -8,6 +8,8 @@ Agent-Up is currently a development preview. CI now produces preliminary platfor
 
 Installed Desktop artifacts are expected to run the Server as a local background service. Desktop, CLI, and MCP clients connect to that service at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points elsewhere.
 
+If the service starts and stops repeatedly or consumes CPU while failing to become ready, check whether another application is already listening on port 5000. Packaged services restart with a 5 second backoff, but Agent-Up still needs an available local server port.
+
 ## Requirements
 
 - .NET SDK 10.0 preview or compatible SDK for the current target framework.

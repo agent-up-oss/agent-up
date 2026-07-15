@@ -18,7 +18,7 @@ if ($existing) {
 New-Service `
     -Name $serviceName `
     -DisplayName $displayName `
-    -BinaryPathName "`"$serverExe`" --urls http://localhost:5000" `
+    -BinaryPathName "`"$serverExe`" --urls http://127.0.0.1:5000" `
     -StartupType Automatic `
     -Description "Local Agent-Up runtime authority for workspaces, processes, ports, diagnostics, and automation."
 
