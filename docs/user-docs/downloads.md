@@ -24,7 +24,7 @@ Use the macOS disk image for your processor:
 
 <a className="button button--secondary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-macos-osx-x64.dmg">Download macOS Intel disk image</a>
 
-Open the `.dmg`, then run `Agent-Up Installer.command`. The installer prompts for administrator access and lets you install, upgrade, or uninstall Agent-Up.
+Open the `.dmg`, then open `Agent-Up Installer.app`. The installer prompts for administrator access and lets you install, upgrade, or uninstall Agent-Up.
 
 The installer copies `Agent-Up.app` into `/Applications`, adds `agent-up` CLI symlinks under `/usr/local/bin`, and starts the bundled Server as the `dev.agent-up.server` launchd service. Uninstall removes those registrations and installed assets.
 

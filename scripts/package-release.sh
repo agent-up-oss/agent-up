@@ -575,10 +575,32 @@ else
 fi
 UNINSTALL
     chmod +x "$stage/uninstall.sh"
-    cat > "$stage/Agent-Up Installer.command" <<'MACGUI'
+    installer_app="$stage/Agent-Up Installer.app"
+    mkdir -p "$installer_app/Contents/MacOS" "$installer_app/Contents/Resources"
+    cat > "$installer_app/Contents/Info.plist" <<'MACPLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>dev.agent-up.installer</string>
+  <key>CFBundleName</key>
+  <string>Agent-Up Installer</string>
+  <key>CFBundleDisplayName</key>
+  <string>Agent-Up Installer</string>
+  <key>CFBundleExecutable</key>
+  <string>AgentUpInstaller</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+</dict>
+</plist>
+MACPLIST
+    cat > "$installer_app/Contents/MacOS/AgentUpInstaller" <<'MACGUI'
 #!/usr/bin/env bash
 set -euo pipefail
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 if [ -d /Applications/Agent-Up.app ] || [ -f /Library/LaunchDaemons/dev.agent-up.server.plist ]; then
   action="$(osascript -e 'button returned of (display dialog "Agent-Up is already installed. Choose an action." buttons {"Cancel", "Uninstall", "Upgrade"} default button "Upgrade" cancel button "Cancel" with title "Agent-Up Installer")' || true)"
@@ -597,7 +619,7 @@ case "$action" in
     ;;
 esac
 MACGUI
-    chmod +x "$stage/Agent-Up Installer.command"
+    chmod +x "$installer_app/Contents/MacOS/AgentUpInstaller"
     dmg_root="$stage/dmg-root"
     mkdir -p "$dmg_root"
     cp -R "$stage/Agent-Up.app" "$dmg_root/"
@@ -605,7 +627,7 @@ MACGUI
     cp "$stage/agent-up-server.plist" "$dmg_root/"
     cp "$stage/install.sh" "$dmg_root/"
     cp "$stage/uninstall.sh" "$dmg_root/"
-    cp "$stage/Agent-Up Installer.command" "$dmg_root/"
+    cp -R "$installer_app" "$dmg_root/"
     if command -v hdiutil >/dev/null 2>&1; then
       hdiutil create -volname "Agent-Up" -srcfolder "$dmg_root" -ov -format UDZO "$root/$output_dir/agent-up-macos-$rid.dmg"
     else
