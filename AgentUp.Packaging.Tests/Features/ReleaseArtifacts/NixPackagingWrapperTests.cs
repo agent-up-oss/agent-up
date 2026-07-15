@@ -49,6 +49,23 @@ public class NixPackagingWrapperTests
         }
     }
 
+    [Test]
+    public void PackageRelease_delegatesWindowsToDotNetPackagingAndDoesNotGenerateLegacyInstaller()
+    {
+        var script = Path.Combine(Root, "scripts", "package-release.sh");
+
+        var text = File.ReadAllText(script);
+
+        Assert.That(text, Does.Contain("[ \"$platform\" = \"ubuntu\" ] || [ \"$platform\" = \"macos\" ] || [ \"$platform\" = \"windows\" ]"));
+        Assert.That(text, Does.Contain("ensure_wix_cli"));
+        Assert.That(text, Does.Contain("AgentUp.Packaging/AgentUp.Packaging.csproj"));
+        Assert.That(text, Does.Not.Contain("create_windows_installer"));
+        Assert.That(text, Does.Not.Contain("UseWindowsForms"));
+        Assert.That(text, Does.Not.Contain("payload.zip"));
+        Assert.That(text, Does.Not.Contain("--extract"));
+        Assert.That(text, Does.Not.Contain("--install-dir"));
+    }
+
     private static string FindRepositoryRoot(string startDirectory)
     {
         var directory = new DirectoryInfo(startDirectory);

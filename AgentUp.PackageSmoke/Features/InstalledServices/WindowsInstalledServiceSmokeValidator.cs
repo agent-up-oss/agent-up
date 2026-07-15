@@ -15,12 +15,12 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         CancellationToken cancellationToken)
     {
         var installer = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
-        var installDir = Path.Combine(request.WorkDirectory, "installed");
+        var installDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Agent-Up");
         assert.FileExists(installer, "installed.windows.artifact");
         if (!File.Exists(installer))
             return null;
 
-        await RunRequiredAsync(assert, new CommandSpec(installer, ["--install-dir", installDir, "--quiet"]), "installed.windows.install", cancellationToken);
+        await RunRequiredAsync(assert, new CommandSpec(installer, ["/quiet", "/norestart"]), "installed.windows.install", cancellationToken);
 
         var cli = Path.Combine(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Combine(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
@@ -44,7 +44,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         return new InstalledServiceContext(
             cli,
-            [new CommandSpec(installer, ["--install-dir", installDir, "--uninstall", "--quiet"])],
+            [new CommandSpec(installer, ["/uninstall", "/quiet", "/norestart"])],
             [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);
     }
 }

@@ -27,7 +27,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
 
         var result = new CommandResult(process.ExitCode, await stdout, await stderr);
         if (result.ExitCode != 0)
-            throw new InvalidOperationException($"{command.FileName} exited with code {result.ExitCode}.{Environment.NewLine}{result.Stderr}");
+            throw new InvalidOperationException($"{command.FileName} exited with code {result.ExitCode}.{Environment.NewLine}{result.Stderr}{result.Stdout}");
 
         return result;
     }

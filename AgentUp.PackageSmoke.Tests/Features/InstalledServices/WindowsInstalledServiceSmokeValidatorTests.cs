@@ -19,8 +19,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
         var commands = new RecordingCommandRunner((command, _) =>
         {
-            if (command.FileName == installer && command.Arguments.Contains("--quiet") && !command.Arguments.Contains("--uninstall"))
-                CreateWindowsInstall(Path.Combine(workDir, "installed"));
+            if (command.FileName == installer && command.Arguments.Contains("/quiet") && !command.Arguments.Contains("/uninstall"))
+                CreateWindowsInstall(DefaultInstallDirectory());
             if (command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"]))
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
             if (command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"]))
@@ -35,7 +35,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
-            Assert.That(commands.Commands.Any(command => command.FileName == installer && command.Arguments.Contains("--uninstall")), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == installer && command.Arguments.Contains("/uninstall")), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"])), Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(1));
@@ -58,8 +58,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
         File.WriteAllText(installer, "");
         var commands = new RecordingCommandRunner((command, _) =>
         {
-            if (command.FileName == installer && !command.Arguments.Contains("--uninstall"))
-                CreateWindowsInstall(Path.Combine(workDir, "installed"));
+            if (command.FileName == installer && !command.Arguments.Contains("/uninstall"))
+                CreateWindowsInstall(DefaultInstallDirectory());
             return new CommandResult(0, "", "");
         });
 
@@ -71,7 +71,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Findings.Any(finding => finding.Code == "installed.server.ready"), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("Get-Service", StringComparison.Ordinal)), Is.True);
-            Assert.That(commands.Commands.Any(command => command.FileName == installer && command.Arguments.Contains("--uninstall")), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == installer && command.Arguments.Contains("/uninstall")), Is.True);
         }
         finally
         {
@@ -90,5 +90,11 @@ public class WindowsInstalledServiceSmokeValidatorTests
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, text);
+    }
+
+    private static string DefaultInstallDirectory()
+    {
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        return Path.Combine(programFiles, "Agent-Up");
     }
 }

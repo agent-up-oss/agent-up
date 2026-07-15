@@ -189,10 +189,8 @@ case "$platform" in
     smoke_cli_workspace "$CLI_PATH"
     ;;
   windows)
-    validate_package_contract
-    smoke_cli_version "$CLI_PATH"
-    start_server_and_probe "$SERVER_PATH"
-    smoke_cli_workspace "$CLI_PATH"
+    dotnet run --project AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj --configuration Release -- \
+      validate-package "$platform" "$rid" "$artifact_dir" "$work_dir"
     ;;
   ubuntu)
     validate_package_contract

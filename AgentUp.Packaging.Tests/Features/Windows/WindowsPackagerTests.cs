@@ -25,7 +25,8 @@ public class WindowsPackagerTests
         }
 
         Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(3));
-        Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(2));
+        Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
+        Assert.That(commands.Commands[^3].Arguments, Is.EqualTo(new[] { "eula", "accept", "wix7" }));
         Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.msi", StringComparison.Ordinal)), Is.True);
         Assert.That(commands.Commands[^1].Arguments.Any(argument => argument.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);

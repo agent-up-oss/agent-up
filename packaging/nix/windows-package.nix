@@ -22,12 +22,13 @@ pkgs.mkShell {
     export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
     export DOTNET_NOLOGO=1
 
-    mkdir -p "$DOTNET_CLI_HOME" "$AGENTUP_REPO_ROOT/artifacts/tools/windows/bin"
+    mkdir -p "$DOTNET_CLI_HOME" "$AGENTUP_REPO_ROOT/artifacts/tools/windows/bin" "$AGENTUP_REPO_ROOT/artifacts/tools/windows/home"
     dotnet tool restore --tool-manifest "$AGENTUP_REPO_ROOT/packaging/windows/dotnet-tools.json"
 
     cat > "$AGENTUP_REPO_ROOT/artifacts/tools/windows/bin/wix" <<'WIXSHIM'
 #!/usr/bin/env bash
 set -euo pipefail
+export HOME="$AGENTUP_REPO_ROOT/artifacts/tools/windows/home"
 cd "$AGENTUP_REPO_ROOT/packaging/windows"
 exec dotnet tool run wix -- "$@"
 WIXSHIM

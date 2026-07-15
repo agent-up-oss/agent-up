@@ -19,25 +19,16 @@ public sealed class WindowsPackageValidator : IPackageValidator
         if (!File.Exists(installer))
             return new PackageValidationResult(null, null, assert.Findings);
 
-        var extract = await _commands.RunAsync(new CommandSpec(installer, ["--extract", request.WorkDirectory, "--quiet"]), cancellationToken);
-        if (extract.ExitCode != 0)
+        var layoutDirectory = Path.Combine(request.WorkDirectory, "layout");
+        var layout = await _commands.RunAsync(new CommandSpec(installer, ["/layout", layoutDirectory, "/quiet"]), cancellationToken);
+        if (layout.ExitCode != 0)
         {
-            assert.Error("windows.extract", $"installer extract failed: {extract.Stderr}{extract.Stdout}");
+            assert.Error("windows.layout", $"installer layout failed: {layout.Stderr}{layout.Stdout}");
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        var desktop = Path.Combine(request.WorkDirectory, "desktop", "AgentUp.Desktop.exe");
-        var server = Path.Combine(request.WorkDirectory, "server", "AgentUp.Server.exe");
-        var cli = Path.Combine(request.WorkDirectory, "cli", "AgentUp.CLI.exe");
-        assert.FileExists(desktop, "windows.desktop");
-        assert.FileExists(server, "windows.server");
-        assert.FileExists(cli, "windows.cli");
-        assert.Contains(Path.Combine(request.WorkDirectory, "tools", "install-agent-up-server.ps1"), "New-Service", "windows.service");
-        assert.Contains(Path.Combine(request.WorkDirectory, "tools", "install-agent-up-server.ps1"), "Start-Service", "windows.service.start");
-        assert.Contains(Path.Combine(request.WorkDirectory, "tools", "install-agent-up-server.ps1"), "sc.exe failure", "windows.service.restart");
-        assert.Contains(Path.Combine(request.WorkDirectory, "tools", "install-agent-up-server.ps1"), "http://127.0.0.1:5000", "windows.service.url");
-        assert.FileExists(Path.Combine(request.WorkDirectory, "tools", "uninstall-agent-up-server.ps1"), "windows.service.uninstall");
+        assert.FileExists(Path.Combine(layoutDirectory, "Product.msi"), "windows.product.msi");
 
-        return new PackageValidationResult(server, cli, assert.Findings);
+        return new PackageValidationResult(null, null, assert.Findings);
     }
 }

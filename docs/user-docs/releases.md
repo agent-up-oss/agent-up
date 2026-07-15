@@ -6,7 +6,7 @@ title: Releases
 
 Agent-Up release artifacts are built by CI after the platform test matrix passes.
 
-Each platform job also smoke-tests the package it just built before upload. The smoke tests consume the artifact on the target runner, check the expected Desktop, Server, CLI, installer, and service files, start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`.
+Each platform job also smoke-tests the package it just built before upload. Package smoke tests consume the artifact on the target runner and check the expected package contract. Where the package exposes payload files directly, smoke tests also start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`. Windows WiX/Burn artifacts are validated through layout/package checks first, then through the installed-service smoke path.
 
 Shared installer planning, validation, and platform install contracts live in `AgentUp.Installers` and are tested by `AgentUp.Installers.Tests`. The shared guided installer UX lives in `AgentUp.InstallerApp` and is tested by `AgentUp.InstallerApp.Tests` plus native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging` and is tested by `AgentUp.Packaging.Tests`; packaging code consumes the shared installer contracts instead of redefining platform behavior. Package and installed-service smoke validation lives in `AgentUp.PackageSmoke` and is tested by `AgentUp.PackageSmoke.Tests`; CI smoke scripts call this shared console validator for artifact, installer-flow, install, service, CLI, diagnostics, and uninstall checks. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
 
@@ -20,7 +20,7 @@ Developers should use the Nix packaging wrappers when building release artifacts
 
 The macOS wrapper must run on Darwin because Apple package/sign/notarization tools are not available on Linux.
 
-Windows packaging is moving from the legacy generated installer toward WiX-generated `Product.msi` and `Setup.exe` artifacts orchestrated by `AgentUp.Packaging`.
+Windows packaging uses WiX-generated `Product.msi` and `Setup.exe` artifacts orchestrated by `AgentUp.Packaging`.
 
 macOS packaging is moving from the legacy `.dmg` script installer toward a `Product.pkg` artifact orchestrated by `AgentUp.Packaging`.
 
@@ -51,7 +51,7 @@ The Server remains the runtime authority. Packaging the Server with Desktop only
 The smoke test validates service wiring by checking the package's service registration files:
 
 - macOS package install uses `launchctl bootstrap system` for `dev.agent-up.server` and registers `agent-up` CLI symlinks under `/usr/local/bin`.
-- Windows package install uses `New-Service` and `Start-Service` for `agent-up-server`, registers Agent-Up under Windows Apps, creates a Start Menu entry, and adds `agent-up` to PATH.
+- Windows package install uses WiX `ServiceInstall` and `ServiceControl` for `agent-up-server`, registers Agent-Up under Windows Apps, creates a Start Menu entry, and adds `agent-up` to PATH.
 - Ubuntu package install uses `systemctl enable --now agent-up-server.service`.
 - Ubuntu installs the global CLI entry at `/usr/bin/agent-up` and registers the Desktop launcher through `/usr/share/applications/agent-up.desktop`.
 - NixOS package smoke validates that the package-set tarball is a valid locked flake, exposes `packages.x86_64-linux.agent-up`, `overlays.default`, `nixosModules.default`, and `homeManagerModules.default`, patches the bundled Linux binaries through Nix, wraps the required native runtime libraries, and includes `logo.png` at `/opt/agent-up/logo.png` for the Home Manager desktop entry.

@@ -53,6 +53,7 @@ public sealed class WindowsPackager
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));
         _writer.WriteText(layout.LicenseRtfPath, WindowsWixSourceGenerator.LicenseRtf());
 
+        await _commands.RunAsync(new CommandSpec("wix", ["eula", "accept", "wix7"]), cancellationToken);
         await _commands.RunAsync(new CommandSpec("wix",
         [
             "build",
