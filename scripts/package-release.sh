@@ -527,6 +527,7 @@ install_agent_up() {
   chmod +x /Applications/Agent-Up.app/Contents/Resources/server/AgentUp.Server
 
   mkdir -p "/Library/Application Support/Agent-Up"
+  mkdir -p "/Library/Logs/Agent-Up"
   mkdir -p /usr/local/agent-up/cli /usr/local/bin
   rm -rf /usr/local/agent-up/cli
   cp -R "$root/cli" /usr/local/agent-up/cli
@@ -673,13 +674,27 @@ sudo rm -rf /opt/agent-up
 UNINSTALL
     chmod +x "$stage/uninstall.sh"
     deb_root="$stage/deb-root"
-    mkdir -p "$deb_root/DEBIAN" "$deb_root/opt/agent-up" "$deb_root/etc/systemd/system"
+    mkdir -p "$deb_root/DEBIAN" "$deb_root/opt/agent-up" "$deb_root/etc/systemd/system" "$deb_root/usr/bin" "$deb_root/usr/share/applications" "$deb_root/usr/share/pixmaps"
     cp -a "$stage/desktop" "$deb_root/opt/agent-up/desktop"
     cp -a "$stage/server" "$deb_root/opt/agent-up/server"
     cp -a "$stage/cli" "$deb_root/opt/agent-up/cli"
+    cp "$root/media/logo.png" "$deb_root/usr/share/pixmaps/agent-up.png"
     cp "$stage/share/agent-up-server.service" "$deb_root/etc/systemd/system/agent-up-server.service"
     chmod +x "$deb_root/opt/agent-up/desktop/AgentUp.Desktop" "$deb_root/opt/agent-up/server/AgentUp.Server" "$deb_root/opt/agent-up/cli/AgentUp.CLI"
+    ln -s /opt/agent-up/cli/AgentUp.CLI "$deb_root/usr/bin/agent-up"
     deb_version="${version#v}"
+    cat > "$deb_root/usr/share/applications/agent-up.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Agent-Up
+Comment=Agent-Up desktop workspace client
+Exec=/opt/agent-up/desktop/AgentUp.Desktop
+Icon=agent-up
+Terminal=false
+Categories=Development;
+StartupNotify=true
+X-AgentUp-Version=$deb_version
+DESKTOP
     cat > "$deb_root/DEBIAN/control" <<CONTROL
 Package: agent-up
 Version: $deb_version
@@ -697,6 +712,9 @@ touch /var/log/agent-up-server.log /var/log/agent-up-server.err.log
 chmod +x /opt/agent-up/desktop/AgentUp.Desktop /opt/agent-up/server/AgentUp.Server /opt/agent-up/cli/AgentUp.CLI
 systemctl daemon-reload
 systemctl enable --now agent-up-server.service
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications || true
+fi
 POSTINST
     cat > "$deb_root/DEBIAN/prerm" <<'PRERM'
 #!/usr/bin/env bash
@@ -707,6 +725,9 @@ PRERM
 #!/usr/bin/env bash
 set -e
 systemctl daemon-reload
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications || true
+fi
 POSTRM
     chmod 755 "$deb_root/DEBIAN/postinst" "$deb_root/DEBIAN/prerm" "$deb_root/DEBIAN/postrm"
     dpkg-deb --build "$deb_root" "$root/$output_dir/agent-up-ubuntu-$rid.deb"

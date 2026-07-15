@@ -10,7 +10,7 @@ Agent-Up is an experimental development preview. It is intended for early techni
 
 - Source-only execution.
 - No stable desktop download.
-- No general-purpose installer.
+- Cross-platform installers are preliminary and are being moved into testable installer projects.
 - No automatic updater.
 - No `v1.0` release.
 - Public contracts may break without notice.
@@ -39,7 +39,7 @@ Agent-Up is an experimental development preview. It is intended for early techni
 | Playwright generation | Planned |
 | MCP tools | In progress |
 | CLI | Experimental |
-| Cross-platform packaging | Planned |
+| Cross-platform packaging | In progress |
 | Health monitoring | Planned |
 
 ## API and Configuration Stability

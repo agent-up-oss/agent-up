@@ -4,14 +4,15 @@ title: Architecture
 
 # Architecture
 
-Agent-Up has four major components:
+Agent-Up has five major component areas:
 
 - `AgentUp.Server`
 - `AgentUp.Desktop`
 - `AgentUp.CLI`
+- `AgentUp.Installers`
 - MCP clients
 
-The Server is the single source of truth. Every other component is a client.
+The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. Installer code owns machine installation planning and validation only; it does not own runtime state.
 
 ## Solution Layout
 
@@ -32,6 +33,9 @@ AgentUp.CLI/
 AgentUp.Shared/
   AgentUp.Shared.csproj
 
+AgentUp.Installers/
+  AgentUp.Installers.csproj
+
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
 
@@ -40,6 +44,9 @@ AgentUp.Desktop.Tests/
 
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
+
+AgentUp.Installers.Tests/
+  AgentUp.Installers.Tests.csproj
 ```
 
 The exact project list may evolve, but the ownership boundaries should remain stable.
@@ -63,6 +70,8 @@ The exact project list may evolve, but the ownership boundaries should remain st
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
+
+`AgentUp.Installers` owns testable installer prerequisite, component-selection, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 
 MCP clients are the primary automation clients. AI agents should use MCP directly instead of shelling through the CLI.
 

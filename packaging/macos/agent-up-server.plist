@@ -24,8 +24,8 @@
   <key>ThrottleInterval</key>
   <integer>5</integer>
   <key>StandardOutPath</key>
-  <string>/tmp/agent-up-server.out.log</string>
+  <string>/Library/Logs/Agent-Up/server.out.log</string>
   <key>StandardErrorPath</key>
-  <string>/tmp/agent-up-server.err.log</string>
+  <string>/Library/Logs/Agent-Up/server.err.log</string>
 </dict>
 </plist>

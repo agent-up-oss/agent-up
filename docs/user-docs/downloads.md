@@ -46,6 +46,8 @@ The package installs Agent-Up under `/opt/agent-up`, registers `agent-up-server.
 /opt/agent-up/desktop/AgentUp.Desktop
 ```
 
+The package also installs `agent-up` at `/usr/bin/agent-up` and registers the Desktop launcher as `agent-up.desktop` for the application menu.
+
 ## NixOS
 
 Use the package-set tarball as a flake input:

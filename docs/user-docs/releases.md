@@ -8,6 +8,8 @@ Agent-Up release artifacts are built by CI after the platform test matrix passes
 
 Each platform job also smoke-tests the package it just built before upload. The smoke tests consume the artifact on the target runner, check the expected Desktop, Server, CLI, installer, and service files, start the packaged Server from the package payload, register an example `agent-up.json` workspace with the packaged CLI, and verify `agent-up status`.
 
+Shared installer planning and validation logic lives in `AgentUp.Installers` and is tested by `AgentUp.Installers.Tests`. Native package smoke tests cover the platform-specific contract that cannot be proven by unit tests, such as service registration, fresh-shell CLI availability, desktop launcher metadata, and uninstall behavior.
+
 The intended installed shape is:
 
 - Desktop is the human UI.
@@ -33,6 +35,7 @@ The smoke test validates service wiring by checking the package's service regist
 - macOS package install uses `launchctl bootstrap system` for `dev.agent-up.server` and registers `agent-up` CLI symlinks under `/usr/local/bin`.
 - Windows package install uses `New-Service` and `Start-Service` for `agent-up-server`, registers Agent-Up under Windows Apps, creates a Start Menu entry, and adds `agent-up` to PATH.
 - Ubuntu package install uses `systemctl enable --now agent-up-server.service`.
+- Ubuntu installs the global CLI entry at `/usr/bin/agent-up` and registers the Desktop launcher through `/usr/share/applications/agent-up.desktop`.
 - NixOS package smoke validates that the package-set tarball is a valid locked flake, exposes `packages.x86_64-linux.agent-up`, `overlays.default`, `nixosModules.default`, and `homeManagerModules.default`, patches the bundled Linux binaries through Nix, wraps the required native runtime libraries, and includes `logo.png` at `/opt/agent-up/logo.png` for the Home Manager desktop entry.
 
 Auto-restarting service definitions must use a 5 second restart throttle so port conflicts or other startup failures do not create a tight restart loop.

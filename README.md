@@ -16,7 +16,7 @@ It manages the running development environment around applications: workspaces, 
 
 Agent-Up is not an IDE, application framework, deployment platform, Docker replacement, Git replacement, or production orchestrator.
 
-> **Development Preview:** Agent-Up is under active development. It currently runs primarily from source, with preliminary NixOS-oriented setup. There are no stable binaries or general-purpose installers. APIs, configuration, and workflows may change without notice.
+> **Development Preview:** Agent-Up is under active development. CI produces preliminary platform artifacts, and installer behavior is still being hardened. APIs, configuration, and workflows may change without notice.
 
 ## Why Agent-Up Exists
 
@@ -38,9 +38,9 @@ Agent-Up is built to make those parallel workspaces reviewable without process, 
 
 ## Current Limitations
 
-- Source-only development preview.
-- No stable installer or automatic updater.
-- Platform verification is currently NixOS-first.
+- Source-first development preview.
+- Installers are preliminary and not yet a stable update channel.
+- Platform verification is expanding through native package smoke tests.
 - MCP functionality is incomplete.
 - REST, MCP, and configuration contracts are unstable.
 - Browser behavior, diagnostics, and event recording are still experimental.

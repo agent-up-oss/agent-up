@@ -80,8 +80,8 @@ print_service_diagnostics() {
       ;;
     macos)
       sudo launchctl print system/dev.agent-up.server >&2 || true
-      sudo tail -n 200 /tmp/agent-up-server.out.log >&2 || true
-      sudo tail -n 200 /tmp/agent-up-server.err.log >&2 || true
+      sudo tail -n 200 "/Library/Logs/Agent-Up/server.out.log" >&2 || true
+      sudo tail -n 200 "/Library/Logs/Agent-Up/server.err.log" >&2 || true
       ps aux | grep '[A]gentUp.Server' >&2 || true
       lsof -nP -iTCP -sTCP:LISTEN >&2 || true
       sudo ls -la "/Library/Application Support/Agent-Up" >&2 || true
@@ -117,6 +117,11 @@ JSON
   grep -Fq "State:      Running" "$work_dir/cli-status.log"
 }
 
+smoke_cli_version() {
+  "$cli" --version > "$work_dir/cli-version.log"
+  test -s "$work_dir/cli-version.log"
+}
+
 rm -rf "$work_dir"
 mkdir -p "$work_dir"
 
@@ -131,6 +136,7 @@ case "$platform" in
     test -x /usr/local/bin/agent-up
     test -x /usr/local/bin/agent-up-server
     test -x /usr/local/bin/agent-up-desktop
+    smoke_cli_version
     ;;
   windows)
     install_dir="$work_dir/installed"
@@ -143,12 +149,17 @@ case "$platform" in
       ps_install_dir="$(cygpath -w "$install_dir")"
     fi
     powershell.exe -NoProfile -Command "\$installDir = [System.IO.Path]::GetFullPath('$ps_install_dir'); \$key = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Agent-Up'; if (-not (Test-Path \$key)) { throw 'Agent-Up uninstall registration missing' }; \$path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); \$bin = [System.IO.Path]::GetFullPath((Join-Path \$installDir 'bin')).TrimEnd('\\'); \$entries = (\$path -split ';' | Where-Object { \$_ } | ForEach-Object { [System.IO.Path]::GetFullPath(\$_).TrimEnd('\\') }); if (-not (\$entries | Where-Object { [string]::Equals(\$_, \$bin, [System.StringComparison]::OrdinalIgnoreCase) })) { Write-Host \"Machine PATH: \$path\"; throw \"Agent-Up PATH entry missing: \$bin\" }"
+    smoke_cli_version
     ;;
   ubuntu)
     deb_path="$(cd "$artifact_dir" && pwd)/agent-up-ubuntu-$rid.deb"
     sudo apt-get install -y "$deb_path"
-    cli="/opt/agent-up/cli/AgentUp.CLI"
+    cli="/usr/bin/agent-up"
     uninstall_command=(sudo apt-get purge -y agent-up)
+    command -v agent-up
+    test -f /usr/share/applications/agent-up.desktop
+    test -f /usr/share/pixmaps/agent-up.png
+    smoke_cli_version
     ;;
   nixos)
     echo "Skipping installed-service smoke for NixOS because this CI job runs on Ubuntu with Nix, not a booted NixOS systemd host."

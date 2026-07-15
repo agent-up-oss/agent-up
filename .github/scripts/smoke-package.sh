@@ -32,6 +32,13 @@ assert_file() {
   fi
 }
 
+assert_symlink() {
+  if [ ! -L "$1" ]; then
+    echo "Expected symlink missing: $1" >&2
+    exit 1
+  fi
+}
+
 assert_executable() {
   assert_file "$1"
   if [ "${RUNNER_OS:-}" != "Windows" ] && [ ! -x "$1" ]; then
@@ -125,6 +132,14 @@ JSON
   grep -Fq "State:      Running" "$work_dir/cli-status.log"
 }
 
+smoke_cli_version() {
+  local cli="$1"
+
+  chmod +x "$cli" 2>/dev/null || true
+  "$cli" --version > "$work_dir/cli-version.log"
+  test -s "$work_dir/cli-version.log"
+}
+
 smoke_cli_workspace_from_path() {
   local cli_name="$1"
   local repo="$work_dir/example-workspace-nix"
@@ -175,6 +190,7 @@ case "$platform" in
     assert_contains "$mounted_dmg/install.sh" "upgrade)"
     assert_contains "$mounted_dmg/Agent-Up Installer.app/Contents/MacOS/AgentUpInstaller" "display dialog"
     assert_contains "$mounted_dmg/install.sh" "launchctl bootstrap system"
+    smoke_cli_version "$mounted_dmg/cli/AgentUp.CLI"
     start_server_and_probe "$mounted_dmg/Agent-Up.app/Contents/Resources/server/AgentUp.Server"
     smoke_cli_workspace "$mounted_dmg/cli/AgentUp.CLI"
     ;;
@@ -189,7 +205,9 @@ case "$platform" in
     assert_file "$work_dir/tools/uninstall-agent-up-server.ps1"
     assert_contains "$work_dir/tools/install-agent-up-server.ps1" "New-Service"
     assert_contains "$work_dir/tools/install-agent-up-server.ps1" "Start-Service"
+    assert_contains "$work_dir/tools/install-agent-up-server.ps1" "sc.exe failure"
     assert_contains "$work_dir/tools/install-agent-up-server.ps1" "http://127.0.0.1:5000"
+    smoke_cli_version "$work_dir/cli/AgentUp.CLI.exe"
     start_server_and_probe "$work_dir/server/AgentUp.Server.exe"
     smoke_cli_workspace "$work_dir/cli/AgentUp.CLI.exe"
     ;;
@@ -201,12 +219,18 @@ case "$platform" in
     assert_executable "$work_dir/root/opt/agent-up/desktop/AgentUp.Desktop"
     assert_executable "$work_dir/root/opt/agent-up/server/AgentUp.Server"
     assert_executable "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
+    assert_symlink "$work_dir/root/usr/bin/agent-up"
+    assert_file "$work_dir/root/usr/share/applications/agent-up.desktop"
+    assert_file "$work_dir/root/usr/share/pixmaps/agent-up.png"
     assert_file "$work_dir/root/etc/systemd/system/agent-up-server.service"
     assert_file "$work_dir/control/postinst"
     assert_file "$work_dir/control/prerm"
     assert_contains "$work_dir/root/etc/systemd/system/agent-up-server.service" "ExecStart=/opt/agent-up/server/AgentUp.Server"
     assert_contains "$work_dir/root/etc/systemd/system/agent-up-server.service" "RestartSec=5"
+    assert_contains "$work_dir/root/usr/share/applications/agent-up.desktop" "Exec=/opt/agent-up/desktop/AgentUp.Desktop"
+    assert_contains "$work_dir/root/usr/share/applications/agent-up.desktop" "Icon=agent-up"
     assert_contains "$work_dir/control/postinst" "systemctl enable --now agent-up-server.service"
+    smoke_cli_version "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
     start_server_and_probe "$work_dir/root/opt/agent-up/server/AgentUp.Server"
     smoke_cli_workspace "$work_dir/root/opt/agent-up/cli/AgentUp.CLI"
     ;;
@@ -241,6 +265,7 @@ case "$platform" in
     assert_executable "$nix_out/bin/agent-up-server"
     assert_executable "$nix_out/bin/agent-up-desktop"
     assert_file "$nix_out/opt/agent-up/logo.png"
+    smoke_cli_version "$nix_out/bin/agent-up"
     start_server_and_probe "$nix_out/bin/agent-up-server"
     nix shell --extra-experimental-features "nix-command flakes" "path:$work_dir#agent-up" --command bash -lc 'command -v agent-up && command -v agent-up-server && command -v agent-up-desktop'
     nix shell --extra-experimental-features "nix-command flakes" "path:$work_dir#agent-up" --command bash -lc "$(declare -f smoke_cli_workspace_from_path); work_dir='$work_dir'; port='$port'; smoke_cli_workspace_from_path agent-up"

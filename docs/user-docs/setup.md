@@ -4,7 +4,7 @@ title: Setup
 
 # Setup
 
-Agent-Up is currently a development preview. CI now produces preliminary platform artifacts, but the source workflow remains the most reliable path while installer signing, update behavior, and service hardening evolve.
+Agent-Up is currently a development preview. CI produces preliminary platform artifacts, and installer behavior is being moved into testable installer slices while signing, update behavior, and service hardening evolve.
 
 Installed Desktop artifacts are expected to run the Server as a local background service. Desktop, CLI, and MCP clients connect to that service at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points elsewhere.
 
@@ -61,7 +61,7 @@ The script runs the desktop inside `shell.nix`, which provides the native librar
 
 ## Release Artifacts
 
-See [Releases](./releases.md) for the CI-produced macOS, Windows, Ubuntu, and NixOS artifact shape and MinIO/S3 upload configuration.
+See [Releases](./releases.md) for the CI-produced macOS, Windows, Ubuntu, and NixOS artifact shape and MinIO/S3 upload configuration. Installer contracts and test ownership are defined in the [Packaging And Installers](../developer-guide/packaging.md) developer guide.
 
 ## Configure a Repository
 

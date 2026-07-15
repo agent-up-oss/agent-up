@@ -46,6 +46,9 @@ AgentUp.CLI/
 AgentUp.Shared/
   AgentUp.Shared.csproj
 
+AgentUp.Installers/
+  AgentUp.Installers.csproj
+
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
 
@@ -54,6 +57,9 @@ AgentUp.Desktop.Tests/
 
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
+
+AgentUp.Installers.Tests/
+  AgentUp.Installers.Tests.csproj
 ```
 
 Project directories live directly at the repository root and are included in the root solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere.
@@ -65,6 +71,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Server` | Workspace registry, process lifecycle, ports, Docker, browser lifecycle, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
+| `AgentUp.Installers` | Testable installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
 | MCP clients | Automation interface; no local orchestration |
 | `AgentUp.Shared` | Cross-boundary contracts only when genuinely shared |
 
@@ -115,6 +122,14 @@ AgentUp.Desktop/
       ViewModels/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
       ViewModels/
+
+AgentUp.Installers/
+  Features/
+    Prerequisites/    (Docker status and minimum-version checks)
+    Components/       (component selection and install summaries)
+    Path/             (idempotent PATH add/remove planning)
+    Validation/       (post-install validation contracts)
+    Uninstall/        (uninstall-mode planning)
 ```
 
 Avoid this as the primary organizing model:
@@ -289,6 +304,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Server` | `AgentUp.Server.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
+| `AgentUp.Installers` | `AgentUp.Installers.Tests` |
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
@@ -417,6 +433,12 @@ Read: `docs/developer-guide/diagnostics.md`.
 The target AI workflow is: modify code, restart workspace, wait until healthy, inspect page, interact, validate, screenshot, generate Playwright, commit.
 
 Read: `docs/developer-guide/workflows.md`.
+
+## Packaging And Installers
+
+Installer behavior is testable product behavior. Shared installer planning and validation logic belongs in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. Native package assets stay under `packaging/` and should consume or mirror the shared contract rather than accumulating untested script-only behavior.
+
+Read: `docs/developer-guide/packaging.md`.
 
 ## Design Principles
 

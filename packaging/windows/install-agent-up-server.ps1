@@ -22,5 +22,8 @@ New-Service `
     -StartupType Automatic `
     -Description "Local Agent-Up runtime authority for workspaces, processes, ports, diagnostics, and automation."
 
+sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/5000/restart/5000 | Out-Null
+sc.exe failureflag $serviceName 1 | Out-Null
+
 Start-Service -Name $serviceName
 Write-Host "$displayName installed and started."
