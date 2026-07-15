@@ -1,6 +1,10 @@
 namespace AgentUp.PackageSmoke.Features.Validation;
 
-public sealed record CommandSpec(string FileName, IReadOnlyList<string> Arguments, string? WorkingDirectory = null);
+public sealed record CommandSpec(
+    string FileName,
+    IReadOnlyList<string> Arguments,
+    string? WorkingDirectory = null,
+    IReadOnlyDictionary<string, string>? Environment = null);
 
 public sealed record CommandResult(int ExitCode, string Stdout, string Stderr);
 

@@ -85,7 +85,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.Installers` | Testable installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
 | `AgentUp.Packaging` | Testable release artifact staging, package metadata generation, and native packaging tool orchestration |
-| `AgentUp.PackageSmoke` | Testable package smoke validation adapters used by CI smoke scripts |
+| `AgentUp.PackageSmoke` | Testable package and installed-service smoke validation adapters used by CI smoke scripts |
 | MCP clients | Automation interface; no local orchestration |
 | `AgentUp.Shared` | Cross-boundary contracts only when genuinely shared |
 
@@ -460,7 +460,7 @@ Read: `docs/developer-guide/workflows.md`.
 
 ## Packaging And Installers
 
-Installer and packaging behavior is testable product behavior. Shared installer planning and validation logic belongs in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`. Shared package smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should delegate artifact contract checks to this console app and keep shell code limited to runner setup and live process probing. Native package assets stay under `packaging/` and should consume or mirror the shared contract rather than accumulating untested script-only behavior.
+Installer and packaging behavior is testable product behavior. Shared installer planning and validation logic belongs in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should delegate native artifact, install, service, CLI, diagnostics, and uninstall checks to this console app and keep shell code limited to selecting arguments and runner setup. Native package assets stay under `packaging/` and should consume or mirror the shared contract rather than accumulating untested script-only behavior.
 
 Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 

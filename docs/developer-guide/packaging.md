@@ -10,7 +10,7 @@ Packaged installations install Agent-Up as three user-visible components backed 
 - `AgentUp.CLI` is available globally as `agent-up`.
 - `AgentUp.Desktop` is installed in the native application location.
 
-Installer and packaging behavior is product behavior and must be testable. Shared installer planning and validation logic lives in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume or mirror the shared contract instead of growing untested platform-only logic.
+Installer and packaging behavior is product behavior and must be testable. Shared installer planning and validation logic lives in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume or mirror the shared contract instead of growing untested platform-only logic.
 
 ## Ownership
 
@@ -30,11 +30,12 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Native packaging tool invocation.
 - Artifact path and naming rules.
 
-`AgentUp.PackageSmoke` owns package smoke validation:
+`AgentUp.PackageSmoke` owns smoke validation:
 
 - Artifact discovery and extraction.
 - Platform adapter checks for Desktop, Server, CLI, service, launcher, and uninstall metadata.
 - A shared `package-smoke.env` handoff that reports package-local Server and CLI paths back to CI scripts.
+- Native install, service readiness, installed CLI workspace registration, diagnostics, and uninstall cleanup for installed-service smoke tests.
 
 ## Nix Packaging Wrappers
 
@@ -58,7 +59,7 @@ macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The p
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
-Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS, Windows, and Ubuntu artifact contract checks. Shell smoke code may still perform runner-specific setup and live validation such as starting the packaged Server, calling `agent-up --version`, and registering a sample workspace through the packaged CLI.
+Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS, Windows, and Ubuntu artifact contract checks. Installed-service smoke scripts must use `AgentUp.PackageSmoke validate-installed-service` for native installation, service readiness, installed CLI validation, diagnostics, and uninstall cleanup. Shell smoke code should stay limited to argument forwarding and runner setup.
 
 Platform packaging owns native registration:
 
@@ -87,7 +88,7 @@ Installer changes follow the same production/test pairing rule as other projects
 
 - Changes to `AgentUp.Installers` require focused tests in `AgentUp.Installers.Tests`.
 - Native package changes require `AgentUp.Packaging.Tests` coverage for generated metadata/tool calls and package smoke updates when the installed contract changes.
-- Package smoke validation changes require focused tests in `AgentUp.PackageSmoke.Tests`.
+- Package and installed-service smoke validation changes require focused tests in `AgentUp.PackageSmoke.Tests`.
 - Nix wrapper changes require tests that pin the wrapper and shell contract.
 - Platform smoke tests remain the integration coverage for services, package managers, PATH, and launcher registration.
 

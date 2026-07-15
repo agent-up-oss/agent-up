@@ -18,6 +18,12 @@ public sealed class ProcessCommandRunner : ICommandRunner
         foreach (var argument in command.Arguments)
             startInfo.ArgumentList.Add(argument);
 
+        if (command.Environment is not null)
+        {
+            foreach (var (key, value) in command.Environment)
+                startInfo.Environment[key] = value;
+        }
+
         Process? process;
         try
         {

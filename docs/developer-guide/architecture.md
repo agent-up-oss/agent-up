@@ -89,7 +89,7 @@ The exact project list may evolve, but the ownership boundaries should remain st
 
 `AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
 
-`AgentUp.PackageSmoke` owns the shared package smoke validator used by CI smoke scripts. It validates the same abstract installed-package properties through platform adapters while keeping shell scripts focused on runner setup and live process probing.
+`AgentUp.PackageSmoke` owns the shared package and installed-service smoke validator used by CI smoke scripts. It validates the same abstract package, service, CLI, and uninstall properties through platform adapters while keeping shell scripts focused on selecting arguments and runner setup.
 
 MCP clients are the primary automation clients. AI agents should use MCP directly instead of shelling through the CLI.
 

@@ -1,0 +1,45 @@
+using AgentUp.PackageSmoke.Features.Validation;
+
+namespace AgentUp.PackageSmoke.Features.InstalledServices;
+
+public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
+{
+    public MacOsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe)
+        : base(commands, serverProbe)
+    {
+    }
+
+    protected override async Task<InstalledServiceContext?> InstallAsync(
+        InstalledServiceSmokeRequest request,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var pkgPath = Path.Combine(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
+        assert.FileExists(pkgPath, "installed.macos.artifact");
+        if (!File.Exists(pkgPath))
+            return null;
+
+        await RunRequiredAsync(assert, new CommandSpec("sudo", ["installer", "-pkg", pkgPath, "-target", "/"]), "installed.macos.install", cancellationToken);
+        assert.ExecutableExists("/usr/local/bin/agent-up", "installed.macos.cli");
+        assert.ExecutableExists("/usr/local/bin/agent-up-server", "installed.macos.server");
+        assert.ExecutableExists("/usr/local/bin/agent-up-desktop", "installed.macos.desktop");
+
+        return new InstalledServiceContext(
+            "/usr/local/bin/agent-up",
+            [
+                new CommandSpec("sudo", [
+                    "bash",
+                    "-c",
+                    "launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true; rm -f /Library/LaunchDaemons/dev.agent-up.server.plist; rm -f /usr/local/bin/agent-up /usr/local/bin/agent-up-server /usr/local/bin/agent-up-desktop; rm -rf /usr/local/agent-up; rm -rf /Applications/Agent-Up.app"
+                ])
+            ],
+            [
+                new CommandSpec("sudo", ["launchctl", "print", "system/dev.agent-up.server"]),
+                new CommandSpec("sudo", ["tail", "-n", "200", "/Library/Logs/Agent-Up/server.out.log"]),
+                new CommandSpec("sudo", ["tail", "-n", "200", "/Library/Logs/Agent-Up/server.err.log"]),
+                new CommandSpec("ps", ["aux"]),
+                new CommandSpec("lsof", ["-nP", "-iTCP", "-sTCP:LISTEN"]),
+                new CommandSpec("sudo", ["ls", "-la", "/Library/Application Support/Agent-Up"])
+            ]);
+    }
+}
