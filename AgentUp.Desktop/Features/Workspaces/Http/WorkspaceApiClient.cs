@@ -12,4 +12,10 @@ public sealed class WorkspaceApiClient(HttpClient http)
         var result = await http.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces", Options, ct);
         return result ?? [];
     }
+
+    public async Task CleanupTutorialWorkspacesAsync(CancellationToken ct = default)
+    {
+        var response = await http.PostAsync("/api/workspaces/tutorial/cleanup", null, ct);
+        response.EnsureSuccessStatusCode();
+    }
 }

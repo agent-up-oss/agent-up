@@ -33,6 +33,14 @@ internal sealed class ContentDriver(MainWindow window)
     public bool ShowsAddressNavBar =>
         window.FindControl<Border>("AddressNavBar")?.IsVisible ?? false;
 
+    public bool ShowsFirstRunTutorial =>
+        window.FindControl<Panel>("FirstRunTutorialOverlay")?.IsVisible ?? false;
+
+    public string? TutorialStatusMessage =>
+        window.FindControl<TextBlock>("TutorialStatusMessage")?.Text;
+
+    public int TutorialCurrentStep => Vm.Tutorial.CurrentStep;
+
     public string? AddressBarText =>
         window.FindControl<TextBox>("AddressBar")?.Text;
 
@@ -60,6 +68,41 @@ internal sealed class ContentDriver(MainWindow window)
             ?? throw new InvalidOperationException("Workspace detail was not found.");
         await window.ClickControlAsync(detail);
     }
+
+    public async Task ClickSkipTutorialAsync()
+    {
+        var button = window.FindControl<Button>("SkipTutorialButton")
+            ?? throw new InvalidOperationException("Skip tutorial button was not found.");
+        await window.ClickControlAsync(button);
+    }
+
+    public async Task ClickTutorialButtonAsync(string name)
+    {
+        var button = window.FindControl<Button>(name)
+            ?? throw new InvalidOperationException($"Tutorial button '{name}' was not found.");
+        button.BringIntoView();
+        await HeadlessExtensions.FlushAsync();
+
+        if (!button.IsVisible)
+            throw new InvalidOperationException($"Tutorial button '{name}' is not visible.");
+
+        for (var i = 0; i < 20 && !button.IsEnabled; i++)
+        {
+            await Task.Delay(25);
+            await HeadlessExtensions.FlushAsync();
+        }
+
+        if (!button.IsEnabled)
+            throw new InvalidOperationException(
+                $"Tutorial button '{name}' is not enabled. Step={Vm.Tutorial.CurrentStep}, CanContinue={Vm.Tutorial.CanContinue}, Status={Vm.Tutorial.StatusMessage}");
+
+        await window.ClickControlAsync(button);
+        await Task.Delay(25);
+        await HeadlessExtensions.FlushAsync();
+    }
+
+    public bool TutorialButtonIsVisible(string name) =>
+        window.FindControl<Button>(name)?.IsVisible ?? false;
 
     // ── Application panel ────────────────────────────────────────────────────
 

@@ -192,6 +192,38 @@ public class WorkspacesHttpTests
     }
 
     [Test]
+    public async Task TutorialCleanup_RemovesAllWorkspaces()
+    {
+        await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("Tutorial 1", "/tmp/root/agent-up-tutorial/example-agent1", "/tmp/root/agent-up-tutorial/example-agent1", "not on a git branch", ""));
+        await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("Normal", "/repos/app", "/repos/app", "main", "abc"));
+
+        var response = await _client.PostAsync("/api/workspaces/tutorial/cleanup", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var workspaces = await _client.GetFromJsonAsync<List<Workspace>>("/api/workspaces", JsonOptions);
+        Assert.That(workspaces, Is.Empty);
+    }
+
+    [Test]
+    public async Task TutorialCleanup_RemovesWorkspace_WhenProcessKillFails()
+    {
+        var registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
+        await registry.RegisterAsync(new RegisterWorkspaceRequest(
+            "Normal",
+            "/repos/app",
+            "/repos/app",
+            "main",
+            ""));
+        var controller = new WorkspacesController(registry, new KillFailingWorkspaceProcessManager());
+
+        await controller.CleanupTutorialWorkspaces();
+
+        Assert.That(registry.GetAll(), Is.Empty);
+    }
+
+    [Test]
     public async Task PostStart_SetsStateToRunning()
     {
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
@@ -333,5 +365,17 @@ public class WorkspacesHttpTests
 
         var all = await _client.GetFromJsonAsync<List<Workspace>>("/api/workspaces", JsonOptions);
         Assert.That(all, Has.Count.EqualTo(2));
+    }
+
+    private sealed class KillFailingWorkspaceProcessManager : IWorkspaceProcessManager
+    {
+        public Task LaunchAsync(Workspace workspace) => Task.CompletedTask;
+
+        public Task LaunchApplicationAsync(Workspace workspace, string appName) => Task.CompletedTask;
+
+        public Task KillAsync(string workspaceId) =>
+            throw new InvalidOperationException("Process is already gone");
+
+        public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
     }
 }

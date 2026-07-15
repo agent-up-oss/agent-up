@@ -200,6 +200,34 @@
         <Style Selector="ListBoxItem:selected Border.wsAvatar">
             <Setter Property="Background" Value="#17614f"/>
         </Style>
+
+        <!-- First-run tutorial -->
+        <Style Selector="Border.tutorialButton">
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Background" Value="#17614f"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.tutorialButton">
+            <Setter Property="Background" Value="#21836b"/>
+        </Style>
+        <Style Selector="Button:disabled Border.tutorialButton">
+            <Setter Property="Background" Value="#20352f"/>
+        </Style>
+        <Style Selector="Border.tutorialSecondaryButton">
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Background" Value="#10211c"/>
+            <Setter Property="BorderBrush" Value="#264c42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.tutorialSecondaryButton">
+            <Setter Property="Background" Value="#183a31"/>
+        </Style>
+        <Style Selector="TextBlock.tutorialButtonText">
+            <Setter Property="Foreground" Value="#f5fbf7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
     </Window.Styles>
 
     <Border Background="#07110f"
@@ -608,21 +636,14 @@
                             <ScrollViewer x:Name="ConsolePane"
                                           IsVisible="{Binding ShowConsole}"
                                           VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Auto">
-                                <ItemsControl x:Name="ConsoleOutput"
-                                              ItemsSource="{Binding Console.Lines}"
-                                              Margin="20,14">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}"
-                                                       FontFamily="Consolas,Courier New,monospace"
-                                                       FontSize="11"
-                                                       Foreground="#7878a0"
-                                                       TextWrapping="NoWrap"
-                                                       Margin="0,1"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <SelectableTextBlock x:Name="ConsoleOutput"
+                                                     Text="{Binding Console.ConsoleText}"
+                                                     FontFamily="Consolas,Courier New,monospace"
+                                                     FontSize="12"
+                                                     Foreground="#c6d4ce"
+                                                     TextWrapping="Wrap"
+                                                     Margin="20,14"/>
                             </ScrollViewer>
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->
@@ -670,6 +691,425 @@
             </Panel>
         </Border>
         </Grid>
+
+        <Panel Grid.RowSpan="2"
+               x:Name="FirstRunTutorialOverlay"
+               IsVisible="{Binding Tutorial.IsVisible}"
+               IsHitTestVisible="{Binding Tutorial.IsVisible}">
+            <Border Background="#CC020806"/>
+            <Border Background="#6607110f">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,8*,*"
+                  ColumnDefinitions="*,8*,*">
+            <Border Grid.Row="1"
+                    Grid.Column="1"
+                    MinWidth="480"
+                    MinHeight="320"
+                    MaxWidth="900"
+                    MaxHeight="620"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="#0a1714"
+                    BorderBrush="#2c6f5f"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="28">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Row="0" Spacing="6">
+                        <TextBlock Text="Agent-Up first run"
+                                   Foreground="#f5fbf7"
+                                   FontSize="28"
+                                   FontWeight="Bold"/>
+                        <TextBlock Text="Set up a complete two-workspace JavaScript demo before entering the app."
+                                   Foreground="#9eb6ad"
+                                   FontSize="15"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1"
+                                  Margin="0,22,0,22"
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="18">
+                            <StackPanel IsVisible="{Binding Tutorial.ShowDockerStep}" Spacing="16">
+                                <TextBlock Text="Step 1: Install Docker and Agent-Up"
+                                           Foreground="#f5fbf7"
+                                           FontSize="22"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="15">
+                                    <Run Text="Agent-Up needs "/>
+                                    <Run Text="Docker" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=" for database services and "/>
+                                    <Run Text="Agent-Up CLI" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=" to register workspaces with the Server."/>
+                                </TextBlock>
+                                <Button x:Name="TutorialCheckPrerequisitesButton"
+                                        Command="{Binding Tutorial.CheckDockerCommand}"
+                                        HorizontalAlignment="Left">
+                                    <Border Classes="tutorialSecondaryButton">
+                                        <TextBlock Classes="tutorialButtonText" Text="Check Prerequisites"/>
+                                    </Border>
+                                </Button>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding Tutorial.ShowEnvironmentStep}" Spacing="16">
+                                <TextBlock Text="Step 2: Choose a development environment"
+                                           Foreground="#f5fbf7"
+                                           FontSize="22"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="15">
+                                    <Run Text="Choose the stack Agent-Up should prove end-to-end. The JavaScript path builds a "/>
+                                    <Run Text="real React + Express + Postgres workspace" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=", then duplicates it to prove port isolation."/>
+                                </TextBlock>
+                                <Grid ColumnDefinitions="*,*,*"
+                                      RowDefinitions="Auto,Auto"
+                                      ColumnSpacing="12"
+                                      RowSpacing="12">
+                                    <Button Grid.Column="0"
+                                            x:Name="TutorialSelectJavaScriptButton"
+                                            Command="{Binding Tutorial.SelectJavaScriptCommand}">
+                                        <Border Background="#10211c" BorderBrush="#35a98b" BorderThickness="1" CornerRadius="8" Padding="16">
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="JS"
+                                                           Foreground="#f4dd4b"
+                                                           FontSize="30"
+                                                           FontWeight="Bold"
+                                                           HorizontalAlignment="Center"/>
+                                                <TextBlock Text="Node + JavaScript" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="React SPA, Express API, Postgres" Foreground="#9eb6ad" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Button>
+                                    <Border Grid.Column="1" Background="#091613" BorderBrush="#23483f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text=".NET" Foreground="#8bb7ff" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            <TextBlock Text=".NET" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Coming later" Foreground="#9eb6ad" FontSize="11" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Background="#091613" BorderBrush="#23483f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="PY" Foreground="#ffd66b" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Python" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Coming later" Foreground="#9eb6ad" FontSize="11" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding Tutorial.ShowNodeStep}" Spacing="16">
+                                <TextBlock Text="Step 3: Install Node.js 20+"
+                                           Foreground="#f5fbf7"
+                                           FontSize="22"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="15">
+                                    <Run Text="The sample apps run on "/>
+                                    <Run Text="Node.js 20 or newer" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=" with npm. If you install Node while Agent-Up Desktop is open, restart Desktop so it receives the updated PATH."/>
+                                </TextBlock>
+                                <Button x:Name="TutorialCheckNodeButton"
+                                        Command="{Binding Tutorial.CheckNodeCommand}"
+                                        HorizontalAlignment="Left">
+                                    <Border Classes="tutorialSecondaryButton">
+                                        <TextBlock Classes="tutorialButtonText" Text="Check Node"/>
+                                    </Border>
+                                </Button>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding Tutorial.ShowSampleStep}" Spacing="16">
+                                <TextBlock Text="Step 4: Create project files"
+                                           Foreground="#f5fbf7"
+                                           FontSize="22"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="15">
+                                    <Run Text="Agent-Up Desktop creates "/>
+                                    <Run Text="example-agent1" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=" under /tmp/&lt;random-guid&gt;/agent-up-tutorial/ with a React app, an Express API, and docker-compose.yaml for Postgres."/>
+                                </TextBlock>
+                                <Button x:Name="TutorialCreateProjectFilesButton"
+                                        Command="{Binding Tutorial.CreateSampleProjectCommand}"
+                                        HorizontalAlignment="Left">
+                                    <Border Classes="tutorialSecondaryButton">
+                                        <TextBlock Classes="tutorialButtonText" Text="Create Project Files"/>
+                                    </Border>
+                                </Button>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowProjectFileCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding Tutorial.ProjectDirectory}"
+                                               Foreground="#cde0d8"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <TextBlock Text="These are the files Agent-Up will manage. The smoke check confirms the project shape is complete."
+                                               Foreground="#9eb6ad"
+                                               FontSize="14"
+                                               TextWrapping="Wrap"/>
+                                    <TextBox IsVisible="{Binding Tutorial.ShowDirectoryTree}"
+                                             Text="{Binding Tutorial.DirectoryTree}"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             TextWrapping="NoWrap"
+                                             FontFamily="Consolas,Courier New,monospace"
+                                             FontSize="12"
+                                             MinHeight="130"
+                                             Background="#07110f"
+                                             BorderBrush="#23483f"
+                                             Foreground="#d8e7e1"
+                                             Padding="12"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Button x:Name="OpenTutorialFolderButton"
+                                                Click="OnOpenTutorialFolderClicked">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Classes="tutorialButtonText" Text="Open File Explorer"/>
+                                            </Border>
+                                        </Button>
+                                        <Button x:Name="TutorialCheckProjectFilesButton"
+                                                Command="{Binding Tutorial.CheckProjectFilesCommand}">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Classes="tutorialButtonText" Text="Check Project Files"/>
+                                            </Border>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding Tutorial.ShowAgentUpJsonStep}" Spacing="16">
+                                <TextBlock Text="Step 5: Create agent-up.json"
+                                           Foreground="#f5fbf7"
+                                           FontSize="22"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="15">
+                                    <Run Text="agent-up.json is the "/>
+                                    <Run Text="contract between your project and Agent-Up" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=". It declares the two Node apps and starts Postgres with docker compose."/>
+                                </TextBlock>
+                                <TextBox Text="{Binding Tutorial.Snippet}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         TextWrapping="NoWrap"
+                                         FontFamily="Consolas,Courier New,monospace"
+                                         FontSize="12"
+                                         MinHeight="220"
+                                         Background="#07110f"
+                                         BorderBrush="#23483f"
+                                         Foreground="#d8e7e1"
+                                         Padding="12"/>
+                                <StackPanel Spacing="10" Margin="0,8,0,0">
+                                    <TextBlock Text="Agent-Up Desktop writes this file for you, then checks it before continuing."
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <Button x:Name="TutorialCreateAgentUpJsonButton"
+                                            HorizontalAlignment="Left"
+                                            Command="{Binding Tutorial.CreateAgentUpJsonCommand}">
+                                        <Border Classes="tutorialSecondaryButton">
+                                            <TextBlock Classes="tutorialButtonText" Text="Create agent-up.json"/>
+                                        </Border>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowAgentUpJsonCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="Now check that agent-up.json exists and can be parsed."
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                    <Button x:Name="TutorialCheckAgentUpJsonButton"
+                                            Command="{Binding Tutorial.CheckAgentUpJsonCommand}"
+                                            HorizontalAlignment="Left">
+                                        <Border Classes="tutorialSecondaryButton">
+                                            <TextBlock Classes="tutorialButtonText" Text="Check agent-up.json"/>
+                                        </Border>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding Tutorial.ShowStartStep}" Spacing="16">
+                                <TextBlock Text="Step 6: Start the workspace"
+                                           Foreground="#f5fbf7"
+                                           FontSize="22"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="15">
+                                    <Run Text="Starting the workspace registers it with the "/>
+                                    <Run Text="Agent-Up Server" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=", launches the declared apps, and assigns ports from the workspace range."/>
+                                </TextBlock>
+                                <StackPanel Spacing="10" Margin="0,8,0,0">
+                                    <Button x:Name="TutorialStartWorkspaceButton"
+                                            Command="{Binding Tutorial.StartWorkspaceCommand}"
+                                            HorizontalAlignment="Left">
+                                        <Border Classes="tutorialSecondaryButton">
+                                            <TextBlock Classes="tutorialButtonText" Text="Run agent-up start"/>
+                                        </Border>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowCommandOutput}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="Command output"
+                                               Foreground="#9eb6ad"
+                                               FontSize="12"
+                                               FontWeight="Bold"/>
+                                    <TextBox Text="{Binding Tutorial.CommandOutput}"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             FontFamily="Consolas,Courier New,monospace"
+                                             FontSize="12"
+                                             MinHeight="120"
+                                             Background="#07110f"
+                                             BorderBrush="#23483f"
+                                             Foreground="#d8e7e1"
+                                             Padding="12"/>
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowWorkspaceCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="The command succeeded. Now ask the Server whether it sees React, Express, and Postgres."
+                                               Foreground="#9eb6ad"
+                                               FontSize="14"
+                                               TextWrapping="Wrap"/>
+                                    <Button x:Name="TutorialCheckWorkspaceButton"
+                                            Command="{Binding Tutorial.CheckWorkspaceCommand}"
+                                            HorizontalAlignment="Left">
+                                        <Border Classes="tutorialSecondaryButton">
+                                            <TextBlock Classes="tutorialButtonText" Text="Check Workspace"/>
+                                        </Border>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding Tutorial.ShowDuplicateStep}" Spacing="16">
+                                <TextBlock Text="Step 7: Duplicate the workspace"
+                                           Foreground="#f5fbf7"
+                                           FontSize="22"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="15">
+                                    <Run Text="Now Agent-Up copies "/>
+                                    <Run Text="example-agent1 to example-agent2" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=" under the same tutorial root and starts it too. This proves two agents can run the same project without port collisions."/>
+                                </TextBlock>
+                                <Button x:Name="TutorialCreateDuplicateButton"
+                                        Command="{Binding Tutorial.MarkDuplicateStartedCommand}"
+                                        HorizontalAlignment="Left">
+                                    <Border Classes="tutorialSecondaryButton">
+                                        <TextBlock Classes="tutorialButtonText" Text="Create and Start example-agent2"/>
+                                    </Border>
+                                </Button>
+                                <StackPanel IsVisible="{Binding Tutorial.ShowDuplicateCheckSection}"
+                                            Spacing="10"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="The duplicate has started. Check that both workspaces are registered and every allocated port is unique."
+                                               Foreground="#9eb6ad"
+                                               FontSize="14"
+                                               TextWrapping="Wrap"/>
+                                    <Button x:Name="TutorialCheckDuplicateButton"
+                                            Command="{Binding Tutorial.CheckDuplicateCommand}"
+                                            HorizontalAlignment="Left">
+                                        <Border Classes="tutorialSecondaryButton">
+                                            <TextBlock Classes="tutorialButtonText" Text="Check Duplicate"/>
+                                        </Border>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding Tutorial.ShowSuccessStep}" Spacing="16">
+                                <TextBlock Text="You just proved the core Agent-Up workflow"
+                                           Foreground="#f5fbf7"
+                                           FontSize="24"
+                                           FontWeight="Bold"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="16">
+                                    <Run Text="Agent-Up created "/>
+                                    <Run Text="two isolated workspaces" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=" from the same JavaScript project, started the same React, Express, and Postgres components in both, and let the Server allocate ports without collisions."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="16">
+                                    <Run Text="The second workspace also has "/>
+                                    <Run Text="different seeded product data" FontWeight="Bold" Foreground="#f5fbf7"/>
+                                    <Run Text=", so the React dashboard table makes it obvious which isolated environment you are viewing."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Foreground="#b7c8c0"
+                                           FontSize="16">
+                                    <Run Text="That matters because agents can now work in parallel on duplicate environments while sharing the same runtime rules: "/>
+                                    <Run Text="workspace identity, process lifecycle, Docker, browser profiles, diagnostics, and ports all stay Server-owned." FontWeight="Bold" Foreground="#f5fbf7"/>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <Border IsVisible="{Binding Tutorial.StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                    Background="#07110f"
+                                    BorderBrush="#23483f"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12">
+                                <TextBlock x:Name="TutorialStatusMessage"
+                                           Text="{Binding Tutorial.StatusMessage}"
+                                           Foreground="#cde0d8"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Grid Grid.Row="2"
+                          ColumnDefinitions="Auto,*,Auto,Auto,Auto"
+                          ColumnSpacing="10">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Tutorial.CurrentStep, StringFormat='Step {0} of 8'}"
+                                   Foreground="#70b099"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="2"
+                                Command="{Binding Tutorial.BackCommand}"
+                                IsEnabled="{Binding Tutorial.CanGoBack}">
+                            <Border Classes="tutorialSecondaryButton">
+                                <TextBlock Classes="tutorialButtonText" Text="Back"/>
+                            </Border>
+                        </Button>
+                        <Button Grid.Column="3"
+                                x:Name="TutorialContinueButton"
+                                Command="{Binding Tutorial.ContinueCommand}"
+                                IsEnabled="{Binding Tutorial.CanContinue}">
+                            <Border Classes="tutorialButton">
+                                <TextBlock Classes="tutorialButtonText"
+                                           Text="{Binding Tutorial.PrimaryButtonText}"/>
+                            </Border>
+                        </Button>
+                        <Button Grid.Column="4"
+                                x:Name="SkipTutorialButton"
+                                Command="{Binding Tutorial.SkipCommand}">
+                            <Border Classes="tutorialSecondaryButton">
+                                <TextBlock Classes="tutorialButtonText" Text="Skip"/>
+                            </Border>
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Border>
+            </Grid>
+        </Panel>
     </Grid>
     </Border>
 </Window>

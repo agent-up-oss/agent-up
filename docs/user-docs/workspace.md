@@ -8,10 +8,10 @@ A workspace is the unit of isolation in Agent-Up.
 
 Each workspace contains:
 
-- Repository.
-- Git worktree.
-- Branch.
-- Commit.
+- Project path.
+- Optional repository metadata.
+- Optional Git branch.
+- Optional Git commit.
 - Browser profile.
 - Docker infrastructure.
 - Running processes.
@@ -21,7 +21,9 @@ Each workspace contains:
 
 ## Worktree Model
 
-Every AI agent operates inside its own Git worktree. This allows multiple agents to change the same repository independently while preserving separate branches, running applications, browser sessions, and validation state.
+The workspace identity is the project path. When that path is a Git repository or worktree, Agent-Up records the repository root, branch, and commit. When no Git repository exists, the workspace still works and displays `not on a git branch`.
+
+Git worktrees are the recommended model for AI agents working in the same repository because they preserve separate branches, running applications, browser sessions, and validation state.
 
 ## Runtime Isolation
 

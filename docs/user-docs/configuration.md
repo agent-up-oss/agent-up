@@ -35,8 +35,10 @@ Configuration is declarative. Applications describe how they should be launched,
 
 Applications reference environment variables supplied by Agent-Up. Applications must not assume fixed localhost ports.
 
-The Server owns port allocation and injects values into each launched process.
+The Server owns port allocation and injects the workspace's full allocated port map into each launched local process. Applications should read the relevant environment variables instead of assuming fixed localhost ports.
 
 ## No Framework Knowledge
 
 The `command` field is opaque to Agent-Up. It can launch any framework or runtime as long as the application can receive its port through the configured environment variable.
+
+Agent-Up runs local application commands through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Use command syntax that is valid on the operating systems where the workspace will run.

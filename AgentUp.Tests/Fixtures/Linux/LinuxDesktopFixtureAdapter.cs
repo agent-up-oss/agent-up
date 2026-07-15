@@ -94,12 +94,14 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         _xvfb = Process.Start(new ProcessStartInfo
         {
             FileName = "Xvfb",
-            Arguments = ":99 -screen 0 1280x720x24",
+            Arguments = "-displayfd 1 -screen 0 1280x720x24",
             UseShellExecute = false,
+            RedirectStandardOutput = true,
             RedirectStandardError = true,
         }) ?? throw new InvalidOperationException("Failed to start Xvfb.");
 
-        Environment.SetEnvironmentVariable("DISPLAY", ":99");
+        var display = ReadAssignedDisplay(_xvfb);
+        Environment.SetEnvironmentVariable("DISPLAY", display);
 
         var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
         while (DateTimeOffset.UtcNow < deadline)
@@ -113,7 +115,23 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
             Thread.Sleep(100);
         }
 
-        throw new TimeoutException("Xvfb did not make DISPLAY=:99 available within 10 seconds.");
+        throw new TimeoutException($"Xvfb did not make DISPLAY={display} available within 10 seconds.");
+    }
+
+    private static string ReadAssignedDisplay(Process xvfb)
+    {
+        var readTask = xvfb.StandardOutput.ReadLineAsync();
+        if (Task.WhenAny(readTask, Task.Delay(TimeSpan.FromSeconds(10))).GetAwaiter().GetResult() != readTask)
+            throw new TimeoutException("Xvfb did not assign a DISPLAY within 10 seconds.");
+
+        var displayNumber = readTask.GetAwaiter().GetResult();
+        if (!string.IsNullOrWhiteSpace(displayNumber))
+            return ":" + displayNumber.Trim();
+
+        var stderr = xvfb.HasExited
+            ? xvfb.StandardError.ReadToEnd()
+            : "Xvfb did not write a display number.";
+        throw new InvalidOperationException($"Xvfb failed to assign a DISPLAY: {stderr}");
     }
 
     private static bool IsDisplayReady()
@@ -131,8 +149,16 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
             if (proc is null)
                 return false;
 
-            proc.WaitForExit(1000);
-            return proc.HasExited && proc.ExitCode == 0;
+            var stdout = proc.StandardOutput.ReadToEndAsync();
+            var stderr = proc.StandardError.ReadToEndAsync();
+            if (!proc.WaitForExit(3000))
+            {
+                try { proc.Kill(); } catch { }
+                return false;
+            }
+
+            Task.WhenAll(stdout, stderr).GetAwaiter().GetResult();
+            return proc.ExitCode == 0;
         }
         catch (Win32Exception)
         {

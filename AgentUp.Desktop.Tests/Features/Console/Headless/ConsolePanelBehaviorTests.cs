@@ -1,4 +1,5 @@
 using Avalonia.Headless.NUnit;
+using Avalonia.Controls;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Console.Headless;
@@ -17,6 +18,20 @@ public class ConsolePanelBehaviorTests
 
         Assert.That(app.Content.ConsoleLines, Has.Count.EqualTo(outputLines.Count));
         Assert.That(app.Content.ConsoleLines[0], Is.EqualTo(outputLines[0]));
+    }
+
+    [AvaloniaTest]
+    public async Task Panel_rendersConsoleOutput_asSelectableReadOnlyText()
+    {
+        var workspace = WorkspaceFixtures.WithApplications();
+        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["copyable error", "second line"]);
+
+        var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
+
+        var selectableLine = app.Window.FindControl<SelectableTextBlock>("ConsoleOutput");
+        Assert.That(selectableLine, Is.Not.Null);
+        Assert.That(selectableLine!.Text, Is.EqualTo($"copyable error{Environment.NewLine}second line"));
+        Assert.That(selectableLine.TextWrapping, Is.EqualTo(Avalonia.Media.TextWrapping.Wrap));
     }
 
     [AvaloniaTest]

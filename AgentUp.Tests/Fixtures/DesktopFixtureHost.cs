@@ -1,4 +1,5 @@
 using System.Threading;
+using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Fixtures;
 using Avalonia;
 using Avalonia.Controls;
@@ -18,6 +19,7 @@ public sealed class DesktopFixtureHost
     [OneTimeSetUp]
     public void Start()
     {
+        Environment.SetEnvironmentVariable(FileFirstRunTutorialSettingsStore.SkipTutorialEnvironmentVariable, "1");
         _adapter = DesktopFixtureAdapter.Create();
         _adapter.SetUp();
         StartAvalonia(_adapter);

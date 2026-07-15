@@ -1,3 +1,9 @@
+using System.Diagnostics;
+using System.Reactive.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -7,9 +13,7 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
+using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
 
@@ -27,10 +31,46 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     public MainWindow()
     {
         InitializeComponent();
+        SetWindowIcon();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += (_, _) => _ = PollActiveBrowserAddressAsync();
         _addressPollTimer.Start();
+    }
+
+    private void SetWindowIcon()
+    {
+        try
+        {
+            var iconPath = FindWindowIconPath();
+            if (iconPath is null) return;
+
+            using var stream = File.OpenRead(iconPath);
+            Icon = new WindowIcon(stream);
+        }
+        catch
+        {
+            // Window icons are best-effort and should never block Desktop startup.
+        }
+    }
+
+    private static string? FindWindowIconPath()
+    {
+        var outputPath = Path.Combine(AppContext.BaseDirectory, "media", "logo.png");
+        if (File.Exists(outputPath)) return outputPath;
+
+        var dir = AppContext.BaseDirectory;
+        while (!string.IsNullOrWhiteSpace(dir))
+        {
+            var candidate = Path.Combine(dir, "media", "logo.png");
+            if (File.Exists(candidate)) return candidate;
+
+            var parent = Path.GetDirectoryName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (parent == dir) break;
+            dir = parent;
+        }
+
+        return null;
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -41,6 +81,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)));
         vm.BrowserCommands.Subscribe(command =>
             Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)));
+        vm.Tutorial.WhenAnyValue(t => t.IsVisible)
+            .DistinctUntilChanged()
+            .Subscribe(isVisible =>
+                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)));
+        ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
     }
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
@@ -57,6 +102,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void UpdateErrorDisplay(string? workspaceId)
     {
+        if (IsTutorialVisible())
+        {
+            WebViewErrorBanner.IsVisible = false;
+            return;
+        }
+
         if (workspaceId is not null && _webViewErrors.TryGetValue(workspaceId, out var error))
         {
             WebViewErrorText.Text = error;
@@ -70,6 +121,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void HandleNavigation(string? workspaceId, string? url)
     {
+        var tutorialVisible = IsTutorialVisible();
         if (workspaceId != _activeWorkspaceId)
         {
             if (_activeWorkspaceId is not null && _webViews.TryGetValue(_activeWorkspaceId, out var prev))
@@ -78,7 +130,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             _activeWorkspaceId = workspaceId;
 
             if (workspaceId is not null && _webViews.TryGetValue(workspaceId, out var existing))
-                existing.IsVisible = true;
+                existing.IsVisible = !tutorialVisible;
 
             UpdateErrorDisplay(workspaceId);
         }
@@ -142,7 +194,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 }
             }
 
-            webView!.IsVisible = true;
+            webView!.IsVisible = !tutorialVisible;
             var destination = new Uri(url);
             if (!isNew && string.Equals(webView.Source?.ToString(), destination.ToString(), StringComparison.Ordinal))
             {
@@ -154,6 +206,27 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 webView.Source = destination;
             }
         }
+    }
+
+    private bool IsTutorialVisible()
+        => DataContext is MainViewModel { Tutorial.IsVisible: true };
+
+    private void ApplyTutorialWebViewVisibility(bool tutorialVisible)
+    {
+        foreach (var webView in _webViews.Values)
+            webView.IsVisible = false;
+
+        if (tutorialVisible)
+        {
+            WebViewErrorBanner.IsVisible = false;
+            return;
+        }
+        UpdateErrorDisplay(_activeWorkspaceId);
+        if (_activeWorkspaceId is null) return;
+        if (!_webViews.TryGetValue(_activeWorkspaceId, out var active)) return;
+        if (DataContext is not MainViewModel { ShowPortView: true }) return;
+
+        active.IsVisible = true;
     }
 
     private void HandleBrowserCommand(BrowserCommand command)
@@ -331,4 +404,25 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         => WindowState = WindowState == WindowState.Maximized
             ? WindowState.Normal
             : WindowState.Maximized;
+
+    private void OnOpenTutorialFolderClicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel { Tutorial.ProjectDirectory: { Length: > 0 } path }) return;
+        if (!Directory.Exists(path)) return;
+
+        var (fileName, arguments) = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? ("explorer.exe", $"\"{path}\"")
+            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? ("open", $"\"{path}\"")
+                : ("xdg-open", $"\"{path}\"");
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = false });
+        }
+        catch
+        {
+            // Opening the file manager is a convenience action; setup checks remain authoritative.
+        }
+    }
 }

@@ -18,7 +18,7 @@ title: agent-up.json
 
 `name` is the display name for the application.
 
-`command` is the shell command used to start the application.
+`command` is the shell command used to start the application. Agent-Up runs it through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems.
 
 `portVariable` is the environment variable that receives the Server-allocated port.
 
@@ -26,7 +26,7 @@ title: agent-up.json
 
 ## Port Variables
 
-Agent-Up allocates ports per workspace and writes those values into environment variables.
+Agent-Up allocates ports per workspace and writes those values into environment variables. Each launched local application receives the full workspace port map, so a frontend can discover the API port and an API can discover infrastructure ports without hardcoding localhost values.
 
 ```text
 WEB_PORT=5100

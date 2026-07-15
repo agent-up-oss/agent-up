@@ -41,19 +41,7 @@ public sealed class StartCommand
             return 1;
         }
 
-        var git = new GitReader(_workingDirectory);
-        string branch, commit, repoRoot;
-        try
-        {
-            branch = await git.GetBranchAsync();
-            commit = await git.GetCommitAsync();
-            repoRoot = await git.GetRepoRootAsync();
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"Error: Failed to read git information: {ex.Message}");
-            return 1;
-        }
+        var git = await ReadGitMetadataAsync(_workingDirectory);
 
         var applications = config.Applications ?? [];
         var services = config.Services ?? [];
@@ -63,10 +51,10 @@ public sealed class StartCommand
         {
             workspace = await _client.RegisterAsync(new RegisterWorkspaceRequest(
                 DisplayName: config.Name,
-                RepositoryPath: repoRoot,
+                RepositoryPath: git.RepositoryPath,
                 WorktreePath: _workingDirectory,
-                Branch: branch,
-                Commit: commit)
+                Branch: git.Branch,
+                Commit: git.Commit)
             {
                 Applications = applications,
                 Services = services
@@ -114,4 +102,25 @@ public sealed class StartCommand
 
         return 0;
     }
+
+    private static async Task<GitMetadata> ReadGitMetadataAsync(string workingDirectory)
+    {
+        var git = new GitReader(workingDirectory);
+        try
+        {
+            return new GitMetadata(
+                RepositoryPath: await git.GetRepoRootAsync(),
+                Branch: await git.GetBranchAsync(),
+                Commit: await git.GetCommitAsync());
+        }
+        catch
+        {
+            return new GitMetadata(
+                RepositoryPath: workingDirectory,
+                Branch: "not on a git branch",
+                Commit: "");
+        }
+    }
+
+    private sealed record GitMetadata(string RepositoryPath, string Branch, string Commit);
 }

@@ -1,5 +1,8 @@
+using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.Http;
 using AgentUp.Desktop.Features.Console.Http;
+using AgentUp.Desktop.Features.FirstRun.Services;
+using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.Http;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Http;
@@ -213,6 +216,30 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task TutorialStepTransition_reloadsWorkspaceListBehindOverlay()
+    {
+        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var handler = new MutableFakeHttpMessageHandler([initial]);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var tutorial = new FirstRunTutorialViewModel(
+            new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
+            new PassingTutorialChecks());
+        var vm = new MainViewModel(new WorkspaceApiClient(http), NullConsoleClient(), tutorial);
+        var browserCommands = new List<BrowserCommand>();
+        vm.BrowserCommands.Subscribe(browserCommands.Add);
+
+        await vm.InitializeAsync();
+        var requestCountAfterInitialize = handler.RequestCount;
+
+        await tutorial.CheckDockerCommand.Execute().FirstAsync();
+        await tutorial.ContinueCommand.Execute().FirstAsync();
+        await Task.Delay(25);
+
+        Assert.That(handler.RequestCount, Is.GreaterThan(requestCountAfterInitialize));
+        Assert.That(browserCommands, Does.Contain(BrowserCommand.Reload));
+    }
+
+    [Test]
     public async Task InitializeAsync_selectsConsoleSubTab_whenApplicationHasNoPorts()
     {
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
@@ -278,5 +305,48 @@ public class MainViewModelTests
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         return new WorkspaceApiClient(http);
+    }
+
+    private sealed class InMemoryTutorialSettingsStore(FirstRunTutorialSettings settings) : IFirstRunTutorialSettingsStore
+    {
+        public Task<FirstRunTutorialSettings> LoadAsync() => Task.FromResult(settings);
+
+        public Task SaveAsync(FirstRunTutorialSettings settings) => Task.CompletedTask;
+    }
+
+    private sealed class PassingTutorialChecks : IFirstRunTutorialChecks
+    {
+        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
+
+        public Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Node works."));
+
+        public Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", currentProjectDirectory ?? "/tmp/tutorial/agent-up-tutorial/example-agent1"));
+
+        public Task<FirstRunCheckResult> CheckJavaScriptProjectFilesAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Project files work."));
+
+        public Task<FirstRunCheckResult> CreateAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json created."));
+
+        public Task<FirstRunCheckResult> CheckAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json works."));
+
+        public Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Started."));
+
+        public Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Workspace works."));
+
+        public Task<FirstRunCheckResult> CreateDuplicatedJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Duplicate created."));
+
+        public Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
+            => Task.FromResult(FirstRunCheckResult.Success("Duplicate works."));
     }
 }
