@@ -58,7 +58,7 @@ public class WorkspaceProcessManagerTests
                 [
                     new ApplicationDefinition(
                         "Web",
-                        "printf '%s|%s\\n' \"$WEB_PORT\" \"$API_PORT\"",
+                        PortEchoCommand("WEB_PORT", "API_PORT"),
                         "web",
                         [new PortDeclaration("WEB_PORT", 5173)]),
                     new ApplicationDefinition(
@@ -95,5 +95,13 @@ public class WorkspaceProcessManagerTests
         }
 
         return await _output.GetAsync(workspaceId, appName);
+    }
+
+    private static string PortEchoCommand(string firstVariable, string secondVariable)
+    {
+        if (OperatingSystem.IsWindows())
+            return $"echo %{firstVariable}%^|%{secondVariable}%";
+
+        return $"printf '%s|%s\\n' \"${firstVariable}\" \"${secondVariable}\"";
     }
 }

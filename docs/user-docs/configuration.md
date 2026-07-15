@@ -40,3 +40,5 @@ The Server owns port allocation and injects the workspace's full allocated port 
 ## No Framework Knowledge
 
 The `command` field is opaque to Agent-Up. It can launch any framework or runtime as long as the application can receive its port through the configured environment variable.
+
+Agent-Up runs local application commands through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Use command syntax that is valid on the operating systems where the workspace will run.

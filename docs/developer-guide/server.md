@@ -51,6 +51,8 @@ If a feature starts, stops, restarts, navigates, records, allocates, diagnoses, 
 
 When the Server launches a local application process, it injects the workspace's full allocated port map into the process environment. This lets sibling applications discover each other through declared variables such as `WEB_PORT`, `API_PORT`, and `POSTGRES_PORT` without coupling application source code to Agent-Up APIs.
 
+Local application commands are executed through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Command strings in `agent-up.json` should therefore use syntax that is valid for the operating systems where that workspace is expected to run.
+
 ## Tutorial Cleanup
 
 `POST /api/workspaces/tutorial/cleanup` is a Desktop onboarding support endpoint. It stops and removes every registered workspace when the first-run tutorial starts, so stale workspace state cannot render behind onboarding or affect the guided sample setup.

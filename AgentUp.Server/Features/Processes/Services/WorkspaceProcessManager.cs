@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -51,18 +52,10 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "/usr/bin/env",
-            ArgumentList = { "bash", "-c", app.Command! },
-            WorkingDirectory = app.Path is not null
-                ? Path.Combine(workspace.WorktreePath, app.Path)
-                : workspace.WorktreePath,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
+        var workingDirectory = app.Path is not null
+            ? Path.Combine(workspace.WorktreePath, app.Path)
+            : workspace.WorktreePath;
+        var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
         foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts))
         {
             if (mapping.Variable is not null)
@@ -299,6 +292,33 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         var stderr = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
         return (process.ExitCode, stdout, stderr);
+    }
+
+    private static ProcessStartInfo CreateShellStartInfo(string command, string workingDirectory)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            WorkingDirectory = workingDirectory,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            startInfo.FileName = "cmd.exe";
+            startInfo.ArgumentList.Add("/C");
+        }
+        else
+        {
+            startInfo.FileName = "/usr/bin/env";
+            startInfo.ArgumentList.Add("bash");
+            startInfo.ArgumentList.Add("-c");
+        }
+
+        startInfo.ArgumentList.Add(command);
+        return startInfo;
     }
 
     private static string GetContainerName(string workspaceId, string appName)

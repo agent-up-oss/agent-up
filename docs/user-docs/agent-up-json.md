@@ -18,7 +18,7 @@ title: agent-up.json
 
 `name` is the display name for the application.
 
-`command` is the shell command used to start the application.
+`command` is the shell command used to start the application. Agent-Up runs it through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems.
 
 `portVariable` is the environment variable that receives the Server-allocated port.
 

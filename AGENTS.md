@@ -217,6 +217,8 @@ Every managed repository is described declaratively with `agent-up.json`.
 
 Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration.
 
+Local application commands are opaque to Agent-Up and run through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems.
+
 User docs:
 
 - `docs/user-docs/configuration.md`
