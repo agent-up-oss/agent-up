@@ -2,6 +2,22 @@ namespace AgentUp.Packaging.Features.ReleaseArtifacts;
 
 public static class RepositoryPaths
 {
+    public static string FindRepositoryRoot()
+    {
+        var configuredRoot = Environment.GetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT");
+        if (!string.IsNullOrWhiteSpace(configuredRoot))
+            return FindRepositoryRoot(configuredRoot);
+
+        try
+        {
+            return FindRepositoryRoot(Directory.GetCurrentDirectory());
+        }
+        catch (InvalidOperationException) when (!PathsEquivalent(Directory.GetCurrentDirectory(), AppContext.BaseDirectory))
+        {
+            return FindRepositoryRoot(AppContext.BaseDirectory);
+        }
+    }
+
     public static string FindRepositoryRoot(string startDirectory)
     {
         var directory = new DirectoryInfo(startDirectory);
@@ -15,4 +31,10 @@ public static class RepositoryPaths
 
         throw new InvalidOperationException($"Could not find repository root from {startDirectory}.");
     }
+
+    private static bool PathsEquivalent(string left, string right)
+        => string.Equals(
+            Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+            Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+            StringComparison.Ordinal);
 }

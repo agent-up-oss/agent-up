@@ -41,7 +41,7 @@ if (index != args.Length)
 }
 
 var configuration = Environment.GetEnvironmentVariable("CONFIGURATION") ?? "Release";
-var root = RepositoryPaths.FindRepositoryRoot(AppContext.BaseDirectory);
+var root = RepositoryPaths.FindRepositoryRoot();
 
 if (platform == "ubuntu")
 {

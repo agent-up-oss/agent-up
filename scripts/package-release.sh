@@ -79,6 +79,7 @@ if [ "$platform" = "ubuntu" ] || [ "$platform" = "macos" ] || [ "$platform" = "w
     package_args+=(--payload-root "$payload_root")
   fi
 
+  export AGENTUP_REPOSITORY_ROOT="$root"
   "${packaging_command[@]}" "${package_args[@]}"
   exit 0
 fi
