@@ -21,6 +21,8 @@
   <true/>
   <key>KeepAlive</key>
   <true/>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
   <key>StandardOutPath</key>
   <string>/tmp/agent-up-server.out.log</string>
   <key>StandardErrorPath</key>

@@ -125,15 +125,24 @@ case "$platform" in
     mkdir -p "$work_dir/mount"
     hdiutil attach "$artifact_dir/agent-up-macos-$rid.dmg" -quiet -nobrowse -mountpoint "$work_dir/mount"
     mounted_dmg="$work_dir/mount"
-    cli="$mounted_dmg/cli/AgentUp.CLI"
+    cli="/usr/local/bin/agent-up"
     uninstall_command=(sudo "$mounted_dmg/uninstall.sh")
     sudo "$mounted_dmg/install.sh"
+    test -x /usr/local/bin/agent-up
+    test -x /usr/local/bin/agent-up-server
+    test -x /usr/local/bin/agent-up-desktop
     ;;
   windows)
     install_dir="$work_dir/installed"
     "$artifact_dir/agent-up-windows-$rid.exe" --install-dir "$install_dir" --quiet
     cli="$install_dir/cli/AgentUp.CLI.exe"
-    uninstall_command=(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$install_dir/tools/uninstall-agent-up-server.ps1")
+    uninstall_command=("$artifact_dir/agent-up-windows-$rid.exe" --install-dir "$install_dir" --uninstall --quiet)
+    test -f "$install_dir/bin/agent-up.cmd"
+    ps_install_dir="$install_dir"
+    if command -v cygpath >/dev/null 2>&1; then
+      ps_install_dir="$(cygpath -w "$install_dir")"
+    fi
+    powershell.exe -NoProfile -Command "\$installDir = '$ps_install_dir'; \$key = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Agent-Up'; if (-not (Test-Path \$key)) { throw 'Agent-Up uninstall registration missing' }; \$path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); \$bin = Join-Path \$installDir 'bin'; if ((\$path -split ';') -notcontains \$bin) { throw \"Agent-Up PATH entry missing: \$bin\" }"
     ;;
   ubuntu)
     deb_path="$(cd "$artifact_dir" && pwd)/agent-up-ubuntu-$rid.deb"
