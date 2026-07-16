@@ -88,6 +88,7 @@ public class WindowsInstallerPlatformAdapterTests
 
             Assert.That(product, Does.Contain("ServiceInstall"));
             Assert.That(product, Does.Contain("Name=\"agent-up-server\""));
+            Assert.That(product, Does.Not.Contain("Start=\"install\""));
             Assert.That(product, Does.Contain("Name=\"PATH\""));
             Assert.That(product, Does.Contain("Shortcut"));
             Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));

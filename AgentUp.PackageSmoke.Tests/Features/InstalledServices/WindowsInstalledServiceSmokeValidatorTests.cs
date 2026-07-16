@@ -38,6 +38,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
+            Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"])), Is.True);
@@ -76,6 +77,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Findings.Any(finding => finding.Code == "installed.server.ready"), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("Get-Service", StringComparison.Ordinal)), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
         }

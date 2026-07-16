@@ -25,6 +25,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         var installLog = Path.Join(request.WorkDirectory, "windows-msi-install.log");
         await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/L*v", installLog], installLog, "installed.windows.install", cancellationToken);
+        await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", "agent-up-server"]), "installed.windows.service.start", cancellationToken);
 
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Join(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
