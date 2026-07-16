@@ -91,6 +91,7 @@ public class WindowsInstallerPlatformAdapterTests
             var bundle = generator.BundleWxs(layout);
 
             Assert.That(product, Does.Contain("ServiceInstall"));
+            Assert.That(product, Does.Contain("EmbedCab=\"yes\""));
             Assert.That(product, Does.Contain("Name=\"agent-up-server\""));
             Assert.That(product, Does.Not.Contain("Start=\"install\""));
             Assert.That(product, Does.Not.Contain("Stop=\"both\""));
