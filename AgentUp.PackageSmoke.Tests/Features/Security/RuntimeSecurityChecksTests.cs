@@ -150,10 +150,15 @@ public class RuntimeSecurityChecksTests
     {
         var handler = new FakeHttpMessageHandler(_ =>
         {
-            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            using var response = new HttpResponseMessage(HttpStatusCode.OK);
             if (serverHeader is not null)
                 response.Headers.TryAddWithoutValidation("Server", serverHeader);
-            return Task.FromResult(response);
+
+            var result = new HttpResponseMessage(response.StatusCode);
+            foreach (var header in response.Headers)
+                result.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+            return Task.FromResult(result);
         });
         return new RuntimeSecurityChecks(new FakeNetworkStateProvider(listeners), new HttpClient(handler));
     }
