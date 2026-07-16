@@ -3,6 +3,7 @@ using AgentUp.Installers.Features.Flow;
 using AgentUp.Installers.Features.Payloads;
 using AgentUp.Installers.Features.Prerequisites;
 using AgentUp.Installers.Features.Windows;
+using System.Xml.Linq;
 
 namespace AgentUp.Installers.Tests.Features.Windows;
 
@@ -69,14 +70,19 @@ public class WindowsInstallerPlatformAdapterTests
         {
             var layout = new WindowsInstallerLayout(
                 InstallerSourceDirectory: System.IO.Path.Join(root, "wix"),
+                InstallerPublishDirectory: System.IO.Path.Join(root, "installer"),
                 DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
                 ServerPublishDirectory: System.IO.Path.Join(root, "server"),
                 CliPublishDirectory: System.IO.Path.Join(root, "cli"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
+            WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+            WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Shared.dll");
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+            WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Shared.dll");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+            WritePublishedFile(layout.CliPublishDirectory, "AgentUp.Shared.dll");
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
@@ -85,12 +91,20 @@ public class WindowsInstallerPlatformAdapterTests
             var bundle = generator.BundleWxs(layout);
 
             Assert.That(product, Does.Contain("ServiceInstall"));
+            Assert.That(product, Does.Contain("EmbedCab=\"yes\""));
             Assert.That(product, Does.Contain("Name=\"agent-up-server\""));
+            Assert.That(product, Does.Not.Contain("Start=\"install\""));
+            Assert.That(product, Does.Not.Contain("Stop=\"both\""));
+            Assert.That(product, Does.Contain("Stop=\"uninstall\""));
             Assert.That(product, Does.Contain("Name=\"PATH\""));
             Assert.That(product, Does.Contain("Shortcut"));
+            Assert.That(ComponentGuids(product), Is.Unique);
             Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));
             Assert.That(bundle, Does.Contain("Theme=\"rtfLicense\""));
-            Assert.That(bundle, Does.Contain(layout.ProductMsiPath));
+            Assert.That(bundle, Does.Contain("ExePackage"));
+            Assert.That(bundle, Does.Contain("AgentUp.InstallerApp.exe"));
+            Assert.That(bundle, Does.Not.Contain("MsiPackage"));
+            Assert.That(bundle, Does.Contain("payload\\desktop\\AgentUp.Desktop.exe"));
         }
         finally
         {
@@ -117,6 +131,15 @@ public class WindowsInstallerPlatformAdapterTests
     {
         Directory.CreateDirectory(directory);
         File.WriteAllText(System.IO.Path.Join(directory, name), "test");
+    }
+
+    private static IEnumerable<string> ComponentGuids(string productWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return XDocument.Parse(productWxs)
+            .Descendants(wix + "Component")
+            .Select(component => (string?)component.Attribute("Guid"))
+            .Where(guid => !string.IsNullOrWhiteSpace(guid))!;
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner

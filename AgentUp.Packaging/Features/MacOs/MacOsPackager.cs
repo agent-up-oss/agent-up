@@ -18,6 +18,7 @@ public sealed class MacOsPackager
         var layout = MacOsPackageLayout.From(request);
         await new PackagePayloadStager(_commands, _writer).StageAsync(
             request,
+            layout.InstallerPublishDirectory,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
             layout.CliPublishDirectory,
@@ -25,6 +26,14 @@ public sealed class MacOsPackager
 
         new MacOsPackageStager(_writer).Stage(layout, MacOsPackageManifest.From(request));
 
+        await _commands.RunAsync(new CommandSpec("pkgbuild",
+        [
+            "--identifier", "dev.agent-up.installer",
+            "--version", request.NormalizedVersion,
+            "--root", layout.InstallerComponentRoot,
+            "--install-location", "/",
+            layout.InstallerPackagePath
+        ]), cancellationToken);
         await _commands.RunAsync(new CommandSpec("pkgbuild",
         [
             "--identifier", "dev.agent-up.desktop",

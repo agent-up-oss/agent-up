@@ -13,6 +13,7 @@ public sealed class PackagePayloadStager
 
     public async Task StageAsync(
         PackageRequest request,
+        string? installerPublishDirectory,
         string desktopPublishDirectory,
         string serverPublishDirectory,
         string cliPublishDirectory,
@@ -25,6 +26,17 @@ public sealed class PackagePayloadStager
 
         if (request.PayloadRoot is null)
         {
+            if (installerPublishDirectory is not null)
+            {
+                await publisher.PublishDotNetProjectAsync(
+                    Path.Join(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+                    request.RuntimeId,
+                    request.Configuration,
+                    request.Version,
+                    installerPublishDirectory,
+                    cancellationToken);
+            }
+
             await publisher.PublishDotNetProjectAsync(
                 Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
                 request.RuntimeId,
@@ -48,6 +60,9 @@ public sealed class PackagePayloadStager
                 cancellationToken);
             return;
         }
+
+        if (installerPublishDirectory is not null)
+            PackagePublisher.CopyPrebuiltPayload(request.InstallerPayloadDirectory!, installerPublishDirectory);
 
         PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, desktopPublishDirectory);
         PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, serverPublishDirectory);
