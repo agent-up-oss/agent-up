@@ -10,6 +10,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     private readonly ICommandRunner _commands;
     private readonly IMacOsInstallerFileSystem _files;
     private readonly MacOsInstallerOptions _options;
+    private readonly RequiredCommandRunner _requiredCommands;
 
     public MacOsInstallerPlatformAdapter(
         ICommandRunner commands,
@@ -19,6 +20,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         _commands = commands;
         _files = files;
         _options = options;
+        _requiredCommands = new RequiredCommandRunner(commands);
     }
 
     public string PlatformName => "macOS";
@@ -44,13 +46,13 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var operations = PlanInstall(session);
-        var completed = 0;
+        var progress = new InstallProgressTracker(operations);
         var manifest = MacOsInstallerManifest.Create(session.Version.ToString());
         var plists = new MacOsInstallerPlistGenerator(manifest);
 
         await _commands.RunAsync("launchctl", $"bootout system {_options.Paths.LaunchDaemonPath}", cancellationToken);
-        yield return Progress(operations, ref completed, InstallOperationKind.ValidatePrerequisites);
-        yield return Progress(operations, ref completed, InstallOperationKind.StagePayload);
+        yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
+        yield return progress.Complete(InstallOperationKind.StagePayload);
 
         _files.ResetDirectory(_options.Paths.AppBundleDirectory);
         _files.CreateDirectory(System.IO.Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
@@ -66,22 +68,22 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         _files.SetExecutable(_options.Paths.DesktopExecutable);
         _files.SetExecutable(_options.Paths.ServerExecutable);
         _files.SetExecutable(_options.Paths.CliExecutable);
-        yield return Progress(operations, ref completed, InstallOperationKind.InstallFiles);
+        yield return progress.Complete(InstallOperationKind.InstallFiles);
 
-        await RunRequiredAsync("chown", $"root:wheel \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
-        await RunRequiredAsync("chmod", $"644 \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
-        await RunRequiredAsync("launchctl", $"bootstrap system \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
-        await RunRequiredAsync("launchctl", $"kickstart -k system/{manifest.ServerLaunchDaemonLabel}", cancellationToken);
-        yield return Progress(operations, ref completed, InstallOperationKind.RegisterService);
+        await _requiredCommands.RunAsync("chown", $"root:wheel \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
+        await _requiredCommands.RunAsync("chmod", $"644 \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
+        await _requiredCommands.RunAsync("launchctl", $"bootstrap system \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
+        await _requiredCommands.RunAsync("launchctl", $"kickstart -k system/{manifest.ServerLaunchDaemonLabel}", cancellationToken);
+        yield return progress.Complete(InstallOperationKind.RegisterService);
 
         _files.CreateSymbolicLink(_options.Paths.CliSymlinkPath, _options.Paths.CliExecutable);
         _files.CreateSymbolicLink(_options.Paths.ServerSymlinkPath, _options.Paths.ServerExecutable);
         _files.CreateSymbolicLink(_options.Paths.DesktopSymlinkPath, _options.Paths.DesktopExecutable);
-        yield return Progress(operations, ref completed, InstallOperationKind.RegisterCli);
+        yield return progress.Complete(InstallOperationKind.RegisterCli);
 
-        yield return Progress(operations, ref completed, InstallOperationKind.RegisterDesktop);
-        yield return Progress(operations, ref completed, InstallOperationKind.RegisterUninstall);
-        yield return Progress(operations, ref completed, InstallOperationKind.ValidateInstallation);
+        yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+        yield return progress.Complete(InstallOperationKind.RegisterUninstall);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
     }
 
     public async Task<ValidationReport> ValidateInstalledStateAsync(
@@ -102,17 +104,4 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             DesktopVersion: session.Version), session.Version);
     }
 
-    private async Task RunRequiredAsync(string fileName, string arguments, CancellationToken cancellationToken)
-    {
-        var result = await _commands.RunAsync(fileName, arguments, cancellationToken);
-        if (result.ExitCode != 0)
-            throw new InvalidOperationException($"{fileName} {arguments} failed: {result.Stderr}{result.Stdout}");
-    }
-
-    private static InstallProgress Progress(IReadOnlyList<InstallOperation> operations, ref int completed, InstallOperationKind kind)
-    {
-        var operation = operations.First(item => item.Kind == kind);
-        completed++;
-        return new InstallProgress(operation.Kind, operation.Title, completed, operations.Count);
-    }
 }

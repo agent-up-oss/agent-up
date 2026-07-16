@@ -17,42 +17,13 @@ public sealed class WindowsPackager
     public async Task PackageAsync(PackageRequest request, CancellationToken cancellationToken = default)
     {
         var layout = WindowsPackageLayout.From(request);
-        var publisher = new PackagePublisher(_commands);
-
-        _writer.ResetDirectory(request.StageDirectory);
-        _writer.CreateDirectory(request.OutputRoot);
+        await new PackagePayloadStager(_commands, _writer).StageAsync(
+            request,
+            layout.DesktopPublishDirectory,
+            layout.ServerPublishDirectory,
+            layout.CliPublishDirectory,
+            cancellationToken);
         _writer.CreateDirectory(layout.InstallerSourceDirectory);
-
-        if (request.PayloadRoot is null)
-        {
-            await publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                layout.DesktopPublishDirectory,
-                cancellationToken);
-            await publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                layout.ServerPublishDirectory,
-                cancellationToken);
-            await publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                layout.CliPublishDirectory,
-                cancellationToken);
-        }
-        else
-        {
-            PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, layout.DesktopPublishDirectory);
-            PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, layout.ServerPublishDirectory);
-            PackagePublisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, layout.CliPublishDirectory);
-        }
 
         var manifest = WindowsPackageManifest.From(request);
         var generator = new WindowsWixSourceGenerator(manifest);

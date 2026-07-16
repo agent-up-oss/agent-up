@@ -16,40 +16,12 @@ public sealed class MacOsPackager
     public async Task PackageAsync(PackageRequest request, CancellationToken cancellationToken = default)
     {
         var layout = MacOsPackageLayout.From(request);
-        var publisher = new PackagePublisher(_commands);
-
-        _writer.ResetDirectory(request.StageDirectory);
-        _writer.CreateDirectory(request.OutputRoot);
-        if (request.PayloadRoot is null)
-        {
-            await publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                layout.DesktopPublishDirectory,
-                cancellationToken);
-            await publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                layout.ServerPublishDirectory,
-                cancellationToken);
-            await publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                layout.CliPublishDirectory,
-                cancellationToken);
-        }
-        else
-        {
-            PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, layout.DesktopPublishDirectory);
-            PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, layout.ServerPublishDirectory);
-            PackagePublisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, layout.CliPublishDirectory);
-        }
+        await new PackagePayloadStager(_commands, _writer).StageAsync(
+            request,
+            layout.DesktopPublishDirectory,
+            layout.ServerPublishDirectory,
+            layout.CliPublishDirectory,
+            cancellationToken);
 
         new MacOsPackageStager(_writer).Stage(layout, MacOsPackageManifest.From(request));
 
