@@ -158,29 +158,27 @@ AgentUp.Desktop/
 
 AgentUp.Installers/
   Features/
-    Prerequisites/    (Docker status and minimum-version checks)
+    Installation/     (guided install flow, component selection, payloads, PATH, validation, uninstall planning)
+      DTOs/
+      Factories/
       Interfaces/
+      Models/
+      Providers/
       Services/
-    Components/       (component selection and install summaries)
-      Models/
-    Path/             (idempotent PATH add/remove planning)
-      Models/
-    Validation/       (post-install validation contracts)
-      Models/
-    Uninstall/        (uninstall-mode planning)
-      Models/
-    Ubuntu/           (systemd service, CLI, desktop launcher install adapter contracts)
+    PrerequisiteChecks/ (Docker status and minimum-version checks)
+      Services/
+    UbuntuInstallation/ (systemd service, CLI, desktop launcher install adapter contracts)
       DTOs/
       Interfaces/
       Models/
       Providers/
-    MacOs/            (launchd service, CLI, app bundle install adapter contracts)
+    MacOsInstallation/ (launchd service, CLI, app bundle install adapter contracts)
       DTOs/
       Interfaces/
       Models/
       Providers/
       Services/
-    Windows/          (Windows Service, PATH, Start Menu, WiX install adapter contracts)
+    WindowsInstallation/ (Windows Service, PATH, Start Menu, WiX install adapter contracts)
       DTOs/
       Interfaces/
       Models/
@@ -191,22 +189,21 @@ AgentUp.Packaging/
   Features/
     ReleaseArtifacts/ (artifact requests, repository paths, command execution)
       DTOs/
-      Factories/
       Interfaces/
       Models/
       Providers/
       Services/
-    Ubuntu/           (Debian package layout, metadata, staging, dpkg orchestration)
+    UbuntuPackages/   (Debian package layout, metadata, staging, dpkg orchestration)
       Interfaces/
       Models/
       Providers/
       Services/
-    Windows/          (WiX/Burn orchestration)
+    WindowsPackages/  (WiX/Burn orchestration)
       Interfaces/
       Models/
       Providers/
       Services/
-    MacOs/            (pkg/signing/notarization orchestration)
+    MacOsPackages/    (pkg/signing/notarization orchestration)
       Interfaces/
       Models/
       Providers/
@@ -242,6 +239,8 @@ AgentUp.Server.Tests/
 ```
 
 Prefer working only in the slice directly involved in the task.
+
+Feature slice names should have product, customer, operator, or maintainer meaning. Avoid creating top-level slices for tiny technical mechanisms such as payload parsing, PATH editing, execution helpers, or validation records when they are only part of a larger capability; keep those as type-folder contents inside the meaningful owning slice.
 
 ## Migrations And Persistence
 

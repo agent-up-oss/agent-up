@@ -1,3 +1,4 @@
+using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 
 public abstract class SymbolicLinkPackageFileSystem : UnixPackageFileSystem, ISymbolicLinkPackageFileSystem

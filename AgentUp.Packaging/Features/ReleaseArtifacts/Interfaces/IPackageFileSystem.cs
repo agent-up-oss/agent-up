@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+namespace AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
 
 public interface IPackageFileSystem
 {

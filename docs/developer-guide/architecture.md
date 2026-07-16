@@ -76,6 +76,8 @@ The exact project list may evolve, but the ownership boundaries should remain st
 
 Every production .NET project uses capability-oriented vertical slices under `Features/`. Root project folders should contain only project entry/configuration files such as `Program.cs`, project files, Avalonia `App.axaml` files, and SDK/tooling-required files such as `Properties/launchSettings.json`.
 
+Feature slice names should describe a product, customer, operator, or maintainer capability. Do not promote tiny technical mechanisms into top-level slices when they only support a larger capability. For example, installer payload selection, PATH planning, uninstall planning, and post-install validation belong inside the meaningful installation slice unless they grow into independently owned behavior.
+
 Inside a feature slice, use only these type folders:
 
 - `Models/` for persistence or internal representation.

@@ -1,12 +1,14 @@
-using AgentUp.InstallerApp.Features.Installation.Providers;
-using AgentUp.Installers.Features.Execution;
-using AgentUp.Installers.Features.Execution.Providers;
-using AgentUp.Installers.Features.MacOs;
-using AgentUp.Installers.Features.MacOs.Providers;
-using AgentUp.Installers.Features.Ubuntu;
-using AgentUp.Installers.Features.Ubuntu.Providers;
-using AgentUp.Installers.Features.Windows;
-using AgentUp.Installers.Features.Windows.Providers;
+using AgentUp.Installers.Features.Installation.Interfaces;
+using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.InstallerApp.Features.Installation.Factories;
+using AgentUp.Installers.Features.Installation;
+using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.MacOsInstallation;
+using AgentUp.Installers.Features.MacOsInstallation.Providers;
+using AgentUp.Installers.Features.UbuntuInstallation;
+using AgentUp.Installers.Features.UbuntuInstallation.Providers;
+using AgentUp.Installers.Features.WindowsInstallation;
+using AgentUp.Installers.Features.WindowsInstallation.Providers;
 
 namespace AgentUp.InstallerApp.Tests.Features.Installation.Unit;
 

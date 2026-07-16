@@ -1,16 +1,20 @@
+using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
+using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
+using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
 using AgentUp.Packaging.Features.ReleaseArtifacts;
-using AgentUp.Packaging.Features.MacOs;
-using AgentUp.Packaging.Features.MacOs.Providers;
-using AgentUp.Packaging.Features.MacOs.Services;
+using AgentUp.Packaging.Features.MacOsPackages;
+using AgentUp.Packaging.Features.MacOsPackages.Providers;
+using AgentUp.Packaging.Features.MacOsPackages.Services;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Models;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.Ubuntu;
-using AgentUp.Packaging.Features.Ubuntu.Providers;
-using AgentUp.Packaging.Features.Ubuntu.Services;
-using AgentUp.Packaging.Features.Windows;
-using AgentUp.Packaging.Features.Windows.Providers;
-using AgentUp.Packaging.Features.Windows.Services;
+using AgentUp.Packaging.Features.UbuntuPackages;
+using AgentUp.Packaging.Features.UbuntuPackages.Providers;
+using AgentUp.Packaging.Features.UbuntuPackages.Services;
+using AgentUp.Packaging.Features.WindowsPackages;
+using AgentUp.Packaging.Features.WindowsPackages.Providers;
+using AgentUp.Packaging.Features.WindowsPackages.Services;
 
 if (args.Length is < 4 or > 7 || args[0] != "package")
 {
