@@ -19,9 +19,9 @@ public sealed class WindowsInstallerFileSystem : IWindowsInstallerFileSystem
 
         Directory.CreateDirectory(destination);
         foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
-            Directory.CreateDirectory(System.IO.Path.Combine(destination, System.IO.Path.GetRelativePath(source, directory)));
+            Directory.CreateDirectory(System.IO.Path.Join(destination, System.IO.Path.GetRelativePath(source, directory)));
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
-            File.Copy(file, System.IO.Path.Combine(destination, System.IO.Path.GetRelativePath(source, file)), overwrite: true);
+            File.Copy(file, System.IO.Path.Join(destination, System.IO.Path.GetRelativePath(source, file)), overwrite: true);
     }
 
     public void WriteText(string path, string text)

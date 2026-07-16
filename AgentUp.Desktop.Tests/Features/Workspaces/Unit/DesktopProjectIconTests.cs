@@ -9,7 +9,7 @@ public class DesktopProjectIconTests
     public void DesktopProject_declaresWindowsExecutableIcon()
     {
         var repositoryRoot = FindRepositoryRoot();
-        var projectPath = Path.Combine(repositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj");
+        var projectPath = Path.Join(repositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj");
         var document = XDocument.Load(projectPath);
 
         var iconPath = document
@@ -19,7 +19,7 @@ public class DesktopProjectIconTests
 
         Assert.That(iconPath, Is.EqualTo(@"..\media\logo.ico"));
         var normalizedIconPath = iconPath!.Replace('\\', Path.DirectorySeparatorChar);
-        Assert.That(File.Exists(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(projectPath)!, normalizedIconPath))), Is.True);
+        Assert.That(File.Exists(Path.GetFullPath(Path.Join(Path.GetDirectoryName(projectPath)!, normalizedIconPath))), Is.True);
     }
 
     private static string FindRepositoryRoot()
@@ -27,7 +27,7 @@ public class DesktopProjectIconTests
         var directory = TestContext.CurrentContext.TestDirectory;
         while (!string.IsNullOrWhiteSpace(directory))
         {
-            if (File.Exists(Path.Combine(directory, "agent-up.sln")))
+            if (File.Exists(Path.Join(directory, "agent-up.sln")))
                 return directory;
 
             var parent = Directory.GetParent(directory)?.FullName;

@@ -30,7 +30,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             var readyUrl = await _serverProbe.WaitForReadyAsync(
                 request.PrimaryServerUrl,
                 request.FallbackServerUrl,
-                Path.Combine(request.WorkDirectory, "service-workspaces-before.json"),
+                Path.Join(request.WorkDirectory, "service-workspaces-before.json"),
                 cancellationToken);
 
             if (readyUrl is null)
@@ -73,9 +73,9 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var repo = Path.Combine(request.WorkDirectory, "example-workspace");
+        var repo = Path.Join(request.WorkDirectory, "example-workspace");
         Directory.CreateDirectory(repo);
-        await File.WriteAllTextAsync(Path.Combine(repo, "agent-up.json"), """
+        await File.WriteAllTextAsync(Path.Join(repo, "agent-up.json"), """
             {
               "name": "Installed Service Smoke Workspace",
               "applications": []
@@ -90,12 +90,12 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
         var environment = new Dictionary<string, string> { ["AGENTUP_SERVER_URL"] = serverUrl };
         var start = await _commands.RunAsync(new CommandSpec(cliPath, ["start"], repo, environment), cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(request.WorkDirectory, "cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
+        await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains("Started workspace \"Installed Service Smoke Workspace\"", StringComparison.Ordinal))
             assert.Error("installed.cli.start", $"CLI start failed or returned unexpected output: {start.Stderr}{start.Stdout}");
 
         var status = await _commands.RunAsync(new CommandSpec(cliPath, ["status"], repo, environment), cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(request.WorkDirectory, "cli-status.log"), status.Stdout + status.Stderr, cancellationToken);
+        await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-status.log"), status.Stdout + status.Stderr, cancellationToken);
         if (status.ExitCode != 0
             || !status.Stdout.Contains("Name:       Installed Service Smoke Workspace", StringComparison.Ordinal)
             || !status.Stdout.Contains("State:      Running", StringComparison.Ordinal))

@@ -23,8 +23,8 @@ public sealed record MacOsInstallerPaths(
             ServerSymlinkPath: "/usr/local/bin/agent-up-server",
             DesktopSymlinkPath: "/usr/local/bin/agent-up-desktop");
 
-    public string DesktopExecutable => System.IO.Path.Combine(AppBundleDirectory, "Contents", "MacOS", "AgentUp.Desktop");
-    public string ServerExecutable => System.IO.Path.Combine(ServerDirectory, "AgentUp.Server");
-    public string CliExecutable => System.IO.Path.Combine(CliDirectory, "AgentUp.CLI");
-    public string DesktopInfoPlistPath => System.IO.Path.Combine(AppBundleDirectory, "Contents", "Info.plist");
+    public string DesktopExecutable => System.IO.Path.Join(AppBundleDirectory, "Contents", "MacOS", "AgentUp.Desktop");
+    public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");
+    public string CliExecutable => System.IO.Path.Join(CliDirectory, "AgentUp.CLI");
+    public string DesktopInfoPlistPath => System.IO.Path.Join(AppBundleDirectory, "Contents", "Info.plist");
 }

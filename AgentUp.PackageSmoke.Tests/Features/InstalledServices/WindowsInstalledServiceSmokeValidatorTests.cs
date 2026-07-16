@@ -11,11 +11,11 @@ public class WindowsInstalledServiceSmokeValidatorTests
     [Test]
     public async Task ValidateAsync_installsValidatesCliAndAlwaysUninstalls()
     {
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-InstalledSmoke-Windows", Guid.NewGuid().ToString());
-        var artifactDir = Path.Combine(root, "artifacts");
-        var workDir = Path.Combine(root, "work");
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-InstalledSmoke-Windows", Guid.NewGuid().ToString());
+        var artifactDir = Path.Join(root, "artifacts");
+        var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);
-        var installer = Path.Combine(artifactDir, "agent-up-windows-win-x64.exe");
+        var installer = Path.Join(artifactDir, "agent-up-windows-win-x64.exe");
         File.WriteAllText(installer, "");
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
         var commands = new RecordingCommandRunner((command, _) =>
@@ -52,11 +52,11 @@ public class WindowsInstalledServiceSmokeValidatorTests
     [Test]
     public async Task ValidateAsync_runsDiagnosticsAndUninstallsWhenServiceNeverBecomesReady()
     {
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-InstalledSmoke-Windows", Guid.NewGuid().ToString());
-        var artifactDir = Path.Combine(root, "artifacts");
-        var workDir = Path.Combine(root, "work");
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-InstalledSmoke-Windows", Guid.NewGuid().ToString());
+        var artifactDir = Path.Join(root, "artifacts");
+        var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);
-        var installer = Path.Combine(artifactDir, "agent-up-windows-win-x64.exe");
+        var installer = Path.Join(artifactDir, "agent-up-windows-win-x64.exe");
         File.WriteAllText(installer, "");
         var commands = new RecordingCommandRunner((command, _) =>
         {
@@ -84,8 +84,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
     private static void CreateWindowsInstall(string installDir)
     {
-        WriteText(Path.Combine(installDir, "bin", "agent-up.cmd"), "");
-        WriteText(Path.Combine(installDir, "cli", "AgentUp.CLI.exe"), "");
+        WriteText(Path.Join(installDir, "bin", "agent-up.cmd"), "");
+        WriteText(Path.Join(installDir, "cli", "AgentUp.CLI.exe"), "");
     }
 
     private static void WriteText(string path, string text)
@@ -97,6 +97,6 @@ public class WindowsInstalledServiceSmokeValidatorTests
     private static string DefaultInstallDirectory()
     {
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-        return Path.Combine(programFiles, "Agent-Up");
+        return Path.Join(programFiles, "Agent-Up");
     }
 }

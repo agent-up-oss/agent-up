@@ -13,10 +13,10 @@ public sealed record UbuntuPackageLayout(
     {
         var stage = request.StageDirectory;
         return new UbuntuPackageLayout(
-            DebRoot: Path.Combine(stage, "deb-root"),
-            DebOutputPath: Path.Combine(request.OutputRoot, $"agent-up-ubuntu-{request.RuntimeId}.deb"),
-            DesktopPublishDirectory: Path.Combine(stage, "desktop"),
-            ServerPublishDirectory: Path.Combine(stage, "server"),
-            CliPublishDirectory: Path.Combine(stage, "cli"));
+            DebRoot: Path.Join(stage, "deb-root"),
+            DebOutputPath: Path.Join(request.OutputRoot, $"agent-up-ubuntu-{request.RuntimeId}.deb"),
+            DesktopPublishDirectory: Path.Join(stage, "desktop"),
+            ServerPublishDirectory: Path.Join(stage, "server"),
+            CliPublishDirectory: Path.Join(stage, "cli"));
     }
 }

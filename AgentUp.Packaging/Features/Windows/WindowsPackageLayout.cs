@@ -19,19 +19,19 @@ public sealed record WindowsPackageLayout(
     public static WindowsPackageLayout From(PackageRequest request)
     {
         var stage = request.StageDirectory;
-        var installerSource = Path.Combine(stage, "wix");
+        var installerSource = Path.Join(stage, "wix");
         return new WindowsPackageLayout(
             StageDirectory: stage,
             InstallerSourceDirectory: installerSource,
-            DesktopPublishDirectory: Path.Combine(stage, "desktop"),
-            ServerPublishDirectory: Path.Combine(stage, "server"),
-            CliPublishDirectory: Path.Combine(stage, "cli"),
-            ProductWxsPath: Path.Combine(installerSource, "Product.wxs"),
-            BundleWxsPath: Path.Combine(installerSource, "Bundle.wxs"),
-            LicenseRtfPath: Path.Combine(installerSource, "License.rtf"),
-            ProductMsiPath: Path.Combine(stage, "Product.msi"),
-            ProductMsiOutputPath: Path.Combine(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.msi"),
-            SetupExePath: Path.Combine(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.exe"));
+            DesktopPublishDirectory: Path.Join(stage, "desktop"),
+            ServerPublishDirectory: Path.Join(stage, "server"),
+            CliPublishDirectory: Path.Join(stage, "cli"),
+            ProductWxsPath: Path.Join(installerSource, "Product.wxs"),
+            BundleWxsPath: Path.Join(installerSource, "Bundle.wxs"),
+            LicenseRtfPath: Path.Join(installerSource, "License.rtf"),
+            ProductMsiPath: Path.Join(stage, "Product.msi"),
+            ProductMsiOutputPath: Path.Join(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.msi"),
+            SetupExePath: Path.Join(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.exe"));
     }
 
     public WindowsInstallerLayout ToInstallerLayout()

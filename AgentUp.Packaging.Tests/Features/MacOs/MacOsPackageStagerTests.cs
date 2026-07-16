@@ -16,9 +16,9 @@ public class MacOsPackageStagerTests
 
         new MacOsPackageStager(writer).Stage(layout, manifest);
 
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Combine(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Combine(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Join(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"))));
         Assert.That(writer.WrittenText[layout.LaunchDaemonPlistPath], Does.Contain("dev.agent-up.server"));
         Assert.That(writer.WrittenText[layout.PostInstallScriptPath], Does.Contain("launchctl bootstrap system"));
         Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Contain("DesktopApp.pkg"));

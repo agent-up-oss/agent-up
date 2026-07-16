@@ -14,8 +14,8 @@ public sealed class MacOsPackageValidator : IPackageValidator
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        var archive = Path.Combine(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
-        var expanded = Path.Combine(request.WorkDirectory, "pkg-expanded");
+        var archive = Path.Join(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
+        var expanded = Path.Join(request.WorkDirectory, "pkg-expanded");
         assert.FileExists(archive, "macos.artifact");
         if (!File.Exists(archive))
             return new PackageValidationResult(null, null, assert.Findings);
@@ -27,12 +27,12 @@ public sealed class MacOsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        var desktop = FindFirst(expanded, Path.Combine("usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
-        var server = FindFirst(expanded, Path.Combine("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
-        var cli = FindFirst(expanded, Path.Combine("usr", "local", "agent-up", "cli", "AgentUp.CLI"));
-        var launchd = FindFirst(expanded, Path.Combine("Library", "LaunchDaemons", "dev.agent-up.server.plist"));
+        var desktop = FindFirst(expanded, Path.Join("usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
+        var server = FindFirst(expanded, Path.Join("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
+        var cli = FindFirst(expanded, Path.Join("usr", "local", "agent-up", "cli", "AgentUp.CLI"));
+        var launchd = FindFirst(expanded, Path.Join("Library", "LaunchDaemons", "dev.agent-up.server.plist"));
         var distribution = Directory.EnumerateFiles(expanded, "Distribution", SearchOption.AllDirectories).FirstOrDefault() ?? "";
-        var postinstall = FindFirst(expanded, Path.Combine("Scripts", "postinstall"));
+        var postinstall = FindFirst(expanded, Path.Join("Scripts", "postinstall"));
 
         assert.ExecutableExists(desktop, "macos.desktop");
         assert.ExecutableExists(server, "macos.server");

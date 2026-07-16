@@ -24,12 +24,12 @@ builder.Services.AddSwaggerGen();
 
 var dataDir = ResolveDataDirectory();
 builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
-    new JsonWorkspaceRepository(Path.Combine(dataDir, "workspaces.json")));
+    new JsonWorkspaceRepository(Path.Join(dataDir, "workspaces.json")));
 builder.Services.AddSingleton<IOutputRepository>(_ =>
     new FileOutputRepository(dataDir));
 builder.Services.AddSingleton<IPortAllocationService>(sp =>
     new PortAllocationService(
-        Path.Combine(dataDir, "port-ranges.json"),
+        Path.Join(dataDir, "port-ranges.json"),
         sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PortAllocationService>>()));
 builder.Services.AddSingleton<WorkspaceRegistry>();
 builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
@@ -56,17 +56,17 @@ string ResolveDataDirectory()
     {
         var checkoutId = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(AppContext.BaseDirectory)))[..16];
-        return Path.Combine(Path.GetTempPath(), "AgentUp", checkoutId);
+        return Path.Join(Path.GetTempPath(), "AgentUp", checkoutId);
     }
 
     var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
     if (!string.IsNullOrWhiteSpace(localAppData))
-        return Path.Combine(localAppData, "AgentUp");
+        return Path.Join(localAppData, "AgentUp");
 
     if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        return Path.Combine("/Library", "Application Support", "Agent-Up");
+        return Path.Join("/Library", "Application Support", "Agent-Up");
 
-    return Path.Combine("/var", "lib", "agent-up");
+    return Path.Join("/var", "lib", "agent-up");
 }
 
 namespace AgentUp.Server

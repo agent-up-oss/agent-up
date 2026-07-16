@@ -28,7 +28,7 @@ if (args[0] == "validate-package")
     var request = new PackageValidationRequest(platform, runtimeId, artifactDirectory, workDirectory);
     var validator = PackageValidatorFactory.Create(request.Platform, commands);
     var result = await validator.ValidateAsync(request);
-    await File.WriteAllTextAsync(Path.Combine(request.WorkDirectory, "package-smoke.env"), result.ToEnvironmentFile());
+    await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "package-smoke.env"), result.ToEnvironmentFile());
     WriteFindings(result.Findings);
     return result.Succeeded ? 0 : 1;
 }

@@ -27,10 +27,10 @@ public class UbuntuPackagerTests
         Assert.That(commands.Commands.Last().Arguments, Is.EqualTo(new[]
         {
             "--build",
-            Path.Combine("/repo", "artifacts", "stage", "ubuntu-linux-x64", "deb-root"),
-            Path.Combine("/repo", "out", "agent-up-ubuntu-linux-x64.deb")
+            Path.Join("/repo", "artifacts", "stage", "ubuntu-linux-x64", "deb-root"),
+            Path.Join("/repo", "out", "agent-up-ubuntu-linux-x64.deb")
         }));
-        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Combine("/repo", "out")));
+        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join("/repo", "out")));
     }
 
     [Test]
@@ -38,8 +38,8 @@ public class UbuntuPackagerTests
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingPackageWriter();
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-UbuntuPackagerTests", Guid.NewGuid().ToString());
-        var payloadRoot = Path.Combine(root, "payload");
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-UbuntuPackagerTests", Guid.NewGuid().ToString());
+        var payloadRoot = Path.Join(root, "payload");
         var request = new PackageRequest(root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", payloadRoot);
 
         try
@@ -51,9 +51,9 @@ public class UbuntuPackagerTests
             await new UbuntuPackager(commands, writer).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "ubuntu-linux-x64", "desktop", "AgentUp.Desktop")), Is.True);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "ubuntu-linux-x64", "server", "AgentUp.Server")), Is.True);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "ubuntu-linux-x64", "cli", "AgentUp.CLI")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "desktop", "AgentUp.Desktop")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "server", "AgentUp.Server")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "cli", "AgentUp.CLI")), Is.True);
             Assert.That(commands.Commands.Last().FileName, Is.EqualTo("dpkg-deb"));
         }
         finally
@@ -65,9 +65,9 @@ public class UbuntuPackagerTests
 
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)
     {
-        var directory = Path.Combine(payloadRoot, component);
+        var directory = Path.Join(payloadRoot, component);
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, fileName), "");
+        File.WriteAllText(Path.Join(directory, fileName), "");
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner
