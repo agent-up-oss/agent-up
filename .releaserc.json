@@ -14,11 +14,19 @@
       }
     ],
     [
-      "@semantic-release/exec",
+      "@semantic-release/github",
       {
-        "publishCmd": "./.github/scripts/upload-release-artifacts.sh ${nextRelease.version}"
+        "assets": [
+          { "path": "release-artifacts/agent-up-ubuntu-linux-x64.deb",   "label": "Ubuntu (x64) .deb" },
+          { "path": "release-artifacts/agent-up-macos-osx-arm64.pkg",    "label": "macOS Apple Silicon .pkg" },
+          { "path": "release-artifacts/agent-up-macos-osx-x64.pkg",      "label": "macOS Intel .pkg" },
+          { "path": "release-artifacts/agent-up-windows-win-x64.exe",    "label": "Windows (x64) installer" },
+          { "path": "release-artifacts/agent-up-nixos-pkgs.tar.gz",      "label": "NixOS packages" },
+          { "path": "release-artifacts/agent-up-sbom.cdx.json",          "label": "Software Bill of Materials (CycloneDX)" },
+          { "path": "release-artifacts/checksums.sha256",                 "label": "SHA-256 checksums" },
+          { "path": "release-artifacts/manifest.json",                    "label": "Release manifest" }
+        ]
       }
-    ],
-    "@semantic-release/github"
+    ]
   ]
 }

@@ -387,7 +387,7 @@ jobs:
           npm --prefix docs run build
 
   release:
-    name: Release to MinIO
+    name: Release
     runs-on: ubuntu-latest
     needs: [platform, docs, version]
     if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
@@ -407,9 +407,6 @@ jobs:
 
       - name: Install release tooling
         run: npm install
-
-      - name: Install mc
-        run: ./.github/scripts/install-mc.sh
 
       - uses: actions/download-artifact@v4
         with:
@@ -433,16 +430,10 @@ jobs:
               fi
             done
 
-      - name: Validate downloaded release artifacts
-        run: |
-          ./.github/scripts/upload-release-artifacts.sh --check-only
-          find release-artifacts -maxdepth 1 -type f -printf "Ready artifact: %f (%s bytes)\n" | sort
+      - name: Prepare release artifacts
+        run: ./.github/scripts/upload-release-artifacts.sh "${{ needs.version.outputs.version }}"
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AGENTUP_RELEASE_BUCKET: ${{ secrets.AGENTUP_RELEASE_BUCKET }}
-          AGENTUP_RELEASE_S3_ENDPOINT: ${{ secrets.AGENTUP_RELEASE_S3_ENDPOINT }}
-          AGENTUP_RELEASE_S3_ACCESS_KEY: ${{ secrets.AGENTUP_RELEASE_S3_ACCESS_KEY }}
-          AGENTUP_RELEASE_S3_SECRET_KEY: ${{ secrets.AGENTUP_RELEASE_S3_SECRET_KEY }}
         run: npx semantic-release

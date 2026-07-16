@@ -4,13 +4,13 @@ title: Downloads
 
 # Downloads
 
-The latest Agent-Up release is published under stable download URLs.
+The latest Agent-Up release is available directly from GitHub Releases.
 
 ## Windows
 
 Use the Windows installer:
 
-<a className="button button--primary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-windows-win-x64.exe">Download Windows installer</a>
+<a className="button button--primary" href="https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-windows-win-x64.exe">Download Windows installer</a>
 
 Run the installer normally. It prompts for elevation when needed, then lets you install, upgrade, or uninstall Agent-Up.
 
@@ -20,9 +20,9 @@ The installer registers Agent-Up under Windows Apps, adds a Start Menu entry, ad
 
 Use the macOS package for your processor:
 
-<a className="button button--primary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-macos-osx-arm64.pkg">Download macOS Apple Silicon package</a>
+<a className="button button--primary" href="https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-macos-osx-arm64.pkg">Download macOS Apple Silicon package</a>
 
-<a className="button button--secondary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-macos-osx-x64.pkg">Download macOS Intel package</a>
+<a className="button button--secondary" href="https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-macos-osx-x64.pkg">Download macOS Intel package</a>
 
 Open the `.pkg` and follow the installer prompts.
 
@@ -32,7 +32,7 @@ The installer copies `Agent-Up.app` into `/Applications`, installs the CLI under
 
 Use the Debian package:
 
-<a className="button button--primary" href="https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-ubuntu-linux-x64.deb">Download Ubuntu package</a>
+<a className="button button--primary" href="https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-ubuntu-linux-x64.deb">Download Ubuntu package</a>
 
 Install it with apt:
 
@@ -53,7 +53,7 @@ The package also installs `agent-up` at `/usr/bin/agent-up` and registers the De
 Use the package-set tarball as a flake input:
 
 ```nix
-inputs.agent-up.url = "tarball+https://s3.massivecreationlab.com/agentup-release/agent-up/latest/agent-up-nixos-pkgs.tar.gz";
+inputs.agent-up.url = "tarball+https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-nixos-pkgs.tar.gz";
 ```
 
 Enable the Server through the NixOS module:

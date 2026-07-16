@@ -73,27 +73,8 @@ cat > "$manifest" <<JSON
 }
 JSON
 
-release_artifacts=("${expected_artifacts[@]}" "manifest.json" "checksums.sha256")
-
-bucket="${AGENTUP_RELEASE_BUCKET:?AGENTUP_RELEASE_BUCKET is required}"
-endpoint="${AGENTUP_RELEASE_S3_ENDPOINT:?AGENTUP_RELEASE_S3_ENDPOINT is required}"
-access_key="${AGENTUP_RELEASE_S3_ACCESS_KEY:?AGENTUP_RELEASE_S3_ACCESS_KEY is required}"
-secret_key="${AGENTUP_RELEASE_S3_SECRET_KEY:?AGENTUP_RELEASE_S3_SECRET_KEY is required}"
-alias_name="agentup-release"
-
-mc alias set "$alias_name" "$endpoint" "$access_key" "$secret_key"
-mc mb --ignore-existing "$alias_name/$bucket"
-
-echo "Publishing release artifacts to $alias_name/$bucket/$prefix/releases/$version"
-for artifact in "${release_artifacts[@]}"; do
-  destination="$alias_name/$bucket/$prefix/releases/$version/$artifact"
-  echo "Uploading $artifact_dir/$artifact -> $destination"
-  mc cp "$artifact_dir/$artifact" "$destination"
-done
-
-echo "Publishing release artifacts to $alias_name/$bucket/$prefix/latest"
-for artifact in "${release_artifacts[@]}"; do
-  destination="$alias_name/$bucket/$prefix/latest/$artifact"
-  echo "Uploading $artifact_dir/$artifact -> $destination"
-  mc cp "$artifact_dir/$artifact" "$destination"
+echo "Release artifacts ready for $version:"
+find "$artifact_dir" -maxdepth 1 -type f | sort | while read -r f; do
+  stat -c "  %n (%s bytes)" "$f" 2>/dev/null \
+    || stat -f "  %N (%z bytes)" "$f"
 done
