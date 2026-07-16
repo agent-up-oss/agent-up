@@ -40,7 +40,7 @@ public sealed class FileOutputRepository : IOutputRepository
         EnsureValidPathComponent(appName, nameof(appName));
 
         var outputRoot = Path.GetFullPath(Path.Combine(_baseDir, "output"));
-        var candidatePath = Path.GetFullPath(Path.Combine(outputRoot, workspaceId, $"{appName}.log"));
+        var candidatePath = Path.GetFullPath(Path.Join(outputRoot, workspaceId, $"{appName}.log"));
         var rootWithSeparator = outputRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
             + Path.DirectorySeparatorChar;
 
