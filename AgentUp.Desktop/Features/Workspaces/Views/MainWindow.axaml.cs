@@ -13,6 +13,7 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.Repositories;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;

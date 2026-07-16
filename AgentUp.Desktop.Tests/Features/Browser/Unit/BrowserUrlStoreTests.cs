@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Features.Workspaces.Views;
+using AgentUp.Desktop.Features.Workspaces.Repositories;
 
 namespace AgentUp.Desktop.Tests.Features.Browser.Unit;
 

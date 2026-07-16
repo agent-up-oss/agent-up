@@ -3,7 +3,8 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AgentUp.CLI.Http;
+using AgentUp.CLI.Features.Workspaces.Controllers;
+using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Tests.Fake;
 using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -365,7 +366,6 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
-        builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);

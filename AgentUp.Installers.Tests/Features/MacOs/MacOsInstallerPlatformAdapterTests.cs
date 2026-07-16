@@ -1,8 +1,15 @@
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Execution.Models;
 using AgentUp.Installers.Features.Flow;
+using AgentUp.Installers.Features.Flow.Models;
 using AgentUp.Installers.Features.MacOs;
+using AgentUp.Installers.Features.MacOs.DTOs;
+using AgentUp.Installers.Features.MacOs.Models;
+using AgentUp.Installers.Features.MacOs.Providers;
 using AgentUp.Installers.Features.Payloads;
+using AgentUp.Installers.Features.Payloads.Models;
 using AgentUp.Installers.Features.Prerequisites;
+using AgentUp.Installers.Features.Prerequisites.Services;
 
 namespace AgentUp.Installers.Tests.Features.MacOs;
 

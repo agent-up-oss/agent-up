@@ -1,4 +1,4 @@
-using AgentUp.CLI;
+using AgentUp.CLI.Features.Workspaces.Controllers;
 
 namespace AgentUp.CLI.Tests.Commands;
 

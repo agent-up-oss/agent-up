@@ -1,6 +1,9 @@
 using System.Net;
 using AgentUp.PackageSmoke.Features.Security;
+using AgentUp.PackageSmoke.Features.Security.Services;
 using AgentUp.PackageSmoke.Features.Validation;
+using AgentUp.PackageSmoke.Features.Validation.DTOs;
+using AgentUp.PackageSmoke.Features.Validation.Services;
 
 namespace AgentUp.PackageSmoke.Tests.Features.Security;
 

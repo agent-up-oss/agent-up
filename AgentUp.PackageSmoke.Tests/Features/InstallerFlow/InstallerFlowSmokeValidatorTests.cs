@@ -1,5 +1,7 @@
 using AgentUp.PackageSmoke.Features.InstallerFlow;
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Execution.Providers;
+using AgentUp.PackageSmoke.Features.InstallerFlow.Services;
 
 namespace AgentUp.PackageSmoke.Tests.Features.InstallerFlow;
 

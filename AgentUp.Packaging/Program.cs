@@ -1,7 +1,16 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
 using AgentUp.Packaging.Features.MacOs;
+using AgentUp.Packaging.Features.MacOs.Providers;
+using AgentUp.Packaging.Features.MacOs.Services;
+using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Models;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.Ubuntu;
+using AgentUp.Packaging.Features.Ubuntu.Providers;
+using AgentUp.Packaging.Features.Ubuntu.Services;
 using AgentUp.Packaging.Features.Windows;
+using AgentUp.Packaging.Features.Windows.Providers;
+using AgentUp.Packaging.Features.Windows.Services;
 
 if (args.Length is < 4 or > 7 || args[0] != "package")
 {

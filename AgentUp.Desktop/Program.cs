@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
-using AgentUp.Desktop;
+
+namespace AgentUp.Desktop;
 
 internal sealed class Program
 {

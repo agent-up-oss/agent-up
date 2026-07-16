@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Path;
+using AgentUp.Installers.Features.Path.Models;
 
 namespace AgentUp.Installers.Tests.Features.Path;
 

@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Uninstall;
+using AgentUp.Installers.Features.Uninstall.Models;
 
 namespace AgentUp.Installers.Tests.Features.Uninstall;
 

@@ -1,8 +1,15 @@
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Execution.Models;
 using AgentUp.Installers.Features.Flow;
+using AgentUp.Installers.Features.Flow.Models;
 using AgentUp.Installers.Features.Payloads;
+using AgentUp.Installers.Features.Payloads.Models;
 using AgentUp.Installers.Features.Prerequisites;
+using AgentUp.Installers.Features.Prerequisites.Services;
 using AgentUp.Installers.Features.Windows;
+using AgentUp.Installers.Features.Windows.DTOs;
+using AgentUp.Installers.Features.Windows.Models;
+using AgentUp.Installers.Features.Windows.Providers;
 
 namespace AgentUp.Installers.Tests.Features.Windows;
 

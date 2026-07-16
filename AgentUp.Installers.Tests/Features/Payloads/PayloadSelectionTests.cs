@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Payloads;
+using AgentUp.Installers.Features.Payloads.Models;
 
 namespace AgentUp.Installers.Tests.Features.Payloads;
 

@@ -8,7 +8,7 @@ namespace AgentUp.Server.Features.Applications.Controllers;
 
 [ApiController]
 [Route("api/workspaces")]
-public sealed class ApplicationsController(IWorkspaceRegistry registry, IWorkspaceProcessManager processes, IOutputRepository output) : ControllerBase
+public sealed class ApplicationsController(WorkspaceRegistry registry, IWorkspaceProcessManager processes, IOutputRepository output) : ControllerBase
 {
     [HttpGet("{id}/applications")]
     public IActionResult GetApplications(string id)

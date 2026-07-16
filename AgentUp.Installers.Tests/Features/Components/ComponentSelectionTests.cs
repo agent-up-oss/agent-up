@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Components;
+using AgentUp.Installers.Features.Components.Models;
 
 namespace AgentUp.Installers.Tests.Features.Components;
 

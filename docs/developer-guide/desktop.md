@@ -20,7 +20,9 @@ The project follows capability-oriented slices:
 AgentUp.Desktop/
   Features/
     Workspaces/
-      Http/         WorkspaceApiClient, WorkspaceDto
+      DTOs/         WorkspaceDto
+      Providers/    WorkspaceApiClient
+      Repositories/ BrowserUrlStore
       ViewModels/   MainViewModel, WorkspaceItemViewModel
       Views/        MainWindow.axaml
 ```

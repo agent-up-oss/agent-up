@@ -1,14 +1,11 @@
-using System.Threading;
 using AgentUp.Desktop.Features.FirstRun.Services;
-using AgentUp.Fixtures;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.ReactiveUI;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 
-namespace AgentUp.Tests;
+namespace AgentUp.Tests.Fixtures;
 
 [SetUpFixture]
 public sealed class DesktopFixtureHost

@@ -1,8 +1,12 @@
-using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.InstallerApp.Features.Installation.Providers;
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Execution.Providers;
 using AgentUp.Installers.Features.MacOs;
+using AgentUp.Installers.Features.MacOs.Providers;
 using AgentUp.Installers.Features.Ubuntu;
+using AgentUp.Installers.Features.Ubuntu.Providers;
 using AgentUp.Installers.Features.Windows;
+using AgentUp.Installers.Features.Windows.Providers;
 
 namespace AgentUp.InstallerApp.Tests.Features.Installation.Unit;
 

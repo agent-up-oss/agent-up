@@ -5,7 +5,11 @@ using AgentUp.Installers.Features.Execution;
 using AgentUp.Installers.Features.Flow;
 using AgentUp.Installers.Features.Payloads;
 using AgentUp.Installers.Features.Prerequisites;
-using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.InstallerApp.Features.Installation.Providers;
+using AgentUp.Installers.Features.Execution.Providers;
+using AgentUp.Installers.Features.Flow.Models;
+using AgentUp.Installers.Features.Flow.Services;
+using AgentUp.Installers.Features.Payloads.Models;
 
 namespace AgentUp.InstallerApp.Features.Installation.ViewModels;
 

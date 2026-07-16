@@ -1,6 +1,10 @@
 using AgentUp.Installers.Features.Flow;
+using AgentUp.Installers.Features.Flow.Models;
+using AgentUp.Installers.Features.Flow.Services;
 using AgentUp.Installers.Features.Payloads;
+using AgentUp.Installers.Features.Payloads.Models;
 using AgentUp.Installers.Features.Prerequisites;
+using AgentUp.Installers.Features.Prerequisites.Services;
 
 namespace AgentUp.Installers.Tests.Features.Flow;
 

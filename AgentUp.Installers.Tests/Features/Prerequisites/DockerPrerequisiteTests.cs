@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Prerequisites;
+using AgentUp.Installers.Features.Prerequisites.Services;
 
 namespace AgentUp.Installers.Tests.Features.Prerequisites;
 

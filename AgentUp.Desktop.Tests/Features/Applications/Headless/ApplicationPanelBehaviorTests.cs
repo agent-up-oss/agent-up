@@ -28,7 +28,7 @@ public class ApplicationPanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_resetsApplicationSelection_whenWorkspaceSwitched()
     {
-        var workspaces = new List<AgentUp.Desktop.Features.Workspaces.Http.WorkspaceDto>
+        var workspaces = new List<AgentUp.Desktop.Features.Workspaces.DTOs.WorkspaceDto>
         {
             WorkspaceFixtures.WithApplications(),
             WorkspaceFixtures.Single() with { Id = "ws-2", DisplayName = "Other" },

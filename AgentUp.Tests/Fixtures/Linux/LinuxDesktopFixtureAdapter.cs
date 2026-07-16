@@ -1,9 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using AgentUp.Fixtures;
 
-namespace AgentUp.Fixtures.Linux;
+namespace AgentUp.Tests.Fixtures.Linux;
 
 public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
 {

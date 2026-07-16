@@ -1,5 +1,7 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.Windows;
+using AgentUp.Packaging.Features.Windows.Models;
 
 namespace AgentUp.Packaging.Tests.Features.Windows;
 

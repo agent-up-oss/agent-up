@@ -11,13 +11,13 @@ public static class ApplicationsEndpoints
     {
         var group = app.MapGroup("/api/workspaces");
 
-        group.MapGet("/{id}/applications", (string id, IWorkspaceRegistry registry) =>
+        group.MapGet("/{id}/applications", (string id, WorkspaceRegistry registry) =>
         {
             var workspace = registry.GetById(id);
             return workspace is null ? Results.NotFound() : Results.Ok(workspace.Applications);
         });
 
-        group.MapPost("/{id}/applications/{name}/start", async (string id, string name, IWorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
+        group.MapPost("/{id}/applications/{name}/start", async (string id, string name, WorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
         {
             var workspace = registry.GetById(id);
             if (workspace is null) return Results.NotFound();
@@ -37,7 +37,7 @@ public static class ApplicationsEndpoints
             }
         });
 
-        group.MapPost("/{id}/applications/{name}/stop", async (string id, string name, IWorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
+        group.MapPost("/{id}/applications/{name}/stop", async (string id, string name, WorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
         {
             var workspace = registry.GetById(id);
             if (workspace is null) return Results.NotFound();
@@ -49,7 +49,7 @@ public static class ApplicationsEndpoints
             return Results.NoContent();
         });
 
-        group.MapPost("/{id}/applications/{name}/restart", async (string id, string name, IWorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
+        group.MapPost("/{id}/applications/{name}/restart", async (string id, string name, WorkspaceRegistry registry, IWorkspaceProcessManager processes) =>
         {
             var workspace = registry.GetById(id);
             if (workspace is null) return Results.NotFound();
@@ -70,7 +70,7 @@ public static class ApplicationsEndpoints
             }
         });
 
-        group.MapGet("/{id}/applications/{name}/output", async (string id, string name, IWorkspaceRegistry registry, IOutputRepository output) =>
+        group.MapGet("/{id}/applications/{name}/output", async (string id, string name, WorkspaceRegistry registry, IOutputRepository output) =>
         {
             var workspace = registry.GetById(id);
             if (workspace is null) return Results.NotFound();

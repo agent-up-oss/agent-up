@@ -3,6 +3,13 @@ using AgentUp.PackageSmoke.Features.Validation;
 using AgentUp.PackageSmoke.Features.InstalledServices;
 using AgentUp.PackageSmoke.Features.InstallerFlow;
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Execution.Providers;
+using AgentUp.PackageSmoke.Features.InstalledServices.DTOs;
+using AgentUp.PackageSmoke.Features.InstalledServices.Providers;
+using AgentUp.PackageSmoke.Features.InstallerFlow.Services;
+using AgentUp.PackageSmoke.Features.Platforms.Providers;
+using AgentUp.PackageSmoke.Features.Validation.DTOs;
+using AgentUp.PackageSmoke.Features.Validation.Providers;
 
 if ((args.Length != 5 || args[0] is not ("validate-package" or "validate-installed-service"))
     && (args.Length is not (3 or 4) || args[0] != "validate-installer-flow"))

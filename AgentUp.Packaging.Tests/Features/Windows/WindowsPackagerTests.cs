@@ -1,5 +1,9 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.Windows;
+using AgentUp.Packaging.Features.Windows.Providers;
+using AgentUp.Packaging.Features.Windows.Services;
 
 namespace AgentUp.Packaging.Tests.Features.Windows;
 

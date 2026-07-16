@@ -51,23 +51,9 @@ See [Current Limitations](docs/user-docs/limitations.md) for the longer list.
 
 ## Architecture
 
-`AgentUp.Server` is the single source of truth.
+`AgentUp.Server` is the single source of truth. Desktop, CLI, MCP clients, and future integrations are clients of the Server: they may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
-Desktop, CLI, MCP clients, and future integrations are clients of the Server. They may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
-
-Expected solution shape:
-
-```text
-AgentUp.Server/
-AgentUp.Desktop/
-AgentUp.CLI/
-AgentUp.Shared/
-AgentUp.Server.Tests/
-AgentUp.Desktop.Tests/
-AgentUp.CLI.Tests/
-```
-
-The full architecture guide is in [docs/developer-guide/architecture.md](docs/developer-guide/architecture.md).
+Contributor architecture details live in the [Developer Guide](docs/developer-guide/index.md), especially [Architecture](docs/developer-guide/architecture.md), [Server](docs/developer-guide/server.md), [Desktop](docs/developer-guide/desktop.md), and [Packaging And Installers](docs/developer-guide/packaging.md).
 
 ## Requirements
 
@@ -136,7 +122,11 @@ dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:500
 
 - [User docs](docs/user-docs/index.md)
 - [Setup](docs/user-docs/setup.md)
+- [Downloads](docs/user-docs/downloads.md)
+- [Workspace](docs/user-docs/workspace.md)
 - [Configuration](docs/user-docs/configuration.md)
+- [Browser](docs/user-docs/browser.md)
+- [CLI](docs/user-docs/cli.md)
 - [Current limitations](docs/user-docs/limitations.md)
 - [Roadmap](docs/user-docs/roadmap.md)
 - [Developer guide](docs/developer-guide/index.md)

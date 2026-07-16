@@ -1,4 +1,5 @@
 using AgentUp.PackageSmoke.Features.Validation;
+using AgentUp.PackageSmoke.Features.Validation.Providers;
 
 namespace AgentUp.PackageSmoke.Tests.Features.Platforms;
 

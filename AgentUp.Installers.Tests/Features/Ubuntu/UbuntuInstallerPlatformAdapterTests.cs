@@ -1,8 +1,15 @@
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Execution.Models;
 using AgentUp.Installers.Features.Flow;
+using AgentUp.Installers.Features.Flow.Models;
 using AgentUp.Installers.Features.Payloads;
+using AgentUp.Installers.Features.Payloads.Models;
 using AgentUp.Installers.Features.Prerequisites;
+using AgentUp.Installers.Features.Prerequisites.Services;
 using AgentUp.Installers.Features.Ubuntu;
+using AgentUp.Installers.Features.Ubuntu.DTOs;
+using AgentUp.Installers.Features.Ubuntu.Models;
+using AgentUp.Installers.Features.Ubuntu.Providers;
 
 namespace AgentUp.Installers.Tests.Features.Ubuntu;
 

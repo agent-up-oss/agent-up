@@ -1,5 +1,6 @@
 using System.Net;
 using AgentUp.PackageSmoke.Features.Security;
+using AgentUp.PackageSmoke.Features.Security.Providers;
 
 namespace AgentUp.PackageSmoke.Tests.Features.Security;
 

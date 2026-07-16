@@ -33,9 +33,6 @@ AgentUp.Desktop/
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
-AgentUp.Shared/
-  AgentUp.Shared.csproj
-
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
@@ -68,9 +65,35 @@ AgentUp.Packaging.Tests/
 
 AgentUp.PackageSmoke.Tests/
   AgentUp.PackageSmoke.Tests.csproj
+
+AgentUp.Tests/
+  AgentUp.Tests.csproj
 ```
 
 The exact project list may evolve, but the ownership boundaries should remain stable.
+
+## Code Organization
+
+Every production .NET project uses capability-oriented vertical slices under `Features/`. Root project folders should contain only project entry/configuration files such as `Program.cs`, project files, Avalonia `App.axaml` files, and SDK/tooling-required files such as `Properties/launchSettings.json`.
+
+Inside a feature slice, use only these type folders:
+
+- `Models/` for persistence or internal representation.
+- `Repositories/` for storage abstraction and persistence access.
+- `Services/` for domain-specific behavior and orchestration inside the slice.
+- `Controllers/` for routing external calls to slice services.
+- `DTOs/` for external data representation contracts.
+- `Providers/` for low-level actions behind domain-specific interfaces, such as HTTP clients, command runners, file-system adapters, platform adapters, and Git readers.
+
+Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
+
+Tests should stay feature-sliced, but test projects may use test-kind folders such as `Unit/`, `Headless/`, `HTTP/`, `Repository/`, `Fake/`, and `Support/` when that keeps test intent clear.
+
+Do not add broad technical buckets such as root-level `Controllers/`, `Services/`, `Models/`, `Http/`, `Commands/`, or `Git/`. Put the code in the owning feature slice and then in the appropriate type folder.
+
+## Interface Rule
+
+Do not add interfaces for 1:1 concrete mappings. An interface is justified only when tests create fakes, runtime code selects among multiple adapters, or the boundary intentionally hides low-level providers such as command execution, file systems, platform APIs, storage, or network calls.
 
 ## Component Responsibilities
 

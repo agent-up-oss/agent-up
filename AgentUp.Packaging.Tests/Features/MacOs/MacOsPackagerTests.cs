@@ -1,5 +1,9 @@
 using AgentUp.Packaging.Features.MacOs;
+using AgentUp.Packaging.Features.MacOs.Providers;
+using AgentUp.Packaging.Features.MacOs.Services;
 using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 
 namespace AgentUp.Packaging.Tests.Features.MacOs;
 

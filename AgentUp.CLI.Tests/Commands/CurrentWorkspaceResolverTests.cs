@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text.Json;
-using AgentUp.CLI.Commands;
-using AgentUp.CLI.Http;
+using AgentUp.CLI.Features.Workspaces.Controllers;
+using AgentUp.CLI.Features.Workspaces.DTOs;
+using AgentUp.CLI.Features.Workspaces.Providers;
+using AgentUp.CLI.Features.Workspaces.Services;
 
 namespace AgentUp.CLI.Tests.Commands;
 

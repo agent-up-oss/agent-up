@@ -1,4 +1,4 @@
-using AgentUp.CLI;
+using AgentUp.CLI.Features.Workspaces.Controllers;
 
 var serverUrl = GetServerUrl(args);
 var runner = new CliRunner(serverUrl, Directory.GetCurrentDirectory());

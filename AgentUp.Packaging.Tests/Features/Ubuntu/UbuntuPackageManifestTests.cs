@@ -1,6 +1,9 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
 using AgentUp.Packaging.Features.Ubuntu;
 using AgentUp.Installers.Features.Ubuntu;
+using AgentUp.Installers.Features.Ubuntu.Models;
+using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using AgentUp.Packaging.Features.Ubuntu.Models;
 
 namespace AgentUp.Packaging.Tests.Features.Ubuntu;
 

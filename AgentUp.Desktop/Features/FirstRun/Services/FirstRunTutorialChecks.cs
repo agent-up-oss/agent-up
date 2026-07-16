@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Providers;
 
 namespace AgentUp.Desktop.Features.FirstRun.Services;
 

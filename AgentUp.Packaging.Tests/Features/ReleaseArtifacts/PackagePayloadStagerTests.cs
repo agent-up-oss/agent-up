@@ -1,4 +1,7 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
 namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts;
 

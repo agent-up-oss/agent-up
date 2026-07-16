@@ -17,12 +17,12 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private readonly ConcurrentDictionary<(string, string), Process> _processes = new();
     private readonly ConcurrentDictionary<(string, string), string> _containerNames = new();
 
-    private readonly IWorkspaceRegistry _registry;
+    private readonly WorkspaceRegistry _registry;
     private readonly IOutputRepository _output;
     private readonly ILogger<WorkspaceProcessManager> _logger;
 
     public WorkspaceProcessManager(
-        IWorkspaceRegistry registry,
+        WorkspaceRegistry registry,
         IOutputRepository output,
         ILogger<WorkspaceProcessManager> logger)
     {

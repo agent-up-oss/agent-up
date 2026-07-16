@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Validation;
+using AgentUp.Installers.Features.Validation.Models;
 
 namespace AgentUp.Installers.Tests.Features.Validation;
 

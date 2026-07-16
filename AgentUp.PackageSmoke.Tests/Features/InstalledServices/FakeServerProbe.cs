@@ -1,4 +1,5 @@
 using AgentUp.PackageSmoke.Features.InstalledServices;
+using AgentUp.PackageSmoke.Features.InstalledServices.Providers;
 
 namespace AgentUp.PackageSmoke.Tests.Features.InstalledServices;
 

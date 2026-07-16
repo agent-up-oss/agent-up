@@ -1,5 +1,8 @@
 using AgentUp.PackageSmoke.Features.Platforms;
+using AgentUp.PackageSmoke.Features.Platforms.Services;
 using AgentUp.PackageSmoke.Features.Validation;
+using AgentUp.PackageSmoke.Features.Validation.DTOs;
+using AgentUp.PackageSmoke.Features.Validation.Providers;
 
 namespace AgentUp.PackageSmoke.Tests.Features.Platforms;
 

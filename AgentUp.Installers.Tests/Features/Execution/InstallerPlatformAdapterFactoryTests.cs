@@ -1,5 +1,7 @@
 using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Execution.Providers;
 using AgentUp.Installers.Features.Ubuntu;
+using AgentUp.Installers.Features.Ubuntu.Providers;
 
 namespace AgentUp.Installers.Tests.Features.Execution;
 

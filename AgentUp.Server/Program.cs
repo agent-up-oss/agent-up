@@ -32,7 +32,6 @@ builder.Services.AddSingleton<IPortAllocationService>(sp =>
         Path.Join(dataDir, "port-ranges.json"),
         sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PortAllocationService>>()));
 builder.Services.AddSingleton<WorkspaceRegistry>();
-builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
 builder.Services.AddSingleton<WorkspaceProcessManager>();
 builder.Services.AddSingleton<IWorkspaceProcessManager>(sp => sp.GetRequiredService<WorkspaceProcessManager>());
