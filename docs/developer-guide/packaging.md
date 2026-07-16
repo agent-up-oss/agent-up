@@ -83,7 +83,9 @@ The Windows bootstrapper executable launches the guided `AgentUp.InstallerApp` w
 
 Windows packaging consumes Windows install metadata, WiX generation, service, PATH, and shortcut contracts from `AgentUp.Installers`. Tests assert the generated WiX service, PATH, shortcut, guided-installer chain, bundled payload, MSI sidecar, and exact `wix` command shape with an isolated fake command runner.
 
-macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
+macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the guided InstallerApp bundle, bundled installer payload, Desktop `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
+
+The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after native component setup so users see the shared guided installer flow. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
@@ -93,7 +95,7 @@ Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS
 
 Windows installed-service smoke installs and uninstalls through the MSI sidecar with `msiexec`; the Windows `.exe` remains the guided user-facing installer path.
 
-The shared installer app is the target user-facing install flow. Windows `.exe` artifacts launch `AgentUp.InstallerApp` with a bundled release payload.
+The shared installer app is the target user-facing install flow. Windows `.exe` artifacts and macOS `.pkg` postinstall launch `AgentUp.InstallerApp` with a bundled release payload.
 
 During migration, native `.pkg`, MSI sidecar, and `.deb` artifacts may still perform direct native install work, but new behavior should move toward wrapping or launching `AgentUp.InstallerApp` with a bundled release payload.
 

@@ -16,6 +16,16 @@ public sealed class MacOsPackageStager
         _writer.ResetDirectory(layout.PackageRootDirectory);
         _writer.CreateDirectory(layout.ComponentPackageDirectory);
 
+        _writer.CopyDirectory(layout.InstallerPublishDirectory, layout.InstallerAppMacOsDirectory);
+        _writer.WriteText(layout.InstallerInfoPlistPath, plists.InstallerInfoPlist());
+        _writer.SetExecutable(Path.Combine(layout.InstallerAppMacOsDirectory, "AgentUp.InstallerApp"));
+        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "desktop"));
+        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "server"));
+        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "cli"));
+
+        _writer.CopyDirectory(layout.DesktopPublishDirectory, layout.DesktopAppMacOsDirectory);
+        _writer.WriteText(layout.DesktopInfoPlistPath, plists.DesktopInfoPlist());
+        _writer.SetExecutable(Path.Combine(layout.DesktopAppMacOsDirectory, "AgentUp.Desktop"));
         _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"));
         _writer.SetExecutable(Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
         _writer.CopyDirectory(layout.CliPublishDirectory, Path.Combine(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"));

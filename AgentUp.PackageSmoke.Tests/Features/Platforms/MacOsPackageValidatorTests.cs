@@ -39,12 +39,17 @@ public class MacOsPackageValidatorTests
 
     private static void CreateExpandedPackage(string root)
     {
+        WriteExecutable(Path.Combine(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
+        WriteExecutable(Path.Combine(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
+        WriteExecutable(Path.Combine(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
+        WriteExecutable(Path.Combine(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
+        WriteExecutable(Path.Combine(root, "DesktopApp.pkg", "Payload", "Applications", "Agent-Up.app", "Contents", "MacOS", "AgentUp.Desktop"));
         WriteExecutable(Path.Combine(root, "DesktopApp.pkg", "Payload", "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
         WriteExecutable(Path.Combine(root, "Server.pkg", "Payload", "Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
         WriteText(Path.Combine(root, "Server.pkg", "Payload", "Library", "LaunchDaemons", "dev.agent-up.server.plist"), "/Library/Application Support/Agent-Up/server/AgentUp.Server\n<key>ThrottleInterval</key>\n");
-        WriteText(Path.Combine(root, "Server.pkg", "Scripts", "postinstall"), "launchctl bootstrap system\n");
+        WriteText(Path.Combine(root, "Server.pkg", "Scripts", "postinstall"), "launchctl bootstrap system\nopen -a \"/Applications/Agent-Up Installer.app\"\n");
         WriteExecutable(Path.Combine(root, "CLI.pkg", "Payload", "usr", "local", "agent-up", "cli", "AgentUp.CLI"));
-        WriteText(Path.Combine(root, "Distribution"), "DesktopApp.pkg\nServer.pkg\nCLI.pkg\n");
+        WriteText(Path.Combine(root, "Distribution"), "InstallerApp.pkg\nDesktopApp.pkg\nServer.pkg\nCLI.pkg\n");
     }
 
     private static void WriteExecutable(string path)

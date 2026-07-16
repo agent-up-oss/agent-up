@@ -45,7 +45,7 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
                 new CommandSpec("sudo", [
                     "bash",
                     "-c",
-                    "launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true; pkill -f AgentUp.Server 2>/dev/null || true; rm -f /Library/LaunchDaemons/dev.agent-up.server.plist; rm -f /usr/local/bin/agent-up /usr/local/bin/agent-up-server /usr/local/bin/agent-up-desktop; rm -rf /usr/local/agent-up; rm -rf \"/Library/Application Support/Agent-Up\""
+                    "launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true; pkill -f AgentUp.Server 2>/dev/null || true; rm -f /Library/LaunchDaemons/dev.agent-up.server.plist; rm -f /usr/local/bin/agent-up /usr/local/bin/agent-up-server /usr/local/bin/agent-up-desktop; rm -rf /usr/local/agent-up; rm -rf \"/Library/Application Support/Agent-Up\"; rm -rf \"/Applications/Agent-Up.app\" \"/Applications/Agent-Up Installer.app\""
                 ])
             ],
             [

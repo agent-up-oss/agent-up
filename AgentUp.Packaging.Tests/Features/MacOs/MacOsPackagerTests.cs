@@ -24,9 +24,10 @@ public class MacOsPackagerTests
                 Directory.Delete(root, recursive: true);
         }
 
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(3));
-        Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(3));
+        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(4));
+        Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(4));
         Assert.That(commands.Commands.Last().FileName, Is.EqualTo("productbuild"));
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.installer")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.desktop")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.cli")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.server")), Is.True);
@@ -44,6 +45,7 @@ public class MacOsPackagerTests
 
         try
         {
+            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp");
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
@@ -51,10 +53,11 @@ public class MacOsPackagerTests
             await new MacOsPackager(commands, writer).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "installer", "AgentUp.InstallerApp")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "cli", "AgentUp.CLI")), Is.True);
-            Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(3));
+            Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(4));
             Assert.That(commands.Commands.Last().FileName, Is.EqualTo("productbuild"));
         }
         finally

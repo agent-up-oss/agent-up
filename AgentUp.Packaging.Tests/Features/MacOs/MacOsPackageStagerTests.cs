@@ -16,11 +16,20 @@ public class MacOsPackageStagerTests
 
         new MacOsPackageStager(writer).Stage(layout, manifest);
 
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.InstallerPublishDirectory, layout.InstallerAppMacOsDirectory)));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "desktop"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "server"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "cli"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, layout.DesktopAppMacOsDirectory)));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Combine(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Combine(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"))));
+        Assert.That(writer.WrittenText[layout.InstallerInfoPlistPath], Does.Contain("AgentUp.InstallerApp"));
+        Assert.That(writer.WrittenText[layout.DesktopInfoPlistPath], Does.Contain("AgentUp.Desktop"));
         Assert.That(writer.WrittenText[layout.LaunchDaemonPlistPath], Does.Contain("dev.agent-up.server"));
         Assert.That(writer.WrittenText[layout.PostInstallScriptPath], Does.Contain("launchctl bootstrap system"));
+        Assert.That(writer.WrittenText[layout.PostInstallScriptPath], Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
+        Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Contain("InstallerApp.pkg"));
         Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Contain("DesktopApp.pkg"));
         Assert.That(writer.ExecutablePaths, Does.Contain(layout.PostInstallScriptPath));
     }

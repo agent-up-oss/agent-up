@@ -22,6 +22,18 @@ public class MacOsPlistGeneratorTests
     }
 
     [Test]
+    public void InstallerInfoPlist_containsInstallerExecutableAndVersion()
+    {
+        var manifest = MacOsPackageManifest.From(new PackageRequest("/repo", "macos", "osx-arm64", "v1.2.3", "artifacts", "Release"));
+
+        var plist = new MacOsPlistGenerator(manifest).InstallerInfoPlist();
+
+        Assert.That(plist, Does.Contain("dev.agent-up.installer"));
+        Assert.That(plist, Does.Contain("AgentUp.InstallerApp"));
+        Assert.That(plist, Does.Contain("1.2.3"));
+    }
+
+    [Test]
     public void LaunchDaemonPlist_containsServiceContract()
     {
         var manifest = MacOsPackageManifest.From(new PackageRequest("/repo", "macos", "osx-arm64", "1.2.3", "artifacts", "Release"));

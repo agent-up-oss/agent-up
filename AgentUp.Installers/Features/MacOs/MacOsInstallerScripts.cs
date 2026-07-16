@@ -23,5 +23,6 @@ public static class MacOsInstallerScripts
            chown root:wheel /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
            chmod 644 /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
            launchctl bootstrap system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
+           open -a "/Applications/Agent-Up Installer.app" 2>/dev/null || true
            """ + Environment.NewLine;
 }

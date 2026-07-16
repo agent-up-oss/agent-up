@@ -23,6 +23,13 @@ public sealed class MacOsPackager
         if (request.PayloadRoot is null)
         {
             await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.InstallerPublishDirectory,
+                cancellationToken);
+            await publisher.PublishDotNetProjectAsync(
                 Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
                 request.RuntimeId,
                 request.Configuration,
@@ -46,6 +53,7 @@ public sealed class MacOsPackager
         }
         else
         {
+            PackagePublisher.CopyPrebuiltPayload(request.InstallerPayloadDirectory!, layout.InstallerPublishDirectory);
             PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, layout.DesktopPublishDirectory);
             PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, layout.ServerPublishDirectory);
             PackagePublisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, layout.CliPublishDirectory);
@@ -53,6 +61,14 @@ public sealed class MacOsPackager
 
         new MacOsPackageStager(_writer).Stage(layout, MacOsPackageManifest.From(request));
 
+        await _commands.RunAsync(new CommandSpec("pkgbuild",
+        [
+            "--identifier", "dev.agent-up.installer",
+            "--version", request.NormalizedVersion,
+            "--root", layout.InstallerComponentRoot,
+            "--install-location", "/",
+            layout.InstallerPackagePath
+        ]), cancellationToken);
         await _commands.RunAsync(new CommandSpec("pkgbuild",
         [
             "--identifier", "dev.agent-up.desktop",
