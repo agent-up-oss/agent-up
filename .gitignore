@@ -10,3 +10,4 @@ release-artifacts/
 .env
 .env.*
 !.env.example
+tmp/
