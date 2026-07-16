@@ -83,6 +83,8 @@ The Windows bootstrapper executable launches the guided `AgentUp.InstallerApp` w
 
 Windows packaging consumes Windows install metadata, WiX generation, service, PATH, and shortcut contracts from `AgentUp.Installers`. Tests assert the generated WiX service, PATH, shortcut, guided-installer chain, bundled payload, MSI sidecar, and exact `wix` command shape with an isolated fake command runner.
 
+Windows MSI metadata uses a Windows Installer product version derived from the package SemVer; CI fallback versions based on `0.0.0` are written as `0.0.1` in MSI metadata while retaining the original artifact version elsewhere.
+
 macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the guided InstallerApp bundle, bundled installer payload, Desktop `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
 
 The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after native component setup so users see the shared guided installer flow. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
