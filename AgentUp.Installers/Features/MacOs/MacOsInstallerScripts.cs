@@ -25,6 +25,5 @@ public static class MacOsInstallerScripts
            chown root:wheel /Library/LaunchDaemons/dev.agent-up.server.plist
            chmod 644 /Library/LaunchDaemons/dev.agent-up.server.plist
            launchctl bootstrap system /Library/LaunchDaemons/dev.agent-up.server.plist
-           launchctl kickstart -k system/dev.agent-up.server
            """ + Environment.NewLine;
 }
