@@ -18,4 +18,10 @@ public sealed class WindowsFileSystemPackageWriter : IWindowsPackageWriter
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, text);
     }
+
+    public void CopyFile(string sourcePath, string destinationPath)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+        File.Copy(sourcePath, destinationPath, overwrite: true);
+    }
 }

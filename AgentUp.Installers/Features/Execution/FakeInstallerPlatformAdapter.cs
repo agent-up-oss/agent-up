@@ -42,7 +42,7 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var operation = operations[index];
-            await Task.Delay(1, cancellationToken);
+            await Task.Yield();
             yield return new InstallProgress(operation.Kind, operation.Title, index + 1, operations.Count);
         }
     }

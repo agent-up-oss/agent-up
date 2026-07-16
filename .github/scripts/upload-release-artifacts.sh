@@ -26,6 +26,7 @@ expected_artifacts=(
   "agent-up-nixos-pkgs.tar.gz"
   "agent-up-ubuntu-linux-x64.deb"
   "agent-up-windows-win-x64.exe"
+  "agent-up-windows-win-x64.msi"
   "agent-up-sbom.cdx.json"
 )
 
@@ -67,6 +68,7 @@ cat > "$manifest" <<JSON
     "agent-up-nixos-pkgs.tar.gz",
     "agent-up-ubuntu-linux-x64.deb",
     "agent-up-windows-win-x64.exe",
+    "agent-up-windows-win-x64.msi",
     "agent-up-sbom.cdx.json"
   ],
   "checksums": "checksums.sha256"

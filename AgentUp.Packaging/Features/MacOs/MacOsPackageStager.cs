@@ -15,12 +15,9 @@ public sealed class MacOsPackageStager
 
         _writer.ResetDirectory(layout.PackageRootDirectory);
         _writer.CreateDirectory(layout.ComponentPackageDirectory);
-        _writer.CreateDirectory(layout.AppMacOsDirectory);
-        _writer.CopyDirectory(layout.DesktopPublishDirectory, layout.AppMacOsDirectory);
-        _writer.WriteText(Path.Combine(layout.AppContentsDirectory, "Info.plist"), plists.DesktopInfoPlist());
-        _writer.SetExecutable(Path.Combine(layout.AppMacOsDirectory, "AgentUp.Desktop"));
 
-        _writer.CopyDirectory(layout.AppBundleDirectory, Path.Combine(layout.DesktopComponentRoot, "Applications", "Agent-Up.app"));
+        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"));
+        _writer.SetExecutable(Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
         _writer.CopyDirectory(layout.CliPublishDirectory, Path.Combine(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"));
         _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Combine(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"));
         _writer.WriteText(layout.LaunchDaemonPlistPath, plists.LaunchDaemonPlist());

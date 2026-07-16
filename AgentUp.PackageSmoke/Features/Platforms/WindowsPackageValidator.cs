@@ -15,8 +15,10 @@ public sealed class WindowsPackageValidator : IPackageValidator
     {
         var assert = new FileAssertions();
         var installer = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
+        var productMsi = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
         assert.FileExists(installer, "windows.artifact");
-        if (!File.Exists(installer))
+        assert.FileExists(productMsi, "windows.product.msi");
+        if (!File.Exists(installer) || !File.Exists(productMsi))
             return new PackageValidationResult(null, null, assert.Findings);
 
         var layoutDirectory = Path.Combine(request.WorkDirectory, "layout");
@@ -26,8 +28,6 @@ public sealed class WindowsPackageValidator : IPackageValidator
             assert.Error("windows.layout", $"installer layout failed: {layout.Stderr}{layout.Stdout}");
             return new PackageValidationResult(null, null, assert.Findings);
         }
-
-        assert.FileExists(Path.Combine(layoutDirectory, "Product.msi"), "windows.product.msi");
 
         return new PackageValidationResult(null, null, assert.Findings);
     }

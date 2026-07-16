@@ -54,7 +54,8 @@ public class WindowsWixSourceGeneratorTests
 
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).BundleWxs(layout);
 
-        Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication.RtfLicense"));
+        Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication"));
+        Assert.That(xml, Does.Contain("Theme=\"rtfLicense\""));
         Assert.That(xml, Does.Contain("MsiPackage"));
         Assert.That(xml, Does.Contain(layout.ProductMsiPath));
         Assert.That(xml, Does.Contain("http://wixtoolset.org/schemas/v4/wxs/bal"));

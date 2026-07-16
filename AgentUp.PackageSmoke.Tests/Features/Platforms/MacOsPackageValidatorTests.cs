@@ -39,8 +39,7 @@ public class MacOsPackageValidatorTests
 
     private static void CreateExpandedPackage(string root)
     {
-        WriteExecutable(Path.Combine(root, "DesktopApp.pkg", "Payload", "Applications", "Agent-Up.app", "Contents", "MacOS", "AgentUp.Desktop"));
-        WriteText(Path.Combine(root, "DesktopApp.pkg", "Payload", "Applications", "Agent-Up.app", "Contents", "Info.plist"), "<plist />");
+        WriteExecutable(Path.Combine(root, "DesktopApp.pkg", "Payload", "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
         WriteExecutable(Path.Combine(root, "Server.pkg", "Payload", "Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
         WriteText(Path.Combine(root, "Server.pkg", "Payload", "Library", "LaunchDaemons", "dev.agent-up.server.plist"), "/Library/Application Support/Agent-Up/server/AgentUp.Server\n<key>ThrottleInterval</key>\n");
         WriteText(Path.Combine(root, "Server.pkg", "Scripts", "postinstall"), "launchctl bootstrap system\n");
