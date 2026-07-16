@@ -24,7 +24,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             return null;
 
         var installLog = Path.Join(request.WorkDirectory, "windows-msi-install.log");
-        await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/L*v", installLog], installLog, "installed.windows.install", cancellationToken);
+        await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/l*vx!", installLog], installLog, "installed.windows.install", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", "agent-up-server"]), "installed.windows.service.start", cancellationToken);
 
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
@@ -58,7 +58,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         return new InstalledServiceContext(
             cli,
-            [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart", "/L*v", Path.Join(request.WorkDirectory, "windows-msi-uninstall.log")])],
+            [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart", "/l*vx!", Path.Join(request.WorkDirectory, "windows-msi-uninstall.log")])],
             [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);
     }
 
@@ -69,6 +69,34 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             return;
 
         var log = File.Exists(logPath) ? await File.ReadAllTextAsync(logPath, cancellationToken) : "";
-        assert.Error(code, $"msiexec.exe failed with exit code {result.ExitCode}: {result.Stderr}{result.Stdout}{Environment.NewLine}{log}");
+        assert.Error(code, $"msiexec.exe failed with exit code {result.ExitCode}: {result.Stderr}{result.Stdout}{Environment.NewLine}{SummarizeMsiLog(log)}");
     }
+
+    private static string SummarizeMsiLog(string log)
+    {
+        if (string.IsNullOrWhiteSpace(log))
+            return "MSI log was empty or missing.";
+
+        var lines = log.ReplaceLineEndings("\n").Split('\n');
+        var returnValue3 = Array.FindIndex(lines, line => line.Contains("Return value 3", StringComparison.OrdinalIgnoreCase));
+        if (returnValue3 >= 0)
+            return Window(lines, Math.Max(0, returnValue3 - 40), Math.Min(lines.Length, returnValue3 + 41));
+
+        var diagnosticLines = lines
+            .Where(line =>
+                line.Contains("Error ", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("ActionStart", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Action ended", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Value 3", StringComparison.OrdinalIgnoreCase))
+            .TakeLast(120)
+            .ToArray();
+
+        if (diagnosticLines.Length > 0)
+            return string.Join(Environment.NewLine, diagnosticLines);
+
+        return Window(lines, Math.Max(0, lines.Length - 160), lines.Length);
+    }
+
+    private static string Window(string[] lines, int start, int end)
+        => string.Join(Environment.NewLine, lines[start..end]);
 }

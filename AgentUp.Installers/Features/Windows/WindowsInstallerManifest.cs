@@ -148,7 +148,7 @@ public sealed class WindowsWixSourceGenerator
                     new XElement(Wix + "ServiceControl",
                         new XAttribute("Id", "StartAgentUpServerService"),
                         new XAttribute("Name", _manifest.ServiceName),
-                        new XAttribute("Stop", "both"),
+                        new XAttribute("Stop", "uninstall"),
                         new XAttribute("Remove", "uninstall"),
                         new XAttribute("Wait", "yes")));
             }

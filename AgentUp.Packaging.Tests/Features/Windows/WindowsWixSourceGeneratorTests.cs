@@ -41,6 +41,8 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Contain("ServiceInstall"));
         Assert.That(xml, Does.Contain("Name=\"agent-up-server\""));
         Assert.That(xml, Does.Not.Contain("Start=\"install\""));
+        Assert.That(xml, Does.Not.Contain("Stop=\"both\""));
+        Assert.That(xml, Does.Contain("Stop=\"uninstall\""));
         Assert.That(xml, Does.Contain("Arguments=\"--urls http://127.0.0.1:5000\""));
         Assert.That(xml, Does.Contain("Name=\"PATH\""));
         Assert.That(xml, Does.Contain("Shortcut"));
