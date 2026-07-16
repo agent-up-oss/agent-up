@@ -12,7 +12,8 @@ async function main() {
     return;
   }
 
-  const semanticRelease = require('semantic-release');
+  const semanticReleaseModule = require('semantic-release');
+  const semanticRelease = semanticReleaseModule.default || semanticReleaseModule;
   const result = await semanticRelease({
     dryRun: true,
     ci: false,
