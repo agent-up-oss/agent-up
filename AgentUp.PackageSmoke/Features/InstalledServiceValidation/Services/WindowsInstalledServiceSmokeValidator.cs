@@ -27,12 +27,16 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         CancellationToken cancellationToken)
     {
         var installer = Path.Join(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
+        var productMsi = Path.Join(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
         var installDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Agent-Up");
         assert.FileExists(installer, "installed.windows.artifact");
-        if (!File.Exists(installer))
+        assert.FileExists(productMsi, "installed.windows.product.msi");
+        if (!File.Exists(installer) || !File.Exists(productMsi))
             return null;
 
-        await RunRequiredAsync(assert, new CommandSpec(installer, ["/quiet", "/norestart"]), "installed.windows.install", cancellationToken);
+        var installLog = Path.Join(request.WorkDirectory, "windows-msi-install.log");
+        await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/l*vx!", installLog], installLog, "installed.windows.install", cancellationToken);
+        await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", "agent-up-server"]), "installed.windows.service.start", cancellationToken);
 
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Join(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
@@ -65,7 +69,45 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         return new InstalledServiceContext(
             cli,
-            [new CommandSpec(installer, ["/uninstall", "/quiet", "/norestart"])],
+            [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart", "/l*vx!", Path.Join(request.WorkDirectory, "windows-msi-uninstall.log")])],
             [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);
     }
+
+    private async Task RunMsiAsync(FileAssertions assert, string[] arguments, string logPath, string code, CancellationToken cancellationToken)
+    {
+        var result = await RunAsync(new CommandSpec("msiexec.exe", arguments), cancellationToken);
+        if (result.ExitCode == 0)
+            return;
+
+        var log = File.Exists(logPath) ? await File.ReadAllTextAsync(logPath, cancellationToken) : "";
+        assert.Error(code, $"msiexec.exe failed with exit code {result.ExitCode}: {result.Stderr}{result.Stdout}{Environment.NewLine}{SummarizeMsiLog(log)}");
+    }
+
+    private static string SummarizeMsiLog(string log)
+    {
+        if (string.IsNullOrWhiteSpace(log))
+            return "MSI log was empty or missing.";
+
+        var lines = log.ReplaceLineEndings("\n").Split('\n');
+        var returnValue3 = Array.FindIndex(lines, line => line.Contains("Return value 3", StringComparison.OrdinalIgnoreCase));
+        if (returnValue3 >= 0)
+            return Window(lines, Math.Max(0, returnValue3 - 40), Math.Min(lines.Length, returnValue3 + 41));
+
+        var diagnosticLines = lines
+            .Where(line =>
+                line.Contains("Error ", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("ActionStart", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Action ended", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Value 3", StringComparison.OrdinalIgnoreCase))
+            .TakeLast(120)
+            .ToArray();
+
+        if (diagnosticLines.Length > 0)
+            return string.Join(Environment.NewLine, diagnosticLines);
+
+        return Window(lines, Math.Max(0, lines.Length - 160), lines.Length);
+    }
+
+    private static string Window(string[] lines, int start, int end)
+        => string.Join(Environment.NewLine, lines[start..end]);
 }

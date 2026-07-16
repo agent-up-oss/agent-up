@@ -36,6 +36,7 @@ mkdir -p "$output_dir/tools" "$output_dir/payloads"
 for rid in "${rids[@]}"; do
   publish_project "$root/AgentUp.Packaging/AgentUp.Packaging.csproj" "$rid" "$output_dir/tools/$rid/packaging"
   publish_project "$root/AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj" "$rid" "$output_dir/tools/$rid/package-smoke"
+  publish_project "$root/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj" "$rid" "$output_dir/payloads/$rid/installer"
   publish_project "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" "$rid" "$output_dir/payloads/$rid/desktop"
   publish_project "$root/AgentUp.Server/AgentUp.Server.csproj" "$rid" "$output_dir/payloads/$rid/server"
   publish_project "$root/AgentUp.CLI/AgentUp.CLI.csproj" "$rid" "$output_dir/payloads/$rid/cli"
@@ -51,7 +52,7 @@ cat > "$output_dir/manifest.json" <<JSON
   "version": "$version",
   "commit": "${GITHUB_SHA:-local}",
   "runtimes": ["linux-x64", "win-x64", "osx-arm64", "osx-x64"],
-  "payloadLayout": "payloads/{rid}/{desktop,server,cli}",
+  "payloadLayout": "payloads/{rid}/{installer,desktop,server,cli}",
   "toolLayout": "tools/{rid}/{packaging,package-smoke}",
   "checksums": "checksums.sha256"
 }

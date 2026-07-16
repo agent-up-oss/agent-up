@@ -26,6 +26,7 @@ public sealed class WindowsPackager
         var layout = WindowsPackageLayout.From(request);
         await _payloads.StageAsync(new PayloadStagingRequest(
             request,
+            layout.InstallerPublishDirectory,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
             layout.CliPublishDirectory),

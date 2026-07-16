@@ -48,4 +48,5 @@ public class WindowsPackageValidatorTests
                 Directory.Delete(root, recursive: true);
         }
     }
+
 }

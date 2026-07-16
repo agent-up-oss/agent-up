@@ -23,6 +23,17 @@ public sealed class PackagePayloadStager
 
         if (request.PayloadRoot is null)
         {
+            if (staging.InstallerPublishDirectory is not null)
+            {
+                await _publisher.PublishDotNetProjectAsync(
+                    Path.Join(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+                    request.RuntimeId,
+                    request.Configuration,
+                    request.Version,
+                    staging.InstallerPublishDirectory,
+                    cancellationToken);
+            }
+
             await _publisher.PublishDotNetProjectAsync(
                 Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
                 request.RuntimeId,
@@ -46,6 +57,9 @@ public sealed class PackagePayloadStager
                 cancellationToken);
             return;
         }
+
+        if (staging.InstallerPublishDirectory is not null)
+            _publisher.CopyPrebuiltPayload(request.InstallerPayloadDirectory!, staging.InstallerPublishDirectory);
 
         _publisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, staging.DesktopPublishDirectory);
         _publisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, staging.ServerPublishDirectory);

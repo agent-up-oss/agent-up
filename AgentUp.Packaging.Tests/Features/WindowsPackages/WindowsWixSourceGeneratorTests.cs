@@ -31,8 +31,9 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_containsWindowsServicePathShortcutAndFiles()
     {
-        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(_root, "windows", "win-x64", "0.0.0-ci.149", "artifacts", "Release");
         var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
@@ -42,8 +43,13 @@ public class WindowsWixSourceGeneratorTests
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).ProductWxs(layout);
 
         Assert.That(xml, Does.Contain("Name=\"Agent-Up\""));
+        Assert.That(xml, Does.Contain("Version=\"0.0.1\""));
+        Assert.That(xml, Does.Contain("EmbedCab=\"yes\""));
         Assert.That(xml, Does.Contain("ServiceInstall"));
         Assert.That(xml, Does.Contain("Name=\"agent-up-server\""));
+        Assert.That(xml, Does.Not.Contain("Start=\"install\""));
+        Assert.That(xml, Does.Not.Contain("Stop=\"both\""));
+        Assert.That(xml, Does.Contain("Stop=\"uninstall\""));
         Assert.That(xml, Does.Contain("Arguments=\"--urls http://127.0.0.1:5000\""));
         Assert.That(xml, Does.Contain("Name=\"PATH\""));
         Assert.That(xml, Does.Contain("Shortcut"));
@@ -53,17 +59,27 @@ public class WindowsWixSourceGeneratorTests
     }
 
     [Test]
-    public void BundleWxs_chainsGeneratedMsi()
+    public void BundleWxs_chainsGuidedInstallerWithBundledPayload()
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
         var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+        WritePublishedFile(layout.InstallerPublishDirectory, "support.dll");
+        WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
 
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).BundleWxs(layout);
 
         Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication"));
         Assert.That(xml, Does.Contain("Theme=\"rtfLicense\""));
-        Assert.That(xml, Does.Contain("MsiPackage"));
-        Assert.That(xml, Does.Contain(layout.ProductMsiPath));
+        Assert.That(xml, Does.Contain("ExePackage"));
+        Assert.That(xml, Does.Contain("AgentUp.InstallerApp.exe"));
+        Assert.That(xml, Does.Not.Contain("MsiPackage"));
+        Assert.That(xml, Does.Contain("Name=\"payload\\desktop\\AgentUp.Desktop.exe\""));
+        Assert.That(xml, Does.Contain("Name=\"payload\\server\\AgentUp.Server.exe\""));
+        Assert.That(xml, Does.Contain("Name=\"payload\\cli\\AgentUp.CLI.exe\""));
+        Assert.That(xml, Does.Contain("Name=\"installer\\support.dll\""));
         Assert.That(xml, Does.Contain("http://wixtoolset.org/schemas/v4/wxs/bal"));
     }
 

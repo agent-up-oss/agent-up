@@ -3,12 +3,12 @@
 const fs = require('fs');
 
 async function main() {
-  const sha = (process.env.GITHUB_SHA || 'unknown').substring(0, 8);
   const run = process.env.GITHUB_RUN_NUMBER || '0';
+  const fallbackVersion = `0.0.0-ci.${run}`;
   const isMain = process.env.GITHUB_REF === 'refs/heads/main';
 
   if (!isMain) {
-    emit(`0.0.0-ci.${run}.${sha}`, false);
+    emit(fallbackVersion, false);
     return;
   }
 
@@ -26,7 +26,7 @@ async function main() {
   if (result?.nextRelease?.version) {
     emit(result.nextRelease.version, true);
   } else {
-    emit(`0.0.0-ci.${run}.${sha}`, false);
+    emit(fallbackVersion, false);
   }
 }
 

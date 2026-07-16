@@ -8,7 +8,7 @@ namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts;
 public class PackagePayloadStagerTests
 {
     [Test]
-    public async Task StageAsync_withoutPayloadRootPublishesDesktopServerAndCli()
+    public async Task StageAsync_withoutPayloadRootPublishesInstallerDesktopServerAndCli()
     {
         var commands = new RecordingCommandRunner();
         var files = new RecordingPackageFileSystem();
@@ -16,13 +16,15 @@ public class PackagePayloadStagerTests
 
         await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
             request,
+            "/stage/installer",
             "/stage/desktop",
             "/stage/server",
             "/stage/cli"));
 
         Assert.That(files.ResetDirectories, Is.EqualTo(new[] { "/repo/artifacts/stage/ubuntu-linux-x64" }));
         Assert.That(files.CreatedDirectories, Is.EqualTo(new[] { "/repo/out" }));
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(3));
+        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(4));
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.Desktop/AgentUp.Desktop.csproj")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.Server/AgentUp.Server.csproj")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.CLI/AgentUp.CLI.csproj")), Is.True);
@@ -39,17 +41,20 @@ public class PackagePayloadStagerTests
 
         try
         {
+            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp");
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
 
             await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
                 request,
+                Path.Join(root, "stage", "installer"),
                 Path.Join(root, "stage", "desktop"),
                 Path.Join(root, "stage", "server"),
                 Path.Join(root, "stage", "cli")));
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
+            Assert.That(File.Exists(Path.Join(root, "stage", "installer", "AgentUp.InstallerApp")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "stage", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "stage", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "stage", "cli", "AgentUp.CLI")), Is.True);

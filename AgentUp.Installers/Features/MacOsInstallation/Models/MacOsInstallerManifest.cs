@@ -44,7 +44,7 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("CFBundleIdentifier", _manifest.InstallerBundleIdentifier),
             KeyString("CFBundleName", "Agent-Up Installer"),
             KeyString("CFBundleDisplayName", "Agent-Up Installer"),
-            KeyString("CFBundleExecutable", "AgentUpInstaller"),
+            KeyString("CFBundleExecutable", "AgentUp.InstallerApp"),
             KeyString("CFBundleVersion", _manifest.Version),
             KeyString("CFBundleShortVersionString", _manifest.Version),
             KeyString("CFBundlePackageType", "APPL")));
