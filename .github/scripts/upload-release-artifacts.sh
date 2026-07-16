@@ -26,6 +26,7 @@ expected_artifacts=(
   "agent-up-nixos-pkgs.tar.gz"
   "agent-up-ubuntu-linux-x64.deb"
   "agent-up-windows-win-x64.exe"
+  "agent-up-windows-win-x64.msi"
 )
 
 for artifact in "${expected_artifacts[@]}"; do
@@ -65,7 +66,8 @@ cat > "$manifest" <<JSON
     "agent-up-macos-osx-x64.pkg",
     "agent-up-nixos-pkgs.tar.gz",
     "agent-up-ubuntu-linux-x64.deb",
-    "agent-up-windows-win-x64.exe"
+    "agent-up-windows-win-x64.exe",
+    "agent-up-windows-win-x64.msi"
   ],
   "checksums": "checksums.sha256"
 }

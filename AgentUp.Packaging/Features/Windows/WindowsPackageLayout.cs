@@ -13,6 +13,7 @@ public sealed record WindowsPackageLayout(
     string BundleWxsPath,
     string LicenseRtfPath,
     string ProductMsiPath,
+    string ProductMsiOutputPath,
     string SetupExePath)
 {
     public static WindowsPackageLayout From(PackageRequest request)
@@ -29,6 +30,7 @@ public sealed record WindowsPackageLayout(
             BundleWxsPath: Path.Combine(installerSource, "Bundle.wxs"),
             LicenseRtfPath: Path.Combine(installerSource, "License.rtf"),
             ProductMsiPath: Path.Combine(stage, "Product.msi"),
+            ProductMsiOutputPath: Path.Combine(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.msi"),
             SetupExePath: Path.Combine(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.exe"));
     }
 

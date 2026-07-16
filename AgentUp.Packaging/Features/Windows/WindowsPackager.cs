@@ -83,6 +83,7 @@ public sealed class WindowsPackager
             "-ext", balExtDll ?? "WixToolset.Bal.wixext",
             "-o", layout.SetupExePath
         ], cancellationToken);
+        _writer.CopyFile(layout.ProductMsiPath, layout.ProductMsiOutputPath);
     }
 
     private Task<CommandResult> RunWixAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)

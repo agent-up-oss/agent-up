@@ -15,11 +15,12 @@ public class WindowsPackageValidatorTests
         Directory.CreateDirectory(artifactDir);
         var installer = Path.Combine(artifactDir, "agent-up-windows-win-x64.exe");
         File.WriteAllText(installer, "");
+        File.WriteAllText(Path.Combine(artifactDir, "agent-up-windows-win-x64.msi"), "");
         var commands = new RecordingCommandRunner((command, _) =>
         {
             Assert.That(command.FileName, Is.EqualTo(installer));
             Assert.That(command.Arguments, Is.EqualTo(new[] { "/layout", Path.Combine(workDir, "layout"), "/quiet" }));
-            CreateLayout(Path.Combine(workDir, "layout"));
+            Directory.CreateDirectory(Path.Combine(workDir, "layout"));
             return new CommandResult(0, "", "");
         });
 
@@ -36,16 +37,5 @@ public class WindowsPackageValidatorTests
             if (Directory.Exists(root))
                 Directory.Delete(root, recursive: true);
         }
-    }
-
-    private static void CreateLayout(string root)
-    {
-        WriteText(Path.Combine(root, "AttachedContainer", "Product.msi"), "");
-    }
-
-    private static void WriteText(string path, string text)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
     }
 }

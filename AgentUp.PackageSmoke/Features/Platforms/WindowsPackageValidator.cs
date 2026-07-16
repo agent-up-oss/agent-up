@@ -15,8 +15,10 @@ public sealed class WindowsPackageValidator : IPackageValidator
     {
         var assert = new FileAssertions();
         var installer = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
+        var productMsi = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
         assert.FileExists(installer, "windows.artifact");
-        if (!File.Exists(installer))
+        assert.FileExists(productMsi, "windows.product.msi");
+        if (!File.Exists(installer) || !File.Exists(productMsi))
             return new PackageValidationResult(null, null, assert.Findings);
 
         var layoutDirectory = Path.Combine(request.WorkDirectory, "layout");
@@ -27,20 +29,6 @@ public sealed class WindowsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        var productMsi = FindProductMsi(layoutDirectory);
-        if (productMsi is null)
-            assert.Error("windows.product.msi", $"Expected file missing: {Path.Combine(layoutDirectory, "**", "Product.msi")}");
-
         return new PackageValidationResult(null, null, assert.Findings);
-    }
-
-    private static string? FindProductMsi(string layoutDirectory)
-    {
-        if (!Directory.Exists(layoutDirectory))
-            return null;
-
-        return Directory
-            .EnumerateFiles(layoutDirectory, "Product.msi", SearchOption.AllDirectories)
-            .FirstOrDefault();
     }
 }

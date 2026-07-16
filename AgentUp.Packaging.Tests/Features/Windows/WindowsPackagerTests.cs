@@ -32,6 +32,7 @@ public class WindowsPackagerTests
         Assert.That(commands.Commands[^1].Arguments.Any(argument => argument.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(commands.Commands[^1].Arguments, Does.Contain("WixToolset.Bal.wixext"));
         Assert.That(commands.Commands[^1].Arguments, Does.Contain(Path.Combine(root, "out", "agent-up-windows-win-x64.exe")));
+        Assert.That(writer.CopiedFiles, Does.Contain((Path.Combine(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Combine(root, "out", "agent-up-windows-win-x64.msi"))));
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("agent-up.cmd", StringComparison.Ordinal)), Is.True);
@@ -59,6 +60,7 @@ public class WindowsPackagerTests
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
             Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
+            Assert.That(writer.CopiedFiles, Does.Contain((Path.Combine(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Combine(root, "out", "agent-up-windows-win-x64.msi"))));
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
         }
@@ -115,9 +117,11 @@ public class WindowsPackagerTests
     private sealed class RecordingWindowsPackageWriter : IWindowsPackageWriter
     {
         public Dictionary<string, string> WrittenText { get; } = [];
+        public List<(string SourcePath, string DestinationPath)> CopiedFiles { get; } = [];
 
         public void ResetDirectory(string path) { }
         public void CreateDirectory(string path) { }
         public void WriteText(string path, string text) => WrittenText[path] = text;
+        public void CopyFile(string sourcePath, string destinationPath) => CopiedFiles.Add((sourcePath, destinationPath));
     }
 }
