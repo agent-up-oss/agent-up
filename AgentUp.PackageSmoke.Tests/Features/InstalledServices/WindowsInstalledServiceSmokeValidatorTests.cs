@@ -1,6 +1,7 @@
 using AgentUp.PackageSmoke.Features.InstalledServices;
 using AgentUp.PackageSmoke.Features.Validation;
 using AgentUp.PackageSmoke.Tests.Features.Platforms;
+using AgentUp.PackageSmoke.Tests.Features.Security;
 
 namespace AgentUp.PackageSmoke.Tests.Features.InstalledServices;
 
@@ -30,7 +31,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
         try
         {
-            var result = await new WindowsInstalledServiceSmokeValidator(commands, probe)
+            var result = await new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks())
                 .ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
@@ -66,7 +67,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
         try
         {
-            var result = await new WindowsInstalledServiceSmokeValidator(commands, new FakeServerProbe(null))
+            var result = await new WindowsInstalledServiceSmokeValidator(commands, new FakeServerProbe(null), new NullRuntimeSecurityChecks())
                 .ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.False);

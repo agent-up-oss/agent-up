@@ -1,3 +1,4 @@
+using AgentUp.PackageSmoke.Features.Security;
 using AgentUp.PackageSmoke.Features.Validation;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServices;
@@ -5,12 +6,15 @@ namespace AgentUp.PackageSmoke.Features.InstalledServices;
 public static class InstalledServiceSmokeValidatorFactory
 {
     public static IInstalledServiceSmokeValidator Create(string platform, ICommandRunner commands, IServerProbe serverProbe)
-        => platform switch
+    {
+        var securityChecks = new RuntimeSecurityChecks(new SystemNetworkStateProvider(), new HttpClient());
+        return platform switch
         {
-            "ubuntu" => new UbuntuInstalledServiceSmokeValidator(commands, serverProbe),
-            "macos" => new MacOsInstalledServiceSmokeValidator(commands, serverProbe),
-            "windows" => new WindowsInstalledServiceSmokeValidator(commands, serverProbe),
+            "ubuntu" => new UbuntuInstalledServiceSmokeValidator(commands, serverProbe, securityChecks),
+            "macos" => new MacOsInstalledServiceSmokeValidator(commands, serverProbe, securityChecks),
+            "windows" => new WindowsInstalledServiceSmokeValidator(commands, serverProbe, securityChecks),
             "nixos" => new SkippedInstalledServiceSmokeValidator("Skipping installed-service smoke for NixOS because this CI job runs on Ubuntu with Nix, not a booted NixOS systemd host."),
             _ => throw new ArgumentException($"Unsupported platform: {platform}", nameof(platform))
         };
+    }
 }

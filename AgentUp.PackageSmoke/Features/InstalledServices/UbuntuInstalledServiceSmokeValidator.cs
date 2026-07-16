@@ -1,11 +1,12 @@
+using AgentUp.PackageSmoke.Features.Security;
 using AgentUp.PackageSmoke.Features.Validation;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServices;
 
 public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
 {
-    public UbuntuInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe)
-        : base(commands, serverProbe)
+    public UbuntuInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
+        : base(commands, serverProbe, securityChecks)
     {
     }
 

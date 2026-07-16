@@ -2,16 +2,49 @@ name: Agent-Up CI
 
 on: [push]
 
+concurrency:
+  group: >-
+    ${{ github.ref == 'refs/heads/main'
+      && format('{0}-main-release', github.workflow)
+      || format('{0}-{1}-{2}', github.workflow, github.ref, github.run_id) }}
+  queue: max
+
 permissions:
   contents: read
-  pull-requests: write
-  checks: write
-  actions: write
 
 jobs:
+  version:
+    name: Determine version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install release tooling
+        run: npm install
+
+      - name: Plan version
+        id: plan
+        run: node .github/scripts/plan-version.js
+
   dotnet-build-test:
     name: .NET build, tests, and payloads
     runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      actions: read
+      contents: read
+      checks: write
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -124,10 +157,16 @@ jobs:
         run: |
           echo "Skipping Sonar because SONAR_TOKEN or SONAR_HOST_URL is not configured."
 
+      - name: Generate SBOM
+        run: |
+          dotnet tool install --global CycloneDX
+          dotnet CycloneDX agent-up.sln --json --out artifacts/sbom --set-version "${{ needs.version.outputs.version }}"
+          mv artifacts/sbom/bom.json artifacts/sbom/agent-up-sbom.cdx.json
+
       - name: Publish .NET CI artifacts
         shell: bash
         run: |
-          ./.github/scripts/publish-dotnet-ci-artifacts.sh "0.0.0-ci" "artifacts/dotnet-ci"
+          ./.github/scripts/publish-dotnet-ci-artifacts.sh "${{ needs.version.outputs.version }}" "artifacts/dotnet-ci"
 
       - name: Prepare per-platform .NET CI artifacts
         shell: bash
@@ -184,6 +223,13 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: artifacts/sbom/agent-up-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Test Report
         uses: dorny/test-reporter@v2
         if: ${{ !cancelled() }}
@@ -195,7 +241,10 @@ jobs:
   platform:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    needs: dotnet-build-test
+    needs: [dotnet-build-test, version]
+    permissions:
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -268,7 +317,7 @@ jobs:
             tool_suffix=".exe"
           fi
           export AGENTUP_PACKAGING_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging$tool_suffix"
-          ./scripts/package-release.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "0.0.0-ci" "release-artifacts" \
+          ./scripts/package-release.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "${{ needs.version.outputs.version }}" "release-artifacts" \
             --payload-root "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
 
       - name: Smoke test packaged artifact
@@ -327,10 +376,10 @@ jobs:
           npm --prefix docs run build
 
   release:
-    name: Release to MinIO
+    name: Release
     runs-on: ubuntu-latest
-    needs: [platform, docs]
-    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [platform, docs, version]
+    if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
     permissions:
       actions: write
       contents: write
@@ -348,36 +397,32 @@ jobs:
       - name: Install release tooling
         run: npm install
 
-      - name: Install mc
-        run: ./.github/scripts/install-mc.sh
-
       - uses: actions/download-artifact@v4
         with:
           pattern: package-*
           path: release-artifacts
           merge-multiple: true
 
-      - name: Delete consumed package artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: release-artifacts
+
+      - name: Delete consumed package and SBOM artifacts
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select(.name | startswith("package-")) | .id' |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select(.name | startswith("package-") or .name == "sbom") | .id' |
             while IFS= read -r artifact_id; do
               if [ -n "$artifact_id" ]; then
                 gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id"
               fi
             done
 
-      - name: Validate downloaded release artifacts
-        run: |
-          ./.github/scripts/upload-release-artifacts.sh --check-only
-          find release-artifacts -maxdepth 1 -type f -printf "Ready artifact: %f (%s bytes)\n" | sort
+      - name: Prepare release artifacts
+        run: ./.github/scripts/upload-release-artifacts.sh "${{ needs.version.outputs.version }}"
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AGENTUP_RELEASE_BUCKET: ${{ secrets.AGENTUP_RELEASE_BUCKET }}
-          AGENTUP_RELEASE_S3_ENDPOINT: ${{ secrets.AGENTUP_RELEASE_S3_ENDPOINT }}
-          AGENTUP_RELEASE_S3_ACCESS_KEY: ${{ secrets.AGENTUP_RELEASE_S3_ACCESS_KEY }}
-          AGENTUP_RELEASE_S3_SECRET_KEY: ${{ secrets.AGENTUP_RELEASE_S3_SECRET_KEY }}
         run: npx semantic-release
