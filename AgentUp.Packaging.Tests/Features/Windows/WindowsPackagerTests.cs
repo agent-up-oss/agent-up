@@ -25,8 +25,9 @@ public class WindowsPackagerTests
         }
 
         Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(3));
-        Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
-        Assert.That(commands.Commands[^3].Arguments, Is.EqualTo(new[] { "eula", "accept", "wix7" }));
+        Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(4));
+        Assert.That(commands.Commands[^4].Arguments, Is.EqualTo(new[] { "eula", "accept", "wix7" }));
+        Assert.That(commands.Commands[^3].Arguments, Is.EqualTo(new[] { "extension", "add", "WixToolset.Bal.wixext" }));
         Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.msi", StringComparison.Ordinal)), Is.True);
         Assert.That(commands.Commands[^1].Arguments.Any(argument => argument.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
@@ -58,7 +59,7 @@ public class WindowsPackagerTests
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
-            Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
+            Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(4));
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
         }
