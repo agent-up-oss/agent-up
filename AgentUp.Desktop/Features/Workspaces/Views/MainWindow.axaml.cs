@@ -122,90 +122,109 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private void HandleNavigation(string? workspaceId, string? url)
     {
         var tutorialVisible = IsTutorialVisible();
-        if (workspaceId != _activeWorkspaceId)
+        ActivateWorkspaceWebView(workspaceId, tutorialVisible);
+
+        if (url is null || workspaceId is null) return;
+        if (!TryGetOrCreateWebView(workspaceId, url, out var webView, out var destinationUrl)) return;
+
+        webView.IsVisible = !tutorialVisible;
+        NavigateWebView(webView, new Uri(destinationUrl));
+    }
+
+    private void ActivateWorkspaceWebView(string? workspaceId, bool tutorialVisible)
+    {
+        if (workspaceId == _activeWorkspaceId) return;
+
+        if (_activeWorkspaceId is not null && _webViews.TryGetValue(_activeWorkspaceId, out var previous))
+            previous.IsVisible = false;
+
+        _activeWorkspaceId = workspaceId;
+
+        if (workspaceId is not null && _webViews.TryGetValue(workspaceId, out var existing))
+            existing.IsVisible = !tutorialVisible;
+
+        UpdateErrorDisplay(workspaceId);
+    }
+
+    private bool TryGetOrCreateWebView(
+        string workspaceId,
+        string requestedUrl,
+        out NativeWebView webView,
+        out string destinationUrl)
+    {
+        destinationUrl = requestedUrl;
+        if (_webViews.TryGetValue(workspaceId, out webView!))
+            return true;
+
+        try
         {
-            if (_activeWorkspaceId is not null && _webViews.TryGetValue(_activeWorkspaceId, out var prev))
-                prev.IsVisible = false;
+            webView = CreateWorkspaceWebView(workspaceId);
+            _webViews[workspaceId] = webView;
+            _webViewErrors.Remove(workspaceId);
 
-            _activeWorkspaceId = workspaceId;
+            // Restore last-visited URL before the first navigation.
+            destinationUrl = BrowserUrlStore.Read(workspaceId, requestedUrl) ?? requestedUrl;
 
-            if (workspaceId is not null && _webViews.TryGetValue(workspaceId, out var existing))
-                existing.IsVisible = !tutorialVisible;
-
+            PortPane.Children.Add(webView);
             UpdateErrorDisplay(workspaceId);
+            return true;
         }
-
-        if (url is not null && workspaceId is not null)
+        catch (Exception ex)
         {
-            var isNew = !_webViews.TryGetValue(workspaceId, out var webView);
-            if (isNew)
-            {
-                try
-                {
-                    webView = WebViewFactory();
-                    var capturedId = workspaceId;
-                    webView.PropertyChanged += (_, e) =>
-                    {
-                        if (e.Property.Name != nameof(NativeWebView.Source)) return;
-                        UpdateAddressFromWebView(capturedId, webView.Source);
-                    };
-                    webView.EnvironmentRequested += (_, e) =>
-                    {
-                        ConfigureWebViewProfile(capturedId, e);
-                    };
-                    var firstNavDone = false;
-                    webView.NavigationCompleted += (_, e) =>
-                    {
-                        if (!e.IsSuccess || e.Request is not { } uri) return;
-                        UpdateAddressFromWebView(capturedId, uri);
-                        if (firstNavDone) return;
-                        firstNavDone = true;
-                        // WebKit renders content into the native window but GTK only composites
-                        // it when XMapWindow fires an Expose event on the embedded window.
-                        // The window was already mapped before the first navigation completed,
-                        // so no Expose arrives — content loads but stays invisible.
-                        // A hide→show at separate dispatcher priorities forces XMapWindow,
-                        // which sends the Expose that causes WebKit to repaint.
-                        // Background priority ensures the show runs after layout/render have
-                        // already processed the hide (unmapping the native window first).
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            if (!webView.IsVisible) return;
-                            webView.IsVisible = false;
-                            Dispatcher.UIThread.Post(
-                                () => webView.IsVisible = true,
-                                DispatcherPriority.Background);
-                        });
-                    };
-                    _webViews[workspaceId] = webView;
-                    _webViewErrors.Remove(workspaceId);
-
-                    // Restore last-visited URL before the first navigation.
-                    url = BrowserUrlStore.Read(workspaceId, url) ?? url;
-
-                    PortPane.Children.Add(webView);
-                    UpdateErrorDisplay(workspaceId);
-                }
-                catch (Exception ex)
-                {
-                    _webViewErrors[workspaceId] = $"Could not start the browser: {ex.Message}";
-                    UpdateErrorDisplay(workspaceId);
-                    return;
-                }
-            }
-
-            webView!.IsVisible = !tutorialVisible;
-            var destination = new Uri(url);
-            if (!isNew && string.Equals(webView.Source?.ToString(), destination.ToString(), StringComparison.Ordinal))
-            {
-                webView.Source = new Uri("about:blank");
-                Dispatcher.UIThread.Post(() => webView.Source = destination, DispatcherPriority.Background);
-            }
-            else
-            {
-                webView.Source = destination;
-            }
+            _webViewErrors[workspaceId] = $"Could not start the browser: {ex.Message}";
+            UpdateErrorDisplay(workspaceId);
+            return false;
         }
+    }
+
+    private NativeWebView CreateWorkspaceWebView(string workspaceId)
+    {
+        var webView = WebViewFactory();
+        webView.PropertyChanged += (_, e) =>
+        {
+            if (e.Property.Name == nameof(NativeWebView.Source))
+                UpdateAddressFromWebView(workspaceId, webView.Source);
+        };
+        webView.EnvironmentRequested += (_, e) => ConfigureWebViewProfile(workspaceId, e);
+
+        var firstNavDone = false;
+        webView.NavigationCompleted += (_, e) =>
+        {
+            if (!e.IsSuccess || e.Request is not { } uri) return;
+            UpdateAddressFromWebView(workspaceId, uri);
+            if (firstNavDone) return;
+            firstNavDone = true;
+            ForceFirstWebKitPaint(webView);
+        };
+
+        return webView;
+    }
+
+    private static void NavigateWebView(NativeWebView webView, Uri destination)
+    {
+        if (string.Equals(webView.Source?.ToString(), destination.ToString(), StringComparison.Ordinal))
+        {
+            webView.Source = new Uri("about:blank");
+            Dispatcher.UIThread.Post(() => webView.Source = destination, DispatcherPriority.Background);
+            return;
+        }
+
+        webView.Source = destination;
+    }
+
+    private static void ForceFirstWebKitPaint(NativeWebView webView)
+    {
+        // WebKit renders content into the native window but GTK only composites it when
+        // the embedded window receives an Expose event. A hide/show at separate dispatcher
+        // priorities forces the repaint after first navigation.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!webView.IsVisible) return;
+            webView.IsVisible = false;
+            Dispatcher.UIThread.Post(
+                () => webView.IsVisible = true,
+                DispatcherPriority.Background);
+        });
     }
 
     private bool IsTutorialVisible()

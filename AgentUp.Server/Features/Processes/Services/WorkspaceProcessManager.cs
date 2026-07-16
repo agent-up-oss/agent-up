@@ -102,29 +102,10 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             // Remove any stale container with this name
             await RunDockerAsync("rm", "-f", containerName);
 
-            var runArgs = new List<string> { "run", "-d", "--name", containerName };
-            foreach (var mapping in app.AllocatedPorts)
-            {
-                runArgs.Add("-p");
-                runArgs.Add($"{mapping.AllocatedPort}:{mapping.DefaultPort}");
-            }
-            foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
-            {
-                runArgs.Add("-e");
-                runArgs.Add($"{key}={value}");
-            }
-            foreach (var volume in app.Volumes ?? [])
-            {
-                runArgs.Add("-v");
-                runArgs.Add(volume);
-            }
-            runArgs.Add(app.Image!);
-
-            var (exitCode, _, stderr) = await RunDockerAsync([.. runArgs]);
+            var (exitCode, _, stderr) = await RunDockerAsync([.. CreateDockerRunArgs(containerName, app)]);
             if (exitCode != 0)
             {
-                foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                    await _output.AppendAsync(workspaceId, app.Name, "[err] " + line.TrimEnd('\r'));
+                await AppendDockerErrorAsync(workspaceId, app.Name, stderr);
                 throw new InvalidOperationException($"docker run failed for '{app.Name}': {stderr.Trim()}");
             }
 
@@ -149,23 +130,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         }
 
         // Tail logs for output capture
-        var logProcess = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "docker",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            },
-            EnableRaisingEvents = true
-        };
-        logProcess.StartInfo.ArgumentList.Add("logs");
-        logProcess.StartInfo.ArgumentList.Add("-f");
-        logProcess.StartInfo.ArgumentList.Add(containerName);
-
         var appName = app.Name;
+        var logProcess = CreateDockerLogProcess(containerName);
         logProcess.OutputDataReceived += (_, e) =>
         {
             if (e.Data is not null)
@@ -201,6 +167,69 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         logProcess.BeginOutputReadLine();
         logProcess.BeginErrorReadLine();
         _processes[(workspaceId, appName)] = logProcess;
+    }
+
+    private static List<string> CreateDockerRunArgs(string containerName, ApplicationInstance app)
+    {
+        var runArgs = new List<string> { "run", "-d", "--name", containerName };
+        AddDockerPortArgs(runArgs, app);
+        AddDockerEnvironmentArgs(runArgs, app);
+        AddDockerVolumeArgs(runArgs, app);
+        runArgs.Add(app.Image!);
+        return runArgs;
+    }
+
+    private static void AddDockerPortArgs(List<string> runArgs, ApplicationInstance app)
+    {
+        foreach (var mapping in app.AllocatedPorts)
+        {
+            runArgs.Add("-p");
+            runArgs.Add($"{mapping.AllocatedPort}:{mapping.DefaultPort}");
+        }
+    }
+
+    private static void AddDockerEnvironmentArgs(List<string> runArgs, ApplicationInstance app)
+    {
+        foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
+        {
+            runArgs.Add("-e");
+            runArgs.Add($"{key}={value}");
+        }
+    }
+
+    private static void AddDockerVolumeArgs(List<string> runArgs, ApplicationInstance app)
+    {
+        foreach (var volume in app.Volumes ?? [])
+        {
+            runArgs.Add("-v");
+            runArgs.Add(volume);
+        }
+    }
+
+    private async Task AppendDockerErrorAsync(string workspaceId, string appName, string stderr)
+    {
+        foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            await _output.AppendAsync(workspaceId, appName, "[err] " + line.TrimEnd('\r'));
+    }
+
+    private static Process CreateDockerLogProcess(string containerName)
+    {
+        var logProcess = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "docker",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            },
+            EnableRaisingEvents = true
+        };
+        logProcess.StartInfo.ArgumentList.Add("logs");
+        logProcess.StartInfo.ArgumentList.Add("-f");
+        logProcess.StartInfo.ArgumentList.Add(containerName);
+        return logProcess;
     }
 
     public async Task KillAsync(string workspaceId)
