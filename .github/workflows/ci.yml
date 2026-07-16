@@ -42,6 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: version
     permissions:
+      actions: read
       contents: read
       checks: write
       security-events: write
