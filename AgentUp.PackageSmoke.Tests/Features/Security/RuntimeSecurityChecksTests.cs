@@ -148,10 +148,13 @@ public class RuntimeSecurityChecksTests
 
     private static RuntimeSecurityChecks MakeChecks(IPEndPoint[] listeners, string? serverHeader)
     {
-        var response = new HttpResponseMessage(HttpStatusCode.OK);
-        if (serverHeader is not null)
-            response.Headers.TryAddWithoutValidation("Server", serverHeader);
-        var handler = new FakeHttpMessageHandler(_ => Task.FromResult(response));
+        var handler = new FakeHttpMessageHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            if (serverHeader is not null)
+                response.Headers.TryAddWithoutValidation("Server", serverHeader);
+            return Task.FromResult(response);
+        });
         return new RuntimeSecurityChecks(new FakeNetworkStateProvider(listeners), new HttpClient(handler));
     }
 
