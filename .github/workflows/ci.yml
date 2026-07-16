@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: read
       checks: write
+      security-events: write
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -47,6 +48,11 @@ jobs:
             /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="$SONAR_HOST_URL"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
 
       - name: Build
         run: |
@@ -123,6 +129,11 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' && (env.SONAR_TOKEN == '' || env.SONAR_HOST_URL == '') }}
         run: |
           echo "Skipping Sonar because SONAR_TOKEN or SONAR_HOST_URL is not configured."
+
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:csharp
 
       - name: Publish .NET CI artifacts
         shell: bash
