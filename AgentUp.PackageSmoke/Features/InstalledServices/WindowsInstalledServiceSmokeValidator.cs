@@ -15,16 +15,16 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var installer = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
-        var installDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Agent-Up");
+        var installer = Path.Join(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
+        var installDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Agent-Up");
         assert.FileExists(installer, "installed.windows.artifact");
         if (!File.Exists(installer))
             return null;
 
         await RunRequiredAsync(assert, new CommandSpec(installer, ["/quiet", "/norestart"]), "installed.windows.install", cancellationToken);
 
-        var cli = Path.Combine(installDir, "cli", "AgentUp.CLI.exe");
-        assert.FileExists(Path.Combine(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
+        var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
+        assert.FileExists(Path.Join(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
         assert.FileExists(cli, "installed.windows.cli");
 
         var pathCheck = """

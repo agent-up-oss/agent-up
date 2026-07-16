@@ -9,18 +9,18 @@ public class WindowsPackageValidatorTests
     [Test]
     public async Task ValidateAsync_reportsExpectedPathsAndContractFindings()
     {
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-Smoke-Windows", Guid.NewGuid().ToString());
-        var artifactDir = Path.Combine(root, "artifacts");
-        var workDir = Path.Combine(root, "work");
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-Smoke-Windows", Guid.NewGuid().ToString());
+        var artifactDir = Path.Join(root, "artifacts");
+        var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);
-        var installer = Path.Combine(artifactDir, "agent-up-windows-win-x64.exe");
+        var installer = Path.Join(artifactDir, "agent-up-windows-win-x64.exe");
         File.WriteAllText(installer, "");
-        File.WriteAllText(Path.Combine(artifactDir, "agent-up-windows-win-x64.msi"), "");
+        File.WriteAllText(Path.Join(artifactDir, "agent-up-windows-win-x64.msi"), "");
         var commands = new RecordingCommandRunner((command, _) =>
         {
             Assert.That(command.FileName, Is.EqualTo(installer));
-            Assert.That(command.Arguments, Is.EqualTo(new[] { "/layout", Path.Combine(workDir, "layout"), "/quiet" }));
-            Directory.CreateDirectory(Path.Combine(workDir, "layout"));
+            Assert.That(command.Arguments, Is.EqualTo(new[] { "/layout", Path.Join(workDir, "layout"), "/quiet" }));
+            Directory.CreateDirectory(Path.Join(workDir, "layout"));
             return new CommandResult(0, "", "");
         });
 

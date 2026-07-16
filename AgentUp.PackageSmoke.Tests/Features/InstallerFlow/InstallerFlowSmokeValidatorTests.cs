@@ -9,7 +9,7 @@ public class InstallerFlowSmokeValidatorTests
     [Test]
     public async Task ValidateAsync_exercisesDryRunInstallerFlow()
     {
-        var workDir = Path.Combine(Path.GetTempPath(), "AgentUp-InstallerFlow", Guid.NewGuid().ToString());
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-InstallerFlow", Guid.NewGuid().ToString());
         var previousFake = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable);
 
         try
@@ -19,7 +19,7 @@ public class InstallerFlowSmokeValidatorTests
             var result = await new InstallerFlowSmokeValidator().ValidateAsync("ubuntu", workDir);
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(File.Exists(Path.Combine(workDir, "installer-flow.log")), Is.True);
+            Assert.That(File.Exists(Path.Join(workDir, "installer-flow.log")), Is.True);
         }
         finally
         {

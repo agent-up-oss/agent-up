@@ -9,7 +9,7 @@ public sealed class FileFirstRunTutorialSettingsStore : IFirstRunTutorialSetting
     private readonly string _settingsPath;
 
     public FileFirstRunTutorialSettingsStore()
-        : this(Path.Combine(
+        : this(Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Agent-Up",
             "user-settings.json"))

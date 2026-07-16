@@ -70,7 +70,7 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         var dir = Path.GetDirectoryName(typeof(LinuxDesktopFixtureAdapter).Assembly.Location);
         while (dir is not null)
         {
-            var candidate = Path.Combine(dir, "shell.nix");
+            var candidate = Path.Join(dir, "shell.nix");
             if (File.Exists(candidate)) return candidate;
             var parent = Path.GetDirectoryName(dir);
             if (parent == dir) break;

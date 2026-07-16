@@ -20,7 +20,7 @@ public sealed class StartCommand
 
     public async Task<int> RunAsync()
     {
-        var configPath = Path.Combine(_workingDirectory, "agent-up.json");
+        var configPath = Path.Join(_workingDirectory, "agent-up.json");
         if (!File.Exists(configPath))
         {
             _output.WriteLine("Error: agent-up.json not found in current directory.");

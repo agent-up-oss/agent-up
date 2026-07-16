@@ -53,8 +53,8 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         yield return Progress(operations, ref completed, InstallOperationKind.StagePayload);
 
         _files.ResetDirectory(_options.Paths.AppBundleDirectory);
-        _files.CreateDirectory(System.IO.Path.Combine(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
-        _files.CopyDirectory(_options.Payload.DesktopDirectory, System.IO.Path.Combine(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
+        _files.CreateDirectory(System.IO.Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
+        _files.CopyDirectory(_options.Payload.DesktopDirectory, System.IO.Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
         _files.WriteText(_options.Paths.DesktopInfoPlistPath, plists.DesktopInfoPlist());
         _files.ResetDirectory(_options.Paths.ServerDirectory);
         _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);

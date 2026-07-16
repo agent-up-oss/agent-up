@@ -29,7 +29,7 @@ public sealed class BrowserRenderingTests
     [SetUp]
     public void SetUp()
     {
-        _profileRoot = Path.Combine(Path.GetTempPath(), $"agentup-e2e-rendering-{Guid.NewGuid()}");
+        _profileRoot = Path.Join(Path.GetTempPath(), $"agentup-e2e-rendering-{Guid.NewGuid()}");
         _savedProfileRoot = BrowserUrlStore.RootPath;
         BrowserUrlStore.RootPath = _profileRoot;
         _server = new HtmlTestServer("""

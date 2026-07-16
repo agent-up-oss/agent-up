@@ -289,7 +289,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     internal static ProcessStartInfo CreateLocalProcessStartInfo(Workspace workspace, ApplicationInstance app)
     {
         var workingDirectory = app.Path is not null
-            ? Path.Combine(workspace.WorktreePath, app.Path)
+            ? Path.Join(workspace.WorktreePath, app.Path)
             : workspace.WorktreePath;
         var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
         foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts))

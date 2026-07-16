@@ -11,7 +11,7 @@ public class WindowsPackagerTests
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingWindowsPackageWriter();
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
         var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release");
 
         try
@@ -31,8 +31,8 @@ public class WindowsPackagerTests
         Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.msi", StringComparison.Ordinal)), Is.True);
         Assert.That(commands.Commands[^1].Arguments.Any(argument => argument.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(commands.Commands[^1].Arguments, Does.Contain("WixToolset.Bal.wixext"));
-        Assert.That(commands.Commands[^1].Arguments, Does.Contain(Path.Combine(root, "out", "agent-up-windows-win-x64.exe")));
-        Assert.That(writer.CopiedFiles, Does.Contain((Path.Combine(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Combine(root, "out", "agent-up-windows-win-x64.msi"))));
+        Assert.That(commands.Commands[^1].Arguments, Does.Contain(Path.Join(root, "out", "agent-up-windows-win-x64.exe")));
+        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Join(root, "out", "agent-up-windows-win-x64.msi"))));
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("agent-up.cmd", StringComparison.Ordinal)), Is.True);
@@ -43,8 +43,8 @@ public class WindowsPackagerTests
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingWindowsPackageWriter();
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
-        var payloadRoot = Path.Combine(root, "payload");
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
+        var payloadRoot = Path.Join(root, "payload");
         var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot);
 
         try
@@ -56,11 +56,11 @@ public class WindowsPackagerTests
             await new WindowsPackager(commands, writer).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
             Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
-            Assert.That(writer.CopiedFiles, Does.Contain((Path.Combine(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Combine(root, "out", "agent-up-windows-win-x64.msi"))));
+            Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Join(root, "out", "agent-up-windows-win-x64.msi"))));
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
         }
@@ -73,9 +73,9 @@ public class WindowsPackagerTests
 
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)
     {
-        var directory = Path.Combine(payloadRoot, component);
+        var directory = Path.Join(payloadRoot, component);
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, fileName), "");
+        File.WriteAllText(Path.Join(directory, fileName), "");
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner
@@ -106,7 +106,7 @@ public class WindowsPackagerTests
                         : project.Contains("Server", StringComparison.Ordinal)
                             ? "AgentUp.Server.exe"
                             : "AgentUp.CLI.exe";
-                    File.WriteAllText(Path.Combine(output, fileName), "");
+                    File.WriteAllText(Path.Join(output, fileName), "");
                 }
             }
 

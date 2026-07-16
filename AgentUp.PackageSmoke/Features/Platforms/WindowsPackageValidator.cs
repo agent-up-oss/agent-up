@@ -14,14 +14,14 @@ public sealed class WindowsPackageValidator : IPackageValidator
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        var installer = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
-        var productMsi = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
+        var installer = Path.Join(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
+        var productMsi = Path.Join(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
         assert.FileExists(installer, "windows.artifact");
         assert.FileExists(productMsi, "windows.product.msi");
         if (!File.Exists(installer) || !File.Exists(productMsi))
             return new PackageValidationResult(null, null, assert.Findings);
 
-        var layoutDirectory = Path.Combine(request.WorkDirectory, "layout");
+        var layoutDirectory = Path.Join(request.WorkDirectory, "layout");
         var layout = await _commands.RunAsync(new CommandSpec(installer, ["/layout", layoutDirectory, "/quiet"]), cancellationToken);
         if (layout.ExitCode != 0)
         {

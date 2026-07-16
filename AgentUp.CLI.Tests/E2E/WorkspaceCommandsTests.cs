@@ -34,7 +34,7 @@ public class WorkspaceCommandsTests
         await _server.StartAsync();
         _serverClient = new HttpClient { BaseAddress = new Uri($"http://localhost:{_port}") };
 
-        _workspaceDir = Path.Combine(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
+        _workspaceDir = Path.Join(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_workspaceDir);
         await InitGitRepoAsync(_workspaceDir);
         await WriteAgentUpJsonAsync(_workspaceDir, "Test Project");
@@ -89,7 +89,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_RegistersWorkspace_WhenDirectoryIsNotGitRepository()
     {
-        var plainDir = Path.Combine(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
+        var plainDir = Path.Join(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
         try
         {
             Directory.CreateDirectory(plainDir);
@@ -199,7 +199,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_Fails_WhenAgentUpJsonMissing()
     {
-        File.Delete(Path.Combine(_workspaceDir, "agent-up.json"));
+        File.Delete(Path.Join(_workspaceDir, "agent-up.json"));
         var output = new StringWriter();
 
         var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
@@ -283,7 +283,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task List_ShowsMultipleWorkspaces()
     {
-        var secondDir = Path.Combine(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
+        var secondDir = Path.Join(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
         try
         {
             Directory.CreateDirectory(secondDir);
@@ -380,7 +380,7 @@ public class WorkspaceCommandsTests
         await RunProcessAsync("git", "init", dir);
         await RunProcessAsync("git", "config user.email test@example.com", dir);
         await RunProcessAsync("git", "config user.name Test", dir);
-        await File.WriteAllTextAsync(Path.Combine(dir, ".gitkeep"), "");
+        await File.WriteAllTextAsync(Path.Join(dir, ".gitkeep"), "");
         await RunProcessAsync("git", "add .", dir);
         await RunProcessAsync("git", "commit -m init", dir);
     }
@@ -416,19 +416,19 @@ public class WorkspaceCommandsTests
     }
 
     private static Task WriteAgentUpJsonAsync(string dir, string name) =>
-        File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"),
+        File.WriteAllTextAsync(Path.Join(dir, "agent-up.json"),
             $$"""{"name":"{{name}}"}""");
 
     private static Task WriteAgentUpJsonAsync(string dir, string name, IEnumerable<object> applications)
     {
         var json = JsonSerializer.Serialize(new { name, applications });
-        return File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"), json);
+        return File.WriteAllTextAsync(Path.Join(dir, "agent-up.json"), json);
     }
 
     private static Task WriteAgentUpJsonAsync(string dir, string name, IEnumerable<object> applications, IEnumerable<object> services)
     {
         var json = JsonSerializer.Serialize(new { name, applications, services });
-        return File.WriteAllTextAsync(Path.Combine(dir, "agent-up.json"), json);
+        return File.WriteAllTextAsync(Path.Join(dir, "agent-up.json"), json);
     }
 
     private static async Task RunProcessAsync(string executable, string arguments, string workingDir)

@@ -7,7 +7,7 @@ public class WindowsDotNetToolManifestTests
     public void Manifest_pinsWixDotNetTool()
     {
         var root = FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var manifest = File.ReadAllText(Path.Combine(root, "packaging", "windows", "dotnet-tools.json"));
+        var manifest = File.ReadAllText(Path.Join(root, "packaging", "windows", "dotnet-tools.json"));
 
         Assert.That(manifest, Does.Contain("\"wix\""));
         Assert.That(manifest, Does.Contain("\"version\": \"7.0.0\""));
@@ -19,7 +19,7 @@ public class WindowsDotNetToolManifestTests
         var directory = new DirectoryInfo(startDirectory);
         while (directory is not null)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "agent-up.sln")))
+            if (File.Exists(Path.Join(directory.FullName, "agent-up.sln")))
                 return directory.FullName;
 
             directory = directory.Parent;

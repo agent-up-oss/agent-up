@@ -58,7 +58,7 @@ public sealed class InstallerFlowSmokeValidator
             assert.Error("installer.flow.validation", "Dry-run installed-state validation failed.");
 
         await File.WriteAllLinesAsync(
-            Path.Combine(workDirectory, "installer-flow.log"),
+            Path.Join(workDirectory, "installer-flow.log"),
             progress.Select(item => $"{item.CompletedOperations}/{item.TotalOperations}: {item.Message}"),
             cancellationToken);
 

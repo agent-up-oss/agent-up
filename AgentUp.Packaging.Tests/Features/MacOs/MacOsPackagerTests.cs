@@ -11,7 +11,7 @@ public class MacOsPackagerTests
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingMacOsPackageWriter();
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-MacOsPackagerTests", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-MacOsPackagerTests", Guid.NewGuid().ToString());
         var request = new PackageRequest(root, "macos", "osx-arm64", "1.2.3", "out", "Release");
 
         try
@@ -30,7 +30,7 @@ public class MacOsPackagerTests
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.desktop")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.cli")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.server")), Is.True);
-        Assert.That(commands.Commands.Last().Arguments, Does.Contain(Path.Combine(root, "out", "agent-up-macos-osx-arm64.pkg")));
+        Assert.That(commands.Commands.Last().Arguments, Does.Contain(Path.Join(root, "out", "agent-up-macos-osx-arm64.pkg")));
     }
 
     [Test]
@@ -38,8 +38,8 @@ public class MacOsPackagerTests
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingMacOsPackageWriter();
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-MacOsPackagerTests", Guid.NewGuid().ToString());
-        var payloadRoot = Path.Combine(root, "payload");
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-MacOsPackagerTests", Guid.NewGuid().ToString());
+        var payloadRoot = Path.Join(root, "payload");
         var request = new PackageRequest(root, "macos", "osx-arm64", "1.2.3", "out", "Release", payloadRoot);
 
         try
@@ -51,9 +51,9 @@ public class MacOsPackagerTests
             await new MacOsPackager(commands, writer).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "desktop", "AgentUp.Desktop")), Is.True);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "server", "AgentUp.Server")), Is.True);
-            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "macos-osx-arm64", "cli", "AgentUp.CLI")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "desktop", "AgentUp.Desktop")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "server", "AgentUp.Server")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "cli", "AgentUp.CLI")), Is.True);
             Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(3));
             Assert.That(commands.Commands.Last().FileName, Is.EqualTo("productbuild"));
         }
@@ -66,9 +66,9 @@ public class MacOsPackagerTests
 
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)
     {
-        var directory = Path.Combine(payloadRoot, component);
+        var directory = Path.Join(payloadRoot, component);
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, fileName), "");
+        File.WriteAllText(Path.Join(directory, fileName), "");
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner

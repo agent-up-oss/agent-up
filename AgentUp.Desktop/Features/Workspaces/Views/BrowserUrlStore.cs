@@ -4,19 +4,19 @@ internal static class BrowserUrlStore
 {
     // Overrideable in tests to avoid writing to the real profile directory.
     internal static string RootPath { get; set; } =
-        Path.Combine(
+        Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "agentup", "profiles");
 
     internal static string ProfilePath(string workspaceId) =>
-        Path.Combine(RootPath, workspaceId);
+        Path.Join(RootPath, workspaceId);
 
     // Returns the saved URL only if it targets the same host:port as baseUrl; otherwise null.
     internal static string? Read(string workspaceId, string baseUrl)
     {
         try
         {
-            var file = Path.Combine(ProfilePath(workspaceId), "last-url.txt");
+            var file = Path.Join(ProfilePath(workspaceId), "last-url.txt");
             if (!File.Exists(file)) return null;
             var saved = File.ReadAllText(file).Trim();
             if (!Uri.TryCreate(saved, UriKind.Absolute, out var savedUri) ||
@@ -33,7 +33,7 @@ internal static class BrowserUrlStore
         {
             var dir = ProfilePath(workspaceId);
             Directory.CreateDirectory(dir);
-            File.WriteAllText(Path.Combine(dir, "last-url.txt"), url);
+            File.WriteAllText(Path.Join(dir, "last-url.txt"), url);
         }
         catch { }
     }

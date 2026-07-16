@@ -52,9 +52,9 @@ public sealed class FileSystemPackageWriter : IPackageWriter
     {
         Directory.CreateDirectory(destination.FullName);
         foreach (var file in source.GetFiles())
-            file.CopyTo(Path.Combine(destination.FullName, file.Name), overwrite: true);
+            file.CopyTo(Path.Join(destination.FullName, file.Name), overwrite: true);
 
         foreach (var child in source.GetDirectories())
-            CopyDirectoryRecursive(child, new DirectoryInfo(Path.Combine(destination.FullName, child.Name)));
+            CopyDirectoryRecursive(child, new DirectoryInfo(Path.Join(destination.FullName, child.Name)));
     }
 }

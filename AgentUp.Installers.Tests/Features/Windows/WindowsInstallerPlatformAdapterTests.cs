@@ -64,21 +64,21 @@ public class WindowsInstallerPlatformAdapterTests
     [Test]
     public void WindowsWixSourceGenerator_containsServicePathShortcutAndBundleContract()
     {
-        var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "AgentUp-WindowsInstallerTests", Guid.NewGuid().ToString());
+        var root = System.IO.Path.Join(System.IO.Path.GetTempPath(), "AgentUp-WindowsInstallerTests", Guid.NewGuid().ToString());
         try
         {
             var layout = new WindowsInstallerLayout(
-                InstallerSourceDirectory: System.IO.Path.Combine(root, "wix"),
-                DesktopPublishDirectory: System.IO.Path.Combine(root, "desktop"),
-                ServerPublishDirectory: System.IO.Path.Combine(root, "server"),
-                CliPublishDirectory: System.IO.Path.Combine(root, "cli"),
-                LicenseRtfPath: System.IO.Path.Combine(root, "wix", "License.rtf"),
-                ProductMsiPath: System.IO.Path.Combine(root, "Product.msi"));
+                InstallerSourceDirectory: System.IO.Path.Join(root, "wix"),
+                DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
+                ServerPublishDirectory: System.IO.Path.Join(root, "server"),
+                CliPublishDirectory: System.IO.Path.Join(root, "cli"),
+                LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
+                ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
-            File.WriteAllText(System.IO.Path.Combine(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+            File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
             var generator = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3"));
             var product = generator.ProductWxs(layout);
@@ -116,7 +116,7 @@ public class WindowsInstallerPlatformAdapterTests
     private static void WritePublishedFile(string directory, string name)
     {
         Directory.CreateDirectory(directory);
-        File.WriteAllText(System.IO.Path.Combine(directory, name), "test");
+        File.WriteAllText(System.IO.Path.Join(directory, name), "test");
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner
