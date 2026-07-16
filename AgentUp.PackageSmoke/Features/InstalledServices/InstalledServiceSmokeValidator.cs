@@ -1,3 +1,4 @@
+using AgentUp.PackageSmoke.Features.Security;
 using AgentUp.PackageSmoke.Features.Validation;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServices;
@@ -6,11 +7,13 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 {
     private readonly ICommandRunner _commands;
     private readonly IServerProbe _serverProbe;
+    private readonly IRuntimeSecurityChecks _securityChecks;
 
-    protected InstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe)
+    protected InstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
     {
         _commands = commands;
         _serverProbe = serverProbe;
+        _securityChecks = securityChecks;
     }
 
     public async Task<InstalledServiceSmokeResult> ValidateAsync(InstalledServiceSmokeRequest request, CancellationToken cancellationToken = default)
@@ -37,6 +40,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
                 return new InstalledServiceSmokeResult(null, assert.Findings);
             }
 
+            await _securityChecks.RunAsync(readyUrl, assert, cancellationToken);
             await SmokeCliWorkspaceAsync(request, context.CliPath, readyUrl, assert, cancellationToken);
             return new InstalledServiceSmokeResult(readyUrl, assert.Findings);
         }
