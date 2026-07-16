@@ -70,14 +70,28 @@ public sealed class MainViewModel : ReactiveObject
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
         BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
 
-        Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
+        var selectedPortTab = this.WhenAnyValue(x => x.SelectedSubTab)
+            .Select(tab => tab as PortSubTabViewModel);
+
+        SubscribeWorkspaceSelection();
+        SubscribeApplicationSelection();
+        SubscribeSubTabSelection();
+        SubscribeTutorialSteps();
+        SubscribeSelectedPortProbe(selectedPortTab);
+
+        BrowserNavigation = CreateBrowserNavigation(selectedPortTab);
+    }
+
+    private void SubscribeWorkspaceSelection()
+        => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
             .Subscribe(ws =>
             {
                 Console.Clear();
                 Applications.Update(ws?.Applications ?? []);
             });
 
-        Applications.WhenAnyValue(x => x.SelectedApplication)
+    private void SubscribeApplicationSelection()
+        => Applications.WhenAnyValue(x => x.SelectedApplication)
             .Subscribe(app =>
             {
                 RebuildSubTabs(app);
@@ -87,71 +101,69 @@ public sealed class MainViewModel : ReactiveObject
                     _ = Console.LoadAsync(workspaceId, app.Name);
             });
 
-        this.WhenAnyValue(x => x.SelectedSubTab)
+    private void SubscribeSubTabSelection()
+        => this.WhenAnyValue(x => x.SelectedSubTab)
             .Subscribe(tab =>
             {
                 this.RaisePropertyChanged(nameof(ShowConsole));
                 this.RaisePropertyChanged(nameof(ShowPortView));
                 this.RaisePropertyChanged(nameof(ShowTcpInfo));
-                if (tab is PortSubTabViewModel portTab)
-                {
-                    if (portTab.IsHttp)
-                        AddressBarUrl = portTab.Url;
-                    else
-                        AddressBarUrl = null;
-                    _ = portTab.ProbeAsync();
-                }
-                else
-                {
-                    AddressBarUrl = null;
-                }
+                AddressBarUrl = tab is PortSubTabViewModel { IsHttp: true } portTab ? portTab.Url : null;
+                if (tab is PortSubTabViewModel selectedPort)
+                    _ = selectedPort.ProbeAsync();
             });
 
-        Tutorial.WhenAnyValue(t => t.CurrentStep)
+    private void SubscribeTutorialSteps()
+        => Tutorial.WhenAnyValue(t => t.CurrentStep)
             .Skip(1)
             .Where(_ => Tutorial.IsVisible)
-            .Subscribe(_step =>
-            {
-                _ = ReloadWorkspaceBehindTutorialAsync();
-            });
+            .Subscribe(_step => _ = ReloadWorkspaceBehindTutorialAsync());
 
+    private static void SubscribeSelectedPortProbe(IObservable<PortSubTabViewModel?> selectedPortTab)
+        => selectedPortTab
+            .Select(CreatePortProbeTimer)
+            .Switch()
+            .Subscribe(pt => _ = pt.ProbeAsync());
+
+    private IObservable<(string? WorkspaceId, string? Url)> CreateBrowserNavigation(
+        IObservable<PortSubTabViewModel?> selectedPortTab)
+    {
         // Emit a navigation event whenever workspace or sub-tab changes.
         var workspaceChanged = Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
             .Select(ws => (WorkspaceId: ws?.Id, Url: (string?)null));
 
         var tabChanged = this.WhenAnyValue(x => x.SelectedSubTab)
-            .Select(tab => tab is PortSubTabViewModel { IsHttp: true } pt
-                ? (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)pt.Url)
-                : (WorkspaceId: Sidebar.SelectedWorkspace?.Id, Url: (string?)null));
+            .Select(CreateTabNavigation);
 
-        var selectedPortTab = this.WhenAnyValue(x => x.SelectedSubTab)
-            .Select(tab => tab as PortSubTabViewModel);
-
-        // Re-probe the selected port every 3 s so IsOpen stays current while the tab is visible.
-        selectedPortTab
-            .Select(pt => pt is null
-                ? Observable.Empty<PortSubTabViewModel>()
-                : Observable.Timer(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3), RxApp.TaskpoolScheduler)
-                      .ObserveOn(RxApp.MainThreadScheduler)
-                      .Select(_ => pt))
-            .Switch()
-            .Subscribe(pt => _ = pt.ProbeAsync());
-
-        // Re-navigate when IsOpen flips false → true on the selected port tab.
-        // The initial probe fires ~50 ms after tab-select, so this also re-navigates the
-        // WebView after GTK has had time to realize the native widget (fixing blank-on-first-load).
-        // It also catches backend restarts while the user is watching the port tab.
         var portOpenChanged = selectedPortTab
-            .Select(pt => pt is null
-                ? Observable.Empty<(string?, string?)>()
-                : pt.WhenAnyValue(t => t.IsOpen)
-                      .Skip(1)
-                      .Where(open => open)
-                      .Select(_ => ((string?)Sidebar.SelectedWorkspace?.Id, (string?)(pt.IsHttp ? AddressBarUrl ?? pt.Url : pt.Url))))
+            .Select(CreatePortOpenNavigation)
             .Switch();
 
-        BrowserNavigation = workspaceChanged.Merge(tabChanged).Merge(portOpenChanged).Merge(_addressNavigations);
+        return workspaceChanged.Merge(tabChanged).Merge(portOpenChanged).Merge(_addressNavigations);
     }
+
+    private (string? WorkspaceId, string? Url) CreateTabNavigation(SubTabViewModel? tab)
+        => tab is PortSubTabViewModel { IsHttp: true } pt
+            ? (Sidebar.SelectedWorkspace?.Id, pt.Url)
+            : (Sidebar.SelectedWorkspace?.Id, null);
+
+    private static IObservable<PortSubTabViewModel> CreatePortProbeTimer(PortSubTabViewModel? pt)
+        => pt is null
+            ? Observable.Empty<PortSubTabViewModel>()
+            : Observable.Timer(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3), RxApp.TaskpoolScheduler)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Select(_ => pt);
+
+    private IObservable<(string?, string?)> CreatePortOpenNavigation(PortSubTabViewModel? pt)
+        => pt is null
+            ? Observable.Empty<(string?, string?)>()
+            : pt.WhenAnyValue(t => t.IsOpen)
+                .Skip(1)
+                .Where(open => open)
+                .Select(_ => ((string?)Sidebar.SelectedWorkspace?.Id, (string?)GetPortNavigationUrl(pt)));
+
+    private string GetPortNavigationUrl(PortSubTabViewModel pt)
+        => pt.IsHttp ? AddressBarUrl ?? pt.Url : pt.Url;
 
     private async Task ReloadWorkspaceBehindTutorialAsync()
     {
