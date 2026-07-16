@@ -28,8 +28,17 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         var pathCheck = """
             $installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR);
-            $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up';
-            if (-not (Test-Path $key)) { throw 'Agent-Up uninstall registration missing' }
+            $uninstallRoots = @(
+                'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+                'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
+            );
+            $registration = $uninstallRoots |
+                Where-Object { Test-Path $_ } |
+                ForEach-Object { Get-ChildItem $_ } |
+                ForEach-Object { Get-ItemProperty $_.PSPath } |
+                Where-Object { $_.DisplayName -eq 'Agent-Up' -or $_.DisplayName -eq 'Agent-Up Setup' } |
+                Select-Object -First 1;
+            if (-not $registration) { throw 'Agent-Up uninstall registration missing' }
             $path = [Environment]::GetEnvironmentVariable('Path', 'Machine');
             $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\');
             $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\') });

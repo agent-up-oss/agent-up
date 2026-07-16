@@ -38,6 +38,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(commands.Commands.Any(command => command.FileName == installer && command.Arguments.Contains("/uninstall")), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"])), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("DisplayName -eq 'Agent-Up'", StringComparison.Ordinal)), Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(1));
         }
         finally
