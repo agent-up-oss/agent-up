@@ -699,19 +699,61 @@ function MetricsMockup({ service, agent }) {
   );
 }
 
+const contentPaneRoutes = [
+  {
+    projectId: 'A',
+    service: 'MarketingSite',
+    tab: 'Port 8080',
+    render: ({ agent, page, setPage }) => <WebsiteMockup agent={agent} page={page} setPage={setPage} />,
+  },
+  {
+    projectId: 'A',
+    service: 'Dashboard',
+    tab: 'Port 3000',
+    render: ({ agent, page, setPage }) => <DashboardMockup agent={agent} page={page} setPage={setPage} />,
+  },
+  {
+    projectId: 'A',
+    service: 'Backend',
+    tab: 'OpenAPI',
+    render: ({ agent }) => <OpenApiMockup service="Backend" agent={agent} />,
+  },
+  {
+    projectId: 'A',
+    service: 'Postgres',
+    tab: 'Console',
+    render: ({ agent }) => <DbConsoleMockup key={agent} projectId="A" agent={agent} />,
+  },
+  {
+    projectId: 'B',
+    service: 'Storefront',
+    tab: 'Port 5000',
+    render: ({ page, setPage }) => <StorefrontMockup page={page} setPage={setPage} />,
+  },
+  {
+    projectId: 'B',
+    service: 'AdminPanel',
+    tab: 'Port 5001',
+    render: ({ page, setPage }) => <AdminPanelMockup page={page} setPage={setPage} />,
+  },
+  {
+    projectId: 'B',
+    service: 'Payments',
+    tab: 'OpenAPI',
+    render: () => <OpenApiMockup service="Payments" />,
+  },
+  {
+    projectId: 'B',
+    service: 'Postgres',
+    tab: 'Console',
+    render: ({ agent }) => <DbConsoleMockup key="B" projectId="B" agent={agent} />,
+  },
+];
+
 function ContentPane({ projectId, service, tab, agent, page, setPage }) {
-  if (projectId === 'A') {
-    if (service === 'MarketingSite' && tab === 'Port 8080') return <WebsiteMockup agent={agent} page={page} setPage={setPage} />;
-    if (service === 'Dashboard'     && tab === 'Port 3000') return <DashboardMockup agent={agent} page={page} setPage={setPage} />;
-    if (service === 'Backend'       && tab === 'OpenAPI')   return <OpenApiMockup service="Backend" agent={agent} />;
-    if (service === 'Postgres'      && tab === 'Console')   return <DbConsoleMockup key={agent} projectId="A" agent={agent} />;
-  }
-  if (projectId === 'B') {
-    if (service === 'Storefront' && tab === 'Port 5000') return <StorefrontMockup page={page} setPage={setPage} />;
-    if (service === 'AdminPanel' && tab === 'Port 5001') return <AdminPanelMockup page={page} setPage={setPage} />;
-    if (service === 'Payments'   && tab === 'OpenAPI')   return <OpenApiMockup service="Payments" />;
-    if (service === 'Postgres'   && tab === 'Console')   return <DbConsoleMockup key="B" projectId="B" agent={agent} />;
-  }
+  const route = contentPaneRoutes.find((item) =>
+    item.projectId === projectId && item.service === service && item.tab === tab);
+  if (route) return route.render({ agent, page, setPage });
   if (tab === 'Console') return <ConsoleMockup service={service} agent={agent} />;
   if (tab === 'Metrics') return <MetricsMockup service={service} agent={agent} />;
   return null;

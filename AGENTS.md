@@ -49,9 +49,6 @@ AgentUp.Desktop/
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
-AgentUp.Shared/
-  AgentUp.Shared.csproj
-
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
@@ -84,6 +81,9 @@ AgentUp.Packaging.Tests/
 
 AgentUp.PackageSmoke.Tests/
   AgentUp.PackageSmoke.Tests.csproj
+
+AgentUp.Tests/
+  AgentUp.Tests.csproj
 ```
 
 Project directories live directly at the repository root and are included in the root solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere.
@@ -100,7 +100,6 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Packaging` | Testable release artifact staging, package metadata generation, and native packaging tool orchestration |
 | `AgentUp.PackageSmoke` | Testable package and installed-service smoke validation adapters used by CI smoke scripts |
 | MCP clients | Automation interface; no local orchestration |
-| `AgentUp.Shared` | Cross-boundary contracts only when genuinely shared |
 
 Read the full architecture guide before making structural changes: `docs/developer-guide/architecture.md`.
 
@@ -115,12 +114,16 @@ AgentUp.Server/
   Features/
     Workspaces/
       Controllers/
-      Services/
-      Repositories/
       DTOs/
-    Processes/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Repositories/
       Services/
-      Diagnostics/
+    Processes/
+      Interfaces/
+      Services/
     Applications/
       Controllers/
       DTOs/
@@ -138,35 +141,76 @@ AgentUp.Server/
 AgentUp.Desktop/
   Features/
     Workspaces/       (sidebar navigation: workspace list, loading, error, collapse)
-      Http/
+      DTOs/
+      Providers/
+      Repositories/
       ViewModels/
       Views/
     Applications/     (application tab bar: list and selection per workspace)
-      Http/
+      DTOs/
       ViewModels/
     Console/          (console output/logs for the selected application)
-      Http/
+      Providers/
       ViewModels/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
+      DTOs/
       ViewModels/
 
 AgentUp.Installers/
   Features/
     Prerequisites/    (Docker status and minimum-version checks)
+      Interfaces/
+      Services/
     Components/       (component selection and install summaries)
+      Models/
     Path/             (idempotent PATH add/remove planning)
+      Models/
     Validation/       (post-install validation contracts)
+      Models/
     Uninstall/        (uninstall-mode planning)
+      Models/
     Ubuntu/           (systemd service, CLI, desktop launcher install adapter contracts)
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
     MacOs/            (launchd service, CLI, app bundle install adapter contracts)
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     Windows/          (Windows Service, PATH, Start Menu, WiX install adapter contracts)
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
 
 AgentUp.Packaging/
   Features/
     ReleaseArtifacts/ (artifact requests, repository paths, command execution)
+      DTOs/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     Ubuntu/           (Debian package layout, metadata, staging, dpkg orchestration)
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     Windows/          (WiX/Burn orchestration)
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     MacOs/            (pkg/signing/notarization orchestration)
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     NixOs/            (flake package-set orchestration when implemented)
 ```
 

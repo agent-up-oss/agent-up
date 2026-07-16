@@ -84,6 +84,8 @@ Inside a feature slice, use only these type folders:
 - `Controllers/` for routing external calls to slice services.
 - `DTOs/` for external data representation contracts.
 - `Providers/` for low-level actions behind domain-specific interfaces, such as HTTP clients, command runners, file-system adapters, platform adapters, and Git readers.
+- `Interfaces/` for justified slice-local interfaces.
+- `Factories/` for object-selection or adapter-selection factories.
 
 Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
 
@@ -93,7 +95,7 @@ Do not add broad technical buckets such as root-level `Controllers/`, `Services/
 
 ## Interface Rule
 
-Do not add interfaces for 1:1 concrete mappings. An interface is justified only when tests create fakes, runtime code selects among multiple adapters, or the boundary intentionally hides low-level providers such as command execution, file systems, platform APIs, storage, or network calls.
+Do not add interfaces for 1:1 concrete mappings. An interface is justified only when tests create fakes, runtime code selects among multiple adapters, or the boundary intentionally hides low-level providers such as command execution, file systems, platform APIs, storage, or network calls. Place justified interfaces in the owning slice's `Interfaces/` folder.
 
 ## Component Responsibilities
 
