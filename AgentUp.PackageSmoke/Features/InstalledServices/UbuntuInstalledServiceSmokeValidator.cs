@@ -15,7 +15,7 @@ public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmoke
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var debPath = Path.Combine(request.ArtifactDirectory, $"agent-up-ubuntu-{request.RuntimeId}.deb");
+        var debPath = Path.Join(request.ArtifactDirectory, $"agent-up-ubuntu-{request.RuntimeId}.deb");
         assert.FileExists(debPath, "installed.ubuntu.artifact");
         if (!File.Exists(debPath))
             return null;

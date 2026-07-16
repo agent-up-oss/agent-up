@@ -123,7 +123,7 @@ public class FirstRunTutorialViewModelTests
     [Test]
     public async Task CreateSampleProjectCommand_revealsDirectoryTree_andProjectFileCheckSection()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"agent-up-vm-tree-{Guid.NewGuid():N}");
+        var root = Path.Join(Path.GetTempPath(), $"agent-up-vm-tree-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
         try
         {
@@ -237,12 +237,12 @@ public class FirstRunTutorialViewModelTests
     {
         public override Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
         {
-            var projectDirectory = currentProjectDirectory ?? Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-tutorial", "example-agent1");
-            Directory.CreateDirectory(Path.Combine(projectDirectory, "web"));
-            Directory.CreateDirectory(Path.Combine(projectDirectory, "api"));
-            File.WriteAllText(Path.Combine(projectDirectory, "docker-compose.yaml"), "services: {}");
-            File.WriteAllText(Path.Combine(projectDirectory, "web", "package.json"), "{}");
-            File.WriteAllText(Path.Combine(projectDirectory, "api", "package.json"), "{}");
+            var projectDirectory = currentProjectDirectory ?? Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-tutorial", "example-agent1");
+            Directory.CreateDirectory(Path.Join(projectDirectory, "web"));
+            Directory.CreateDirectory(Path.Join(projectDirectory, "api"));
+            File.WriteAllText(Path.Join(projectDirectory, "docker-compose.yaml"), "services: {}");
+            File.WriteAllText(Path.Join(projectDirectory, "web", "package.json"), "{}");
+            File.WriteAllText(Path.Join(projectDirectory, "api", "package.json"), "{}");
             return Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", projectDirectory));
         }
     }

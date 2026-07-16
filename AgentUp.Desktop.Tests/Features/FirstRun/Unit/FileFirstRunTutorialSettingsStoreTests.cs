@@ -10,7 +10,7 @@ public class FileFirstRunTutorialSettingsStoreTests
     [SetUp]
     public void SetUp()
     {
-        _testRoot = Path.Combine(Path.GetTempPath(), $"agent-up-first-run-{Guid.NewGuid():N}");
+        _testRoot = Path.Join(Path.GetTempPath(), $"agent-up-first-run-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_testRoot);
     }
 
@@ -25,7 +25,7 @@ public class FileFirstRunTutorialSettingsStoreTests
     [Test]
     public async Task LoadAsync_returnsDefaultSettings_whenFileDoesNotExist()
     {
-        var store = new FileFirstRunTutorialSettingsStore(Path.Combine(_testRoot, "settings.json"));
+        var store = new FileFirstRunTutorialSettingsStore(Path.Join(_testRoot, "settings.json"));
 
         var settings = await store.LoadAsync();
 
@@ -37,7 +37,7 @@ public class FileFirstRunTutorialSettingsStoreTests
     [Test]
     public async Task LoadAsync_returnsDefaultSettings_whenFileIsInvalidJson()
     {
-        var path = Path.Combine(_testRoot, "settings.json");
+        var path = Path.Join(_testRoot, "settings.json");
         await File.WriteAllTextAsync(path, "{not json");
         var store = new FileFirstRunTutorialSettingsStore(path);
 
@@ -51,7 +51,7 @@ public class FileFirstRunTutorialSettingsStoreTests
     [Test]
     public async Task SaveAsync_persistsTutorialSettings()
     {
-        var path = Path.Combine(_testRoot, "nested", "settings.json");
+        var path = Path.Join(_testRoot, "nested", "settings.json");
         var store = new FileFirstRunTutorialSettingsStore(path);
 
         await store.SaveAsync(new FirstRunTutorialSettings(true, false, 2));
@@ -66,7 +66,7 @@ public class FileFirstRunTutorialSettingsStoreTests
     public async Task LoadAsync_returnsSkippedSettings_whenEnvironmentSkipIsSet()
     {
         Environment.SetEnvironmentVariable(FileFirstRunTutorialSettingsStore.SkipTutorialEnvironmentVariable, "1");
-        var path = Path.Combine(_testRoot, "settings.json");
+        var path = Path.Join(_testRoot, "settings.json");
         await File.WriteAllTextAsync(path, """{"TutorialCompleted":false,"TutorialSkipped":false,"CompletedStep":4}""");
         var store = new FileFirstRunTutorialSettingsStore(path);
 

@@ -12,8 +12,8 @@ public class WorkspaceRepositoryTests
     [SetUp]
     public void SetUp()
     {
-        _testDir = Path.Combine(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
-        _repository = new JsonWorkspaceRepository(Path.Combine(_testDir, "workspaces.json"));
+        _testDir = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        _repository = new JsonWorkspaceRepository(Path.Join(_testDir, "workspaces.json"));
     }
 
     [TearDown]
@@ -41,7 +41,7 @@ public class WorkspaceRepositoryTests
 
         await _repository.SaveAllAsync(workspaces);
 
-        Assert.That(File.Exists(Path.Combine(_testDir, "workspaces.json")), Is.True);
+        Assert.That(File.Exists(Path.Join(_testDir, "workspaces.json")), Is.True);
     }
 
     [Test]
@@ -110,8 +110,8 @@ public class WorkspaceRepositoryTests
     [Test]
     public async Task LoadAll_CreatesDirectory_WhenMissing()
     {
-        var nestedDir = Path.Combine(_testDir, "sub", "nested");
-        var repository = new JsonWorkspaceRepository(Path.Combine(nestedDir, "workspaces.json"));
+        var nestedDir = Path.Join(_testDir, "sub", "nested");
+        var repository = new JsonWorkspaceRepository(Path.Join(nestedDir, "workspaces.json"));
 
         var workspaces = await repository.LoadAllAsync();
 
@@ -123,7 +123,7 @@ public class WorkspaceRepositoryTests
     public async Task LoadAll_ReturnsEmpty_OnCorruptFile()
     {
         Directory.CreateDirectory(_testDir);
-        await File.WriteAllTextAsync(Path.Combine(_testDir, "workspaces.json"), "{ not valid json [[[");
+        await File.WriteAllTextAsync(Path.Join(_testDir, "workspaces.json"), "{ not valid json [[[");
 
         var loaded = await _repository.LoadAllAsync();
 
@@ -140,7 +140,7 @@ public class WorkspaceRepositoryTests
 
         await _repository.SaveAllAsync(workspaces);
 
-        Assert.That(File.Exists(Path.Combine(_testDir, "workspaces.json.tmp")), Is.False,
+        Assert.That(File.Exists(Path.Join(_testDir, "workspaces.json.tmp")), Is.False,
             "Temp file should be removed after successful save");
     }
 

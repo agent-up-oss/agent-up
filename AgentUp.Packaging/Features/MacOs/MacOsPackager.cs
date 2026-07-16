@@ -23,28 +23,28 @@ public sealed class MacOsPackager
         if (request.PayloadRoot is null)
         {
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
                 layout.InstallerPublishDirectory,
                 cancellationToken);
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
                 layout.DesktopPublishDirectory,
                 cancellationToken);
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
                 layout.ServerPublishDirectory,
                 cancellationToken);
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,

@@ -16,12 +16,12 @@ public class UbuntuPackageStagerTests
 
         new UbuntuPackageStager(writer).Stage(request, layout, manifest);
 
-        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Combine(layout.DebRoot, "DEBIAN")));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Combine(layout.DebRoot, "opt", "agent-up", "cli"))));
-        Assert.That(writer.CopiedFiles, Does.Contain((Path.Combine("/repo", "packaging", "linux", "agent-up-server.service"), Path.Combine(layout.DebRoot, "etc", "systemd", "system", "agent-up-server.service"))));
-        Assert.That(writer.Symlinks, Does.Contain((Path.Combine(layout.DebRoot, "usr", "bin", "agent-up"), "/opt/agent-up/cli/AgentUp.CLI")));
-        Assert.That(writer.WrittenText[Path.Combine(layout.DebRoot, "usr", "share", "applications", "agent-up.desktop")], Does.Contain("Exec=/opt/agent-up/desktop/AgentUp.Desktop"));
-        Assert.That(writer.ExecutablePaths, Does.Contain(Path.Combine(layout.DebRoot, "DEBIAN", "postinst")));
+        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join(layout.DebRoot, "DEBIAN")));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "cli"))));
+        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join("/repo", "packaging", "linux", "agent-up-server.service"), Path.Join(layout.DebRoot, "etc", "systemd", "system", "agent-up-server.service"))));
+        Assert.That(writer.Symlinks, Does.Contain((Path.Join(layout.DebRoot, "usr", "bin", "agent-up"), "/opt/agent-up/cli/AgentUp.CLI")));
+        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "usr", "share", "applications", "agent-up.desktop")], Does.Contain("Exec=/opt/agent-up/desktop/AgentUp.Desktop"));
+        Assert.That(writer.ExecutablePaths, Does.Contain(Path.Join(layout.DebRoot, "DEBIAN", "postinst")));
     }
 
     private sealed class RecordingPackageWriter : IPackageWriter

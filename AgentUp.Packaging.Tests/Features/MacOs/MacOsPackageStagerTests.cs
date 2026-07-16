@@ -17,13 +17,13 @@ public class MacOsPackageStagerTests
         new MacOsPackageStager(writer).Stage(layout, manifest);
 
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.InstallerPublishDirectory, layout.InstallerAppMacOsDirectory)));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "desktop"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "server"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "cli"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "desktop"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "server"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "cli"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, layout.DesktopAppMacOsDirectory)));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Combine(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Combine(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Join(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"))));
         Assert.That(writer.WrittenText[layout.InstallerInfoPlistPath], Does.Contain("AgentUp.InstallerApp"));
         Assert.That(writer.WrittenText[layout.DesktopInfoPlistPath], Does.Contain("AgentUp.Desktop"));
         Assert.That(writer.WrittenText[layout.LaunchDaemonPlistPath], Does.Contain("dev.agent-up.server"));

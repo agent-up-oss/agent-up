@@ -13,8 +13,8 @@ public class RepositoryPathsTests
 
         try
         {
-            Environment.SetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT", Path.Combine(root, "nested"));
-            Directory.CreateDirectory(Path.Combine(root, "nested"));
+            Environment.SetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT", Path.Join(root, "nested"));
+            Directory.CreateDirectory(Path.Join(root, "nested"));
 
             Assert.That(RepositoryPaths.FindRepositoryRoot(), Is.EqualTo(root));
         }
@@ -35,8 +35,8 @@ public class RepositoryPathsTests
         try
         {
             Environment.SetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT", null);
-            Directory.CreateDirectory(Path.Combine(root, "nested"));
-            Directory.SetCurrentDirectory(Path.Combine(root, "nested"));
+            Directory.CreateDirectory(Path.Join(root, "nested"));
+            Directory.SetCurrentDirectory(Path.Join(root, "nested"));
 
             Assert.That(RepositoryPaths.FindRepositoryRoot(), Is.EqualTo(root));
         }
@@ -50,9 +50,9 @@ public class RepositoryPathsTests
 
     private static string CreateRepositoryRoot()
     {
-        var root = Path.Combine(Path.GetTempPath(), "AgentUp-RepositoryPathsTests", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-RepositoryPathsTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(root);
-        File.WriteAllText(Path.Combine(root, "agent-up.sln"), "");
+        File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
         return root;
     }
 }

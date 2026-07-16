@@ -117,19 +117,19 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         try
         {
             Directory.CreateDirectory(normalized);
-            var webDirectory = Path.Combine(normalized, "web");
-            var apiDirectory = Path.Combine(normalized, "api");
+            var webDirectory = Path.Join(normalized, "web");
+            var apiDirectory = Path.Join(normalized, "api");
             Directory.CreateDirectory(webDirectory);
             Directory.CreateDirectory(apiDirectory);
 
-            await File.WriteAllTextAsync(Path.Combine(webDirectory, "package.json"), WebPackageJson, cancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(webDirectory, "index.html"), WebIndexHtml, cancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(webDirectory, "src-App.jsx"), WebAppJsx, cancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(webDirectory, "vite.config.mjs"), WebViteConfig, cancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(apiDirectory, "package.json"), ApiPackageJson, cancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(apiDirectory, "server.js"), ApiServerJs, cancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(apiDirectory, "products.json"), Agent1ProductsJson, cancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(normalized, "docker-compose.yaml"), DockerComposeYaml, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(webDirectory, "package.json"), WebPackageJson, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(webDirectory, "index.html"), WebIndexHtml, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(webDirectory, "src-App.jsx"), WebAppJsx, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(webDirectory, "vite.config.mjs"), WebViteConfig, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(apiDirectory, "package.json"), ApiPackageJson, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(apiDirectory, "server.js"), ApiServerJs, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(apiDirectory, "products.json"), Agent1ProductsJson, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(normalized, "docker-compose.yaml"), DockerComposeYaml, cancellationToken);
 
             return FirstRunSampleProjectResult.Success($"Created the sample project at {normalized}.", normalized);
         }
@@ -156,7 +156,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
         try
         {
-            await File.WriteAllTextAsync(Path.Combine(fullPath, "agent-up.json"), AgentUpJson, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(fullPath, "agent-up.json"), AgentUpJson, cancellationToken);
             return FirstRunCheckResult.Success("Created agent-up.json in the sample project directory.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -238,14 +238,14 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         if (tutorialRoot is null)
             return FirstRunCheckResult.Failure("Could not infer the tutorial root directory.");
 
-        var agent2Directory = Path.Combine(tutorialRoot, "example-agent2");
+        var agent2Directory = Path.Join(tutorialRoot, "example-agent2");
         try
         {
             if (Directory.Exists(agent2Directory))
                 Directory.Delete(agent2Directory, recursive: true);
 
             CopyDirectory(agent1Directory, agent2Directory);
-            await File.WriteAllTextAsync(Path.Combine(agent2Directory, "api", "products.json"), Agent2ProductsJson, cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(agent2Directory, "api", "products.json"), Agent2ProductsJson, cancellationToken);
             var agentUpCommand = await ResolveAgentUpCommandAsync(cancellationToken);
             if (agentUpCommand is null)
                 return FirstRunCheckResult.Failure("Copied example-agent2, but Agent-Up CLI was not found.");
@@ -307,13 +307,13 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
         foreach (var requiredPath in new[]
                  {
-                     Path.Combine(fullPath, "web", "package.json"),
-                     Path.Combine(fullPath, "web", "index.html"),
-                     Path.Combine(fullPath, "web", "src-App.jsx"),
-                     Path.Combine(fullPath, "web", "vite.config.mjs"),
-                     Path.Combine(fullPath, "api", "package.json"),
-                     Path.Combine(fullPath, "api", "server.js"),
-                     Path.Combine(fullPath, "docker-compose.yaml")
+                     Path.Join(fullPath, "web", "package.json"),
+                     Path.Join(fullPath, "web", "index.html"),
+                     Path.Join(fullPath, "web", "src-App.jsx"),
+                     Path.Join(fullPath, "web", "vite.config.mjs"),
+                     Path.Join(fullPath, "api", "package.json"),
+                     Path.Join(fullPath, "api", "server.js"),
+                     Path.Join(fullPath, "docker-compose.yaml")
                  })
         {
             if (!File.Exists(requiredPath))
@@ -332,7 +332,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         if (!Directory.Exists(fullPath))
             return FirstRunCheckResult.Failure("That project directory does not exist yet.");
 
-        var configPath = Path.Combine(fullPath, "agent-up.json");
+        var configPath = Path.Join(fullPath, "agent-up.json");
         if (!File.Exists(configPath))
             return FirstRunCheckResult.Failure("No agent-up.json was found in the sample project directory.");
 
@@ -398,17 +398,17 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
     {
         while (true)
         {
-            var candidate = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-tutorial", "example-agent1");
+            var candidate = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-tutorial", "example-agent1");
             if (!Directory.Exists(candidate))
                 return candidate;
         }
     }
 
     private static bool ProjectFilesExist(string directory)
-        => File.Exists(Path.Combine(directory, "docker-compose.yaml"))
-           || Directory.Exists(Path.Combine(directory, "web"))
-           || Directory.Exists(Path.Combine(directory, "api"))
-           || File.Exists(Path.Combine(directory, "agent-up.json"));
+        => File.Exists(Path.Join(directory, "docker-compose.yaml"))
+           || Directory.Exists(Path.Join(directory, "web"))
+           || Directory.Exists(Path.Join(directory, "api"))
+           || File.Exists(Path.Join(directory, "agent-up.json"));
 
     private static void CopyDirectory(string sourceDirectory, string destinationDirectory)
     {
@@ -416,13 +416,13 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         foreach (var directory in Directory.EnumerateDirectories(sourceDirectory, "*", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(sourceDirectory, directory);
-            Directory.CreateDirectory(Path.Combine(destinationDirectory, relative));
+            Directory.CreateDirectory(Path.Join(destinationDirectory, relative));
         }
 
         foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(sourceDirectory, file);
-            var destination = Path.Combine(destinationDirectory, relative);
+            var destination = Path.Join(destinationDirectory, relative);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Copy(file, destination, overwrite: true);
         }
@@ -505,11 +505,11 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            var direct = Path.Combine(directory.FullName, "AgentUp.CLI.csproj");
+            var direct = Path.Join(directory.FullName, "AgentUp.CLI.csproj");
             if (File.Exists(direct))
                 return direct;
 
-            var candidate = Path.Combine(directory.FullName, "AgentUp.CLI", "AgentUp.CLI.csproj");
+            var candidate = Path.Join(directory.FullName, "AgentUp.CLI", "AgentUp.CLI.csproj");
             if (File.Exists(candidate))
                 return candidate;
             directory = directory.Parent;

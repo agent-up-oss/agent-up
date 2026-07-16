@@ -11,7 +11,7 @@ public sealed class BrowserUrlStoreTests
     [SetUp]
     public void SetUp()
     {
-        _testRoot = Path.Combine(Path.GetTempPath(), $"agentup-url-test-{Guid.NewGuid()}");
+        _testRoot = Path.Join(Path.GetTempPath(), $"agentup-url-test-{Guid.NewGuid()}");
         _savedRoot = BrowserUrlStore.RootPath;
         BrowserUrlStore.RootPath = _testRoot;
     }
@@ -56,7 +56,7 @@ public sealed class BrowserUrlStoreTests
     {
         var dir = BrowserUrlStore.ProfilePath("ws-1");
         Directory.CreateDirectory(dir);
-        File.WriteAllText(Path.Combine(dir, "last-url.txt"), "not-a-url");
+        File.WriteAllText(Path.Join(dir, "last-url.txt"), "not-a-url");
 
         var result = BrowserUrlStore.Read("ws-1", "http://localhost:3000/");
 

@@ -37,38 +37,38 @@ public sealed record MacOsPackageLayout(
     public static MacOsPackageLayout From(PackageRequest request)
     {
         var stage = request.StageDirectory;
-        var desktopApp = Path.Combine(stage, "pkg-root", "desktop", "Applications", "Agent-Up.app");
-        var installerApp = Path.Combine(stage, "pkg-root", "installer", "Applications", "Agent-Up Installer.app");
+        var desktopApp = Path.Join(stage, "pkg-root", "desktop", "Applications", "Agent-Up.app");
+        var installerApp = Path.Join(stage, "pkg-root", "installer", "Applications", "Agent-Up Installer.app");
         return new MacOsPackageLayout(
             StageDirectory: stage,
-            InstallerPublishDirectory: Path.Combine(stage, "installer"),
-            DesktopPublishDirectory: Path.Combine(stage, "desktop"),
-            ServerPublishDirectory: Path.Combine(stage, "server"),
-            CliPublishDirectory: Path.Combine(stage, "cli"),
+            InstallerPublishDirectory: Path.Join(stage, "installer"),
+            DesktopPublishDirectory: Path.Join(stage, "desktop"),
+            ServerPublishDirectory: Path.Join(stage, "server"),
+            CliPublishDirectory: Path.Join(stage, "cli"),
             DesktopAppBundleDirectory: desktopApp,
-            DesktopAppContentsDirectory: Path.Combine(desktopApp, "Contents"),
-            DesktopAppMacOsDirectory: Path.Combine(desktopApp, "Contents", "MacOS"),
+            DesktopAppContentsDirectory: Path.Join(desktopApp, "Contents"),
+            DesktopAppMacOsDirectory: Path.Join(desktopApp, "Contents", "MacOS"),
             InstallerAppBundleDirectory: installerApp,
-            InstallerAppContentsDirectory: Path.Combine(installerApp, "Contents"),
-            InstallerAppMacOsDirectory: Path.Combine(installerApp, "Contents", "MacOS"),
-            InstallerPayloadDirectory: Path.Combine(installerApp, "Contents", "MacOS", "payload"),
-            PackageRootDirectory: Path.Combine(stage, "pkg-root"),
-            ComponentPackageDirectory: Path.Combine(stage, "component-packages"),
-            InstallerComponentRoot: Path.Combine(stage, "pkg-root", "installer"),
-            DesktopComponentRoot: Path.Combine(stage, "pkg-root", "desktop"),
-            ServerComponentRoot: Path.Combine(stage, "pkg-root", "server"),
-            CliComponentRoot: Path.Combine(stage, "pkg-root", "cli"),
-            ScriptsDirectory: Path.Combine(stage, "pkg-scripts"),
-            InstallerPackagePath: Path.Combine(stage, "component-packages", "InstallerApp.pkg"),
-            DesktopPackagePath: Path.Combine(stage, "component-packages", "DesktopApp.pkg"),
-            ServerPackagePath: Path.Combine(stage, "component-packages", "Server.pkg"),
-            CliPackagePath: Path.Combine(stage, "component-packages", "CLI.pkg"),
-            ProductPackagePath: Path.Combine(request.OutputRoot, $"agent-up-macos-{request.RuntimeId}.pkg"),
-            DistributionXmlPath: Path.Combine(stage, "Distribution.xml"),
-            InstallerInfoPlistPath: Path.Combine(installerApp, "Contents", "Info.plist"),
-            DesktopInfoPlistPath: Path.Combine(desktopApp, "Contents", "Info.plist"),
-            LaunchDaemonPlistPath: Path.Combine(stage, "pkg-root", "server", "Library", "LaunchDaemons", "dev.agent-up.server.plist"),
-            PostInstallScriptPath: Path.Combine(stage, "pkg-scripts", "postinstall"),
-            PreInstallScriptPath: Path.Combine(stage, "pkg-scripts", "preinstall"));
+            InstallerAppContentsDirectory: Path.Join(installerApp, "Contents"),
+            InstallerAppMacOsDirectory: Path.Join(installerApp, "Contents", "MacOS"),
+            InstallerPayloadDirectory: Path.Join(installerApp, "Contents", "MacOS", "payload"),
+            PackageRootDirectory: Path.Join(stage, "pkg-root"),
+            ComponentPackageDirectory: Path.Join(stage, "component-packages"),
+            InstallerComponentRoot: Path.Join(stage, "pkg-root", "installer"),
+            DesktopComponentRoot: Path.Join(stage, "pkg-root", "desktop"),
+            ServerComponentRoot: Path.Join(stage, "pkg-root", "server"),
+            CliComponentRoot: Path.Join(stage, "pkg-root", "cli"),
+            ScriptsDirectory: Path.Join(stage, "pkg-scripts"),
+            InstallerPackagePath: Path.Join(stage, "component-packages", "InstallerApp.pkg"),
+            DesktopPackagePath: Path.Join(stage, "component-packages", "DesktopApp.pkg"),
+            ServerPackagePath: Path.Join(stage, "component-packages", "Server.pkg"),
+            CliPackagePath: Path.Join(stage, "component-packages", "CLI.pkg"),
+            ProductPackagePath: Path.Join(request.OutputRoot, $"agent-up-macos-{request.RuntimeId}.pkg"),
+            DistributionXmlPath: Path.Join(stage, "Distribution.xml"),
+            InstallerInfoPlistPath: Path.Join(installerApp, "Contents", "Info.plist"),
+            DesktopInfoPlistPath: Path.Join(desktopApp, "Contents", "Info.plist"),
+            LaunchDaemonPlistPath: Path.Join(stage, "pkg-root", "server", "Library", "LaunchDaemons", "dev.agent-up.server.plist"),
+            PostInstallScriptPath: Path.Join(stage, "pkg-scripts", "postinstall"),
+            PreInstallScriptPath: Path.Join(stage, "pkg-scripts", "preinstall"));
     }
 }

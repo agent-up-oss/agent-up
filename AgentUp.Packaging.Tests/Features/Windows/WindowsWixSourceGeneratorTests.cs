@@ -11,7 +11,7 @@ public class WindowsWixSourceGeneratorTests
     [SetUp]
     public void SetUp()
     {
-        _root = Path.Combine(Path.GetTempPath(), "AgentUp-WixTests", Guid.NewGuid().ToString());
+        _root = Path.Join(Path.GetTempPath(), "AgentUp-WixTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_root);
     }
 
@@ -32,7 +32,7 @@ public class WindowsWixSourceGeneratorTests
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
         Directory.CreateDirectory(layout.InstallerSourceDirectory);
-        File.WriteAllText(Path.Combine(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).ProductWxs(layout);
 
@@ -75,6 +75,6 @@ public class WindowsWixSourceGeneratorTests
     private static void WritePublishedFile(string directory, string name)
     {
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, name), "test");
+        File.WriteAllText(Path.Join(directory, name), "test");
     }
 }

@@ -56,13 +56,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private static string? FindWindowIconPath()
     {
-        var outputPath = Path.Combine(AppContext.BaseDirectory, "media", "logo.png");
+        var outputPath = Path.Join(AppContext.BaseDirectory, "media", "logo.png");
         if (File.Exists(outputPath)) return outputPath;
 
         var dir = AppContext.BaseDirectory;
         while (!string.IsNullOrWhiteSpace(dir))
         {
-            var candidate = Path.Combine(dir, "media", "logo.png");
+            var candidate = Path.Join(dir, "media", "logo.png");
             if (File.Exists(candidate)) return candidate;
 
             var parent = Path.GetDirectoryName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
@@ -335,15 +335,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         switch (e)
         {
             case GtkWebViewEnvironmentRequestedEventArgs gtk:
-                gtk.BaseDataDirectory = Path.Combine(profileRoot, "data");
-                gtk.BaseCacheDirectory = Path.Combine(profileRoot, "cache");
+                gtk.BaseDataDirectory = Path.Join(profileRoot, "data");
+                gtk.BaseCacheDirectory = Path.Join(profileRoot, "cache");
                 break;
             case LinuxWpeWebViewEnvironmentRequestedEventArgs wpe:
-                wpe.DataDirectory = Path.Combine(profileRoot, "data");
-                wpe.CacheDirectory = Path.Combine(profileRoot, "cache");
+                wpe.DataDirectory = Path.Join(profileRoot, "data");
+                wpe.CacheDirectory = Path.Join(profileRoot, "cache");
                 break;
             case WindowsWebView2EnvironmentRequestedEventArgs webView2:
-                webView2.UserDataFolder = Path.Combine(profileRoot, "webview2");
+                webView2.UserDataFolder = Path.Join(profileRoot, "webview2");
                 webView2.ProfileName = SafeProfileName(workspaceId);
                 break;
             case AppleWKWebViewEnvironmentRequestedEventArgs apple:

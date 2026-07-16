@@ -18,20 +18,20 @@ public sealed class MacOsPackageStager
 
         _writer.CopyDirectory(layout.InstallerPublishDirectory, layout.InstallerAppMacOsDirectory);
         _writer.WriteText(layout.InstallerInfoPlistPath, plists.InstallerInfoPlist());
-        _writer.SetExecutable(Path.Combine(layout.InstallerAppMacOsDirectory, "AgentUp.InstallerApp"));
-        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "desktop"));
-        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "server"));
-        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Combine(layout.InstallerPayloadDirectory, "cli"));
+        _writer.SetExecutable(Path.Join(layout.InstallerAppMacOsDirectory, "AgentUp.InstallerApp"));
+        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "desktop"));
+        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "server"));
+        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "cli"));
 
         _writer.CopyDirectory(layout.DesktopPublishDirectory, layout.DesktopAppMacOsDirectory);
         _writer.WriteText(layout.DesktopInfoPlistPath, plists.DesktopInfoPlist());
-        _writer.SetExecutable(Path.Combine(layout.DesktopAppMacOsDirectory, "AgentUp.Desktop"));
-        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"));
-        _writer.SetExecutable(Path.Combine(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
-        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Combine(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"));
-        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Combine(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"));
+        _writer.SetExecutable(Path.Join(layout.DesktopAppMacOsDirectory, "AgentUp.Desktop"));
+        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"));
+        _writer.SetExecutable(Path.Join(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
+        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"));
+        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"));
         _writer.WriteText(layout.LaunchDaemonPlistPath, plists.LaunchDaemonPlist());
-        _writer.SetExecutable(Path.Combine(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
+        _writer.SetExecutable(Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
         _writer.WriteText(layout.PreInstallScriptPath, MacOsScriptGenerator.PreInstallScript());
         _writer.WriteText(layout.PostInstallScriptPath, MacOsScriptGenerator.PostInstallScript());
         _writer.SetExecutable(layout.PreInstallScriptPath);

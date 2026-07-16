@@ -21,10 +21,10 @@ public sealed record UbuntuInstallerPaths(
             LogPath: "/var/log/agent-up-server.log",
             ErrorLogPath: "/var/log/agent-up-server.err.log");
 
-    public string DesktopDirectory => System.IO.Path.Combine(RootDirectory, "desktop");
-    public string ServerDirectory => System.IO.Path.Combine(RootDirectory, "server");
-    public string CliDirectory => System.IO.Path.Combine(RootDirectory, "cli");
-    public string DesktopExecutable => System.IO.Path.Combine(DesktopDirectory, "AgentUp.Desktop");
-    public string ServerExecutable => System.IO.Path.Combine(ServerDirectory, "AgentUp.Server");
-    public string CliExecutable => System.IO.Path.Combine(CliDirectory, "AgentUp.CLI");
+    public string DesktopDirectory => System.IO.Path.Join(RootDirectory, "desktop");
+    public string ServerDirectory => System.IO.Path.Join(RootDirectory, "server");
+    public string CliDirectory => System.IO.Path.Join(RootDirectory, "cli");
+    public string DesktopExecutable => System.IO.Path.Join(DesktopDirectory, "AgentUp.Desktop");
+    public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");
+    public string CliExecutable => System.IO.Path.Join(CliDirectory, "AgentUp.CLI");
 }

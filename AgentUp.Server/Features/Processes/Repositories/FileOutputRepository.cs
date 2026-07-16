@@ -33,5 +33,5 @@ public sealed class FileOutputRepository : IOutputRepository
     }
 
     private string GetPath(string workspaceId, string appName) =>
-        Path.Combine(_baseDir, "output", workspaceId, $"{appName}.log");
+        Path.Join(_baseDir, "output", workspaceId, $"{appName}.log");
 }

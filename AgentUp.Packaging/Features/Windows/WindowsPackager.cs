@@ -26,28 +26,28 @@ public sealed class WindowsPackager
         if (request.PayloadRoot is null)
         {
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
                 layout.InstallerPublishDirectory,
                 cancellationToken);
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
                 layout.DesktopPublishDirectory,
                 cancellationToken);
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
                 layout.ServerPublishDirectory,
                 cancellationToken);
             await publisher.PublishDotNetProjectAsync(
-                Path.Combine(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
+                Path.Join(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
@@ -65,7 +65,7 @@ public sealed class WindowsPackager
         var manifest = WindowsPackageManifest.From(request);
         var generator = new WindowsWixSourceGenerator(manifest);
         _writer.WriteText(
-            Path.Combine(layout.InstallerSourceDirectory, manifest.InstallerManifest.CliShimName),
+            Path.Join(layout.InstallerSourceDirectory, manifest.InstallerManifest.CliShimName),
             WindowsWixSourceGenerator.CliShimText());
         _writer.WriteText(layout.ProductWxsPath, generator.ProductWxs(layout));
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));
@@ -112,7 +112,7 @@ public sealed class WindowsPackager
     {
         if (!OperatingSystem.IsWindows()) return null;
 
-        var dllPath = Path.Combine(repositoryRoot, "packaging", "windows", ".wix", "extensions",
+        var dllPath = Path.Join(repositoryRoot, "packaging", "windows", ".wix", "extensions",
             "WixToolset.Bal.wixext", "7.0.0", "wixext7", "WixToolset.BootstrapperApplications.wixext.dll");
 
         if (!File.Exists(dllPath))

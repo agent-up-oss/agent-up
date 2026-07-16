@@ -166,7 +166,7 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("Guid", StableGuid("cli-shim")),
             new XElement(Wix + "File",
                 new XAttribute("Id", "AgentUpCliShim"),
-                new XAttribute("Source", System.IO.Path.Combine(layout.InstallerSourceDirectory, _manifest.CliShimName)),
+                new XAttribute("Source", System.IO.Path.Join(layout.InstallerSourceDirectory, _manifest.CliShimName)),
                 new XAttribute("KeyPath", "yes")),
             new XElement(Wix + "Environment",
                 new XAttribute("Id", "AgentUpPathEntry"),

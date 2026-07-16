@@ -15,7 +15,7 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var pkgPath = Path.Combine(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
+        var pkgPath = Path.Join(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
         assert.FileExists(pkgPath, "installed.macos.artifact");
         if (!File.Exists(pkgPath))
             return null;

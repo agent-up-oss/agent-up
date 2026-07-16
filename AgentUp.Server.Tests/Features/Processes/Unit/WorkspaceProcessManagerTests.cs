@@ -67,7 +67,7 @@ public class WorkspaceProcessManagerTests
 
         var startInfo = WorkspaceProcessManager.CreateLocalProcessStartInfo(workspace, web);
 
-        Assert.That(startInfo.WorkingDirectory, Is.EqualTo(Path.Combine(workspace.WorktreePath, "web")));
+        Assert.That(startInfo.WorkingDirectory, Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
         Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));
         Assert.That(startInfo.Environment["API_PORT"], Is.EqualTo(api.AllocatedPorts.Single().AllocatedPort.ToString()));
     }
