@@ -63,7 +63,7 @@ public sealed class WindowsPackager
         _writer.WriteText(layout.LicenseRtfPath, WindowsWixSourceGenerator.LicenseRtf());
 
         await RunWixAsync(["eula", "accept", "wix7"], cancellationToken);
-        await RunWixAsync(["extension", "add", "WixToolset.Bal.wixext"], cancellationToken);
+        await RunWixAsync(["extension", "add", "WixToolset.Bal.wixext/7.0.0"], cancellationToken);
         await RunWixAsync(
         [
             "build",

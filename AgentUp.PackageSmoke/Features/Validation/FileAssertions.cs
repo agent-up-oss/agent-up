@@ -17,9 +17,16 @@ public sealed class FileAssertions
         FileExists(path, code);
         if (!OperatingSystem.IsWindows() && File.Exists(path))
         {
-            var mode = File.GetUnixFileMode(path);
-            if (!mode.HasFlag(UnixFileMode.UserExecute))
-                Error(code, $"Expected executable missing execute bit: {path}");
+            try
+            {
+                var mode = File.GetUnixFileMode(path);
+                if (!mode.HasFlag(UnixFileMode.UserExecute))
+                    Error(code, $"Expected executable missing execute bit: {path}");
+            }
+            catch (FileNotFoundException)
+            {
+                Error(code, $"Expected executable is a dangling symlink: {path}");
+            }
         }
     }
 
