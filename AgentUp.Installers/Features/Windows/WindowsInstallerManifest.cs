@@ -229,7 +229,7 @@ public sealed class WindowsWixSourceGenerator
         return (id, new XElement(Wix + "Component",
             new XAttribute("Id", id),
             new XAttribute("Directory", directoryId),
-            new XAttribute("Guid", StableGuid(relative)),
+            new XAttribute("Guid", StableGuid($"{prefix}:{relative}")),
             new XElement(Wix + "File",
                 new XAttribute("Id", $"{id}_File"),
                 new XAttribute("Source", file),
