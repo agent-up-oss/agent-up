@@ -290,6 +290,7 @@ jobs:
             tool_suffix=".exe"
           fi
           export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
+          export AGENTUP_INSTALLER_FAKE=1
           ./.github/scripts/smoke-installer-flow.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
 
       - name: Smoke test installed service

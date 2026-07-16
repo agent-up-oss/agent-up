@@ -62,20 +62,29 @@ public sealed class WindowsPackager
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));
         _writer.WriteText(layout.LicenseRtfPath, WindowsWixSourceGenerator.LicenseRtf());
 
-        await _commands.RunAsync(new CommandSpec("wix", ["eula", "accept", "wix7"]), cancellationToken);
-        await _commands.RunAsync(new CommandSpec("wix",
+        await RunWixAsync(["eula", "accept", "wix7"], cancellationToken);
+        await RunWixAsync(
         [
             "build",
             layout.ProductWxsPath,
             "-arch", "x64",
             "-o", layout.ProductMsiPath
-        ]), cancellationToken);
-        await _commands.RunAsync(new CommandSpec("wix",
+        ], cancellationToken);
+        await RunWixAsync(
         [
             "build",
             layout.BundleWxsPath,
             "-ext", "WixToolset.Bal.wixext",
             "-o", layout.SetupExePath
-        ]), cancellationToken);
+        ], cancellationToken);
+    }
+
+    private Task<CommandResult> RunWixAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    {
+        var wixCommand = Environment.GetEnvironmentVariable("AGENTUP_WIX_COMMAND") ?? "wix";
+        if (OperatingSystem.IsWindows())
+            return _commands.RunAsync(new CommandSpec("cmd.exe", ["/c", wixCommand, .. arguments]), cancellationToken);
+
+        return _commands.RunAsync(new CommandSpec(wixCommand, arguments), cancellationToken);
     }
 }

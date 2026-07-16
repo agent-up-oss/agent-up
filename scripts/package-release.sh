@@ -42,13 +42,21 @@ if [ "$#" -ne 0 ]; then
 fi
 
 ensure_wix_cli() {
-  if command -v wix >/dev/null 2>&1; then
-    return
-  fi
-
   export DOTNET_CLI_HOME="${DOTNET_CLI_HOME:-$root/.dotnet}"
   mkdir -p "$DOTNET_CLI_HOME" "$root/artifacts/tools/windows/bin" "$root/artifacts/tools/windows/home"
   dotnet tool restore --tool-manifest "$root/packaging/windows/dotnet-tools.json"
+
+  dotnet_cli_home_cmd="$DOTNET_CLI_HOME"
+  root_cmd="$root"
+  home_cmd="$root/artifacts/tools/windows/home"
+  wix_command="$root/artifacts/tools/windows/bin/wix"
+  wix_command_cmd="$root/artifacts/tools/windows/bin/wix.cmd"
+  if command -v cygpath >/dev/null 2>&1; then
+    dotnet_cli_home_cmd="$(cygpath -w "$DOTNET_CLI_HOME")"
+    root_cmd="$(cygpath -w "$root")"
+    home_cmd="$(cygpath -w "$root/artifacts/tools/windows/home")"
+    wix_command_cmd="$(cygpath -w "$root/artifacts/tools/windows/bin/wix.cmd")"
+  fi
 
 cat > "$root/artifacts/tools/windows/bin/wix" <<WIXSHIM
 #!/usr/bin/env bash
@@ -58,8 +66,21 @@ export HOME="$root/artifacts/tools/windows/home"
 cd "$root/packaging/windows"
 exec dotnet tool run wix -- "\$@"
 WIXSHIM
+
+cat > "$root/artifacts/tools/windows/bin/wix.cmd" <<WIXCMDSHIM
+@echo off
+set DOTNET_CLI_HOME=$dotnet_cli_home_cmd
+set HOME=$home_cmd
+cd /d "$root_cmd\packaging\windows"
+dotnet tool run wix -- %*
+WIXCMDSHIM
   chmod +x "$root/artifacts/tools/windows/bin/wix"
   export PATH="$root/artifacts/tools/windows/bin:$PATH"
+  if [ "${OS:-}" = "Windows_NT" ]; then
+    export AGENTUP_WIX_COMMAND="$wix_command_cmd"
+  else
+    export AGENTUP_WIX_COMMAND="$wix_command"
+  fi
 }
 
 if [ "$platform" = "ubuntu" ] || [ "$platform" = "macos" ] || [ "$platform" = "windows" ]; then
