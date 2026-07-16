@@ -188,27 +188,33 @@ AgentUp.Installers/
 AgentUp.Packaging/
   Features/
     ReleaseArtifacts/ (artifact requests, repository paths, command execution)
+      Controllers/
       DTOs/
-      Interfaces/
       Models/
-      Providers/
       Services/
     UbuntuPackages/   (Debian package layout, metadata, staging, dpkg orchestration)
+      Controllers/
       Interfaces/
       Models/
       Providers/
       Services/
     WindowsPackages/  (WiX/Burn orchestration)
+      Controllers/
       Interfaces/
       Models/
       Providers/
       Services/
     MacOsPackages/    (pkg/signing/notarization orchestration)
+      Controllers/
       Interfaces/
       Models/
       Providers/
       Services/
     NixOs/            (flake package-set orchestration when implemented)
+  Shared/
+    Interfaces/       (cross-slice low-level abstractions such as command and file-system access)
+    Providers/
+    Factories/        (project composition root for long-lived service/provider/controller instances)
 ```
 
 Avoid this as the primary organizing model:
@@ -251,6 +257,12 @@ Feature separation happens at repository/service boundaries. Do not scatter migr
 ## Inter-Slice Communication
 
 A slice owns its writes.
+
+Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should call into a slice through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
+
+Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models; low-level filesystem, process, network, platform, and environment access belongs behind providers.
+
+Slices must not reach directly into another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice calls go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs/`. If a low-level abstraction is genuinely shared by multiple slices, place it in a project-level shared folder instead of hiding it inside one feature slice.
 
 Read-only cross-slice access is allowed when necessary through a narrow interface. For example, browser automation may need read-only workspace state, but browser automation should not directly mutate workspace registry data.
 

@@ -95,9 +95,19 @@ Tests should stay feature-sliced, but test projects may use test-kind folders su
 
 Do not add broad technical buckets such as root-level `Controllers/`, `Services/`, `Models/`, `Http/`, `Commands/`, or `Git/`. Put the code in the owning feature slice and then in the appropriate type folder.
 
+If a low-level abstraction is genuinely used by multiple slices in the same project, put it under a project-level `Shared/` folder with the same strict type-folder naming. Do not make one feature slice the hidden owner of generic command, file-system, platform, or network helpers that unrelated slices import directly.
+
 ## Interface Rule
 
 Do not add interfaces for 1:1 concrete mappings. An interface is justified only when tests create fakes, runtime code selects among multiple adapters, or the boundary intentionally hides low-level providers such as command execution, file systems, platform APIs, storage, or network calls. Place justified interfaces in the owning slice's `Interfaces/` folder.
+
+## Slice Lifecycle
+
+Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
+
+Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models; low-level filesystem, process, network, platform, and environment access belongs behind providers.
+
+Slices should not import another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice communication should go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs`. Read-only cross-slice access is allowed only through a narrow, intentional boundary when one slice needs state owned by another slice and must not mutate it.
 
 ## Component Responsibilities
 

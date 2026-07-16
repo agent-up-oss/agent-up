@@ -1,5 +1,5 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+using AgentUp.Packaging.Shared.Interfaces;
+using AgentUp.Packaging.Shared.Providers;
 
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
@@ -38,7 +38,7 @@ public sealed class PackagePublisher
         ]), cancellationToken);
     }
 
-    public static void CopyPrebuiltPayload(string payloadDirectory, string outputDirectory)
+    public void CopyPrebuiltPayload(string payloadDirectory, string outputDirectory)
     {
         if (!Directory.Exists(payloadDirectory))
             throw new DirectoryNotFoundException($"Prebuilt payload directory does not exist: {payloadDirectory}");

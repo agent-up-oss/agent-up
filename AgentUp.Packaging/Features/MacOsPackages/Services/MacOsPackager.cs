@@ -1,12 +1,9 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
 using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using AgentUp.Packaging.Features.MacOsPackages.Models;
 using AgentUp.Packaging.Features.MacOsPackages.Providers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+using AgentUp.Packaging.Shared.Interfaces;
 
 namespace AgentUp.Packaging.Features.MacOsPackages.Services;
 
@@ -14,21 +11,23 @@ public sealed class MacOsPackager
 {
     private readonly ICommandRunner _commands;
     private readonly IMacOsPackageWriter _writer;
+    private readonly PayloadStagingController _payloads;
 
-    public MacOsPackager(ICommandRunner commands, IMacOsPackageWriter writer)
+    public MacOsPackager(ICommandRunner commands, IMacOsPackageWriter writer, PayloadStagingController payloads)
     {
         _commands = commands;
         _writer = writer;
+        _payloads = payloads;
     }
 
     public async Task PackageAsync(PackageRequest request, CancellationToken cancellationToken = default)
     {
         var layout = MacOsPackageLayout.From(request);
-        await new PackagePayloadStager(_commands, _writer).StageAsync(
+        await _payloads.StageAsync(new PayloadStagingRequest(
             request,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
-            layout.CliPublishDirectory,
+            layout.CliPublishDirectory),
             cancellationToken);
 
         new MacOsPackageStager(_writer).Stage(layout, MacOsPackageManifest.From(request));

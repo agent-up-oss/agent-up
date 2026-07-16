@@ -1,13 +1,9 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
 using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages;
-using AgentUp.Packaging.Features.MacOsPackages.Providers;
+using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.MacOsPackages.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
 namespace AgentUp.Packaging.Tests.Features.MacOsPackages;
 
@@ -24,7 +20,7 @@ public class MacOsPackagerTests
 
         try
         {
-            await new MacOsPackager(commands, writer).PackageAsync(request);
+            await new MacOsPackager(commands, writer, CreatePayloads(commands, writer)).PackageAsync(request);
         }
         finally
         {
@@ -56,7 +52,7 @@ public class MacOsPackagerTests
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
 
-            await new MacOsPackager(commands, writer).PackageAsync(request);
+            await new MacOsPackager(commands, writer, CreatePayloads(commands, writer)).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "desktop", "AgentUp.Desktop")), Is.True);
@@ -78,6 +74,9 @@ public class MacOsPackagerTests
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Join(directory, fileName), "");
     }
+
+    private static PayloadStagingController CreatePayloads(ICommandRunner commands, IMacOsPackageWriter writer)
+        => new(new PackagePayloadStager(new PackagePublisher(commands), writer));
 
     private sealed class RecordingCommandRunner : ICommandRunner
     {

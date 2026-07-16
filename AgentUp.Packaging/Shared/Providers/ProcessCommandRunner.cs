@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using AgentUp.Packaging.Shared.Interfaces;
 using System.Diagnostics;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+namespace AgentUp.Packaging.Shared.Providers;
 
 public sealed class ProcessCommandRunner : ICommandRunner
 {

@@ -1,12 +1,8 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Shared.Interfaces;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.UbuntuPackages;
-using AgentUp.Packaging.Features.UbuntuPackages.Providers;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 using AgentUp.Packaging.Features.UbuntuPackages.Services;
 
 namespace AgentUp.Packaging.Tests.Features.UbuntuPackages;
@@ -21,7 +17,7 @@ public class UbuntuPackagerTests
         var writer = new RecordingPackageWriter();
         var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "out", "Release");
 
-        await new UbuntuPackager(commands, writer).PackageAsync(request);
+        await new UbuntuPackager(commands, writer, CreatePayloads(commands, writer)).PackageAsync(request);
 
         var publishCommands = commands.Commands
             .Where(command => command.FileName == "dotnet" && command.Arguments.Contains("publish"))
@@ -56,7 +52,7 @@ public class UbuntuPackagerTests
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
 
-            await new UbuntuPackager(commands, writer).PackageAsync(request);
+            await new UbuntuPackager(commands, writer, CreatePayloads(commands, writer)).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "desktop", "AgentUp.Desktop")), Is.True);
@@ -77,6 +73,9 @@ public class UbuntuPackagerTests
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Join(directory, fileName), "");
     }
+
+    private static PayloadStagingController CreatePayloads(ICommandRunner commands, IPackageWriter writer)
+        => new(new PackagePayloadStager(new PackagePublisher(commands), writer));
 
     private sealed class RecordingCommandRunner : ICommandRunner
     {

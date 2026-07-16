@@ -1,7 +1,5 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts;
+using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
 namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts;
@@ -16,11 +14,11 @@ public class PackagePayloadStagerTests
         var files = new RecordingPackageFileSystem();
         var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "out", "Release");
 
-        await new PackagePayloadStager(commands, files).StageAsync(
+        await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
             request,
             "/stage/desktop",
             "/stage/server",
-            "/stage/cli");
+            "/stage/cli"));
 
         Assert.That(files.ResetDirectories, Is.EqualTo(new[] { "/repo/artifacts/stage/ubuntu-linux-x64" }));
         Assert.That(files.CreatedDirectories, Is.EqualTo(new[] { "/repo/out" }));
@@ -45,11 +43,11 @@ public class PackagePayloadStagerTests
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
 
-            await new PackagePayloadStager(commands, files).StageAsync(
+            await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
                 request,
                 Path.Join(root, "stage", "desktop"),
                 Path.Join(root, "stage", "server"),
-                Path.Join(root, "stage", "cli"));
+                Path.Join(root, "stage", "cli")));
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
             Assert.That(File.Exists(Path.Join(root, "stage", "desktop", "AgentUp.Desktop")), Is.True);

@@ -1,11 +1,8 @@
 using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using System.IO.Compression;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
 using AgentUp.Packaging.Features.WindowsPackages.Providers;
 
@@ -15,21 +12,23 @@ public sealed class WindowsPackager
 {
     private readonly ICommandRunner _commands;
     private readonly IWindowsPackageWriter _writer;
+    private readonly PayloadStagingController _payloads;
 
-    public WindowsPackager(ICommandRunner commands, IWindowsPackageWriter writer)
+    public WindowsPackager(ICommandRunner commands, IWindowsPackageWriter writer, PayloadStagingController payloads)
     {
         _commands = commands;
         _writer = writer;
+        _payloads = payloads;
     }
 
     public async Task PackageAsync(PackageRequest request, CancellationToken cancellationToken = default)
     {
         var layout = WindowsPackageLayout.From(request);
-        await new PackagePayloadStager(_commands, _writer).StageAsync(
+        await _payloads.StageAsync(new PayloadStagingRequest(
             request,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
-            layout.CliPublishDirectory,
+            layout.CliPublishDirectory),
             cancellationToken);
         _writer.CreateDirectory(layout.InstallerSourceDirectory);
 

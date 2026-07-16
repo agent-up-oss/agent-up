@@ -1,10 +1,7 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.UbuntuPackages.Models;
 using AgentUp.Packaging.Features.UbuntuPackages.Providers;
 
@@ -14,22 +11,24 @@ public sealed class UbuntuPackager
 {
     private readonly ICommandRunner _commands;
     private readonly IPackageWriter _writer;
+    private readonly PayloadStagingController _payloads;
 
-    public UbuntuPackager(ICommandRunner commands, IPackageWriter writer)
+    public UbuntuPackager(ICommandRunner commands, IPackageWriter writer, PayloadStagingController payloads)
     {
         _commands = commands;
         _writer = writer;
+        _payloads = payloads;
     }
 
     public async Task PackageAsync(PackageRequest request, CancellationToken cancellationToken = default)
     {
         var layout = UbuntuPackageLayout.From(request);
         var manifest = UbuntuPackageManifest.From(request);
-        await new PackagePayloadStager(_commands, _writer).StageAsync(
+        await _payloads.StageAsync(new PayloadStagingRequest(
             request,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
-            layout.CliPublishDirectory,
+            layout.CliPublishDirectory),
             cancellationToken);
 
         new UbuntuPackageStager(_writer).Stage(request, layout, manifest);

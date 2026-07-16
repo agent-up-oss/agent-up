@@ -1,7 +1,5 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
 using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Installers.Features.MacOsInstallation.Services;
 
 namespace AgentUp.Packaging.Features.MacOsPackages.Services;

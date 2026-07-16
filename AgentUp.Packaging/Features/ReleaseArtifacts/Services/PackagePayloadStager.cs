@@ -1,60 +1,54 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
 public sealed class PackagePayloadStager
 {
-    private readonly ICommandRunner _commands;
+    private readonly PackagePublisher _publisher;
     private readonly IPackageFileSystem _files;
 
-    public PackagePayloadStager(ICommandRunner commands, IPackageFileSystem files)
+    public PackagePayloadStager(PackagePublisher publisher, IPackageFileSystem files)
     {
-        _commands = commands;
+        _publisher = publisher;
         _files = files;
     }
 
-    public async Task StageAsync(
-        PackageRequest request,
-        string desktopPublishDirectory,
-        string serverPublishDirectory,
-        string cliPublishDirectory,
-        CancellationToken cancellationToken = default)
+    public async Task StageAsync(PayloadStagingRequest staging, CancellationToken cancellationToken = default)
     {
-        var publisher = new PackagePublisher(_commands);
+        var request = staging.Package;
 
         _files.ResetDirectory(request.StageDirectory);
         _files.CreateDirectory(request.OutputRoot);
 
         if (request.PayloadRoot is null)
         {
-            await publisher.PublishDotNetProjectAsync(
+            await _publisher.PublishDotNetProjectAsync(
                 Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
-                desktopPublishDirectory,
+                staging.DesktopPublishDirectory,
                 cancellationToken);
-            await publisher.PublishDotNetProjectAsync(
+            await _publisher.PublishDotNetProjectAsync(
                 Path.Join(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
-                serverPublishDirectory,
+                staging.ServerPublishDirectory,
                 cancellationToken);
-            await publisher.PublishDotNetProjectAsync(
+            await _publisher.PublishDotNetProjectAsync(
                 Path.Join(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
-                cliPublishDirectory,
+                staging.CliPublishDirectory,
                 cancellationToken);
             return;
         }
 
-        PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, desktopPublishDirectory);
-        PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, serverPublishDirectory);
-        PackagePublisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, cliPublishDirectory);
+        _publisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, staging.DesktopPublishDirectory);
+        _publisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, staging.ServerPublishDirectory);
+        _publisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, staging.CliPublishDirectory);
     }
 }

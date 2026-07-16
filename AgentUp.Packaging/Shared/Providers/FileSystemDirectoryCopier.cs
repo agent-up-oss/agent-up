@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+namespace AgentUp.Packaging.Shared.Providers;
 
 public static class FileSystemDirectoryCopier
 {
