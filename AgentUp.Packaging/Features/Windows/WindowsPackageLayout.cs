@@ -6,6 +6,7 @@ namespace AgentUp.Packaging.Features.Windows;
 public sealed record WindowsPackageLayout(
     string StageDirectory,
     string InstallerSourceDirectory,
+    string InstallerPublishDirectory,
     string DesktopPublishDirectory,
     string ServerPublishDirectory,
     string CliPublishDirectory,
@@ -23,6 +24,7 @@ public sealed record WindowsPackageLayout(
         return new WindowsPackageLayout(
             StageDirectory: stage,
             InstallerSourceDirectory: installerSource,
+            InstallerPublishDirectory: Path.Combine(stage, "installer"),
             DesktopPublishDirectory: Path.Combine(stage, "desktop"),
             ServerPublishDirectory: Path.Combine(stage, "server"),
             CliPublishDirectory: Path.Combine(stage, "cli"),
@@ -37,6 +39,7 @@ public sealed record WindowsPackageLayout(
     public WindowsInstallerLayout ToInstallerLayout()
         => new(
             InstallerSourceDirectory,
+            InstallerPublishDirectory,
             DesktopPublishDirectory,
             ServerPublishDirectory,
             CliPublishDirectory,

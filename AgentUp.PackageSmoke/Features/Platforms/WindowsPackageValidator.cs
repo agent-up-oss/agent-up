@@ -29,6 +29,11 @@ public sealed class WindowsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
+        assert.FileExists(Path.Combine(layoutDirectory, "AgentUp.InstallerApp.exe"), "windows.layout.installer");
+        assert.FileExists(Path.Combine(layoutDirectory, "payload", "desktop", "AgentUp.Desktop.exe"), "windows.layout.desktop");
+        assert.FileExists(Path.Combine(layoutDirectory, "payload", "server", "AgentUp.Server.exe"), "windows.layout.server");
+        assert.FileExists(Path.Combine(layoutDirectory, "payload", "cli", "AgentUp.CLI.exe"), "windows.layout.cli");
+
         return new PackageValidationResult(null, null, assert.Findings);
     }
 }

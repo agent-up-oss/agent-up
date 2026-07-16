@@ -16,12 +16,14 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         CancellationToken cancellationToken)
     {
         var installer = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
+        var productMsi = Path.Combine(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
         var installDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Agent-Up");
         assert.FileExists(installer, "installed.windows.artifact");
-        if (!File.Exists(installer))
+        assert.FileExists(productMsi, "installed.windows.product.msi");
+        if (!File.Exists(installer) || !File.Exists(productMsi))
             return null;
 
-        await RunRequiredAsync(assert, new CommandSpec(installer, ["/quiet", "/norestart"]), "installed.windows.install", cancellationToken);
+        await RunRequiredAsync(assert, new CommandSpec("msiexec.exe", ["/i", productMsi, "/qn", "/norestart"]), "installed.windows.install", cancellationToken);
 
         var cli = Path.Combine(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Combine(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
@@ -54,7 +56,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         return new InstalledServiceContext(
             cli,
-            [new CommandSpec(installer, ["/uninstall", "/quiet", "/norestart"])],
+            [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart"])],
             [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);
     }
 }

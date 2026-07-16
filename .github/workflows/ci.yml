@@ -304,6 +304,7 @@ jobs:
           if [ "${{ runner.os }}" != "Windows" ]; then
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging" || true
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke" || true
+            chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/installer/AgentUp.InstallerApp" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/desktop/AgentUp.Desktop" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/server/AgentUp.Server" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/cli/AgentUp.CLI" || true

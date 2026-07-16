@@ -20,7 +20,10 @@ public class WindowsPackageValidatorTests
         {
             Assert.That(command.FileName, Is.EqualTo(installer));
             Assert.That(command.Arguments, Is.EqualTo(new[] { "/layout", Path.Combine(workDir, "layout"), "/quiet" }));
-            Directory.CreateDirectory(Path.Combine(workDir, "layout"));
+            WriteFile(Path.Combine(workDir, "layout", "AgentUp.InstallerApp.exe"));
+            WriteFile(Path.Combine(workDir, "layout", "payload", "desktop", "AgentUp.Desktop.exe"));
+            WriteFile(Path.Combine(workDir, "layout", "payload", "server", "AgentUp.Server.exe"));
+            WriteFile(Path.Combine(workDir, "layout", "payload", "cli", "AgentUp.CLI.exe"));
             return new CommandResult(0, "", "");
         });
 
@@ -37,5 +40,11 @@ public class WindowsPackageValidatorTests
             if (Directory.Exists(root))
                 Directory.Delete(root, recursive: true);
         }
+    }
+
+    private static void WriteFile(string path)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, "");
     }
 }

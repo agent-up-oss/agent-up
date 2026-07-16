@@ -26,6 +26,13 @@ public sealed class WindowsPackager
         if (request.PayloadRoot is null)
         {
             await publisher.PublishDotNetProjectAsync(
+                Path.Combine(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                layout.InstallerPublishDirectory,
+                cancellationToken);
+            await publisher.PublishDotNetProjectAsync(
                 Path.Combine(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
                 request.RuntimeId,
                 request.Configuration,
@@ -49,6 +56,7 @@ public sealed class WindowsPackager
         }
         else
         {
+            PackagePublisher.CopyPrebuiltPayload(request.InstallerPayloadDirectory!, layout.InstallerPublishDirectory);
             PackagePublisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, layout.DesktopPublishDirectory);
             PackagePublisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, layout.ServerPublishDirectory);
             PackagePublisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, layout.CliPublishDirectory);

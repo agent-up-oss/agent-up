@@ -47,7 +47,9 @@ On Windows, the default adapter installs the staged Desktop, Server, and CLI pay
 - Native packaging tool invocation.
 - Artifact path and naming rules.
 
-CI uses prebuilt payload mode: the Ubuntu build job publishes single-file self-contained Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime, uploads one short-lived GitHub Actions artifact per platform job, and native package jobs download only their own runtime slice before passing `--payload-root` to package those exact payloads. Native package jobs should delete the consumed CI-transfer artifact after download. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
+CI uses prebuilt payload mode: the Ubuntu build job publishes single-file self-contained InstallerApp, Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime.
+
+The Ubuntu build uploads one short-lived GitHub Actions artifact per platform job, and native package jobs download only their own runtime slice before passing `--payload-root` to package those exact payloads. Native package jobs should delete the consumed CI-transfer artifact after download. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
 
 Final release publishing uses the MinIO `mc` client against the public release bucket. The release job downloads the short-lived package artifacts from GitHub Actions, deletes them immediately, validates the complete artifact set, writes `manifest.json` and `checksums.sha256`, then publishes immutable `agent-up/releases/{version}/` objects and mutable `agent-up/latest/` objects. Required release secrets are `AGENTUP_RELEASE_BUCKET`, `AGENTUP_RELEASE_S3_ENDPOINT`, `AGENTUP_RELEASE_S3_ACCESS_KEY`, and `AGENTUP_RELEASE_S3_SECRET_KEY`.
 
@@ -75,17 +77,25 @@ The wrappers enter a target-specific shell under `packaging/nix/` and then deleg
 - Windows wrapper provides cross-packaging helpers where available, such as archive tooling, MSI inspection tools, and signing helpers. WiX is supplied through the pinned local .NET tool manifest at `packaging/windows/dotnet-tools.json`; the wrapper restores that tool and exposes a `wix` shim on PATH before packaging starts.
 - macOS wrapper is Darwin-only because Apple packaging, signing, and notarization tools are platform tools: `hdiutil`, `pkgbuild`, `productbuild`, `codesign`, and `notarytool`.
 
-Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable, copies the MSI to the named `agent-up-windows-<rid>.msi` sidecar artifact, and consumes Windows install metadata, WiX generation, service, PATH, and shortcut contracts from `AgentUp.Installers`. Tests assert the generated WiX service, PATH, shortcut, MSI chain, MSI sidecar, and exact `wix` command shape with an isolated fake command runner.
+Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable.
+
+The Windows bootstrapper executable launches the guided `AgentUp.InstallerApp` with a bundled `desktop`, `server`, and `cli` payload. The generated MSI is still copied to the named `agent-up-windows-<rid>.msi` sidecar artifact for direct native validation and troubleshooting.
+
+Windows packaging consumes Windows install metadata, WiX generation, service, PATH, and shortcut contracts from `AgentUp.Installers`. Tests assert the generated WiX service, PATH, shortcut, guided-installer chain, bundled payload, MSI sidecar, and exact `wix` command shape with an isolated fake command runner.
 
 macOS packaging is migrating to `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
-`AgentUp.Packaging package <platform> <runtime-id> <version> [output-dir] --payload-root <path>` packages an existing payload root containing `desktop`, `server`, and `cli` directories. Without `--payload-root`, the command keeps the local developer fallback of publishing those projects before packaging.
+`AgentUp.Packaging package <platform> <runtime-id> <version> [output-dir] --payload-root <path>` packages an existing payload root containing `installer`, `desktop`, `server`, and `cli` directories. Without `--payload-root`, the command keeps the local developer fallback of publishing those projects before packaging.
 
 Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS, Windows, and Ubuntu artifact contract checks. Windows package smoke validates both the Burn bootstrapper and the named MSI sidecar artifact, then runs the bootstrapper `/layout` command to prove the executable package can service layout requests without depending on Burn extracting embedded payloads to a specific directory. Installed-service smoke scripts must use `AgentUp.PackageSmoke validate-installed-service` for native installation, service readiness, installed CLI validation, diagnostics, and uninstall cleanup. Windows installed-service smoke validates native Apps & Features registration by DisplayName because MSI and Burn own the uninstall registry key names. Guided installer smoke uses `AgentUp.PackageSmoke validate-installer-flow <platform> <work-dir> [payload-root]`; passing a payload root lets the real platform adapter perform the installer work, while `AGENTUP_INSTALLER_FAKE=1` keeps tests non-privileged. CI uses fake mode for the guided installer flow because it validates the shared flow without taking machine-level install ownership; real native install/service behavior is covered by installed-service smoke. Shell smoke code should stay limited to argument forwarding and runner setup.
 
-The shared installer app is the target user-facing install flow. During migration, native `.pkg`, WiX/MSI/Burn, and `.deb` artifacts may still perform direct native install work, but new behavior should move toward wrapping or launching `AgentUp.InstallerApp` with a bundled release payload.
+Windows installed-service smoke installs and uninstalls through the MSI sidecar with `msiexec`; the Windows `.exe` remains the guided user-facing installer path.
+
+The shared installer app is the target user-facing install flow. Windows `.exe` artifacts launch `AgentUp.InstallerApp` with a bundled release payload.
+
+During migration, native `.pkg`, MSI sidecar, and `.deb` artifacts may still perform direct native install work, but new behavior should move toward wrapping or launching `AgentUp.InstallerApp` with a bundled release payload.
 
 Platform packaging owns native registration:
 

@@ -69,11 +69,13 @@ public class WindowsInstallerPlatformAdapterTests
         {
             var layout = new WindowsInstallerLayout(
                 InstallerSourceDirectory: System.IO.Path.Combine(root, "wix"),
+                InstallerPublishDirectory: System.IO.Path.Combine(root, "installer"),
                 DesktopPublishDirectory: System.IO.Path.Combine(root, "desktop"),
                 ServerPublishDirectory: System.IO.Path.Combine(root, "server"),
                 CliPublishDirectory: System.IO.Path.Combine(root, "cli"),
                 LicenseRtfPath: System.IO.Path.Combine(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Combine(root, "Product.msi"));
+            WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
@@ -90,7 +92,10 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(product, Does.Contain("Shortcut"));
             Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));
             Assert.That(bundle, Does.Contain("Theme=\"rtfLicense\""));
-            Assert.That(bundle, Does.Contain(layout.ProductMsiPath));
+            Assert.That(bundle, Does.Contain("ExePackage"));
+            Assert.That(bundle, Does.Contain("AgentUp.InstallerApp.exe"));
+            Assert.That(bundle, Does.Not.Contain("MsiPackage"));
+            Assert.That(bundle, Does.Contain("payload\\desktop\\AgentUp.Desktop.exe"));
         }
         finally
         {

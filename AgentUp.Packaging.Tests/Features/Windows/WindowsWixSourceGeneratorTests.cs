@@ -27,6 +27,7 @@ public class WindowsWixSourceGeneratorTests
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
         var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
@@ -47,17 +48,27 @@ public class WindowsWixSourceGeneratorTests
     }
 
     [Test]
-    public void BundleWxs_chainsGeneratedMsi()
+    public void BundleWxs_chainsGuidedInstallerWithBundledPayload()
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
         var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+        WritePublishedFile(layout.InstallerPublishDirectory, "support.dll");
+        WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
 
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).BundleWxs(layout);
 
         Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication"));
         Assert.That(xml, Does.Contain("Theme=\"rtfLicense\""));
-        Assert.That(xml, Does.Contain("MsiPackage"));
-        Assert.That(xml, Does.Contain(layout.ProductMsiPath));
+        Assert.That(xml, Does.Contain("ExePackage"));
+        Assert.That(xml, Does.Contain("AgentUp.InstallerApp.exe"));
+        Assert.That(xml, Does.Not.Contain("MsiPackage"));
+        Assert.That(xml, Does.Contain("Name=\"payload\\desktop\\AgentUp.Desktop.exe\""));
+        Assert.That(xml, Does.Contain("Name=\"payload\\server\\AgentUp.Server.exe\""));
+        Assert.That(xml, Does.Contain("Name=\"payload\\cli\\AgentUp.CLI.exe\""));
+        Assert.That(xml, Does.Contain("Name=\"installer\\support.dll\""));
         Assert.That(xml, Does.Contain("http://wixtoolset.org/schemas/v4/wxs/bal"));
     }
 

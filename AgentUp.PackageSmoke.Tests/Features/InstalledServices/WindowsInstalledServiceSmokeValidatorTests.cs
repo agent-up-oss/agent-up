@@ -16,11 +16,13 @@ public class WindowsInstalledServiceSmokeValidatorTests
         var workDir = Path.Combine(root, "work");
         Directory.CreateDirectory(artifactDir);
         var installer = Path.Combine(artifactDir, "agent-up-windows-win-x64.exe");
+        var productMsi = Path.Combine(artifactDir, "agent-up-windows-win-x64.msi");
         File.WriteAllText(installer, "");
+        File.WriteAllText(productMsi, "");
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
         var commands = new RecordingCommandRunner((command, _) =>
         {
-            if (command.FileName == installer && command.Arguments.Contains("/quiet") && !command.Arguments.Contains("/uninstall"))
+            if (command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
                 CreateWindowsInstall(DefaultInstallDirectory());
             if (command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"]))
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
@@ -36,7 +38,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
-            Assert.That(commands.Commands.Any(command => command.FileName == installer && command.Arguments.Contains("/uninstall")), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("DisplayName -eq 'Agent-Up'", StringComparison.Ordinal)), Is.True);
@@ -57,10 +59,12 @@ public class WindowsInstalledServiceSmokeValidatorTests
         var workDir = Path.Combine(root, "work");
         Directory.CreateDirectory(artifactDir);
         var installer = Path.Combine(artifactDir, "agent-up-windows-win-x64.exe");
+        var productMsi = Path.Combine(artifactDir, "agent-up-windows-win-x64.msi");
         File.WriteAllText(installer, "");
+        File.WriteAllText(productMsi, "");
         var commands = new RecordingCommandRunner((command, _) =>
         {
-            if (command.FileName == installer && !command.Arguments.Contains("/uninstall"))
+            if (command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
                 CreateWindowsInstall(DefaultInstallDirectory());
             return new CommandResult(0, "", "");
         });
@@ -73,7 +77,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Findings.Any(finding => finding.Code == "installed.server.ready"), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("Get-Service", StringComparison.Ordinal)), Is.True);
-            Assert.That(commands.Commands.Any(command => command.FileName == installer && command.Arguments.Contains("/uninstall")), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
         }
         finally
         {

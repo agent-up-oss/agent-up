@@ -24,7 +24,7 @@ public class WindowsPackagerTests
                 Directory.Delete(root, recursive: true);
         }
 
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(3));
+        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(4));
         Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
         Assert.That(commands.Commands[^3].Arguments, Is.EqualTo(new[] { "eula", "accept", "wix7" }));
         Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
@@ -52,10 +52,12 @@ public class WindowsPackagerTests
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop.exe");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server.exe");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI.exe");
+            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp.exe");
 
             await new WindowsPackager(commands, writer).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
+            Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "installer", "AgentUp.InstallerApp.exe")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
@@ -101,7 +103,9 @@ public class WindowsPackagerTests
                     var output = command.Arguments[outputIndex + 1];
                     Directory.CreateDirectory(output);
                     var project = command.Arguments[1];
-                    var fileName = project.Contains("Desktop", StringComparison.Ordinal)
+                    var fileName = project.Contains("InstallerApp", StringComparison.Ordinal)
+                        ? "AgentUp.InstallerApp.exe"
+                        : project.Contains("Desktop", StringComparison.Ordinal)
                         ? "AgentUp.Desktop.exe"
                         : project.Contains("Server", StringComparison.Ordinal)
                             ? "AgentUp.Server.exe"
