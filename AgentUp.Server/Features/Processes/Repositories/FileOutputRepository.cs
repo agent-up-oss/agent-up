@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace AgentUp.Server.Features.Processes.Repositories;
 
 public sealed class FileOutputRepository : IOutputRepository
@@ -32,6 +34,35 @@ public sealed class FileOutputRepository : IOutputRepository
         return Task.CompletedTask;
     }
 
-    private string GetPath(string workspaceId, string appName) =>
-        Path.Combine(_baseDir, "output", workspaceId, $"{appName}.log");
+    private string GetPath(string workspaceId, string appName)
+    {
+        EnsureValidPathComponent(workspaceId, nameof(workspaceId));
+        EnsureValidPathComponent(appName, nameof(appName));
+
+        var outputRoot = Path.GetFullPath(Path.Combine(_baseDir, "output"));
+        var candidatePath = Path.GetFullPath(Path.Combine(outputRoot, workspaceId, $"{appName}.log"));
+        var rootWithSeparator = outputRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+
+        if (!candidatePath.StartsWith(rootWithSeparator, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Invalid path input.");
+        }
+
+        return candidatePath;
+    }
+
+    private static void EnsureValidPathComponent(string value, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value) ||
+            value.Contains("..", StringComparison.Ordinal) ||
+            value.Contains(Path.DirectorySeparatorChar) ||
+            value.Contains(Path.AltDirectorySeparatorChar) ||
+            value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new ArgumentException(
+                string.Format(CultureInfo.InvariantCulture, "Invalid path component: {0}", parameterName),
+                parameterName);
+        }
+    }
 }
