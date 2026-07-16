@@ -17,26 +17,16 @@ public sealed class StatusCommand
 
     public async Task<int> RunAsync()
     {
-        List<WorkspaceDto> workspaces;
-        try
+        var resolution = await new CurrentWorkspaceResolver(_client, _workingDirectory).ResolveAsync(
+            "Error: Failed to query workspaces",
+            "No workspace registered for this directory.");
+        if (!resolution.Succeeded)
         {
-            workspaces = await _client.ListAsync();
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"Error: Failed to query workspaces: {ex.Message}");
+            _output.WriteLine(resolution.Error);
             return 1;
         }
 
-        var workspace = workspaces.FirstOrDefault(w =>
-            string.Equals(w.WorktreePath, _workingDirectory, StringComparison.OrdinalIgnoreCase));
-
-        if (workspace is null)
-        {
-            _output.WriteLine("No workspace registered for this directory.");
-            return 1;
-        }
-
+        var workspace = resolution.Workspace!;
         _output.WriteLine($"Name:       {workspace.DisplayName}");
         _output.WriteLine($"Branch:     {workspace.Branch}");
         _output.WriteLine($"Commit:     {workspace.Commit}");
