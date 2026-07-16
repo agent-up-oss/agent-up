@@ -4,7 +4,7 @@ title: Downloads
 
 # Downloads
 
-The latest Agent-Up release is published to the public release bucket under stable download URLs. CI overwrites the `agent-up/latest/` files on every release after the platform tests and package smoke tests pass.
+The latest Agent-Up release is published under stable download URLs.
 
 ## Windows
 

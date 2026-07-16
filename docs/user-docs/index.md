@@ -11,7 +11,7 @@ It manages the running development environment around applications: workspaces, 
 
 Agent-Up is not an application framework, deployment tool, IDE, Docker replacement, Git replacement, or production orchestrator.
 
-> **Development Preview:** Agent-Up is under active development. CI produces preliminary platform artifacts, but APIs, configuration, installer behavior, and workflows may change without notice.
+> **Development Preview:** Agent-Up is under active development. Packaged artifacts, APIs, configuration, installer behavior, and workflows may change without notice.
 
 Every AI agent can work in its own Git worktree with its own branch, runtime environment, browser profile, infrastructure, application state, diagnostics, and event history. Agent-Up is being built to make switching between these isolated workspaces practical while letting developers and AI agents interact with the same running applications.
 
@@ -110,7 +110,7 @@ This reads `agent-up.json`, captures the current git branch and commit, and push
 
 - [Workspace](./workspace.md) defines the workspace model.
 - [Setup](./setup.md) describes the current source-first development workflow.
-- [Releases](./releases.md) describes packaged artifacts and MinIO/S3 release upload.
+- [Releases](./releases.md) describes packaged artifacts and update behavior.
 - [Current Limitations](./limitations.md) explains what is implemented, experimental, in progress, and planned.
 - [Browser](./browser.md) covers shared browser sessions and automation.
 - [Browser Profiles](./browser-profiles.md) explains per-workspace browser isolation.

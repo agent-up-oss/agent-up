@@ -4,7 +4,7 @@ title: Setup
 
 # Setup
 
-Agent-Up is currently a development preview. CI produces preliminary platform artifacts, and installer behavior is being moved into testable installer slices while signing, update behavior, and service hardening evolve.
+Agent-Up is currently a development preview. Packaged installers and platform packages are still being hardened while signing, update behavior, and service handling evolve.
 
 Installed Desktop artifacts are expected to run the Server as a local background service. Desktop, CLI, and MCP clients connect to that service at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points elsewhere.
 
@@ -61,7 +61,7 @@ The script runs the desktop inside `shell.nix`, which provides the native librar
 
 ## Release Artifacts
 
-See [Releases](./releases.md) for the CI-produced macOS, Windows, Ubuntu, and NixOS artifact shape and MinIO/S3 upload configuration. Installer contracts and test ownership are defined in the [Packaging And Installers](/developer-guide/packaging) developer guide.
+See [Downloads](./downloads.md) for current platform download links and install commands.
 
 ## Configure a Repository
 
@@ -95,26 +95,9 @@ dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:500
 
 This reads `agent-up.json`, captures the current Git branch and commit, and registers the workspace with the server.
 
-## Run Tests
+## Contributor Workflow
 
-```bash
-dotnet test agent-up.sln
-```
-
-`AgentUp.Tests` runs the full Desktop E2E suite through platform fixture adapters. Linux uses Xvfb and WebKitGTK, macOS uses the native macOS desktop/WebView backend, and Windows uses the native Windows desktop/WebView backend. macOS CI invokes the test project executable directly so Avalonia Native initializes on the process main thread.
-
-On NixOS or headless Linux setups:
-
-```bash
-nix-shell shell.nix --run "dotnet test agent-up.sln"
-```
-
-## Build Documentation
-
-```bash
-npm --prefix docs install
-npm --prefix docs run build
-```
+Contributor testing and documentation builds are covered in the [Developer Guide](/developer-guide/workflows).
 
 ## Troubleshooting
 

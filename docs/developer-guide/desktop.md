@@ -115,6 +115,8 @@ Each workspace gets its own `NativeWebView` instance and platform-native profile
 
 Cookies, local storage, cache, and navigation state must be shared by applications within the same workspace and isolated from every other workspace.
 
+Browser implementations must stay behind narrow host abstractions so platform WebView differences do not leak into workspace or automation logic. Browser automation and inspection should expose navigation, reload, semantic interaction, HTML/DOM capture, accessibility data, screenshots, history, and page metadata through Server-owned contracts. Prefer structured inspection and accessibility data over raw HTML when generating diagnostics or automation.
+
 ## Thin Client Rule
 
 The Desktop does not own runtime state and should not duplicate orchestration rules from the Server.

@@ -9,6 +9,10 @@ The authoritative product and implementation documentation lives in:
 - User docs: `docs/user-docs/`
 - Developer guide: `docs/developer-guide/`
 
+User docs are for people using Agent-Up. They should describe product concepts, setup, downloads, configuration, and operational troubleshooting in user-facing terms. Do not put implementation details, project ownership, test architecture, CI topology, release pipeline internals, package smoke mechanics, private environment variables, or native packaging tool orchestration in user docs unless the user must perform that action directly.
+
+Developer guide pages are for contributors and maintainers. Put architecture decisions, ownership rules, project layout, CI/release workflow, test strategy, package validation, installer internals, native packaging tool details, and implementation contracts there.
+
 # Definition Synchronization
 
 `AGENTS.md` and the relevant docs pages are definition sources for the project.

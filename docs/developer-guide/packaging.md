@@ -49,6 +49,8 @@ On Windows, the default adapter installs the staged Desktop, Server, and CLI pay
 
 CI uses prebuilt payload mode: the Ubuntu build job publishes single-file self-contained Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime, uploads one short-lived GitHub Actions artifact per platform job, and native package jobs download only their own runtime slice before passing `--payload-root` to package those exact payloads. Native package jobs should delete the consumed CI-transfer artifact after download. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
 
+Final release publishing uses the MinIO `mc` client against the public release bucket. The release job downloads the short-lived package artifacts from GitHub Actions, deletes them immediately, validates the complete artifact set, writes `manifest.json` and `checksums.sha256`, then publishes immutable `agent-up/releases/{version}/` objects and mutable `agent-up/latest/` objects. Required release secrets are `AGENTUP_RELEASE_BUCKET`, `AGENTUP_RELEASE_S3_ENDPOINT`, `AGENTUP_RELEASE_S3_ACCESS_KEY`, and `AGENTUP_RELEASE_S3_SECRET_KEY`.
+
 `AgentUp.PackageSmoke` owns smoke validation:
 
 - Artifact discovery and extraction.

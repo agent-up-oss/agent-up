@@ -16,32 +16,11 @@ Browser state includes:
 
 Changing workspaces restores browser state. Restarting applications should reload the existing browser session instead of creating new tabs.
 
-## Browser Abstraction
-
-Browser implementations must be abstracted behind an interface:
-
-```csharp
-public interface IBrowserHost
-{
-    Task NavigateAsync(Uri uri);
-
-    Task ReloadAsync();
-
-    Task<string> GetHtmlAsync();
-
-    Task ClickAsync(string selector);
-
-    Task FillAsync(string selector, string value);
-
-    Task<byte[]> ScreenshotAsync();
-}
-```
-
-Platform implementations can vary as long as they preserve the shared abstraction.
-
 ## Structured Inspection
 
-The browser should expose:
+Agent-Up exposes browser state to agents through structured inspection instead of requiring users or agents to scrape raw page markup.
+
+Inspection can include:
 
 - Accessibility tree.
 - Interactive elements.
