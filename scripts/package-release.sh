@@ -81,6 +81,7 @@ WIXCMDSHIM
   else
     export AGENTUP_WIX_COMMAND="$wix_command"
   fi
+  "$wix_command" eula accept wix7
   "$wix_command" extension add WixToolset.Bal.wixext
 }
 
