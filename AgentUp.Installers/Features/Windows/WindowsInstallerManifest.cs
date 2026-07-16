@@ -100,13 +100,12 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("UpgradeCode", StableGuid("bundle-upgrade")),
             new XAttribute(XNamespace.Xmlns + "bal", Bal),
             new XElement(Wix + "BootstrapperApplication",
-                new XAttribute("Id", "WixStandardBootstrapperApplication.RtfLicense"),
                 new XElement(Bal + "WixStandardBootstrapperApplication",
+                    new XAttribute("Theme", "rtfLicense"),
                     new XAttribute("LicenseFile", layout.LicenseRtfPath))),
             new XElement(Wix + "Chain",
                 new XElement(Wix + "MsiPackage",
-                    new XAttribute("SourceFile", layout.ProductMsiPath),
-                    new XAttribute("DisplayInternalUI", "yes"))));
+                    new XAttribute("SourceFile", layout.ProductMsiPath))));
 
         return new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement(Wix + "Wix", bundle)).ToString();
     }

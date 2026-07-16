@@ -88,7 +88,8 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(product, Does.Contain("Name=\"agent-up-server\""));
             Assert.That(product, Does.Contain("Name=\"PATH\""));
             Assert.That(product, Does.Contain("Shortcut"));
-            Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication.RtfLicense"));
+            Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));
+            Assert.That(bundle, Does.Contain("Theme=\"rtfLicense\""));
             Assert.That(bundle, Does.Contain(layout.ProductMsiPath));
         }
         finally
