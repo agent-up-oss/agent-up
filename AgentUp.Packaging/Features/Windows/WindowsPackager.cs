@@ -64,6 +64,7 @@ public sealed class WindowsPackager
 
         await RunWixAsync(["eula", "accept", "wix7"], cancellationToken);
         await RunWixAsync(["extension", "add", "WixToolset.Bal.wixext/7.0.0"], cancellationToken);
+        SyncWixExtensionToLocalStore(request.RepositoryRoot, "WixToolset.Bal.wixext", "7.0.0");
         await RunWixAsync(
         [
             "build",
@@ -87,5 +88,32 @@ public sealed class WindowsPackager
             return _commands.RunAsync(new CommandSpec("cmd.exe", ["/c", wixCommand, .. arguments]), cancellationToken);
 
         return _commands.RunAsync(new CommandSpec(wixCommand, arguments), cancellationToken);
+    }
+
+    // wix extension add stores to a global location; wix build (WiX 7) only checks the local project
+    // store at packaging/windows/.wix/extensions/. Copy from wherever extension add stored it.
+    private static void SyncWixExtensionToLocalStore(string repositoryRoot, string extensionId, string version)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        var localDll = Path.Combine(repositoryRoot, "packaging", "windows", ".wix", "extensions",
+            extensionId, version, "wixext7", $"{extensionId}.dll");
+        if (File.Exists(localDll)) return;
+
+        // wix extension add may store in USERPROFILE/.wix or in the custom HOME set by the cmd shim
+        var homeCandidates = new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            Path.Combine(repositoryRoot, "artifacts", "tools", "windows", "home"),
+        };
+
+        foreach (var home in homeCandidates.Where(h => !string.IsNullOrEmpty(h)))
+        {
+            var globalDll = Path.Combine(home, ".wix", "extensions", extensionId, version, "wixext7", $"{extensionId}.dll");
+            if (!File.Exists(globalDll)) continue;
+            Directory.CreateDirectory(Path.GetDirectoryName(localDll)!);
+            File.Copy(globalDll, localDll);
+            return;
+        }
     }
 }

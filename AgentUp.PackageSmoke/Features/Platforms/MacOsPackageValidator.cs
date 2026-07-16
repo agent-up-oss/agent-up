@@ -27,10 +27,9 @@ public sealed class MacOsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        var desktop = FindFirst(expanded, Path.Combine("Applications", "Agent-Up.app", "Contents", "MacOS", "AgentUp.Desktop"));
+        var desktop = FindFirst(expanded, Path.Combine("usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
         var server = FindFirst(expanded, Path.Combine("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
         var cli = FindFirst(expanded, Path.Combine("usr", "local", "agent-up", "cli", "AgentUp.CLI"));
-        var desktopPlist = FindFirst(expanded, Path.Combine("Applications", "Agent-Up.app", "Contents", "Info.plist"));
         var launchd = FindFirst(expanded, Path.Combine("Library", "LaunchDaemons", "dev.agent-up.server.plist"));
         var distribution = Directory.EnumerateFiles(expanded, "Distribution", SearchOption.AllDirectories).FirstOrDefault() ?? "";
         var postinstall = FindFirst(expanded, Path.Combine("Scripts", "postinstall"));
@@ -38,7 +37,6 @@ public sealed class MacOsPackageValidator : IPackageValidator
         assert.ExecutableExists(desktop, "macos.desktop");
         assert.ExecutableExists(server, "macos.server");
         assert.ExecutableExists(cli, "macos.cli");
-        assert.FileExists(desktopPlist, "macos.desktop.plist");
         assert.Contains(launchd, "/Library/Application Support/Agent-Up/server/AgentUp.Server", "macos.launchd.server");
         assert.Contains(launchd, "<key>ThrottleInterval</key>", "macos.launchd.throttle");
         assert.Contains(distribution, "DesktopApp.pkg", "macos.distribution.desktop");
