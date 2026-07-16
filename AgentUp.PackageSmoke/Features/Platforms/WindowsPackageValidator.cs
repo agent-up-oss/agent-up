@@ -27,8 +27,20 @@ public sealed class WindowsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        assert.FileExists(Path.Combine(layoutDirectory, "Product.msi"), "windows.product.msi");
+        var productMsi = FindProductMsi(layoutDirectory);
+        if (productMsi is null)
+            assert.Error("windows.product.msi", $"Expected file missing: {Path.Combine(layoutDirectory, "**", "Product.msi")}");
 
         return new PackageValidationResult(null, null, assert.Findings);
+    }
+
+    private static string? FindProductMsi(string layoutDirectory)
+    {
+        if (!Directory.Exists(layoutDirectory))
+            return null;
+
+        return Directory
+            .EnumerateFiles(layoutDirectory, "Product.msi", SearchOption.AllDirectories)
+            .FirstOrDefault();
     }
 }

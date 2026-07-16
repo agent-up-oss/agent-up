@@ -40,7 +40,7 @@ public class WindowsPackageValidatorTests
 
     private static void CreateLayout(string root)
     {
-        WriteText(Path.Combine(root, "Product.msi"), "");
+        WriteText(Path.Combine(root, "AttachedContainer", "Product.msi"), "");
     }
 
     private static void WriteText(string path, string text)
