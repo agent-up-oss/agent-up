@@ -32,6 +32,17 @@ public sealed class FileOutputRepository : IOutputRepository
         return Task.CompletedTask;
     }
 
-    private string GetPath(string workspaceId, string appName) =>
-        Path.Combine(_baseDir, "output", workspaceId, $"{appName}.log");
+    private string GetPath(string workspaceId, string appName)
+    {
+        var outputRoot = Path.GetFullPath(Path.Combine(_baseDir, "output"));
+        var candidatePath = Path.GetFullPath(Path.Combine(outputRoot, workspaceId, $"{appName}.log"));
+
+        if (!candidatePath.StartsWith(outputRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+            !string.Equals(candidatePath, outputRoot, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Invalid output path.");
+        }
+
+        return candidatePath;
+    }
 }
