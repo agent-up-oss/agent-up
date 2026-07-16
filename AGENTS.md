@@ -13,6 +13,8 @@ User docs are for people using Agent-Up. They should describe product concepts, 
 
 Developer guide pages are for contributors and maintainers. Put architecture decisions, ownership rules, project layout, CI/release workflow, test strategy, package validation, installer internals, native packaging tool details, and implementation contracts there.
 
+When editing docs, keep diffs reviewable. Prefer targeted edits to the specific sentence, list item, or small paragraph that changed. Do not rewrite whole paragraphs or broad blocks just to add a narrow detail. If a section regularly needs small updates, split it into shorter focused paragraphs or bullets so future changes can touch only the relevant part.
+
 # Definition Synchronization
 
 `AGENTS.md` and the relevant docs pages are definition sources for the project.
