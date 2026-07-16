@@ -6,7 +6,7 @@ namespace AgentUp.Packaging.Features.Windows;
 public sealed record WindowsPackageManifest(WindowsInstallerManifest InstallerManifest)
 {
     public static WindowsPackageManifest From(PackageRequest request)
-        => new(WindowsInstallerManifest.Create(request.NormalizedVersion));
+        => new(WindowsInstallerManifest.Create(request.WindowsInstallerVersion));
 }
 
 public sealed class WindowsWixSourceGenerator

@@ -17,26 +17,16 @@ public sealed class StopCommand
 
     public async Task<int> RunAsync()
     {
-        List<WorkspaceDto> workspaces;
-        try
+        var resolution = await new CurrentWorkspaceResolver(_client, _workingDirectory).ResolveAsync(
+            "Error: Failed to connect to server",
+            "Error: No workspace found for the current directory. Run 'agent-up start' first.");
+        if (!resolution.Succeeded)
         {
-            workspaces = await _client.ListAsync();
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"Error: Failed to connect to server: {ex.Message}");
+            _output.WriteLine(resolution.Error);
             return 1;
         }
 
-        var workspace = workspaces.FirstOrDefault(w =>
-            string.Equals(w.WorktreePath, _workingDirectory, StringComparison.OrdinalIgnoreCase));
-
-        if (workspace is null)
-        {
-            _output.WriteLine("Error: No workspace found for the current directory. Run 'agent-up start' first.");
-            return 1;
-        }
-
+        var workspace = resolution.Workspace!;
         try
         {
             await _client.StopWorkspaceAsync(workspace.Id);

@@ -38,12 +38,12 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var operations = PlanInstall(session);
-        for (var index = 0; index < operations.Count; index++)
+        var progress = new InstallProgressTracker(operations);
+        foreach (var operation in operations)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var operation = operations[index];
             await Task.Yield();
-            yield return new InstallProgress(operation.Kind, operation.Title, index + 1, operations.Count);
+            yield return progress.Complete(operation.Kind);
         }
     }
 

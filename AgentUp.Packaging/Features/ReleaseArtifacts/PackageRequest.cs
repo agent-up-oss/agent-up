@@ -10,6 +10,7 @@ public sealed record PackageRequest(
     string? PayloadRoot = null)
 {
     public string NormalizedVersion => Version.TrimStart('v', 'V');
+    public string WindowsInstallerVersion => NormalizedVersion.Split(['-', '+'], 2)[0];
     public string StageDirectory => Path.Join(RepositoryRoot, "artifacts", "stage", $"{Platform}-{RuntimeId}");
     public string OutputRoot => Path.Join(RepositoryRoot, OutputDirectory);
     public string? InstallerPayloadDirectory => PayloadRoot is null ? null : Path.Join(PayloadRoot, "installer");

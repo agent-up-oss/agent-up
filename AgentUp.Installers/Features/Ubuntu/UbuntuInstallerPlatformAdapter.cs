@@ -10,6 +10,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
     private readonly ICommandRunner _commands;
     private readonly IUbuntuInstallerFileSystem _files;
     private readonly UbuntuInstallerOptions _options;
+    private readonly RequiredCommandRunner _requiredCommands;
 
     public UbuntuInstallerPlatformAdapter(
         ICommandRunner commands,
@@ -19,6 +20,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         _commands = commands;
         _files = files;
         _options = options;
+        _requiredCommands = new RequiredCommandRunner(commands);
     }
 
     public string PlatformName => "Ubuntu";
@@ -44,14 +46,14 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var operations = PlanInstall(session);
-        var index = 0;
+        var progress = new InstallProgressTracker(operations);
 
         _files.CreateDirectory(_options.Paths.DataDirectory);
         _files.WriteText(_options.Paths.LogPath, "");
         _files.WriteText(_options.Paths.ErrorLogPath, "");
-        yield return Progress(operations, ref index, InstallOperationKind.ValidatePrerequisites);
+        yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
 
-        yield return Progress(operations, ref index, InstallOperationKind.StagePayload);
+        yield return progress.Complete(InstallOperationKind.StagePayload);
 
         _files.ResetDirectory(_options.Paths.RootDirectory);
         _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
@@ -62,23 +64,23 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         _files.SetExecutable(_options.Paths.DesktopExecutable);
         _files.SetExecutable(_options.Paths.ServerExecutable);
         _files.SetExecutable(_options.Paths.CliExecutable);
-        yield return Progress(operations, ref index, InstallOperationKind.InstallFiles);
+        yield return progress.Complete(InstallOperationKind.InstallFiles);
 
-        await RunRequiredAsync("systemctl", "daemon-reload", cancellationToken);
-        await RunRequiredAsync("systemctl", "enable --now agent-up-server.service", cancellationToken);
-        yield return Progress(operations, ref index, InstallOperationKind.RegisterService);
+        await _requiredCommands.RunAsync("systemctl", "daemon-reload", cancellationToken);
+        await _requiredCommands.RunAsync("systemctl", "enable --now agent-up-server.service", cancellationToken);
+        yield return progress.Complete(InstallOperationKind.RegisterService);
 
         _files.CreateSymbolicLink(_options.Paths.CliSymlinkPath, _options.Paths.CliExecutable);
-        yield return Progress(operations, ref index, InstallOperationKind.RegisterCli);
+        yield return progress.Complete(InstallOperationKind.RegisterCli);
 
         _files.WriteText(_options.Paths.DesktopEntryPath, UbuntuInstallerManifest.DesktopEntryText(session.Version));
         await _commands.RunAsync("update-desktop-database", "/usr/share/applications", cancellationToken);
-        yield return Progress(operations, ref index, InstallOperationKind.RegisterDesktop);
+        yield return progress.Complete(InstallOperationKind.RegisterDesktop);
 
         await _commands.RunAsync("dpkg-query", "-W agent-up", cancellationToken);
-        yield return Progress(operations, ref index, InstallOperationKind.RegisterUninstall);
+        yield return progress.Complete(InstallOperationKind.RegisterUninstall);
 
-        yield return Progress(operations, ref index, InstallOperationKind.ValidateInstallation);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
     }
 
     public async Task<ValidationReport> ValidateInstalledStateAsync(
@@ -100,20 +102,4 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             DesktopVersion: session.Version), session.Version);
     }
 
-    private async Task RunRequiredAsync(string fileName, string arguments, CancellationToken cancellationToken)
-    {
-        var result = await _commands.RunAsync(fileName, arguments, cancellationToken);
-        if (result.ExitCode != 0)
-            throw new InvalidOperationException($"{fileName} {arguments} failed: {result.Stderr}{result.Stdout}");
-    }
-
-    private static InstallProgress Progress(
-        IReadOnlyList<InstallOperation> operations,
-        ref int completed,
-        InstallOperationKind kind)
-    {
-        var operation = operations.First(item => item.Kind == kind);
-        completed++;
-        return new InstallProgress(operation.Kind, operation.Title, completed, operations.Count);
-    }
 }

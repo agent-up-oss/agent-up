@@ -22,7 +22,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
         var commands = new RecordingCommandRunner((command, _) =>
         {
-            if (command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
+            if (command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
                 CreateWindowsInstall(DefaultInstallDirectory());
             if (command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"]))
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
@@ -38,7 +38,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
-            Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("DisplayName -eq 'Agent-Up'", StringComparison.Ordinal)), Is.True);
@@ -64,7 +64,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
         File.WriteAllText(productMsi, "");
         var commands = new RecordingCommandRunner((command, _) =>
         {
-            if (command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
+            if (command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
                 CreateWindowsInstall(DefaultInstallDirectory());
             return new CommandResult(0, "", "");
         });
@@ -77,7 +77,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Findings.Any(finding => finding.Code == "installed.server.ready"), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("Get-Service", StringComparison.Ordinal)), Is.True);
-            Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
         }
         finally
         {

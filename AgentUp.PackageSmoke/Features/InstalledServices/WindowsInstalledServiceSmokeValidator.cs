@@ -23,7 +23,8 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         if (!File.Exists(installer) || !File.Exists(productMsi))
             return null;
 
-        await RunRequiredAsync(assert, new CommandSpec("msiexec.exe", ["/i", productMsi, "/qn", "/norestart"]), "installed.windows.install", cancellationToken);
+        var installLog = Path.Join(request.WorkDirectory, "windows-msi-install.log");
+        await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/L*v", installLog], installLog, "installed.windows.install", cancellationToken);
 
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Join(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
@@ -56,7 +57,17 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         return new InstalledServiceContext(
             cli,
-            [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart"])],
+            [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart", "/L*v", Path.Join(request.WorkDirectory, "windows-msi-uninstall.log")])],
             [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);
+    }
+
+    private async Task RunMsiAsync(FileAssertions assert, string[] arguments, string logPath, string code, CancellationToken cancellationToken)
+    {
+        var result = await RunAsync(new CommandSpec("msiexec.exe", arguments), cancellationToken);
+        if (result.ExitCode == 0)
+            return;
+
+        var log = File.Exists(logPath) ? await File.ReadAllTextAsync(logPath, cancellationToken) : "";
+        assert.Error(code, $"msiexec.exe failed with exit code {result.ExitCode}: {result.Stderr}{result.Stdout}{Environment.NewLine}{log}");
     }
 }

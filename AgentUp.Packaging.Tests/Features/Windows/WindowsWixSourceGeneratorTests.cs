@@ -25,7 +25,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_containsWindowsServicePathShortcutAndFiles()
     {
-        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3-ci.149", "artifacts", "Release");
         var layout = WindowsPackageLayout.From(request);
         WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
@@ -37,6 +37,7 @@ public class WindowsWixSourceGeneratorTests
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).ProductWxs(layout);
 
         Assert.That(xml, Does.Contain("Name=\"Agent-Up\""));
+        Assert.That(xml, Does.Contain("Version=\"1.2.3\""));
         Assert.That(xml, Does.Contain("ServiceInstall"));
         Assert.That(xml, Does.Contain("Name=\"agent-up-server\""));
         Assert.That(xml, Does.Contain("Arguments=\"--urls http://127.0.0.1:5000\""));
