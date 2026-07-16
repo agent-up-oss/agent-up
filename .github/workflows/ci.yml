@@ -135,6 +135,12 @@ jobs:
         with:
           category: /language:csharp
 
+      - name: Generate SBOM
+        run: |
+          dotnet tool install --global CycloneDX
+          dotnet CycloneDX agent-up.sln --json --out artifacts/sbom
+          mv artifacts/sbom/bom.json artifacts/sbom/agent-up-sbom.cdx.json
+
       - name: Publish .NET CI artifacts
         shell: bash
         run: |
@@ -192,6 +198,13 @@ jobs:
         with:
           name: dotnet-ci-windows-win-x64
           path: artifacts/ci-transfer/windows-win-x64/dotnet-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: artifacts/sbom/agent-up-sbom.cdx.json
           if-no-files-found: error
           retention-days: 1
 
@@ -371,11 +384,16 @@ jobs:
           path: release-artifacts
           merge-multiple: true
 
-      - name: Delete consumed package artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: release-artifacts
+
+      - name: Delete consumed package and SBOM artifacts
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select(.name | startswith("package-")) | .id' |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select(.name | startswith("package-") or .name == "sbom") | .id' |
             while IFS= read -r artifact_id; do
               if [ -n "$artifact_id" ]; then
                 gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id"
