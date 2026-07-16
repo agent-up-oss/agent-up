@@ -4,14 +4,14 @@ on: [push]
 
 permissions:
   contents: read
-  pull-requests: write
-  checks: write
-  actions: write
 
 jobs:
   dotnet-build-test:
     name: .NET build, tests, and payloads
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -196,6 +196,9 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     needs: dotnet-build-test
+    permissions:
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
