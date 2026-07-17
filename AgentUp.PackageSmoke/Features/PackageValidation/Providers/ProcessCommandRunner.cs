@@ -13,8 +13,8 @@ public sealed class ProcessCommandRunner : ICommandRunner
         var startInfo = CreateStartInfo(safeCommand.Executable);
         startInfo.WorkingDirectory = safeCommand.WorkingDirectory;
 
-        foreach (var argument in safeCommand.Arguments)
-            startInfo.ArgumentList.Add(argument);
+        if (!TryAddAllowedArguments(startInfo, safeCommand, out validationError))
+            return new CommandResult(126, "", validationError);
 
         if (safeCommand.Environment is not null)
         {
@@ -69,6 +69,370 @@ public sealed class ProcessCommandRunner : ICommandRunner
         startInfo.RedirectStandardError = true;
         return startInfo;
     }
+
+    private static bool TryAddAllowedArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+
+        if (command.Executable == SmokeExecutable.AgentUp && IsArguments(command, "--version"))
+        {
+            startInfo.ArgumentList.Add("--version");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.AgentUp && IsArguments(command, "start"))
+        {
+            startInfo.ArgumentList.Add("start");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.AgentUp && IsArguments(command, "status"))
+        {
+            startInfo.ArgumentList.Add("status");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.AgentUpCmd && IsArguments(command, "--version"))
+        {
+            startInfo.ArgumentList.Add("--version");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.AgentUpCmd && IsArguments(command, "start"))
+        {
+            startInfo.ArgumentList.Add("start");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.AgentUpCmd && IsArguments(command, "status"))
+        {
+            startInfo.ArgumentList.Add("status");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Git)
+            return TryAddGitArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.DpkgDeb)
+            return TryAddDpkgDebArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Pkgutil)
+            return TryAddPkgutilArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Msiexec)
+            return TryAddMsiexecArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.PowerShell)
+            return TryAddPowerShellArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Sc && IsArguments(command, "start", "agent-up-server"))
+        {
+            startInfo.ArgumentList.Add("start");
+            startInfo.ArgumentList.Add("agent-up-server");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Bash && IsArguments(command, "-lc", "command -v agent-up"))
+        {
+            startInfo.ArgumentList.Add("-lc");
+            startInfo.ArgumentList.Add("command -v agent-up");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Ps && IsArguments(command, "-ef"))
+        {
+            startInfo.ArgumentList.Add("-ef");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Ps && IsArguments(command, "aux"))
+        {
+            startInfo.ArgumentList.Add("aux");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Ss && IsArguments(command, "-ltnp"))
+        {
+            startInfo.ArgumentList.Add("-ltnp");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Lsof && IsArguments(command, "-nP", "-iTCP", "-sTCP:LISTEN"))
+        {
+            startInfo.ArgumentList.Add("-nP");
+            startInfo.ArgumentList.Add("-iTCP");
+            startInfo.ArgumentList.Add("-sTCP:LISTEN");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Sudo)
+            return TryAddSudoArguments(startInfo, command, out error);
+
+        error = $"Command arguments are not allowed for {command.DisplayName}.";
+        return false;
+    }
+
+    private static bool TryAddGitArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (IsArguments(command, "init", "-q"))
+        {
+            startInfo.ArgumentList.Add("init");
+            startInfo.ArgumentList.Add("-q");
+            return true;
+        }
+
+        if (IsArguments(command, "config", "user.email", "ci@agent-up.local"))
+        {
+            startInfo.ArgumentList.Add("config");
+            startInfo.ArgumentList.Add("user.email");
+            startInfo.ArgumentList.Add("ci@agent-up.local");
+            return true;
+        }
+
+        if (IsArguments(command, "config", "user.name", "Agent-Up CI"))
+        {
+            startInfo.ArgumentList.Add("config");
+            startInfo.ArgumentList.Add("user.name");
+            startInfo.ArgumentList.Add("Agent-Up CI");
+            return true;
+        }
+
+        if (IsArguments(command, "add", "agent-up.json"))
+        {
+            startInfo.ArgumentList.Add("add");
+            startInfo.ArgumentList.Add("agent-up.json");
+            return true;
+        }
+
+        if (IsArguments(command, "commit", "-q", "-m", "Add service smoke workspace"))
+        {
+            startInfo.ArgumentList.Add("commit");
+            startInfo.ArgumentList.Add("-q");
+            startInfo.ArgumentList.Add("-m");
+            startInfo.ArgumentList.Add("Add service smoke workspace");
+            return true;
+        }
+
+        error = "Git arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddDpkgDebArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 3 && command.Arguments[0] is "-x" or "-e")
+        {
+            startInfo.ArgumentList.Add(command.Arguments[0]);
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "dpkg-deb arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddPkgutilArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 3 && command.Arguments[0] == "--expand-full")
+        {
+            startInfo.ArgumentList.Add("--expand-full");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "pkgutil arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddMsiexecArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 6 &&
+            command.Arguments[0] is "/i" or "/x" &&
+            command.Arguments[2] == "/qn" &&
+            command.Arguments[3] == "/norestart" &&
+            command.Arguments[4] == "/l*vx!")
+        {
+            startInfo.ArgumentList.Add(command.Arguments[0]);
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add("/qn");
+            startInfo.ArgumentList.Add("/norestart");
+            startInfo.ArgumentList.Add("/l*vx!");
+            startInfo.ArgumentList.Add(command.Arguments[5]);
+            return true;
+        }
+
+        error = "msiexec arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddPowerShellArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (IsArguments(command, "-NoProfile", "-Command", "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add("$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode");
+            return true;
+        }
+
+        if (IsArguments(command, "-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add("Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *");
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "-NoProfile" &&
+            command.Arguments[1] == "-Command" &&
+            command.Arguments[2].Contains("DisplayName -eq 'Agent-Up'", StringComparison.Ordinal))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "PowerShell arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddSudoArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (IsArguments(command, "apt-get", "purge", "-y", "agent-up"))
+        {
+            startInfo.ArgumentList.Add("apt-get");
+            startInfo.ArgumentList.Add("purge");
+            startInfo.ArgumentList.Add("-y");
+            startInfo.ArgumentList.Add("agent-up");
+            return true;
+        }
+
+        if (IsArguments(command, "systemctl", "status", "agent-up-server.service", "--no-pager"))
+        {
+            startInfo.ArgumentList.Add("systemctl");
+            startInfo.ArgumentList.Add("status");
+            startInfo.ArgumentList.Add("agent-up-server.service");
+            startInfo.ArgumentList.Add("--no-pager");
+            return true;
+        }
+
+        if (IsArguments(command, "journalctl", "-u", "agent-up-server.service", "--no-pager", "-n", "200"))
+        {
+            startInfo.ArgumentList.Add("journalctl");
+            startInfo.ArgumentList.Add("-u");
+            startInfo.ArgumentList.Add("agent-up-server.service");
+            startInfo.ArgumentList.Add("--no-pager");
+            startInfo.ArgumentList.Add("-n");
+            startInfo.ArgumentList.Add("200");
+            return true;
+        }
+
+        if (IsArguments(command, "tail", "-n", "200", "/var/log/agent-up-server.log"))
+        {
+            startInfo.ArgumentList.Add("tail");
+            startInfo.ArgumentList.Add("-n");
+            startInfo.ArgumentList.Add("200");
+            startInfo.ArgumentList.Add("/var/log/agent-up-server.log");
+            return true;
+        }
+
+        if (IsArguments(command, "tail", "-n", "200", "/var/log/agent-up-server.err.log"))
+        {
+            startInfo.ArgumentList.Add("tail");
+            startInfo.ArgumentList.Add("-n");
+            startInfo.ArgumentList.Add("200");
+            startInfo.ArgumentList.Add("/var/log/agent-up-server.err.log");
+            return true;
+        }
+
+        if (IsArguments(command, "ls", "-la", "/var/lib/agent-up"))
+        {
+            startInfo.ArgumentList.Add("ls");
+            startInfo.ArgumentList.Add("-la");
+            startInfo.ArgumentList.Add("/var/lib/agent-up");
+            return true;
+        }
+
+        if (IsArguments(command, "launchctl", "print", "system/dev.agent-up.server"))
+        {
+            startInfo.ArgumentList.Add("launchctl");
+            startInfo.ArgumentList.Add("print");
+            startInfo.ArgumentList.Add("system/dev.agent-up.server");
+            return true;
+        }
+
+        if (IsArguments(command, "tail", "-n", "200", "/Library/Logs/Agent-Up/server.out.log"))
+        {
+            startInfo.ArgumentList.Add("tail");
+            startInfo.ArgumentList.Add("-n");
+            startInfo.ArgumentList.Add("200");
+            startInfo.ArgumentList.Add("/Library/Logs/Agent-Up/server.out.log");
+            return true;
+        }
+
+        if (IsArguments(command, "tail", "-n", "200", "/Library/Logs/Agent-Up/server.err.log"))
+        {
+            startInfo.ArgumentList.Add("tail");
+            startInfo.ArgumentList.Add("-n");
+            startInfo.ArgumentList.Add("200");
+            startInfo.ArgumentList.Add("/Library/Logs/Agent-Up/server.err.log");
+            return true;
+        }
+
+        if (IsArguments(command, "ls", "-la", "/Library/Application Support/Agent-Up"))
+        {
+            startInfo.ArgumentList.Add("ls");
+            startInfo.ArgumentList.Add("-la");
+            startInfo.ArgumentList.Add("/Library/Application Support/Agent-Up");
+            return true;
+        }
+
+        if (command.Arguments.Count == 5 &&
+            command.Arguments[0] == "installer" &&
+            command.Arguments[1] == "-pkg" &&
+            command.Arguments[3] == "-target" &&
+            command.Arguments[4] == "/")
+        {
+            startInfo.ArgumentList.Add("installer");
+            startInfo.ArgumentList.Add("-pkg");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            startInfo.ArgumentList.Add("-target");
+            startInfo.ArgumentList.Add("/");
+            return true;
+        }
+
+        if (command.Arguments.Count == 4 && command.Arguments[0] == "apt-get" && command.Arguments[1] == "install" && command.Arguments[2] == "-y")
+        {
+            startInfo.ArgumentList.Add("apt-get");
+            startInfo.ArgumentList.Add("install");
+            startInfo.ArgumentList.Add("-y");
+            startInfo.ArgumentList.Add(command.Arguments[3]);
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 && command.Arguments[0] == "bash" && command.Arguments[1] == "-c")
+        {
+            startInfo.ArgumentList.Add("bash");
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "sudo arguments are not allowed.";
+        return false;
+    }
+
+    private static bool IsArguments(SafeCommandSpec command, params string[] arguments)
+        => command.Arguments.Count == arguments.Length && command.Arguments.SequenceEqual(arguments);
 
     private static bool TryNormalize(CommandSpec command, out SafeCommandSpec safeCommand, out string error)
     {

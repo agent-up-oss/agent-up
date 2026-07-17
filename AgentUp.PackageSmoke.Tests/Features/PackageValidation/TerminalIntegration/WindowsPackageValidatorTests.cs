@@ -29,10 +29,7 @@ public class WindowsPackageValidatorTests
         var commands = new RecordingCommandRunner((command, _) =>
         {
             Assert.That(command.FileName, Is.EqualTo("powershell.exe"));
-            Assert.That(command.Arguments, Is.EqualTo(new[] { "-NoProfile", "-Command", """
-                $process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru;
-                exit $process.ExitCode
-                """ }));
+            Assert.That(command.Arguments, Is.EqualTo(new[] { "-NoProfile", "-Command", "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode" }));
             Assert.That(command.Environment, Is.Not.Null);
             Assert.That(command.Environment!["AGENTUP_SMOKE_INSTALLER"], Is.EqualTo(installer));
             Assert.That(command.Environment["AGENTUP_SMOKE_LAYOUT"], Is.EqualTo(Path.Join(workDir, "layout")));
