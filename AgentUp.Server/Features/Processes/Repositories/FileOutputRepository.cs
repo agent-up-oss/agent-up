@@ -1,12 +1,15 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace AgentUp.Server.Features.Processes.Repositories;
 
 public sealed class FileOutputRepository : IOutputRepository
 {
-    private readonly string _baseDir;
+    private readonly string _outputRoot;
 
     public FileOutputRepository(string baseDir)
     {
-        _baseDir = baseDir;
+        _outputRoot = Path.GetFullPath(Path.Combine(baseDir, "output"));
     }
 
     public async Task AppendAsync(string workspaceId, string appName, string line, CancellationToken ct = default)
@@ -32,6 +35,32 @@ public sealed class FileOutputRepository : IOutputRepository
         return Task.CompletedTask;
     }
 
-    private string GetPath(string workspaceId, string appName) =>
-        Path.Join(_baseDir, "output", workspaceId, $"{appName}.log");
+    private string GetPath(string workspaceId, string appName)
+    {
+        var fileName = GetLogFileName(workspaceId, appName);
+        var path = Path.GetFullPath(Path.Combine(_outputRoot, fileName));
+        var root = _outputRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? _outputRoot
+            : _outputRoot + Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (!path.StartsWith(root, comparison))
+            throw new InvalidOperationException("Output log path escaped the output root.");
+
+        return path;
+    }
+
+    private static string GetLogFileName(string workspaceId, string appName)
+    {
+        if (string.IsNullOrWhiteSpace(workspaceId))
+            throw new ArgumentException("Workspace id is required.", nameof(workspaceId));
+
+        if (string.IsNullOrWhiteSpace(appName))
+            throw new ArgumentException("Application name is required.", nameof(appName));
+
+        var bytes = Encoding.UTF8.GetBytes(workspaceId + "\0" + appName);
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() + ".log";
+    }
 }

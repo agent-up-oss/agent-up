@@ -53,6 +53,8 @@ When the Server launches a local application process, it injects the workspace's
 
 Local application commands are executed through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Command strings in `agent-up.json` should therefore use syntax that is valid for the operating systems where that workspace is expected to run.
 
+Process output storage must not use workspace IDs or application names as raw path segments. Repositories that persist process logs must encode or canonicalize those identifiers and verify the resolved path stays under the Server-owned output root before reading, writing, or deleting files.
+
 ## Tutorial Cleanup
 
 `POST /api/workspaces/tutorial/cleanup` is a Desktop onboarding support endpoint. It stops and removes every registered workspace when the first-run tutorial starts, so stale workspace state cannot render behind onboarding or affect the guided sample setup.

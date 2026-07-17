@@ -68,6 +68,8 @@ Final release publishing uses the MinIO `mc` client against the public release b
 - Native install, service readiness, installed CLI workspace registration, diagnostics, and uninstall cleanup for installed-service smoke tests.
 - Guided installer flow validation through `validate-installer-flow`; this uses the default real adapter unless `AGENTUP_INSTALLER_FAKE=1` is set.
 
+Package smoke command execution must validate allowlisted command names, known installed executable paths, working directories, arguments, and environment keys before creating `ProcessStartInfo`. CI scripts may pass artifact and work-directory values into smoke validation, but those values must stay data until a provider has checked them.
+
 ## Nix Packaging Wrappers
 
 Use the platform wrapper scripts when building packages from NixOS or another machine where native package tools should come from Nix:

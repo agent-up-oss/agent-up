@@ -28,8 +28,14 @@ public class WindowsPackageValidatorTests
         File.WriteAllText(Path.Join(artifactDir, "agent-up-windows-win-x64.msi"), "");
         var commands = new RecordingCommandRunner((command, _) =>
         {
-            Assert.That(command.FileName, Is.EqualTo(installer));
-            Assert.That(command.Arguments, Is.EqualTo(new[] { "/layout", Path.Join(workDir, "layout"), "/quiet" }));
+            Assert.That(command.FileName, Is.EqualTo("powershell.exe"));
+            Assert.That(command.Arguments, Is.EqualTo(new[] { "-NoProfile", "-Command", """
+                $process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru;
+                exit $process.ExitCode
+                """ }));
+            Assert.That(command.Environment, Is.Not.Null);
+            Assert.That(command.Environment!["AGENTUP_SMOKE_INSTALLER"], Is.EqualTo(installer));
+            Assert.That(command.Environment["AGENTUP_SMOKE_LAYOUT"], Is.EqualTo(Path.Join(workDir, "layout")));
             Directory.CreateDirectory(Path.Join(workDir, "layout"));
             return new CommandResult(0, "", "");
         });
