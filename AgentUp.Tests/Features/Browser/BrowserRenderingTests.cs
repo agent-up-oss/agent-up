@@ -1,12 +1,15 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
-using AgentUp.Desktop.Features.Applications.Http;
-using AgentUp.Desktop.Features.Ports.Http;
+using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Factories;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
+using AgentUp.Desktop.Features.Workspaces.Repositories;
 using AgentUp.Tests.Support;
 using Avalonia.Threading;
 
@@ -100,8 +103,8 @@ public sealed class BrowserRenderingTests
         {
             var handler = new RenderingFakeHttpHandler([MakeWorkspace("ws-1", _server.Port)]);
             var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-            var vm = new MainViewModel(new AgentUp.Desktop.Features.Workspaces.Http.WorkspaceApiClient(http),
-                                       new AgentUp.Desktop.Features.Console.Http.ConsoleApiClient(http));
+            var vm = MainViewModelFactory.Create(new AgentUp.Desktop.Features.Workspaces.Providers.WorkspaceApiClient(http),
+                                       new AgentUp.Desktop.Features.Console.Providers.ConsoleApiClient(http));
             var w = new MainWindow { DataContext = vm };
             w.Show();
             await vm.InitializeAsync();

@@ -77,7 +77,7 @@ public class SidebarBehaviorTests
         Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(3));
 
         var updated = WorkspaceFixtures.Multiple();
-        updated.Add(new AgentUp.Desktop.Features.Workspaces.Http.WorkspaceDto(
+        updated.Add(new AgentUp.Desktop.Features.Workspaces.DTOs.WorkspaceDto(
             "ws-4", "New Service", "/repo/new", "/worktrees/new", "main", "aaa000", "Stopped"));
         handler.SetWorkspaces(updated);
 

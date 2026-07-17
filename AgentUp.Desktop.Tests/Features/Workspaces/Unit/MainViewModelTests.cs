@@ -1,11 +1,13 @@
 using System.Reactive.Linq;
-using AgentUp.Desktop.Features.Applications.Http;
-using AgentUp.Desktop.Features.Console.Http;
+using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
-using AgentUp.Desktop.Features.Ports.Http;
+using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Factories;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 
@@ -17,14 +19,14 @@ public class MainViewModelTests
     [Test]
     public void SidebarWidth_is220WhenExpanded()
     {
-        var vm = new MainViewModel(NullWorkspaceClient(), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
         Assert.That(vm.Sidebar.Width, Is.EqualTo(220));
     }
 
     [Test]
     public void SidebarWidth_is56WhenCollapsed()
     {
-        var vm = new MainViewModel(NullWorkspaceClient(), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
         vm.Sidebar.IsCollapsed = true;
         Assert.That(vm.Sidebar.Width, Is.EqualTo(56));
     }
@@ -32,7 +34,7 @@ public class MainViewModelTests
     [Test]
     public void IsSidebarExpanded_invertsIsSidebarCollapsed()
     {
-        var vm = new MainViewModel(NullWorkspaceClient(), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
 
         Assert.That(vm.Sidebar.IsExpanded, Is.True);
         vm.Sidebar.IsCollapsed = true;
@@ -44,7 +46,7 @@ public class MainViewModelTests
     [Test]
     public void SidebarToggleIcon_changesWithCollapsedState()
     {
-        var vm = new MainViewModel(NullWorkspaceClient(), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
         Assert.That(vm.Sidebar.ToggleIcon, Is.EqualTo("‹"));
         vm.Sidebar.IsCollapsed = true;
         Assert.That(vm.Sidebar.ToggleIcon, Is.EqualTo("›"));
@@ -53,7 +55,7 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_setsErrorMessage_whenServerUnreachable()
     {
-        var vm = new MainViewModel(NullWorkspaceClient(), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
         await vm.InitializeAsync();
 
         Assert.That(vm.Sidebar.ErrorMessage, Is.Not.Null.And.Not.Empty);
@@ -64,7 +66,7 @@ public class MainViewModelTests
     public async Task InitializeAsync_populatesWorkspaces_onSuccess()
     {
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
 
@@ -78,7 +80,7 @@ public class MainViewModelTests
     public async Task InitializeAsync_selectsFirstWorkspace_automaticallyOnFirstLoad()
     {
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
 
@@ -103,7 +105,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
 
@@ -127,7 +129,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
 
@@ -138,7 +140,7 @@ public class MainViewModelTests
     public async Task NavigateAddressCommand_emitsEditedAddress_whenHttpPortTabSelected()
     {
         var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -154,7 +156,7 @@ public class MainViewModelTests
     public async Task NavigateAddressCommand_prefixesHttpScheme_whenEditedAddressHasNoScheme()
     {
         var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -171,7 +173,7 @@ public class MainViewModelTests
     public async Task UpdateAddressFromBrowser_updatesAddressBar_whenSelectedHttpPortNavigates()
     {
         var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
         vm.UpdateAddressFromBrowser("ws-1", "http://localhost:3000/dashboard");
@@ -182,7 +184,7 @@ public class MainViewModelTests
     [Test]
     public void BrowserCommands_emitRequestedBrowserActions()
     {
-        var vm = new MainViewModel(NullWorkspaceClient(), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
         var commands = new List<BrowserCommand>();
         vm.BrowserCommands.Subscribe(commands.Add);
 
@@ -200,7 +202,7 @@ public class MainViewModelTests
         var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
         var handler = new MutableFakeHttpMessageHandler([initial]);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = new MainViewModel(new WorkspaceApiClient(http), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -224,7 +226,7 @@ public class MainViewModelTests
         var tutorial = new FirstRunTutorialViewModel(
             new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
             new PassingTutorialChecks());
-        var vm = new MainViewModel(new WorkspaceApiClient(http), NullConsoleClient(), tutorial);
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient(), tutorial);
         var browserCommands = new List<BrowserCommand>();
         vm.BrowserCommands.Subscribe(browserCommands.Add);
 
@@ -246,7 +248,7 @@ public class MainViewModelTests
         {
             Applications = [new ApplicationDto("Worker", "cmd", null, "Running")]
         };
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
 
@@ -270,7 +272,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = new MainViewModel(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));

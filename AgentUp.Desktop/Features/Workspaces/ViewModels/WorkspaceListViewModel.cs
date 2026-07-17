@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;

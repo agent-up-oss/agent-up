@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
 using AgentUp.InstallerApp;
-using AgentUp.Installers.Features.Execution;
+using AgentUp.Installers.Features.Installation.Factories;
 
 SetBundledPayloadRoot();
 

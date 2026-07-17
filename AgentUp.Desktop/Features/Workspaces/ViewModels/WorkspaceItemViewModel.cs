@@ -1,4 +1,4 @@
-using AgentUp.Desktop.Features.Applications.Http;
+using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using ReactiveUI;
 

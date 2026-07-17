@@ -1,6 +1,4 @@
-using AgentUp.Fixtures;
-
-namespace AgentUp.Fixtures.Windows;
+namespace AgentUp.Tests.Fixtures.Windows;
 
 public sealed class WindowsDesktopFixtureAdapter : IDesktopFixtureAdapter
 {

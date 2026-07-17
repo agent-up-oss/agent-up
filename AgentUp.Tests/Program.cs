@@ -1,8 +1,8 @@
+using AgentUp.Tests.Fixtures;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
-using AgentUp.Fixtures;
 using NUnitLite;
 
 namespace AgentUp.Tests;

@@ -3,7 +3,8 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AgentUp.CLI.Http;
+using AgentUp.CLI.Features.Workspaces.Factories;
+using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Tests.Fake;
 using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -55,7 +56,7 @@ public class WorkspaceCommandsTests
     public async Task Start_ExitsZero_AndPrintsWorkspaceName()
     {
         var output = new StringWriter();
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Test Project"));
@@ -64,7 +65,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_UsesAgentUpJsonName_AsDisplayName()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -76,7 +77,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_PopulatesGitBranchAndCommit()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -96,7 +97,7 @@ public class WorkspaceCommandsTests
             await WriteAgentUpJsonAsync(plainDir, "Plain Project");
             var output = new StringWriter();
 
-            var exitCode = await new CliRunner($"http://localhost:{_port}", plainDir, output).RunAsync(["start"]);
+            var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", plainDir, output).RunAsync(["start"]);
 
             Assert.That(exitCode, Is.EqualTo(0));
             var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
@@ -118,7 +119,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_SetsWorktreePath_ToCurrentDirectory()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -129,8 +130,8 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_Twice_DoesNotDuplicate()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -147,7 +148,7 @@ public class WorkspaceCommandsTests
             new { name = "Backend", command = "dotnet run", path = "./api" }
         ]);
 
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -166,7 +167,7 @@ public class WorkspaceCommandsTests
         ]);
 
         var output = new StringWriter();
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         var text = output.ToString();
         Assert.That(text, Does.Contain("Frontend"));
@@ -181,7 +182,7 @@ public class WorkspaceCommandsTests
             new { name = "Docs", command = "npm run start", path = "docs" }
         ]);
 
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -202,7 +203,7 @@ public class WorkspaceCommandsTests
         File.Delete(Path.Join(_workspaceDir, "agent-up.json"));
         var output = new StringWriter();
 
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Error"));
@@ -213,7 +214,7 @@ public class WorkspaceCommandsTests
     {
         var output = new StringWriter();
 
-        var exitCode = await new CliRunner("http://localhost:1", _workspaceDir, output).RunAsync(["start"]);
+        var exitCode = await CliRunnerFactory.Create("http://localhost:1", _workspaceDir, output).RunAsync(["start"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Error"));
@@ -224,10 +225,10 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Stop_ExitsZero_AndPrintsWorkspaceName()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var output = new StringWriter();
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Test Project"));
@@ -236,8 +237,8 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Stop_SetsWorkspaceState_ToStopped()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["stop"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["stop"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -249,7 +250,7 @@ public class WorkspaceCommandsTests
     public async Task Stop_Fails_WhenWorkspaceNotStarted()
     {
         var output = new StringWriter();
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Error"));
@@ -262,7 +263,7 @@ public class WorkspaceCommandsTests
     {
         var output = new StringWriter();
 
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("No workspaces"));
@@ -271,10 +272,10 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task List_ShowsRegisteredWorkspaces()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var output = new StringWriter();
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Test Project"));
@@ -290,11 +291,11 @@ public class WorkspaceCommandsTests
             await InitGitRepoAsync(secondDir);
             await WriteAgentUpJsonAsync(secondDir, "Second Project");
 
-            await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
-            await new CliRunner($"http://localhost:{_port}", secondDir).RunAsync(["start"]);
+            await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+            await CliRunnerFactory.Create($"http://localhost:{_port}", secondDir).RunAsync(["start"]);
 
             var output = new StringWriter();
-            await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
+            await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
 
             var text = output.ToString();
             Assert.That(text, Does.Contain("Test Project"));
@@ -311,10 +312,10 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Status_ShowsCurrentWorkspace_AfterStart()
     {
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var output = new StringWriter();
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         var text = output.ToString();
@@ -327,7 +328,7 @@ public class WorkspaceCommandsTests
     public async Task Status_ReturnsNonZero_WhenNotStarted()
     {
         var output = new StringWriter();
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("No workspace registered"));
@@ -339,7 +340,7 @@ public class WorkspaceCommandsTests
     public async Task Help_ExitsZero_AndListsCommands()
     {
         var output = new StringWriter();
-        var exitCode = await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync([]);
+        var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync([]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         var text = output.ToString();
@@ -365,7 +366,6 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
-        builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -392,7 +392,7 @@ public class WorkspaceCommandsTests
             applications: [],
             services: [new { name = "Database", image = "postgres:16", ports = new[] { new { variable = "DB_PORT", defaultPort = 5432 } } }]);
 
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -408,7 +408,7 @@ public class WorkspaceCommandsTests
             services: [new { name = "Database", image = "postgres:16" }]);
 
         var output = new StringWriter();
-        await new CliRunner($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         var text = output.ToString();
         Assert.That(text, Does.Contain("Database"));

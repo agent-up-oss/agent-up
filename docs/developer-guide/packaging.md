@@ -47,6 +47,12 @@ On Windows, the default adapter installs the staged Desktop, Server, and CLI pay
 - Native packaging tool invocation.
 - Artifact path and naming rules.
 
+All `AgentUp.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative paths and must remain under the repository root. Prebuilt payload roots may be absolute CI-provided paths or repository-relative paths; repository-relative payload roots are normalized under the repository root.
+
+The packaging command entrypoint builds the project composition root and delegates into feature controllers. Controllers are constructor-injected and thin; packaging services own lifecycle orchestration, and low-level command, filesystem, repository-path, environment, parser, archive, and native-tool behavior stays behind providers. Platform packaging slices may coordinate shared release artifact staging through the ReleaseArtifacts controller, but they must not fetch another slice's services, models, providers, or interfaces directly.
+
+Packaging services must not construct native tool commands such as `dpkg-deb`, `wix`, `pkgbuild`, `productbuild`, `dotnet publish`, package archive expansion, or raw CLI argument parsing. Use capability-named providers such as `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageTool`, `PackagePublisher`, and `PackageCommandParser`; test exact command shapes at the provider level.
+
 CI uses prebuilt payload mode: the Ubuntu build job publishes single-file self-contained InstallerApp, Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime.
 
 The Ubuntu build uploads one short-lived GitHub Actions artifact per platform job, and native package jobs download only their own runtime slice before passing `--payload-root` to package those exact payloads. Native package jobs should delete the consumed CI-transfer artifact after download. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
@@ -55,11 +61,14 @@ Final release publishing uses the MinIO `mc` client against the public release b
 
 `AgentUp.PackageSmoke` owns smoke validation:
 
+- The `SmokeRuns` command entrypoint controller, parser provider, work-directory provider, and validation router.
 - Artifact discovery and extraction.
 - Platform adapter checks for Desktop, Server, CLI, service, launcher, and uninstall metadata.
 - A shared `package-smoke.env` handoff that reports package-local Server and CLI paths back to CI scripts.
 - Native install, service readiness, installed CLI workspace registration, diagnostics, and uninstall cleanup for installed-service smoke tests.
 - Guided installer flow validation through `validate-installer-flow`; this uses the default real adapter unless `AGENTUP_INSTALLER_FAKE=1` is set.
+
+Package smoke command execution must choose from allowlisted command names before creating `ProcessStartInfo`; executable paths must not be passed to the generic process runner. CI scripts may pass artifact, install, and work-directory values into smoke validation, but those values must stay data until a provider has checked them.
 
 ## Nix Packaging Wrappers
 

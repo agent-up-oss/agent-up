@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Providers;
 
 namespace AgentUp.Desktop.Tests.Support;
 

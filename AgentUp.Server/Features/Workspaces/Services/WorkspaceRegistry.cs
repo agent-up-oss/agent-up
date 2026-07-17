@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
 
-public sealed class WorkspaceRegistry : IWorkspaceRegistry, IHostedService
+public sealed class WorkspaceRegistry : IHostedService
 {
     private readonly ConcurrentDictionary<string, Workspace> _workspaces = new();
     private readonly IWorkspaceRepository _repository;

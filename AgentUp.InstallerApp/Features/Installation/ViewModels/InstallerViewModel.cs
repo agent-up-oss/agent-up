@@ -1,11 +1,12 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using AgentUp.Installers.Features.Execution;
-using AgentUp.Installers.Features.Flow;
-using AgentUp.Installers.Features.Payloads;
-using AgentUp.Installers.Features.Prerequisites;
-using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.InstallerApp.Features.Installation.Factories;
+using AgentUp.Installers.Features.Installation.DTOs;
+using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Features.Installation.Interfaces;
+using AgentUp.Installers.Features.Installation.Models;
+using AgentUp.Installers.Features.Installation.Services;
 
 namespace AgentUp.InstallerApp.Features.Installation.ViewModels;
 

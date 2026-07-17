@@ -1,10 +1,13 @@
 using System.Net.Http.Json;
-using AgentUp.Desktop.Features.Applications.Http;
-using AgentUp.Desktop.Features.Console.Http;
-using AgentUp.Desktop.Features.Ports.Http;
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Console.Providers;
+using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Factories;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
+using AgentUp.Desktop.Features.Workspaces.Repositories;
 using AgentUp.Tests.Support;
 using Avalonia.Threading;
 
@@ -148,7 +151,7 @@ public sealed class BrowserCookieIsolationTests
         {
             var handler = new FakeHttpHandler(workspaces);
             var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-            var vm = new MainViewModel(new WorkspaceApiClient(http), new ConsoleApiClient(http));
+            var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), new ConsoleApiClient(http));
             var window = new MainWindow { DataContext = vm };
             window.Show();
             await vm.InitializeAsync();

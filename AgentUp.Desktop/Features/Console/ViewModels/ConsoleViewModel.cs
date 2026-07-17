@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using AgentUp.Desktop.Features.Console.Http;
+using AgentUp.Desktop.Features.Console.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Console.ViewModels;

@@ -1,4 +1,4 @@
-using AgentUp.Desktop.Features.Ports.Http;
+using AgentUp.Desktop.Features.Ports.DTOs;
 
 namespace AgentUp.Desktop.Features.Applications.ViewModels;
 

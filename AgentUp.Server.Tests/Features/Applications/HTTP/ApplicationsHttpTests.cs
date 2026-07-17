@@ -47,7 +47,6 @@ public class ApplicationsHttpTests
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
-        builder.Services.AddSingleton<IWorkspaceRegistry>(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);

@@ -1,6 +1,4 @@
-using AgentUp.Fixtures;
-
-namespace AgentUp.Fixtures.MacOs;
+namespace AgentUp.Tests.Fixtures.MacOs;
 
 public sealed class MacOsDesktopFixtureAdapter : IDesktopFixtureAdapter
 {

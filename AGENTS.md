@@ -49,9 +49,6 @@ AgentUp.Desktop/
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
-AgentUp.Shared/
-  AgentUp.Shared.csproj
-
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
@@ -84,6 +81,12 @@ AgentUp.Packaging.Tests/
 
 AgentUp.PackageSmoke.Tests/
   AgentUp.PackageSmoke.Tests.csproj
+
+AgentUp.Architecture.Tests/
+  AgentUp.Architecture.Tests.csproj
+
+AgentUp.Tests/
+  AgentUp.Tests.csproj
 ```
 
 Project directories live directly at the repository root and are included in the root solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere.
@@ -100,7 +103,6 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Packaging` | Testable release artifact staging, package metadata generation, and native packaging tool orchestration |
 | `AgentUp.PackageSmoke` | Testable package and installed-service smoke validation adapters used by CI smoke scripts |
 | MCP clients | Automation interface; no local orchestration |
-| `AgentUp.Shared` | Cross-boundary contracts only when genuinely shared |
 
 Read the full architecture guide before making structural changes: `docs/developer-guide/architecture.md`.
 
@@ -115,12 +117,17 @@ AgentUp.Server/
   Features/
     Workspaces/
       Controllers/
-      Services/
-      Repositories/
       DTOs/
-    Processes/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Repositories/
       Services/
-      Diagnostics/
+    Processes/
+      Interfaces/
+      Providers/
+      Services/
     Applications/
       Controllers/
       DTOs/
@@ -129,8 +136,10 @@ AgentUp.Server/
       Profiles/
       Automation/
     Ports/
-      Services/
+      Interfaces/
       Models/
+      Providers/
+      Services/
     Mcp/
       Tools/
       Resources/
@@ -138,36 +147,126 @@ AgentUp.Server/
 AgentUp.Desktop/
   Features/
     Workspaces/       (sidebar navigation: workspace list, loading, error, collapse)
-      Http/
+      DTOs/
+      Factories/
+      Providers/
+      Repositories/
       ViewModels/
       Views/
     Applications/     (application tab bar: list and selection per workspace)
-      Http/
+      DTOs/
       ViewModels/
     Console/          (console output/logs for the selected application)
-      Http/
+      Providers/
       ViewModels/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
+      DTOs/
       ViewModels/
+
+AgentUp.CLI/
+  Features/
+    Workspaces/       (human CLI commands over Server workspace capabilities)
+      Controllers/
+      DTOs/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
 
 AgentUp.Installers/
   Features/
-    Prerequisites/    (Docker status and minimum-version checks)
-    Components/       (component selection and install summaries)
-    Path/             (idempotent PATH add/remove planning)
-    Validation/       (post-install validation contracts)
-    Uninstall/        (uninstall-mode planning)
-    Ubuntu/           (systemd service, CLI, desktop launcher install adapter contracts)
-    MacOs/            (launchd service, CLI, app bundle install adapter contracts)
-    Windows/          (Windows Service, PATH, Start Menu, WiX install adapter contracts)
+    Installation/     (guided install flow, component selection, payloads, PATH, validation, uninstall planning)
+      DTOs/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    PrerequisiteChecks/ (Docker status and minimum-version checks)
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    UbuntuInstallation/ (systemd service, CLI, desktop launcher install adapter contracts)
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+    MacOsInstallation/ (launchd service, CLI, app bundle install adapter contracts)
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    WindowsInstallation/ (Windows Service, PATH, Start Menu, WiX install adapter contracts)
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
 
 AgentUp.Packaging/
   Features/
     ReleaseArtifacts/ (artifact requests, repository paths, command execution)
-    Ubuntu/           (Debian package layout, metadata, staging, dpkg orchestration)
-    Windows/          (WiX/Burn orchestration)
-    MacOs/            (pkg/signing/notarization orchestration)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    UbuntuPackages/   (Debian package layout, metadata, staging, dpkg orchestration)
+      Controllers/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    WindowsPackages/  (WiX/Burn orchestration)
+      Controllers/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    MacOsPackages/    (pkg/signing/notarization orchestration)
+      Controllers/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     NixOs/            (flake package-set orchestration when implemented)
+  Shared/
+    Interfaces/       (cross-slice low-level abstractions such as command and file-system access)
+    Providers/
+    Factories/        (project composition root for long-lived service/provider/controller instances)
+
+AgentUp.PackageSmoke/
+  Features/
+    SmokeRuns/        (package-smoke command parsing, work directory preparation, and validation routing)
+      Controllers/
+      DTOs/
+      Factories/
+      Interfaces/
+      Providers/
+      Services/
+    PackageValidation/
+      DTOs/
+      Factories/
+      Interfaces/
+      Providers/
+      Services/
+    InstalledServiceValidation/
+      DTOs/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    InstallerFlowValidation/
+      Services/
+    RuntimeSecurity/
+      Interfaces/
+      Providers/
+      Services/
 ```
 
 Avoid this as the primary organizing model:
@@ -199,6 +298,8 @@ AgentUp.Server.Tests/
 
 Prefer working only in the slice directly involved in the task.
 
+Feature slice names should have product, customer, operator, or maintainer meaning. Avoid creating top-level slices for tiny technical mechanisms such as payload parsing, PATH editing, execution helpers, or validation records when they are only part of a larger capability; keep those as type-folder contents inside the meaningful owning slice.
+
 ## Migrations And Persistence
 
 If persistent storage is introduced, migrations stay together in the owning infrastructure/migration location for the project.
@@ -208,6 +309,16 @@ Feature separation happens at repository/service boundaries. Do not scatter migr
 ## Inter-Slice Communication
 
 A slice owns its writes.
+
+Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should call into a slice through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
+
+Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models, but they must stay domain-specific. Services must not contain low-level parsing, command construction, filesystem/archive operations, native tool invocation, environment lookup, HTTP/network mechanics, process execution, platform API calls, XML/manifest serialization mechanics, or string-scanning helpers for external tool output. Put that behavior behind same-slice `Providers/` with names that describe the user/operator capability where practical, such as `PackageCommandParser`, `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageArchiveProvider`, or `DockerPrerequisiteProvider`.
+
+Use `Models/` for data definitions and pure internal representations that stay inside the slice, including generated manifest/script/XML text when the code is defining package or installer data rather than performing I/O. Use `DTOs/` only for data crossing external or controller boundaries.
+
+Provider interfaces are justified when they hide low-level providers from services, are faked by tests, or select runtime adapters. A service depending on `IUbuntuPackageTool` is acceptable; a service building `new CommandSpec("dpkg-deb", ...)` is not. A controller or service parsing raw `string[] args` is not acceptable; use a parser provider that returns a DTO/result.
+
+Slices must not reach directly into another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice calls go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs/`. If a low-level abstraction is genuinely shared by multiple slices, place it in a project-level shared folder instead of hiding it inside one feature slice.
 
 Read-only cross-slice access is allowed when necessary through a narrow interface. For example, browser automation may need read-only workspace state, but browser automation should not directly mutate workspace registry data.
 
@@ -324,6 +435,8 @@ New code should convert known failures into safe errors with status, title, deta
 Guidelines:
 
 - Convert provider/infrastructure exceptions at meaningful boundaries.
+- Validate command runner inputs before process launch. Package smoke command execution must choose from allowlisted command names and must not pass executable paths or unchecked user-provided strings into `ProcessStartInfo`.
+- Encode or otherwise canonicalize user-controlled IDs before using them in filesystem paths, and verify the resolved path stays under the owning storage root.
 - Do not add catch blocks at every layer.
 - Validate transport/request models at host boundaries.
 - Keep domain/runtime invariants in the owning slice.
@@ -347,6 +460,8 @@ This applies to every production/test project pair once created:
 | `AgentUp.Packaging` | `AgentUp.Packaging.Tests` |
 | `AgentUp.PackageSmoke` | `AgentUp.PackageSmoke.Tests` |
 
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, controller dependency construction rules, and test taxonomy rules. Keep architecture rules there instead of burying them in product E2E tests.
+
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
 Forbidden:
@@ -361,6 +476,8 @@ Forbidden:
 
 Tests should follow the same feature/slice layout as production code.
 
+Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe.
+
 ```text
 AgentUp.Server.Tests/
   Features/
@@ -372,6 +489,7 @@ AgentUp.Server.Tests/
       HTTP/
     Processes/
       Unit/
+      TerminalIntegration/
     Browser/
       Automation/
       Unit/
@@ -384,6 +502,7 @@ AgentUp.Desktop.Tests/
     Workspaces/
       Headless/     (Avalonia headless tests for sidebar/workspace-list UI)
       Unit/         (ViewModel unit tests, no UI)
+      TerminalIntegration/ (tests that inspect real project or filesystem state)
     Applications/
       Headless/     (Avalonia headless tests for application panel UI)
     Console/
@@ -398,8 +517,11 @@ Use layered tests with clear ownership:
 - Unit tests verify domain/runtime rules and edge cases.
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
 - MCP tests verify tool/resource contracts and safe errors.
-- Repository/infrastructure tests verify persistence, filesystem, process, Docker, or browser integration behavior with realistic dependencies when practical.
+- Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
+- Terminal integration tests verify terminal-like workflows, generated directory state, process-style behavior, package layouts, installer smoke behavior, and post-run filesystem assertions.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
+
+`Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `TerminalIntegration/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
 
 Avoid duplicate tests that assert the same rule through multiple layers.
 
@@ -478,6 +600,10 @@ Read: `docs/developer-guide/workflows.md`.
 ## Packaging And Installers
 
 Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, and platform install contracts belong in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. The shared guided installer UX belongs in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`; the installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that guided installer rather than owning divergent install flows. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`; packaging code must consume shared installer contracts instead of redefining platform behavior. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Packaging, and PackageSmoke artifacts from the Ubuntu build job so native release runners do not restore, build, or test product .NET projects. Shared package and installed-service smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should delegate native artifact, install, service, CLI, diagnostics, and uninstall checks to this console app and keep shell code limited to selecting arguments and runner setup. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
+
+All `AgentUp.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative and must remain under the repository root; prebuilt payload roots may be absolute CI-provided paths or repository-relative paths normalized under the repository root.
+
+All `AgentUp.PackageSmoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, and installed CLIs, but execution must choose from allowlisted command names before `ProcessStartInfo` is created. Artifact paths, installed executable paths, working directories, arguments, and environment keys stay data and must be validated before use.
 
 Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 

@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
 
-namespace AgentUp.Fixtures;
+namespace AgentUp.Tests.Fixtures;
 
 public interface IDesktopFixtureAdapter : IDisposable
 {
@@ -32,6 +32,6 @@ public static class DesktopFixtureAdapter
             .UseReactiveUI()
             .AfterSetup(_ =>
             {
-                Avalonia.Threading.Dispatcher.UIThread.Post(Tests.DesktopFixtureHost.MarkAvaloniaReady);
+                Avalonia.Threading.Dispatcher.UIThread.Post(DesktopFixtureHost.MarkAvaloniaReady);
             });
 }

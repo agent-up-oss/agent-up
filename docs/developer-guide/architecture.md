@@ -33,9 +33,6 @@ AgentUp.Desktop/
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
-AgentUp.Shared/
-  AgentUp.Shared.csproj
-
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
@@ -68,9 +65,64 @@ AgentUp.Packaging.Tests/
 
 AgentUp.PackageSmoke.Tests/
   AgentUp.PackageSmoke.Tests.csproj
+
+AgentUp.Architecture.Tests/
+  AgentUp.Architecture.Tests.csproj
+
+AgentUp.Tests/
+  AgentUp.Tests.csproj
 ```
 
 The exact project list may evolve, but the ownership boundaries should remain stable.
+
+## Code Organization
+
+Every production .NET project uses capability-oriented vertical slices under `Features/`. Root project folders should contain only project entry/configuration files such as `Program.cs`, project files, Avalonia `App.axaml` files, and SDK/tooling-required files such as `Properties/launchSettings.json`.
+
+Feature slice names should describe a product, customer, operator, or maintainer capability. Do not promote tiny technical mechanisms into top-level slices when they only support a larger capability. For example, installer payload selection, PATH planning, uninstall planning, and post-install validation belong inside the meaningful installation slice unless they grow into independently owned behavior.
+
+Inside a feature slice, use only these type folders:
+
+- `Models/` for persistence or internal representation.
+- `Repositories/` for storage abstraction and persistence access.
+- `Services/` for domain-specific behavior and orchestration inside the slice.
+- `Controllers/` for routing external calls to slice services.
+- `DTOs/` for external data representation contracts.
+- `Providers/` for low-level actions behind domain-specific interfaces, such as HTTP clients, command runners, file-system adapters, platform adapters, and Git readers.
+- `Interfaces/` for justified slice-local interfaces.
+- `Factories/` for object-selection or adapter-selection factories.
+
+Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
+
+Tests should stay feature-sliced, but test projects may use test-kind folders such as `Unit/`, `Headless/`, `HTTP/`, `Repository/`, `TerminalIntegration/`, `Fake/`, and `Support/` when that keeps test intent clear. `Unit/` tests must stay in memory and must not use real filesystem, process, socket, current-directory, or environment mutation APIs; use `Repository/` or `TerminalIntegration/` for tests that verify real directory state or terminal-like workflows.
+
+`AgentUp.Architecture.Tests` owns executable architecture rules. Use ArchUnitNET there for assembly/type dependency rules, and use narrowly scoped filesystem/source checks there for physical folder rules that assembly analysis cannot see.
+
+Do not add broad technical buckets such as root-level `Controllers/`, `Services/`, `Models/`, `Http/`, `Commands/`, or `Git/`. Put the code in the owning feature slice and then in the appropriate type folder.
+
+If a low-level abstraction is genuinely used by multiple slices in the same project, put it under a project-level `Shared/` folder with the same strict type-folder naming. Do not make one feature slice the hidden owner of generic command, file-system, platform, or network helpers that unrelated slices import directly.
+
+## Service And Provider Rule
+
+Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models, but they must stay domain-specific.
+
+Services must not contain low-level parsing, command construction, filesystem/archive operations, native tool invocation, environment lookup, HTTP/network mechanics, process execution, platform API calls, XML/manifest serialization mechanics, or string-scanning helpers for external tool output. Put that behavior behind same-slice `Providers/` with names that describe the user/operator capability where practical, such as `PackageCommandParser`, `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageArchiveProvider`, or `DockerPrerequisiteProvider`.
+
+Use `Models/` for data definitions and pure internal representations that stay inside the slice, including generated manifest/script/XML text when the code is defining package or installer data rather than performing I/O. Use `DTOs/` only for data crossing external or controller boundaries.
+
+Provider interfaces are justified when they hide low-level providers from services, are faked by tests, or select runtime adapters. A service depending on `IUbuntuPackageTool` is acceptable; a service building `new CommandSpec("dpkg-deb", ...)` is not. A controller or service parsing raw `string[] args` is not acceptable; use a parser provider that returns a DTO/result.
+
+## Interface Rule
+
+Do not add interfaces for 1:1 concrete mappings. An interface is justified only when tests create fakes, runtime code selects among multiple adapters, or the boundary intentionally hides low-level providers such as command execution, file systems, platform APIs, storage, or network calls. Place justified interfaces in the owning slice's `Interfaces/` folder.
+
+## Slice Lifecycle
+
+Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
+
+Services own domain lifecycle and orchestration behind controllers. Follow the service/provider rule above for the boundary between domain orchestration and low-level implementation.
+
+Slices should not import another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice communication should go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs`. Read-only cross-slice access is allowed only through a narrow, intentional boundary when one slice needs state owned by another slice and must not mutate it.
 
 ## Component Responsibilities
 

@@ -1,6 +1,6 @@
-using AgentUp.Desktop.Features.Applications.Http;
-using AgentUp.Desktop.Features.Ports.Http;
-using AgentUp.Desktop.Features.Workspaces.Http;
+using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 
 namespace AgentUp.Desktop.Tests.Support;
 
