@@ -289,10 +289,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (command.Arguments.Count == 3 &&
-            command.Arguments[0] == "-NoProfile" &&
-            command.Arguments[1] == "-Command" &&
-            command.Arguments[2].Contains("DisplayName -eq 'Agent-Up'", StringComparison.Ordinal))
+        if (IsArguments(command, "-NoProfile", "-Command", "$installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq 'Agent-Up' -or $_.DisplayName -eq 'Agent-Up Setup' } | Select-Object -First 1; if (-not $registration) { throw 'Agent-Up uninstall registration missing' }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"Agent-Up PATH entry missing: $bin\" }"))
         {
             startInfo.ArgumentList.Add("-NoProfile");
             startInfo.ArgumentList.Add("-Command");
