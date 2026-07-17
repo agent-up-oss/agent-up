@@ -123,6 +123,7 @@ AgentUp.Server/
       Services/
     Processes/
       Interfaces/
+      Providers/
       Services/
     Applications/
       Controllers/
@@ -132,8 +133,10 @@ AgentUp.Server/
       Profiles/
       Automation/
     Ports/
-      Services/
+      Interfaces/
       Models/
+      Providers/
+      Services/
     Mcp/
       Tools/
       Resources/
@@ -142,6 +145,7 @@ AgentUp.Desktop/
   Features/
     Workspaces/       (sidebar navigation: workspace list, loading, error, collapse)
       DTOs/
+      Factories/
       Providers/
       Repositories/
       ViewModels/
@@ -155,6 +159,17 @@ AgentUp.Desktop/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
       DTOs/
       ViewModels/
+
+AgentUp.CLI/
+  Features/
+    Workspaces/       (human CLI commands over Server workspace capabilities)
+      Controllers/
+      DTOs/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
 
 AgentUp.Installers/
   Features/
@@ -220,6 +235,35 @@ AgentUp.Packaging/
     Interfaces/       (cross-slice low-level abstractions such as command and file-system access)
     Providers/
     Factories/        (project composition root for long-lived service/provider/controller instances)
+
+AgentUp.PackageSmoke/
+  Features/
+    SmokeRuns/        (package-smoke command parsing, work directory preparation, and validation routing)
+      Controllers/
+      DTOs/
+      Factories/
+      Interfaces/
+      Providers/
+      Services/
+    PackageValidation/
+      DTOs/
+      Factories/
+      Interfaces/
+      Providers/
+      Services/
+    InstalledServiceValidation/
+      DTOs/
+      Factories/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    InstallerFlowValidation/
+      Services/
+    RuntimeSecurity/
+      Interfaces/
+      Providers/
+      Services/
 ```
 
 Avoid this as the primary organizing model:

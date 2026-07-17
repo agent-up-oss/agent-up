@@ -1,4 +1,3 @@
-using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
 
@@ -7,19 +6,22 @@ namespace AgentUp.CLI.Features.Workspaces.Controllers;
 public sealed class StopCommand
 {
     private readonly WorkspaceApiClient _client;
-    private readonly string _workingDirectory;
+    private readonly CurrentWorkspaceResolver _resolver;
     private readonly TextWriter _output;
 
-    public StopCommand(WorkspaceApiClient client, string workingDirectory, TextWriter output)
+    public StopCommand(
+        WorkspaceApiClient client,
+        CurrentWorkspaceResolver resolver,
+        TextWriter output)
     {
         _client = client;
-        _workingDirectory = workingDirectory;
+        _resolver = resolver;
         _output = output;
     }
 
     public async Task<int> RunAsync()
     {
-        var resolution = await new CurrentWorkspaceResolver(_client, _workingDirectory).ResolveAsync(
+        var resolution = await _resolver.ResolveAsync(
             "Error: Failed to connect to server",
             "Error: No workspace found for the current directory. Run 'agent-up start' first.");
         if (!resolution.Succeeded)

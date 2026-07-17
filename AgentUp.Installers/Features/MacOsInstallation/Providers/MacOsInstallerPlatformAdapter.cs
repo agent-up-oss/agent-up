@@ -17,23 +17,27 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     private readonly ICommandRunner _commands;
     private readonly IMacOsInstallerFileSystem _files;
     private readonly MacOsInstallerOptions _options;
-    private readonly RequiredCommandRunner _requiredCommands;
+    private readonly IRequiredCommandRunner _requiredCommands;
+    private readonly DockerPrerequisite _dockerPrerequisite;
 
     public MacOsInstallerPlatformAdapter(
         ICommandRunner commands,
         IMacOsInstallerFileSystem files,
-        MacOsInstallerOptions options)
+        MacOsInstallerOptions options,
+        IRequiredCommandRunner requiredCommands,
+        DockerPrerequisite dockerPrerequisite)
     {
         _commands = commands;
         _files = files;
         _options = options;
-        _requiredCommands = new RequiredCommandRunner(commands);
+        _requiredCommands = requiredCommands;
+        _dockerPrerequisite = dockerPrerequisite;
     }
 
     public string PlatformName => "macOS";
 
     public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
-        => await new DockerPrerequisite(new DockerPrerequisiteProvider(_commands), new Version(27, 0, 0)).CheckAsync(cancellationToken);
+        => await _dockerPrerequisite.CheckAsync(cancellationToken);
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
         =>

@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -23,7 +24,12 @@ public class WorkspaceProcessManagerTests
         _output = new InMemoryOutputRepository();
         _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
         await ((IHostedService)_registry).StartAsync(CancellationToken.None);
-        _manager = new WorkspaceProcessManager(_registry, _output, NullLogger<WorkspaceProcessManager>.Instance);
+        _manager = new WorkspaceProcessManager(
+            _registry,
+            _output,
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            NullLogger<WorkspaceProcessManager>.Instance);
     }
 
     [Test]
@@ -65,7 +71,7 @@ public class WorkspaceProcessManagerTests
         var web = workspace.Applications.Single(app => app.Name == "Web");
         var api = workspace.Applications.Single(app => app.Name == "Api");
 
-        var startInfo = WorkspaceProcessManager.CreateLocalProcessStartInfo(workspace, web);
+        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, web);
 
         Assert.That(startInfo.WorkingDirectory, Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
         Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));

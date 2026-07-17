@@ -18,23 +18,27 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
     private readonly ICommandRunner _commands;
     private readonly IWindowsInstallerFileSystem _files;
     private readonly WindowsInstallerOptions _options;
-    private readonly RequiredCommandRunner _requiredCommands;
+    private readonly IRequiredCommandRunner _requiredCommands;
+    private readonly DockerPrerequisite _dockerPrerequisite;
 
     public WindowsInstallerPlatformAdapter(
         ICommandRunner commands,
         IWindowsInstallerFileSystem files,
-        WindowsInstallerOptions options)
+        WindowsInstallerOptions options,
+        IRequiredCommandRunner requiredCommands,
+        DockerPrerequisite dockerPrerequisite)
     {
         _commands = commands;
         _files = files;
         _options = options;
-        _requiredCommands = new RequiredCommandRunner(commands);
+        _requiredCommands = requiredCommands;
+        _dockerPrerequisite = dockerPrerequisite;
     }
 
     public string PlatformName => "Windows";
 
     public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
-        => await new DockerPrerequisite(new DockerPrerequisiteProvider(_commands), new Version(27, 0, 0)).CheckAsync(cancellationToken);
+        => await _dockerPrerequisite.CheckAsync(cancellationToken);
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
         =>

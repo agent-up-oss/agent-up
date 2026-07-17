@@ -3,6 +3,7 @@ using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Factories;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using Avalonia.Controls;
@@ -101,7 +102,7 @@ internal sealed class AppDriver
         Func<NativeWebView>? webViewFactory = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
-        var vm = new MainViewModel(workspaceClient, consoleClient, tutorial ?? CompletedTutorial());
+        var vm = MainViewModelFactory.Create(workspaceClient, consoleClient, tutorial ?? CompletedTutorial());
         var window = new MainWindow { DataContext = vm };
         if (webViewFactory is not null)
             window.WebViewFactory = webViewFactory;

@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
@@ -31,7 +32,7 @@ public class MacOsInstallerPlatformAdapterTests
     {
         var files = new RecordingMacOsFileSystem();
         var commands = new RecordingCommandRunner();
-        var adapter = new MacOsInstallerPlatformAdapter(commands, files, Options());
+        var adapter = Adapter(commands, files);
         var session = Session();
 
         var progress = new List<InstallProgress>();
@@ -65,7 +66,7 @@ public class MacOsInstallerPlatformAdapterTests
         var files = new RecordingMacOsFileSystem();
         files.ExistingFiles.Add("/Applications/Agent-Up.app/Contents/Info.plist");
         var commands = new RecordingCommandRunner();
-        var adapter = new MacOsInstallerPlatformAdapter(commands, files, Options());
+        var adapter = Adapter(commands, files);
 
         var report = await adapter.ValidateInstalledStateAsync(Session());
 
@@ -81,6 +82,16 @@ public class MacOsInstallerPlatformAdapterTests
         => new(
             new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli"),
             MacOsInstallerPaths.SystemDefault());
+
+    private static MacOsInstallerPlatformAdapter Adapter(
+        RecordingCommandRunner commands,
+        RecordingMacOsFileSystem files)
+        => new(
+            commands,
+            files,
+            Options(),
+            new RequiredCommandRunner(commands),
+            new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
 
     private sealed class RecordingCommandRunner : ICommandRunner
     {

@@ -3,13 +3,10 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.ViewModels;
-using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Console.ViewModels;
-using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
-using AgentUp.Desktop.Features.Workspaces.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -55,16 +52,15 @@ public sealed class MainViewModel : ReactiveObject
     public IObservable<BrowserCommand> BrowserCommands => _browserCommands;
 
     public MainViewModel(
-        WorkspaceApiClient workspaceClient,
-        ConsoleApiClient consoleClient,
-        FirstRunTutorialViewModel? tutorial = null)
+        WorkspaceListViewModel sidebar,
+        ApplicationListViewModel applications,
+        ConsoleViewModel console,
+        FirstRunTutorialViewModel tutorial)
     {
-        Sidebar = new WorkspaceListViewModel(workspaceClient);
-        Applications = new ApplicationListViewModel();
-        Console = new ConsoleViewModel(consoleClient);
-        Tutorial = tutorial ?? new FirstRunTutorialViewModel(
-            new FileFirstRunTutorialSettingsStore(),
-            new FirstRunTutorialChecks(workspaceClient));
+        Sidebar = sidebar;
+        Applications = applications;
+        Console = console;
+        Tutorial = tutorial;
 
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));

@@ -1,5 +1,5 @@
-using System.Text.Json;
 using AgentUp.CLI.Features.Workspaces.DTOs;
+using AgentUp.CLI.Features.Workspaces.Interfaces;
 using AgentUp.CLI.Features.Workspaces.Providers;
 
 namespace AgentUp.CLI.Features.Workspaces.Controllers;
@@ -7,40 +7,36 @@ namespace AgentUp.CLI.Features.Workspaces.Controllers;
 public sealed class StartCommand
 {
     private readonly WorkspaceApiClient _client;
+    private readonly IWorkspaceConfigurationProvider _configuration;
+    private readonly IWorkspaceIdentityProvider _identity;
     private readonly string _workingDirectory;
     private readonly TextWriter _output;
 
-    public StartCommand(WorkspaceApiClient client, string workingDirectory, TextWriter output)
+    public StartCommand(
+        WorkspaceApiClient client,
+        IWorkspaceConfigurationProvider configuration,
+        IWorkspaceIdentityProvider identity,
+        string workingDirectory,
+        TextWriter output)
     {
         _client = client;
+        _configuration = configuration;
+        _identity = identity;
         _workingDirectory = workingDirectory;
         _output = output;
     }
 
     public async Task<int> RunAsync()
     {
-        var configPath = Path.Join(_workingDirectory, "agent-up.json");
-        if (!File.Exists(configPath))
+        var loaded = await _configuration.LoadAsync(_workingDirectory);
+        if (!loaded.Succeeded)
         {
-            _output.WriteLine("Error: agent-up.json not found in current directory.");
+            _output.WriteLine(loaded.Error);
             return 1;
         }
 
-        AgentUpJson config;
-        try
-        {
-            var json = await File.ReadAllTextAsync(configPath);
-            config = JsonSerializer.Deserialize<AgentUpJson>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                ?? throw new InvalidOperationException("agent-up.json is empty or null.");
-        }
-        catch (Exception ex)
-        {
-            _output.WriteLine($"Error: Failed to read agent-up.json: {ex.Message}");
-            return 1;
-        }
-
-        var git = await ReadGitMetadataAsync(_workingDirectory);
+        var config = loaded.Configuration!;
+        var git = await _identity.ReadAsync(_workingDirectory);
 
         var applications = config.Applications ?? [];
         var services = config.Services ?? [];
@@ -101,25 +97,4 @@ public sealed class StartCommand
 
         return 0;
     }
-
-    private static async Task<GitMetadata> ReadGitMetadataAsync(string workingDirectory)
-    {
-        var git = new GitReader(workingDirectory);
-        try
-        {
-            return new GitMetadata(
-                RepositoryPath: await git.GetRepoRootAsync(),
-                Branch: await git.GetBranchAsync(),
-                Commit: await git.GetCommitAsync());
-        }
-        catch
-        {
-            return new GitMetadata(
-                RepositoryPath: workingDirectory,
-                Branch: "not on a git branch",
-                Commit: "");
-        }
-    }
-
-    private sealed record GitMetadata(string RepositoryPath, string Branch, string Commit);
 }

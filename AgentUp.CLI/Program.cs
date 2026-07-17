@@ -1,7 +1,7 @@
-using AgentUp.CLI.Features.Workspaces.Controllers;
+using AgentUp.CLI.Features.Workspaces.Factories;
 
 var serverUrl = GetServerUrl(args);
-var runner = new CliRunner(serverUrl, Directory.GetCurrentDirectory());
+var runner = CliRunnerFactory.Create(serverUrl, Directory.GetCurrentDirectory());
 return await runner.RunAsync(args);
 
 static string GetServerUrl(string[] args)

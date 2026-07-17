@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
@@ -31,7 +32,7 @@ public class UbuntuInstallerPlatformAdapterTests
     {
         var files = new RecordingUbuntuFileSystem();
         var commands = new RecordingCommandRunner();
-        var adapter = new UbuntuInstallerPlatformAdapter(commands, files, Options());
+        var adapter = Adapter(commands, files);
         var session = Session();
 
         var progress = new List<InstallProgress>();
@@ -66,7 +67,7 @@ public class UbuntuInstallerPlatformAdapterTests
         var files = new RecordingUbuntuFileSystem();
         files.ExistingFiles.Add("/usr/share/applications/agent-up.desktop");
         var commands = new RecordingCommandRunner();
-        var adapter = new UbuntuInstallerPlatformAdapter(commands, files, Options());
+        var adapter = Adapter(commands, files);
 
         var report = await adapter.ValidateInstalledStateAsync(Session());
 
@@ -79,7 +80,7 @@ public class UbuntuInstallerPlatformAdapterTests
     [Test]
     public void PlanInstall_marksNativeUbuntuOperationsAsElevationRequired()
     {
-        var adapter = new UbuntuInstallerPlatformAdapter(new RecordingCommandRunner(), new RecordingUbuntuFileSystem(), Options());
+        var adapter = Adapter(new RecordingCommandRunner(), new RecordingUbuntuFileSystem());
 
         var plan = adapter.PlanInstall(Session());
 
@@ -105,6 +106,16 @@ public class UbuntuInstallerPlatformAdapterTests
                 "/payload/agent-up-server.service",
                 "/payload/logo.png"),
             UbuntuInstallerPaths.SystemDefault());
+
+    private static UbuntuInstallerPlatformAdapter Adapter(
+        RecordingCommandRunner commands,
+        RecordingUbuntuFileSystem files)
+        => new(
+            commands,
+            files,
+            Options(),
+            new RequiredCommandRunner(commands),
+            new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
 
     private sealed class RecordingCommandRunner : ICommandRunner
     {

@@ -1,25 +1,21 @@
-using AgentUp.CLI.Features.Workspaces.DTOs;
-using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
 
 namespace AgentUp.CLI.Features.Workspaces.Controllers;
 
 public sealed class StatusCommand
 {
-    private readonly WorkspaceApiClient _client;
-    private readonly string _workingDirectory;
+    private readonly CurrentWorkspaceResolver _resolver;
     private readonly TextWriter _output;
 
-    public StatusCommand(WorkspaceApiClient client, string workingDirectory, TextWriter output)
+    public StatusCommand(CurrentWorkspaceResolver resolver, TextWriter output)
     {
-        _client = client;
-        _workingDirectory = workingDirectory;
+        _resolver = resolver;
         _output = output;
     }
 
     public async Task<int> RunAsync()
     {
-        var resolution = await new CurrentWorkspaceResolver(_client, _workingDirectory).ResolveAsync(
+        var resolution = await _resolver.ResolveAsync(
             "Error: Failed to query workspaces",
             "No workspace registered for this directory.");
         if (!resolution.Succeeded)

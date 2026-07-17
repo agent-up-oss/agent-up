@@ -1,4 +1,4 @@
-using AgentUp.CLI.Features.Workspaces.Controllers;
+using AgentUp.CLI.Features.Workspaces.Factories;
 
 namespace AgentUp.CLI.Tests.Commands;
 
@@ -10,7 +10,7 @@ public class VersionCommandTests
     {
         var output = new StringWriter();
 
-        var exitCode = await new CliRunner("http://localhost:1", Directory.GetCurrentDirectory(), output).RunAsync(["--version"]);
+        var exitCode = await CliRunnerFactory.Create("http://localhost:1", Directory.GetCurrentDirectory(), output).RunAsync(["--version"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString().Trim(), Is.Not.Empty);
@@ -22,8 +22,8 @@ public class VersionCommandTests
         var optionOutput = new StringWriter();
         var commandOutput = new StringWriter();
 
-        await new CliRunner("http://localhost:1", Directory.GetCurrentDirectory(), optionOutput).RunAsync(["--version"]);
-        await new CliRunner("http://localhost:1", Directory.GetCurrentDirectory(), commandOutput).RunAsync(["version"]);
+        await CliRunnerFactory.Create("http://localhost:1", Directory.GetCurrentDirectory(), optionOutput).RunAsync(["--version"]);
+        await CliRunnerFactory.Create("http://localhost:1", Directory.GetCurrentDirectory(), commandOutput).RunAsync(["version"]);
 
         Assert.That(commandOutput.ToString(), Is.EqualTo(optionOutput.ToString()));
     }

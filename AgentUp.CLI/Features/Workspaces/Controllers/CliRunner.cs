@@ -1,6 +1,3 @@
-using AgentUp.CLI.Features.Workspaces.Controllers;
-using AgentUp.CLI.Features.Workspaces.DTOs;
-using AgentUp.CLI.Features.Workspaces.Providers;
 using System.Reflection;
 
 namespace AgentUp.CLI.Features.Workspaces.Controllers;
@@ -8,14 +5,26 @@ namespace AgentUp.CLI.Features.Workspaces.Controllers;
 public sealed class CliRunner
 {
     private readonly string _serverUrl;
-    private readonly string _workingDirectory;
     private readonly TextWriter _output;
+    private readonly StartCommand _start;
+    private readonly StopCommand _stop;
+    private readonly ListCommand _list;
+    private readonly StatusCommand _status;
 
-    public CliRunner(string serverUrl, string workingDirectory, TextWriter? output = null)
+    public CliRunner(
+        string serverUrl,
+        TextWriter output,
+        StartCommand start,
+        StopCommand stop,
+        ListCommand list,
+        StatusCommand status)
     {
         _serverUrl = serverUrl;
-        _workingDirectory = workingDirectory;
-        _output = output ?? Console.Out;
+        _output = output;
+        _start = start;
+        _stop = stop;
+        _list = list;
+        _status = status;
     }
 
     public async Task<int> RunAsync(string[] args)
@@ -24,16 +33,14 @@ public sealed class CliRunner
             return PrintVersion();
 
         var command = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "";
-        using var http = new HttpClient { BaseAddress = new Uri(_serverUrl) };
-        var client = new WorkspaceApiClient(http);
 
         return command switch
         {
             "version" => PrintVersion(),
-            "start"  => await new StartCommand(client, _workingDirectory, _output).RunAsync(),
-            "stop"   => await new StopCommand(client, _workingDirectory, _output).RunAsync(),
-            "list"   => await new ListCommand(client, _output).RunAsync(),
-            "status" => await new StatusCommand(client, _workingDirectory, _output).RunAsync(),
+            "start"  => await _start.RunAsync(),
+            "stop"   => await _stop.RunAsync(),
+            "list"   => await _list.RunAsync(),
+            "status" => await _status.RunAsync(),
             _        => PrintHelp()
         };
     }

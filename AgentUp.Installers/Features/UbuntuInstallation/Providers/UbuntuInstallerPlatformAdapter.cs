@@ -17,23 +17,27 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
     private readonly ICommandRunner _commands;
     private readonly IUbuntuInstallerFileSystem _files;
     private readonly UbuntuInstallerOptions _options;
-    private readonly RequiredCommandRunner _requiredCommands;
+    private readonly IRequiredCommandRunner _requiredCommands;
+    private readonly DockerPrerequisite _dockerPrerequisite;
 
     public UbuntuInstallerPlatformAdapter(
         ICommandRunner commands,
         IUbuntuInstallerFileSystem files,
-        UbuntuInstallerOptions options)
+        UbuntuInstallerOptions options,
+        IRequiredCommandRunner requiredCommands,
+        DockerPrerequisite dockerPrerequisite)
     {
         _commands = commands;
         _files = files;
         _options = options;
-        _requiredCommands = new RequiredCommandRunner(commands);
+        _requiredCommands = requiredCommands;
+        _dockerPrerequisite = dockerPrerequisite;
     }
 
     public string PlatformName => "Ubuntu";
 
     public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
-        => await new DockerPrerequisite(new DockerPrerequisiteProvider(_commands), new Version(27, 0, 0)).CheckAsync(cancellationToken);
+        => await _dockerPrerequisite.CheckAsync(cancellationToken);
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
         =>

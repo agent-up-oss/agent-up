@@ -1,11 +1,9 @@
+using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 
 namespace AgentUp.Installers.Features.Installation.Providers;
 
-public sealed class RequiredCommandRunner
+public sealed class RequiredCommandRunner : IRequiredCommandRunner
 {
     private readonly ICommandRunner _commands;
 

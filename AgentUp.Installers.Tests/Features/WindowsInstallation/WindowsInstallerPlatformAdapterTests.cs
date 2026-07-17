@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
@@ -23,7 +24,7 @@ public class WindowsInstallerPlatformAdapterTests
     {
         var files = new RecordingWindowsFileSystem();
         var commands = new RecordingCommandRunner();
-        var adapter = new WindowsInstallerPlatformAdapter(commands, files, Options());
+        var adapter = Adapter(commands, files);
         var session = Session();
 
         var progress = new List<InstallProgress>();
@@ -61,7 +62,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         commands.Results.Enqueue(new ProcessResult(0, "STATE              : 4  RUNNING", ""));
         commands.Results.Enqueue(new ProcessResult(0, "", ""));
-        var adapter = new WindowsInstallerPlatformAdapter(commands, files, Options());
+        var adapter = Adapter(commands, files);
 
         var report = await adapter.ValidateInstalledStateAsync(Session());
 
@@ -134,6 +135,16 @@ public class WindowsInstallerPlatformAdapterTests
                 CliDirectory: @"C:\Program Files\Agent-Up\cli",
                 BinDirectory: @"C:\Program Files\Agent-Up\bin",
                 StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk"));
+
+    private static WindowsInstallerPlatformAdapter Adapter(
+        RecordingCommandRunner commands,
+        RecordingWindowsFileSystem files)
+        => new(
+            commands,
+            files,
+            Options(),
+            new RequiredCommandRunner(commands),
+            new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
 
     private static void WritePublishedFile(string directory, string name)
     {

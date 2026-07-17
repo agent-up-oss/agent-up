@@ -61,6 +61,7 @@ Final release publishing uses the MinIO `mc` client against the public release b
 
 `AgentUp.PackageSmoke` owns smoke validation:
 
+- The `SmokeRuns` command entrypoint controller, parser provider, work-directory provider, and validation router.
 - Artifact discovery and extraction.
 - Platform adapter checks for Desktop, Server, CLI, service, launcher, and uninstall metadata.
 - A shared `package-smoke.env` handoff that reports package-local Server and CLI paths back to CI scripts.

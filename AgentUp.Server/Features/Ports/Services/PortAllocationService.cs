@@ -1,6 +1,5 @@
-using System.Net;
-using System.Net.Sockets;
-using System.Text.Json;
+using AgentUp.Server.Features.Ports.Interfaces;
+using AgentUp.Server.Features.Ports.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Ports.Services;
@@ -15,14 +14,19 @@ public sealed class PortAllocationService : IPortAllocationService
     private readonly Dictionary<string, int> _workspaceRanges = new();
     private readonly Queue<int> _freeRanges = new();
     private int _highWaterMark = 0;
-    private readonly string _storagePath;
+    private readonly IPortRangeStore _store;
+    private readonly IPortAvailabilityProvider _ports;
     private readonly ILogger<PortAllocationService> _logger;
 
-    public PortAllocationService(string storagePath, ILogger<PortAllocationService> logger)
+    public PortAllocationService(
+        IPortRangeStore store,
+        IPortAvailabilityProvider ports,
+        ILogger<PortAllocationService> logger)
     {
-        _storagePath = storagePath;
+        _store = store;
+        _ports = ports;
         _logger = logger;
-        LoadFromDisk();
+        Load();
     }
 
     public async Task<int> GetBasePortAsync(string workspaceId)
@@ -65,7 +69,7 @@ public sealed class PortAllocationService : IPortAllocationService
 
                 var basePort = BasePort + rangeIndex * RangeSize;
 
-                if (portCount == 0 || ArePortsAvailable(basePort, portCount))
+                if (portCount == 0 || _ports.ArePortsAvailable(basePort, portCount))
                 {
                     await SaveToDiskAsync();
                     if (attempt > 0)
@@ -123,40 +127,11 @@ public sealed class PortAllocationService : IPortAllocationService
     private int NextRangeIndex() =>
         _freeRanges.Count > 0 ? _freeRanges.Dequeue() : _highWaterMark++;
 
-    private static bool ArePortsAvailable(int basePort, int count)
-    {
-        for (var i = 0; i < count; i++)
-        {
-            if (!IsPortAvailable(basePort + i))
-                return false;
-        }
-        return true;
-    }
-
-    private static bool IsPortAvailable(int port)
+    private void Load()
     {
         try
         {
-            var listener = new TcpListener(IPAddress.Loopback, port);
-            listener.Start();
-            listener.Stop();
-            return true;
-        }
-        catch (SocketException)
-        {
-            return false;
-        }
-    }
-
-    private void LoadFromDisk()
-    {
-        if (!File.Exists(_storagePath))
-            return;
-
-        try
-        {
-            var json = File.ReadAllText(_storagePath);
-            var data = JsonSerializer.Deserialize<PortRangeData>(json);
+            var data = _store.Load();
             if (data is null)
                 return;
 
@@ -171,7 +146,7 @@ public sealed class PortAllocationService : IPortAllocationService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load port range assignments from {Path}", _storagePath);
+            _logger.LogWarning(ex, "Failed to load port range assignments");
         }
     }
 
@@ -182,19 +157,6 @@ public sealed class PortAllocationService : IPortAllocationService
             new Dictionary<string, int>(_workspaceRanges),
             [.. _freeRanges]);
 
-        var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-
-        var dir = Path.GetDirectoryName(_storagePath);
-        if (dir is not null)
-            Directory.CreateDirectory(dir);
-
-        var tmp = _storagePath + ".tmp";
-        await File.WriteAllTextAsync(tmp, json);
-        File.Move(tmp, _storagePath, overwrite: true);
+        await _store.SaveAsync(data);
     }
 }
-
-internal sealed record PortRangeData(
-    int HighWaterMark,
-    Dictionary<string, int> Ranges,
-    List<int>? FreeRanges = null);

@@ -1,5 +1,8 @@
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
+using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 using AgentUp.Installers.Features.MacOsInstallation.DTOs;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.Providers;
@@ -41,6 +44,7 @@ public static class InstallerPlatformAdapterFactory
 
     private static IInstallerPlatformAdapter CreateUbuntuAdapter(string payloadRoot)
     {
+        var composition = Composition();
         var repositoryRoot = FindRepositoryRoot(AppContext.BaseDirectory);
         var payload = new UbuntuInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
@@ -50,35 +54,43 @@ public static class InstallerPlatformAdapterFactory
             IconPath: System.IO.Path.Join(repositoryRoot, "media", "logo.png"));
 
         return new UbuntuInstallerPlatformAdapter(
-            new ProcessInstallerCommandRunner(),
+            composition.Commands,
             new UbuntuInstallerFileSystem(),
-            new UbuntuInstallerOptions(payload, UbuntuInstallerPaths.SystemDefault()));
+            new UbuntuInstallerOptions(payload, UbuntuInstallerPaths.SystemDefault()),
+            composition.RequiredCommands,
+            composition.DockerPrerequisite);
     }
 
     private static IInstallerPlatformAdapter CreateMacOsAdapter(string payloadRoot)
     {
+        var composition = Composition();
         var payload = new MacOsInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"));
 
         return new MacOsInstallerPlatformAdapter(
-            new ProcessInstallerCommandRunner(),
+            composition.Commands,
             new MacOsInstallerFileSystem(),
-            new MacOsInstallerOptions(payload, MacOsInstallerPaths.SystemDefault()));
+            new MacOsInstallerOptions(payload, MacOsInstallerPaths.SystemDefault()),
+            composition.RequiredCommands,
+            composition.DockerPrerequisite);
     }
 
     private static IInstallerPlatformAdapter CreateWindowsAdapter(string payloadRoot)
     {
+        var composition = Composition();
         var payload = new WindowsInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"));
 
         return new WindowsInstallerPlatformAdapter(
-            new ProcessInstallerCommandRunner(),
+            composition.Commands,
             new WindowsInstallerFileSystem(),
-            new WindowsInstallerOptions(payload, WindowsInstallerPaths.SystemDefault()));
+            new WindowsInstallerOptions(payload, WindowsInstallerPaths.SystemDefault()),
+            composition.RequiredCommands,
+            composition.DockerPrerequisite);
     }
 
     private static string CurrentPlatformName()
@@ -88,6 +100,15 @@ public static class InstallerPlatformAdapterFactory
         if (OperatingSystem.IsMacOS())
             return "macOS";
         return "Linux";
+    }
+
+    private static InstallerAdapterComposition Composition()
+    {
+        var commands = new ProcessInstallerCommandRunner();
+        return new InstallerAdapterComposition(
+            commands,
+            new RequiredCommandRunner(commands),
+            new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
     }
 
     private static string FindRepositoryRoot(string startDirectory)
@@ -104,3 +125,8 @@ public static class InstallerPlatformAdapterFactory
         return Directory.GetCurrentDirectory();
     }
 }
+
+internal sealed record InstallerAdapterComposition(
+    ICommandRunner Commands,
+    IRequiredCommandRunner RequiredCommands,
+    DockerPrerequisite DockerPrerequisite);
