@@ -38,7 +38,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             if (context is null || assert.Findings.Any(finding => finding.Severity == FindingSeverity.Error))
                 return new InstalledServiceSmokeResult(null, assert.Findings);
 
-            await RunRequiredAsync(assert, new CommandSpec(context.CliCommand, ["--version"], Environment: context.CliEnvironment), "installed.cli.version", cancellationToken);
+            await RunRequiredAsync(assert, CliCommand(context, "--version"), "installed.cli.version", cancellationToken);
             var readyUrl = await _serverProbe.WaitForReadyAsync(
                 request.PrimaryServerUrl,
                 request.FallbackServerUrl,
@@ -102,12 +102,12 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         await RunRequiredAsync(assert, new CommandSpec("git", ["commit", "-q", "-m", "Add service smoke workspace"], repo), "installed.git.commit", cancellationToken);
 
         var environment = MergeEnvironment(cliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
-        var start = await _commands.RunAsync(new CommandSpec(cliCommand, ["start"], repo, environment), cancellationToken);
+        var start = await _commands.RunAsync(CliCommand(cliCommand, "start", repo, environment), cancellationToken);
         await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains("Started workspace \"Installed Service Smoke Workspace\"", StringComparison.Ordinal))
             assert.Error("installed.cli.start", $"CLI start failed or returned unexpected output: {start.Stderr}{start.Stdout}");
 
-        var status = await _commands.RunAsync(new CommandSpec(cliCommand, ["status"], repo, environment), cancellationToken);
+        var status = await _commands.RunAsync(CliCommand(cliCommand, "status", repo, environment), cancellationToken);
         await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-status.log"), status.Stdout + status.Stderr, cancellationToken);
         if (status.ExitCode != 0
             || !status.Stdout.Contains("Name:       Installed Service Smoke Workspace", StringComparison.Ordinal)
@@ -126,6 +126,18 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         environment[key] = value;
         return environment;
     }
+
+    private static CommandSpec CliCommand(InstalledServiceContext context, string argument)
+        => CliCommand(context.CliCommand, argument, null, context.CliEnvironment);
+
+    private static CommandSpec CliCommand(
+        string command,
+        string argument,
+        string? workingDirectory,
+        IReadOnlyDictionary<string, string>? environment)
+        => command == "cmd.exe"
+            ? new CommandSpec("cmd.exe", ["/C", "agent-up.cmd", argument], workingDirectory, environment)
+            : new CommandSpec(command, [argument], workingDirectory, environment);
 
     private async Task RunDiagnosticsAsync(InstalledServiceContext context, CancellationToken cancellationToken)
     {

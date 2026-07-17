@@ -51,7 +51,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             cancellationToken);
 
         return new InstalledServiceContext(
-            "agent-up.cmd",
+            "cmd.exe",
             InstalledCliEnvironment(Path.Join(installDir, "bin")),
             [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart", "/l*vx!", Path.Join(request.WorkDirectory, "windows-msi-uninstall.log")])],
             [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);

@@ -51,6 +51,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             SmokeExecutable.AgentUp => new ProcessStartInfo("agent-up"),
             SmokeExecutable.AgentUpCmd => new ProcessStartInfo("agent-up.cmd"),
             SmokeExecutable.Bash => new ProcessStartInfo("bash"),
+            SmokeExecutable.Cmd => new ProcessStartInfo("cmd.exe"),
             SmokeExecutable.DpkgDeb => new ProcessStartInfo("dpkg-deb"),
             SmokeExecutable.Git => new ProcessStartInfo("git"),
             SmokeExecutable.Lsof => new ProcessStartInfo("lsof"),
@@ -106,6 +107,30 @@ public sealed class ProcessCommandRunner : ICommandRunner
 
         if (command.Executable == SmokeExecutable.AgentUpCmd && IsArguments(command, "status"))
         {
+            startInfo.ArgumentList.Add("status");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Cmd && IsArguments(command, "/C", "agent-up.cmd", "--version"))
+        {
+            startInfo.ArgumentList.Add("/C");
+            startInfo.ArgumentList.Add("agent-up.cmd");
+            startInfo.ArgumentList.Add("--version");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Cmd && IsArguments(command, "/C", "agent-up.cmd", "start"))
+        {
+            startInfo.ArgumentList.Add("/C");
+            startInfo.ArgumentList.Add("agent-up.cmd");
+            startInfo.ArgumentList.Add("start");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Cmd && IsArguments(command, "/C", "agent-up.cmd", "status"))
+        {
+            startInfo.ArgumentList.Add("/C");
+            startInfo.ArgumentList.Add("agent-up.cmd");
             startInfo.ArgumentList.Add("status");
             return true;
         }
@@ -543,6 +568,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             "agent-up" => SmokeExecutable.AgentUp,
             "agent-up.cmd" => SmokeExecutable.AgentUpCmd,
             "bash" => SmokeExecutable.Bash,
+            "cmd.exe" => SmokeExecutable.Cmd,
             "dpkg-deb" => SmokeExecutable.DpkgDeb,
             "git" => SmokeExecutable.Git,
             "lsof" => SmokeExecutable.Lsof,
@@ -572,6 +598,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             SmokeExecutable.AgentUp => "agent-up",
             SmokeExecutable.AgentUpCmd => "agent-up.cmd",
             SmokeExecutable.Bash => "bash",
+            SmokeExecutable.Cmd => "cmd.exe",
             SmokeExecutable.DpkgDeb => "dpkg-deb",
             SmokeExecutable.Git => "git",
             SmokeExecutable.Lsof => "lsof",
@@ -598,6 +625,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
         AgentUp,
         AgentUpCmd,
         Bash,
+        Cmd,
         DpkgDeb,
         Git,
         Lsof,
