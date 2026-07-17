@@ -77,6 +77,12 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Contain("Theme=\"rtfLicense\""));
         Assert.That(xml, Does.Contain("ExePackage"));
         Assert.That(xml, Does.Contain("AgentUp.InstallerApp.exe"));
+        Assert.That(xml, Does.Contain("DetectCondition=\"AgentUpInstalled\""));
+        Assert.That(xml, Does.Contain("InstallArguments=\"--payload-root &quot;[WixBundleExecutePackageCacheFolder]payload&quot;\""));
+        Assert.That(xml, Does.Contain("UninstallArguments=\"--uninstall\""));
+        Assert.That(xml, Does.Contain("RegistrySearch"));
+        Assert.That(xml, Does.Contain(@"CurrentVersion\Uninstall\Agent-Up"));
+        Assert.That(xml, Does.Not.Contain("Permanent=\"yes\""));
         Assert.That(xml, Does.Not.Contain("MsiPackage"));
         Assert.That(xml, Does.Contain("Name=\"payload\\desktop\\AgentUp.Desktop.exe\""));
         Assert.That(xml, Does.Contain("Name=\"payload\\server\\AgentUp.Server.exe\""));

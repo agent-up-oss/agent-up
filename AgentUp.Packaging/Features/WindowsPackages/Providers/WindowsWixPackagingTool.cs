@@ -36,6 +36,7 @@ public sealed class WindowsWixPackagingTool : IWindowsPackagingTool
             "build",
             layout.BundleWxsPath,
             "-ext", balExtension ?? "WixToolset.Bal.wixext",
+            "-ext", "WixToolset.Util.wixext",
             "-o", layout.SetupExePath
         ], cancellationToken);
     }
