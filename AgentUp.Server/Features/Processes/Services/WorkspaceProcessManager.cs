@@ -78,7 +78,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             var exitCode = (sender as Process)?.ExitCode ?? -1;
             var exitState = exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
             _ = _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
-            _logger.LogInformation("Process for '{App}' in workspace {Id} exited with code {Code}", appName, workspaceId, exitCode);
+            _logger.LogInformation("Workspace application process exited with code {Code}", exitCode);
             exited?.Dispose();
         };
 
@@ -87,7 +87,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         process.BeginErrorReadLine();
 
         _processes[(workspaceId, appName)] = process;
-        _logger.LogInformation("Started '{App}' (pid {Pid}) in workspace {Id}", appName, process.Id, workspaceId);
+        _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);
     }
 
     private async Task LaunchDockerServiceAsync(string workspaceId, ApplicationInstance app)
@@ -107,7 +107,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 throw new InvalidOperationException($"docker run failed for '{app.Name}': {run.Stderr.Trim()}");
             }
 
-            _logger.LogInformation("Started Docker container '{Container}' for '{App}' in workspace {Id}", containerName, app.Name, workspaceId);
+            _logger.LogInformation("Started Docker container for workspace application");
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
@@ -157,7 +157,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
                 var exitState = containerExitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
                 await _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
-                _logger.LogInformation("Container '{Container}' for '{App}' in workspace {Id} exited with code {Code}", containerName, appName, workspaceId, containerExitCode);
+                _logger.LogInformation("Docker container for workspace application exited with code {Code}", containerExitCode);
             });
         };
 
@@ -199,12 +199,12 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 if (!process.HasExited)
                 {
                     _localProcesses.Kill(process);
-                    _logger.LogInformation("Killed '{App}' (pid {Pid}) in workspace {Id}", appName, process.Id, workspaceId);
+                    _logger.LogInformation("Killed workspace application process with pid {Pid}", process.Id);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to kill '{App}' in workspace {Id}", appName, workspaceId);
+                _logger.LogWarning(ex, "Failed to kill workspace application process");
             }
             finally
             {
@@ -214,7 +214,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
         if (containerName is not null)
         {
-            _logger.LogInformation("Stopping Docker container '{Container}' for '{App}' in workspace {Id}", containerName, appName, workspaceId);
+            _logger.LogInformation("Stopping Docker container for workspace application");
             await _docker.RunAsync("rm", "-f", containerName);
         }
     }

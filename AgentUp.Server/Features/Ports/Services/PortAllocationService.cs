@@ -40,10 +40,9 @@ public sealed class PortAllocationService : IPortAllocationService
                 _workspaceRanges[workspaceId] = rangeIndex;
                 await SaveToDiskAsync();
                 _logger.LogInformation(
-                    "Assigned port range {Base}-{End} to workspace {Id}",
+                    "Assigned port range {Base}-{End} to workspace",
                     BasePort + rangeIndex * RangeSize,
-                    BasePort + rangeIndex * RangeSize + RangeSize - 1,
-                    workspaceId);
+                    BasePort + rangeIndex * RangeSize + RangeSize - 1);
             }
 
             return BasePort + rangeIndex * RangeSize;
@@ -74,8 +73,8 @@ public sealed class PortAllocationService : IPortAllocationService
                     await SaveToDiskAsync();
                     if (attempt > 0)
                         _logger.LogInformation(
-                            "Settled on port range {Base}-{End} for workspace {Id} after {Attempts} attempt(s)",
-                            basePort, basePort + portCount - 1, workspaceId, attempt + 1);
+                            "Settled on port range {Base}-{End} for workspace after {Attempts} attempt(s)",
+                            basePort, basePort + portCount - 1, attempt + 1);
                     return basePort;
                 }
 
@@ -83,8 +82,8 @@ public sealed class PortAllocationService : IPortAllocationService
                 // Conflicted ranges are not returned to the free pool because something
                 // external is using them; they simply become untracked.
                 _logger.LogWarning(
-                    "Port conflict in range {Base}-{End} for workspace {Id} (attempt {Attempt}), assigning new range",
-                    basePort, basePort + portCount - 1, workspaceId, attempt + 1);
+                    "Port conflict in range {Base}-{End} for workspace (attempt {Attempt}), assigning new range",
+                    basePort, basePort + portCount - 1, attempt + 1);
 
                 _workspaceRanges.Remove(workspaceId);
                 var freshIndex = _highWaterMark++;
@@ -110,11 +109,10 @@ public sealed class PortAllocationService : IPortAllocationService
                 _freeRanges.Enqueue(rangeIndex);
                 await SaveToDiskAsync();
                 _logger.LogInformation(
-                    "Released port range {Base}-{End} (index {Index}) for workspace {Id} — returned to free pool",
+                    "Released port range {Base}-{End} (index {Index}) for workspace; returned to free pool",
                     BasePort + rangeIndex * RangeSize,
                     BasePort + rangeIndex * RangeSize + RangeSize - 1,
-                    rangeIndex,
-                    workspaceId);
+                    rangeIndex);
             }
         }
         finally
