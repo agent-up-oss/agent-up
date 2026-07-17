@@ -1,9 +1,6 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
 using System.Xml.Linq;
-using AgentUp.Packaging.Features.MacOsPackages.Models;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Services;
+namespace AgentUp.Packaging.Features.MacOsPackages.Models;
 
 public static class MacOsDistributionGenerator
 {

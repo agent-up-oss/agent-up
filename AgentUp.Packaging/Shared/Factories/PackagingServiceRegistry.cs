@@ -31,13 +31,17 @@ public sealed class PackagingServiceRegistry
         var windowsStaging = new PayloadStagingController(new PackagePayloadStager(new PackagePublisher(commands), windowsWriter));
         var macOsStaging = new PayloadStagingController(new PackagePayloadStager(new PackagePublisher(commands), macOsWriter));
 
-        var ubuntu = new UbuntuPackageController(new UbuntuPackager(commands, ubuntuWriter, ubuntuStaging));
-        var windows = new WindowsPackageController(new WindowsPackager(commands, windowsWriter, windowsStaging));
-        var macOs = new MacOsPackageController(new MacOsPackager(commands, macOsWriter, macOsStaging));
+        var ubuntu = new UbuntuPackageController(new UbuntuPackager(ubuntuWriter, ubuntuStaging, new DpkgDebPackageTool(commands)));
+        var windows = new WindowsPackageController(new WindowsPackager(windowsWriter, windowsStaging, new WindowsWixPackagingTool(commands)));
+        var macOs = new MacOsPackageController(new MacOsPackager(macOsWriter, macOsStaging, new MacOsPackageTool(commands)));
 
-        PackageCommands = new PackageCommandController(new PackageCommandService(
+        var environment = new EnvironmentVariableProvider();
+
+        PackageCommands = new PackageCommandController(
+            new PackageCommandParser(environment),
+            new PackageCommandService(
             new RepositoryPathProvider(),
-            new EnvironmentVariableProvider(),
+            environment,
             ubuntu,
             windows,
             macOs));

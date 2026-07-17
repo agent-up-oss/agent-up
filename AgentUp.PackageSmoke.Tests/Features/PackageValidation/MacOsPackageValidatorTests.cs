@@ -34,7 +34,7 @@ public class MacOsPackageValidatorTests
 
         try
         {
-            var result = await new MacOsPackageValidator(commands).ValidateAsync(new PackageValidationRequest("macos", "osx-arm64", artifactDir, workDir));
+            var result = await new MacOsPackageValidator(new MacOsPackageArchiveProvider(commands)).ValidateAsync(new PackageValidationRequest("macos", "osx-arm64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerPath, Does.EndWith(Path.Join("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server")));

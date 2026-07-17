@@ -1,8 +1,6 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Installers.Features.MacOsInstallation.Services;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Services;
+namespace AgentUp.Packaging.Features.MacOsPackages.Models;
 
 public static class MacOsScriptGenerator
 {

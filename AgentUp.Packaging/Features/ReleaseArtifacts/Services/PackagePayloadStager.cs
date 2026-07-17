@@ -1,14 +1,15 @@
 using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
 
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
 public sealed class PackagePayloadStager
 {
-    private readonly PackagePublisher _publisher;
+    private readonly IPackagePublisher _publisher;
     private readonly IPackageFileSystem _files;
 
-    public PackagePayloadStager(PackagePublisher publisher, IPackageFileSystem files)
+    public PackagePayloadStager(IPackagePublisher publisher, IPackageFileSystem files)
     {
         _publisher = publisher;
         _files = files;

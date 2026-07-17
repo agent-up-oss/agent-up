@@ -36,7 +36,7 @@ public class WindowsPackageValidatorTests
 
         try
         {
-            var result = await new WindowsPackageValidator(commands).ValidateAsync(new PackageValidationRequest("windows", "win-x64", artifactDir, workDir));
+            var result = await new WindowsPackageValidator(new WindowsPackageArchiveProvider(commands)).ValidateAsync(new PackageValidationRequest("windows", "win-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerPath, Is.Null);

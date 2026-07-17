@@ -5,6 +5,9 @@ using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.MacOsInstallation.DTOs;
 using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
+using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 
 namespace AgentUp.Installers.Features.MacOsInstallation.Providers;
@@ -30,7 +33,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     public string PlatformName => "macOS";
 
     public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
-        => await new DockerPrerequisite(_commands, new Version(27, 0, 0)).CheckAsync(cancellationToken);
+        => await new DockerPrerequisite(new DockerPrerequisiteProvider(_commands), new Version(27, 0, 0)).CheckAsync(cancellationToken);
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
         =>

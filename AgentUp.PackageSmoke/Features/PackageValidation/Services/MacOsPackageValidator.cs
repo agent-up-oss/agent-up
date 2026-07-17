@@ -13,11 +13,11 @@ namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
 public sealed class MacOsPackageValidator : IPackageValidator
 {
-    private readonly ICommandRunner _commands;
+    private readonly IMacOsPackageArchiveProvider _archive;
 
-    public MacOsPackageValidator(ICommandRunner commands)
+    public MacOsPackageValidator(IMacOsPackageArchiveProvider archive)
     {
-        _commands = commands;
+        _archive = archive;
     }
 
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
@@ -29,24 +29,24 @@ public sealed class MacOsPackageValidator : IPackageValidator
         if (!File.Exists(archive))
             return new PackageValidationResult(null, null, assert.Findings);
 
-        var expand = await _commands.RunAsync(new CommandSpec("pkgutil", ["--expand-full", archive, expanded]), cancellationToken);
-        if (expand.ExitCode != 0)
+        var expand = await _archive.ExpandAsync(archive, expanded, cancellationToken);
+        if (!expand.Succeeded)
         {
-            assert.Error("macos.expand", $"pkgutil failed: {expand.Stderr}{expand.Stdout}");
+            assert.Error("macos.expand", expand.ErrorMessage!);
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        var desktop = FindFirst(expanded, Path.Join("usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
-        var desktopApp = FindFirst(expanded, Path.Join("Applications", "Agent-Up.app", "Contents", "MacOS", "AgentUp.Desktop"));
-        var installerApp = FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
-        var installerPayloadDesktop = FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
-        var installerPayloadServer = FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
-        var installerPayloadCli = FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
-        var server = FindFirst(expanded, Path.Join("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
-        var cli = FindFirst(expanded, Path.Join("usr", "local", "agent-up", "cli", "AgentUp.CLI"));
-        var launchd = FindFirst(expanded, Path.Join("Library", "LaunchDaemons", "dev.agent-up.server.plist"));
-        var distribution = Directory.EnumerateFiles(expanded, "Distribution", SearchOption.AllDirectories).FirstOrDefault() ?? "";
-        var postinstall = FindFirst(expanded, Path.Join("Scripts", "postinstall"));
+        var desktop = _archive.FindFirst(expanded, Path.Join("usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
+        var desktopApp = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up.app", "Contents", "MacOS", "AgentUp.Desktop"));
+        var installerApp = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
+        var installerPayloadDesktop = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
+        var installerPayloadServer = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
+        var installerPayloadCli = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
+        var server = _archive.FindFirst(expanded, Path.Join("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
+        var cli = _archive.FindFirst(expanded, Path.Join("usr", "local", "agent-up", "cli", "AgentUp.CLI"));
+        var launchd = _archive.FindFirst(expanded, Path.Join("Library", "LaunchDaemons", "dev.agent-up.server.plist"));
+        var distribution = _archive.FindDistribution(expanded);
+        var postinstall = _archive.FindFirst(expanded, Path.Join("Scripts", "postinstall"));
 
         assert.ExecutableExists(desktop, "macos.desktop");
         assert.ExecutableExists(desktopApp, "macos.desktop.app");
@@ -67,8 +67,4 @@ public sealed class MacOsPackageValidator : IPackageValidator
 
         return new PackageValidationResult(server, cli, assert.Findings);
     }
-
-    private static string FindFirst(string root, string suffix)
-        => Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
-               .FirstOrDefault(path => path.EndsWith(suffix, StringComparison.Ordinal)) ?? "";
 }

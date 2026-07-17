@@ -1,4 +1,7 @@
 using AgentUp.Installers.Features.Installation.Models;
+using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 using AgentUp.Installers.Features.Installation.Models;
 

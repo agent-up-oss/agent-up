@@ -1,9 +1,10 @@
 using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Shared.Providers;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+namespace AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 
-public sealed class PackagePublisher
+public sealed class PackagePublisher : IPackagePublisher
 {
     private readonly ICommandRunner _commands;
 

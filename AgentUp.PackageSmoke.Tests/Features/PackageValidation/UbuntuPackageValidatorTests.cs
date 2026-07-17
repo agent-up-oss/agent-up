@@ -38,7 +38,7 @@ public class UbuntuPackageValidatorTests
 
         try
         {
-            var result = await new UbuntuPackageValidator(commands).ValidateAsync(new PackageValidationRequest("ubuntu", "linux-x64", artifactDir, workDir));
+            var result = await new UbuntuPackageValidator(new UbuntuPackageArchiveProvider(commands)).ValidateAsync(new PackageValidationRequest("ubuntu", "linux-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "agent-up", "server", "AgentUp.Server")));

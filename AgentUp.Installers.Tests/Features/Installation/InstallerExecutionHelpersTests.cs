@@ -10,6 +10,9 @@ using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation;
 using AgentUp.Installers.Features.PrerequisiteChecks;
+using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 
 namespace AgentUp.Installers.Tests.Features.Installation;

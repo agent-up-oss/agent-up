@@ -2,6 +2,7 @@ using AgentUp.Packaging.Features.MacOsPackages.Controllers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 using AgentUp.Packaging.Features.UbuntuPackages.Controllers;
 using AgentUp.Packaging.Features.WindowsPackages.Controllers;
@@ -112,12 +113,15 @@ public class PackageCommandControllerTests
     {
         environment ??= _ => null;
 
-        return new PackageCommandController(new PackageCommandService(
-            new FixedRepositoryPathProvider(),
-            new DelegateEnvironmentVariableProvider(environment),
-            new RecordingUbuntuController(calls),
-            new RecordingWindowsController(calls),
-            new RecordingMacOsController(calls)));
+        var environmentProvider = new DelegateEnvironmentVariableProvider(environment);
+        return new PackageCommandController(
+            new PackageCommandParser(environmentProvider),
+            new PackageCommandService(
+                new FixedRepositoryPathProvider(),
+                environmentProvider,
+                new RecordingUbuntuController(calls),
+                new RecordingWindowsController(calls),
+                new RecordingMacOsController(calls)));
     }
 
     private sealed class FixedRepositoryPathProvider : IRepositoryPathProvider

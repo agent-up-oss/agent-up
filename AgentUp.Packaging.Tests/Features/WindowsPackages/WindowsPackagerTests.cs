@@ -3,6 +3,8 @@ using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+using AgentUp.Packaging.Features.WindowsPackages.Models;
 using AgentUp.Packaging.Features.WindowsPackages.Services;
 
 namespace AgentUp.Packaging.Tests.Features.WindowsPackages;
@@ -15,12 +17,13 @@ public class WindowsPackagerTests
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingWindowsPackageWriter();
+        var packagingTool = new RecordingWindowsPackagingTool();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
         var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release");
 
         try
         {
-            await new WindowsPackager(commands, writer, CreatePayloads(commands, writer)).PackageAsync(request);
+            await new WindowsPackager(writer, CreatePayloads(commands, writer), packagingTool).PackageAsync(request);
         }
         finally
         {
@@ -29,13 +32,8 @@ public class WindowsPackagerTests
         }
 
         Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(4));
-        Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
-        Assert.That(commands.Commands[^3].Arguments, Is.EqualTo(new[] { "eula", "accept", "wix7" }));
-        Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
-        Assert.That(commands.Commands[^2].Arguments.Any(argument => argument.EndsWith("Product.msi", StringComparison.Ordinal)), Is.True);
-        Assert.That(commands.Commands[^1].Arguments.Any(argument => argument.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
-        Assert.That(commands.Commands[^1].Arguments, Does.Contain("WixToolset.Bal.wixext"));
-        Assert.That(commands.Commands[^1].Arguments, Does.Contain(Path.Join(root, "out", "agent-up-windows-win-x64.exe")));
+        Assert.That(packagingTool.Calls.Select(call => call.Name), Is.EqualTo(new[] { "accept", "product", "bundle" }));
+        Assert.That(packagingTool.Calls[^1].Request, Is.EqualTo(request));
         Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Join(root, "out", "agent-up-windows-win-x64.msi"))));
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
         Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
@@ -47,6 +45,7 @@ public class WindowsPackagerTests
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingWindowsPackageWriter();
+        var packagingTool = new RecordingWindowsPackagingTool();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
         var payloadRoot = Path.Join(root, "payload");
         var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot);
@@ -58,14 +57,14 @@ public class WindowsPackagerTests
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI.exe");
             WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp.exe");
 
-            await new WindowsPackager(commands, writer, CreatePayloads(commands, writer)).PackageAsync(request);
+            await new WindowsPackager(writer, CreatePayloads(commands, writer), packagingTool).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "installer", "AgentUp.InstallerApp.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
-            Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
+            Assert.That(packagingTool.Calls.Select(call => call.Name), Is.EqualTo(new[] { "accept", "product", "bundle" }));
             Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Join(root, "out", "agent-up-windows-win-x64.msi"))));
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Bundle.wxs", StringComparison.Ordinal)), Is.True);
@@ -134,5 +133,28 @@ public class WindowsPackagerTests
         public void CreateDirectory(string path) { }
         public void WriteText(string path, string text) => WrittenText[path] = text;
         public void CopyFile(string sourcePath, string destinationPath) => CopiedFiles.Add((sourcePath, destinationPath));
+    }
+
+    private sealed class RecordingWindowsPackagingTool : IWindowsPackagingTool
+    {
+        public List<(string Name, PackageRequest? Request, WindowsPackageLayout? Layout)> Calls { get; } = [];
+
+        public Task AcceptWixLicenseAsync(CancellationToken cancellationToken = default)
+        {
+            Calls.Add(("accept", null, null));
+            return Task.CompletedTask;
+        }
+
+        public Task BuildProductMsiAsync(WindowsPackageLayout layout, CancellationToken cancellationToken = default)
+        {
+            Calls.Add(("product", null, layout));
+            return Task.CompletedTask;
+        }
+
+        public Task BuildBundleAsync(PackageRequest request, WindowsPackageLayout layout, CancellationToken cancellationToken = default)
+        {
+            Calls.Add(("bundle", request, layout));
+            return Task.CompletedTask;
+        }
     }
 }

@@ -2,6 +2,9 @@ using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;
+using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 using AgentUp.Installers.Features.UbuntuInstallation.DTOs;
 using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
@@ -30,7 +33,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
     public string PlatformName => "Ubuntu";
 
     public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
-        => await new DockerPrerequisite(_commands, new Version(27, 0, 0)).CheckAsync(cancellationToken);
+        => await new DockerPrerequisite(new DockerPrerequisiteProvider(_commands), new Version(27, 0, 0)).CheckAsync(cancellationToken);
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
         =>

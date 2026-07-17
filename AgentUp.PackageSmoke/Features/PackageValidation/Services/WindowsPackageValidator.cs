@@ -13,11 +13,11 @@ namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
 public sealed class WindowsPackageValidator : IPackageValidator
 {
-    private readonly ICommandRunner _commands;
+    private readonly IWindowsPackageArchiveProvider _archive;
 
-    public WindowsPackageValidator(ICommandRunner commands)
+    public WindowsPackageValidator(IWindowsPackageArchiveProvider archive)
     {
-        _commands = commands;
+        _archive = archive;
     }
 
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
@@ -31,10 +31,10 @@ public sealed class WindowsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
 
         var layoutDirectory = Path.Join(request.WorkDirectory, "layout");
-        var layout = await _commands.RunAsync(new CommandSpec(installer, ["/layout", layoutDirectory, "/quiet"]), cancellationToken);
-        if (layout.ExitCode != 0)
+        var layout = await _archive.CreateLayoutAsync(installer, layoutDirectory, cancellationToken);
+        if (!layout.Succeeded)
         {
-            assert.Error("windows.layout", $"installer layout failed: {layout.Stderr}{layout.Stdout}");
+            assert.Error("windows.layout", layout.ErrorMessage!);
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
