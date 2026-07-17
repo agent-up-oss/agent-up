@@ -166,8 +166,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
     }
 
     private static bool IsInstalledCliCommand(CommandSpec command, string argument)
-        => command.FileName == "cmd.exe"
-           && command.Arguments.SequenceEqual(["/C", $"cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd {argument}"])
+        => command.FileName == "powershell.exe"
+           && command.Arguments.SequenceEqual(["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd {argument}"])
            && command.Environment is not null
            && command.Environment.TryGetValue("PATH", out var path)
            && path.Split(Path.PathSeparator).Contains(Path.Join(DefaultInstallDirectory(), "bin"))

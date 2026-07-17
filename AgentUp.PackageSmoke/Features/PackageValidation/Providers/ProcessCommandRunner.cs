@@ -134,9 +134,6 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.Cmd && TryAddAllowedShellCommand(startInfo, command, "/C", SelectWindowsWorkingDirectoryCommand, out error))
-            return true;
-
         if (command.Executable == SmokeExecutable.Git)
             return TryAddGitArguments(startInfo, command, out error);
 
@@ -324,6 +321,17 @@ public sealed class ProcessCommandRunner : ICommandRunner
     private static bool TryAddPowerShellArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
     {
         error = "";
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "-NoProfile" &&
+            command.Arguments[1] == "-Command" &&
+            SelectWindowsPowerShellWorkingDirectoryCommand(command.Arguments[2]) is { } workingDirectoryCommand)
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(workingDirectoryCommand);
+            return true;
+        }
+
         if (IsArguments(command, "-NoProfile", "-Command", "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode"))
         {
             startInfo.ArgumentList.Add("-NoProfile");
@@ -671,16 +679,16 @@ public sealed class ProcessCommandRunner : ICommandRunner
             _ => null
         };
 
-    private static string? SelectWindowsWorkingDirectoryCommand(string command)
+    private static string? SelectWindowsPowerShellWorkingDirectoryCommand(string command)
         => command switch
         {
-            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd start" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd start",
-            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd status" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd status",
-            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git init -q" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git init -q",
-            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.email ci@agent-up.local" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.email ci@agent-up.local",
-            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.name \"Agent-Up CI\"" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.name \"Agent-Up CI\"",
-            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git add agent-up.json" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git add agent-up.json",
-            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git commit -q -m \"Add service smoke workspace\"" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git commit -q -m \"Add service smoke workspace\"",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd start" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd start",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd status" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd status",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email ci@agent-up.local" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email ci@agent-up.local",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Agent-Up CI\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Agent-Up CI\"",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
             _ => null
         };
 

@@ -148,12 +148,12 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         {
             var shellCommand = argument switch
             {
-                "start" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd start",
-                "status" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd status",
+                "start" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd start",
+                "status" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd status",
                 _ => throw new ArgumentOutOfRangeException(nameof(argument), argument, "Unsupported CLI smoke command.")
             };
 
-            return new CommandSpec("cmd.exe", ["/C", shellCommand], Environment: workingEnvironment);
+            return new CommandSpec("powershell.exe", ["-NoProfile", "-Command", shellCommand], Environment: workingEnvironment);
         }
 
         var unixShellCommand = argument switch
@@ -174,7 +174,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         };
 
         return OperatingSystem.IsWindows()
-            ? new CommandSpec("cmd.exe", ["/C", WindowsGitCommand(command)], Environment: environment)
+            ? new CommandSpec("powershell.exe", ["-NoProfile", "-Command", WindowsGitCommand(command)], Environment: environment)
             : new CommandSpec("bash", ["-lc", UnixGitCommand(command)], Environment: environment);
     }
 
@@ -192,11 +192,11 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     private static string WindowsGitCommand(GitSmokeCommand command)
         => command switch
         {
-            GitSmokeCommand.Init => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git init -q",
-            GitSmokeCommand.Email => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.email ci@agent-up.local",
-            GitSmokeCommand.Name => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.name \"Agent-Up CI\"",
-            GitSmokeCommand.Add => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git add agent-up.json",
-            GitSmokeCommand.Commit => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git commit -q -m \"Add service smoke workspace\"",
+            GitSmokeCommand.Init => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q",
+            GitSmokeCommand.Email => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email ci@agent-up.local",
+            GitSmokeCommand.Name => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Agent-Up CI\"",
+            GitSmokeCommand.Add => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json",
+            GitSmokeCommand.Commit => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported git smoke command.")
         };
 
