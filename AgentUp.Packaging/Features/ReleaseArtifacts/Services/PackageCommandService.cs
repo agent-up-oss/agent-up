@@ -34,14 +34,23 @@ public sealed class PackageCommandService
         if (!TryParse(args, standardError, out var parsed))
             return 2;
 
-        var request = new PackageRequest(
-            _repositoryPaths.FindRepositoryRoot(),
-            parsed.Platform,
-            parsed.RuntimeId,
-            parsed.Version,
-            parsed.OutputDirectory,
-            _environment.Get("CONFIGURATION") ?? "Release",
-            parsed.PayloadRoot);
+        PackageRequest request;
+        try
+        {
+            request = new PackageRequest(
+                _repositoryPaths.FindRepositoryRoot(),
+                parsed.Platform,
+                parsed.RuntimeId,
+                parsed.Version,
+                parsed.OutputDirectory,
+                _environment.Get("CONFIGURATION") ?? "Release",
+                parsed.PayloadRoot);
+        }
+        catch (ArgumentException exception)
+        {
+            standardError.WriteLine(exception.Message);
+            return 2;
+        }
 
         switch (parsed.Platform)
         {

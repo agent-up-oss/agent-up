@@ -47,6 +47,8 @@ On Windows, the default adapter installs the staged Desktop, Server, and CLI pay
 - Native packaging tool invocation.
 - Artifact path and naming rules.
 
+All `AgentUp.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative paths and must remain under the repository root. Prebuilt payload roots may be absolute CI-provided paths or repository-relative paths; repository-relative payload roots are normalized under the repository root.
+
 The packaging command entrypoint builds the project composition root and delegates into feature controllers. Controllers are constructor-injected and thin; packaging services own lifecycle orchestration, and low-level command, filesystem, repository-path, and environment access stays behind providers. Platform packaging slices may coordinate shared release artifact staging through the ReleaseArtifacts controller, but they must not fetch another slice's services, models, providers, or interfaces directly.
 
 CI uses prebuilt payload mode: the Ubuntu build job publishes single-file self-contained InstallerApp, Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for each release runtime.

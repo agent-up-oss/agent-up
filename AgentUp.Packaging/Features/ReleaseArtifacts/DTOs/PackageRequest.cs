@@ -1,22 +1,53 @@
+using AgentUp.Packaging.Shared.Providers;
+
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 
-public sealed record PackageRequest(
-    string RepositoryRoot,
-    string Platform,
-    string RuntimeId,
-    string Version,
-    string OutputDirectory,
-    string Configuration,
-    string? PayloadRoot = null)
+public sealed record PackageRequest
 {
+    public PackageRequest(
+        string repositoryRoot,
+        string platform,
+        string runtimeId,
+        string version,
+        string outputDirectory,
+        string configuration,
+        string? payloadRoot = null)
+    {
+        RepositoryRoot = PackagePathValidator.RequireFullyQualifiedPath(repositoryRoot, nameof(RepositoryRoot));
+        Platform = platform;
+        RuntimeId = runtimeId;
+        Version = version;
+        OutputDirectory = outputDirectory;
+        Configuration = configuration;
+
+        PackagePathValidator.RequireSafePathComponent(Platform, nameof(Platform));
+        PackagePathValidator.RequireSafePathComponent(RuntimeId, nameof(RuntimeId));
+        PackagePathValidator.RequireSafeRelativePath(OutputDirectory, nameof(OutputDirectory));
+        PayloadRoot = payloadRoot is null
+            ? null
+            : PackagePathValidator.ResolveRootOrRelativeUnderRoot(RepositoryRoot, payloadRoot!, nameof(PayloadRoot));
+    }
+
+    public string RepositoryRoot { get; init; }
+    public string Platform { get; init; }
+    public string RuntimeId { get; init; }
+    public string Version { get; init; }
+    public string OutputDirectory { get; init; }
+    public string Configuration { get; init; }
+    public string? PayloadRoot { get; init; }
+
     public string NormalizedVersion => Version.TrimStart('v', 'V');
     public string WindowsInstallerVersion => NormalizeWindowsInstallerVersion(NormalizedVersion);
-    public string StageDirectory => Path.Join(RepositoryRoot, "artifacts", "stage", $"{Platform}-{RuntimeId}");
-    public string OutputRoot => Path.Join(RepositoryRoot, OutputDirectory);
-    public string? InstallerPayloadDirectory => PayloadRoot is null ? null : Path.Join(PayloadRoot, "installer");
-    public string? DesktopPayloadDirectory => PayloadRoot is null ? null : Path.Join(PayloadRoot, "desktop");
-    public string? ServerPayloadDirectory => PayloadRoot is null ? null : Path.Join(PayloadRoot, "server");
-    public string? CliPayloadDirectory => PayloadRoot is null ? null : Path.Join(PayloadRoot, "cli");
+    public string StageDirectory => PackagePathValidator.ResolveRelativeUnderRoot(RepositoryRoot, Path.Join("artifacts", "stage", PlatformRuntimeDirectory), nameof(StageDirectory));
+    public string OutputRoot => PackagePathValidator.ResolveRelativeUnderRoot(RepositoryRoot, OutputDirectory, nameof(OutputDirectory));
+    public string? PayloadRootDirectory => PayloadRoot;
+    public string? InstallerPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "installer");
+    public string? DesktopPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "desktop");
+    public string? ServerPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "server");
+    public string? CliPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "cli");
+
+    private string PlatformRuntimeDirectory =>
+        $"{PackagePathValidator.RequireSafePathComponent(Platform, nameof(Platform))}-{PackagePathValidator.RequireSafePathComponent(RuntimeId, nameof(RuntimeId))}";
 
     private static string NormalizeWindowsInstallerVersion(string version)
     {

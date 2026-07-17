@@ -92,6 +92,20 @@ public class PackageCommandControllerTests
         Assert.That(error.ToString(), Is.EqualTo("Usage: AgentUp.Packaging package <platform> <runtime-id> <version> [output-dir] [--payload-root <path>]" + Environment.NewLine));
     }
 
+    [Test]
+    public async Task ExecuteAsync_withInvalidPathReturnsUsageError()
+    {
+        var calls = new List<(string Target, PackageRequest Request)>();
+        var controller = CreateController(calls);
+        var error = new StringWriter();
+
+        var exitCode = await controller.ExecuteAsync(["package", "ubuntu", "linux-x64", "1.2.3", "../outside"], error);
+
+        Assert.That(exitCode, Is.EqualTo(2));
+        Assert.That(calls, Is.Empty);
+        Assert.That(error.ToString(), Does.Contain("Path component must not contain path traversal."));
+    }
+
     private static PackageCommandController CreateController(
         List<(string Target, PackageRequest Request)> calls,
         Func<string, string?>? environment = null)

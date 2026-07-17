@@ -5,10 +5,12 @@ public abstract class SymbolicLinkPackageFileSystem : UnixPackageFileSystem, ISy
 {
     public void CreateSymbolicLink(string linkPath, string targetPath)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(linkPath)!);
-        if (File.Exists(linkPath) || Directory.Exists(linkPath))
-            File.Delete(linkPath);
+        var fullLinkPath = PackagePathValidator.RequireFullyQualifiedPath(linkPath, nameof(linkPath));
+        var fullTargetPath = PackagePathValidator.RequireFullyQualifiedPath(targetPath, nameof(targetPath));
+        Directory.CreateDirectory(PackagePathValidator.GetParentDirectory(fullLinkPath, nameof(linkPath)));
+        if (File.Exists(fullLinkPath) || Directory.Exists(fullLinkPath))
+            File.Delete(fullLinkPath);
 
-        File.CreateSymbolicLink(linkPath, targetPath);
+        File.CreateSymbolicLink(fullLinkPath, fullTargetPath);
     }
 }

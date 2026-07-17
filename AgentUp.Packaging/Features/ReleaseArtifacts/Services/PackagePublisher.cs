@@ -40,12 +40,14 @@ public sealed class PackagePublisher
 
     public void CopyPrebuiltPayload(string payloadDirectory, string outputDirectory)
     {
-        if (!Directory.Exists(payloadDirectory))
-            throw new DirectoryNotFoundException($"Prebuilt payload directory does not exist: {payloadDirectory}");
+        var fullPayloadDirectory = PackagePathValidator.RequireFullyQualifiedPath(payloadDirectory, nameof(payloadDirectory));
+        var fullOutputDirectory = PackagePathValidator.RequireFullyQualifiedPath(outputDirectory, nameof(outputDirectory));
+        if (!Directory.Exists(fullPayloadDirectory))
+            throw new DirectoryNotFoundException($"Prebuilt payload directory does not exist: {fullPayloadDirectory}");
 
-        if (Directory.Exists(outputDirectory))
-            Directory.Delete(outputDirectory, recursive: true);
+        if (Directory.Exists(fullOutputDirectory))
+            Directory.Delete(fullOutputDirectory, recursive: true);
 
-        FileSystemDirectoryCopier.Copy(payloadDirectory, outputDirectory);
+        FileSystemDirectoryCopier.Copy(fullPayloadDirectory, fullOutputDirectory);
     }
 }

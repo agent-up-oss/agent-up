@@ -1,3 +1,5 @@
+using AgentUp.Packaging.Shared.Providers;
+
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.Models;
 
 public static class RepositoryPaths
@@ -23,7 +25,7 @@ public static class RepositoryPaths
         var directory = new DirectoryInfo(startDirectory);
         while (directory is not null)
         {
-            if (File.Exists(Path.Join(directory.FullName, "agent-up.sln")))
+            if (File.Exists(PackagePathValidator.CombineValidated(directory.FullName, "agent-up.sln", "agent-up.sln")))
                 return directory.FullName;
 
             directory = directory.Parent;

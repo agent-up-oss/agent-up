@@ -5,6 +5,7 @@ using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
 using AgentUp.Packaging.Features.WindowsPackages.Providers;
+using AgentUp.Packaging.Shared.Providers;
 
 namespace AgentUp.Packaging.Features.WindowsPackages.Services;
 
@@ -83,8 +84,8 @@ public sealed class WindowsPackager
     {
         if (!OperatingSystem.IsWindows()) return null;
 
-        var dllPath = Path.Join(repositoryRoot, "packaging", "windows", ".wix", "extensions",
-            "WixToolset.Bal.wixext", "7.0.0", "wixext7", "WixToolset.BootstrapperApplications.wixext.dll");
+        var dllPath = PackagePathValidator.ResolveRelativeUnderRoot(repositoryRoot, Path.Join("packaging", "windows", ".wix", "extensions",
+            "WixToolset.Bal.wixext", "7.0.0", "wixext7", "WixToolset.BootstrapperApplications.wixext.dll"), nameof(repositoryRoot));
 
         if (!File.Exists(dllPath))
         {
@@ -93,7 +94,7 @@ public sealed class WindowsPackager
             var bytes = await http.GetByteArrayAsync(nupkgUrl, cancellationToken);
             using var zip = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);
             var entry = zip.Entries.First(e => e.FullName.Equals("wixext7/WixToolset.BootstrapperApplications.wixext.dll", StringComparison.OrdinalIgnoreCase));
-            Directory.CreateDirectory(Path.GetDirectoryName(dllPath)!);
+            Directory.CreateDirectory(PackagePathValidator.GetParentDirectory(dllPath, nameof(dllPath)));
             entry.ExtractToFile(dllPath);
         }
 
