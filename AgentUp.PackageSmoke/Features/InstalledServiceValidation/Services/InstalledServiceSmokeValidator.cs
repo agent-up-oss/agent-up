@@ -95,11 +95,11 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             }
             """, cancellationToken);
 
-        await RunRequiredAsync(assert, new CommandSpec("git", ["init", "-q"], repo), "installed.git.init", cancellationToken);
-        await RunRequiredAsync(assert, new CommandSpec("git", ["config", "user.email", "ci@agent-up.local"], repo), "installed.git.email", cancellationToken);
-        await RunRequiredAsync(assert, new CommandSpec("git", ["config", "user.name", "Agent-Up CI"], repo), "installed.git.name", cancellationToken);
-        await RunRequiredAsync(assert, new CommandSpec("git", ["add", "agent-up.json"], repo), "installed.git.add", cancellationToken);
-        await RunRequiredAsync(assert, new CommandSpec("git", ["commit", "-q", "-m", "Add service smoke workspace"], repo), "installed.git.commit", cancellationToken);
+        await RunRequiredAsync(assert, GitCommand(repo, GitSmokeCommand.Init), "installed.git.init", cancellationToken);
+        await RunRequiredAsync(assert, GitCommand(repo, GitSmokeCommand.Email), "installed.git.email", cancellationToken);
+        await RunRequiredAsync(assert, GitCommand(repo, GitSmokeCommand.Name), "installed.git.name", cancellationToken);
+        await RunRequiredAsync(assert, GitCommand(repo, GitSmokeCommand.Add), "installed.git.add", cancellationToken);
+        await RunRequiredAsync(assert, GitCommand(repo, GitSmokeCommand.Commit), "installed.git.commit", cancellationToken);
 
         var environment = MergeEnvironment(cliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
         var start = await _commands.RunAsync(CliCommand(cliCommand, "start", repo, environment), cancellationToken);
@@ -135,9 +135,70 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         string argument,
         string? workingDirectory,
         IReadOnlyDictionary<string, string>? environment)
-        => command == "cmd.exe"
-            ? new CommandSpec("cmd.exe", ["/C", "agent-up.cmd", argument], workingDirectory, environment)
-            : new CommandSpec(command, [argument], workingDirectory, environment);
+    {
+        if (workingDirectory is null)
+        {
+            return command == "cmd.exe"
+                ? new CommandSpec("cmd.exe", ["/C", "agent-up.cmd", argument], Environment: environment)
+                : new CommandSpec(command, [argument], Environment: environment);
+        }
+
+        var workingEnvironment = MergeEnvironment(environment, WorkingDirectoryEnvironmentKey, workingDirectory);
+        if (command == "cmd.exe")
+        {
+            var shellCommand = argument switch
+            {
+                "start" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd start",
+                "status" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd status",
+                _ => throw new ArgumentOutOfRangeException(nameof(argument), argument, "Unsupported CLI smoke command.")
+            };
+
+            return new CommandSpec("cmd.exe", ["/C", shellCommand], Environment: workingEnvironment);
+        }
+
+        var unixShellCommand = argument switch
+        {
+            "start" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up start",
+            "status" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up status",
+            _ => throw new ArgumentOutOfRangeException(nameof(argument), argument, "Unsupported CLI smoke command.")
+        };
+
+        return new CommandSpec("bash", ["-lc", unixShellCommand], Environment: workingEnvironment);
+    }
+
+    private static CommandSpec GitCommand(string workingDirectory, GitSmokeCommand command)
+    {
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [WorkingDirectoryEnvironmentKey] = workingDirectory
+        };
+
+        return OperatingSystem.IsWindows()
+            ? new CommandSpec("cmd.exe", ["/C", WindowsGitCommand(command)], Environment: environment)
+            : new CommandSpec("bash", ["-lc", UnixGitCommand(command)], Environment: environment);
+    }
+
+    private static string UnixGitCommand(GitSmokeCommand command)
+        => command switch
+        {
+            GitSmokeCommand.Init => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q",
+            GitSmokeCommand.Email => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email ci@agent-up.local",
+            GitSmokeCommand.Name => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Agent-Up CI\"",
+            GitSmokeCommand.Add => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json",
+            GitSmokeCommand.Commit => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
+            _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported git smoke command.")
+        };
+
+    private static string WindowsGitCommand(GitSmokeCommand command)
+        => command switch
+        {
+            GitSmokeCommand.Init => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git init -q",
+            GitSmokeCommand.Email => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.email ci@agent-up.local",
+            GitSmokeCommand.Name => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.name \"Agent-Up CI\"",
+            GitSmokeCommand.Add => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git add agent-up.json",
+            GitSmokeCommand.Commit => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git commit -q -m \"Add service smoke workspace\"",
+            _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported git smoke command.")
+        };
 
     private async Task RunDiagnosticsAsync(InstalledServiceContext context, CancellationToken cancellationToken)
     {
@@ -149,5 +210,16 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     {
         foreach (var command in context.UninstallCommands)
             await _commands.RunAsync(command, cancellationToken);
+    }
+
+    private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
+
+    private enum GitSmokeCommand
+    {
+        Init,
+        Email,
+        Name,
+        Add,
+        Commit
     }
 }

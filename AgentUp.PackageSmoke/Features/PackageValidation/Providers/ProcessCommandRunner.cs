@@ -11,7 +11,6 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return new CommandResult(126, "", validationError);
 
         var startInfo = CreateStartInfo(safeCommand.Executable);
-        startInfo.WorkingDirectory = safeCommand.WorkingDirectory;
 
         if (!TryAddAllowedArguments(startInfo, safeCommand, out validationError))
             return new CommandResult(126, "", validationError);
@@ -135,6 +134,9 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
+        if (command.Executable == SmokeExecutable.Cmd && TryAddAllowedShellCommand(startInfo, command, "/C", SelectWindowsWorkingDirectoryCommand, out error))
+            return true;
+
         if (command.Executable == SmokeExecutable.Git)
             return TryAddGitArguments(startInfo, command, out error);
 
@@ -163,6 +165,9 @@ public sealed class ProcessCommandRunner : ICommandRunner
             startInfo.ArgumentList.Add("command -v agent-up");
             return true;
         }
+
+        if (command.Executable == SmokeExecutable.Bash && TryAddAllowedShellCommand(startInfo, command, "-lc", SelectUnixWorkingDirectoryCommand, out error))
+            return true;
 
         if (command.Executable == SmokeExecutable.Ps && IsArguments(command, "-ef"))
         {
@@ -194,6 +199,27 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return TryAddSudoArguments(startInfo, command, out error);
 
         error = $"Command arguments are not allowed for {command.DisplayName}.";
+        return false;
+    }
+
+    private static bool TryAddAllowedShellCommand(
+        ProcessStartInfo startInfo,
+        SafeCommandSpec command,
+        string shellFlag,
+        Func<string, string?> selectAllowedCommand,
+        out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 2 &&
+            command.Arguments[0] == shellFlag &&
+            selectAllowedCommand(command.Arguments[1]) is { } shellCommand)
+        {
+            startInfo.ArgumentList.Add(shellFlag);
+            startInfo.ArgumentList.Add(shellCommand);
+            return true;
+        }
+
+        error = "Shell command arguments are not allowed.";
         return false;
     }
 
@@ -500,7 +526,19 @@ public sealed class ProcessCommandRunner : ICommandRunner
             }
         }
 
-        safeCommand = new SafeCommandSpec(executable, DisplayName(executable), arguments, workingDirectory, environment);
+        if (workingDirectory is not null)
+        {
+            environment ??= [];
+            if (environment.ContainsKey(WorkingDirectoryEnvironmentKey))
+            {
+                error = $"Environment variable name '{WorkingDirectoryEnvironmentKey}' is reserved.";
+                return false;
+            }
+
+            environment.Add(WorkingDirectoryEnvironmentKey, workingDirectory);
+        }
+
+        safeCommand = new SafeCommandSpec(executable, DisplayName(executable), arguments, environment);
         error = "";
         return true;
     }
@@ -524,11 +562,11 @@ public sealed class ProcessCommandRunner : ICommandRunner
         return TryGetAllowedCommandName(fileName, out executable, out error);
     }
 
-    private static bool TryNormalizeWorkingDirectory(string? workingDirectory, out string safeWorkingDirectory, out string error)
+    private static bool TryNormalizeWorkingDirectory(string? workingDirectory, out string? safeWorkingDirectory, out string error)
     {
         if (workingDirectory is null)
         {
-            safeWorkingDirectory = Environment.CurrentDirectory;
+            safeWorkingDirectory = null;
             error = "";
             return true;
         }
@@ -616,8 +654,35 @@ public sealed class ProcessCommandRunner : ICommandRunner
         SmokeExecutable Executable,
         string DisplayName,
         IReadOnlyList<string> Arguments,
-        string WorkingDirectory,
         IReadOnlyDictionary<string, string>? Environment);
+
+    private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
+
+    private static string? SelectUnixWorkingDirectoryCommand(string command)
+        => command switch
+        {
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up start" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up start",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up status" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up status",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email ci@agent-up.local" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email ci@agent-up.local",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Agent-Up CI\"" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Agent-Up CI\"",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
+            _ => null
+        };
+
+    private static string? SelectWindowsWorkingDirectoryCommand(string command)
+        => command switch
+        {
+            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd start" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd start",
+            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd status" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && agent-up.cmd status",
+            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git init -q" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git init -q",
+            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.email ci@agent-up.local" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.email ci@agent-up.local",
+            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.name \"Agent-Up CI\"" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git config user.name \"Agent-Up CI\"",
+            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git add agent-up.json" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git add agent-up.json",
+            "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git commit -q -m \"Add service smoke workspace\"" => "cd /D \"%AGENTUP_SMOKE_WORKING_DIRECTORY%\" && git commit -q -m \"Add service smoke workspace\"",
+            _ => null
+        };
 
     private enum SmokeExecutable
     {
