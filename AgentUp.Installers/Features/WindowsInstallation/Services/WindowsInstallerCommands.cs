@@ -10,6 +10,31 @@ public static class WindowsInstallerCommands
     public static string ServiceFailureArguments(WindowsInstallerManifest manifest)
         => $"failure {manifest.ServiceName} reset= 60 actions= restart/5000/restart/5000/\"\"/5000";
 
+    public static string PrepareExistingServicePowerShell(WindowsInstallerManifest manifest)
+        => $$"""
+             $serviceName = '{{manifest.ServiceName}}'
+             $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+             if ($null -ne $service) {
+               if ($service.Status -ne 'Stopped') {
+                 Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+                 $service.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
+               }
+               sc.exe delete $serviceName | Out-Null
+               $deleted = $false
+               for ($attempt = 0; $attempt -lt 30; $attempt++) {
+                 Start-Sleep -Milliseconds 500
+                 sc.exe query $serviceName | Out-Null
+                 if ($LASTEXITCODE -ne 0) {
+                   $deleted = $true
+                   break
+                 }
+               }
+               if (-not $deleted) {
+                 throw "Windows Service '$serviceName' is still registered after delete."
+               }
+             }
+             """;
+
     public static string PathUpdatePowerShell(string binDirectory)
         => $$"""
              $target = '{{binDirectory}}'
@@ -59,6 +84,9 @@ public static class WindowsInstallerCommands
              New-ItemProperty -Force -Path $key -Name DisplayVersion -Value '{{manifest.Version}}' | Out-Null
              New-ItemProperty -Force -Path $key -Name Publisher -Value '{{manifest.Manufacturer}}' | Out-Null
              New-ItemProperty -Force -Path $key -Name InstallLocation -Value '{{paths.RootDirectory}}' | Out-Null
+             New-ItemProperty -Force -Path $key -Name DisplayIcon -Value '{{paths.DesktopExecutable}},0' | Out-Null
+             New-ItemProperty -Force -Path $key -Name NoModify -PropertyType DWord -Value 1 | Out-Null
+             New-ItemProperty -Force -Path $key -Name NoRepair -PropertyType DWord -Value 1 | Out-Null
              New-ItemProperty -Force -Path $key -Name UninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{paths.UninstallScriptPath}}"' | Out-Null
              New-ItemProperty -Force -Path $key -Name QuietUninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{paths.UninstallScriptPath}}"' | Out-Null
              """;

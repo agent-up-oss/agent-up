@@ -61,8 +61,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         var progress = new InstallProgressTracker(operations);
         var manifest = WindowsInstallerManifest.Create(session.Version.ToString());
 
-        await _commands.RunAsync("sc.exe", $"stop {manifest.ServiceName}", cancellationToken);
-        await _commands.RunAsync("sc.exe", $"delete {manifest.ServiceName}", cancellationToken);
+        await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
         yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
         yield return progress.Complete(InstallOperationKind.StagePayload);
 

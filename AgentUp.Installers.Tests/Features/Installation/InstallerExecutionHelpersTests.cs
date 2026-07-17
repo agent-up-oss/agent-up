@@ -14,6 +14,7 @@ using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Services;
+using System.Text;
 
 namespace AgentUp.Installers.Tests.Features.Installation;
 
@@ -50,9 +51,27 @@ public class InstallerExecutionHelpersTests
         Assert.That(ex!.Message, Is.EqualTo("systemctl start agent-up-server.service failed: stderrstdout"));
     }
 
+    [Test]
+    public async Task RequiredCommandRunner_encodesPowerShellSoQuotedPathsRemainInScript()
+    {
+        var commands = new RecordingCommandRunner(new ProcessResult(0, "", ""));
+        var runner = new RequiredCommandRunner(commands);
+
+        await runner.RunPowerShellAsync("Write-Output \"C:\\Program Files\\Agent-Up\\uninstall-agent-up.ps1\"", CancellationToken.None);
+
+        Assert.That(commands.FileName, Is.EqualTo("powershell.exe"));
+        Assert.That(commands.Arguments, Does.Contain("-EncodedCommand "));
+        var encoded = commands.Arguments!.Split("-EncodedCommand ", StringSplitOptions.None)[1];
+        var decoded = Encoding.Unicode.GetString(Convert.FromBase64String(encoded));
+        Assert.That(decoded, Is.EqualTo("Write-Output \"C:\\Program Files\\Agent-Up\\uninstall-agent-up.ps1\""));
+    }
+
     private sealed class RecordingCommandRunner : ICommandRunner
     {
         private readonly ProcessResult _result;
+
+        public string? FileName { get; private set; }
+        public string? Arguments { get; private set; }
 
         public RecordingCommandRunner(ProcessResult result)
         {
@@ -60,6 +79,10 @@ public class InstallerExecutionHelpersTests
         }
 
         public Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
-            => Task.FromResult(_result);
+        {
+            FileName = fileName;
+            Arguments = arguments;
+            return Task.FromResult(_result);
+        }
     }
 }

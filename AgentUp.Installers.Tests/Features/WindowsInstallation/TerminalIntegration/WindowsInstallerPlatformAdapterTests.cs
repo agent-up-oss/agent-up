@@ -12,6 +12,7 @@ using AgentUp.Installers.Features.WindowsInstallation.DTOs;
 using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
 using AgentUp.Installers.Features.WindowsInstallation.Models;
 using AgentUp.Installers.Features.WindowsInstallation.Providers;
+using System.Text;
 using System.Xml.Linq;
 
 namespace AgentUp.Installers.Tests.Features.WindowsInstallation.TerminalIntegration;
@@ -48,10 +49,16 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(files.Writes[@"C:\Program Files\Agent-Up\bin\agent-up.cmd"], Does.Contain("AgentUp.CLI.exe"));
         Assert.That(commands.Commands, Does.Contain(("sc.exe", "start agent-up-server")));
         Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.Contains("create agent-up-server", StringComparison.Ordinal)), Is.True);
-        Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Contains("SetEnvironmentVariable('Path'", StringComparison.Ordinal)), Is.True);
-        Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Contains("CreateShortcut", StringComparison.Ordinal)), Is.True);
+        var scripts = PowerShellScripts(commands).ToArray();
+        Assert.That(scripts.Any(script => script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal)), Is.True);
+        Assert.That(scripts.Any(script => script.Contains("SetEnvironmentVariable('Path'", StringComparison.Ordinal)), Is.True);
+        Assert.That(scripts.Any(script => script.Contains("CreateShortcut", StringComparison.Ordinal)), Is.True);
         Assert.That(files.Writes[@"C:\Program Files\Agent-Up\uninstall-agent-up.ps1"], Does.Contain("Remove-Item -Recurse -Force"));
-        Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Contains(@"CurrentVersion\Uninstall\Agent-Up", StringComparison.Ordinal)), Is.True);
+        Assert.That(scripts.Any(script =>
+            script.Contains(@"CurrentVersion\Uninstall\Agent-Up", StringComparison.Ordinal) &&
+            script.Contains("DisplayIcon", StringComparison.Ordinal) &&
+            script.Contains("NoModify", StringComparison.Ordinal) &&
+            script.Contains("NoRepair", StringComparison.Ordinal)), Is.True);
     }
 
     [Test]
@@ -68,7 +75,7 @@ public class WindowsInstallerPlatformAdapterTests
 
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("sc.exe", "query agent-up-server")));
-        Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Contains("Get-Command agent-up", StringComparison.Ordinal)), Is.True);
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-Command agent-up", StringComparison.Ordinal)), Is.True);
     }
 
     [Test]
@@ -101,6 +108,8 @@ public class WindowsInstallerPlatformAdapterTests
 
             Assert.That(product, Does.Contain("ServiceInstall"));
             Assert.That(product, Does.Contain("EmbedCab=\"yes\""));
+            Assert.That(product, Does.Contain("Id=\"ARPNOMODIFY\""));
+            Assert.That(product, Does.Contain("Id=\"ARPNOREPAIR\""));
             Assert.That(product, Does.Contain("Name=\"agent-up-server\""));
             Assert.That(product, Does.Not.Contain("Start=\"install\""));
             Assert.That(product, Does.Not.Contain("Stop=\"both\""));
@@ -159,6 +168,19 @@ public class WindowsInstallerPlatformAdapterTests
             .Descendants(wix + "Component")
             .Select(component => (string?)component.Attribute("Guid"))
             .Where(guid => !string.IsNullOrWhiteSpace(guid))!;
+    }
+
+    private static IEnumerable<string> PowerShellScripts(RecordingCommandRunner commands)
+        => commands.Commands
+            .Where(command => command.FileName == "powershell.exe")
+            .Select(PowerShellScript);
+
+    private static string PowerShellScript((string FileName, string Arguments) command)
+    {
+        var parts = command.Arguments.Split("-EncodedCommand ", StringSplitOptions.None);
+        return parts.Length == 2
+            ? Encoding.Unicode.GetString(Convert.FromBase64String(parts[1]))
+            : command.Arguments;
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner
