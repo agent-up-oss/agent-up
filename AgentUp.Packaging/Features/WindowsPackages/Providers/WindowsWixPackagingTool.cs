@@ -30,13 +30,22 @@ public sealed class WindowsWixPackagingTool : IWindowsPackagingTool
 
     public async Task BuildBundleAsync(PackageRequest request, WindowsPackageLayout layout, CancellationToken cancellationToken = default)
     {
-        var balExtension = await StageBalExtensionAsync(request.RepositoryRoot, cancellationToken);
+        var balExtension = await StageWixExtensionAsync(
+            request.RepositoryRoot,
+            "WixToolset.Bal.wixext",
+            "WixToolset.BootstrapperApplications.wixext.dll",
+            cancellationToken);
+        var utilExtension = await StageWixExtensionAsync(
+            request.RepositoryRoot,
+            "WixToolset.Util.wixext",
+            "WixToolset.Util.wixext.dll",
+            cancellationToken);
         await RunWixAsync(
         [
             "build",
             layout.BundleWxsPath,
             "-ext", balExtension ?? "WixToolset.Bal.wixext",
-            "-ext", "WixToolset.Util.wixext",
+            "-ext", utilExtension ?? "WixToolset.Util.wixext",
             "-o", layout.SetupExePath
         ], cancellationToken);
     }
@@ -50,21 +59,27 @@ public sealed class WindowsWixPackagingTool : IWindowsPackagingTool
         return _commands.RunAsync(new CommandSpec(wixCommand, arguments), cancellationToken);
     }
 
-    private static async Task<string?> StageBalExtensionAsync(string repositoryRoot, CancellationToken cancellationToken)
+    private static async Task<string?> StageWixExtensionAsync(
+        string repositoryRoot,
+        string packageId,
+        string extensionFileName,
+        CancellationToken cancellationToken)
     {
         if (!OperatingSystem.IsWindows())
             return null;
 
+        const string version = "7.0.0";
+        var normalizedPackage = packageId.ToLowerInvariant();
         var dllPath = PackagePathValidator.ResolveRelativeUnderRoot(repositoryRoot, Path.Join("packaging", "windows", ".wix", "extensions",
-            "WixToolset.Bal.wixext", "7.0.0", "wixext7", "WixToolset.BootstrapperApplications.wixext.dll"), nameof(repositoryRoot));
+            packageId, version, "wixext7", extensionFileName), nameof(repositoryRoot));
 
         if (!File.Exists(dllPath))
         {
-            const string nupkgUrl = "https://api.nuget.org/v3-flatcontainer/wixtoolset.bal.wixext/7.0.0/wixtoolset.bal.wixext.7.0.0.nupkg";
+            var nupkgUrl = $"https://api.nuget.org/v3-flatcontainer/{normalizedPackage}/{version}/{normalizedPackage}.{version}.nupkg";
             using var http = new HttpClient();
             var bytes = await http.GetByteArrayAsync(nupkgUrl, cancellationToken);
             using var zip = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);
-            var entry = zip.Entries.First(e => e.FullName.Equals("wixext7/WixToolset.BootstrapperApplications.wixext.dll", StringComparison.OrdinalIgnoreCase));
+            var entry = zip.Entries.First(e => e.FullName.Equals($"wixext7/{extensionFileName}", StringComparison.OrdinalIgnoreCase));
             Directory.CreateDirectory(PackagePathValidator.GetParentDirectory(dllPath, nameof(dllPath)));
             entry.ExtractToFile(dllPath);
         }

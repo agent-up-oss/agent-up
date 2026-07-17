@@ -86,7 +86,7 @@ The wrappers enter a target-specific shell under `packaging/nix/` and then deleg
 - Windows wrapper provides cross-packaging helpers where available, such as archive tooling, MSI inspection tools, and signing helpers. WiX is supplied through the pinned local .NET tool manifest at `packaging/windows/dotnet-tools.json`; the wrapper restores that tool and exposes a `wix` shim on PATH before packaging starts.
 - macOS wrapper is Darwin-only because Apple packaging, signing, and notarization tools are platform tools: `hdiutil`, `pkgbuild`, `productbuild`, `codesign`, and `notarytool`.
 
-Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable.
+Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, stages required WiX extension DLLs on Windows, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable.
 
 The Windows bootstrapper executable launches the guided `AgentUp.InstallerApp` with an explicit Burn package-cache payload root containing the bundled `desktop`, `server`, and `cli` payload. The Burn chain must author the guided installer package with a detect condition, install arguments, and uninstall arguments so the bootstrapper registers in Apps & Features and can remove the installation through the cached installer app. The generated MSI is still copied to the named `agent-up-windows-<rid>.msi` sidecar artifact for direct native validation and troubleshooting.
 
