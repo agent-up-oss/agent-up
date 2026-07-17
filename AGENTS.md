@@ -435,7 +435,7 @@ New code should convert known failures into safe errors with status, title, deta
 Guidelines:
 
 - Convert provider/infrastructure exceptions at meaningful boundaries.
-- Validate command runner inputs before process launch. Allowlisted command names and known installed executable paths are acceptable only after provider-level validation; never pass unchecked user-provided strings directly into `ProcessStartInfo`.
+- Validate command runner inputs before process launch. Package smoke command execution must choose from allowlisted command names and must not pass executable paths or unchecked user-provided strings into `ProcessStartInfo`.
 - Encode or otherwise canonicalize user-controlled IDs before using them in filesystem paths, and verify the resolved path stays under the owning storage root.
 - Do not add catch blocks at every layer.
 - Validate transport/request models at host boundaries.
@@ -603,7 +603,7 @@ Installer and packaging behavior is testable product behavior. Shared installer 
 
 All `AgentUp.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative and must remain under the repository root; prebuilt payload roots may be absolute CI-provided paths or repository-relative paths normalized under the repository root.
 
-All `AgentUp.PackageSmoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, and installed CLIs, but command names, known installed executable paths, working directories, arguments, and environment keys must be checked before `ProcessStartInfo` is created.
+All `AgentUp.PackageSmoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, and installed CLIs, but execution must choose from allowlisted command names before `ProcessStartInfo` is created. Artifact paths, installed executable paths, working directories, arguments, and environment keys stay data and must be validated before use.
 
 Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 

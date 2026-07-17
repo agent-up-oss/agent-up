@@ -51,7 +51,8 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
         }
 
         return new InstalledServiceContext(
-            "/usr/local/bin/agent-up",
+            "agent-up",
+            null,
             [
                 new CommandSpec("sudo", [
                     "bash",

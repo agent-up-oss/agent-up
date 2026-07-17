@@ -38,7 +38,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             if (context is null || assert.Findings.Any(finding => finding.Severity == FindingSeverity.Error))
                 return new InstalledServiceSmokeResult(null, assert.Findings);
 
-            await RunRequiredAsync(assert, new CommandSpec(context.CliPath, ["--version"]), "installed.cli.version", cancellationToken);
+            await RunRequiredAsync(assert, new CommandSpec(context.CliCommand, ["--version"], Environment: context.CliEnvironment), "installed.cli.version", cancellationToken);
             var readyUrl = await _serverProbe.WaitForReadyAsync(
                 request.PrimaryServerUrl,
                 request.FallbackServerUrl,
@@ -53,7 +53,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             }
 
             await _securityChecks.RunAsync(readyUrl, assert, cancellationToken);
-            await SmokeCliWorkspaceAsync(request, context.CliPath, readyUrl, assert, cancellationToken);
+            await SmokeCliWorkspaceAsync(request, context.CliCommand, context.CliEnvironment, readyUrl, assert, cancellationToken);
             return new InstalledServiceSmokeResult(readyUrl, assert.Findings);
         }
         finally
@@ -80,7 +80,8 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
     private async Task SmokeCliWorkspaceAsync(
         InstalledServiceSmokeRequest request,
-        string cliPath,
+        string cliCommand,
+        IReadOnlyDictionary<string, string>? cliEnvironment,
         string serverUrl,
         FileAssertions assert,
         CancellationToken cancellationToken)
@@ -100,18 +101,30 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         await RunRequiredAsync(assert, new CommandSpec("git", ["add", "agent-up.json"], repo), "installed.git.add", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("git", ["commit", "-q", "-m", "Add service smoke workspace"], repo), "installed.git.commit", cancellationToken);
 
-        var environment = new Dictionary<string, string> { ["AGENTUP_SERVER_URL"] = serverUrl };
-        var start = await _commands.RunAsync(new CommandSpec(cliPath, ["start"], repo, environment), cancellationToken);
+        var environment = MergeEnvironment(cliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
+        var start = await _commands.RunAsync(new CommandSpec(cliCommand, ["start"], repo, environment), cancellationToken);
         await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains("Started workspace \"Installed Service Smoke Workspace\"", StringComparison.Ordinal))
             assert.Error("installed.cli.start", $"CLI start failed or returned unexpected output: {start.Stderr}{start.Stdout}");
 
-        var status = await _commands.RunAsync(new CommandSpec(cliPath, ["status"], repo, environment), cancellationToken);
+        var status = await _commands.RunAsync(new CommandSpec(cliCommand, ["status"], repo, environment), cancellationToken);
         await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-status.log"), status.Stdout + status.Stderr, cancellationToken);
         if (status.ExitCode != 0
             || !status.Stdout.Contains("Name:       Installed Service Smoke Workspace", StringComparison.Ordinal)
             || !status.Stdout.Contains("State:      Running", StringComparison.Ordinal))
             assert.Error("installed.cli.status", $"CLI status failed or returned unexpected output: {status.Stderr}{status.Stdout}");
+    }
+
+    private static Dictionary<string, string> MergeEnvironment(
+        IReadOnlyDictionary<string, string>? source,
+        string key,
+        string value)
+    {
+        var environment = source is null
+            ? []
+            : new Dictionary<string, string>(source, StringComparer.Ordinal);
+        environment[key] = value;
+        return environment;
     }
 
     private async Task RunDiagnosticsAsync(InstalledServiceContext context, CancellationToken cancellationToken)

@@ -10,6 +10,7 @@ using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 
 public sealed record InstalledServiceContext(
-    string CliPath,
+    string CliCommand,
+    IReadOnlyDictionary<string, string>? CliEnvironment,
     IReadOnlyList<CommandSpec> UninstallCommands,
     IReadOnlyList<CommandSpec> DiagnosticCommands);

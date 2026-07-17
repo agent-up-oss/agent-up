@@ -10,14 +10,8 @@ public sealed class ProcessCommandRunner : ICommandRunner
         if (!TryNormalize(command, out var safeCommand, out var validationError))
             return new CommandResult(126, "", validationError);
 
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = safeCommand.FileName,
-            WorkingDirectory = safeCommand.WorkingDirectory,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
+        var startInfo = CreateStartInfo(safeCommand.Executable);
+        startInfo.WorkingDirectory = safeCommand.WorkingDirectory;
 
         foreach (var argument in safeCommand.Arguments)
             startInfo.ArgumentList.Add(argument);
@@ -39,7 +33,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
         }
 
         if (process is null)
-            return new CommandResult(127, "", $"Failed to start {safeCommand.FileName}.");
+            return new CommandResult(127, "", $"Failed to start {safeCommand.DisplayName}.");
 
         using (process)
         {
@@ -50,11 +44,37 @@ public sealed class ProcessCommandRunner : ICommandRunner
         }
     }
 
-    private static bool TryNormalize(CommandSpec command, out CommandSpec safeCommand, out string error)
+    private static ProcessStartInfo CreateStartInfo(SmokeExecutable executable)
     {
-        safeCommand = command;
+        var startInfo = executable switch
+        {
+            SmokeExecutable.AgentUp => new ProcessStartInfo("agent-up"),
+            SmokeExecutable.AgentUpCmd => new ProcessStartInfo("agent-up.cmd"),
+            SmokeExecutable.Bash => new ProcessStartInfo("bash"),
+            SmokeExecutable.DpkgDeb => new ProcessStartInfo("dpkg-deb"),
+            SmokeExecutable.Git => new ProcessStartInfo("git"),
+            SmokeExecutable.Lsof => new ProcessStartInfo("lsof"),
+            SmokeExecutable.Msiexec => new ProcessStartInfo("msiexec.exe"),
+            SmokeExecutable.Pkgutil => new ProcessStartInfo("pkgutil"),
+            SmokeExecutable.PowerShell => new ProcessStartInfo("powershell.exe"),
+            SmokeExecutable.Ps => new ProcessStartInfo("ps"),
+            SmokeExecutable.Sc => new ProcessStartInfo("sc.exe"),
+            SmokeExecutable.Ss => new ProcessStartInfo("ss"),
+            SmokeExecutable.Sudo => new ProcessStartInfo("sudo"),
+            _ => throw new ArgumentOutOfRangeException(nameof(executable), executable, "Unsupported smoke executable.")
+        };
 
-        if (!TryNormalizeFileName(command.FileName, out var fileName, out error))
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        return startInfo;
+    }
+
+    private static bool TryNormalize(CommandSpec command, out SafeCommandSpec safeCommand, out string error)
+    {
+        safeCommand = default;
+
+        if (!TryNormalizeFileName(command.FileName, out var executable, out error))
             return false;
 
         if (!TryNormalizeWorkingDirectory(command.WorkingDirectory, out var workingDirectory, out error))
@@ -94,14 +114,14 @@ public sealed class ProcessCommandRunner : ICommandRunner
             }
         }
 
-        safeCommand = new CommandSpec(fileName, arguments, workingDirectory, environment);
+        safeCommand = new SafeCommandSpec(executable, DisplayName(executable), arguments, workingDirectory, environment);
         error = "";
         return true;
     }
 
-    private static bool TryNormalizeFileName(string fileName, out string safeFileName, out string error)
+    private static bool TryNormalizeFileName(string fileName, out SmokeExecutable executable, out string error)
     {
-        safeFileName = "";
+        executable = default;
 
         if (string.IsNullOrWhiteSpace(fileName) || fileName.IndexOfAny(['\0', '\r', '\n', '"']) >= 0)
         {
@@ -109,19 +129,13 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return false;
         }
 
-        if (TryGetKnownInstalledExecutable(fileName, out safeFileName))
-        {
-            error = "";
-            return true;
-        }
-
         if (Path.GetFileName(fileName) != fileName)
         {
-            error = "Command executable paths must be known Agent-Up installed executables.";
+            error = "Command executable paths are not allowed.";
             return false;
         }
 
-        return TryGetAllowedCommandName(fileName, out safeFileName, out error);
+        return TryGetAllowedCommandName(fileName, out executable, out error);
     }
 
     private static bool TryNormalizeWorkingDirectory(string? workingDirectory, out string safeWorkingDirectory, out string error)
@@ -161,27 +175,27 @@ public sealed class ProcessCommandRunner : ICommandRunner
         return true;
     }
 
-    private static bool TryGetAllowedCommandName(string fileName, out string safeFileName, out string error)
+    private static bool TryGetAllowedCommandName(string fileName, out SmokeExecutable executable, out string error)
     {
-        safeFileName = fileName switch
+        executable = fileName switch
         {
-            "agent-up" => "agent-up",
-            "agent-up.cmd" => "agent-up.cmd",
-            "bash" => "bash",
-            "dpkg-deb" => "dpkg-deb",
-            "git" => "git",
-            "lsof" => "lsof",
-            "msiexec.exe" => "msiexec.exe",
-            "pkgutil" => "pkgutil",
-            "powershell.exe" => "powershell.exe",
-            "ps" => "ps",
-            "sc.exe" => "sc.exe",
-            "ss" => "ss",
-            "sudo" => "sudo",
-            _ => ""
+            "agent-up" => SmokeExecutable.AgentUp,
+            "agent-up.cmd" => SmokeExecutable.AgentUpCmd,
+            "bash" => SmokeExecutable.Bash,
+            "dpkg-deb" => SmokeExecutable.DpkgDeb,
+            "git" => SmokeExecutable.Git,
+            "lsof" => SmokeExecutable.Lsof,
+            "msiexec.exe" => SmokeExecutable.Msiexec,
+            "pkgutil" => SmokeExecutable.Pkgutil,
+            "powershell.exe" => SmokeExecutable.PowerShell,
+            "ps" => SmokeExecutable.Ps,
+            "sc.exe" => SmokeExecutable.Sc,
+            "ss" => SmokeExecutable.Ss,
+            "sudo" => SmokeExecutable.Sudo,
+            _ => SmokeExecutable.Unknown
         };
 
-        if (safeFileName.Length > 0)
+        if (executable != SmokeExecutable.Unknown)
         {
             error = "";
             return true;
@@ -191,41 +205,47 @@ public sealed class ProcessCommandRunner : ICommandRunner
         return false;
     }
 
-    private static bool TryGetKnownInstalledExecutable(string fileName, out string safeFileName)
-    {
-        if (!Path.IsPathFullyQualified(fileName) || !File.Exists(fileName))
+    private static string DisplayName(SmokeExecutable executable)
+        => executable switch
         {
-            safeFileName = "";
-            return false;
-        }
-
-        var fullPath = Path.GetFullPath(fileName);
-        var knownPath = fullPath switch
-        {
-            "/usr/bin/agent-up" => "/usr/bin/agent-up",
-            "/usr/local/bin/agent-up" => "/usr/local/bin/agent-up",
-            _ => ""
+            SmokeExecutable.AgentUp => "agent-up",
+            SmokeExecutable.AgentUpCmd => "agent-up.cmd",
+            SmokeExecutable.Bash => "bash",
+            SmokeExecutable.DpkgDeb => "dpkg-deb",
+            SmokeExecutable.Git => "git",
+            SmokeExecutable.Lsof => "lsof",
+            SmokeExecutable.Msiexec => "msiexec.exe",
+            SmokeExecutable.Pkgutil => "pkgutil",
+            SmokeExecutable.PowerShell => "powershell.exe",
+            SmokeExecutable.Ps => "ps",
+            SmokeExecutable.Sc => "sc.exe",
+            SmokeExecutable.Ss => "ss",
+            SmokeExecutable.Sudo => "sudo",
+            _ => throw new ArgumentOutOfRangeException(nameof(executable), executable, "Unsupported smoke executable.")
         };
 
-        if (knownPath.Length > 0)
-        {
-            safeFileName = knownPath;
-            return true;
-        }
+    private readonly record struct SafeCommandSpec(
+        SmokeExecutable Executable,
+        string DisplayName,
+        IReadOnlyList<string> Arguments,
+        string WorkingDirectory,
+        IReadOnlyDictionary<string, string>? Environment);
 
-        var windowsCli = Path.GetFullPath(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-            "Agent-Up",
-            "cli",
-            "AgentUp.CLI.exe"));
-
-        if (OperatingSystem.IsWindows() && string.Equals(fullPath, windowsCli, StringComparison.OrdinalIgnoreCase))
-        {
-            safeFileName = windowsCli;
-            return true;
-        }
-
-        safeFileName = "";
-        return false;
+    private enum SmokeExecutable
+    {
+        Unknown,
+        AgentUp,
+        AgentUpCmd,
+        Bash,
+        DpkgDeb,
+        Git,
+        Lsof,
+        Msiexec,
+        Pkgutil,
+        PowerShell,
+        Ps,
+        Sc,
+        Ss,
+        Sudo
     }
 }

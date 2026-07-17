@@ -68,9 +68,21 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             cancellationToken);
 
         return new InstalledServiceContext(
-            cli,
+            "agent-up.cmd",
+            InstalledCliEnvironment(Path.Join(installDir, "bin")),
             [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart", "/l*vx!", Path.Join(request.WorkDirectory, "windows-msi-uninstall.log")])],
             [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);
+    }
+
+    private static Dictionary<string, string> InstalledCliEnvironment(string binDirectory)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH") ?? "";
+        return new Dictionary<string, string>
+        {
+            ["PATH"] = string.IsNullOrWhiteSpace(path)
+                ? binDirectory
+                : binDirectory + Path.PathSeparator + path
+        };
     }
 
     private async Task RunMsiAsync(FileAssertions assert, string[] arguments, string logPath, string code, CancellationToken cancellationToken)

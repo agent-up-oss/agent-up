@@ -21,7 +21,7 @@ public class ProcessCommandRunnerTests
         var result = await new ProcessCommandRunner().RunAsync(new CommandSpec("tools/agent-up", []));
 
         Assert.That(result.ExitCode, Is.EqualTo(126));
-        Assert.That(result.Stderr, Does.Contain("known Agent-Up installed executables"));
+        Assert.That(result.Stderr, Does.Contain("paths are not allowed"));
     }
 
     [Test]

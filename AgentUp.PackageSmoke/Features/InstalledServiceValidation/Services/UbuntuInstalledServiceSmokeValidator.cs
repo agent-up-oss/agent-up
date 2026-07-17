@@ -37,7 +37,8 @@ public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmoke
         assert.FileExists("/usr/share/pixmaps/agent-up.png", "installed.ubuntu.icon");
 
         return new InstalledServiceContext(
-            "/usr/bin/agent-up",
+            "agent-up",
+            null,
             [new CommandSpec("sudo", ["apt-get", "purge", "-y", "agent-up"])],
             [
                 new CommandSpec("sudo", ["systemctl", "status", "agent-up-server.service", "--no-pager"]),

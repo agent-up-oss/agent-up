@@ -34,9 +34,9 @@ public class WindowsInstalledServiceSmokeValidatorTests
         {
             if (command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
                 CreateWindowsInstall(DefaultInstallDirectory());
-            if (command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"]))
+            if (command.FileName == "agent-up.cmd" && command.Arguments.SequenceEqual(["start"]))
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
-            if (command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"]))
+            if (command.FileName == "agent-up.cmd" && command.Arguments.SequenceEqual(["status"]))
                 return new CommandResult(0, "Name:       Installed Service Smoke Workspace\nState:      Running\n", "");
             return new CommandResult(0, "", "");
         });
@@ -51,8 +51,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Contains("/l*vx!", StringComparer.OrdinalIgnoreCase)), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
-            Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["start"])), Is.True);
-            Assert.That(commands.Commands.Any(command => command.FileName.EndsWith("AgentUp.CLI.exe", StringComparison.Ordinal) && command.Arguments.SequenceEqual(["status"])), Is.True);
+            Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, ["start"])), Is.True);
+            Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, ["status"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("DisplayName -eq 'Agent-Up'", StringComparison.Ordinal)), Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(1));
         }
@@ -164,4 +164,11 @@ public class WindowsInstalledServiceSmokeValidatorTests
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         return Path.Join(programFiles, "Agent-Up");
     }
+
+    private static bool IsInstalledCliCommand(CommandSpec command, string[] arguments)
+        => command.FileName == "agent-up.cmd"
+           && command.Arguments.SequenceEqual(arguments)
+           && command.Environment is not null
+           && command.Environment.TryGetValue("PATH", out var path)
+           && path.Split(Path.PathSeparator).Contains(Path.Join(DefaultInstallDirectory(), "bin"));
 }
