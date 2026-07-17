@@ -14,7 +14,7 @@ using AgentUp.Installers.Features.WindowsInstallation.Models;
 using AgentUp.Installers.Features.WindowsInstallation.Providers;
 using System.Xml.Linq;
 
-namespace AgentUp.Installers.Tests.Features.WindowsInstallation;
+namespace AgentUp.Installers.Tests.Features.WindowsInstallation.TerminalIntegration;
 
 [TestFixture]
 public class WindowsInstallerPlatformAdapterTests

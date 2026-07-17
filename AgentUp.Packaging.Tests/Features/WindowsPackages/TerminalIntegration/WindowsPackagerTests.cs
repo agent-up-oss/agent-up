@@ -7,7 +7,7 @@ using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
 using AgentUp.Packaging.Features.WindowsPackages.Services;
 
-namespace AgentUp.Packaging.Tests.Features.WindowsPackages;
+namespace AgentUp.Packaging.Tests.Features.WindowsPackages.TerminalIntegration;
 
 [TestFixture]
 public class WindowsPackagerTests

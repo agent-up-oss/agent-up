@@ -1,7 +1,7 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Models;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts;
+namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.TerminalIntegration;
 
 [TestFixture]
 public class RepositoryPathsTests

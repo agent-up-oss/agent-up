@@ -2,7 +2,7 @@ using System.Reactive.Linq;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 
-namespace AgentUp.Desktop.Tests.Features.FirstRun.Unit;
+namespace AgentUp.Desktop.Tests.Features.FirstRun.TerminalIntegration;
 
 [TestFixture]
 public class FirstRunTutorialViewModelTests

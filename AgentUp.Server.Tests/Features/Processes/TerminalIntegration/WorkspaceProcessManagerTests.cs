@@ -9,7 +9,7 @@ using AgentUp.Server.Tests.Fake;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace AgentUp.Server.Tests.Features.Processes.Unit;
+namespace AgentUp.Server.Tests.Features.Processes.TerminalIntegration;
 
 [TestFixture]
 public class WorkspaceProcessManagerTests

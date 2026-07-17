@@ -13,7 +13,7 @@ using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
 using AgentUp.PackageSmoke.Tests.Features.PackageValidation;
 using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation;
+namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.TerminalIntegration;
 
 [TestFixture]
 public class WindowsInstalledServiceSmokeValidatorTests

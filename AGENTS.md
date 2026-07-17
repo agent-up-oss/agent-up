@@ -480,6 +480,7 @@ AgentUp.Server.Tests/
       HTTP/
     Processes/
       Unit/
+      TerminalIntegration/
     Browser/
       Automation/
       Unit/
@@ -492,6 +493,7 @@ AgentUp.Desktop.Tests/
     Workspaces/
       Headless/     (Avalonia headless tests for sidebar/workspace-list UI)
       Unit/         (ViewModel unit tests, no UI)
+      TerminalIntegration/ (tests that inspect real project or filesystem state)
     Applications/
       Headless/     (Avalonia headless tests for application panel UI)
     Console/
@@ -506,8 +508,11 @@ Use layered tests with clear ownership:
 - Unit tests verify domain/runtime rules and edge cases.
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
 - MCP tests verify tool/resource contracts and safe errors.
-- Repository/infrastructure tests verify persistence, filesystem, process, Docker, or browser integration behavior with realistic dependencies when practical.
+- Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
+- Terminal integration tests verify terminal-like workflows, generated directory state, process-style behavior, package layouts, installer smoke behavior, and post-run filesystem assertions.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
+
+`Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `TerminalIntegration/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
 
 Avoid duplicate tests that assert the same rule through multiple layers.
 

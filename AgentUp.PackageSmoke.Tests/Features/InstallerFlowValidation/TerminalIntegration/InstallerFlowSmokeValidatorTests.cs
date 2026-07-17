@@ -10,7 +10,7 @@ using AgentUp.Installers.Features.Installation;
 using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Services;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstallerFlowValidation;
+namespace AgentUp.PackageSmoke.Tests.Features.InstallerFlowValidation.TerminalIntegration;
 
 [TestFixture]
 public class InstallerFlowSmokeValidatorTests

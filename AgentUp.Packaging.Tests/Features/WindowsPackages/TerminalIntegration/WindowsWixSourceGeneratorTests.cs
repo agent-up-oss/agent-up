@@ -7,7 +7,7 @@ using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.WindowsPackages;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
 
-namespace AgentUp.Packaging.Tests.Features.WindowsPackages;
+namespace AgentUp.Packaging.Tests.Features.WindowsPackages.TerminalIntegration;
 
 [TestFixture]
 public class WindowsWixSourceGeneratorTests

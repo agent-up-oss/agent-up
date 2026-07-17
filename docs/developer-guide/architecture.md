@@ -91,7 +91,7 @@ Inside a feature slice, use only these type folders:
 
 Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
 
-Tests should stay feature-sliced, but test projects may use test-kind folders such as `Unit/`, `Headless/`, `HTTP/`, `Repository/`, `Fake/`, and `Support/` when that keeps test intent clear.
+Tests should stay feature-sliced, but test projects may use test-kind folders such as `Unit/`, `Headless/`, `HTTP/`, `Repository/`, `TerminalIntegration/`, `Fake/`, and `Support/` when that keeps test intent clear. `Unit/` tests must stay in memory and must not use real filesystem, process, socket, current-directory, or environment mutation APIs; use `Repository/` or `TerminalIntegration/` for tests that verify real directory state or terminal-like workflows.
 
 Do not add broad technical buckets such as root-level `Controllers/`, `Services/`, `Models/`, `Http/`, `Commands/`, or `Git/`. Put the code in the owning feature slice and then in the appropriate type folder.
 

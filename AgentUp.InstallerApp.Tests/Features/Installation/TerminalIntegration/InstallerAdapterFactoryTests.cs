@@ -10,7 +10,7 @@ using AgentUp.Installers.Features.UbuntuInstallation.Providers;
 using AgentUp.Installers.Features.WindowsInstallation;
 using AgentUp.Installers.Features.WindowsInstallation.Providers;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Unit;
+namespace AgentUp.InstallerApp.Tests.Features.Installation.TerminalIntegration;
 
 [TestFixture]
 public class InstallerAdapterFactoryTests

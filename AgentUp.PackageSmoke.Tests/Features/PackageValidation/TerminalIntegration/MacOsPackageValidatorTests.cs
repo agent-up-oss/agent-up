@@ -11,7 +11,7 @@ using AgentUp.PackageSmoke.Features.PackageValidation;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
 
-namespace AgentUp.PackageSmoke.Tests.Features.PackageValidation;
+namespace AgentUp.PackageSmoke.Tests.Features.PackageValidation.TerminalIntegration;
 
 [TestFixture]
 public class MacOsPackageValidatorTests

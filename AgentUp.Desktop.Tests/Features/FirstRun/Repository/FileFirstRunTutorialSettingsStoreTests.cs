@@ -1,6 +1,6 @@
 using AgentUp.Desktop.Features.FirstRun.Services;
 
-namespace AgentUp.Desktop.Tests.Features.FirstRun.Unit;
+namespace AgentUp.Desktop.Tests.Features.FirstRun.Repository;
 
 [TestFixture]
 public class FileFirstRunTutorialSettingsStoreTests

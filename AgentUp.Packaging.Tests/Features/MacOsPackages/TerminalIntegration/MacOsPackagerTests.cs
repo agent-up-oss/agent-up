@@ -7,7 +7,7 @@ using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 
-namespace AgentUp.Packaging.Tests.Features.MacOsPackages;
+namespace AgentUp.Packaging.Tests.Features.MacOsPackages.TerminalIntegration;
 
 [TestFixture]
 public class MacOsPackagerTests

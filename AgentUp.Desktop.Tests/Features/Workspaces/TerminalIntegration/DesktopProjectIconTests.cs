@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
+namespace AgentUp.Desktop.Tests.Features.Workspaces.TerminalIntegration;
 
 [TestFixture]
 public class DesktopProjectIconTests

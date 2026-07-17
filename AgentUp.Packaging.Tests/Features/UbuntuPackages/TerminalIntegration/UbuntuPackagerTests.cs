@@ -7,7 +7,7 @@ using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.UbuntuPackages.Models;
 using AgentUp.Packaging.Features.UbuntuPackages.Services;
 
-namespace AgentUp.Packaging.Tests.Features.UbuntuPackages;
+namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.TerminalIntegration;
 
 [TestFixture]
 public class UbuntuPackagerTests

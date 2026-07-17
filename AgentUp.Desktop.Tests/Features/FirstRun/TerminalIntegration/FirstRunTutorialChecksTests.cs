@@ -5,7 +5,7 @@ using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Tests.Support;
 
-namespace AgentUp.Desktop.Tests.Features.FirstRun.Unit;
+namespace AgentUp.Desktop.Tests.Features.FirstRun.TerminalIntegration;
 
 [TestFixture]
 public class FirstRunTutorialChecksTests
