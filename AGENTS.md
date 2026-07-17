@@ -82,6 +82,9 @@ AgentUp.Packaging.Tests/
 AgentUp.PackageSmoke.Tests/
   AgentUp.PackageSmoke.Tests.csproj
 
+AgentUp.Architecture.Tests/
+  AgentUp.Architecture.Tests.csproj
+
 AgentUp.Tests/
   AgentUp.Tests.csproj
 ```
@@ -457,6 +460,8 @@ This applies to every production/test project pair once created:
 | `AgentUp.Packaging` | `AgentUp.Packaging.Tests` |
 | `AgentUp.PackageSmoke` | `AgentUp.PackageSmoke.Tests` |
 
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, controller dependency construction rules, and test taxonomy rules. Keep architecture rules there instead of burying them in product E2E tests.
+
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
 Forbidden:
@@ -470,6 +475,8 @@ Forbidden:
 ## Test Structure
 
 Tests should follow the same feature/slice layout as production code.
+
+Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe.
 
 ```text
 AgentUp.Server.Tests/
