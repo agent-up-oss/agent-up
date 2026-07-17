@@ -45,9 +45,6 @@ jobs:
       actions: read
       contents: read
       checks: write
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,30 +53,6 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
-
-      - name: Set up JDK 17 for Sonar
-        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: zulu
-
-      - name: Install SonarScanner
-        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet tool install --global dotnet-sonarscanner
-
-      - name: Sonar begin
-        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet sonarscanner begin \
-            /k:"agent-up" \
-            /n:"agent-up" \
-            /d:sonar.scanner.skipJreProvisioning=true \
-            /d:sonar.projectBaseDir="${{ github.workspace }}" \
-            /d:sonar.cs.cobertura.reportsPaths="**/coverage.cobertura.xml" \
-            /d:sonar.token="$SONAR_TOKEN" \
-            /d:sonar.host.url="$SONAR_HOST_URL"
 
       - name: Build
         run: |
@@ -145,17 +118,6 @@ jobs:
             echo "No test projects found"
             exit 1
           fi
-
-      - name: Sonar end
-        if: ${{ github.ref == 'refs/heads/main' && env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != '' }}
-        run: |
-          dotnet sonarscanner end \
-            /d:sonar.token="$SONAR_TOKEN"
-
-      - name: Sonar skipped
-        if: ${{ github.ref == 'refs/heads/main' && (env.SONAR_TOKEN == '' || env.SONAR_HOST_URL == '') }}
-        run: |
-          echo "Skipping Sonar because SONAR_TOKEN or SONAR_HOST_URL is not configured."
 
       - name: Generate SBOM
         run: |
