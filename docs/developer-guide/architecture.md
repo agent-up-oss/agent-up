@@ -97,6 +97,16 @@ Do not add broad technical buckets such as root-level `Controllers/`, `Services/
 
 If a low-level abstraction is genuinely used by multiple slices in the same project, put it under a project-level `Shared/` folder with the same strict type-folder naming. Do not make one feature slice the hidden owner of generic command, file-system, platform, or network helpers that unrelated slices import directly.
 
+## Service And Provider Rule
+
+Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models, but they must stay domain-specific.
+
+Services must not contain low-level parsing, command construction, filesystem/archive operations, native tool invocation, environment lookup, HTTP/network mechanics, process execution, platform API calls, XML/manifest serialization mechanics, or string-scanning helpers for external tool output. Put that behavior behind same-slice `Providers/` with names that describe the user/operator capability where practical, such as `PackageCommandParser`, `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageArchiveProvider`, or `DockerPrerequisiteProvider`.
+
+Use `Models/` for data definitions and pure internal representations that stay inside the slice, including generated manifest/script/XML text when the code is defining package or installer data rather than performing I/O. Use `DTOs/` only for data crossing external or controller boundaries.
+
+Provider interfaces are justified when they hide low-level providers from services, are faked by tests, or select runtime adapters. A service depending on `IUbuntuPackageTool` is acceptable; a service building `new CommandSpec("dpkg-deb", ...)` is not. A controller or service parsing raw `string[] args` is not acceptable; use a parser provider that returns a DTO/result.
+
 ## Interface Rule
 
 Do not add interfaces for 1:1 concrete mappings. An interface is justified only when tests create fakes, runtime code selects among multiple adapters, or the boundary intentionally hides low-level providers such as command execution, file systems, platform APIs, storage, or network calls. Place justified interfaces in the owning slice's `Interfaces/` folder.
@@ -105,7 +115,7 @@ Do not add interfaces for 1:1 concrete mappings. An interface is justified only 
 
 Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
 
-Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models; low-level filesystem, process, network, platform, and environment access belongs behind providers.
+Services own domain lifecycle and orchestration behind controllers. Follow the service/provider rule above for the boundary between domain orchestration and low-level implementation.
 
 Slices should not import another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice communication should go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs`. Read-only cross-slice access is allowed only through a narrow, intentional boundary when one slice needs state owned by another slice and must not mutate it.
 

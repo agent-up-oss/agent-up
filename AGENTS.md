@@ -166,6 +166,9 @@ AgentUp.Installers/
       Providers/
       Services/
     PrerequisiteChecks/ (Docker status and minimum-version checks)
+      Interfaces/
+      Models/
+      Providers/
       Services/
     UbuntuInstallation/ (systemd service, CLI, desktop launcher install adapter contracts)
       DTOs/
@@ -190,7 +193,9 @@ AgentUp.Packaging/
     ReleaseArtifacts/ (artifact requests, repository paths, command execution)
       Controllers/
       DTOs/
+      Interfaces/
       Models/
+      Providers/
       Services/
     UbuntuPackages/   (Debian package layout, metadata, staging, dpkg orchestration)
       Controllers/
@@ -260,7 +265,11 @@ A slice owns its writes.
 
 Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should call into a slice through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
 
-Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models; low-level filesystem, process, network, platform, and environment access belongs behind providers.
+Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models, but they must stay domain-specific. Services must not contain low-level parsing, command construction, filesystem/archive operations, native tool invocation, environment lookup, HTTP/network mechanics, process execution, platform API calls, XML/manifest serialization mechanics, or string-scanning helpers for external tool output. Put that behavior behind same-slice `Providers/` with names that describe the user/operator capability where practical, such as `PackageCommandParser`, `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageArchiveProvider`, or `DockerPrerequisiteProvider`.
+
+Use `Models/` for data definitions and pure internal representations that stay inside the slice, including generated manifest/script/XML text when the code is defining package or installer data rather than performing I/O. Use `DTOs/` only for data crossing external or controller boundaries.
+
+Provider interfaces are justified when they hide low-level providers from services, are faked by tests, or select runtime adapters. A service depending on `IUbuntuPackageTool` is acceptable; a service building `new CommandSpec("dpkg-deb", ...)` is not. A controller or service parsing raw `string[] args` is not acceptable; use a parser provider that returns a DTO/result.
 
 Slices must not reach directly into another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice calls go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs/`. If a low-level abstraction is genuinely shared by multiple slices, place it in a project-level shared folder instead of hiding it inside one feature slice.
 
