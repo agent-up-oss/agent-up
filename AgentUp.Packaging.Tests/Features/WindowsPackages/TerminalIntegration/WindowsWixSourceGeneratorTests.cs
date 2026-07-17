@@ -45,6 +45,8 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Contain("Name=\"Agent-Up\""));
         Assert.That(xml, Does.Contain("Version=\"0.0.1\""));
         Assert.That(xml, Does.Contain("EmbedCab=\"yes\""));
+        Assert.That(xml, Does.Contain("Id=\"ARPNOMODIFY\""));
+        Assert.That(xml, Does.Contain("Id=\"ARPNOREPAIR\""));
         Assert.That(xml, Does.Contain("ServiceInstall"));
         Assert.That(xml, Does.Contain("Name=\"agent-up-server\""));
         Assert.That(xml, Does.Not.Contain("Start=\"install\""));

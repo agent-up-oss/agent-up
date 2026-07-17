@@ -1,5 +1,6 @@
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+using System.Text;
 
 namespace AgentUp.Installers.Features.Installation.Providers;
 
@@ -20,5 +21,8 @@ public sealed class RequiredCommandRunner : IRequiredCommandRunner
     }
 
     public async Task RunPowerShellAsync(string command, CancellationToken cancellationToken)
-        => await RunAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -Command \"{command}\"", cancellationToken);
+    {
+        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
+        await RunAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}", cancellationToken);
+    }
 }

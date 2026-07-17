@@ -37,7 +37,7 @@ On Ubuntu, the default adapter installs the staged Desktop, Server, and CLI payl
 
 On macOS, the default adapter installs the staged Desktop bundle into `/Applications/Agent-Up.app`, installs Server and CLI payloads into native system locations, registers the `dev.agent-up.server` launchd service, creates `/usr/local/bin` symlinks, and validates the installed state through `launchctl` and a fresh-shell CLI lookup.
 
-On Windows, the default adapter installs the staged Desktop, Server, and CLI payload under `Program Files\Agent-Up`, registers and starts the `agent-up-server` Windows Service with restart policy, writes the CLI shim, adds the installer-managed `bin` directory to machine `PATH` without duplicating it, creates the Start Menu shortcut, and validates the installed state through `sc.exe` and a fresh-shell CLI lookup.
+On Windows, the default adapter installs the staged Desktop, Server, and CLI payload under `Program Files\Agent-Up`, removes any previous `agent-up-server` Windows Service before registering the new one with restart policy, writes the CLI shim, adds the installer-managed `bin` directory to machine `PATH` without duplicating it, creates the Start Menu shortcut, registers uninstall metadata for Apps & Features, and validates the installed state through `sc.exe` and a fresh-shell CLI lookup.
 
 `AgentUp.Packaging` owns release artifact build orchestration:
 

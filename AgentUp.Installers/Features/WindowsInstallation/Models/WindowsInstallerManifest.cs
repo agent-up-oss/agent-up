@@ -60,6 +60,9 @@ public sealed class WindowsWixSourceGenerator
         package.Add(new XElement(Wix + "MajorUpgrade",
             new XAttribute("DowngradeErrorMessage", "A newer version of Agent-Up is already installed.")));
         package.Add(new XElement(Wix + "MediaTemplate", new XAttribute("EmbedCab", "yes")));
+        package.Add(
+            new XElement(Wix + "Property", new XAttribute("Id", "ARPNOMODIFY"), new XAttribute("Value", "1")),
+            new XElement(Wix + "Property", new XAttribute("Id", "ARPNOREPAIR"), new XAttribute("Value", "1")));
 
         package.Add(new XElement(Wix + "StandardDirectory",
             new XAttribute("Id", "ProgramFiles64Folder"),
