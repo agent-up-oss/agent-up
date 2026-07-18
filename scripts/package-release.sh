@@ -264,19 +264,19 @@ case "$platform" in
 
           config = lib.mkIf cfg.enable {
             environment.systemPackages = [ package ];
-            systemd.services.agent-up = {
+            systemd.services.agent-up-server = {
               description = "Agent-Up Server";
               wantedBy = [ "multi-user.target" ];
               after = [ "network.target" ];
+              environment = {
+                ASPNETCORE_URLS = "http://127.0.0.1:${toString cfg.port}";
+                Storage__DataDirectory = cfg.dataDir;
+              };
               serviceConfig = {
                 ExecStart = "${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}";
                 Restart = "on-failure";
                 RestartSec = 5;
                 StateDirectory = "agent-up";
-                Environment = [
-                  "ASPNETCORE_URLS=http://127.0.0.1:${toString cfg.port}"
-                  "Storage__DataDirectory=${cfg.dataDir}"
-                ];
               };
             };
           };
@@ -288,7 +288,26 @@ case "$platform" in
           package = self.packages.${pkgs.system}.agent-up;
         in
         {
-          options.programs.agent-up.enable = lib.mkEnableOption "agent-up desktop";
+          options.programs.agent-up = {
+            enable = lib.mkEnableOption "agent-up desktop";
+            server = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Whether to run the Agent-Up server as a Home Manager user service.";
+              };
+              port = lib.mkOption {
+                type = lib.types.port;
+                default = 5000;
+                description = "Loopback port for the Agent-Up server user service.";
+              };
+              dataDir = lib.mkOption {
+                type = lib.types.str;
+                default = "${config.xdg.stateHome}/agent-up";
+                description = "Directory used by Agent-Up for persistent user server data.";
+              };
+            };
+          };
 
           config = lib.mkIf cfg.enable {
             home.packages = [ package ];
@@ -300,6 +319,22 @@ case "$platform" in
               icon = "agent-up";
               terminal = false;
               categories = [ "Utility" ];
+            };
+            systemd.user.services.agent-up-server = lib.mkIf cfg.server.enable {
+              Unit = {
+                Description = "Agent-Up Server";
+                After = [ "network.target" ];
+              };
+              Service = {
+                ExecStart = "${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.server.port}";
+                Restart = "on-failure";
+                RestartSec = 5;
+                Environment = [
+                  "ASPNETCORE_URLS=http://127.0.0.1:${toString cfg.server.port}"
+                  "Storage__DataDirectory=${cfg.server.dataDir}"
+                ];
+              };
+              Install.WantedBy = [ "default.target" ];
             };
           };
         };
