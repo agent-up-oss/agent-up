@@ -28,22 +28,12 @@ public sealed class MacOsPackageStager
         _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "server"));
         _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "cli"));
 
-        _writer.CopyDirectory(layout.DesktopPublishDirectory, layout.DesktopAppMacOsDirectory);
-        _writer.WriteText(layout.DesktopInfoPlistPath, plists.DesktopInfoPlist());
-        _writer.SetExecutable(Path.Join(layout.DesktopAppMacOsDirectory, "AgentUp.Desktop"));
-        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"));
-        _writer.SetExecutable(Path.Join(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
-        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"));
-        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"));
-        _writer.WriteText(layout.LaunchDaemonPlistPath, plists.LaunchDaemonPlist());
-        _writer.SetExecutable(Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
-        _writer.WriteText(layout.PreInstallScriptPath, MacOsScriptGenerator.PreInstallScript());
-        _writer.WriteText(layout.PostInstallScriptPath, MacOsScriptGenerator.PostInstallScript());
         var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
+        var installerPostInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "postinstall");
         _writer.WriteText(installerPreInstallScriptPath, MacOsScriptGenerator.InstallerPreInstallScript());
-        _writer.SetExecutable(layout.PreInstallScriptPath);
-        _writer.SetExecutable(layout.PostInstallScriptPath);
+        _writer.WriteText(installerPostInstallScriptPath, MacOsScriptGenerator.InstallerPostInstallScript());
         _writer.SetExecutable(installerPreInstallScriptPath);
+        _writer.SetExecutable(installerPostInstallScriptPath);
         _writer.WriteText(layout.DistributionXmlPath, MacOsDistributionGenerator.DistributionXml(layout, manifest));
     }
 }

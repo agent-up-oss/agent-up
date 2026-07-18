@@ -19,14 +19,14 @@ public class MacOsPackageToolTests
         await tool.BuildComponentPackagesAsync(request, layout);
         await tool.BuildProductPackageAsync(layout);
 
-        Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(4));
+        Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(1));
         Assert.That(commands.Commands.Last().FileName, Is.EqualTo("productbuild"));
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.installer")), Is.True);
         Assert.That(commands.Commands.First().Arguments, Does.Contain("--scripts"));
         Assert.That(commands.Commands.First().Arguments, Does.Contain(layout.InstallerScriptsDirectory));
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.desktop")), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.cli")), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.server")), Is.True);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.desktop")), Is.False);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.cli")), Is.False);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.server")), Is.False);
         Assert.That(commands.Commands.Last().Arguments, Does.Contain(Path.Join("/repo", "out", "agent-up-macos-osx-arm64.pkg")));
     }
 

@@ -37,8 +37,8 @@ public class MacOsPackageValidatorTests
             var result = await new MacOsPackageValidator(new MacOsPackageArchiveProvider(commands)).ValidateAsync(new PackageValidationRequest("macos", "osx-arm64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.ServerPath, Does.EndWith(Path.Join("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server")));
-            Assert.That(result.CliPath, Does.EndWith(Path.Join("usr", "local", "agent-up", "cli", "AgentUp.CLI")));
+            Assert.That(result.ServerPath, Does.EndWith(Path.Join("Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server")));
+            Assert.That(result.CliPath, Does.EndWith(Path.Join("Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI")));
         }
         finally
         {
@@ -53,13 +53,8 @@ public class MacOsPackageValidatorTests
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
-        WriteExecutable(Path.Join(root, "DesktopApp.pkg", "Payload", "Applications", "Agent-Up.app", "Contents", "MacOS", "AgentUp.Desktop"));
-        WriteExecutable(Path.Join(root, "DesktopApp.pkg", "Payload", "usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
-        WriteExecutable(Path.Join(root, "Server.pkg", "Payload", "Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
-        WriteText(Path.Join(root, "Server.pkg", "Payload", "Library", "LaunchDaemons", "dev.agent-up.server.plist"), "/Library/Application Support/Agent-Up/server/AgentUp.Server\n<key>ThrottleInterval</key>\n");
-        WriteText(Path.Join(root, "Server.pkg", "Scripts", "postinstall"), "launchctl bootstrap system\nopen -a \"/Applications/Agent-Up Installer.app\"\n");
-        WriteExecutable(Path.Join(root, "CLI.pkg", "Payload", "usr", "local", "agent-up", "cli", "AgentUp.CLI"));
-        WriteText(Path.Join(root, "Distribution"), "InstallerApp.pkg\nDesktopApp.pkg\nServer.pkg\nCLI.pkg\n");
+        WriteText(Path.Join(root, "InstallerApp.pkg", "Scripts", "postinstall"), "open -a \"/Applications/Agent-Up Installer.app\"\n");
+        WriteText(Path.Join(root, "Distribution"), "InstallerApp.pkg\n");
     }
 
     private static void WriteExecutable(string path)

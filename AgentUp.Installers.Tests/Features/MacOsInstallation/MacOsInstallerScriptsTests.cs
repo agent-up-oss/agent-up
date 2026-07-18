@@ -12,4 +12,12 @@ public class MacOsInstallerScriptsTests
 
         Assert.That(script, Does.Contain("rm -rf \"/Applications/Agent-Up Installer.app\""));
     }
+
+    [Test]
+    public void InstallerPostInstallScript_opensInstallerApp()
+    {
+        var script = MacOsInstallerScripts.InstallerPostInstallScript();
+
+        Assert.That(script, Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
+    }
 }

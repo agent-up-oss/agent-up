@@ -6,29 +6,34 @@ using AgentUp.Installers.Features.WindowsInstallation.Models;
 using System.Diagnostics;
 using System.Text;
 
-if (args.Contains("--uninstall", StringComparer.OrdinalIgnoreCase))
-    return await RunWindowsUninstallAsync();
+try
+{
+    if (args.Contains("--uninstall", StringComparer.OrdinalIgnoreCase))
+        return await RunWindowsUninstallAsync();
 
-SetBundledPayloadRoot(args);
+    SetBundledPayloadRoot(args);
 
-return AppBuilder.Configure<App>()
-    .UsePlatformDetect()
-    .WithInterFont()
-    .UseReactiveUI()
-    .StartWithClassicDesktopLifetime(args);
+    return AppBuilder.Configure<App>()
+        .UsePlatformDetect()
+        .WithInterFont()
+        .UseReactiveUI()
+        .StartWithClassicDesktopLifetime(args);
+}
+catch (Exception exception)
+{
+    WriteStartupCrash(exception);
+    throw;
+}
 
 static void SetBundledPayloadRoot(string[] args)
 {
     if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable)))
         return;
 
-    var payloadRoot = PayloadRootFromArgs(args) ?? Path.Combine(AppContext.BaseDirectory, "payload");
-    if (Directory.Exists(Path.Combine(payloadRoot, "desktop")) &&
-        Directory.Exists(Path.Combine(payloadRoot, "server")) &&
-        Directory.Exists(Path.Combine(payloadRoot, "cli")))
-    {
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, payloadRoot);
-    }
+    var payloadRoot = PayloadRootFromArgs(args)
+        ?? InstallerPlatformAdapterFactory.ResolvePayloadRoot(AppContext.BaseDirectory);
+
+    Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, payloadRoot);
 }
 
 static string? PayloadRootFromArgs(string[] args)
@@ -48,6 +53,26 @@ static string? PayloadRootFromArgs(string[] args)
     }
 
     return null;
+}
+
+static void WriteStartupCrash(Exception exception)
+{
+    try
+    {
+        var logDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Library",
+            "Logs",
+            "Agent-Up");
+        Directory.CreateDirectory(logDirectory);
+        File.AppendAllText(
+            Path.Combine(logDirectory, "installer-crash.log"),
+            $"[{DateTimeOffset.Now:O}] {exception}{Environment.NewLine}");
+    }
+    catch
+    {
+        // Startup diagnostics must never replace the original failure.
+    }
 }
 
 static async Task<int> RunWindowsUninstallAsync()

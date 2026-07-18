@@ -57,7 +57,10 @@ public sealed class BrowserRenderingTests
         var w = _window;
         _window = null;
         if (w is not null)
+        {
             await Dispatcher.UIThread.InvokeAsync(() => w.Close());
+            await FlushDispatcherAsync();
+        }
 
         _server.Dispose();
         BrowserUrlStore.RootPath = _savedProfileRoot;
@@ -130,6 +133,13 @@ public sealed class BrowserRenderingTests
                 }
             ]
         };
+
+    private static async Task FlushDispatcherAsync()
+    {
+        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+        await Task.Delay(100);
+        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+    }
 
 }
 
