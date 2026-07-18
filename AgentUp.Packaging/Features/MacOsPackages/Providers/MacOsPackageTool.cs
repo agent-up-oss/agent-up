@@ -25,31 +25,6 @@ public sealed class MacOsPackageTool : IMacOsPackageTool
             "--install-location", "/",
             layout.InstallerPackagePath
         ]), cancellationToken);
-        await _commands.RunAsync(new CommandSpec("pkgbuild",
-        [
-            "--identifier", "dev.agent-up.desktop",
-            "--version", request.NormalizedVersion,
-            "--root", layout.DesktopComponentRoot,
-            "--install-location", "/",
-            layout.DesktopPackagePath
-        ]), cancellationToken);
-        await _commands.RunAsync(new CommandSpec("pkgbuild",
-        [
-            "--identifier", "dev.agent-up.cli",
-            "--version", request.NormalizedVersion,
-            "--root", layout.CliComponentRoot,
-            "--install-location", "/",
-            layout.CliPackagePath
-        ]), cancellationToken);
-        await _commands.RunAsync(new CommandSpec("pkgbuild",
-        [
-            "--identifier", "dev.agent-up.server",
-            "--version", request.NormalizedVersion,
-            "--root", layout.ServerComponentRoot,
-            "--scripts", layout.ScriptsDirectory,
-            "--install-location", "/",
-            layout.ServerPackagePath
-        ]), cancellationToken);
     }
 
     public Task BuildProductPackageAsync(MacOsPackageLayout layout, CancellationToken cancellationToken = default)

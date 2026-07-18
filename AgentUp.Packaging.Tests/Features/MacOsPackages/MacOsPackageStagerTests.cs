@@ -28,21 +28,20 @@ public class MacOsPackageStagerTests
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "desktop"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "server"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "cli"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, layout.DesktopAppMacOsDirectory)));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Join(layout.DesktopComponentRoot, "usr", "local", "agent-up", "desktop"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.CliComponentRoot, "usr", "local", "agent-up", "cli"))));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server"))));
+        Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("Agent-Up.app")), Is.False);
+        Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("usr/local/agent-up")), Is.False);
+        Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("Library/Application Support/Agent-Up")), Is.False);
         Assert.That(writer.WrittenText[layout.InstallerInfoPlistPath], Does.Contain("AgentUp.InstallerApp"));
-        Assert.That(writer.WrittenText[layout.DesktopInfoPlistPath], Does.Contain("AgentUp.Desktop"));
-        Assert.That(writer.WrittenText[layout.LaunchDaemonPlistPath], Does.Contain("dev.agent-up.server"));
-        Assert.That(writer.WrittenText[layout.PostInstallScriptPath], Does.Contain("launchctl bootstrap system"));
-        Assert.That(writer.WrittenText[layout.PostInstallScriptPath], Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
         var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
+        var installerPostInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "postinstall");
         Assert.That(writer.WrittenText[installerPreInstallScriptPath], Does.Contain("rm -rf \"/Applications/Agent-Up Installer.app\""));
+        Assert.That(writer.WrittenText[installerPostInstallScriptPath], Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
         Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Contain("InstallerApp.pkg"));
-        Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Contain("DesktopApp.pkg"));
-        Assert.That(writer.ExecutablePaths, Does.Contain(layout.PostInstallScriptPath));
+        Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Not.Contain("DesktopApp.pkg"));
+        Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Not.Contain("Server.pkg"));
+        Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Not.Contain("CLI.pkg"));
         Assert.That(writer.ExecutablePaths, Does.Contain(installerPreInstallScriptPath));
+        Assert.That(writer.ExecutablePaths, Does.Contain(installerPostInstallScriptPath));
     }
 
     private sealed class RecordingMacOsPackageWriter : IMacOsPackageWriter

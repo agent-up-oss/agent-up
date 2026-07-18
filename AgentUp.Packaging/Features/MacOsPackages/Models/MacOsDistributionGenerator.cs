@@ -14,18 +14,9 @@ public static class MacOsDistributionGenerator
                     new XAttribute("customize", "never"),
                     new XAttribute("require-scripts", "false")),
                 PkgRef("dev.agent-up.installer", layout.InstallerPackagePath),
-                PkgRef("dev.agent-up.desktop", layout.DesktopPackagePath),
-                PkgRef("dev.agent-up.cli", layout.CliPackagePath),
-                PkgRef("dev.agent-up.server", layout.ServerPackagePath),
                 new XElement("choices-outline",
-                    new XElement("line", new XAttribute("choice", "installer")),
-                    new XElement("line", new XAttribute("choice", "desktop")),
-                    new XElement("line", new XAttribute("choice", "cli")),
-                    new XElement("line", new XAttribute("choice", "server"))),
-                Choice("installer", "Agent-Up Installer", "dev.agent-up.installer"),
-                Choice("desktop", "Agent-Up Desktop", "dev.agent-up.desktop"),
-                Choice("cli", "Agent-Up CLI", "dev.agent-up.cli"),
-                Choice("server", "Agent-Up Server", "dev.agent-up.server")))
+                    new XElement("line", new XAttribute("choice", "installer"))),
+                Choice("installer", "Agent-Up Installer", "dev.agent-up.installer")))
             .ToString() + Environment.NewLine;
 
     private static XElement PkgRef(string id, string path)

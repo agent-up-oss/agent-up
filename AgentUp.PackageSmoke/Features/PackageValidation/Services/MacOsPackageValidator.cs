@@ -36,35 +36,20 @@ public sealed class MacOsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        var desktop = _archive.FindFirst(expanded, Path.Join("usr", "local", "agent-up", "desktop", "AgentUp.Desktop"));
-        var desktopApp = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up.app", "Contents", "MacOS", "AgentUp.Desktop"));
         var installerApp = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
         var installerPayloadDesktop = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
         var installerPayloadServer = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
         var installerPayloadCli = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
-        var server = _archive.FindFirst(expanded, Path.Join("Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
-        var cli = _archive.FindFirst(expanded, Path.Join("usr", "local", "agent-up", "cli", "AgentUp.CLI"));
-        var launchd = _archive.FindFirst(expanded, Path.Join("Library", "LaunchDaemons", "dev.agent-up.server.plist"));
         var distribution = _archive.FindDistribution(expanded);
-        var postinstall = _archive.FindFirst(expanded, Path.Join("Scripts", "postinstall"));
+        var postinstall = _archive.FindFirst(expanded, Path.Join("InstallerApp.pkg", "Scripts", "postinstall"));
 
-        assert.ExecutableExists(desktop, "macos.desktop");
-        assert.ExecutableExists(desktopApp, "macos.desktop.app");
         assert.ExecutableExists(installerApp, "macos.installer.app");
         assert.ExecutableExists(installerPayloadDesktop, "macos.installer.payload.desktop");
         assert.ExecutableExists(installerPayloadServer, "macos.installer.payload.server");
         assert.ExecutableExists(installerPayloadCli, "macos.installer.payload.cli");
-        assert.ExecutableExists(server, "macos.server");
-        assert.ExecutableExists(cli, "macos.cli");
-        assert.Contains(launchd, "/Library/Application Support/Agent-Up/server/AgentUp.Server", "macos.launchd.server");
-        assert.Contains(launchd, "<key>ThrottleInterval</key>", "macos.launchd.throttle");
-        assert.Contains(distribution, "DesktopApp.pkg", "macos.distribution.desktop");
         assert.Contains(distribution, "InstallerApp.pkg", "macos.distribution.installer");
-        assert.Contains(distribution, "Server.pkg", "macos.distribution.server");
-        assert.Contains(distribution, "CLI.pkg", "macos.distribution.cli");
-        assert.Contains(postinstall, "launchctl bootstrap system", "macos.postinstall");
         assert.Contains(postinstall, "open -a \"/Applications/Agent-Up Installer.app\"", "macos.postinstall.installer");
 
-        return new PackageValidationResult(server, cli, assert.Findings);
+        return new PackageValidationResult(installerPayloadServer, installerPayloadCli, assert.Findings);
     }
 }

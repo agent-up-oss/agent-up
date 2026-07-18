@@ -605,6 +605,8 @@ All `AgentUp.Packaging` filesystem access must pass through shared path validati
 
 All `AgentUp.PackageSmoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, and installed CLIs, but execution must choose from allowlisted command names before `ProcessStartInfo` is created. Artifact paths, installed executable paths, working directories, arguments, and environment keys stay data and must be validated before use.
 
+macOS `.pkg` artifacts install only `Agent-Up Installer.app`. The installer app owns the guided install flow and contains a bundled offline payload with Desktop, Server, and CLI bits; it may also resolve an online latest payload when that capability is implemented. Desktop, Server, CLI, launchd registration, symlinks, validation, and uninstall behavior must stay in the InstallerApp/macOS adapter path, not in direct macOS package components.
+
 Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 
 Read: `docs/developer-guide/packaging.md`.

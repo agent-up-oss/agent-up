@@ -31,7 +31,7 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Optional online update from release metadata when available.
 - Adapter-driven elevation only when privileged native operations are required.
 
-Ubuntu, macOS, and Windows have real installer adapters behind the guided app. The app uses the real adapter by default and requires `AGENTUP_INSTALLER_PAYLOAD_ROOT` to point at a payload root containing `desktop`, `server`, and `cli` directories. Tests and local non-privileged flow checks opt into the fake adapter with `AGENTUP_INSTALLER_FAKE=1`.
+Ubuntu, macOS, and Windows have real installer adapters behind the guided app. The app uses the real adapter by default and requires a payload root containing `desktop`, `server`, and `cli` directories. The payload root may come from `AGENTUP_INSTALLER_PAYLOAD_ROOT`, from a bundled offline payload in the installer app, or from a future online payload download. Tests and local non-privileged flow checks opt into the fake adapter with `AGENTUP_INSTALLER_FAKE=1`.
 
 On Ubuntu, the default adapter installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
 
@@ -96,9 +96,9 @@ Windows packaging consumes Windows install metadata, WiX generation, service, PA
 
 Windows MSI metadata uses a Windows Installer product version derived from the package SemVer; CI fallback versions based on `0.0.0` are written as `0.0.1` in MSI metadata while retaining the original artifact version elsewhere.
 
-macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the guided InstallerApp bundle, bundled installer payload, Desktop `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
+macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The package installs only the guided `Agent-Up Installer.app`; Desktop, Server, CLI, launchd, symlink, validation, and uninstall behavior stay owned by the InstallerApp and its macOS adapter. The packaging app stages the InstallerApp bundle, its bundled offline `desktop`, `server`, and `cli` payload, installer-app package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
 
-The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after native component setup so users see the shared guided installer flow. The app resolves its bundled payload from `Contents/MacOS/payload` when `AGENTUP_INSTALLER_PAYLOAD_ROOT` is not set, checking both the app base directory and the real process executable directory so single-file extraction paths do not hide the installed bundle payload. The installer component removes any previous installer bundle before installing the new one so stale bundled files cannot survive package upgrades. Installer startup failures are appended to `~/Library/Logs/Agent-Up/installer-crash.log` before the app rethrows. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
+The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after installing or updating that app. The app resolves its bundled offline payload from `Contents/MacOS/payload` when `AGENTUP_INSTALLER_PAYLOAD_ROOT` is not set, checking both the app base directory and the real process executable directory so single-file extraction paths do not hide the installed bundle payload. The installer component removes any previous installer bundle before installing the new one so stale bundled files cannot survive package upgrades. Installer startup failures are appended to `~/Library/Logs/Agent-Up/installer-crash.log` before the app rethrows. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
@@ -108,16 +108,16 @@ Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS
 
 Windows installed-service smoke installs and uninstalls through the MSI sidecar with `msiexec`, starts the service after installation, and then validates readiness; the Windows `.exe` remains the guided user-facing installer path.
 
-The shared installer app is the target user-facing install flow. Windows `.exe` artifacts and macOS `.pkg` postinstall launch `AgentUp.InstallerApp` with a bundled release payload.
+The shared installer app is the target user-facing install flow. Windows `.exe` artifacts and macOS `.pkg` postinstall launch `AgentUp.InstallerApp`; the app can install from its bundled offline payload or, when implemented, pull the latest online payload.
 
-During migration, native `.pkg`, MSI sidecar, and `.deb` artifacts may still perform direct native install work, but new behavior should move toward wrapping or launching `AgentUp.InstallerApp` with a bundled release payload.
+During migration, MSI sidecar and `.deb` artifacts may still perform direct native install work, but new user-facing behavior should move toward wrapping or launching `AgentUp.InstallerApp` with bundled and online payload selection.
 
 Platform packaging owns native registration:
 
 | Platform | Native package | Service | CLI target | Desktop target |
 |---|---|---|---|---|
 | Windows | `agent-up-windows-<rid>.exe` plus `agent-up-windows-<rid>.msi` | Windows Service | application `bin` directory on PATH | Start Menu and Apps & Features |
-| macOS | `Product.pkg` components | `launchd` | `/usr/local/bin/agent-up` | `/Applications/Agent-Up.app` |
+| macOS | InstallerApp-only `Product.pkg` | InstallerApp macOS adapter registers `launchd` | InstallerApp macOS adapter creates `/usr/local/bin/agent-up` | InstallerApp macOS adapter installs `/Applications/Agent-Up.app` |
 | Ubuntu | `agent-up.deb` | `systemd` | `/usr/bin/agent-up` | `.desktop` launcher |
 
 ## Validation Contract
