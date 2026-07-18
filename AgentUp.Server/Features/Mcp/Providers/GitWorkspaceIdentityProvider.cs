@@ -6,6 +6,8 @@ namespace AgentUp.Server.Features.Mcp.Providers;
 
 public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
 {
+    private const string GitExecutable = "git";
+
     public async Task<WorkspaceIdentity> ReadAsync(string worktreePath, CancellationToken cancellationToken)
     {
         try
@@ -15,14 +17,25 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
                 Branch: await RunGitAsync(worktreePath, GitCommand.BranchName, cancellationToken),
                 Commit: await RunGitAsync(worktreePath, GitCommand.HeadCommit, cancellationToken));
         }
-        catch
+        catch (InvalidOperationException)
         {
-            return new WorkspaceIdentity(
-                RepositoryPath: worktreePath,
-                Branch: "not on a git branch",
-                Commit: "");
+            return CreateFallbackIdentity(worktreePath);
+        }
+        catch (IOException)
+        {
+            return CreateFallbackIdentity(worktreePath);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return CreateFallbackIdentity(worktreePath);
         }
     }
+
+    private static WorkspaceIdentity CreateFallbackIdentity(string worktreePath) =>
+        new(
+            RepositoryPath: worktreePath,
+            Branch: "not on a git branch",
+            Commit: "");
 
     private static async Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken)
     {
@@ -38,8 +51,9 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
         GitCommand command,
         CancellationToken cancellationToken)
     {
-        var psi = new ProcessStartInfo("git")
+        var psi = new ProcessStartInfo
         {
+            FileName = GitExecutable,
             WorkingDirectory = worktreePath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

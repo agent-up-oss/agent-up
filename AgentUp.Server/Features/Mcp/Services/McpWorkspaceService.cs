@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Mcp.DTOs;
 using AgentUp.Server.Features.Mcp.Interfaces;
@@ -39,9 +40,29 @@ public sealed class McpWorkspaceService
         {
             config = await _configuration.LoadAsync(worktreePath, cancellationToken);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            return new McpToolResult(false, $"Failed to read agent-up.json: {ex.Message}");
+            throw;
+        }
+        catch (FileNotFoundException ex)
+        {
+            return CreateConfigurationReadFailure(ex);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            return CreateConfigurationReadFailure(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return CreateConfigurationReadFailure(ex);
+        }
+        catch (IOException ex)
+        {
+            return CreateConfigurationReadFailure(ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateConfigurationReadFailure(ex);
         }
 
         if (config is null)
@@ -80,10 +101,13 @@ public sealed class McpWorkspaceService
         {
             await _processes.KillAsync(workspace.Id);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            await _registry.UpdateStateAsync(workspace.Id, WorkspaceState.Failed);
-            return new McpToolResult(false, ex.Message, _registry.GetById(workspace.Id));
+            return await CreateWorkspaceOperationFailureAsync(workspace.Id, ex);
+        }
+        catch (Win32Exception ex)
+        {
+            return await CreateWorkspaceOperationFailureAsync(workspace.Id, ex);
         }
 
         await _registry.UpdateStateAsync(workspace.Id, WorkspaceState.Stopped);
@@ -128,11 +152,27 @@ public sealed class McpWorkspaceService
 
             return new McpToolResult(true, $"Started workspace \"{workspace.DisplayName}\".");
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return new McpToolResult(false, ex.Message, _registry.GetById(id));
+            return await CreateWorkspaceOperationFailureAsync(id, ex);
         }
+        catch (IOException ex)
+        {
+            return await CreateWorkspaceOperationFailureAsync(id, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return await CreateWorkspaceOperationFailureAsync(id, ex);
+        }
+    }
+
+    private static McpToolResult CreateConfigurationReadFailure(Exception ex) =>
+        new(false, $"Failed to read agent-up.json: {ex.Message}");
+
+    private async Task<McpToolResult> CreateWorkspaceOperationFailureAsync(string workspaceId, Exception ex)
+    {
+        await _registry.UpdateStateAsync(workspaceId, WorkspaceState.Failed);
+        return new McpToolResult(false, ex.Message, _registry.GetById(workspaceId));
     }
 
     private Workspace? ResolveWorkspace(string? id, string? worktreePath)
