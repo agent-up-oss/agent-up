@@ -56,6 +56,7 @@ public sealed class CapabilityLifecycleSmokeTests
 
     private sealed class SmokeHttpHandler : HttpMessageHandler
     {
+        private readonly List<HttpResponseMessage> _responses = [];
         private readonly Dictionary<string, string> _states = new(StringComparer.Ordinal)
         {
             ["SmokeDotnet"] = "Running",
@@ -79,23 +80,41 @@ public sealed class CapabilityLifecycleSmokeTests
             {
                 _states["SmokeDotnet"] = "Stopped";
                 _states["SmokeDocker"] = "Stopped";
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+                return ResponseAsync(HttpStatusCode.NoContent);
             }
 
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            return ResponseAsync(HttpStatusCode.NotFound);
         }
 
         private Task<HttpResponseMessage> StateAsync(string appName, string state)
         {
             _states[appName] = state;
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            return ResponseAsync(HttpStatusCode.NoContent);
         }
 
         private Task<HttpResponseMessage> JsonAsync<T>(T value)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            => ResponseAsync(HttpStatusCode.OK, new StringContent(JsonSerializer.Serialize(value), System.Text.Encoding.UTF8, "application/json"));
+
+        private Task<HttpResponseMessage> ResponseAsync(HttpStatusCode statusCode, HttpContent? content = null)
+            => Task.FromResult(Track(new HttpResponseMessage(statusCode) { Content = content }));
+
+        private HttpResponseMessage Track(HttpResponseMessage response)
+        {
+            _responses.Add(response);
+            return response;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                Content = new StringContent(JsonSerializer.Serialize(value), System.Text.Encoding.UTF8, "application/json")
-            });
+                foreach (var response in _responses)
+                    response.Dispose();
+                _responses.Clear();
+            }
+
+            base.Dispose(disposing);
+        }
 
         private object Workspace()
             => new

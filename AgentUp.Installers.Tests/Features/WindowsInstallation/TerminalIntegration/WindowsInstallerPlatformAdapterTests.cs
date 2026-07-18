@@ -87,6 +87,7 @@ public class WindowsInstallerPlatformAdapterTests
 
         await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Desktop, InstallerComponentAction.Install, Session()))
         {
+            // Intentionally consume all progress events to execute the full action pipeline.
         }
 
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal)), Is.False);
@@ -102,6 +103,7 @@ public class WindowsInstallerPlatformAdapterTests
 
         await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Server, InstallerComponentAction.Install, Session()))
         {
+            // Intentionally consume all progress events to execute the full action pipeline.
         }
 
         Assert.That(PowerShellScripts(commands).Any(script =>

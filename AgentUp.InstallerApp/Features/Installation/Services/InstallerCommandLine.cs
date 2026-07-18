@@ -41,7 +41,7 @@ public static class InstallerCommandLine
             var adapter = InstallerPlatformAdapterFactory.Create();
             return await RunAsync(adapter, args, output, error, cancellationToken);
         }
-        catch (Exception exception)
+        catch (InvalidOperationException exception)
         {
             await error.WriteLineAsync(exception.Message);
             return 1;

@@ -127,10 +127,10 @@ public sealed class CapabilityLifecycleSmoke
         if (workspaces is null)
             return null;
 
-        foreach (var workspace in workspaces)
+        var matchingWorkspaces = workspaces.Where(workspace =>
+            TryGetString(workspace, "displayName", out var name) && name == WorkspaceName);
+        foreach (var workspace in matchingWorkspaces)
         {
-            if (!TryGetString(workspace, "displayName", out var name) || name != WorkspaceName)
-                continue;
             if (!TryGetString(workspace, "id", out var id))
                 return null;
             return new WorkspaceSnapshot(id, workspace);
@@ -203,13 +203,10 @@ public sealed class CapabilityLifecycleSmoke
         if (!workspace.TryGetProperty("applications", out var apps) || apps.ValueKind != JsonValueKind.Array)
             return null;
 
-        foreach (var app in apps.EnumerateArray())
-        {
-            if (TryGetString(app, "name", out var name) && name == appName)
-                return app;
-        }
-
-        return null;
+        return apps.EnumerateArray()
+            .Where(app => TryGetString(app, "name", out var name) && name == appName)
+            .Select<JsonElement, JsonElement?>(app => app)
+            .FirstOrDefault();
     }
 
     private static string ReadState(JsonElement app)
