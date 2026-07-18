@@ -55,6 +55,19 @@ public sealed class GitWorkspaceIdentityProviderTests
         }
     }
 
+    [Test]
+    public async Task ReadAsync_ReturnsFallbackIdentity_ForMissingDirectory()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), $"agent-up-missing-git-identity-{Guid.NewGuid():N}");
+        var provider = new GitWorkspaceIdentityProvider();
+
+        var identity = await provider.ReadAsync(worktreePath, CancellationToken.None);
+
+        Assert.That(identity.RepositoryPath, Is.EqualTo(worktreePath));
+        Assert.That(identity.Branch, Is.EqualTo("not on a git branch"));
+        Assert.That(identity.Commit, Is.Empty);
+    }
+
     private static async Task RunGitAsync(string workingDirectory, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo

@@ -51,10 +51,11 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
         GitCommand command,
         CancellationToken cancellationToken)
     {
+        var safeWorktreePath = ValidateAndNormalizeWorktreePath(worktreePath);
         var psi = new ProcessStartInfo
         {
             FileName = GitExecutable,
-            WorkingDirectory = worktreePath,
+            WorkingDirectory = safeWorktreePath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
@@ -73,6 +74,18 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
             throw new InvalidOperationException($"git {GetGitCommandName(command)} failed: {stderr.Trim()}");
 
         return stdout.Trim();
+    }
+
+    private static string ValidateAndNormalizeWorktreePath(string worktreePath)
+    {
+        if (string.IsNullOrWhiteSpace(worktreePath))
+            throw new InvalidOperationException("worktreePath is required.");
+
+        var fullPath = Path.GetFullPath(worktreePath);
+        if (!Directory.Exists(fullPath))
+            throw new InvalidOperationException($"worktreePath does not exist: {fullPath}");
+
+        return fullPath;
     }
 
     private static IReadOnlyList<string> GetGitArguments(GitCommand command) =>

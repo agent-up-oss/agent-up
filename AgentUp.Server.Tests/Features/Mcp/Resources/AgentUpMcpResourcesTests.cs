@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Mcp.Controllers;
 using AgentUp.Server.Features.Mcp.DTOs;
 using AgentUp.Server.Features.Mcp.Interfaces;
@@ -19,7 +20,10 @@ public sealed class AgentUpMcpResourcesTests
     [SetUp]
     public async Task SetUp()
     {
-        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
+        _registry = new WorkspaceRegistry(
+            new InMemoryWorkspaceRepository(),
+            new InMemoryPortAllocationService(),
+            new CapabilityReconciliationService([]));
         await _registry.StartAsync(CancellationToken.None);
 
         var workspaceController = new McpWorkspaceController(new McpWorkspaceService(
