@@ -82,6 +82,20 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Contain("ExecStart = \"${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.server.port}\""));
     }
 
+    [Test]
+    public void CiPackageSmoke_validatesGeneratedNixServiceRegistration()
+    {
+        var script = Path.Join(Root, ".github", "scripts", "smoke-package.sh");
+
+        var text = File.ReadAllText(script);
+
+        Assert.That(text, Does.Contain("options.programs.agent-up ="));
+        Assert.That(text, Does.Not.Contain("options.programs.agent-up.enable"));
+        Assert.That(text, Does.Contain("systemd.services.agent-up-server"));
+        Assert.That(text, Does.Contain("systemd.user.services.agent-up-server"));
+        Assert.That(text, Does.Contain("cfg.server.enable"));
+    }
+
     private static string FindRepositoryRoot(string startDirectory)
     {
         var directory = new DirectoryInfo(startDirectory);
