@@ -12,6 +12,13 @@ configuration="${CONFIGURATION:-Release}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 rids=(linux-x64 win-x64 osx-arm64 osx-x64)
 
+restore_runtime() {
+  local rid="$1"
+
+  dotnet restore "$root/agent-up.sln" \
+    --runtime "$rid"
+}
+
 publish_project() {
   local project="$1"
   local rid="$2"
@@ -20,6 +27,7 @@ publish_project() {
   dotnet publish "$project" \
     --configuration "$configuration" \
     --runtime "$rid" \
+    --no-restore \
     --self-contained true \
     -p:PublishSingleFile=true \
     -p:IncludeNativeLibrariesForSelfExtract=true \
@@ -34,6 +42,7 @@ rm -rf "$output_dir"
 mkdir -p "$output_dir/tools" "$output_dir/payloads"
 
 for rid in "${rids[@]}"; do
+  restore_runtime "$rid"
   publish_project "$root/AgentUp.Packaging/AgentUp.Packaging.csproj" "$rid" "$output_dir/tools/$rid/packaging"
   publish_project "$root/AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj" "$rid" "$output_dir/tools/$rid/package-smoke"
   publish_project "$root/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj" "$rid" "$output_dir/payloads/$rid/installer"
