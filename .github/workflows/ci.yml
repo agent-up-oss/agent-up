@@ -103,8 +103,9 @@ jobs:
                   xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"; then
                   test_status=0
                   break
+                else
+                  test_status=$?
                 fi
-                test_status=$?
               done
               if [ "$test_status" -ne 0 ]; then
                 exit "$test_status"
@@ -112,7 +113,7 @@ jobs:
             else
               "${test_command[@]}"
             fi
-          done < <(find . -name "*Tests.csproj" -print0)
+          done < <(find . -name "*Tests.csproj" -print0 | sort -z)
 
           if [ "$found_tests" = false ]; then
             echo "No test projects found"
