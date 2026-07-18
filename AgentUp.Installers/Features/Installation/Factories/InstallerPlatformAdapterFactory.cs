@@ -25,9 +25,7 @@ public static class InstallerPlatformAdapterFactory
         if (Environment.GetEnvironmentVariable(FakeInstallerVariable) == "1")
             return new FakeInstallerPlatformAdapter(CurrentPlatformName() + " dry run");
 
-        var payloadRoot = Environment.GetEnvironmentVariable(PayloadRootVariable);
-        if (string.IsNullOrWhiteSpace(payloadRoot))
-            throw new InvalidOperationException($"{PayloadRootVariable} must point at a payload root containing desktop, server, and cli directories.");
+        var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
 
         if (OperatingSystem.IsLinux())
             return CreateUbuntuAdapter(payloadRoot);
@@ -41,6 +39,23 @@ public static class InstallerPlatformAdapterFactory
 
     public static IInstallerPlatformAdapter CreateFake(string platformName)
         => new FakeInstallerPlatformAdapter(platformName);
+
+    public static string ResolvePayloadRoot(string appBaseDirectory)
+    {
+        var payloadRoot = Environment.GetEnvironmentVariable(PayloadRootVariable);
+        if (!string.IsNullOrWhiteSpace(payloadRoot))
+            return payloadRoot;
+
+        var bundledPayloadRoot = System.IO.Path.Join(appBaseDirectory, "payload");
+        if (Directory.Exists(System.IO.Path.Join(bundledPayloadRoot, "desktop")) &&
+            Directory.Exists(System.IO.Path.Join(bundledPayloadRoot, "server")) &&
+            Directory.Exists(System.IO.Path.Join(bundledPayloadRoot, "cli")))
+        {
+            return bundledPayloadRoot;
+        }
+
+        throw new InvalidOperationException($"{PayloadRootVariable} must point at a payload root containing desktop, server, and cli directories, or the installer app must include a bundled payload directory next to the executable.");
+    }
 
     private static IInstallerPlatformAdapter CreateUbuntuAdapter(string payloadRoot)
     {

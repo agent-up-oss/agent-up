@@ -37,9 +37,12 @@ public class MacOsPackageStagerTests
         Assert.That(writer.WrittenText[layout.LaunchDaemonPlistPath], Does.Contain("dev.agent-up.server"));
         Assert.That(writer.WrittenText[layout.PostInstallScriptPath], Does.Contain("launchctl bootstrap system"));
         Assert.That(writer.WrittenText[layout.PostInstallScriptPath], Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
+        var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
+        Assert.That(writer.WrittenText[installerPreInstallScriptPath], Does.Contain("rm -rf \"/Applications/Agent-Up Installer.app\""));
         Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Contain("InstallerApp.pkg"));
         Assert.That(writer.WrittenText[layout.DistributionXmlPath], Does.Contain("DesktopApp.pkg"));
         Assert.That(writer.ExecutablePaths, Does.Contain(layout.PostInstallScriptPath));
+        Assert.That(writer.ExecutablePaths, Does.Contain(installerPreInstallScriptPath));
     }
 
     private sealed class RecordingMacOsPackageWriter : IMacOsPackageWriter

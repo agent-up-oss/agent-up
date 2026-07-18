@@ -22,6 +22,8 @@ public class MacOsPackageToolTests
         Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(4));
         Assert.That(commands.Commands.Last().FileName, Is.EqualTo("productbuild"));
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.installer")), Is.True);
+        Assert.That(commands.Commands.First().Arguments, Does.Contain("--scripts"));
+        Assert.That(commands.Commands.First().Arguments, Does.Contain(layout.InstallerScriptsDirectory));
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.desktop")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.cli")), Is.True);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.server")), Is.True);

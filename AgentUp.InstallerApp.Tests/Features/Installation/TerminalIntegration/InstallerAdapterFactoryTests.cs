@@ -55,6 +55,39 @@ public class InstallerAdapterFactoryTests
     }
 
     [Test]
+    public void ResolvePayloadRoot_usesBundledPayloadNextToInstallerExecutableWhenEnvironmentIsMissing()
+    {
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-InstallerAdapterFactoryTests", Guid.NewGuid().ToString());
+
+        try
+        {
+            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+            Directory.CreateDirectory(Path.Join(root, "payload", "desktop"));
+            Directory.CreateDirectory(Path.Join(root, "payload", "server"));
+            Directory.CreateDirectory(Path.Join(root, "payload", "cli"));
+
+            var payloadRoot = InstallerPlatformAdapterFactory.ResolvePayloadRoot(root);
+
+            Assert.That(payloadRoot, Is.EqualTo(Path.Join(root, "payload")));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void ResolvePayloadRoot_prefersExplicitEnvironmentPayload()
+    {
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, "/payload");
+
+        var payloadRoot = InstallerPlatformAdapterFactory.ResolvePayloadRoot("/app");
+
+        Assert.That(payloadRoot, Is.EqualTo("/payload"));
+    }
+
+    [Test]
     public void Create_usesUbuntuAdapterByDefaultOnLinuxWhenPayloadIsProvided()
     {
         if (!OperatingSystem.IsLinux())
