@@ -32,6 +32,6 @@ public static class DesktopFixtureAdapter
             .UseReactiveUI()
             .AfterSetup(_ =>
             {
-                Avalonia.Threading.Dispatcher.UIThread.Post(DesktopFixtureHost.MarkAvaloniaReady);
+                Avalonia.Threading.Dispatcher.UIThread.Post(AgentUp.Tests.DesktopFixtureHost.MarkAvaloniaReady);
             });
 }

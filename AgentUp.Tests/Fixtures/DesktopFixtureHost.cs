@@ -1,11 +1,12 @@
 using AgentUp.Desktop.Features.FirstRun.Services;
+using AgentUp.Tests.Fixtures;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 
-namespace AgentUp.Tests.Fixtures;
+namespace AgentUp.Tests;
 
 [SetUpFixture]
 public sealed class DesktopFixtureHost
@@ -18,8 +19,11 @@ public sealed class DesktopFixtureHost
     {
         Environment.SetEnvironmentVariable(FileFirstRunTutorialSettingsStore.SkipTutorialEnvironmentVariable, "1");
         _adapter = DesktopFixtureAdapter.Create();
+        TestContext.Progress.WriteLine($"Starting native desktop fixture through {_adapter.Name}.");
         _adapter.SetUp();
+        TestContext.Progress.WriteLine($"Native desktop fixture setup completed through {_adapter.Name}.");
         StartAvalonia(_adapter);
+        TestContext.Progress.WriteLine($"Avalonia platform initialized through {_adapter.Name}.");
     }
 
     internal static void MarkAvaloniaReady() => AvaloniaReady.Set();
@@ -58,8 +62,8 @@ public sealed class DesktopFixtureHost
 
         thread.Start();
 
-        if (!AvaloniaReady.Wait(TimeSpan.FromSeconds(60)))
-            throw new TimeoutException($"Avalonia platform failed to initialize through {adapter.Name} within 60 seconds. {adapter.StartupFailureHint}");
+        if (!AvaloniaReady.Wait(TimeSpan.FromSeconds(30)))
+            throw new TimeoutException($"Avalonia platform failed to initialize through {adapter.Name} within 30 seconds. {adapter.StartupFailureHint}");
     }
 
     [OneTimeTearDown]
