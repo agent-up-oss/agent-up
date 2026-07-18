@@ -1,13 +1,29 @@
 using System.Diagnostics;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
+using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
 
 namespace AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 
 public sealed class DotnetVersionProvider : IDotnetVersionProvider
 {
+    private readonly CapabilityInventoryFileProvider _inventory;
+
+    public DotnetVersionProvider()
+        : this(new CapabilityInventoryFileProvider())
+    {
+    }
+
+    public DotnetVersionProvider(CapabilityInventoryFileProvider inventory)
+    {
+        _inventory = inventory;
+    }
+
     public async Task<IReadOnlyList<CapabilityInstalledVersion>> DiscoverAsync(CancellationToken cancellationToken)
     {
+        var discovered = new List<CapabilityInstalledVersion>();
+        discovered.AddRange(await _inventory.LoadAsync("dotnet", cancellationToken));
+
         try
         {
             using var process = Process.Start(new ProcessStartInfo("dotnet", "--list-sdks")
@@ -19,22 +35,23 @@ public sealed class DotnetVersionProvider : IDotnetVersionProvider
             });
 
             if (process is null)
-                return [];
+                return discovered;
 
             var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
             if (process.ExitCode != 0)
-                return [];
+                return discovered;
 
-            return output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            discovered.AddRange(output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(ParseSdk)
                 .Where(version => version is not null)
                 .Cast<CapabilityInstalledVersion>()
-                .ToList();
+                .ToList());
+            return discovered;
         }
         catch
         {
-            return [];
+            return discovered;
         }
     }
 

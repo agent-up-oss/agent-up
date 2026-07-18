@@ -115,7 +115,7 @@ public sealed class ArchitectureRulesTests
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.Installers", Except("AgentUp.Installers"));
-        AssertDoesNotDependOn("AgentUp.InstallerApp", Except("AgentUp.InstallerApp", "AgentUp.Installers"));
+        AssertDoesNotDependOn("AgentUp.InstallerApp", Except("AgentUp.InstallerApp", "AgentUp.Installers", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
         AssertDoesNotDependOn("AgentUp.Packaging", Except("AgentUp.Packaging", "AgentUp.Installers"));
         AssertDoesNotDependOn("AgentUp.PackageSmoke", Except("AgentUp.PackageSmoke", "AgentUp.Installers"));
     }

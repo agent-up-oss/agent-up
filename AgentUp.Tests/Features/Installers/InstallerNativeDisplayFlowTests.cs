@@ -20,7 +20,7 @@ public sealed class InstallerNativeDisplayFlowTests
     }
 
     [Test, CancelAfter(60000)]
-    public async Task Installer_completesFakeAdapterFlow_onNativeDisplayBackend()
+    public async Task Installer_dashboardInstallsComponentAndCatalogModule_onNativeDisplayBackend()
     {
         _window = await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -30,48 +30,31 @@ public sealed class InstallerNativeDisplayFlowTests
         });
 
         await FlushUiAsync();
-        await AssertStepAsync("Welcome");
+        await AssertPageAsync("Dashboard");
 
-        await AdvanceAsync();
-        await AssertStepAsync("License agreement");
-        await Dispatcher.UIThread.InvokeAsync(() => _window!.FindControl<CheckBox>("LicenseCheck")!.IsChecked = true);
+        var model = await Dispatcher.UIThread.InvokeAsync(() => (InstallerViewModel)_window!.DataContext!);
+        var cli = model.ComponentCards.Single(card => card.Title == "CLI");
+        await Dispatcher.UIThread.InvokeAsync(() => cli.InstallCommand.Execute(null));
+        await FlushUiAsync();
+        await FlushUiAsync();
+        Assert.That(cli.StatusText, Is.EqualTo("Installed"));
+
+        await Dispatcher.UIThread.InvokeAsync(() => _window!.FindControl<Button>("AddModuleCard")!.Command!.Execute(null));
+        await FlushUiAsync();
+        await AssertPageAsync("AddModule");
+
+        var dotnet = model.CatalogEntries.Single(entry => entry.Entry.Id == "dotnet");
+        await Dispatcher.UIThread.InvokeAsync(() => dotnet.InstallCommand.Execute(null));
+        await FlushUiAsync();
         await FlushUiAsync();
 
-        await AdvanceAsync();
-        await AssertStepAsync("Prerequisite validation");
-        await AdvanceAsync();
-        await AssertStepAsync("Docker status");
-        await AdvanceAsync();
-        await AssertStepAsync("Component selection");
-        await AdvanceAsync();
-        await AssertStepAsync("Installation location");
-        await AdvanceAsync();
-        await AssertStepAsync("Server configuration");
-        await AdvanceAsync();
-        await AssertStepAsync("Release payload");
-        await AdvanceAsync();
-        await AssertStepAsync("Installation summary");
-        await AdvanceAsync();
-        await AssertStepAsync("Installation complete");
-
-        var body = await Dispatcher.UIThread.InvokeAsync(() => _window!.FindControl<TextBlock>("BodyText")!.Text);
-        Assert.That(body, Does.Contain("validated successfully"));
+        await AssertPageAsync("Dashboard");
+        Assert.That(model.CapabilityCards.Single(card => card.Id == "dotnet").StatusText, Is.EqualTo("Installed"));
     }
 
-    private async Task AdvanceAsync()
+    private async Task AssertPageAsync(string expected)
     {
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            var button = _window!.FindControl<Button>("NextButton")!;
-            Assert.That(button.IsEnabled, Is.True);
-            button.Command!.Execute(null);
-        });
-        await FlushUiAsync();
-    }
-
-    private async Task AssertStepAsync(string expected)
-    {
-        var title = await Dispatcher.UIThread.InvokeAsync(() => _window!.FindControl<TextBlock>("StepTitle")!.Text);
+        var title = await Dispatcher.UIThread.InvokeAsync(() => _window!.FindControl<TextBlock>("PageTitle")!.Text);
         Assert.That(title, Is.EqualTo(expected));
     }
 

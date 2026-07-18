@@ -36,21 +36,59 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
 
     public string PlatformName => "Ubuntu";
 
+    public bool SupportsInstallActions => true;
+
     public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
         => await _dockerPrerequisite.CheckAsync(cancellationToken);
 
+    public async Task<InstallerComponentStatus> GetComponentStatusAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        CancellationToken cancellationToken = default)
+        => InstallerComponentOperations.StatusFromValidation(
+            target,
+            await ValidateInstalledStateAsync(session, cancellationToken),
+            session.Version);
+
+    public IReadOnlyList<InstallOperation> PlanComponentAction(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session)
+        => InstallerComponentOperations.Plan(target, action, session, PlanInstall);
+
+    public IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session,
+        CancellationToken cancellationToken = default)
+        => InstallerComponentOperations.ExecuteInstallLikeAction(
+            target,
+            action,
+            session,
+            ExecuteInstallAsync,
+            cancellationToken);
+
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
-        =>
-        [
+    {
+        var summary = session.Summary();
+        var operations = new List<InstallOperation>
+        {
             new(InstallOperationKind.ValidatePrerequisites, "Validate Docker and Ubuntu prerequisites", false),
             new(InstallOperationKind.StagePayload, $"Use {session.Payload.Description}", false),
-            new(InstallOperationKind.InstallFiles, "Install Agent-Up files under /opt/agent-up", true),
-            new(InstallOperationKind.RegisterService, "Register and start agent-up-server.service", true),
-            new(InstallOperationKind.RegisterCli, "Register /usr/bin/agent-up", true),
-            new(InstallOperationKind.RegisterDesktop, "Register Agent-Up desktop launcher", true),
-            new(InstallOperationKind.RegisterUninstall, "Register Ubuntu package-manager uninstall metadata", true),
-            new(InstallOperationKind.ValidateInstallation, "Validate Ubuntu installed state", false)
-        ];
+            new(InstallOperationKind.InstallFiles, "Install selected Agent-Up files under /opt/agent-up", true)
+        };
+
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterService, "Register and start agent-up-server.service", true));
+        if (summary.Includes(InstallerComponent.Cli))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, "Register /usr/bin/agent-up", true));
+        if (summary.Includes(InstallerComponent.Desktop))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, "Register Agent-Up desktop launcher", true));
+
+        operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register Ubuntu package-manager uninstall metadata", true));
+        operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate Ubuntu installed state", false));
+        return operations;
+    }
 
     public async IAsyncEnumerable<InstallProgress> ExecuteInstallAsync(
         InstallerSession session,
@@ -66,27 +104,48 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
 
         yield return progress.Complete(InstallOperationKind.StagePayload);
 
+        var summary = session.Summary();
         _files.ResetDirectory(_options.Paths.RootDirectory);
-        _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
-        _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
-        _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
-        _files.CopyFile(_options.Payload.ServiceFilePath, _options.Paths.ServicePath);
-        _files.CopyFile(_options.Payload.IconPath, _options.Paths.IconPath);
-        _files.SetExecutable(_options.Paths.DesktopExecutable);
-        _files.SetExecutable(_options.Paths.ServerExecutable);
-        _files.SetExecutable(_options.Paths.CliExecutable);
+        if (summary.Includes(InstallerComponent.Desktop))
+        {
+            _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
+            _files.CopyFile(_options.Payload.IconPath, _options.Paths.IconPath);
+            _files.SetExecutable(_options.Paths.DesktopExecutable);
+        }
+
+        if (summary.Includes(InstallerComponent.Server))
+        {
+            _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
+            _files.CopyFile(_options.Payload.ServiceFilePath, _options.Paths.ServicePath);
+            _files.SetExecutable(_options.Paths.ServerExecutable);
+        }
+
+        if (summary.Includes(InstallerComponent.Cli))
+        {
+            _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
+            _files.SetExecutable(_options.Paths.CliExecutable);
+        }
         yield return progress.Complete(InstallOperationKind.InstallFiles);
 
-        await _requiredCommands.RunAsync("systemctl", "daemon-reload", cancellationToken);
-        await _requiredCommands.RunAsync("systemctl", "enable --now agent-up-server.service", cancellationToken);
-        yield return progress.Complete(InstallOperationKind.RegisterService);
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+        {
+            await _requiredCommands.RunAsync("systemctl", "daemon-reload", cancellationToken);
+            await _requiredCommands.RunAsync("systemctl", "enable --now agent-up-server.service", cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterService);
+        }
 
-        _files.CreateSymbolicLink(_options.Paths.CliSymlinkPath, _options.Paths.CliExecutable);
-        yield return progress.Complete(InstallOperationKind.RegisterCli);
+        if (summary.Includes(InstallerComponent.Cli))
+        {
+            _files.CreateSymbolicLink(_options.Paths.CliSymlinkPath, _options.Paths.CliExecutable);
+            yield return progress.Complete(InstallOperationKind.RegisterCli);
+        }
 
-        _files.WriteText(_options.Paths.DesktopEntryPath, UbuntuInstallerManifest.DesktopEntryText(session.Version));
-        await _commands.RunAsync("update-desktop-database", "/usr/share/applications", cancellationToken);
-        yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+        if (summary.Includes(InstallerComponent.Desktop))
+        {
+            _files.WriteText(_options.Paths.DesktopEntryPath, UbuntuInstallerManifest.DesktopEntryText(session.Version));
+            await _commands.RunAsync("update-desktop-database", "/usr/share/applications", cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+        }
 
         await _commands.RunAsync("dpkg-query", "-W agent-up", cancellationToken);
         yield return progress.Complete(InstallOperationKind.RegisterUninstall);

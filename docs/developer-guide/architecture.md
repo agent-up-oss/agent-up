@@ -152,6 +152,8 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 `AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, and install planning. First-party adapters such as `AgentUp.Capabilities.Dotnet` and `AgentUp.Capabilities.Docker` own ecosystem discovery, version reconciliation, validation, and launch planning.
 
+`AgentUp.InstallerApp` is the Avalonia installer dashboard. It presents independent Desktop, Server, and CLI management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI.
+
 `AgentUp.Server` performs orchestration:
 
 - Workspace registry.
@@ -173,7 +175,7 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 `AgentUp.Installers` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 
-`AgentUp.InstallerApp` owns the shared Avalonia guided installer UX. It presents the common installer flow and delegates platform-specific execution to installer adapters.
+`AgentUp.InstallerApp` owns the shared Avalonia installer dashboard. It delegates platform-specific execution to installer adapters. On NixOS the adapter is lookup-only: Desktop, Server, CLI, and capability status can be inspected, but installs and version changes are made through NixOS or Home Manager configuration.
 
 `AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
 

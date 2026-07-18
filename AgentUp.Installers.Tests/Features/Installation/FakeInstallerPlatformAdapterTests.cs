@@ -8,10 +8,6 @@ using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation;
-using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Installers.Tests.Features.Installation;
 
@@ -39,5 +35,53 @@ public class FakeInstallerPlatformAdapterTests
         Assert.That(progress, Has.Count.EqualTo(plan.Count));
         Assert.That(progress.Last().CompletedOperations, Is.EqualTo(plan.Count));
         Assert.That(report.Succeeded, Is.True);
+    }
+
+    [Test]
+    public async Task ExecuteComponentActionAsync_installsOnlyRequestedTargetStatus()
+    {
+        var session = InstallerSession.CreateDefault(
+            "Agent-Up",
+            new Version(1, 2, 3),
+            "/opt/agent-up",
+            PayloadSelection.Bundled(new Version(1, 2, 3)));
+        var adapter = new FakeInstallerPlatformAdapter();
+
+        var progress = new List<InstallProgress>();
+        await foreach (var item in adapter.ExecuteComponentActionAsync(
+                           InstallerComponentTarget.Cli,
+                           InstallerComponentAction.Install,
+                           session))
+        {
+            progress.Add(item);
+        }
+
+        var cli = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Cli, session);
+        var desktop = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Desktop, session);
+        Assert.That(progress, Has.Count.EqualTo(adapter.PlanComponentAction(InstallerComponentTarget.Cli, InstallerComponentAction.Install, session).Count));
+        Assert.That(cli.Kind, Is.EqualTo(InstallerComponentStatusKind.Installed));
+        Assert.That(desktop.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
+    }
+
+    [Test]
+    public async Task ExecuteComponentActionAsync_uninstallReturnsTargetToNotInstalled()
+    {
+        var session = InstallerSession.CreateDefault(
+            "Agent-Up",
+            new Version(1, 2, 3),
+            "/opt/agent-up",
+            PayloadSelection.Bundled(new Version(1, 2, 3)));
+        var adapter = new FakeInstallerPlatformAdapter();
+
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Server, InstallerComponentAction.Install, session))
+        {
+        }
+
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Server, InstallerComponentAction.Uninstall, session))
+        {
+        }
+
+        var server = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Server, session);
+        Assert.That(server.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
     }
 }

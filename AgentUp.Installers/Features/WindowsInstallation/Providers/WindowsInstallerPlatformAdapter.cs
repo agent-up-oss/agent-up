@@ -37,21 +37,59 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
 
     public string PlatformName => "Windows";
 
+    public bool SupportsInstallActions => true;
+
     public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
         => await _dockerPrerequisite.CheckAsync(cancellationToken);
 
+    public async Task<InstallerComponentStatus> GetComponentStatusAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        CancellationToken cancellationToken = default)
+        => InstallerComponentOperations.StatusFromValidation(
+            target,
+            await ValidateInstalledStateAsync(session, cancellationToken),
+            session.Version);
+
+    public IReadOnlyList<InstallOperation> PlanComponentAction(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session)
+        => InstallerComponentOperations.Plan(target, action, session, PlanInstall);
+
+    public IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session,
+        CancellationToken cancellationToken = default)
+        => InstallerComponentOperations.ExecuteInstallLikeAction(
+            target,
+            action,
+            session,
+            ExecuteInstallAsync,
+            cancellationToken);
+
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
-        =>
-        [
+    {
+        var summary = session.Summary();
+        var operations = new List<InstallOperation>
+        {
             new(InstallOperationKind.ValidatePrerequisites, "Validate Docker and Windows prerequisites", false),
             new(InstallOperationKind.StagePayload, $"Use {session.Payload.Description}", false),
-            new(InstallOperationKind.InstallFiles, "Install Agent-Up application, server, and CLI files", true),
-            new(InstallOperationKind.RegisterService, "Register and start agent-up-server Windows Service", true),
-            new(InstallOperationKind.RegisterCli, "Register Agent-Up CLI on machine PATH", true),
-            new(InstallOperationKind.RegisterDesktop, "Register Agent-Up Start Menu shortcut", true),
-            new(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true),
-            new(InstallOperationKind.ValidateInstallation, "Validate Windows installed state", false)
-        ];
+            new(InstallOperationKind.InstallFiles, "Install selected Agent-Up files", true)
+        };
+
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterService, "Register and start agent-up-server Windows Service", true));
+        if (summary.Includes(InstallerComponent.Cli))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, "Register Agent-Up CLI on machine PATH", true));
+        if (summary.Includes(InstallerComponent.Desktop))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, "Register Agent-Up Start Menu shortcut", true));
+
+        operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true));
+        operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate Windows installed state", false));
+        return operations;
+    }
 
     public async IAsyncEnumerable<InstallProgress> ExecuteInstallAsync(
         InstallerSession session,
@@ -65,26 +103,47 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
         yield return progress.Complete(InstallOperationKind.StagePayload);
 
-        _files.ResetDirectory(_options.Paths.DesktopDirectory);
-        _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
-        _files.ResetDirectory(_options.Paths.ServerDirectory);
-        _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
-        _files.ResetDirectory(_options.Paths.CliDirectory);
-        _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
-        _files.CreateDirectory(_options.Paths.BinDirectory);
-        _files.WriteText(_options.Paths.CliShimPath, WindowsWixSourceGenerator.CliShimText());
+        var summary = session.Summary();
+        if (summary.Includes(InstallerComponent.Desktop))
+        {
+            _files.ResetDirectory(_options.Paths.DesktopDirectory);
+            _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
+        }
+
+        if (summary.Includes(InstallerComponent.Server))
+        {
+            _files.ResetDirectory(_options.Paths.ServerDirectory);
+            _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
+        }
+
+        if (summary.Includes(InstallerComponent.Cli))
+        {
+            _files.ResetDirectory(_options.Paths.CliDirectory);
+            _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
+            _files.CreateDirectory(_options.Paths.BinDirectory);
+            _files.WriteText(_options.Paths.CliShimPath, WindowsWixSourceGenerator.CliShimText());
+        }
         yield return progress.Complete(InstallOperationKind.InstallFiles);
 
-        await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceCreateArguments(manifest, _options.Paths), cancellationToken);
-        await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceFailureArguments(manifest), cancellationToken);
-        await _requiredCommands.RunAsync("sc.exe", $"start {manifest.ServiceName}", cancellationToken);
-        yield return progress.Complete(InstallOperationKind.RegisterService);
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+        {
+            await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceCreateArguments(manifest, _options.Paths), cancellationToken);
+            await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceFailureArguments(manifest), cancellationToken);
+            await _requiredCommands.RunAsync("sc.exe", $"start {manifest.ServiceName}", cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterService);
+        }
 
-        await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PathUpdatePowerShell(_options.Paths.BinDirectory), cancellationToken);
-        yield return progress.Complete(InstallOperationKind.RegisterCli);
+        if (summary.Includes(InstallerComponent.Cli))
+        {
+            await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PathUpdatePowerShell(_options.Paths.BinDirectory), cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterCli);
+        }
 
-        await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.ShortcutPowerShell(_options.Paths), cancellationToken);
-        yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+        if (summary.Includes(InstallerComponent.Desktop))
+        {
+            await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.ShortcutPowerShell(_options.Paths), cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+        }
 
         _files.WriteText(_options.Paths.UninstallScriptPath, WindowsInstallerCommands.UninstallScript(manifest, _options.Paths));
         await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.UninstallRegistryPowerShell(manifest, _options.Paths), cancellationToken);
