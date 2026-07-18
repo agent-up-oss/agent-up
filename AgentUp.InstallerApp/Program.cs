@@ -13,8 +13,8 @@ try
         return await RunWindowsUninstallAsync();
 
     SetBundledPayloadRoot(args);
-    if (InstallerCommandLine.ShouldRunInstallCore(args))
-        return await InstallerCommandLine.RunInstallCoreAsync(args, Console.Out, Console.Error);
+    if (InstallerCommandLine.ShouldRunCommandLine(args))
+        return await InstallerCommandLine.RunAsync(args, Console.Out, Console.Error);
 
     return AppBuilder.Configure<App>()
         .UsePlatformDetect()

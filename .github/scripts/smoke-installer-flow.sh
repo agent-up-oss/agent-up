@@ -12,9 +12,9 @@ work_dir="$(pwd)/artifacts/installer-flow-smoke/$platform"
 
 if [ -n "${AGENTUP_INSTALLER_APP_COMMAND:-}" ]; then
   if [ -n "$payload_root" ]; then
-    "$AGENTUP_INSTALLER_APP_COMMAND" --install-core --payload-root "$payload_root"
+    "$AGENTUP_INSTALLER_APP_COMMAND" --smoke-installer-operations --payload-root "$payload_root"
   else
-    "$AGENTUP_INSTALLER_APP_COMMAND" --install-core
+    "$AGENTUP_INSTALLER_APP_COMMAND" --smoke-installer-operations
   fi
 fi
 
