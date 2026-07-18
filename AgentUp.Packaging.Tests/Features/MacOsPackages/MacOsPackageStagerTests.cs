@@ -28,6 +28,10 @@ public class MacOsPackageStagerTests
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.DesktopPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "desktop"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.ServerPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "server"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "cli"))));
+        Assert.That(writer.CreatedDirectories, Does.Contain(layout.InstallerAppResourcesDirectory));
+        Assert.That(writer.CreatedDirectories, Does.Contain(layout.InstallerPayloadIconDirectory));
+        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(request.RepositoryRoot, "media", "logo.png"), layout.InstallerIconPath)));
+        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(request.RepositoryRoot, "media", "logo.png"), layout.InstallerPayloadIconPath)));
         Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("Agent-Up.app")), Is.False);
         Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("usr/local/agent-up")), Is.False);
         Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("Library/Application Support/Agent-Up")), Is.False);
@@ -46,14 +50,16 @@ public class MacOsPackageStagerTests
 
     private sealed class RecordingMacOsPackageWriter : IMacOsPackageWriter
     {
+        public List<string> CreatedDirectories { get; } = [];
         public List<(string Source, string Destination)> CopiedDirectories { get; } = [];
+        public List<(string Source, string Destination)> CopiedFiles { get; } = [];
         public Dictionary<string, string> WrittenText { get; } = [];
         public List<string> ExecutablePaths { get; } = [];
 
         public void ResetDirectory(string path) { }
-        public void CreateDirectory(string path) { }
+        public void CreateDirectory(string path) => CreatedDirectories.Add(path);
         public void CopyDirectory(string source, string destination) => CopiedDirectories.Add((source, destination));
-        public void CopyFile(string source, string destination) { }
+        public void CopyFile(string source, string destination) => CopiedFiles.Add((source, destination));
         public void WriteText(string path, string text) => WrittenText[path] = text;
         public void SetExecutable(string path) => ExecutablePaths.Add(path);
     }

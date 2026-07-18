@@ -108,7 +108,9 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         {
             _files.ResetDirectory(_options.Paths.AppBundleDirectory);
             _files.CreateDirectory(System.IO.Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
+            _files.CreateDirectory(_options.Paths.DesktopResourcesDirectory);
             _files.CopyDirectory(_options.Payload.DesktopDirectory, System.IO.Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
+            _files.CopyFile(_options.Payload.IconPath, _options.Paths.DesktopIconPath);
             _files.WriteText(_options.Paths.DesktopInfoPlistPath, plists.DesktopInfoPlist());
             _files.SetExecutable(_options.Paths.DesktopExecutable);
         }

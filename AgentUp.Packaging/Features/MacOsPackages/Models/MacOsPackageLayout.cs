@@ -13,7 +13,9 @@ public sealed record MacOsPackageLayout(
     string InstallerAppBundleDirectory,
     string InstallerAppContentsDirectory,
     string InstallerAppMacOsDirectory,
+    string InstallerAppResourcesDirectory,
     string InstallerPayloadDirectory,
+    string InstallerPayloadIconDirectory,
     string PackageRootDirectory,
     string ComponentPackageDirectory,
     string InstallerComponentRoot,
@@ -21,12 +23,17 @@ public sealed record MacOsPackageLayout(
     string InstallerPackagePath,
     string ProductPackagePath,
     string DistributionXmlPath,
-    string InstallerInfoPlistPath)
+    string InstallerInfoPlistPath,
+    string InstallerIconSourcePath,
+    string InstallerIconPath,
+    string InstallerPayloadIconPath)
 {
     public static MacOsPackageLayout From(PackageRequest request)
     {
         var stage = request.StageDirectory;
         var installerApp = Path.Join(stage, "pkg-root", "installer", "Applications", "Agent-Up Installer.app");
+        var installerResources = Path.Join(installerApp, "Contents", "Resources");
+        var payloadIcon = Path.Join(installerApp, "Contents", "MacOS", "payload", "icon");
         return new MacOsPackageLayout(
             StageDirectory: stage,
             InstallerPublishDirectory: Path.Join(stage, "installer"),
@@ -36,7 +43,9 @@ public sealed record MacOsPackageLayout(
             InstallerAppBundleDirectory: installerApp,
             InstallerAppContentsDirectory: Path.Join(installerApp, "Contents"),
             InstallerAppMacOsDirectory: Path.Join(installerApp, "Contents", "MacOS"),
+            InstallerAppResourcesDirectory: installerResources,
             InstallerPayloadDirectory: Path.Join(installerApp, "Contents", "MacOS", "payload"),
+            InstallerPayloadIconDirectory: payloadIcon,
             PackageRootDirectory: Path.Join(stage, "pkg-root"),
             ComponentPackageDirectory: Path.Join(stage, "component-packages"),
             InstallerComponentRoot: Path.Join(stage, "pkg-root", "installer"),
@@ -44,6 +53,9 @@ public sealed record MacOsPackageLayout(
             InstallerPackagePath: Path.Join(stage, "component-packages", "InstallerApp.pkg"),
             ProductPackagePath: Path.Join(request.OutputRoot, $"agent-up-macos-{request.RuntimeId}.pkg"),
             DistributionXmlPath: Path.Join(stage, "Distribution.xml"),
-            InstallerInfoPlistPath: Path.Join(installerApp, "Contents", "Info.plist"));
+            InstallerInfoPlistPath: Path.Join(installerApp, "Contents", "Info.plist"),
+            InstallerIconSourcePath: Path.Join(request.RepositoryRoot, "media", "logo.png"),
+            InstallerIconPath: Path.Join(installerResources, "Agent-Up.png"),
+            InstallerPayloadIconPath: Path.Join(payloadIcon, "Agent-Up.png"));
     }
 }

@@ -22,6 +22,10 @@ public sealed class MacOsPackageStager
         _writer.CreateDirectory(layout.ComponentPackageDirectory);
 
         _writer.CopyDirectory(layout.InstallerPublishDirectory, layout.InstallerAppMacOsDirectory);
+        _writer.CreateDirectory(layout.InstallerAppResourcesDirectory);
+        _writer.CopyFile(layout.InstallerIconSourcePath, layout.InstallerIconPath);
+        _writer.CreateDirectory(layout.InstallerPayloadIconDirectory);
+        _writer.CopyFile(layout.InstallerIconSourcePath, layout.InstallerPayloadIconPath);
         _writer.WriteText(layout.InstallerInfoPlistPath, plists.InstallerInfoPlist());
         _writer.SetExecutable(Path.Join(layout.InstallerAppMacOsDirectory, "AgentUp.InstallerApp"));
         _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "desktop"));

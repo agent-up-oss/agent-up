@@ -7,6 +7,7 @@ public sealed record MacOsInstallerManifest(
     string DesktopBundleIdentifier,
     string InstallerBundleIdentifier,
     string ServerLaunchDaemonLabel,
+    string BundleIconFile,
     string Version,
     string ServerUrl)
 {
@@ -16,6 +17,7 @@ public sealed record MacOsInstallerManifest(
             DesktopBundleIdentifier: "dev.agent-up.desktop",
             InstallerBundleIdentifier: "dev.agent-up.installer",
             ServerLaunchDaemonLabel: "dev.agent-up.server",
+            BundleIconFile: "Agent-Up.png",
             Version: version,
             ServerUrl: "http://127.0.0.1:5000");
 }
@@ -35,6 +37,7 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("CFBundleDisplayName", _manifest.ProductName),
             KeyString("CFBundleIdentifier", _manifest.DesktopBundleIdentifier),
             KeyString("CFBundleExecutable", "AgentUp.Desktop"),
+            KeyString("CFBundleIconFile", _manifest.BundleIconFile),
             KeyString("CFBundleVersion", _manifest.Version),
             KeyString("CFBundleShortVersionString", _manifest.Version),
             KeyString("CFBundlePackageType", "APPL")));
@@ -45,6 +48,7 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("CFBundleName", "Agent-Up Installer"),
             KeyString("CFBundleDisplayName", "Agent-Up Installer"),
             KeyString("CFBundleExecutable", "AgentUp.InstallerApp"),
+            KeyString("CFBundleIconFile", _manifest.BundleIconFile),
             KeyString("CFBundleVersion", _manifest.Version),
             KeyString("CFBundleShortVersionString", _manifest.Version),
             KeyString("CFBundlePackageType", "APPL")));

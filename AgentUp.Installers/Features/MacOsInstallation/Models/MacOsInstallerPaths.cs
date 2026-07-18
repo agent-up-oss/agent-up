@@ -27,4 +27,6 @@ public sealed record MacOsInstallerPaths(
     public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");
     public string CliExecutable => System.IO.Path.Join(CliDirectory, "AgentUp.CLI");
     public string DesktopInfoPlistPath => System.IO.Path.Join(AppBundleDirectory, "Contents", "Info.plist");
+    public string DesktopResourcesDirectory => System.IO.Path.Join(AppBundleDirectory, "Contents", "Resources");
+    public string DesktopIconPath => System.IO.Path.Join(DesktopResourcesDirectory, "Agent-Up.png");
 }
