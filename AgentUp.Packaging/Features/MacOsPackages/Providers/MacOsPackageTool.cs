@@ -21,6 +21,7 @@ public sealed class MacOsPackageTool : IMacOsPackageTool
             "--identifier", "dev.agent-up.installer",
             "--version", request.NormalizedVersion,
             "--root", layout.InstallerComponentRoot,
+            "--scripts", layout.InstallerScriptsDirectory,
             "--install-location", "/",
             layout.InstallerPackagePath
         ]), cancellationToken);

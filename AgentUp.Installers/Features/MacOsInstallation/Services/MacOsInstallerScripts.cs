@@ -9,6 +9,13 @@ public static class MacOsInstallerScripts
            launchctl bootout system /Library/LaunchDaemons/dev.agent-up.server.plist 2>/dev/null || true
            """ + Environment.NewLine;
 
+    public static string InstallerPreInstallScript()
+        => """
+           #!/usr/bin/env bash
+           set -euo pipefail
+           rm -rf "/Applications/Agent-Up Installer.app"
+           """ + Environment.NewLine;
+
     public static string PostInstallScript()
         => """
            #!/usr/bin/env bash

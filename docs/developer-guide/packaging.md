@@ -96,7 +96,7 @@ Windows MSI metadata uses a Windows Installer product version derived from the p
 
 macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the guided InstallerApp bundle, bundled installer payload, Desktop `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
 
-The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after native component setup so users see the shared guided installer flow. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
+The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after native component setup so users see the shared guided installer flow. The app resolves its bundled payload from `Contents/MacOS/payload` when `AGENTUP_INSTALLER_PAYLOAD_ROOT` is not set, and the installer component removes any previous installer bundle before installing the new one so stale bundled files cannot survive package upgrades. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 
