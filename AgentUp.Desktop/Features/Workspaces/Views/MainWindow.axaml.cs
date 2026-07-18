@@ -23,8 +23,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, NativeWebView> _webViews = new();
     private readonly Dictionary<string, string> _webViewErrors = new();
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
+    private readonly List<IDisposable> _viewModelSubscriptions = [];
     private readonly DispatcherTimer _addressPollTimer;
     private string? _activeWorkspaceId;
+    private bool _isClosed;
 
     // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
@@ -35,7 +37,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         SetWindowIcon();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _addressPollTimer.Tick += (_, _) => _ = PollActiveBrowserAddressAsync();
+        _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
     }
 
@@ -77,16 +79,27 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
+        DisposeViewModelSubscriptions();
         if (DataContext is not MainViewModel vm) return;
-        vm.BrowserNavigation.Subscribe(nav =>
-            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)));
-        vm.BrowserCommands.Subscribe(command =>
-            Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)));
-        vm.Tutorial.WhenAnyValue(t => t.IsVisible)
+        _viewModelSubscriptions.Add(vm.BrowserNavigation.Subscribe(nav =>
+            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url))));
+        _viewModelSubscriptions.Add(vm.BrowserCommands.Subscribe(command =>
+            Dispatcher.UIThread.Post(() => HandleBrowserCommand(command))));
+        _viewModelSubscriptions.Add(vm.Tutorial.WhenAnyValue(t => t.IsVisible)
             .DistinctUntilChanged()
             .Subscribe(isVisible =>
-                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)));
+                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible))));
         ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _isClosed = true;
+        _addressPollTimer.Stop();
+        _addressPollTimer.Tick -= OnAddressPollTimerTick;
+        DisposeViewModelSubscriptions();
+        DestroyWorkspaceWebViews();
+        base.OnClosed(e);
     }
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
@@ -122,6 +135,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void HandleNavigation(string? workspaceId, string? url)
     {
+        if (_isClosed) return;
+
         var tutorialVisible = IsTutorialVisible();
         ActivateWorkspaceWebView(workspaceId, tutorialVisible);
 
@@ -299,6 +314,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private async Task PollActiveBrowserAddressAsync()
     {
+        if (_isClosed) return;
         if (_activeWorkspaceId is null) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
         if (!_webViews.TryGetValue(_activeWorkspaceId, out var webView)) return;
@@ -315,6 +331,34 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         {
             // The page may still be loading or the native WebView may not be ready yet.
         }
+    }
+
+    private void OnAddressPollTimerTick(object? sender, EventArgs e)
+        => _ = PollActiveBrowserAddressAsync();
+
+    private void DisposeViewModelSubscriptions()
+    {
+        foreach (var subscription in _viewModelSubscriptions)
+            subscription.Dispose();
+
+        _viewModelSubscriptions.Clear();
+    }
+
+    private void DestroyWorkspaceWebViews()
+    {
+        foreach (var webView in _webViews.Values)
+        {
+            try { webView.Stop(); } catch { }
+            try { PortPane.Children.Remove(webView); } catch { }
+            if (webView is IDisposable disposable)
+            {
+                try { disposable.Dispose(); } catch { }
+            }
+        }
+
+        _webViews.Clear();
+        _webViewErrors.Clear();
+        _activeWorkspaceId = null;
     }
 
     internal static string? TryReadHttpLocation(string? scriptResult)
