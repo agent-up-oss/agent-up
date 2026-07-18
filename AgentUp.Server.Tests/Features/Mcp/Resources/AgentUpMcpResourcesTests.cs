@@ -41,6 +41,20 @@ public sealed class AgentUpMcpResourcesTests
         var context = _resources.GetAgentUpContext();
 
         Assert.That(context, Does.Contain("AgentUp.Server is the single source of truth"));
+        Assert.That(context, Does.Contain("registered Agent-Up MCP tools"));
+    }
+
+    [Test]
+    public void ContextResourceDescription_PointsAgentsToRegisteredTools()
+    {
+        var description = typeof(AgentUpMcpResources)
+            .GetMethod(nameof(AgentUpMcpResources.GetAgentUpContext))!
+            .GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+            .Cast<System.ComponentModel.DescriptionAttribute>()
+            .Single()
+            .Description;
+
+        Assert.That(description, Does.Contain("registered Agent-Up MCP tools"));
     }
 
     [Test]

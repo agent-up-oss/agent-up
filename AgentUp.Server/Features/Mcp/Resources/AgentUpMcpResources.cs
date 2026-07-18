@@ -25,19 +25,19 @@ public sealed class AgentUpMcpResources
     }
 
     [McpServerResource(UriTemplate = "agent-up://context", Name = "Agent-Up Context", MimeType = "text/markdown")]
-    [Description("Concise Agent-Up operating rules for AI agents.")]
+    [Description("Concise Agent-Up operating rules for AI agents, including when to use the registered Agent-Up MCP tools.")]
     public string GetAgentUpContext() => _context.GetAgentUpContext();
 
     [McpServerResource(UriTemplate = "agent-up://agent-up-json", Name = "agent-up.json Format", MimeType = "text/markdown")]
-    [Description("Current declarative agent-up.json format supported by Agent-Up.")]
+    [Description("Current declarative agent-up.json format supported by Agent-Up. Read before creating or editing agent-up.json.")]
     public string GetAgentUpJsonFormat() => _context.GetAgentUpJsonFormat();
 
     [McpServerResource(UriTemplate = "agent-up://workspaces", Name = "Agent-Up Workspaces", MimeType = "application/json")]
-    [Description("All workspaces registered with Agent-Up Server.")]
+    [Description("All workspaces registered with Agent-Up Server. Use to discover existing Agent-Up-managed apps before starting or stopping workspaces.")]
     public string ListWorkspaces() => JsonSerializer.Serialize(_workspaces.List(), JsonOptions);
 
     [McpServerResource(UriTemplate = "agent-up://workspaces/{id}", Name = "Agent-Up Workspace", MimeType = "application/json")]
-    [Description("A single workspace registered with Agent-Up Server.")]
+    [Description("A single workspace registered with Agent-Up Server, including Agent-Up-owned state and allocated ports.")]
     public string GetWorkspace(string id)
     {
         var workspace = _workspaces.GetById(id);

@@ -6,7 +6,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 {
     public string GetAgentUpContext() =>
         """
-        Agent-Up manages AI-assisted development workspaces. Agent-Up is not an application framework, deployment tool, IDE, or application orchestrator.
+        Agent-Up manages local AI-assisted development workspaces. Agent-Up is not an application framework, cloud deployment tool, IDE, or application orchestrator.
 
         AgentUp.Server is the single source of truth. Desktop, CLI, MCP clients, and future integrations are clients of the Server. They may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
@@ -18,7 +18,9 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 
         The Server owns all ports. Applications consume only environment variables declared in agent-up.json, such as WEB_PORT, API_PORT, AUTH_PORT, or service-specific variables.
 
-        AI agents should use MCP directly instead of shelling through the CLI when Agent-Up exposes the needed operation.
+        When the user asks to "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up", use the registered Agent-Up MCP tools. For those requests, call start_workspace with the absolute repository/worktree path instead of curling the Server, shelling through the CLI, or starting application commands directly.
+
+        Use list_workspaces and get_workspace_status to inspect existing Agent-Up-managed workspaces. Use stop_workspace when the user asks Agent-Up to stop, shut down, or halt a managed workspace.
         """;
 
     public string GetAgentUpJsonFormat() =>

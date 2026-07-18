@@ -12,6 +12,8 @@ using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using ModelContextProtocol.Server;
 
 namespace AgentUp.Server.Tests.Features.Mcp.HTTP;
 
@@ -22,7 +24,10 @@ public sealed class McpHostingTests
     public void MapMcp_MapsStreamableHttpAndLegacySseEndpoints()
     {
         var builder = WebApplication.CreateBuilder();
-        builder.Services.AddMcpServer()
+        builder.Services.AddMcpServer(options =>
+            {
+                options.ServerInstructions = AgentUpMcpGuidance.ServerInstructions;
+            })
             .WithHttpTransport(options =>
             {
                 options.Stateless = false;
@@ -54,5 +59,10 @@ public sealed class McpHostingTests
         Assert.That(endpoints, Does.Contain("/mcp/"));
         Assert.That(endpoints, Does.Contain("/mcp/sse"));
         Assert.That(endpoints, Does.Contain("/mcp/message"));
+
+        var options = app.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        Assert.That(options.ServerInstructions, Does.Contain("deploy my app with Agent-Up"));
+        Assert.That(options.ServerInstructions, Does.Contain("call start_workspace"));
+        Assert.That(options.ServerInstructions, Does.Contain("Before using curl"));
     }
 }
