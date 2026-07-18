@@ -91,6 +91,7 @@ Inside a feature slice, use only these type folders:
 - `Providers/` for low-level actions behind domain-specific interfaces, such as HTTP clients, command runners, file-system adapters, platform adapters, and Git readers.
 - `Interfaces/` for justified slice-local interfaces.
 - `Factories/` for object-selection or adapter-selection factories.
+- `Tools/` and `Resources/` for MCP presentation adapters over Server-owned controllers and services.
 
 Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
 

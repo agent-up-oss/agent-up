@@ -9,6 +9,12 @@ using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
+using AgentUp.Server.Features.Mcp.Controllers;
+using AgentUp.Server.Features.Mcp.Interfaces;
+using AgentUp.Server.Features.Mcp.Providers;
+using AgentUp.Server.Features.Mcp.Services;
+using AgentUp.Server.Features.Mcp.Tools;
+using AgentUp.Server.Features.Mcp.Resources;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 
@@ -25,6 +31,16 @@ builder.Services.AddControllers()
         opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+#pragma warning disable MCP9004 // Legacy SSE is intentionally enabled for trusted local compatibility clients.
+builder.Services.AddMcpServer()
+    .WithHttpTransport(options =>
+    {
+        options.Stateless = false;
+        options.EnableLegacySse = true;
+    })
+    .WithTools<AgentUpMcpTools>()
+    .WithResources<AgentUpMcpResources>();
+#pragma warning restore MCP9004
 
 var dataDir = ResolveDataDirectory();
 builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
@@ -46,12 +62,19 @@ builder.Services.AddSingleton<IDockerProcessProvider, DockerProcessProvider>();
 builder.Services.AddSingleton<WorkspaceProcessManager>();
 builder.Services.AddSingleton<IWorkspaceProcessManager>(sp => sp.GetRequiredService<WorkspaceProcessManager>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceProcessManager>());
+builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
+builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
+builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
+builder.Services.AddSingleton<McpWorkspaceService>();
+builder.Services.AddSingleton<McpWorkspaceController>();
+builder.Services.AddSingleton<McpContextController>();
 
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();
+app.MapMcp("/mcp");
 
 app.Run();
 
