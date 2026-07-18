@@ -12,8 +12,8 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
         {
             return new WorkspaceIdentity(
                 RepositoryPath: await GetRepoRootAsync(worktreePath, cancellationToken),
-                Branch: await RunGitAsync(worktreePath, "rev-parse --abbrev-ref HEAD", cancellationToken),
-                Commit: await RunGitAsync(worktreePath, "rev-parse HEAD", cancellationToken));
+                Branch: await RunGitAsync(worktreePath, GitCommand.BranchName, cancellationToken),
+                Commit: await RunGitAsync(worktreePath, GitCommand.HeadCommit, cancellationToken));
         }
         catch
         {
@@ -26,25 +26,27 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
 
     private static async Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken)
     {
-        var commonDir = await RunGitAsync(worktreePath, "rev-parse --git-common-dir", cancellationToken);
+        var commonDir = await RunGitAsync(worktreePath, GitCommand.GitCommonDir, cancellationToken);
         if (Path.IsPathRooted(commonDir))
             return Path.GetDirectoryName(commonDir)!;
 
-        return await RunGitAsync(worktreePath, "rev-parse --show-toplevel", cancellationToken);
+        return await RunGitAsync(worktreePath, GitCommand.ShowTopLevel, cancellationToken);
     }
 
     private static async Task<string> RunGitAsync(
         string worktreePath,
-        string arguments,
+        GitCommand command,
         CancellationToken cancellationToken)
     {
-        var psi = new ProcessStartInfo("git", arguments)
+        var psi = new ProcessStartInfo("git")
         {
             WorkingDirectory = worktreePath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        foreach (var argument in GetGitArguments(command))
+            psi.ArgumentList.Add(argument);
 
         using var process = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start git process.");
@@ -54,8 +56,29 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
         await process.WaitForExitAsync(cancellationToken);
 
         if (process.ExitCode != 0)
-            throw new InvalidOperationException($"git {arguments} failed: {stderr.Trim()}");
+            throw new InvalidOperationException($"git {GetGitCommandName(command)} failed: {stderr.Trim()}");
 
         return stdout.Trim();
+    }
+
+    private static IReadOnlyList<string> GetGitArguments(GitCommand command) =>
+        command switch
+        {
+            GitCommand.BranchName => ["rev-parse", "--abbrev-ref", "HEAD"],
+            GitCommand.HeadCommit => ["rev-parse", "HEAD"],
+            GitCommand.GitCommonDir => ["rev-parse", "--git-common-dir"],
+            GitCommand.ShowTopLevel => ["rev-parse", "--show-toplevel"],
+            _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported git command.")
+        };
+
+    private static string GetGitCommandName(GitCommand command) =>
+        string.Join(' ', GetGitArguments(command));
+
+    private enum GitCommand
+    {
+        BranchName,
+        HeadCommit,
+        GitCommonDir,
+        ShowTopLevel
     }
 }
