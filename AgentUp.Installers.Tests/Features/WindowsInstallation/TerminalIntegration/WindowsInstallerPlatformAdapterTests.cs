@@ -125,7 +125,10 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(bundle, Does.Contain("InstallArguments=\"--payload-root &quot;[WixBundleExecutePackageCacheFolder]payload&quot;\""));
             Assert.That(bundle, Does.Contain("UninstallArguments=\"--uninstall\""));
             Assert.That(bundle, Does.Contain("RegistrySearch"));
+            Assert.That(bundle, Does.Contain("Bitness=\"always64\""));
+            Assert.That(bundle, Does.Not.Contain("Win64="));
             Assert.That(bundle, Does.Contain(@"CurrentVersion\Uninstall\Agent-Up"));
+            Assert.That(BootstrapperApplicationName(bundle), Is.EqualTo("AgentUpBootstrapperApplication.exe"));
             Assert.That(bundle, Does.Not.Contain("Permanent=\"yes\""));
             Assert.That(bundle, Does.Not.Contain("MsiPackage"));
             Assert.That(bundle, Does.Contain("payload\\desktop\\AgentUp.Desktop.exe"));
@@ -174,6 +177,15 @@ public class WindowsInstallerPlatformAdapterTests
             .Descendants(wix + "Component")
             .Select(component => (string?)component.Attribute("Guid"))
             .Where(guid => !string.IsNullOrWhiteSpace(guid))!;
+    }
+
+    private static string? BootstrapperApplicationName(string bundleWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return (string?)XDocument.Parse(bundleWxs)
+            .Descendants(wix + "BootstrapperApplication")
+            .Single()
+            .Attribute("Name");
     }
 
     private static IEnumerable<string> PowerShellScripts(RecordingCommandRunner commands)

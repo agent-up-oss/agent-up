@@ -6,6 +6,7 @@ using AgentUp.Packaging.Features.ReleaseArtifacts;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.WindowsPackages;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
+using System.Xml.Linq;
 
 namespace AgentUp.Packaging.Tests.Features.WindowsPackages.TerminalIntegration;
 
@@ -81,7 +82,10 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Contain("InstallArguments=\"--payload-root &quot;[WixBundleExecutePackageCacheFolder]payload&quot;\""));
         Assert.That(xml, Does.Contain("UninstallArguments=\"--uninstall\""));
         Assert.That(xml, Does.Contain("RegistrySearch"));
+        Assert.That(xml, Does.Contain("Bitness=\"always64\""));
+        Assert.That(xml, Does.Not.Contain("Win64="));
         Assert.That(xml, Does.Contain(@"CurrentVersion\Uninstall\Agent-Up"));
+        Assert.That(BootstrapperApplicationName(xml), Is.EqualTo("AgentUpBootstrapperApplication.exe"));
         Assert.That(xml, Does.Not.Contain("Permanent=\"yes\""));
         Assert.That(xml, Does.Not.Contain("MsiPackage"));
         Assert.That(xml, Does.Contain("Name=\"payload\\desktop\\AgentUp.Desktop.exe\""));
@@ -95,5 +99,14 @@ public class WindowsWixSourceGeneratorTests
     {
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Join(directory, name), "test");
+    }
+
+    private static string? BootstrapperApplicationName(string bundleWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return (string?)XDocument.Parse(bundleWxs)
+            .Descendants(wix + "BootstrapperApplication")
+            .Single()
+            .Attribute("Name");
     }
 }
