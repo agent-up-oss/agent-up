@@ -7,6 +7,7 @@ using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation;
 using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.NixOsInstallation.Providers;
 using AgentUp.Installers.Features.UbuntuInstallation;
 using AgentUp.Installers.Features.UbuntuInstallation.Providers;
 
@@ -17,12 +18,15 @@ public class InstallerPlatformAdapterFactoryTests
 {
     private string? _fakeInstaller;
     private string? _payloadRoot;
+    private string? _nixOsLookupOnly;
 
     [SetUp]
     public void SetUp()
     {
         _fakeInstaller = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable);
         _payloadRoot = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable);
+        _nixOsLookupOnly = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable, null);
     }
 
     [TearDown]
@@ -30,6 +34,7 @@ public class InstallerPlatformAdapterFactoryTests
     {
         Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, _fakeInstaller);
         Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, _payloadRoot);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable, _nixOsLookupOnly);
     }
 
     [Test]
@@ -46,6 +51,9 @@ public class InstallerPlatformAdapterFactoryTests
     [Test]
     public void Create_requiresPayloadRootForDefaultRealAdapter()
     {
+        if (OperatingSystem.IsLinux() && InstallerPlatformAdapterFactory.UseNixOsLookupOnlyMode())
+            Assert.Ignore("NixOS lookup-only mode does not require installer payloads.");
+
         Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
         Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
 
@@ -93,6 +101,8 @@ public class InstallerPlatformAdapterFactoryTests
     {
         if (!OperatingSystem.IsLinux())
             Assert.Ignore("Linux adapter selection is Linux-specific.");
+        if (InstallerPlatformAdapterFactory.UseNixOsLookupOnlyMode())
+            Assert.Ignore("NixOS uses the lookup-only adapter instead of the Ubuntu installer adapter.");
 
         Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
         Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, "/payload");
@@ -100,5 +110,21 @@ public class InstallerPlatformAdapterFactoryTests
         var adapter = InstallerPlatformAdapterFactory.Create();
 
         Assert.That(adapter, Is.TypeOf<UbuntuInstallerPlatformAdapter>());
+    }
+
+    [Test]
+    public void Create_returnsNixOsLookupOnlyAdapterWhenExplicitlyRequested()
+    {
+        if (!OperatingSystem.IsLinux())
+            Assert.Ignore("NixOS adapter selection is Linux-specific.");
+
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable, "1");
+
+        var adapter = InstallerPlatformAdapterFactory.Create();
+
+        Assert.That(adapter, Is.TypeOf<NixOsInstallerPlatformAdapter>());
+        Assert.That(adapter.SupportsInstallActions, Is.False);
     }
 }

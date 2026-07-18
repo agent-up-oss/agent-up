@@ -43,6 +43,18 @@ agent-up.sln
 AgentUp.Server/
   AgentUp.Server.csproj
 
+AgentUp.Capabilities.Abstractions/
+  AgentUp.Capabilities.Abstractions.csproj
+
+AgentUp.Capabilities.Common/
+  AgentUp.Capabilities.Common.csproj
+
+AgentUp.Capabilities.Dotnet/
+  AgentUp.Capabilities.Dotnet.csproj
+
+AgentUp.Capabilities.Docker/
+  AgentUp.Capabilities.Docker.csproj
+
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
@@ -63,6 +75,18 @@ AgentUp.PackageSmoke/
 
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
+
+AgentUp.Capabilities.Abstractions.Tests/
+  AgentUp.Capabilities.Abstractions.Tests.csproj
+
+AgentUp.Capabilities.Common.Tests/
+  AgentUp.Capabilities.Common.Tests.csproj
+
+AgentUp.Capabilities.Dotnet.Tests/
+  AgentUp.Capabilities.Dotnet.Tests.csproj
+
+AgentUp.Capabilities.Docker.Tests/
+  AgentUp.Capabilities.Docker.Tests.csproj
 
 AgentUp.Desktop.Tests/
   AgentUp.Desktop.Tests.csproj
@@ -96,10 +120,14 @@ The exact project list may evolve, but ownership must not drift:
 | Area | Owns |
 |---|---|
 | `AgentUp.Server` | Workspace registry, process lifecycle, ports, Docker, browser lifecycle, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
+| `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, and install planning used by first-party and future external capabilities |
+| `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
+| `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.Installers` | Testable installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
-| `AgentUp.InstallerApp` | Shared Avalonia guided installer UX over platform installer adapters |
+| `AgentUp.InstallerApp` | Shared Avalonia installer dashboard over platform installer adapters and capability catalog state |
 | `AgentUp.Packaging` | Testable release artifact staging, package metadata generation, and native packaging tool orchestration |
 | `AgentUp.PackageSmoke` | Testable package and installed-service smoke validation adapters used by CI smoke scripts |
 | MCP clients | Automation interface; no local orchestration |
@@ -339,6 +367,7 @@ The Server owns all orchestration:
 - Process lifecycle.
 - Port allocation.
 - Docker lifecycle.
+- Capability reconciliation and status.
 - Browser lifecycle.
 - Browser profiles.
 - Browser session persistence.
@@ -381,7 +410,7 @@ Every managed repository is described declaratively with `agent-up.json`.
 
 Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration.
 
-Local application commands are opaque to Agent-Up and run through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems.
+Legacy local application commands and legacy Docker `services` remain supported. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
 User docs:
 
@@ -453,6 +482,10 @@ This applies to every production/test project pair once created:
 | Project | Test Project |
 |---|---|
 | `AgentUp.Server` | `AgentUp.Server.Tests` |
+| `AgentUp.Capabilities.Abstractions` | `AgentUp.Capabilities.Abstractions.Tests` |
+| `AgentUp.Capabilities.Common` | `AgentUp.Capabilities.Common.Tests` |
+| `AgentUp.Capabilities.Dotnet` | `AgentUp.Capabilities.Dotnet.Tests` |
+| `AgentUp.Capabilities.Docker` | `AgentUp.Capabilities.Docker.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.Installers` | `AgentUp.Installers.Tests` |
@@ -542,6 +575,8 @@ Read: `docs/user-docs/workspace.md`.
 
 Agent-Up uses declarative repository configuration through `agent-up.json`. Applications declare launch commands, port environment variables, browser paths, and Docker setup without source-code integration.
 
+Capability sections such as `dotnet` and `docker` are the preferred shape for ecosystem-aware requirements. Capability adapters discover system and Agent-Up-managed versions, reconcile declared requirements, return structured mismatch status, and produce Server-owned launch plans. The legacy `applications` list remains supported for opaque shell commands, and legacy Docker `services` remain supported for compatibility.
+
 Read: `docs/user-docs/configuration.md` and `docs/user-docs/agent-up-json.md`.
 
 ## Browser
@@ -602,15 +637,15 @@ Read: `docs/developer-guide/workflows.md`.
 
 ## Packaging And Installers
 
-Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, and platform install contracts belong in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. The shared guided installer UX belongs in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`; the installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that guided installer rather than owning divergent install flows. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`; packaging code must consume shared installer contracts instead of redefining platform behavior. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Packaging, and PackageSmoke artifacts from the Ubuntu build job so native release runners do not restore, build, or test product .NET projects. Shared package and installed-service smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should delegate native artifact, install, service, CLI, diagnostics, and uninstall checks to this console app and keep shell code limited to selecting arguments and runner setup. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
+Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. The shared InstallerApp UX is a dashboard for managing Desktop, Server, CLI, and capability modules, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`; the installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`; packaging code must consume shared installer contracts instead of redefining platform behavior. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Packaging, and PackageSmoke artifacts from the Ubuntu build job so native release runners do not restore, build, or test product .NET projects. Shared package and installed-service smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should delegate native artifact, install, service, CLI, diagnostics, and uninstall checks to this console app and keep shell code limited to selecting arguments and runner setup. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
 
 All `AgentUp.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative and must remain under the repository root; prebuilt payload roots may be absolute CI-provided paths or repository-relative paths normalized under the repository root.
 
 All `AgentUp.PackageSmoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, and installed CLIs, but execution must choose from allowlisted command names before `ProcessStartInfo` is created. Artifact paths, installed executable paths, working directories, arguments, and environment keys stay data and must be validated before use.
 
-macOS `.pkg` artifacts install only `Agent-Up Installer.app`. The installer app owns the guided install flow and contains a bundled offline payload with Desktop, Server, and CLI bits; it may also resolve an online latest payload when that capability is implemented. Desktop, Server, CLI, launchd registration, symlinks, validation, and uninstall behavior must stay in the InstallerApp/macOS adapter path, not in direct macOS package components. macOS installed-service smoke is skipped until InstallerApp exposes a noninteractive install mode that CI can run after package installation.
+macOS `.pkg` artifacts install only `Agent-Up Installer.app`. The installer app owns the dashboard install and maintenance flow and contains a bundled offline payload with Desktop, Server, and CLI bits; it may also resolve an online latest payload when that capability is implemented. Desktop, Server, CLI, launchd registration, symlinks, validation, and uninstall behavior must stay in the InstallerApp/macOS adapter path, not in direct macOS package components. macOS installed-service smoke is skipped until InstallerApp exposes a noninteractive install mode that CI can run after package installation.
 
-Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
+Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. NixOS installs Agent-Up declaratively through generated NixOS/Home Manager module options; `AgentUp.InstallerApp` is still shipped as a lookup-only dashboard through `agent-up-installer`, with install/update/uninstall actions disabled and capability versions read from Agent-Up capability inventory. Runtime capability lookup reads `AGENTUP_CAPABILITY_INVENTORY_PATH` when set, then falls back to `/etc/agent-up/capabilities.json` and `~/.config/agent-up/capabilities.json`. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 
 Read: `docs/developer-guide/packaging.md`.
 

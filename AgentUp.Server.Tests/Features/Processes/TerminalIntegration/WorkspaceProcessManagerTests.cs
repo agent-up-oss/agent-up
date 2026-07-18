@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Models;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -22,7 +23,10 @@ public class WorkspaceProcessManagerTests
     public async Task SetUp()
     {
         _output = new InMemoryOutputRepository();
-        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
+        _registry = new WorkspaceRegistry(
+            new InMemoryWorkspaceRepository(),
+            new InMemoryPortAllocationService(),
+            new CapabilityReconciliationService([]));
         await ((IHostedService)_registry).StartAsync(CancellationToken.None);
         _manager = new WorkspaceProcessManager(
             _registry,

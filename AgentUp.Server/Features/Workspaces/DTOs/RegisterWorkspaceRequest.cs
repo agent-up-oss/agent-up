@@ -11,4 +11,6 @@ public record RegisterWorkspaceRequest(
 {
     public IReadOnlyList<ApplicationDefinition> Applications { get; init; } = [];
     public IReadOnlyList<DockerServiceDefinition> Services { get; init; } = [];
+    public IReadOnlyList<DotnetApplicationDefinition> Dotnet { get; init; } = [];
+    public IReadOnlyList<DockerCapabilityDefinition> Docker { get; init; } = [];
 }

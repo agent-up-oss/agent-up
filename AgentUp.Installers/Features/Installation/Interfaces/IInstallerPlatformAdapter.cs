@@ -11,7 +11,25 @@ public interface IInstallerPlatformAdapter
 {
     string PlatformName { get; }
 
+    bool SupportsInstallActions { get; }
+
     Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default);
+
+    Task<InstallerComponentStatus> GetComponentStatusAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        CancellationToken cancellationToken = default);
+
+    IReadOnlyList<InstallOperation> PlanComponentAction(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session);
+
+    IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session,
+        CancellationToken cancellationToken = default);
 
     IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session);
 

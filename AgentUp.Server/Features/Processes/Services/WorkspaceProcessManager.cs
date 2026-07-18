@@ -51,6 +51,15 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         await KillApplicationAsync(workspace.Id, appName);
         await _output.ClearAsync(workspace.Id, appName);
 
+        if (app.CapabilityStatus is { CanRun: false })
+        {
+            foreach (var message in app.CapabilityStatus.Messages)
+                await _output.AppendAsync(workspace.Id, appName, "[err] " + message);
+
+            await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
+            throw new InvalidOperationException($"Capability '{app.CapabilityStatus.CapabilityId}' cannot run '{appName}'.");
+        }
+
         if (app.ServiceType == ServiceType.Docker)
         {
             await LaunchDockerServiceAsync(workspace.Id, app);
