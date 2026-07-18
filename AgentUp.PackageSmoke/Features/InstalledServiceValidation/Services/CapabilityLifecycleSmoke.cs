@@ -87,7 +87,7 @@ public sealed class CapabilityLifecycleSmoke
             var port = Environment.GetEnvironmentVariable("WEB_PORT") ?? "5000";
             app.Run($"http://127.0.0.1:{port}");
             """);
-        File.WriteAllText(Path.Join(repo, "agent-up.json"), """
+        File.WriteAllText(Path.Join(repo, "agent-up.json"), $$"""
             {
               "name": "Capability Lifecycle Smoke Workspace",
               "dotnet": [
@@ -103,12 +103,23 @@ public sealed class CapabilityLifecycleSmoke
               "docker": [
                 {
                   "name": "SmokeDocker",
-                  "image": "nginx:alpine",
+                  "image": "{{DockerSmokeImage()}}",
                   "ports": [{ "variable": "DOCKER_WEB_PORT", "defaultPort": 80, "protocol": "http" }]
                 }
               ]
             }
             """);
+    }
+
+    private static string DockerSmokeImage()
+    {
+        if (!OperatingSystem.IsWindows())
+            return "nginx:alpine";
+
+        var tag = Environment.OSVersion.Version.Build >= 26000
+            ? "windowsservercore-ltsc2025"
+            : "windowsservercore-ltsc2022";
+        return $"mcr.microsoft.com/windows/servercore/iis:{tag}";
     }
 
     private async Task GitCommitConfigAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)

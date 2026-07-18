@@ -307,35 +307,6 @@ jobs:
           export AGENTUP_INSTALLER_FAKE=1
           ./.github/scripts/smoke-installer-flow.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
 
-      - name: Switch Windows Docker to Linux containers
-        if: ${{ matrix.platform == 'windows' }}
-        shell: pwsh
-        run: |
-          $dockerCli = Join-Path $env:ProgramFiles 'Docker\Docker\DockerCli.exe'
-          if (-not (Test-Path $dockerCli)) {
-            throw "DockerCli.exe was not found at $dockerCli; cannot switch Docker to Linux containers."
-          }
-
-          & $dockerCli -SwitchLinuxEngine
-
-          $deadline = (Get-Date).AddMinutes(3)
-          do {
-            Start-Sleep -Seconds 5
-            $osType = ''
-            try {
-              $osType = (docker info --format '{{.OSType}}' 2>$null).Trim()
-            } catch {
-              $osType = ''
-            }
-            if ($osType -eq 'linux') {
-              docker version
-              exit 0
-            }
-          } while ((Get-Date) -lt $deadline)
-
-          docker info
-          throw "Docker did not switch to Linux containers before timeout."
-
       - name: Smoke test installed service
         shell: bash
         run: |

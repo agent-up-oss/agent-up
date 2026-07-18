@@ -29,7 +29,7 @@ public sealed class CapabilityLifecycleSmokeTests
 
             Assert.That(assert.Findings, Is.Empty);
             var config = await File.ReadAllTextAsync(Path.Join(workDir, "capability-workspace", "agent-up.json"));
-            Assert.That(config, Does.Contain("nginx:alpine"));
+            Assert.That(config, Does.Contain(ExpectedDockerImageForCurrentPlatform()));
             Assert.That(commands.Commands.Any(command => command.Arguments.Any(argument => argument.Contains("agent-up start", StringComparison.Ordinal))), Is.True);
         }
         finally
@@ -37,6 +37,17 @@ public sealed class CapabilityLifecycleSmokeTests
             if (Directory.Exists(workDir))
                 Directory.Delete(workDir, recursive: true);
         }
+    }
+
+    private static string ExpectedDockerImageForCurrentPlatform()
+    {
+        if (!OperatingSystem.IsWindows())
+            return "nginx:alpine";
+
+        var tag = Environment.OSVersion.Version.Build >= 26000
+            ? "windowsservercore-ltsc2025"
+            : "windowsservercore-ltsc2022";
+        return $"mcr.microsoft.com/windows/servercore/iis:{tag}";
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner
