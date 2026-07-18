@@ -121,6 +121,15 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(bundle, Does.Contain("Theme=\"rtfLicense\""));
             Assert.That(bundle, Does.Contain("ExePackage"));
             Assert.That(bundle, Does.Contain("AgentUp.InstallerApp.exe"));
+            Assert.That(bundle, Does.Contain("DetectCondition=\"AgentUpInstalled\""));
+            Assert.That(bundle, Does.Contain("InstallArguments=\"--payload-root &quot;[WixBundleExecutePackageCacheFolder]payload&quot;\""));
+            Assert.That(bundle, Does.Contain("UninstallArguments=\"--uninstall\""));
+            Assert.That(bundle, Does.Contain("RegistrySearch"));
+            Assert.That(bundle, Does.Contain("Bitness=\"always64\""));
+            Assert.That(bundle, Does.Not.Contain("Win64="));
+            Assert.That(bundle, Does.Contain(@"CurrentVersion\Uninstall\Agent-Up"));
+            Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));
+            Assert.That(bundle, Does.Not.Contain("Permanent=\"yes\""));
             Assert.That(bundle, Does.Not.Contain("MsiPackage"));
             Assert.That(bundle, Does.Contain("payload\\desktop\\AgentUp.Desktop.exe"));
         }
