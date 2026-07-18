@@ -32,6 +32,33 @@ Configuration is declarative. Capability-aware sections describe ecosystem requi
 }
 ```
 
+Legacy opaque commands remain supported when Agent-Up should only launch the command and inject ports:
+
+```json
+{
+  "name": "Inventory",
+  "applications": [
+    {
+      "name": "Frontend",
+      "command": "dotnet run --project src/Web",
+      "path": "/",
+      "ports": [{ "variable": "WEB_PORT", "defaultPort": 5100 }]
+    }
+  ],
+  "services": [
+    {
+      "name": "Database",
+      "image": "postgres:16",
+      "ports": [{ "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }],
+      "environment": {
+        "POSTGRES_PASSWORD": "not-a-real-value"
+      },
+      "volumes": ["pgdata:/var/lib/postgresql/data"]
+    }
+  ]
+}
+```
+
 ## No Hardcoded Ports
 
 Applications reference environment variables supplied by Agent-Up. Applications must not assume fixed localhost ports.

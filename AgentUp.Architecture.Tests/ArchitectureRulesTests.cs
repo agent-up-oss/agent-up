@@ -52,6 +52,8 @@ public sealed class ArchitectureRulesTests
         "Providers",
         "Repositories",
         "Services",
+        "Resources",
+        "Tools",
         "ViewModels",
         "Views"
     ];

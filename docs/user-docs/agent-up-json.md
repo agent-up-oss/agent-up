@@ -24,9 +24,29 @@ title: agent-up.json
 
 `command` is the shell command used to start a legacy application. Agent-Up runs it through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems.
 
-`portVariable` is the environment variable that receives the Server-allocated port.
-
 `path` is the browser path to open for that application.
+
+`ports` lists port declarations for the application.
+
+## Service Fields
+
+`name` is the display name for the Docker service.
+
+`image` is the Docker image for the service.
+
+`ports` lists port declarations for the service.
+
+`environment` optionally defines service environment variables.
+
+`volumes` optionally defines Docker volume mappings.
+
+## Port Fields
+
+`variable` is the environment variable that receives the Server-allocated port.
+
+`defaultPort` is the preferred/default port used to derive allocation intent.
+
+`protocol` is the protocol label, usually `http` or `tcp`.
 
 ## Capability Fields
 
