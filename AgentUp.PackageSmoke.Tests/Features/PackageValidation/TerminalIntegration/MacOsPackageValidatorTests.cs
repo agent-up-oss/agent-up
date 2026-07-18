@@ -49,9 +49,12 @@ public class MacOsPackageValidatorTests
     private static void CreateExpandedPackage(string root)
     {
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
+        WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "Info.plist"), "CFBundleIconFile\nAgent-Up.png\n");
+        WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "Resources", "Agent-Up.png"), "");
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
+        WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "icon", "Agent-Up.png"), "");
         WriteText(Path.Join(root, "InstallerApp.pkg", "Scripts", "postinstall"), "open -a \"/Applications/Agent-Up Installer.app\"\n");
         WriteText(Path.Join(root, "Distribution"), "InstallerApp.pkg\n");
     }

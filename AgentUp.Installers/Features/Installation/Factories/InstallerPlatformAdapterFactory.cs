@@ -126,7 +126,8 @@ public static class InstallerPlatformAdapterFactory
         var payload = new MacOsInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
-            CliDirectory: System.IO.Path.Join(payloadRoot, "cli"));
+            CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
+            IconPath: System.IO.Path.Join(payloadRoot, "icon", "Agent-Up.png"));
 
         return new MacOsInstallerPlatformAdapter(
             composition.Commands,

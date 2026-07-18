@@ -23,6 +23,8 @@ public class MacOsPlistGeneratorTests
         Assert.That(plist, Does.Contain("dev.agent-up.desktop"));
         Assert.That(plist, Does.Contain("CFBundleExecutable"));
         Assert.That(plist, Does.Contain("AgentUp.Desktop"));
+        Assert.That(plist, Does.Contain("CFBundleIconFile"));
+        Assert.That(plist, Does.Contain("Agent-Up.png"));
         Assert.That(plist, Does.Contain("CFBundleShortVersionString"));
         Assert.That(plist, Does.Contain("1.2.3"));
     }
@@ -36,6 +38,8 @@ public class MacOsPlistGeneratorTests
 
         Assert.That(plist, Does.Contain("dev.agent-up.installer"));
         Assert.That(plist, Does.Contain("AgentUp.InstallerApp"));
+        Assert.That(plist, Does.Contain("CFBundleIconFile"));
+        Assert.That(plist, Does.Contain("Agent-Up.png"));
         Assert.That(plist, Does.Contain("1.2.3"));
     }
 

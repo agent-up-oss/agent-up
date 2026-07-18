@@ -47,9 +47,13 @@ public class MacOsInstallerPlatformAdapterTests
             InstallOperationKind.ValidateInstallation
         }));
         Assert.That(files.ResetDirectories, Does.Contain("/Applications/Agent-Up.app"));
+        Assert.That(files.CreatedDirectories, Does.Contain("/Applications/Agent-Up.app/Contents/Resources"));
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/desktop", "/Applications/Agent-Up.app/Contents/MacOS")));
+        Assert.That(files.CopiedFiles, Does.Contain(("/payload/icon/Agent-Up.png", "/Applications/Agent-Up.app/Contents/Resources/Agent-Up.png")));
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/server", "/Library/Application Support/Agent-Up/server")));
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/cli", "/usr/local/agent-up/cli")));
+        Assert.That(files.Writes["/Applications/Agent-Up.app/Contents/Info.plist"], Does.Contain("CFBundleIconFile"));
+        Assert.That(files.Writes["/Applications/Agent-Up.app/Contents/Info.plist"], Does.Contain("Agent-Up.png"));
         Assert.That(files.Writes["/Library/LaunchDaemons/dev.agent-up.server.plist"], Does.Contain("/Library/Application Support/Agent-Up/server/AgentUp.Server"));
         Assert.That(files.Symlinks, Does.Contain(("/usr/local/bin/agent-up", "/usr/local/agent-up/cli/AgentUp.CLI")));
         Assert.That(commands.Commands, Does.Contain(("launchctl", "bootstrap system \"/Library/LaunchDaemons/dev.agent-up.server.plist\"")));
@@ -76,7 +80,7 @@ public class MacOsInstallerPlatformAdapterTests
 
     private static MacOsInstallerOptions Options()
         => new(
-            new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli"),
+            new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/icon/Agent-Up.png"),
             MacOsInstallerPaths.SystemDefault());
 
     private static MacOsInstallerPlatformAdapter Adapter(
