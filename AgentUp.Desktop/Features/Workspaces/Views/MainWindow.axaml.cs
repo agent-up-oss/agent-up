@@ -220,7 +220,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             UpdateAddressFromWebView(workspaceId, uri);
             if (firstNavDone) return;
             firstNavDone = true;
-            ForceFirstWebKitPaint(webView);
+            ForceFirstWebKitPaint(workspaceId, webView);
         };
 
         return webView;
@@ -238,26 +238,37 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         webView.Source = destination;
     }
 
-    private static void ForceFirstWebKitPaint(NativeWebView webView)
+    private void ForceFirstWebKitPaint(string workspaceId, NativeWebView webView)
     {
         // WebKit renders content into the native window but GTK only composites it when
         // the embedded window receives an Expose event. A hide/show at separate dispatcher
         // priorities forces the repaint after first navigation.
         Dispatcher.UIThread.Post(() =>
         {
-            if (!webView.IsVisible) return;
+            if (!CanTouchWebView(workspaceId, webView) || !webView.IsVisible) return;
             webView.IsVisible = false;
             Dispatcher.UIThread.Post(
-                () => webView.IsVisible = true,
+                () =>
+                {
+                    if (CanTouchWebView(workspaceId, webView))
+                        webView.IsVisible = true;
+                },
                 DispatcherPriority.Background);
         });
     }
+
+    private bool CanTouchWebView(string workspaceId, NativeWebView webView)
+        => !_isClosed
+           && _webViews.TryGetValue(workspaceId, out var current)
+           && ReferenceEquals(current, webView);
 
     private bool IsTutorialVisible()
         => DataContext is MainViewModel { Tutorial.IsVisible: true };
 
     private void ApplyTutorialWebViewVisibility(bool tutorialVisible)
     {
+        if (_isClosed) return;
+
         foreach (var webView in _webViews.Values)
             webView.IsVisible = false;
 
@@ -276,6 +287,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void HandleBrowserCommand(BrowserCommand command)
     {
+        if (_isClosed) return;
         if (_activeWorkspaceId is null) return;
         if (!_webViews.TryGetValue(_activeWorkspaceId, out var webView)) return;
 
