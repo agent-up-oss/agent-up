@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
 using AgentUp.InstallerApp;
+using AgentUp.InstallerApp.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.WindowsInstallation.Models;
 using System.Diagnostics;
@@ -12,6 +13,8 @@ try
         return await RunWindowsUninstallAsync();
 
     SetBundledPayloadRoot(args);
+    if (InstallerCommandLine.ShouldRunInstallCore(args))
+        return await InstallerCommandLine.RunInstallCoreAsync(args, Console.Out, Console.Error);
 
     return AppBuilder.Configure<App>()
         .UsePlatformDetect()

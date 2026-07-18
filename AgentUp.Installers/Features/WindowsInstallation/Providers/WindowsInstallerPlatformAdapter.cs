@@ -98,12 +98,13 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         var operations = PlanInstall(session);
         var progress = new InstallProgressTracker(operations);
         var manifest = WindowsInstallerManifest.Create(session.Version.ToString());
+        var summary = session.Summary();
 
-        await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+            await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
         yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
         yield return progress.Complete(InstallOperationKind.StagePayload);
 
-        var summary = session.Summary();
         if (summary.Includes(InstallerComponent.Desktop))
         {
             _files.ResetDirectory(_options.Paths.DesktopDirectory);

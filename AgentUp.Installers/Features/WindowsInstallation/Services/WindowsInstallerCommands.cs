@@ -33,6 +33,7 @@ public static class WindowsInstallerCommands
                  throw "Windows Service '$serviceName' is still registered after delete."
                }
              }
+             exit 0
              """;
 
     public static string PathUpdatePowerShell(string binDirectory)

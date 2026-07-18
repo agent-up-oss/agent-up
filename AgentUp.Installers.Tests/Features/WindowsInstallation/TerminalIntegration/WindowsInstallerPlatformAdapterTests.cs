@@ -79,6 +79,38 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public async Task ExecuteComponentActionAsync_doesNotPrepareWindowsServiceForDesktopInstall()
+    {
+        var files = new RecordingWindowsFileSystem();
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, files);
+
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Desktop, InstallerComponentAction.Install, Session()))
+        {
+        }
+
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal)), Is.False);
+        Assert.That(files.CopiedDirectories, Does.Contain(("/payload/desktop", @"C:\Program Files\Agent-Up\desktop")));
+    }
+
+    [Test]
+    public async Task ExecuteComponentActionAsync_preparesWindowsServiceForServerInstall()
+    {
+        var files = new RecordingWindowsFileSystem();
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, files);
+
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Server, InstallerComponentAction.Install, Session()))
+        {
+        }
+
+        Assert.That(PowerShellScripts(commands).Any(script =>
+            script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal) &&
+            script.Contains("exit 0", StringComparison.Ordinal)), Is.True);
+        Assert.That(files.CopiedDirectories, Does.Contain(("/payload/server", @"C:\Program Files\Agent-Up\server")));
+    }
+
+    [Test]
     public void WindowsWixSourceGenerator_containsServicePathShortcutAndBundleContract()
     {
         var root = System.IO.Path.Join(System.IO.Path.GetTempPath(), "AgentUp-WindowsInstallerTests", Guid.NewGuid().ToString());
