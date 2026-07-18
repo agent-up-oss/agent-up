@@ -63,12 +63,16 @@ imports = [ inputs.agent-up.nixosModules.default ];
 services.agent-up.enable = true;
 ```
 
+This registers the system service as `agent-up-server.service` and listens on `http://127.0.0.1:5000` by default.
+
 Enable Desktop through the Home Manager module:
 
 ```nix
 imports = [ inputs.agent-up.homeManagerModules.default ];
 programs.agent-up.enable = true;
 ```
+
+Home Manager also registers a `systemd --user` service named `agent-up-server.service` by default, so a Home Manager-only install has a local Server for Desktop and CLI. Set `programs.agent-up.server.enable = false` if the Server is already provided by the NixOS module.
 
 The tarball also exports `packages.x86_64-linux.agent-up`, `packages.x86_64-linux.default`, and `overlays.default`.
 

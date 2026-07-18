@@ -66,6 +66,22 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Not.Contain("--install-dir"));
     }
 
+    [Test]
+    public void PackageRelease_generatesNixModulesThatRegisterAgentUpServerService()
+    {
+        var script = Path.Join(Root, "scripts", "package-release.sh");
+
+        var text = File.ReadAllText(script);
+
+        Assert.That(text, Does.Contain("systemd.services.agent-up-server"));
+        Assert.That(text, Does.Not.Contain("systemd.services.agent-up ="));
+        Assert.That(text, Does.Contain("systemd.user.services.agent-up-server"));
+        Assert.That(text, Does.Contain("cfg.server.enable"));
+        Assert.That(text, Does.Contain("default = \"${config.xdg.stateHome}/agent-up\""));
+        Assert.That(text, Does.Contain("ExecStart = \"${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}\""));
+        Assert.That(text, Does.Contain("ExecStart = \"${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.server.port}\""));
+    }
+
     private static string FindRepositoryRoot(string startDirectory)
     {
         var directory = new DirectoryInfo(startDirectory);
