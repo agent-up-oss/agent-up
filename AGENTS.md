@@ -464,6 +464,8 @@ This applies to every production/test project pair once created:
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
+Changes to packaging, installers, CI payload staging, Desktop startup, browser/WebView hosting, or installed app layout that can affect the delivered Desktop or InstallerApp runtime must run the relevant project tests and `AgentUp.Tests` in the same verification pass. Do not claim completion for those changes after only running the package, installer, or app unit test projects.
+
 Forbidden:
 
 - Changing production behavior without updating or adding tests for that behavior.
@@ -471,6 +473,7 @@ Forbidden:
 - Changing request/response/resource shapes without updating tests.
 - Removing behavior without removing or updating tests that covered it.
 - Claiming completion while relevant tests are missing, skipped, or known broken.
+- Claiming completion for packaging, installer, Desktop, browser/WebView, or installed-layout changes without running the native-display `AgentUp.Tests` project unless the platform lacks the required native display dependencies; in that case, report the missing dependency and the exact CI-shaped command that still needs to run.
 
 ## Test Structure
 

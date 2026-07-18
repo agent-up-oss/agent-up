@@ -55,13 +55,18 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Contain("Arguments=\"--urls http://127.0.0.1:5000\""));
         Assert.That(xml, Does.Contain("Name=\"PATH\""));
         Assert.That(xml, Does.Contain("Shortcut"));
+        Assert.That(xml, Does.Contain("Agent-Up Installer"));
         Assert.That(xml, Does.Contain("AgentUp.Desktop.exe"));
         Assert.That(xml, Does.Contain("AgentUp.Server.exe"));
         Assert.That(xml, Does.Contain("AgentUp.CLI.exe"));
+        Assert.That(xml, Does.Contain("AgentUp.InstallerApp.exe"));
+        Assert.That(xml, Does.Contain("InstallerPayloadDesktop"));
+        Assert.That(xml, Does.Contain("InstallerPayloadServer"));
+        Assert.That(xml, Does.Contain("InstallerPayloadCli"));
     }
 
     [Test]
-    public void BundleWxs_chainsGuidedInstallerWithBundledPayload()
+    public void BundleWxs_chainsProductMsiWithoutLaunchingInstallerApp()
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
         var layout = WindowsPackageLayout.From(request);
@@ -75,22 +80,16 @@ public class WindowsWixSourceGeneratorTests
 
         Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication"));
         Assert.That(xml, Does.Contain("Theme=\"rtfLicense\""));
-        Assert.That(xml, Does.Contain("ExePackage"));
-        Assert.That(xml, Does.Contain("AgentUp.InstallerApp.exe"));
-        Assert.That(xml, Does.Contain("DetectCondition=\"AgentUpInstalled\""));
-        Assert.That(xml, Does.Contain("InstallArguments=\"--payload-root &quot;[WixBundleExecutePackageCacheFolder]payload&quot;\""));
-        Assert.That(xml, Does.Contain("UninstallArguments=\"--uninstall\""));
-        Assert.That(xml, Does.Contain("RegistrySearch"));
-        Assert.That(xml, Does.Contain("Bitness=\"always64\""));
+        Assert.That(xml, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Agent-Up\installer\AgentUp.InstallerApp.exe"""));
+        Assert.That(xml, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Agent-Up\installer"""));
+        Assert.That(xml, Does.Contain("MsiPackage"));
+        Assert.That(xml, Does.Contain("Product.msi"));
+        Assert.That(xml, Does.Not.Contain("ExePackage"));
+        Assert.That(xml, Does.Not.Contain("InstallArguments"));
+        Assert.That(xml, Does.Not.Contain("UninstallArguments"));
+        Assert.That(xml, Does.Not.Contain("RegistrySearch"));
         Assert.That(xml, Does.Not.Contain("Win64="));
-        Assert.That(xml, Does.Contain(@"CurrentVersion\Uninstall\Agent-Up"));
-        Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication"));
         Assert.That(xml, Does.Not.Contain("Permanent=\"yes\""));
-        Assert.That(xml, Does.Not.Contain("MsiPackage"));
-        Assert.That(xml, Does.Contain("Name=\"payload\\desktop\\AgentUp.Desktop.exe\""));
-        Assert.That(xml, Does.Contain("Name=\"payload\\server\\AgentUp.Server.exe\""));
-        Assert.That(xml, Does.Contain("Name=\"payload\\cli\\AgentUp.CLI.exe\""));
-        Assert.That(xml, Does.Contain("Name=\"installer\\support.dll\""));
         Assert.That(xml, Does.Contain("http://wixtoolset.org/schemas/v4/wxs/bal"));
     }
 

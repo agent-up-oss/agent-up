@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -24,10 +25,17 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, string> _webViewErrors = new();
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
     private readonly DispatcherTimer _addressPollTimer;
+    private readonly CompositeDisposable _subscriptions = new();
     private string? _activeWorkspaceId;
 
     // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
+    internal bool HasBrowserResourcesForTests =>
+        _addressPollTimer.IsEnabled
+        || _webViews.Count > 0
+        || _webViewErrors.Count > 0
+        || _lastKnownBrowserUrls.Count > 0
+        || _activeWorkspaceId is not null;
 
     public MainWindow()
     {
@@ -78,15 +86,38 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
+        _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
-            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)));
+            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)))
+            .DisposeWith(_subscriptions);
         vm.BrowserCommands.Subscribe(command =>
-            Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)));
+            Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)))
+            .DisposeWith(_subscriptions);
         vm.Tutorial.WhenAnyValue(t => t.IsVisible)
             .DistinctUntilChanged()
             .Subscribe(isVisible =>
-                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)));
+                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)))
+            .DisposeWith(_subscriptions);
         ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _addressPollTimer.Stop();
+        _subscriptions.Dispose();
+        foreach (var webView in _webViews.Values)
+        {
+            PortPane.Children.Remove(webView);
+            if (webView is IDisposable disposable)
+                disposable.Dispose();
+        }
+
+        _webViews.Clear();
+        _webViewErrors.Clear();
+        _lastKnownBrowserUrls.Clear();
+        _activeWorkspaceId = null;
+
+        base.OnClosed(e);
     }
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
