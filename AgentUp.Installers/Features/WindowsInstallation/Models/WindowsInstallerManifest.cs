@@ -41,7 +41,6 @@ public sealed class WindowsWixSourceGenerator
 {
     private static readonly XNamespace Wix = "http://wixtoolset.org/schemas/v4/wxs";
     private static readonly XNamespace Bal = "http://wixtoolset.org/schemas/v4/wxs/bal";
-    private static readonly XNamespace Util = "http://wixtoolset.org/schemas/v4/wxs/util";
     private readonly WindowsInstallerManifest _manifest;
 
     public WindowsWixSourceGenerator(WindowsInstallerManifest manifest)
@@ -73,6 +72,15 @@ public sealed class WindowsWixSourceGenerator
                 new XElement(Wix + "Directory", new XAttribute("Id", "DesktopDir"), new XAttribute("Name", "desktop")),
                 new XElement(Wix + "Directory", new XAttribute("Id", "ServerDir"), new XAttribute("Name", "server")),
                 new XElement(Wix + "Directory", new XAttribute("Id", "CliDir"), new XAttribute("Name", "cli")),
+                new XElement(Wix + "Directory",
+                    new XAttribute("Id", "InstallerDir"),
+                    new XAttribute("Name", "installer"),
+                    new XElement(Wix + "Directory",
+                        new XAttribute("Id", "InstallerPayloadDir"),
+                        new XAttribute("Name", "payload"),
+                        new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadDesktopDir"), new XAttribute("Name", "desktop")),
+                        new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadServerDir"), new XAttribute("Name", "server")),
+                        new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadCliDir"), new XAttribute("Name", "cli")))),
                 new XElement(Wix + "Directory", new XAttribute("Id", "BinDir"), new XAttribute("Name", "bin")))));
 
         package.Add(new XElement(Wix + "StandardDirectory",
@@ -98,38 +106,22 @@ public sealed class WindowsWixSourceGenerator
 
     public string BundleWxs(WindowsInstallerLayout layout)
     {
-        var installerExecutable = System.IO.Path.Combine(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
-        var installerPackage = new XElement(Wix + "ExePackage",
-            new XAttribute("SourceFile", installerExecutable),
-            new XAttribute("PerMachine", "yes"),
-            new XAttribute("Vital", "yes"),
-            new XAttribute("DetectCondition", "AgentUpInstalled"),
-            new XAttribute("InstallArguments", $"--payload-root \"[WixBundleExecutePackageCacheFolder]payload\""),
-            new XAttribute("UninstallArguments", "--uninstall"));
-
-        foreach (var payload in BundlePayloads(layout, installerExecutable))
-            installerPackage.Add(payload);
-
         var bundle = new XElement(Wix + "Bundle",
             new XAttribute("Name", _manifest.BundleName),
             new XAttribute("Manufacturer", _manifest.Manufacturer),
             new XAttribute("Version", _manifest.Version),
             new XAttribute("UpgradeCode", StableGuid("bundle-upgrade")),
             new XAttribute(XNamespace.Xmlns + "bal", Bal),
-            new XAttribute(XNamespace.Xmlns + "util", Util),
-            new XElement(Util + "RegistrySearch",
-                new XAttribute("Id", "AgentUpInstalledSearch"),
-                new XAttribute("Root", "HKLM"),
-                new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up"),
-                new XAttribute("Result", "exists"),
-                new XAttribute("Variable", "AgentUpInstalled"),
-                new XAttribute("Bitness", "always64")),
             new XElement(Wix + "BootstrapperApplication",
                 new XElement(Bal + "WixStandardBootstrapperApplication",
                     new XAttribute("Theme", "rtfLicense"),
-                    new XAttribute("LicenseFile", layout.LicenseRtfPath))),
+                    new XAttribute("LicenseFile", layout.LicenseRtfPath),
+                    new XAttribute("LaunchTarget", @"[ProgramFiles64Folder]Agent-Up\installer\AgentUp.InstallerApp.exe"),
+                    new XAttribute("LaunchWorkingFolder", @"[ProgramFiles64Folder]Agent-Up\installer"))),
             new XElement(Wix + "Chain",
-                installerPackage));
+                new XElement(Wix + "MsiPackage",
+                    new XAttribute("SourceFile", layout.ProductMsiPath),
+                    new XAttribute("Vital", "yes"))));
 
         return new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement(Wix + "Wix", bundle)).ToString();
     }
@@ -142,8 +134,14 @@ public sealed class WindowsWixSourceGenerator
 
     private IEnumerable<(string Id, XElement Element)> Components(WindowsInstallerLayout layout)
     {
+        foreach (var file in Directory.EnumerateFiles(layout.InstallerPublishDirectory, "*", SearchOption.AllDirectories))
+            yield return FileComponent("Installer", "InstallerDir", layout.InstallerPublishDirectory, file);
+
         foreach (var file in Directory.EnumerateFiles(layout.DesktopPublishDirectory, "*", SearchOption.AllDirectories))
+        {
             yield return FileComponent("Desktop", "DesktopDir", layout.DesktopPublishDirectory, file);
+            yield return FileComponent("InstallerPayloadDesktop", "InstallerPayloadDesktopDir", layout.DesktopPublishDirectory, file);
+        }
 
         foreach (var file in Directory.EnumerateFiles(layout.ServerPublishDirectory, "*", SearchOption.AllDirectories))
         {
@@ -169,10 +167,14 @@ public sealed class WindowsWixSourceGenerator
             }
 
             yield return component;
+            yield return FileComponent("InstallerPayloadServer", "InstallerPayloadServerDir", layout.ServerPublishDirectory, file);
         }
 
         foreach (var file in Directory.EnumerateFiles(layout.CliPublishDirectory, "*", SearchOption.AllDirectories))
+        {
             yield return FileComponent("Cli", "CliDir", layout.CliPublishDirectory, file);
+            yield return FileComponent("InstallerPayloadCli", "InstallerPayloadCliDir", layout.CliPublishDirectory, file);
+        }
 
         var cliShim = new XElement(Wix + "Component",
             new XAttribute("Id", "CliShimComponent"),
@@ -192,7 +194,7 @@ public sealed class WindowsWixSourceGenerator
                 new XAttribute("System", "yes")));
         yield return ("CliShimComponent", cliShim);
 
-        var shortcut = new XElement(Wix + "Component",
+        var appShortcut = new XElement(Wix + "Component",
             new XAttribute("Id", "StartMenuShortcutComponent"),
             new XAttribute("Directory", "ApplicationProgramsFolder"),
             new XAttribute("Guid", StableGuid("start-menu-shortcut")),
@@ -211,31 +213,26 @@ public sealed class WindowsWixSourceGenerator
                 new XAttribute("Type", "integer"),
                 new XAttribute("Value", "1"),
                 new XAttribute("KeyPath", "yes")));
-        yield return ("StartMenuShortcutComponent", shortcut);
+        yield return ("StartMenuShortcutComponent", appShortcut);
+
+        var installerShortcut = new XElement(Wix + "Component",
+            new XAttribute("Id", "InstallerStartMenuShortcutComponent"),
+            new XAttribute("Directory", "ApplicationProgramsFolder"),
+            new XAttribute("Guid", StableGuid("installer-start-menu-shortcut")),
+            new XElement(Wix + "Shortcut",
+                new XAttribute("Id", "AgentUpInstallerStartMenuShortcut"),
+                new XAttribute("Name", "Agent-Up Installer"),
+                new XAttribute("Target", "[InstallerDir]AgentUp.InstallerApp.exe"),
+                new XAttribute("WorkingDirectory", "InstallerDir")),
+            new XElement(Wix + "RegistryValue",
+                new XAttribute("Root", "HKCU"),
+                new XAttribute("Key", "Software\\Agent-Up"),
+                new XAttribute("Name", "installerInstalled"),
+                new XAttribute("Type", "integer"),
+                new XAttribute("Value", "1"),
+                new XAttribute("KeyPath", "yes")));
+        yield return ("InstallerStartMenuShortcutComponent", installerShortcut);
     }
-
-    private static IEnumerable<XElement> BundlePayloads(WindowsInstallerLayout layout, string installerExecutable)
-    {
-        foreach (var file in Directory.EnumerateFiles(layout.InstallerPublishDirectory, "*", SearchOption.AllDirectories))
-        {
-            if (System.IO.Path.GetFullPath(file).Equals(System.IO.Path.GetFullPath(installerExecutable), StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            yield return Payload(layout.InstallerPublishDirectory, file, "installer");
-        }
-
-        foreach (var file in Directory.EnumerateFiles(layout.DesktopPublishDirectory, "*", SearchOption.AllDirectories))
-            yield return Payload(layout.DesktopPublishDirectory, file, "payload\\desktop");
-        foreach (var file in Directory.EnumerateFiles(layout.ServerPublishDirectory, "*", SearchOption.AllDirectories))
-            yield return Payload(layout.ServerPublishDirectory, file, "payload\\server");
-        foreach (var file in Directory.EnumerateFiles(layout.CliPublishDirectory, "*", SearchOption.AllDirectories))
-            yield return Payload(layout.CliPublishDirectory, file, "payload\\cli");
-    }
-
-    private static XElement Payload(string root, string file, string namePrefix)
-        => new(Wix + "Payload",
-            new XAttribute("SourceFile", file),
-            new XAttribute("Name", namePrefix + "\\" + System.IO.Path.GetRelativePath(root, file)));
 
     private static (string Id, XElement Element) FileComponent(string prefix, string directoryId, string root, string file)
     {

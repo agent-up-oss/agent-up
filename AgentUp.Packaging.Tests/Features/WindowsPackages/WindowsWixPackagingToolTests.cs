@@ -26,7 +26,6 @@ public class WindowsWixPackagingToolTests
         Assert.That(commands.Commands[1].Arguments, Does.Contain(layout.ProductMsiPath));
         Assert.That(commands.Commands[2].Arguments, Does.Contain(layout.BundleWxsPath));
         Assert.That(commands.Commands[2].Arguments, Does.Contain("WixToolset.Bal.wixext"));
-        Assert.That(commands.Commands[2].Arguments, Does.Contain("WixToolset.Util.wixext"));
         Assert.That(commands.Commands[2].Arguments, Does.Contain(layout.SetupExePath));
     }
 

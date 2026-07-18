@@ -84,6 +84,24 @@ public sealed class WebViewErrorBannerTests
         Assert.That(app.Content.PortPaneShowsError, Is.False);
     }
 
+    [AvaloniaTest]
+    public async Task MainWindow_close_clearsBrowserStateAfterWebViewFailure()
+    {
+        var ws = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var app = await AppDriver.LaunchWithWorkspaceAsync(
+            ws,
+            () => throw new InvalidOperationException("no WebKit installed"));
+
+        app.Window.NavigateTo("ws-1", "http://localhost:3000/");
+        await HeadlessExtensions.FlushAsync();
+        Assert.That(app.Window.HasBrowserResourcesForTests, Is.True);
+
+        app.Window.Close();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(app.Window.HasBrowserResourcesForTests, Is.False);
+    }
+
     private sealed class InMemoryTutorialSettingsStore(FirstRunTutorialSettings settings) : IFirstRunTutorialSettingsStore
     {
         public Task<FirstRunTutorialSettings> LoadAsync() => Task.FromResult(settings);

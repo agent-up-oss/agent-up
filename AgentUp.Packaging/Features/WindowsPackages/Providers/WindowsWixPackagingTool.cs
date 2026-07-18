@@ -35,17 +35,11 @@ public sealed class WindowsWixPackagingTool : IWindowsPackagingTool
             "WixToolset.Bal.wixext",
             "WixToolset.BootstrapperApplications.wixext.dll",
             cancellationToken);
-        var utilExtension = await StageWixExtensionAsync(
-            request.RepositoryRoot,
-            "WixToolset.Util.wixext",
-            "WixToolset.Util.wixext.dll",
-            cancellationToken);
         await RunWixAsync(
         [
             "build",
             layout.BundleWxsPath,
             "-ext", balExtension ?? "WixToolset.Bal.wixext",
-            "-ext", utilExtension ?? "WixToolset.Util.wixext",
             "-o", layout.SetupExePath
         ], cancellationToken);
     }
