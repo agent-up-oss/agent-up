@@ -1,4 +1,7 @@
+using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
+using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Models;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
@@ -14,7 +17,7 @@ public class WorkspaceRegistryTests
     [SetUp]
     public void SetUp()
     {
-        _registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
+        _registry = CreateRegistry([new FakeCapabilityAdapter("dotnet"), new FakeCapabilityAdapter("docker")]);
     }
 
     [Test]
@@ -270,5 +273,79 @@ public class WorkspaceRegistryTests
         var workspace = await _registry.RegisterAsync(request);
 
         Assert.That(workspace.Applications[0].State, Is.EqualTo(ApplicationState.Stopped));
+    }
+
+    [Test]
+    public async Task Register_TypedDotnet_UsesCapabilityLaunchPlan()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Dotnet =
+            [
+                new DotnetApplicationDefinition(
+                    "Api",
+                    "10.0.x",
+                    new DotnetRunDefinition("src/Api/Api.csproj", ["--no-launch-profile"]),
+                    [new PortDeclaration("API_PORT", 5000)])
+            ]
+        });
+
+        var app = workspace.Applications.Single();
+        Assert.That(app.CapabilityId, Is.EqualTo("dotnet"));
+        Assert.That(app.CapabilityVersionRequirement, Is.EqualTo("10.0.x"));
+        Assert.That(app.Command, Is.EqualTo("dotnet launch Api"));
+        Assert.That(app.CapabilityStatus!.CanRun, Is.True);
+        Assert.That(app.AllocatedPorts.Single().Variable, Is.EqualTo("API_PORT"));
+    }
+
+    [Test]
+    public async Task Register_TypedDocker_UsesDockerCapabilityMetadata()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Docker =
+            [
+                new DockerCapabilityDefinition(
+                    "Database",
+                    "postgres:17",
+                    [new PortDeclaration("DB_PORT", 5432)])
+            ]
+        });
+
+        var app = workspace.Applications.Single();
+        Assert.That(app.ServiceType, Is.EqualTo(ServiceType.Docker));
+        Assert.That(app.CapabilityId, Is.EqualTo("docker"));
+        Assert.That(app.Image, Is.EqualTo("postgres:17"));
+        Assert.That(app.CapabilityStatus!.CanRun, Is.True);
+    }
+
+    private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
+        new(
+            new InMemoryWorkspaceRepository(),
+            new InMemoryPortAllocationService(),
+            new CapabilityReconciliationService(adapters));
+
+    private sealed class FakeCapabilityAdapter(string capabilityId) : ICapabilityAdapter
+    {
+        public CapabilityDescriptor Descriptor { get; } =
+            new(capabilityId, capabilityId, "1.0.0", true, ["linux", "macos", "windows"]);
+
+        public Task<IReadOnlyList<CapabilityInstalledVersion>> DiscoverAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<CapabilityInstalledVersion>>(
+            [
+                new CapabilityInstalledVersion(capabilityId, "1.0.0", capabilityId, CapabilityVersionSource.System, false)
+            ]);
+
+        public Task<CapabilityValidationResult> ValidateAsync(
+            CapabilityDeclaration declaration,
+            IReadOnlyList<CapabilityInstalledVersion> installedVersions,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(CapabilityValidationResult.Success());
+
+        public Task<CapabilityLaunchPlan> CreateLaunchPlanAsync(
+            CapabilityDeclaration declaration,
+            IReadOnlyList<CapabilityInstalledVersion> installedVersions,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new CapabilityLaunchPlan($"{capabilityId} launch {declaration.Name}"));
     }
 }

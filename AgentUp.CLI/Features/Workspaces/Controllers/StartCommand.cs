@@ -40,6 +40,8 @@ public sealed class StartCommand
 
         var applications = config.Applications ?? [];
         var services = config.Services ?? [];
+        var dotnet = config.Dotnet ?? [];
+        var docker = config.Docker ?? [];
 
         WorkspaceDto? workspace;
         try
@@ -52,7 +54,9 @@ public sealed class StartCommand
                 Commit: git.Commit)
             {
                 Applications = applications,
-                Services = services
+                Services = services,
+                Dotnet = dotnet,
+                Docker = docker
             });
         }
         catch (Exception ex)
@@ -92,6 +96,20 @@ public sealed class StartCommand
         {
             _output.WriteLine($"  Services ({services.Count}):");
             foreach (var svc in services)
+                _output.WriteLine($"    - {svc.Name}: {svc.Image}");
+        }
+
+        if (dotnet.Count > 0)
+        {
+            _output.WriteLine($"  .NET ({dotnet.Count}):");
+            foreach (var app in dotnet)
+                _output.WriteLine($"    - {app.Name}: dotnet run --project {app.Run.Project}");
+        }
+
+        if (docker.Count > 0)
+        {
+            _output.WriteLine($"  Docker ({docker.Count}):");
+            foreach (var svc in docker)
                 _output.WriteLine($"    - {svc.Name}: {svc.Image}");
         }
 

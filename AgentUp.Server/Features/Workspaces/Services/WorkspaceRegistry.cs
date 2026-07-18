@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Models;
 using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -13,11 +14,16 @@ public sealed class WorkspaceRegistry : IHostedService
     private readonly ConcurrentDictionary<string, Workspace> _workspaces = new();
     private readonly IWorkspaceRepository _repository;
     private readonly IPortAllocationService _ports;
+    private readonly CapabilityReconciliationService _capabilities;
 
-    public WorkspaceRegistry(IWorkspaceRepository repository, IPortAllocationService ports)
+    public WorkspaceRegistry(
+        IWorkspaceRepository repository,
+        IPortAllocationService ports,
+        CapabilityReconciliationService capabilities)
     {
         _repository = repository;
         _ports = ports;
+        _capabilities = capabilities;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -53,6 +59,20 @@ public sealed class WorkspaceRegistry : IHostedService
         IReadOnlyList<PortMapping> AllocatePorts(IReadOnlyList<PortDeclaration>? declarations) =>
             (declarations ?? []).Select(d => new PortMapping(d.Variable, d.DefaultPort, portCounter++, d.Protocol)).ToList();
 
+        var typedDotnetApplications = new List<ApplicationInstance>();
+        foreach (var dotnet in request.Dotnet)
+        {
+            var ports = dotnet.Ports ?? [];
+            typedDotnetApplications.Add(await _capabilities.ReconcileDotnetAsync(dotnet, ports, AllocatePorts(ports)));
+        }
+
+        var typedDockerApplications = new List<ApplicationInstance>();
+        foreach (var docker in request.Docker)
+        {
+            var ports = docker.Ports ?? [];
+            typedDockerApplications.Add(await _capabilities.ReconcileDockerAsync(docker, ports, AllocatePorts(ports)));
+        }
+
         var workspace = new Workspace
         {
             Id = workspaceId,
@@ -81,6 +101,8 @@ public sealed class WorkspaceRegistry : IHostedService
                     Environment = s.Environment,
                     Volumes = s.Volumes
                 }))
+                .Concat(typedDotnetApplications)
+                .Concat(typedDockerApplications)
                 .ToList()
         };
 

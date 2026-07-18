@@ -12,4 +12,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Dotnet\AgentUp.Capabilities.Dotnet.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Docker\AgentUp.Capabilities.Docker.csproj" />
+  </ItemGroup>
+
 </Project>

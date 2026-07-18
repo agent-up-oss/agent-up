@@ -43,6 +43,18 @@ agent-up.sln
 AgentUp.Server/
   AgentUp.Server.csproj
 
+AgentUp.Capabilities.Abstractions/
+  AgentUp.Capabilities.Abstractions.csproj
+
+AgentUp.Capabilities.Common/
+  AgentUp.Capabilities.Common.csproj
+
+AgentUp.Capabilities.Dotnet/
+  AgentUp.Capabilities.Dotnet.csproj
+
+AgentUp.Capabilities.Docker/
+  AgentUp.Capabilities.Docker.csproj
+
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
@@ -63,6 +75,18 @@ AgentUp.PackageSmoke/
 
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
+
+AgentUp.Capabilities.Abstractions.Tests/
+  AgentUp.Capabilities.Abstractions.Tests.csproj
+
+AgentUp.Capabilities.Common.Tests/
+  AgentUp.Capabilities.Common.Tests.csproj
+
+AgentUp.Capabilities.Dotnet.Tests/
+  AgentUp.Capabilities.Dotnet.Tests.csproj
+
+AgentUp.Capabilities.Docker.Tests/
+  AgentUp.Capabilities.Docker.Tests.csproj
 
 AgentUp.Desktop.Tests/
   AgentUp.Desktop.Tests.csproj
@@ -96,6 +120,10 @@ The exact project list may evolve, but ownership must not drift:
 | Area | Owns |
 |---|---|
 | `AgentUp.Server` | Workspace registry, process lifecycle, ports, Docker, browser lifecycle, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
+| `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, and install planning used by first-party and future external capabilities |
+| `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
+| `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.Installers` | Testable installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -339,6 +367,7 @@ The Server owns all orchestration:
 - Process lifecycle.
 - Port allocation.
 - Docker lifecycle.
+- Capability reconciliation and status.
 - Browser lifecycle.
 - Browser profiles.
 - Browser session persistence.
@@ -381,7 +410,7 @@ Every managed repository is described declaratively with `agent-up.json`.
 
 Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration.
 
-Local application commands are opaque to Agent-Up and run through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems.
+Legacy local application commands and legacy Docker `services` remain supported. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
 User docs:
 
@@ -453,6 +482,10 @@ This applies to every production/test project pair once created:
 | Project | Test Project |
 |---|---|
 | `AgentUp.Server` | `AgentUp.Server.Tests` |
+| `AgentUp.Capabilities.Abstractions` | `AgentUp.Capabilities.Abstractions.Tests` |
+| `AgentUp.Capabilities.Common` | `AgentUp.Capabilities.Common.Tests` |
+| `AgentUp.Capabilities.Dotnet` | `AgentUp.Capabilities.Dotnet.Tests` |
+| `AgentUp.Capabilities.Docker` | `AgentUp.Capabilities.Docker.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.Installers` | `AgentUp.Installers.Tests` |
@@ -541,6 +574,8 @@ Read: `docs/user-docs/workspace.md`.
 ## Configuration
 
 Agent-Up uses declarative repository configuration through `agent-up.json`. Applications declare launch commands, port environment variables, browser paths, and Docker setup without source-code integration.
+
+Capability sections such as `dotnet` and `docker` are the preferred shape for ecosystem-aware requirements. Capability adapters discover system and Agent-Up-managed versions, reconcile declared requirements, return structured mismatch status, and produce Server-owned launch plans. The legacy `applications` list remains supported for opaque shell commands, and legacy Docker `services` remain supported for compatibility.
 
 Read: `docs/user-docs/configuration.md` and `docs/user-docs/agent-up-json.md`.
 

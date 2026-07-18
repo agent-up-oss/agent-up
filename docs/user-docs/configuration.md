@@ -6,27 +6,28 @@ title: Configuration
 
 Every repository root contains an `agent-up.json` file.
 
-Configuration is declarative. Applications describe how they should be launched, which environment variable should receive their allocated port, and which browser path should open.
+Configuration is declarative. Capability-aware sections describe ecosystem requirements, launch inputs, and port variables. Legacy applications can still describe opaque shell commands.
 
 ```json
 {
   "name": "Inventory",
-  "applications": [
-    {
-      "name": "Frontend",
-      "command": "dotnet run --project src/Web",
-      "portVariable": "WEB_PORT",
-      "path": "/"
-    },
+  "dotnet": [
     {
       "name": "API",
-      "command": "dotnet run --project src/Api",
-      "portVariable": "API_PORT",
-      "path": "/swagger"
+      "sdk": "10.0.x",
+      "run": {
+        "project": "src/Api/Api.csproj",
+        "arguments": ["--no-launch-profile"]
+      },
+      "ports": [{ "variable": "API_PORT", "defaultPort": 5000 }]
     }
   ],
   "docker": [
-    "docker compose up -d"
+    {
+      "name": "Database",
+      "image": "postgres:17",
+      "ports": [{ "variable": "DB_PORT", "defaultPort": 5432 }]
+    }
   ]
 }
 ```
@@ -39,6 +40,6 @@ The Server owns port allocation and injects the workspace's full allocated port 
 
 ## No Framework Knowledge
 
-The `command` field is opaque to Agent-Up. It can launch any framework or runtime as long as the application can receive its port through the configured environment variable.
+Capability sections such as `dotnet` and `docker` are framework-aware at the ecosystem boundary: Agent-Up can discover installed versions, compare them with declared requirements, and report version mismatch errors before launch.
 
-Agent-Up runs local application commands through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Use command syntax that is valid on the operating systems where the workspace will run.
+The legacy `applications` list remains available for opaque commands, and legacy Docker `services` remain available for compatibility. Agent-Up runs legacy application commands through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Use command syntax that is valid on the operating systems where the workspace will run.
