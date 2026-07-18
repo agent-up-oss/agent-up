@@ -1,0 +1,101 @@
+using AgentUp.Installers.Features.Installation.Models;
+
+namespace AgentUp.Installers.Features.Installation.Services;
+
+public static class InstallerComponentOperations
+{
+    public static InstallerSession ForTarget(InstallerSession session, InstallerComponentTarget target) =>
+        session with
+        {
+            Components = InstallerComponent.RuntimeDependencies | (target switch
+            {
+                InstallerComponentTarget.Desktop => InstallerComponent.Desktop,
+                InstallerComponentTarget.Server => InstallerComponent.Server | InstallerComponent.NativeService,
+                InstallerComponentTarget.Cli => InstallerComponent.Cli,
+                _ => InstallerComponent.None
+            })
+        };
+
+    public static IReadOnlyList<InstallOperation> Plan(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session,
+        Func<InstallerSession, IReadOnlyList<InstallOperation>> fullPlan)
+    {
+        if (action == InstallerComponentAction.Uninstall)
+        {
+            return
+            [
+                new(TargetOperationKind(target), $"Uninstall {DisplayName(target)}", true),
+                new(InstallOperationKind.ValidateInstallation, $"Validate {DisplayName(target)} removal", false)
+            ];
+        }
+
+        var targetSession = ForTarget(session, target);
+        return fullPlan(targetSession)
+            .Where(operation => IsRelevant(operation.Kind, target))
+            .ToList();
+    }
+
+    public static async IAsyncEnumerable<InstallProgress> ExecuteInstallLikeAction(
+        InstallerComponentTarget target,
+        InstallerComponentAction action,
+        InstallerSession session,
+        Func<InstallerSession, CancellationToken, IAsyncEnumerable<InstallProgress>> executeInstall,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        if (action == InstallerComponentAction.Uninstall)
+        {
+            var operations = Plan(target, action, session, _ => []);
+            var progress = new InstallProgressTracker(operations);
+            yield return progress.Complete(TargetOperationKind(target));
+            yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+            yield break;
+        }
+
+        await foreach (var item in executeInstall(ForTarget(session, target), cancellationToken)
+                           .WithCancellation(cancellationToken))
+        {
+            if (IsRelevant(item.Kind, target))
+                yield return item;
+        }
+    }
+
+    public static InstallerComponentStatus StatusFromValidation(
+        InstallerComponentTarget target,
+        ValidationReport report,
+        Version expectedVersion)
+    {
+        var codePrefix = target switch
+        {
+            InstallerComponentTarget.Desktop => "desktop.",
+            InstallerComponentTarget.Server => "service.",
+            InstallerComponentTarget.Cli => "cli.",
+            _ => ""
+        };
+
+        var failed = report.Findings.Any(finding =>
+            finding.Severity == ValidationSeverity.Error && finding.Code.StartsWith(codePrefix, StringComparison.OrdinalIgnoreCase));
+
+        return failed
+            ? new InstallerComponentStatus(target, InstallerComponentStatusKind.NotInstalled)
+            : new InstallerComponentStatus(target, InstallerComponentStatusKind.Installed, expectedVersion, expectedVersion);
+    }
+
+    private static bool IsRelevant(InstallOperationKind kind, InstallerComponentTarget target) =>
+        kind is InstallOperationKind.ValidatePrerequisites or InstallOperationKind.StagePayload or InstallOperationKind.InstallFiles or InstallOperationKind.ValidateInstallation
+        || kind == TargetOperationKind(target)
+        || target == InstallerComponentTarget.Desktop && kind == InstallOperationKind.RegisterUninstall;
+
+    private static InstallOperationKind TargetOperationKind(InstallerComponentTarget target) =>
+        target switch
+        {
+            InstallerComponentTarget.Server => InstallOperationKind.RegisterService,
+            InstallerComponentTarget.Cli => InstallOperationKind.RegisterCli,
+            InstallerComponentTarget.Desktop => InstallOperationKind.RegisterDesktop,
+            _ => InstallOperationKind.InstallFiles
+        };
+
+    private static string DisplayName(InstallerComponentTarget target) =>
+        target == InstallerComponentTarget.Cli ? "CLI" : target.ToString();
+}

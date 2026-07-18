@@ -6,6 +6,7 @@ using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 using AgentUp.Installers.Features.MacOsInstallation.DTOs;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.Providers;
+using AgentUp.Installers.Features.NixOsInstallation.Providers;
 using AgentUp.Installers.Features.UbuntuInstallation.DTOs;
 using AgentUp.Installers.Features.UbuntuInstallation.Models;
 using AgentUp.Installers.Features.UbuntuInstallation.Providers;
@@ -19,20 +20,31 @@ public static class InstallerPlatformAdapterFactory
 {
     public const string FakeInstallerVariable = "AGENTUP_INSTALLER_FAKE";
     public const string PayloadRootVariable = "AGENTUP_INSTALLER_PAYLOAD_ROOT";
+    public const string NixOsLookupOnlyVariable = "AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY";
 
     public static IInstallerPlatformAdapter Create()
     {
         if (Environment.GetEnvironmentVariable(FakeInstallerVariable) == "1")
             return new FakeInstallerPlatformAdapter(CurrentPlatformName() + " dry run");
 
-        var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
-
         if (OperatingSystem.IsLinux())
+        {
+            if (UseNixOsLookupOnlyMode())
+                return CreateNixOsAdapter();
+
+            var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
             return CreateUbuntuAdapter(payloadRoot);
+        }
         if (OperatingSystem.IsMacOS())
+        {
+            var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
             return CreateMacOsAdapter(payloadRoot);
+        }
         if (OperatingSystem.IsWindows())
+        {
+            var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
             return CreateWindowsAdapter(payloadRoot);
+        }
 
         throw new PlatformNotSupportedException("Agent-Up installer does not support this operating system.");
     }
@@ -102,6 +114,12 @@ public static class InstallerPlatformAdapterFactory
             composition.DockerPrerequisite);
     }
 
+    private static IInstallerPlatformAdapter CreateNixOsAdapter()
+    {
+        var composition = Composition();
+        return new NixOsInstallerPlatformAdapter(new NixOsPathExecutableLookup(), composition.DockerPrerequisite);
+    }
+
     private static IInstallerPlatformAdapter CreateMacOsAdapter(string payloadRoot)
     {
         var composition = Composition();
@@ -136,11 +154,28 @@ public static class InstallerPlatformAdapterFactory
 
     private static string CurrentPlatformName()
     {
+        if (OperatingSystem.IsLinux() && UseNixOsLookupOnlyMode())
+            return "NixOS";
         if (OperatingSystem.IsWindows())
             return "Windows";
         if (OperatingSystem.IsMacOS())
             return "macOS";
         return "Linux";
+    }
+
+    public static bool UseNixOsLookupOnlyMode()
+        => Environment.GetEnvironmentVariable(NixOsLookupOnlyVariable) == "1" || IsNixOsHost();
+
+    private static bool IsNixOsHost()
+    {
+        const string osReleasePath = "/etc/os-release";
+        if (!File.Exists(osReleasePath))
+            return false;
+
+        var lines = File.ReadAllLines(osReleasePath);
+        return lines.Any(line =>
+            line.Equals("ID=nixos", StringComparison.OrdinalIgnoreCase) ||
+            line.Equals("ID=\"nixos\"", StringComparison.OrdinalIgnoreCase));
     }
 
     private static InstallerAdapterComposition Composition()

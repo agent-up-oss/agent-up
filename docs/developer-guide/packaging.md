@@ -10,7 +10,7 @@ Packaged installations install Agent-Up as three user-visible components backed 
 - `AgentUp.CLI` is available globally as `agent-up`.
 - `AgentUp.Desktop` is installed in the native application location.
 
-Installer and packaging behavior is product behavior and must be testable. Shared installer planning, payload, adapter, progress, validation, and platform install contracts live in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. The guided installer UX lives in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume shared installer contracts instead of growing untested platform-only logic.
+Installer and packaging behavior is product behavior and must be testable. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts live in `AgentUp.Installers`, with tests in `AgentUp.Installers.Tests`. The InstallerApp dashboard UX lives in `AgentUp.InstallerApp`, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`. Release artifact staging and native tool orchestration lives in `AgentUp.Packaging`, with tests in `AgentUp.Packaging.Tests`. Shared package and installed-service smoke validation lives in `AgentUp.PackageSmoke`, with tests in `AgentUp.PackageSmoke.Tests`. Native package assets live under `packaging/` and should consume shared installer contracts instead of growing untested platform-only logic.
 
 ## Ownership
 
@@ -24,9 +24,12 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Post-install validation results.
 - Uninstall-mode planning.
 
-`AgentUp.InstallerApp` owns the shared guided installer:
+`AgentUp.InstallerApp` owns the shared installer dashboard:
 
-- Welcome, license, prerequisite, Docker, component, location, server configuration, payload, summary, progress, and completion pages.
+- Independent Desktop, Server, and CLI management cards.
+- Install, update, uninstall, repair, status, and per-card progress UI.
+- Installed capability-module grid with add-module and standardized version-management pages.
+- Official capability catalog loading from the bundled catalog, with `AGENTUP_CAPABILITY_CATALOG_URL` available for tests and alternate release channels.
 - Offline install from bundled payload by default.
 - Optional online update from release metadata when available.
 - Adapter-driven elevation only when privileged native operations are required.
@@ -86,7 +89,7 @@ The wrappers enter a target-specific shell under `packaging/nix/` and then deleg
 - Windows wrapper provides cross-packaging helpers where available, such as archive tooling, MSI inspection tools, and signing helpers. WiX is supplied through the pinned local .NET tool manifest at `packaging/windows/dotnet-tools.json`; the wrapper restores that tool and exposes a `wix` shim on PATH before packaging starts.
 - macOS wrapper is Darwin-only because Apple packaging, signing, and notarization tools are platform tools: `hdiutil`, `pkgbuild`, `productbuild`, `codesign`, and `notarytool`.
 
-The generated Nix package-set flake exports both `nixosModules.default` and `homeManagerModules.default`. The NixOS module registers the Server as the system `agent-up-server.service`. The Home Manager module installs Desktop and CLI and, by default, registers a user `agent-up-server.service` so Home Manager-only installs still provide a local Server on port 5000; users can disable that user service when a system service already owns the Server.
+The generated Nix package-set flake exports both `nixosModules.default` and `homeManagerModules.default`. The NixOS module registers the Server as the system `agent-up-server.service`. The Home Manager module installs Desktop, CLI, and the lookup-only InstallerApp dashboard and, by default, registers a user `agent-up-server.service` so Home Manager-only installs still provide a local Server on port 5000; users can disable that user service when a system service already owns the Server. Desired capabilities are declared through `services.agent-up.capabilities` or `programs.agent-up.capabilities` and written to Agent-Up capability inventory. Runtime capability lookup reads `AGENTUP_CAPABILITY_INVENTORY_PATH` when set, then falls back to `/etc/agent-up/capabilities.json` and `~/.config/agent-up/capabilities.json`. The `agent-up-installer` launcher sets `AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY=1`; the dashboard can inspect component and capability state, but install/update/uninstall actions stay disabled because Nix owns system mutation.
 
 Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, stages required WiX extension DLLs on Windows, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable.
 
@@ -96,7 +99,7 @@ Windows packaging consumes Windows install metadata, WiX generation, service, PA
 
 Windows MSI metadata uses a Windows Installer product version derived from the package SemVer; CI fallback versions based on `0.0.0` are written as `0.0.1` in MSI metadata while retaining the original artifact version elsewhere.
 
-macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The package installs only the guided `Agent-Up Installer.app`; Desktop, Server, CLI, launchd, symlink, validation, and uninstall behavior stay owned by the InstallerApp and its macOS adapter. The packaging app stages the InstallerApp bundle, its bundled offline `desktop`, `server`, and `cli` payload, installer-app package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
+macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The package installs only the dashboard `Agent-Up Installer.app`; Desktop, Server, CLI, launchd, symlink, validation, and uninstall behavior stay owned by the InstallerApp and its macOS adapter. The packaging app stages the InstallerApp bundle, its bundled offline `desktop`, `server`, and `cli` payload, installer-app package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
 
 The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after installing or updating that app. The app resolves its bundled offline payload from `Contents/MacOS/payload` when `AGENTUP_INSTALLER_PAYLOAD_ROOT` is not set, checking both the app base directory and the real process executable directory so single-file extraction paths do not hide the installed bundle payload. The installer component removes any previous installer bundle before installing the new one so stale bundled files cannot survive package upgrades. Installer startup failures are appended to `~/Library/Logs/Agent-Up/installer-crash.log` before the app rethrows. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
@@ -108,7 +111,7 @@ Package smoke scripts must use `AgentUp.PackageSmoke validate-package` for macOS
 
 Windows installed-service smoke installs and uninstalls through the MSI sidecar with `msiexec`, starts the service after installation, and then validates readiness; the Windows `.exe` remains the user-facing bootstrapper path.
 
-The shared installer app is the target user-facing install, maintenance, and update flow. Windows `.exe` artifacts install `AgentUp.InstallerApp` as a standalone app with a bundled release payload, and macOS `.pkg` postinstall launches `AgentUp.InstallerApp` with a bundled release payload. The app can install from its bundled offline payload or, when implemented, pull the latest online payload.
+The shared installer app is the target user-facing install, maintenance, capability-module, and update dashboard. Windows `.exe` artifacts install `AgentUp.InstallerApp` as a standalone app with a bundled release payload, and macOS `.pkg` postinstall launches `AgentUp.InstallerApp` with a bundled release payload. The app can install from its bundled offline payload or, when implemented, pull the latest online payload.
 
 During migration, MSI sidecar and `.deb` artifacts may still perform direct native install work, but new user-facing behavior should move toward wrapping or launching `AgentUp.InstallerApp` with bundled and online payload selection.
 

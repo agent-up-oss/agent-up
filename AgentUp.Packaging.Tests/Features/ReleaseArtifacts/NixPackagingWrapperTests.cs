@@ -83,6 +83,47 @@ public class NixPackagingWrapperTests
     }
 
     [Test]
+    public void PackageRelease_generatesNixCapabilityDeclarations()
+    {
+        var script = Path.Join(Root, "scripts", "package-release.sh");
+
+        var text = File.ReadAllText(script);
+
+        Assert.That(text, Does.Contain("options.services.agent-up"));
+        Assert.That(text, Does.Contain("capabilities = lib.mkOption"));
+        Assert.That(text, Does.Contain("example = { dotnet = [ \"10.0.x\" ]; docker = [ \"27.x\" ]; };"));
+        Assert.That(text, Does.Contain("environment.etc.\"agent-up/capabilities.json\".text = capabilityInventory"));
+        Assert.That(text, Does.Contain("home.file.\".config/agent-up/capabilities.json\".text = capabilityInventory"));
+        Assert.That(text, Does.Contain("AGENTUP_CAPABILITY_INVENTORY_PATH"));
+    }
+
+    [Test]
+    public void PackageRelease_generatesNixInstallerAppLauncherInLookupOnlyMode()
+    {
+        var script = Path.Join(Root, "scripts", "package-release.sh");
+
+        var text = File.ReadAllText(script);
+
+        Assert.That(text, Does.Contain("AgentUp.InstallerApp/AgentUp.InstallerApp.csproj"));
+        Assert.That(text, Does.Contain("cp -a \"$stage/installer\" \"$pkgs_root/package/opt/agent-up/installer\""));
+        Assert.That(text, Does.Contain("ln -s $out/opt/agent-up/installer/AgentUp.InstallerApp $out/bin/agent-up-installer"));
+        Assert.That(text, Does.Contain("--set AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY 1"));
+        Assert.That(text, Does.Contain("xdg.desktopEntries.agent-up-installer"));
+    }
+
+    [Test]
+    public void InstallerApp_declaresNixOsLaunchProfile()
+    {
+        var launchSettings = Path.Join(Root, "AgentUp.InstallerApp", "Properties", "launchSettings.json");
+        var runScript = Path.Join(Root, "run-installer.sh");
+
+        Assert.That(File.ReadAllText(launchSettings), Does.Contain("AgentUp.InstallerApp (NixOS)"));
+        Assert.That(File.ReadAllText(launchSettings), Does.Contain("AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY"));
+        Assert.That(File.ReadAllText(runScript), Does.Contain("AgentUp.InstallerApp/AgentUp.InstallerApp.csproj"));
+        Assert.That(File.ReadAllText(runScript), Does.Contain("nix-shell"));
+    }
+
+    [Test]
     public void CiPackageSmoke_validatesGeneratedNixServiceRegistration()
     {
         var script = Path.Join(Root, ".github", "scripts", "smoke-package.sh");

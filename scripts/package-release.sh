@@ -106,13 +106,25 @@ if [ "$platform" = "ubuntu" ] || [ "$platform" = "macos" ] || [ "$platform" = "w
 fi
 
 rm -rf "$stage"
-mkdir -p "$stage/desktop" "$stage/server" "$stage/cli" "$root/$output_dir"
+mkdir -p "$stage/desktop" "$stage/server" "$stage/cli" "$stage/installer" "$root/$output_dir"
 
 if [ -n "$payload_root" ]; then
   cp -a "$payload_root/desktop/." "$stage/desktop/"
   cp -a "$payload_root/server/." "$stage/server/"
   cp -a "$payload_root/cli/." "$stage/cli/"
+  if [ -d "$payload_root/installer" ]; then
+    cp -a "$payload_root/installer/." "$stage/installer/"
+  fi
 else
+  dotnet restore "$root/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj" --runtime "$rid"
+  dotnet publish "$root/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj" \
+    --configuration "$configuration" \
+    --runtime "$rid" \
+    --self-contained true \
+    -p:PublishSingleFile=false \
+    -p:Version="$version" \
+    -o "$stage/installer"
+
   dotnet restore "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" --runtime "$rid"
   dotnet publish "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" \
     --configuration "$configuration" \
@@ -148,6 +160,7 @@ case "$platform" in
     cp -a "$stage/desktop" "$pkgs_root/package/opt/agent-up/desktop"
     cp -a "$stage/server" "$pkgs_root/package/opt/agent-up/server"
     cp -a "$stage/cli" "$pkgs_root/package/opt/agent-up/cli"
+    cp -a "$stage/installer" "$pkgs_root/package/opt/agent-up/installer"
     cp -a "$root/media/logo.png" "$pkgs_root/package/opt/agent-up/logo.png"
     cat > "$pkgs_root/flake.nix" <<'NIX'
 {
@@ -195,10 +208,12 @@ case "$platform" in
           chmod +x $out/opt/agent-up/desktop/AgentUp.Desktop
           chmod +x $out/opt/agent-up/server/AgentUp.Server
           chmod +x $out/opt/agent-up/cli/AgentUp.CLI
+          chmod +x $out/opt/agent-up/installer/AgentUp.InstallerApp
           mkdir -p $out/bin
           ln -s $out/opt/agent-up/desktop/AgentUp.Desktop $out/bin/agent-up-desktop
           ln -s $out/opt/agent-up/server/AgentUp.Server $out/bin/agent-up-server
           ln -s $out/opt/agent-up/cli/AgentUp.CLI $out/bin/agent-up
+          ln -s $out/opt/agent-up/installer/AgentUp.InstallerApp $out/bin/agent-up-installer
           runHook postInstall
         '';
         postFixup = ''
@@ -225,6 +240,9 @@ case "$platform" in
             --prefix LD_LIBRARY_PATH : "$runtime_libs"
           wrapProgram $out/opt/agent-up/cli/AgentUp.CLI \
             --prefix LD_LIBRARY_PATH : "$runtime_libs"
+          wrapProgram $out/opt/agent-up/installer/AgentUp.InstallerApp \
+            --prefix LD_LIBRARY_PATH : "$runtime_libs" \
+            --set AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY 1
         '';
       };
     in
@@ -246,6 +264,9 @@ case "$platform" in
         let
           cfg = config.services.agent-up;
           package = self.packages.${pkgs.system}.agent-up;
+          capabilityInventory = builtins.toJSON (
+            lib.mapAttrsToList (id: versions: { inherit id versions; }) cfg.capabilities
+          );
         in
         {
           options.services.agent-up = {
@@ -260,10 +281,17 @@ case "$platform" in
               default = "/var/lib/agent-up";
               description = "Directory used by Agent-Up for persistent server data.";
             };
+            capabilities = lib.mkOption {
+              type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+              default = {};
+              example = { dotnet = [ "10.0.x" ]; docker = [ "27.x" ]; };
+              description = "Declarative Agent-Up capability versions made available on NixOS.";
+            };
           };
 
           config = lib.mkIf cfg.enable {
             environment.systemPackages = [ package ];
+            environment.etc."agent-up/capabilities.json".text = capabilityInventory;
             systemd.services.agent-up-server = {
               description = "Agent-Up Server";
               wantedBy = [ "multi-user.target" ];
@@ -271,6 +299,7 @@ case "$platform" in
               environment = {
                 ASPNETCORE_URLS = "http://127.0.0.1:${toString cfg.port}";
                 Storage__DataDirectory = cfg.dataDir;
+                AGENTUP_CAPABILITY_INVENTORY_PATH = "/etc/agent-up/capabilities.json";
               };
               serviceConfig = {
                 ExecStart = "${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}";
@@ -286,10 +315,19 @@ case "$platform" in
         let
           cfg = config.programs.agent-up;
           package = self.packages.${pkgs.system}.agent-up;
+          capabilityInventory = builtins.toJSON (
+            lib.mapAttrsToList (id: versions: { inherit id versions; }) cfg.capabilities
+          );
         in
         {
           options.programs.agent-up = {
             enable = lib.mkEnableOption "agent-up desktop";
+            capabilities = lib.mkOption {
+              type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+              default = {};
+              example = { dotnet = [ "10.0.x" ]; docker = [ "27.x" ]; };
+              description = "Declarative Agent-Up capability versions made available through Home Manager.";
+            };
             server = {
               enable = lib.mkOption {
                 type = lib.types.bool;
@@ -313,9 +351,17 @@ case "$platform" in
             home.packages = [ package ];
             home.file.".local/share/icons/hicolor/256x256/apps/agent-up.png".source =
               "${package}/opt/agent-up/logo.png";
+            home.file.".config/agent-up/capabilities.json".text = capabilityInventory;
             xdg.desktopEntries.agent-up = {
               name = "Agent Up";
               exec = "agent-up-desktop";
+              icon = "agent-up";
+              terminal = false;
+              categories = [ "Utility" ];
+            };
+            xdg.desktopEntries.agent-up-installer = {
+              name = "Agent Up Installer";
+              exec = "agent-up-installer";
               icon = "agent-up";
               terminal = false;
               categories = [ "Utility" ];
@@ -332,6 +378,7 @@ case "$platform" in
                 Environment = [
                   "ASPNETCORE_URLS=http://127.0.0.1:${toString cfg.server.port}"
                   "Storage__DataDirectory=${cfg.server.dataDir}"
+                  "AGENTUP_CAPABILITY_INVENTORY_PATH=${config.xdg.configHome}/agent-up/capabilities.json"
                 ];
               };
               Install.WantedBy = [ "default.target" ];

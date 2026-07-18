@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using AgentUp.CLI.Features.Workspaces.Factories;
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Tests.Fake;
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
@@ -365,6 +366,7 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
@@ -413,6 +415,44 @@ public class WorkspaceCommandsTests
         var text = output.ToString();
         Assert.That(text, Does.Contain("Database"));
         Assert.That(text, Does.Contain("postgres:16"));
+    }
+
+    [Test]
+    public async Task Start_PushesTypedDotnetAndDockerCapabilities_ToServer()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            name = "Typed App",
+            dotnet = new[]
+            {
+                new
+                {
+                    name = "Api",
+                    sdk = "10.0.x",
+                    run = new { project = "src/Api/Api.csproj", arguments = new[] { "--no-launch-profile" } },
+                    ports = new[] { new { variable = "API_PORT", defaultPort = 5000 } }
+                }
+            },
+            docker = new[]
+            {
+                new
+                {
+                    name = "Database",
+                    image = "postgres:17",
+                    ports = new[] { new { variable = "DB_PORT", defaultPort = 5432 } }
+                }
+            }
+        });
+        await File.WriteAllTextAsync(Path.Join(_workspaceDir, "agent-up.json"), json);
+
+        var output = new StringWriter();
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.That(workspaces![0].Applications.Select(app => app.Name), Is.EquivalentTo(new[] { "Api", "Database" }));
+        Assert.That(output.ToString(), Does.Contain(".NET (1):"));
+        Assert.That(output.ToString(), Does.Contain("Docker (1):"));
     }
 
     private static Task WriteAgentUpJsonAsync(string dir, string name) =>

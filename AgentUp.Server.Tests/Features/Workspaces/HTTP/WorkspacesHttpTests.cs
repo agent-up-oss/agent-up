@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
@@ -45,6 +46,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
@@ -208,7 +210,10 @@ public class WorkspacesHttpTests
     [Test]
     public async Task TutorialCleanup_RemovesWorkspace_WhenProcessKillFails()
     {
-        var registry = new WorkspaceRegistry(new InMemoryWorkspaceRepository(), new InMemoryPortAllocationService());
+        var registry = new WorkspaceRegistry(
+            new InMemoryWorkspaceRepository(),
+            new InMemoryPortAllocationService(),
+            new CapabilityReconciliationService([]));
         await registry.RegisterAsync(new RegisterWorkspaceRequest(
             "Normal",
             "/repos/app",
@@ -292,6 +297,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, FailingWorkspaceProcessManager>();

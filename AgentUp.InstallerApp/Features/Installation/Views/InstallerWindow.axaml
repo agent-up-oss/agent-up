@@ -2,81 +2,287 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AgentUp.InstallerApp.Features.Installation.Views.InstallerWindow"
         x:CompileBindings="False"
-        Width="840" Height="560"
-        MinWidth="720" MinHeight="480"
+        Width="1040" Height="720"
+        MinWidth="860" MinHeight="620"
         Title="Agent-Up Installer"
-        Background="#07110f">
+        Background="#0b1114">
     <Window.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#121a1f"/>
+            <Setter Property="BorderBrush" Value="#26343b"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="18"/>
+        </Style>
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="#3ddc97"/>
+            <Setter Property="Background" Value="#37d991"/>
             <Setter Property="Foreground" Value="#06110e"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="Padding" Value="14,8"/>
         </Style>
         <Style Selector="Button.secondary">
-            <Setter Property="Background" Value="#14251f"/>
-            <Setter Property="Foreground" Value="#f5fbf7"/>
-            <Setter Property="BorderBrush" Value="#28483d"/>
+            <Setter Property="Background" Value="#19262c"/>
+            <Setter Property="Foreground" Value="#eef6f2"/>
+            <Setter Property="BorderBrush" Value="#33454d"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="Padding" Value="12,7"/>
+        </Style>
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="#1b292f"/>
+            <Setter Property="Foreground" Value="#eef6f2"/>
+            <Setter Property="BorderBrush" Value="#35474f"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,6"/>
         </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="28">
-        <StackPanel Grid.Row="0" Spacing="4">
-            <TextBlock Text="Agent-Up Installer"
-                       Foreground="#8ee8bd"
-                       FontSize="13"
-                       FontWeight="Bold"/>
-            <TextBlock Name="StepTitle"
-                       Text="{Binding StepTitle}"
-                       Foreground="#f5fbf7"
-                       FontSize="30"
-                       FontWeight="Bold"/>
-        </StackPanel>
-
-        <Border Grid.Row="1"
-                Margin="0,28,0,24"
-                Padding="24"
-                Background="#0d1d18"
-                BorderBrush="#1e3c33"
-                BorderThickness="1"
-                CornerRadius="8">
-            <StackPanel Spacing="18">
-                <TextBlock Name="BodyText"
-                           Text="{Binding BodyText}"
-                           Foreground="#dbe7e1"
-                           FontSize="16"
-                           TextWrapping="Wrap"/>
-                <CheckBox Name="LicenseCheck"
-                          IsVisible="{Binding ShowLicenseCheck}"
-                          IsChecked="{Binding LicenseAccepted}"
-                          Foreground="#f5fbf7"
-                          Content="I accept the license agreement"/>
+    <Grid Margin="26" RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+            <StackPanel Spacing="3">
+                <TextBlock Text="Agent-Up Installer"
+                           Foreground="#8ee8bd"
+                           FontSize="13"
+                           FontWeight="Bold"/>
+                <TextBlock Name="PageTitle"
+                           Text="{Binding Page}"
+                           Foreground="#f5fbf7"
+                           FontSize="30"
+                           FontWeight="Bold"/>
             </StackPanel>
-        </Border>
-
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
-            <TextBlock Text="{Binding Step}"
-                       Foreground="#6f887d"
-                       VerticalAlignment="Center"/>
-            <Button Name="BackButton"
-                    Grid.Column="1"
+            <Button Grid.Column="1"
+                    Name="BackToDashboardButton"
                     Classes="secondary"
-                    Command="{Binding BackCommand}"
-                    IsEnabled="{Binding CanGoBack}"
-                    Margin="0,0,12,0">
+                    Command="{Binding BackToDashboardCommand}"
+                    IsVisible="{Binding IsAddModuleVisible}"
+                    VerticalAlignment="Center">
                 Back
             </Button>
-            <Button Name="NextButton"
-                    Grid.Column="2"
-                    Classes="primary"
-                    Command="{Binding NextCommand}"
-                    IsEnabled="{Binding CanGoNext}">
-                <TextBlock Text="{Binding NextButtonText}"/>
-            </Button>
+        </Grid>
+
+        <Grid Grid.Row="1" IsVisible="{Binding IsDashboardVisible}" RowDefinitions="Auto,Auto,*">
+            <ItemsControl Name="ComponentCards" ItemsSource="{Binding ComponentCards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1" Columns="3"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="card" Margin="0,0,14,0">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" MinHeight="205">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding Title}"
+                                               Foreground="#f5fbf7"
+                                               FontSize="21"
+                                               FontWeight="Bold"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding StatusText}"
+                                               Foreground="{Binding StatusBrush}"
+                                               FontWeight="Bold"/>
+                                </Grid>
+                                <TextBlock Grid.Row="1"
+                                           Text="{Binding Description}"
+                                           Foreground="#b9c8c2"
+                                           TextWrapping="Wrap"
+                                           Margin="0,10,0,0"/>
+                                <TextBlock Grid.Row="2"
+                                           Text="{Binding Detail}"
+                                           Foreground="#dfe8e3"
+                                           TextWrapping="Wrap"
+                                           Margin="0,14,0,0"/>
+                                <ProgressBar Grid.Row="3"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             Value="{Binding Progress}"
+                                             IsVisible="{Binding IsProgressVisible}"
+                                             Foreground="#fdb022"
+                                             Background="#27343a"
+                                             Height="8"
+                                             Margin="0,14,0,0"/>
+                                <Grid Grid.Row="4"
+                                      ColumnDefinitions="*,Auto,Auto"
+                                      ColumnSpacing="8"
+                                      Margin="0,18,0,0">
+                                    <Button Classes="primary"
+                                            Command="{Binding InstallCommand}"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center">
+                                        <TextBlock Text="{Binding PrimaryButtonText}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Classes="secondary"
+                                            Command="{Binding RepairCommand}"
+                                            IsVisible="{Binding SupportsInstallActions}">
+                                        Repair
+                                    </Button>
+                                    <Button Grid.Column="2"
+                                            Classes="secondary"
+                                            Command="{Binding UninstallCommand}"
+                                            IsVisible="{Binding SupportsInstallActions}">
+                                        Uninstall
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Grid.Row="1"
+                       Text="Capability modules"
+                       Foreground="#f5fbf7"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Margin="0,28,0,12"/>
+
+            <ScrollViewer Grid.Row="2">
+                <WrapPanel>
+                    <ItemsControl Name="CapabilityCards" ItemsSource="{Binding CapabilityCards}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="card" Width="292" MinHeight="168" Margin="0,0,14,14">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       Foreground="#f5fbf7"
+                                                       FontSize="18"
+                                                       FontWeight="Bold"/>
+                                            <Button Grid.Column="1"
+                                                    Classes="icon"
+                                                    Command="{Binding EditCommand}">
+                                                Edit
+                                            </Button>
+                                        </Grid>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding Description}"
+                                                   Foreground="#b9c8c2"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,10,0,0"/>
+                                        <TextBlock Grid.Row="2"
+                                                   Text="{Binding Detail}"
+                                                   Foreground="#dfe8e3"
+                                                   Margin="0,12,0,0"/>
+                                        <TextBlock Grid.Row="3"
+                                                   Text="{Binding StatusText}"
+                                                   Foreground="{Binding StatusBrush}"
+                                                   FontWeight="Bold"
+                                                   Margin="0,12,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button Name="AddModuleCard"
+                            Width="292"
+                            MinHeight="168"
+                            Margin="0,0,14,14"
+                            Command="{Binding AddModuleCommand}"
+                            Background="#11191e"
+                            BorderBrush="#33454d"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                        <TextBlock Text="+"
+                                   FontSize="44"
+                                   FontWeight="Bold"
+                                   Foreground="#8ee8bd"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Button>
+                </WrapPanel>
+            </ScrollViewer>
+
+            <Border Name="CapabilityEditPanel"
+                    Classes="card"
+                    Width="360"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Stretch"
+                    IsVisible="{Binding IsCapabilityEditVisible}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{Binding SelectedCapability.DisplayName}"
+                               Foreground="#f5fbf7"
+                               FontSize="22"
+                               FontWeight="Bold"/>
+                    <TextBlock Text="{Binding SelectedCapability.Description}"
+                               Foreground="#b9c8c2"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="Versions"
+                               Foreground="#f5fbf7"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               Margin="0,10,0,0"/>
+                    <ItemsControl Name="CapabilityVersions" ItemsSource="{Binding SelectedCapability.Versions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Version}" Foreground="#f5fbf7"/>
+                                        <TextBlock Text="{Binding Source}" Foreground="#8798a0" FontSize="12"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding ActiveText}"
+                                               Foreground="#32d583"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
+                                    <Button Grid.Column="2"
+                                            Classes="secondary"
+                                            Command="{Binding SelectCommand}">
+                                        Use
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="1" IsVisible="{Binding IsAddModuleVisible}" RowDefinitions="Auto,*">
+            <TextBlock Text="Official capability catalog"
+                       Foreground="#dfe8e3"
+                       FontSize="16"
+                       Margin="0,0,0,16"/>
+            <ScrollViewer Grid.Row="1">
+                <ItemsControl Name="CatalogEntries" ItemsSource="{Binding CatalogEntries}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card" Margin="0,0,0,12">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Text="{Binding DisplayName}"
+                                               Foreground="#f5fbf7"
+                                               FontSize="20"
+                                               FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding Description}"
+                                               Foreground="#b9c8c2"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,18,0"/>
+                                    <TextBlock Grid.Row="2"
+                                               Text="{Binding Version}"
+                                               Foreground="#8798a0"
+                                               Margin="0,10,0,0"/>
+                                    <Button Grid.Column="1"
+                                            Grid.RowSpan="3"
+                                            Classes="primary"
+                                            Command="{Binding InstallCommand}"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ButtonText}"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

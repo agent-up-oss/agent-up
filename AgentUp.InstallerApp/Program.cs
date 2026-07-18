@@ -27,6 +27,9 @@ catch (Exception exception)
 
 static void SetBundledPayloadRoot(string[] args)
 {
+    if (InstallerPlatformAdapterFactory.UseNixOsLookupOnlyMode())
+        return;
+
     if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable)))
         return;
 
