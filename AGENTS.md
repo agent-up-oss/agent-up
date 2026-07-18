@@ -404,6 +404,8 @@ MCP is the primary automation interface for AI agents.
 
 Agents should use MCP directly instead of shelling through the CLI when browser inspection, interaction, diagnostics, logs, screenshots, or Playwright generation are needed. Full guide: `docs/developer-guide/mcp.md`.
 
+Agent-Up MCP initialization instructions must tell clients to use `start_workspace` when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up; this means starting the local managed development environment, not deploying to cloud infrastructure.
+
 # Configuration Rules
 
 Every managed repository is described declaratively with `agent-up.json`.

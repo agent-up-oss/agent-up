@@ -40,7 +40,10 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 #pragma warning disable MCP9004 // Legacy SSE is intentionally enabled for trusted local compatibility clients.
-builder.Services.AddMcpServer()
+builder.Services.AddMcpServer(options =>
+{
+    options.ServerInstructions = AgentUpMcpGuidance.ServerInstructions;
+})
     .WithHttpTransport(options =>
     {
         options.Stateless = false;

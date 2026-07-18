@@ -175,8 +175,26 @@ public sealed class AgentUpMcpToolsTests
     public void ContextTools_ReturnCanonicalGuidance()
     {
         Assert.That(_tools.GetAgentUpContext(), Does.Contain("AgentUp.Server is the single source of truth"));
+        Assert.That(_tools.GetAgentUpContext(), Does.Contain("deploy my app with Agent-Up"));
+        Assert.That(_tools.GetAgentUpContext(), Does.Contain("call start_workspace"));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"services\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"ports\""));
+    }
+
+    [Test]
+    public void StartWorkspaceDescription_TellsAgentsWhenToUseAgentUp()
+    {
+        var description = typeof(AgentUpMcpTools)
+            .GetMethod(nameof(AgentUpMcpTools.StartWorkspace))!
+            .GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+            .Cast<System.ComponentModel.DescriptionAttribute>()
+            .Single()
+            .Description;
+
+        Assert.That(description, Does.Contain("deploy"));
+        Assert.That(description, Does.Contain("run"));
+        Assert.That(description, Does.Contain("Agent-Up"));
+        Assert.That(description, Does.Contain("local development environments"));
     }
 
     private async Task<Workspace> RegisterRunningWorkspace(string worktreePath)
