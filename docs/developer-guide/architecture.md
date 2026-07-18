@@ -27,6 +27,18 @@ agent-up.sln
 AgentUp.Server/
   AgentUp.Server.csproj
 
+AgentUp.Capabilities.Abstractions/
+  AgentUp.Capabilities.Abstractions.csproj
+
+AgentUp.Capabilities.Common/
+  AgentUp.Capabilities.Common.csproj
+
+AgentUp.Capabilities.Dotnet/
+  AgentUp.Capabilities.Dotnet.csproj
+
+AgentUp.Capabilities.Docker/
+  AgentUp.Capabilities.Docker.csproj
+
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
@@ -47,6 +59,18 @@ AgentUp.PackageSmoke/
 
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
+
+AgentUp.Capabilities.Abstractions.Tests/
+  AgentUp.Capabilities.Abstractions.Tests.csproj
+
+AgentUp.Capabilities.Common.Tests/
+  AgentUp.Capabilities.Common.Tests.csproj
+
+AgentUp.Capabilities.Dotnet.Tests/
+  AgentUp.Capabilities.Dotnet.Tests.csproj
+
+AgentUp.Capabilities.Docker.Tests/
+  AgentUp.Capabilities.Docker.Tests.csproj
 
 AgentUp.Desktop.Tests/
   AgentUp.Desktop.Tests.csproj
@@ -126,12 +150,15 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 ## Component Responsibilities
 
+`AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, and install planning. First-party adapters such as `AgentUp.Capabilities.Dotnet` and `AgentUp.Capabilities.Docker` own ecosystem discovery, version reconciliation, validation, and launch planning.
+
 `AgentUp.Server` performs orchestration:
 
 - Workspace registry.
 - Process lifecycle.
 - Port allocation.
 - Docker lifecycle.
+- Capability reconciliation and status.
 - Browser lifecycle.
 - Browser profile management.
 - Event recording.

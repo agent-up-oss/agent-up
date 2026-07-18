@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Capabilities.DTOs;
 
 namespace AgentUp.Server.Features.Applications.DTOs;
 
@@ -15,6 +16,11 @@ public class ApplicationInstance
     public string? Image { get; init; }
     public IReadOnlyDictionary<string, string>? Environment { get; init; }
     public IReadOnlyList<string>? Volumes { get; init; }
+
+    // Capability reconciliation fields
+    public string? CapabilityId { get; init; }
+    public string? CapabilityVersionRequirement { get; init; }
+    public CapabilityStatusDto? CapabilityStatus { get; init; }
 
     // Port declarations (shared by process and docker apps)
     public IReadOnlyList<PortDeclaration> Ports { get; init; } = [];
