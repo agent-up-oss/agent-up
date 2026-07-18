@@ -78,6 +78,17 @@ public class InstallerPlatformAdapterFactoryTests
     }
 
     [Test]
+    public void PayloadCandidateDirectories_includesAppBaseDirectoryAndProcessExecutableDirectory()
+    {
+        var appBaseDirectory = Path.Join(Path.GetTempPath(), "AgentUp-InstallerPlatformAdapterFactoryTests", Guid.NewGuid().ToString());
+
+        var candidates = InstallerPlatformAdapterFactory.PayloadCandidateDirectories(appBaseDirectory);
+
+        Assert.That(candidates, Does.Contain(Path.GetFullPath(appBaseDirectory)));
+        Assert.That(candidates, Does.Contain(Path.GetDirectoryName(Environment.ProcessPath!)));
+    }
+
+    [Test]
     public void Create_returnsLinuxAdapterByDefaultWhenPayloadRootIsProvided()
     {
         if (!OperatingSystem.IsLinux())

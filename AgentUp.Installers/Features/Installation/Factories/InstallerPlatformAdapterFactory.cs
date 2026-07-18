@@ -46,15 +46,41 @@ public static class InstallerPlatformAdapterFactory
         if (!string.IsNullOrWhiteSpace(payloadRoot))
             return payloadRoot;
 
-        var bundledPayloadRoot = System.IO.Path.Join(appBaseDirectory, "payload");
-        if (Directory.Exists(System.IO.Path.Join(bundledPayloadRoot, "desktop")) &&
-            Directory.Exists(System.IO.Path.Join(bundledPayloadRoot, "server")) &&
-            Directory.Exists(System.IO.Path.Join(bundledPayloadRoot, "cli")))
+        foreach (var candidateDirectory in PayloadCandidateDirectories(appBaseDirectory))
         {
-            return bundledPayloadRoot;
+            var bundledPayloadRoot = System.IO.Path.Join(candidateDirectory, "payload");
+            if (IsPayloadRoot(bundledPayloadRoot))
+                return bundledPayloadRoot;
         }
 
         throw new InvalidOperationException($"{PayloadRootVariable} must point at a payload root containing desktop, server, and cli directories, or the installer app must include a bundled payload directory next to the executable.");
+    }
+
+    public static IReadOnlyList<string> PayloadCandidateDirectories(string appBaseDirectory)
+    {
+        var candidates = new List<string>();
+        AddCandidate(candidates, appBaseDirectory);
+
+        var processPath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(processPath))
+            AddCandidate(candidates, System.IO.Path.GetDirectoryName(processPath));
+
+        return candidates;
+    }
+
+    private static bool IsPayloadRoot(string payloadRoot)
+        => Directory.Exists(System.IO.Path.Join(payloadRoot, "desktop")) &&
+           Directory.Exists(System.IO.Path.Join(payloadRoot, "server")) &&
+           Directory.Exists(System.IO.Path.Join(payloadRoot, "cli"));
+
+    private static void AddCandidate(List<string> candidates, string? candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+            return;
+
+        var fullPath = System.IO.Path.GetFullPath(candidate);
+        if (!candidates.Contains(fullPath, StringComparer.Ordinal))
+            candidates.Add(fullPath);
     }
 
     private static IInstallerPlatformAdapter CreateUbuntuAdapter(string payloadRoot)
