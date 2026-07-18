@@ -41,6 +41,7 @@ public sealed class WindowsWixSourceGenerator
 {
     private static readonly XNamespace Wix = "http://wixtoolset.org/schemas/v4/wxs";
     private static readonly XNamespace Bal = "http://wixtoolset.org/schemas/v4/wxs/bal";
+    private static readonly XNamespace Util = "http://wixtoolset.org/schemas/v4/wxs/util";
     private readonly WindowsInstallerManifest _manifest;
 
     public WindowsWixSourceGenerator(WindowsInstallerManifest manifest)
@@ -100,8 +101,11 @@ public sealed class WindowsWixSourceGenerator
         var installerExecutable = System.IO.Path.Combine(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         var installerPackage = new XElement(Wix + "ExePackage",
             new XAttribute("SourceFile", installerExecutable),
-            new XAttribute("Permanent", "yes"),
-            new XAttribute("Vital", "yes"));
+            new XAttribute("PerMachine", "yes"),
+            new XAttribute("Vital", "yes"),
+            new XAttribute("DetectCondition", "AgentUpInstalled"),
+            new XAttribute("InstallArguments", $"--payload-root \"[WixBundleExecutePackageCacheFolder]payload\""),
+            new XAttribute("UninstallArguments", "--uninstall"));
 
         foreach (var payload in BundlePayloads(layout, installerExecutable))
             installerPackage.Add(payload);
@@ -112,6 +116,14 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("Version", _manifest.Version),
             new XAttribute("UpgradeCode", StableGuid("bundle-upgrade")),
             new XAttribute(XNamespace.Xmlns + "bal", Bal),
+            new XAttribute(XNamespace.Xmlns + "util", Util),
+            new XElement(Util + "RegistrySearch",
+                new XAttribute("Id", "AgentUpInstalledSearch"),
+                new XAttribute("Root", "HKLM"),
+                new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up"),
+                new XAttribute("Result", "exists"),
+                new XAttribute("Variable", "AgentUpInstalled"),
+                new XAttribute("Bitness", "always64")),
             new XElement(Wix + "BootstrapperApplication",
                 new XElement(Bal + "WixStandardBootstrapperApplication",
                     new XAttribute("Theme", "rtfLicense"),

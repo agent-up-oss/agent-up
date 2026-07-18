@@ -88,9 +88,9 @@ The wrappers enter a target-specific shell under `packaging/nix/` and then deleg
 
 The generated Nix package-set flake exports both `nixosModules.default` and `homeManagerModules.default`. The NixOS module registers the Server as the system `agent-up-server.service`. The Home Manager module installs Desktop and CLI and, by default, registers a user `agent-up-server.service` so Home Manager-only installs still provide a local Server on port 5000; users can disable that user service when a system service already owns the Server.
 
-Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable.
+Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, stages required WiX extension DLLs on Windows, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable.
 
-The Windows bootstrapper executable launches the guided `AgentUp.InstallerApp` with a bundled `desktop`, `server`, and `cli` payload. The generated MSI is still copied to the named `agent-up-windows-<rid>.msi` sidecar artifact for direct native validation and troubleshooting.
+The Windows bootstrapper executable launches the guided `AgentUp.InstallerApp` with an explicit Burn package-cache payload root containing the bundled `desktop`, `server`, and `cli` payload. The Burn chain must author the guided installer package with a detect condition, install arguments, and uninstall arguments so the bootstrapper registers in Apps & Features and can remove the installation through the cached installer app. The generated MSI is still copied to the named `agent-up-windows-<rid>.msi` sidecar artifact for direct native validation and troubleshooting.
 
 Windows packaging consumes Windows install metadata, WiX generation, service, PATH, and shortcut contracts from `AgentUp.Installers`. Tests assert the generated WiX service, PATH, shortcut, guided-installer chain, bundled payload, MSI sidecar, and exact `wix` command shape with an isolated fake command runner.
 
@@ -98,7 +98,7 @@ Windows MSI metadata uses a Windows Installer product version derived from the p
 
 macOS packaging uses `Product.pkg` through `AgentUp.Packaging`. The packaging app stages the guided InstallerApp bundle, bundled installer payload, Desktop `.app` bundle, launchd plist, CLI payload, component package roots, package scripts, distribution XML, and `pkgbuild`/`productbuild` command shapes while consuming macOS install metadata, plist generation, and package scripts from `AgentUp.Installers`.
 
-The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after native component setup so users see the shared guided installer flow. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
+The macOS package postinstall script opens `/Applications/Agent-Up Installer.app` after native component setup so users see the shared guided installer flow. The app resolves its bundled payload from `Contents/MacOS/payload` when `AGENTUP_INSTALLER_PAYLOAD_ROOT` is not set, and the installer component removes any previous installer bundle before installing the new one so stale bundled files cannot survive package upgrades. Tests assert those generated files and commands on any platform; executing the final Apple packaging tools still requires Darwin.
 
 When any native packaging tool is invoked from `AgentUp.Packaging`, tests should assert the exact command shape with an isolated fake command runner and smoke tests should verify the produced artifact on an appropriate runner.
 

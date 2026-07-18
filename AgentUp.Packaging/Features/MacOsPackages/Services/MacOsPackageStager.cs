@@ -39,8 +39,11 @@ public sealed class MacOsPackageStager
         _writer.SetExecutable(Path.Join(layout.ServerComponentRoot, "Library", "Application Support", "Agent-Up", "server", "AgentUp.Server"));
         _writer.WriteText(layout.PreInstallScriptPath, MacOsScriptGenerator.PreInstallScript());
         _writer.WriteText(layout.PostInstallScriptPath, MacOsScriptGenerator.PostInstallScript());
+        var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
+        _writer.WriteText(installerPreInstallScriptPath, MacOsScriptGenerator.InstallerPreInstallScript());
         _writer.SetExecutable(layout.PreInstallScriptPath);
         _writer.SetExecutable(layout.PostInstallScriptPath);
+        _writer.SetExecutable(installerPreInstallScriptPath);
         _writer.WriteText(layout.DistributionXmlPath, MacOsDistributionGenerator.DistributionXml(layout, manifest));
     }
 }
