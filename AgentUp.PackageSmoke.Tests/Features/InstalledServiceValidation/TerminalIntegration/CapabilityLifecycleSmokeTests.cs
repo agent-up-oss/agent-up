@@ -28,7 +28,8 @@ public sealed class CapabilityLifecycleSmokeTests
                 CancellationToken.None);
 
             Assert.That(assert.Findings, Is.Empty);
-            Assert.That(File.Exists(Path.Join(workDir, "capability-workspace", "agent-up.json")), Is.True);
+            var config = await File.ReadAllTextAsync(Path.Join(workDir, "capability-workspace", "agent-up.json"));
+            Assert.That(config, Does.Contain("nginx:alpine"));
             Assert.That(commands.Commands.Any(command => command.Arguments.Any(argument => argument.Contains("agent-up start", StringComparison.Ordinal))), Is.True);
         }
         finally
