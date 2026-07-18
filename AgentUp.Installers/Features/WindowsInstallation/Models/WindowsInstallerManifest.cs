@@ -125,7 +125,6 @@ public sealed class WindowsWixSourceGenerator
                 new XAttribute("Variable", "AgentUpInstalled"),
                 new XAttribute("Bitness", "always64")),
             new XElement(Wix + "BootstrapperApplication",
-                new XAttribute("Name", "AgentUpBootstrapperApplication.exe"),
                 new XElement(Bal + "WixStandardBootstrapperApplication",
                     new XAttribute("Theme", "rtfLicense"),
                     new XAttribute("LicenseFile", layout.LicenseRtfPath))),
