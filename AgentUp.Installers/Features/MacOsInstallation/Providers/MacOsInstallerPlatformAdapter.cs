@@ -128,7 +128,11 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         finally
         {
             foreach (var tmp in tempFiles.Values)
-                try { File.Delete(tmp); } catch { }
+            {
+                try { File.Delete(tmp); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
 
         yield return progress.Complete(InstallOperationKind.InstallFiles);
@@ -280,7 +284,9 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         }
         finally
         {
-            try { File.Delete(tmpFile); } catch { }
+            try { File.Delete(tmpFile); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
     }
 

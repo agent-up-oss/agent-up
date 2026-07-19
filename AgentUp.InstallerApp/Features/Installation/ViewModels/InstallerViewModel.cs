@@ -150,7 +150,10 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
                 if (status.Kind != InstallerComponentStatusKind.NotInstalled)
                     card.ApplyStatus(status);
             }
-            catch { }
+            catch (Exception statusEx)
+            {
+                card.Fail($"{ex.Message} (Status refresh failed: {statusEx.Message})");
+            }
         }
     }
 
