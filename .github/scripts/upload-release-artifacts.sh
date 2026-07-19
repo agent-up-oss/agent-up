@@ -56,6 +56,10 @@ checksum_file="$artifact_dir/checksums.sha256"
   for artifact in "${expected_artifacts[@]}"; do
     sha256sum "$artifact" >> "$(basename "$checksum_file")"
   done
+  # Include optional signing artifacts when present
+  for optional in agent-up-ubuntu-linux-x64.deb.asc; do
+    [ -f "$optional" ] && sha256sum "$optional" >> "$(basename "$checksum_file")"
+  done
 )
 
 cat > "$manifest" <<JSON
