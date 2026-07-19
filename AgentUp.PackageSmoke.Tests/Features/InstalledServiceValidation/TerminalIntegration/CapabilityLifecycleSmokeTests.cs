@@ -39,6 +39,37 @@ public sealed class CapabilityLifecycleSmokeTests
         }
     }
 
+    [Test]
+    public async Task RunAsync_usesDockerImageOverrideWhenProvided()
+    {
+        var previous = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
+        var commands = new RecordingCommandRunner();
+        var http = new HttpClient(new SmokeHttpHandler());
+        var assert = new FileAssertions();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", "example/smoke:windows");
+            await new CapabilityLifecycleSmoke(commands, http).RunAsync(
+                workDir,
+                new InstalledServiceContext("agent-up", null, [], []),
+                "http://localhost:5000",
+                assert,
+                CancellationToken.None);
+
+            Assert.That(assert.Findings, Is.Empty);
+            var config = await File.ReadAllTextAsync(Path.Join(workDir, "capability-workspace", "agent-up.json"));
+            Assert.That(config, Does.Contain("example/smoke:windows"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", previous);
+            if (Directory.Exists(workDir))
+                Directory.Delete(workDir, recursive: true);
+        }
+    }
+
     private static string ExpectedDockerImageForCurrentPlatform()
     {
         if (!OperatingSystem.IsWindows())

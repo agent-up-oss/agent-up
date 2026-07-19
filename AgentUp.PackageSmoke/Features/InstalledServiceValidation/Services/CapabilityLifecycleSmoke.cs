@@ -113,6 +113,10 @@ public sealed class CapabilityLifecycleSmoke
 
     private static string DockerSmokeImage()
     {
+        var image = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
+        if (!string.IsNullOrWhiteSpace(image))
+            return image;
+
         if (!OperatingSystem.IsWindows())
             return "nginx:alpine";
 
