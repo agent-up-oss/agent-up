@@ -1,3 +1,4 @@
+using AgentUp.InstallerApp.Features.Logging;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation.Interfaces;
@@ -36,6 +37,7 @@ public static class InstallerCommandLine
         TextWriter error,
         CancellationToken cancellationToken = default)
     {
+        InstallerLog.Write($"CLI: args=[{string.Join(", ", args)}]");
         try
         {
             var adapter = InstallerPlatformAdapterFactory.Create();
@@ -43,6 +45,7 @@ public static class InstallerCommandLine
         }
         catch (InvalidOperationException exception)
         {
+            InstallerLog.WriteException("CLI", exception);
             await error.WriteLineAsync(exception.Message);
             return 1;
         }
