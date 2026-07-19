@@ -1,3 +1,4 @@
+using System.Text;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
@@ -66,6 +67,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             action,
             session,
             ExecuteInstallAsync,
+            ExecuteUninstallAsync,
             cancellationToken);
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
@@ -104,59 +106,57 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         yield return progress.Complete(InstallOperationKind.StagePayload);
 
         var summary = session.Summary();
-        if (summary.Includes(InstallerComponent.Desktop))
+        var tempFiles = new Dictionary<string, string>();
+        try
         {
-            _files.ResetDirectory(_options.Paths.AppBundleDirectory);
-            _files.CreateDirectory(System.IO.Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
-            _files.CreateDirectory(_options.Paths.DesktopResourcesDirectory);
-            _files.CopyDirectory(_options.Payload.DesktopDirectory, System.IO.Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
-            _files.CopyFile(_options.Payload.IconPath, _options.Paths.DesktopIconPath);
-            _files.WriteText(_options.Paths.DesktopInfoPlistPath, plists.DesktopInfoPlist());
-            _files.SetExecutable(_options.Paths.DesktopExecutable);
+            if (summary.Includes(InstallerComponent.Desktop))
+            {
+                var tmpPlist = Path.GetTempFileName();
+                await File.WriteAllTextAsync(tmpPlist, plists.DesktopInfoPlist(), cancellationToken);
+                tempFiles[_options.Paths.DesktopInfoPlistPath] = tmpPlist;
+            }
+
+            if (summary.Includes(InstallerComponent.Server))
+            {
+                var tmpDaemon = Path.GetTempFileName();
+                await File.WriteAllTextAsync(tmpDaemon, plists.LaunchDaemonPlist(), cancellationToken);
+                tempFiles[_options.Paths.LaunchDaemonPath] = tmpDaemon;
+            }
+
+            await RunElevatedAsync(BuildInstallScript(session, summary, tempFiles, manifest), cancellationToken);
+        }
+        finally
+        {
+            foreach (var tmp in tempFiles.Values)
+                try { File.Delete(tmp); } catch { }
         }
 
-        if (summary.Includes(InstallerComponent.Server))
-        {
-            _files.ResetDirectory(_options.Paths.ServerDirectory);
-            _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
-            _files.WriteText(_options.Paths.LaunchDaemonPath, plists.LaunchDaemonPlist());
-            _files.CreateDirectory(_options.Paths.ApplicationSupportDirectory);
-            _files.CreateDirectory(_options.Paths.LogsDirectory);
-            _files.SetExecutable(_options.Paths.ServerExecutable);
-        }
-
-        if (summary.Includes(InstallerComponent.Cli))
-        {
-            _files.ResetDirectory(_options.Paths.CliDirectory);
-            _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
-            _files.SetExecutable(_options.Paths.CliExecutable);
-        }
         yield return progress.Complete(InstallOperationKind.InstallFiles);
 
         if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
-        {
-            await _requiredCommands.RunAsync("chown", $"root:wheel \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
-            await _requiredCommands.RunAsync("chmod", $"644 \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
-            await _requiredCommands.RunAsync("launchctl", $"bootstrap system \"{_options.Paths.LaunchDaemonPath}\"", cancellationToken);
-            await _requiredCommands.RunAsync("launchctl", $"kickstart -k system/{manifest.ServerLaunchDaemonLabel}", cancellationToken);
             yield return progress.Complete(InstallOperationKind.RegisterService);
-        }
 
         if (summary.Includes(InstallerComponent.Cli))
-        {
-            _files.CreateSymbolicLink(_options.Paths.CliSymlinkPath, _options.Paths.CliExecutable);
             yield return progress.Complete(InstallOperationKind.RegisterCli);
-        }
-
-        if (summary.Includes(InstallerComponent.Server))
-            _files.CreateSymbolicLink(_options.Paths.ServerSymlinkPath, _options.Paths.ServerExecutable);
-
-        if (summary.Includes(InstallerComponent.Desktop))
-            _files.CreateSymbolicLink(_options.Paths.DesktopSymlinkPath, _options.Paths.DesktopExecutable);
 
         if (summary.Includes(InstallerComponent.Desktop))
             yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+
         yield return progress.Complete(InstallOperationKind.RegisterUninstall);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
+
+    public async IAsyncEnumerable<InstallProgress> ExecuteUninstallAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, PlanInstall);
+        var progress = new InstallProgressTracker(operations);
+
+        await RunElevatedAsync(BuildUninstallScript(target), cancellationToken);
+
+        yield return progress.Complete(InstallerComponentOperations.TargetOperationKind(target));
         yield return progress.Complete(InstallOperationKind.ValidateInstallation);
     }
 
@@ -178,4 +178,112 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             DesktopVersion: session.Version), session.Version);
     }
 
+    private string BuildInstallScript(
+        InstallerSession session,
+        InstallSummary summary,
+        Dictionary<string, string> tempFiles,
+        MacOsInstallerManifest manifest)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("set -euo pipefail");
+
+        if (summary.Includes(InstallerComponent.Desktop))
+        {
+            var appBundle = Q(_options.Paths.AppBundleDirectory);
+            var macosDir = Q(Path.Join(_options.Paths.AppBundleDirectory, "Contents", "MacOS"));
+            sb.AppendLine($"rm -rf {appBundle}");
+            sb.AppendLine($"mkdir -p {macosDir}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.DesktopResourcesDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.DesktopDirectory)}/. {macosDir}");
+            sb.AppendLine($"cp {Q(_options.Payload.IconPath)} {Q(_options.Paths.DesktopIconPath)}");
+            sb.AppendLine($"cp {Q(tempFiles[_options.Paths.DesktopInfoPlistPath])} {Q(_options.Paths.DesktopInfoPlistPath)}");
+            sb.AppendLine($"chmod +x {Q(_options.Paths.DesktopExecutable)}");
+            sb.AppendLine($"rm -f {Q(_options.Paths.DesktopSymlinkPath)}");
+            sb.AppendLine($"ln -sf {Q(_options.Paths.DesktopExecutable)} {Q(_options.Paths.DesktopSymlinkPath)}");
+        }
+
+        if (summary.Includes(InstallerComponent.Server))
+        {
+            sb.AppendLine($"rm -rf {Q(_options.Paths.ServerDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.ServerDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.ServerDirectory)}/. {Q(_options.Paths.ServerDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.ApplicationSupportDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.LogsDirectory)}");
+            sb.AppendLine($"chmod +x {Q(_options.Paths.ServerExecutable)}");
+            sb.AppendLine($"cp {Q(tempFiles[_options.Paths.LaunchDaemonPath])} {Q(_options.Paths.LaunchDaemonPath)}");
+            sb.AppendLine($"chown root:wheel {Q(_options.Paths.LaunchDaemonPath)}");
+            sb.AppendLine($"chmod 644 {Q(_options.Paths.LaunchDaemonPath)}");
+            sb.AppendLine($"launchctl bootstrap system {Q(_options.Paths.LaunchDaemonPath)}");
+            sb.AppendLine($"launchctl kickstart -k system/{manifest.ServerLaunchDaemonLabel}");
+            sb.AppendLine($"rm -f {Q(_options.Paths.ServerSymlinkPath)}");
+            sb.AppendLine($"ln -sf {Q(_options.Paths.ServerExecutable)} {Q(_options.Paths.ServerSymlinkPath)}");
+        }
+
+        if (summary.Includes(InstallerComponent.Cli))
+        {
+            sb.AppendLine($"rm -rf {Q(_options.Paths.CliDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.CliDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.CliDirectory)}/. {Q(_options.Paths.CliDirectory)}");
+            sb.AppendLine($"chmod +x {Q(_options.Paths.CliExecutable)}");
+            sb.AppendLine($"rm -f {Q(_options.Paths.CliSymlinkPath)}");
+            sb.AppendLine($"ln -sf {Q(_options.Paths.CliExecutable)} {Q(_options.Paths.CliSymlinkPath)}");
+        }
+
+        return sb.ToString();
+    }
+
+    private string BuildUninstallScript(InstallerComponentTarget target)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("set -euo pipefail");
+
+        if (target == InstallerComponentTarget.Server)
+        {
+            sb.AppendLine($"launchctl bootout system {Q(_options.Paths.LaunchDaemonPath)} 2>/dev/null || true");
+            sb.AppendLine($"rm -f {Q(_options.Paths.LaunchDaemonPath)}");
+            sb.AppendLine($"rm -rf {Q(_options.Paths.ServerDirectory)}");
+            sb.AppendLine($"rm -f {Q(_options.Paths.ServerSymlinkPath)}");
+        }
+        else if (target == InstallerComponentTarget.Cli)
+        {
+            sb.AppendLine($"rm -rf {Q(_options.Paths.CliDirectory)}");
+            sb.AppendLine($"rm -f {Q(_options.Paths.CliSymlinkPath)}");
+        }
+        else if (target == InstallerComponentTarget.Desktop)
+        {
+            sb.AppendLine($"rm -rf {Q(_options.Paths.AppBundleDirectory)}");
+            sb.AppendLine($"rm -f {Q(_options.Paths.DesktopSymlinkPath)}");
+        }
+
+        return sb.ToString();
+    }
+
+    private async Task RunElevatedAsync(string script, CancellationToken cancellationToken)
+    {
+        var tmpFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(tmpFile, "#!/usr/bin/env bash\n" + script, cancellationToken);
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(tmpFile, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+            if (Environment.UserName == "root")
+            {
+                await _requiredCommands.RunAsync("bash", $"'{tmpFile}'", cancellationToken);
+            }
+            else
+            {
+                await _requiredCommands.RunAsync("osascript",
+                    $"-e 'do shell script \"{tmpFile}\" with administrator privileges'",
+                    cancellationToken);
+            }
+        }
+        finally
+        {
+            try { File.Delete(tmpFile); } catch { }
+        }
+    }
+
+    // Single-quote a path for shell use (escaping any embedded single quotes).
+    private static string Q(string path) => $"'{path.Replace("'", "'\\''")}'";
 }
