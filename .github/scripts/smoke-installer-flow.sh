@@ -10,6 +10,14 @@ platform="$1"
 payload_root="${2:-}"
 work_dir="$(pwd)/artifacts/installer-flow-smoke/$platform"
 
+if [ -n "${AGENTUP_INSTALLER_APP_COMMAND:-}" ]; then
+  if [ -n "$payload_root" ]; then
+    "$AGENTUP_INSTALLER_APP_COMMAND" --smoke-installer-operations --payload-root "$payload_root"
+  else
+    "$AGENTUP_INSTALLER_APP_COMMAND" --smoke-installer-operations
+  fi
+fi
+
 if [ -n "$payload_root" ]; then
   if [ -n "${AGENTUP_PACKAGE_SMOKE_COMMAND:-}" ]; then
     exec "$AGENTUP_PACKAGE_SMOKE_COMMAND" validate-installer-flow "$platform" "$work_dir" "$payload_root"

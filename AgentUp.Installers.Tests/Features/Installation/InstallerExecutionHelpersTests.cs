@@ -65,6 +65,19 @@ public class InstallerExecutionHelpersTests
         Assert.That(decoded, Is.EqualTo("Write-Output \"C:\\Program Files\\Agent-Up\\uninstall-agent-up.ps1\""));
     }
 
+    [Test]
+    public void RequiredCommandRunner_reportsPowerShellFailureWithoutEncodedCommand()
+    {
+        var commands = new RecordingCommandRunner(new ProcessResult(1, "", "Access is denied."));
+        var runner = new RequiredCommandRunner(commands);
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await runner.RunPowerShellAsync("SetEnvironmentVariable('Path', 'value', 'Machine')", CancellationToken.None));
+
+        Assert.That(ex!.Message, Is.EqualTo("PowerShell command failed: Access is denied."));
+        Assert.That(ex.Message, Does.Not.Contain("-EncodedCommand"));
+    }
+
     private sealed class RecordingCommandRunner : ICommandRunner
     {
         private readonly ProcessResult _result;

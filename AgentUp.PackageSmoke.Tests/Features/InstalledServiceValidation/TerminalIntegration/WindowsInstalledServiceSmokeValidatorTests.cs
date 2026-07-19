@@ -22,6 +22,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
     public async Task ValidateAsync_installsValidatesCliAndAlwaysUninstalls()
     {
         var root = Path.Join(Path.GetTempPath(), "AgentUp-InstalledSmoke-Windows", Guid.NewGuid().ToString());
+        var previousSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
         var artifactDir = Path.Join(root, "artifacts");
         var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);
@@ -43,6 +44,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
         try
         {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
             var result = await new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks())
                 .ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
 
@@ -58,6 +60,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
         }
         finally
         {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
             if (Directory.Exists(root))
                 Directory.Delete(root, recursive: true);
         }
