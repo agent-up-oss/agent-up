@@ -54,6 +54,8 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
             await _securityChecks.RunAsync(readyUrl, assert, cancellationToken);
             await SmokeCliWorkspaceAsync(request, context.CliCommand, context.CliEnvironment, readyUrl, assert, cancellationToken);
+            if (Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL") != "1")
+                await new CapabilityLifecycleSmoke(_commands).RunAsync(request.WorkDirectory, context, readyUrl, assert, cancellationToken);
             return new InstalledServiceSmokeResult(readyUrl, assert.Findings);
         }
         finally

@@ -368,8 +368,18 @@ jobs:
             tool_suffix=".exe"
           fi
           export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
+          export AGENTUP_INSTALLER_APP_COMMAND="$PWD/dotnet-ci/payloads/${{ matrix.rid }}/installer/AgentUp.InstallerApp$tool_suffix"
           export AGENTUP_INSTALLER_FAKE=1
           ./.github/scripts/smoke-installer-flow.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
+
+      - name: Pre-pull Windows smoke Docker image
+        if: ${{ matrix.platform == 'windows' }}
+        shell: pwsh
+        run: |
+          $tag = if ([Environment]::OSVersion.Version.Build -ge 26000) { 'windowsservercore-ltsc2025' } else { 'windowsservercore-ltsc2022' }
+          $image = "mcr.microsoft.com/windows/servercore/iis:$tag"
+          "AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE=$image" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          docker pull $image
 
       - name: Smoke test installed service
         shell: bash
