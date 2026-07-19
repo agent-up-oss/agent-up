@@ -19,6 +19,8 @@ public static class WindowsInstallerCommands
                  Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
                  $service.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
                }
+               $service.Close()
+               $service = $null
                sc.exe delete $serviceName | Out-Null
                $deleted = $false
                for ($attempt = 0; $attempt -lt 30; $attempt++) {
