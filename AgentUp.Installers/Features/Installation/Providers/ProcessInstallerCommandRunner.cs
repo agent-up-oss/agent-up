@@ -15,7 +15,8 @@ public sealed class ProcessInstallerCommandRunner : ICommandRunner
             Arguments = arguments,
             UseShellExecute = false,
             RedirectStandardOutput = true,
-            RedirectStandardError = true
+            RedirectStandardError = true,
+            CreateNoWindow = true
         };
 
         System.Diagnostics.Process? process;

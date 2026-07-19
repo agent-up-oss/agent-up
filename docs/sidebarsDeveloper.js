@@ -24,6 +24,13 @@ const sidebars = {
         'workflows',
       ],
     },
+    {
+      type: 'category',
+      label: 'Operations',
+      items: [
+        'ci-configuration',
+      ],
+    },
   ],
 };
 

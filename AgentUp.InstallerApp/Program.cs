@@ -84,7 +84,8 @@ static async Task<int> RunWindowsUninstallAsync()
     {
         FileName = "powershell.exe",
         Arguments = $"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}",
-        UseShellExecute = false
+        UseShellExecute = false,
+        CreateNoWindow = true
     });
 
     if (process is null)

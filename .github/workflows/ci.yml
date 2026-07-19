@@ -208,6 +208,7 @@ jobs:
     permissions:
       contents: read
       actions: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -273,6 +274,39 @@ jobs:
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/cli/AgentUp.CLI" || true
           fi
 
+      - name: Sign macOS payload binaries
+        if: ${{ matrix.platform == 'macos' && (vars.MACOS_SIGNING_ENABLED == 'true' || vars.SIGNING_SMOKE_TEST == 'true') }}
+        shell: bash
+        env:
+          MACOS_APP_CERTIFICATE: ${{ secrets.MACOS_APP_CERTIFICATE }}
+          MACOS_APP_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_APP_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          SIGNING_SMOKE_TEST: ${{ vars.SIGNING_SMOKE_TEST }}
+        run: |
+          ./.github/scripts/sign-macos-payload.sh "${{ matrix.rid }}" "dotnet-ci/payloads/${{ matrix.rid }}"
+
+      - name: Sign Windows payload binaries
+        if: ${{ matrix.platform == 'windows' && vars.AZURE_SIGNING_ENABLED == 'true' }}
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
+          files-folder: dotnet-ci/payloads/win-x64
+          files-folder-filter: exe,dll
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.ams.digicert.com
+          timestamp-digest: SHA256
+
+      - name: Smoke test Windows payload signing
+        if: ${{ matrix.platform == 'windows' && vars.SIGNING_SMOKE_TEST == 'true' }}
+        shell: pwsh
+        run: |
+          .github/scripts/sign-windows-smoke.ps1 -Target payload -Dir dotnet-ci/payloads/win-x64
+
       - name: Package release artifact
         shell: bash
         run: |
@@ -283,6 +317,52 @@ jobs:
           export AGENTUP_PACKAGING_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging$tool_suffix"
           ./scripts/package-release.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "${{ needs.version.outputs.version }}" "release-artifacts" \
             --payload-root "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
+
+      - name: Sign and notarize macOS package
+        if: ${{ matrix.platform == 'macos' && (vars.MACOS_SIGNING_ENABLED == 'true' || vars.SIGNING_SMOKE_TEST == 'true') }}
+        shell: bash
+        env:
+          MACOS_INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERTIFICATE }}
+          MACOS_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PASSWORD }}
+          MACOS_NOTARIZE_APPLE_ID: ${{ secrets.MACOS_NOTARIZE_APPLE_ID }}
+          MACOS_NOTARIZE_APP_SPECIFIC_PASSWORD: ${{ secrets.MACOS_NOTARIZE_APP_SPECIFIC_PASSWORD }}
+          MACOS_NOTARIZE_TEAM_ID: ${{ secrets.MACOS_NOTARIZE_TEAM_ID }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          SIGNING_SMOKE_TEST: ${{ vars.SIGNING_SMOKE_TEST }}
+        run: |
+          ./.github/scripts/sign-notarize-macos.sh "${{ matrix.rid }}" "release-artifacts"
+
+      - name: Sign Windows package artifacts
+        if: ${{ matrix.platform == 'windows' && vars.AZURE_SIGNING_ENABLED == 'true' }}
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
+          files-folder: release-artifacts
+          files-folder-filter: exe,msi
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.ams.digicert.com
+          timestamp-digest: SHA256
+
+      - name: Smoke test Windows package signing
+        if: ${{ matrix.platform == 'windows' && vars.SIGNING_SMOKE_TEST == 'true' }}
+        shell: pwsh
+        run: |
+          .github/scripts/sign-windows-smoke.ps1 -Target package -Dir release-artifacts
+
+      - name: Sign Linux package
+        if: ${{ matrix.platform == 'ubuntu' && (vars.LINUX_SIGNING_ENABLED == 'true' || vars.SIGNING_SMOKE_TEST == 'true') }}
+        shell: bash
+        env:
+          GPG_SIGNING_PRIVATE_KEY: ${{ secrets.GPG_SIGNING_PRIVATE_KEY }}
+          GPG_SIGNING_PASSPHRASE: ${{ secrets.GPG_SIGNING_PASSPHRASE }}
+          SIGNING_SMOKE_TEST: ${{ vars.SIGNING_SMOKE_TEST }}
+        run: |
+          ./.github/scripts/sign-linux.sh "release-artifacts"
 
       - name: Smoke test packaged artifact
         shell: bash
