@@ -97,7 +97,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
 
     public static InstallerViewModel CreateDefault()
     {
-        var version = new Version(0, 0, 0);
+        var version = InstallerVersion();
         var adapter = InstallerAdapterFactory.Create();
         var model = new InstallerViewModel(
             InstallerSession.CreateDefault("Agent-Up", version, DefaultInstallRoot(), PayloadSelection.Bundled(version)),
@@ -144,6 +144,16 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             card.Fail(ex.Message);
+            try
+            {
+                var status = await _adapter.GetComponentStatusAsync(card.Target, _session);
+                if (status.Kind != InstallerComponentStatusKind.NotInstalled)
+                    card.ApplyStatus(status);
+            }
+            catch (Exception statusEx)
+            {
+                card.Fail($"{ex.Message} (Status refresh failed: {statusEx.Message})");
+            }
         }
     }
 
@@ -198,6 +208,12 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         {
             installing.Fail(ex.Message);
         }
+    }
+
+    private static Version InstallerVersion()
+    {
+        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        return v is null || v == new Version(0, 0, 0, 0) ? new Version(0, 0, 0) : new Version(v.Major, v.Minor, v.Build);
     }
 
     private static string DefaultInstallRoot()
@@ -279,7 +295,7 @@ public sealed class ComponentCardViewModel : INotifyPropertyChanged
 
     public string PrimaryButtonText => SupportsInstallActions ? IsInstalled ? "Update" : "Install" : "Managed by NixOS";
 
-    public bool IsInstalled => _status is InstallerComponentStatusKind.Installed or InstallerComponentStatusKind.UpdateAvailable;
+    public bool IsInstalled => _status is InstallerComponentStatusKind.Installed or InstallerComponentStatusKind.UpdateAvailable or InstallerComponentStatusKind.Failed;
 
     public bool IsBusy => _isBusy;
 
