@@ -275,7 +275,7 @@ jobs:
           fi
 
       - name: Sign macOS payload binaries
-        if: ${{ matrix.platform == 'macos' }}
+        if: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' }}
         shell: bash
         env:
           MACOS_APP_CERTIFICATE: ${{ secrets.MACOS_APP_CERTIFICATE }}
@@ -285,7 +285,7 @@ jobs:
           ./.github/scripts/sign-macos-payload.sh "${{ matrix.rid }}" "dotnet-ci/payloads/${{ matrix.rid }}"
 
       - name: Sign Windows payload binaries
-        if: ${{ matrix.platform == 'windows' && secrets.AZURE_TENANT_ID != '' }}
+        if: ${{ matrix.platform == 'windows' && vars.AZURE_SIGNING_ENABLED == 'true' }}
         uses: azure/trusted-signing-action@v0.5.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -312,7 +312,7 @@ jobs:
             --payload-root "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
 
       - name: Sign and notarize macOS package
-        if: ${{ matrix.platform == 'macos' }}
+        if: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' }}
         shell: bash
         env:
           MACOS_INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERTIFICATE }}
@@ -325,7 +325,7 @@ jobs:
           ./.github/scripts/sign-notarize-macos.sh "${{ matrix.rid }}" "release-artifacts"
 
       - name: Sign Windows package artifacts
-        if: ${{ matrix.platform == 'windows' && secrets.AZURE_TENANT_ID != '' }}
+        if: ${{ matrix.platform == 'windows' && vars.AZURE_SIGNING_ENABLED == 'true' }}
         uses: azure/trusted-signing-action@v0.5.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -341,7 +341,7 @@ jobs:
           timestamp-digest: SHA256
 
       - name: Sign Linux package
-        if: ${{ matrix.platform == 'ubuntu' }}
+        if: ${{ matrix.platform == 'ubuntu' && vars.LINUX_SIGNING_ENABLED == 'true' }}
         shell: bash
         env:
           GPG_SIGNING_PRIVATE_KEY: ${{ secrets.GPG_SIGNING_PRIVATE_KEY }}
