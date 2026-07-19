@@ -116,6 +116,8 @@ public class MacOsInstallerPlatformAdapterTests
         public HashSet<string> ExistingFiles { get; } = [];
 
         public void ResetDirectory(string path) => ResetDirectories.Add(path);
+        public void DeleteDirectory(string path) { }
+        public void DeleteFile(string path) { }
         public void CreateDirectory(string path) => CreatedDirectories.Add(path);
         public void CopyDirectory(string source, string destination) => CopiedDirectories.Add((source, destination));
         public void CopyFile(string source, string destination) => CopiedFiles.Add((source, destination));
