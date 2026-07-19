@@ -6,6 +6,20 @@ set -euo pipefail
 RID="${1:?Usage: sign-macos-payload.sh <rid> <payload-dir>}"
 PAYLOAD_DIR="${2:?Usage: sign-macos-payload.sh <rid> <payload-dir>}"
 
+if [ "${SIGNING_SMOKE_TEST:-}" = "true" ]; then
+  echo "::notice::Smoke test mode: using ad-hoc codesign (no certificate required, not trusted by Gatekeeper)"
+  signed_count=0
+  while IFS= read -r -d "" binary; do
+    if file "$binary" | grep -qE "Mach-O (64-bit )?executable|Mach-O universal binary"; then
+      codesign --force --sign - "$binary"
+      codesign --verify --verbose=1 "$binary"
+      signed_count=$((signed_count + 1))
+    fi
+  done < <(find "$PAYLOAD_DIR" -type f -print0)
+  echo "Smoke test: ad-hoc signed $signed_count Mach-O executable(s) in $PAYLOAD_DIR"
+  exit 0
+fi
+
 if [ -z "${MACOS_APP_CERTIFICATE:-}" ]; then
   echo "::notice::macOS payload signing skipped — MACOS_APP_CERTIFICATE not set"
   exit 0

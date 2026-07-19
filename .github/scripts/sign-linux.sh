@@ -5,15 +5,33 @@ set -euo pipefail
 
 ARTIFACTS_DIR="${1:?Usage: sign-linux.sh <artifacts-dir>}"
 
-if [ -z "${GPG_SIGNING_PRIVATE_KEY:-}" ]; then
-  echo "::notice::Linux package signing skipped — GPG_SIGNING_PRIVATE_KEY not set"
-  exit 0
-fi
-
 DEB_FILE=$(find "$ARTIFACTS_DIR" -maxdepth 1 -name "*.deb" | head -1)
 if [ -z "$DEB_FILE" ]; then
   echo "::error::No .deb file found in $ARTIFACTS_DIR"
   exit 1
+fi
+
+if [ "${SIGNING_SMOKE_TEST:-}" = "true" ]; then
+  echo "::notice::Smoke test mode: generating a throwaway GPG key"
+  gpg --batch --gen-key <<'GPGEOF'
+%no-protection
+Key-Type: RSA
+Key-Length: 2048
+Name-Real: Agent-Up Smoke Test
+Name-Email: smoke-test@agent-up.local
+Expire-Date: 1d
+%commit
+GPGEOF
+  GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG 2>/dev/null | grep '^sec' | head -1 | awk '{print $2}' | cut -d'/' -f2)
+  gpg --batch --yes --detach-sign --armor --local-user "$GPG_KEY_ID" "$DEB_FILE"
+  gpg --verify "${DEB_FILE}.asc" "$DEB_FILE"
+  echo "Smoke test: signed and verified with throwaway GPG key $GPG_KEY_ID"
+  exit 0
+fi
+
+if [ -z "${GPG_SIGNING_PRIVATE_KEY:-}" ]; then
+  echo "::notice::Linux package signing skipped — GPG_SIGNING_PRIVATE_KEY not set"
+  exit 0
 fi
 
 # Import the private key
