@@ -71,6 +71,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             action,
             session,
             ExecuteInstallAsync,
+            ExecuteUninstallAsync,
             cancellationToken);
     }
 
@@ -101,6 +102,17 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         }
 
         yield return progress.Complete(operations[0].Kind);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
+
+    private async IAsyncEnumerable<InstallProgress> ExecuteUninstallAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, PlanInstall);
+        var progress = new InstallProgressTracker(operations);
+        yield return progress.Complete(InstallerComponentOperations.TargetOperationKind(target));
         yield return progress.Complete(InstallOperationKind.ValidateInstallation);
     }
 

@@ -66,7 +66,19 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             action,
             session,
             ExecuteInstallAsync,
+            ExecuteUninstallAsync,
             cancellationToken);
+
+    private async IAsyncEnumerable<InstallProgress> ExecuteUninstallAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, PlanInstall);
+        var progress = new InstallProgressTracker(operations);
+        yield return progress.Complete(InstallerComponentOperations.TargetOperationKind(target));
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
     {

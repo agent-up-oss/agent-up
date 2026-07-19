@@ -42,14 +42,14 @@ public static class InstallerComponentOperations
         InstallerComponentAction action,
         InstallerSession session,
         Func<InstallerSession, CancellationToken, IAsyncEnumerable<InstallProgress>> executeInstall,
+        Func<InstallerComponentTarget, InstallerSession, CancellationToken, IAsyncEnumerable<InstallProgress>> executeUninstall,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (action == InstallerComponentAction.Uninstall)
         {
-            var operations = Plan(target, action, session, _ => []);
-            var progress = new InstallProgressTracker(operations);
-            yield return progress.Complete(TargetOperationKind(target));
-            yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+            await foreach (var item in executeUninstall(target, session, cancellationToken)
+                               .WithCancellation(cancellationToken))
+                yield return item;
             yield break;
         }
 
@@ -87,7 +87,7 @@ public static class InstallerComponentOperations
         || kind == TargetOperationKind(target)
         || target == InstallerComponentTarget.Desktop && kind == InstallOperationKind.RegisterUninstall;
 
-    private static InstallOperationKind TargetOperationKind(InstallerComponentTarget target) =>
+    public static InstallOperationKind TargetOperationKind(InstallerComponentTarget target) =>
         target switch
         {
             InstallerComponentTarget.Server => InstallOperationKind.RegisterService,

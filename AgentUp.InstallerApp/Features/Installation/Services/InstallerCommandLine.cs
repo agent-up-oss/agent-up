@@ -217,12 +217,18 @@ public static class InstallerCommandLine
 
     private static InstallerSession CreateSession()
     {
-        var version = new Version(0, 0, 0);
+        var version = InstallerVersion();
         return InstallerSession.CreateDefault(
             "Agent-Up",
             version,
             DefaultInstallRoot(),
             PayloadSelection.Bundled(version));
+    }
+
+    private static Version InstallerVersion()
+    {
+        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        return v is null || v == new Version(0, 0, 0, 0) ? new Version(0, 0, 0) : new Version(v.Major, v.Minor, v.Build);
     }
 
     private static string DefaultInstallRoot()
