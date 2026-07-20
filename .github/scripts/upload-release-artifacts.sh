@@ -58,7 +58,9 @@ checksum_file="$artifact_dir/checksums.sha256"
   done
   # Include optional signing artifacts when present
   for optional in agent-up-ubuntu-linux-x64.deb.asc; do
-    [ -f "$optional" ] && sha256sum "$optional" >> "$(basename "$checksum_file")"
+    if [ -f "$optional" ]; then
+      sha256sum "$optional" >> "$(basename "$checksum_file")"
+    fi
   done
 )
 
