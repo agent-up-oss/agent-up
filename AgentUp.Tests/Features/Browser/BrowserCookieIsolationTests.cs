@@ -180,21 +180,25 @@ public sealed class BrowserCookieIsolationTests
         });
 
         TestContext.Progress.WriteLine("MainWindow initialized; pre-creating all workspace WebViews.");
-        // Pre-create every workspace WebView sequentially before the test starts.
-        // Creating the second WebView mid-test while the first NetworkProcess is actively
-        // loading pages triggers a GTK/WebKit crash on Linux. Creating them all upfront
-        // during the bootstrap delay lets each NetworkProcess fully initialize before the
-        // next one starts.
+        // Pre-create every workspace WebView sequentially and confirm each NetworkProcess
+        // is up before moving to the next. Creating the second WebView mid-test while the
+        // first NetworkProcess is actively loading pages triggers a GTK/WebKit crash on
+        // Linux. The HTTP request arriving at the test server is the concrete signal that
+        // a NetworkProcess is running — InvokeAsync alone only waits for Source to be set,
+        // not for the page to load.
         int port = _server.Port;
         foreach (var ws in workspaces)
         {
+            TestContext.Progress.WriteLine($"Pre-warming WebView for workspace {ws.Id}.");
             await Dispatcher.UIThread.InvokeAsync(() => window.NavigateTo(ws.Id, $"http://localhost:{port}/pre-warm/{ws.Id}"));
+            await _server.WaitForRequestAsync($"/pre-warm/{ws.Id}", TimeSpan.FromSeconds(15));
+            TestContext.Progress.WriteLine($"WebView for workspace {ws.Id} confirmed ready.");
         }
 
-        TestContext.Progress.WriteLine("WebViews pre-created; waiting for WebKit to bootstrap all NetworkProcesses.");
-        await Task.Delay(3000);
+        TestContext.Progress.WriteLine("All WebViews confirmed ready; giving WebKit a moment to settle.");
+        await Task.Delay(2000);
 
-        TestContext.Progress.WriteLine("Native WebView bootstrap wait completed. About to return window.");
+        TestContext.Progress.WriteLine("Bootstrap complete. About to return window.");
         return window;
     }
 
