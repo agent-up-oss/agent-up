@@ -202,8 +202,7 @@ public class MacOsInstallerPlatformAdapterTests
 
             if (fileName is "osascript" or "bash")
             {
-                // Extract the temp file path from the argument and read the script
-                var scriptPath = ExtractScriptPath(arguments);
+                var scriptPath = ExtractBashScriptPath(fileName, arguments);
                 if (scriptPath is not null && File.Exists(scriptPath))
                     CapturedScript = (CapturedScript ?? "") + File.ReadAllText(scriptPath);
             }
@@ -211,21 +210,29 @@ public class MacOsInstallerPlatformAdapterTests
             return Task.FromResult(new ProcessResult(0, "", ""));
         }
 
-        private static string? ExtractScriptPath(string arguments)
+        private static string? ExtractBashScriptPath(string fileName, string arguments)
         {
-            // osascript: -e 'do shell script "/tmp/xxx" with administrator privileges'
-            var shellScriptStart = arguments.IndexOf("do shell script \"", StringComparison.Ordinal);
-            if (shellScriptStart >= 0)
+            if (fileName == "bash" && !arguments.StartsWith("-", StringComparison.Ordinal))
             {
-                var start = shellScriptStart + "do shell script \"".Length;
-                var end = arguments.IndexOf('"', start);
-                if (end > start)
-                    return arguments[start..end];
+                // bash: /tmp/xxx  (path passed unquoted — Process.Start doesn't process shell quotes)
+                return arguments;
             }
-            // bash: '/tmp/xxx'
-            if (arguments.StartsWith("'", StringComparison.Ordinal) && arguments.EndsWith("'", StringComparison.Ordinal))
-                return arguments[1..^1];
+            if (fileName == "osascript" && File.Exists(arguments))
+            {
+                // osascript: /tmp/xxx.scpt  (AppleScript file containing the bash script path)
+                var appleScript = File.ReadAllText(arguments);
+                return ExtractDoShellScriptPath(appleScript);
+            }
             return null;
+        }
+
+        private static string? ExtractDoShellScriptPath(string appleScript)
+        {
+            var start = appleScript.IndexOf("do shell script \"", StringComparison.Ordinal);
+            if (start < 0) return null;
+            start += "do shell script \"".Length;
+            var end = appleScript.IndexOf('"', start);
+            return end > start ? appleScript[start..end] : null;
         }
     }
 
