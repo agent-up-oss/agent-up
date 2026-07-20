@@ -69,19 +69,25 @@ public sealed class DesktopFixtureHost
     [OneTimeTearDown]
     public void Stop()
     {
-        try
+        // On Linux, skip Avalonia/GTK shutdown entirely. Program.Main calls
+        // Environment.Exit() after RunTests() returns, which bypasses unmanaged
+        // GTK/WebKit cleanup that otherwise causes a SIGABRT during process teardown.
+        if (!OperatingSystem.IsLinux())
         {
-            Dispatcher.UIThread.InvokeAsync(() =>
+            try
             {
-                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lt)
-                    lt.Shutdown();
-            }).GetAwaiter().GetResult();
-        }
-        catch (TaskCanceledException)
-        {
-        }
-        catch (InvalidOperationException)
-        {
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lt)
+                        lt.Shutdown();
+                }).GetAwaiter().GetResult();
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
         }
 
         _adapter?.Dispose();

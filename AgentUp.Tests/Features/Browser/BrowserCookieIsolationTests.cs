@@ -179,10 +179,19 @@ public sealed class BrowserCookieIsolationTests
             return window;
         });
 
-        TestContext.Progress.WriteLine("MainWindow initialized; waiting for native WebView bootstrap.");
-        // GTK realizes the window and WebKit starts its child processes (NetworkProcess,
-        // WebProcess) lazily on first WebView creation. Allow time for these bootstraps
-        // before any Navigate call triggers new NativeWebView() from a dispatcher callback.
+        TestContext.Progress.WriteLine("MainWindow initialized; pre-creating all workspace WebViews.");
+        // Pre-create every workspace WebView sequentially before the test starts.
+        // Creating the second WebView mid-test while the first NetworkProcess is actively
+        // loading pages triggers a GTK/WebKit crash on Linux. Creating them all upfront
+        // during the bootstrap delay lets each NetworkProcess fully initialize before the
+        // next one starts.
+        int port = _server.Port;
+        foreach (var ws in workspaces)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => window.NavigateTo(ws.Id, $"http://localhost:{port}/pre-warm/{ws.Id}"));
+        }
+
+        TestContext.Progress.WriteLine("WebViews pre-created; waiting for WebKit to bootstrap all NetworkProcesses.");
         await Task.Delay(3000);
 
         TestContext.Progress.WriteLine("Native WebView bootstrap wait completed. About to return window.");
