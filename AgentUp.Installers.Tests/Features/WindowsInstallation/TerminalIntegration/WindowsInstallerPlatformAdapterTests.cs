@@ -218,7 +218,7 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     private static InstallerSession Session()
-        => InstallerSession.CreateDefault("Agent-Up", new Version(1, 2, 3), @"C:\Program Files\Agent-Up", PayloadSelection.Bundled(new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), @"C:\Program Files\Agent-Up", PayloadSelection.Bundled(new Version(1, 2, 3)));
 
     private static WindowsInstallerOptions Options()
         => new(

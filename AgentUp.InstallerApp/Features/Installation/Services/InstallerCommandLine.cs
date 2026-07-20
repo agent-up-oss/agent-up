@@ -221,10 +221,11 @@ public static class InstallerCommandLine
     private static InstallerSession CreateSession()
     {
         var version = InstallerVersion();
+        var manifest = AgentUpManifest();
         return InstallerSession.CreateDefault(
-            "Agent-Up",
+            manifest,
             version,
-            DefaultInstallRoot(),
+            manifest.DefaultInstallRoot(),
             PayloadSelection.Bundled(version));
     }
 
@@ -234,12 +235,6 @@ public static class InstallerCommandLine
         return v is null || v == new Version(0, 0, 0, 0) ? new Version(0, 0, 0) : new Version(v.Major, v.Minor, v.Build);
     }
 
-    private static string DefaultInstallRoot()
-    {
-        if (OperatingSystem.IsWindows())
-            return @"C:\Program Files\Agent-Up";
-        if (OperatingSystem.IsMacOS())
-            return "/Applications/Agent-Up.app";
-        return "/opt/agent-up";
-    }
+    private static ProductManifest AgentUpManifest()
+        => ProductManifest.AgentUp();
 }

@@ -18,7 +18,7 @@ public class FakeInstallerPlatformAdapterTests
     public async Task ExecuteInstallAsync_reportsEveryPlannedOperationAndValidatesState()
     {
         var session = InstallerSession.CreateDefault(
-            "Agent-Up",
+            ProductManifest.AgentUp(),
             new Version(1, 2, 3),
             "/opt/agent-up",
             PayloadSelection.Bundled(new Version(1, 2, 3)));
@@ -41,7 +41,7 @@ public class FakeInstallerPlatformAdapterTests
     public async Task ExecuteComponentActionAsync_installsOnlyRequestedTargetStatus()
     {
         var session = InstallerSession.CreateDefault(
-            "Agent-Up",
+            ProductManifest.AgentUp(),
             new Version(1, 2, 3),
             "/opt/agent-up",
             PayloadSelection.Bundled(new Version(1, 2, 3)));
@@ -67,7 +67,7 @@ public class FakeInstallerPlatformAdapterTests
     public async Task ExecuteComponentActionAsync_uninstallReturnsTargetToNotInstalled()
     {
         var session = InstallerSession.CreateDefault(
-            "Agent-Up",
+            ProductManifest.AgentUp(),
             new Version(1, 2, 3),
             "/opt/agent-up",
             PayloadSelection.Bundled(new Version(1, 2, 3)));

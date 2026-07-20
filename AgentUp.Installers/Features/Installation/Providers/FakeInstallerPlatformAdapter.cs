@@ -79,8 +79,8 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
             new(InstallOperationKind.ValidatePrerequisites, "Validate prerequisites", false),
             new(InstallOperationKind.StagePayload, $"Stage {session.Payload.Description}", false),
             new(InstallOperationKind.InstallFiles, "Install selected components", true),
-            new(InstallOperationKind.RegisterService, "Register agent-up-server service", true),
-            new(InstallOperationKind.RegisterCli, "Register agent-up CLI", true),
+            new(InstallOperationKind.RegisterService, $"Register {session.Manifest.ServiceName} service", true),
+            new(InstallOperationKind.RegisterCli, $"Register {session.Manifest.CliCommandName} CLI", true),
             new(InstallOperationKind.RegisterDesktop, "Register desktop application", true),
             new(InstallOperationKind.RegisterUninstall, "Register native uninstall entry", true),
             new(InstallOperationKind.ValidateInstallation, "Validate installed state", false)
