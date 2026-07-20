@@ -48,21 +48,20 @@ function githubGet(path, token) {
         });
       },
     );
+    req.setTimeout(15_000, () => {
+      req.destroy(new Error(`GitHub API request timed out: ${path}`));
+    });
     req.on('error', reject);
     req.end();
   });
 }
 
 async function getPrsForCommit(owner, repo, sha, token) {
-  try {
-    const prs = await githubGet(
-      `/repos/${owner}/${repo}/commits/${sha}/pulls?per_page=100`,
-      token,
-    );
-    return Array.isArray(prs) ? prs.filter(pr => pr.merged_at) : [];
-  } catch {
-    return [];
-  }
+  const prs = await githubGet(
+    `/repos/${owner}/${repo}/commits/${sha}/pulls?per_page=100`,
+    token,
+  );
+  return Array.isArray(prs) ? prs.filter(pr => pr.merged_at) : [];
 }
 
 async function generateNotes(pluginConfig, context) {
