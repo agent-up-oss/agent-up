@@ -62,13 +62,48 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         InstallerComponentAction action,
         InstallerSession session,
         CancellationToken cancellationToken = default)
-        => InstallerComponentOperations.ExecuteInstallLikeAction(
+    {
+        if (action == InstallerComponentAction.Uninstall)
+            return ExecuteComponentUninstallAsync(target, session, cancellationToken);
+
+        return InstallerComponentOperations.ExecuteInstallLikeAction(
             target,
             action,
             session,
             ExecuteInstallAsync,
             ExecuteUninstallAsync,
             cancellationToken);
+    }
+
+    private async IAsyncEnumerable<InstallProgress> ExecuteComponentUninstallAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, _ => []);
+        var progress = new InstallProgressTracker(operations);
+        var manifest = WindowsInstallerManifest.Create(session.Version.ToString());
+
+        switch (target)
+        {
+            case InstallerComponentTarget.Server:
+                await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.ServerDirectory);
+                break;
+            case InstallerComponentTarget.Cli:
+                await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PathRemovePowerShell(_options.Paths.BinDirectory), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.CliDirectory);
+                _files.DeleteDirectory(_options.Paths.BinDirectory);
+                break;
+            case InstallerComponentTarget.Desktop:
+                _files.DeleteFile(_options.Paths.StartMenuShortcutPath);
+                _files.DeleteDirectory(_options.Paths.DesktopDirectory);
+                break;
+        }
+
+        yield return progress.Complete(operations[0].Kind);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
 
     private async IAsyncEnumerable<InstallProgress> ExecuteUninstallAsync(
         InstallerComponentTarget target,

@@ -79,6 +79,47 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public async Task ExecuteComponentActionAsync_uninstallServerStopsServiceAndDeletesDirectory()
+    {
+        var files = new RecordingWindowsFileSystem();
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, files);
+
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Server, InstallerComponentAction.Uninstall, Session())) { }
+
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("sc.exe delete $serviceName", StringComparison.Ordinal)), Is.True);
+        Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\server"));
+    }
+
+    [Test]
+    public async Task ExecuteComponentActionAsync_uninstallCliRemovesPathAndDeletesDirectories()
+    {
+        var files = new RecordingWindowsFileSystem();
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, files);
+
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Cli, InstallerComponentAction.Uninstall, Session())) { }
+
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("GetEnvironmentVariable('Path'", StringComparison.Ordinal) && script.Contains("-ine $target", StringComparison.Ordinal)), Is.True);
+        Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\cli"));
+        Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\bin"));
+    }
+
+    [Test]
+    public async Task ExecuteComponentActionAsync_uninstallDesktopRemovesShortcutAndDeletesDirectory()
+    {
+        var files = new RecordingWindowsFileSystem();
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, files);
+
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Desktop, InstallerComponentAction.Uninstall, Session())) { }
+
+        Assert.That(files.DeletedFiles, Does.Contain(@"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk"));
+        Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\desktop"));
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("sc.exe delete", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
     public async Task ExecuteComponentActionAsync_doesNotPrepareWindowsServiceForDesktopInstall()
     {
         var files = new RecordingWindowsFileSystem();
@@ -243,12 +284,16 @@ public class WindowsInstallerPlatformAdapterTests
     private sealed class RecordingWindowsFileSystem : IWindowsInstallerFileSystem
     {
         public List<string> ResetDirectories { get; } = [];
+        public List<string> DeletedDirectories { get; } = [];
+        public List<string> DeletedFiles { get; } = [];
         public List<string> CreatedDirectories { get; } = [];
         public List<(string Source, string Destination)> CopiedDirectories { get; } = [];
         public Dictionary<string, string> Writes { get; } = [];
         public HashSet<string> ExistingFiles { get; } = [];
 
         public void ResetDirectory(string path) => ResetDirectories.Add(path);
+        public void DeleteDirectory(string path) => DeletedDirectories.Add(path);
+        public void DeleteFile(string path) => DeletedFiles.Add(path);
         public void CreateDirectory(string path) => CreatedDirectories.Add(path);
         public void CopyDirectory(string source, string destination) => CopiedDirectories.Add((source, destination));
         public void WriteText(string path, string text)

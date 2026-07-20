@@ -12,6 +12,18 @@ public abstract class InstallerFileSystem : IInstallerFileSystem
         Directory.CreateDirectory(path);
     }
 
+    public void DeleteDirectory(string path)
+    {
+        if (Directory.Exists(path))
+            Directory.Delete(path, recursive: true);
+    }
+
+    public void DeleteFile(string path)
+    {
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
     public void CreateDirectory(string path)
         => Directory.CreateDirectory(path);
 

@@ -38,6 +38,16 @@ public static class WindowsInstallerCommands
              exit 0
              """;
 
+    public static string PathRemovePowerShell(string binDirectory)
+        => $$"""
+             $target = '{{binDirectory}}'
+             $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+             if (-not [string]::IsNullOrWhiteSpace($machinePath)) {
+               $entries = $machinePath -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_.TrimEnd('\') -ine $target.TrimEnd('\') }
+               [Environment]::SetEnvironmentVariable('Path', ($entries -join ';'), 'Machine')
+             }
+             """;
+
     public static string PathUpdatePowerShell(string binDirectory)
         => $$"""
              $target = '{{binDirectory}}'

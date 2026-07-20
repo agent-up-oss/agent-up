@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -23,7 +24,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, NativeWebView> _webViews = new();
     private readonly Dictionary<string, string> _webViewErrors = new();
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
-    private readonly List<IDisposable> _viewModelSubscriptions = [];
+    private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private string? _activeWorkspaceId;
     private bool _isClosed;
@@ -85,16 +86,19 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        DisposeViewModelSubscriptions();
         if (DataContext is not MainViewModel vm) return;
-        _viewModelSubscriptions.Add(vm.BrowserNavigation.Subscribe(nav =>
-            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url))));
-        _viewModelSubscriptions.Add(vm.BrowserCommands.Subscribe(command =>
-            Dispatcher.UIThread.Post(() => HandleBrowserCommand(command))));
-        _viewModelSubscriptions.Add(vm.Tutorial.WhenAnyValue(t => t.IsVisible)
+        _subscriptions.Clear();
+        vm.BrowserNavigation.Subscribe(nav =>
+            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)))
+            .DisposeWith(_subscriptions);
+        vm.BrowserCommands.Subscribe(command =>
+            Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)))
+            .DisposeWith(_subscriptions);
+        vm.Tutorial.WhenAnyValue(t => t.IsVisible)
             .DistinctUntilChanged()
             .Subscribe(isVisible =>
-                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible))));
+                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)))
+            .DisposeWith(_subscriptions);
         ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
     }
 
@@ -103,7 +107,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _isClosed = true;
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
-        DisposeViewModelSubscriptions();
+        _subscriptions.Dispose();
         DestroyWorkspaceWebViews();
         base.OnClosed(e);
     }
@@ -353,14 +357,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
-
-    private void DisposeViewModelSubscriptions()
-    {
-        foreach (var subscription in _viewModelSubscriptions)
-            subscription.Dispose();
-
-        _viewModelSubscriptions.Clear();
-    }
 
     private void DestroyWorkspaceWebViews()
     {
