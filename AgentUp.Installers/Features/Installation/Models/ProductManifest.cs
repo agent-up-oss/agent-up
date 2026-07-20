@@ -5,8 +5,13 @@ public sealed record ProductManifest(
     string Slug,
     string EnvironmentPrefix)
 {
+    public IReadOnlyList<ProductComponent> Components { get; init; } = [];
+
     public static ProductManifest AgentUp()
-        => new("Agent-Up", "agent-up", "AGENTUP");
+        => new("Agent-Up", "agent-up", "AGENTUP")
+        {
+            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+        };
 
     public string ServiceName => $"{Slug}-server";
     public string CliCommandName => Slug;

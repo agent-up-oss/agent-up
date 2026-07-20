@@ -10,7 +10,7 @@ namespace AgentUp.Installers.Features.Installation.Providers;
 
 public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
 {
-    private readonly Dictionary<InstallerComponentTarget, InstallerComponentStatus> _statuses = [];
+    private readonly Dictionary<string, InstallerComponentStatus> _statuses = [];
 
     public string PlatformName { get; }
 
@@ -19,8 +19,6 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
     public FakeInstallerPlatformAdapter(string platformName = "Dry run")
     {
         PlatformName = platformName;
-        foreach (var target in Enum.GetValues<InstallerComponentTarget>())
-            _statuses[target] = new InstallerComponentStatus(target, InstallerComponentStatusKind.NotInstalled);
     }
 
     public Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
@@ -31,33 +29,40 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
             new Version(27, 0, 0)));
 
     public Task<InstallerComponentStatus> GetComponentStatusAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerSession session,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(_statuses[target]);
+    {
+        EnsureInitialized(session);
+        ValidateComponent(component, session);
+        return Task.FromResult(_statuses[component.Id]);
+    }
 
     public IReadOnlyList<InstallOperation> PlanComponentAction(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session)
         =>
         [
-            new(InstallOperationKind.ValidatePrerequisites, $"Validate {DisplayName(target)} prerequisites", false),
-            new(InstallOperationKind.StagePayload, $"Stage {DisplayName(target)} payload", false),
-            new(ComponentOperationKind(target), $"{ActionName(action)} {DisplayName(target)}", true),
-            new(InstallOperationKind.ValidateInstallation, $"Validate {DisplayName(target)} state", false)
+            new(InstallOperationKind.ValidatePrerequisites, $"Validate {component.DisplayName} prerequisites", false),
+            new(InstallOperationKind.StagePayload, $"Stage {component.DisplayName} payload", false),
+            new(ComponentOperationKind(component), $"{ActionName(action)} {component.DisplayName}", true),
+            new(InstallOperationKind.ValidateInstallation, $"Validate {component.DisplayName} state", false)
         ];
 
     public async IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var operations = PlanComponentAction(target, action, session);
+        EnsureInitialized(session);
+        ValidateComponent(component, session);
+
+        var operations = PlanComponentAction(component, action, session);
         var progress = new InstallProgressTracker(operations);
-        _statuses[target] = new InstallerComponentStatus(
-            target,
+        _statuses[component.Id] = new InstallerComponentStatus(
+            component,
             action == InstallerComponentAction.Uninstall ? InstallerComponentStatusKind.Uninstalling : InstallerComponentStatusKind.Installing,
             Message: $"{ActionName(action)} in progress");
 
@@ -68,9 +73,9 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
             yield return progress.Complete(operation.Kind);
         }
 
-        _statuses[target] = action == InstallerComponentAction.Uninstall
-            ? new InstallerComponentStatus(target, InstallerComponentStatusKind.NotInstalled)
-            : new InstallerComponentStatus(target, InstallerComponentStatusKind.Installed, session.Version, session.Version);
+        _statuses[component.Id] = action == InstallerComponentAction.Uninstall
+            ? new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled)
+            : new InstallerComponentStatus(component, InstallerComponentStatusKind.Installed, session.Version, session.Version);
     }
 
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
@@ -115,20 +120,29 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
                 DesktopVersion: session.Version),
             session.Version));
 
-    private static InstallOperationKind ComponentOperationKind(InstallerComponentTarget target) =>
-        target switch
+    private void EnsureInitialized(InstallerSession session)
+    {
+        foreach (var component in session.Manifest.Components)
         {
-            InstallerComponentTarget.Server => InstallOperationKind.RegisterService,
-            InstallerComponentTarget.Cli => InstallOperationKind.RegisterCli,
-            InstallerComponentTarget.Desktop => InstallOperationKind.RegisterDesktop,
-            _ => InstallOperationKind.InstallFiles
-        };
+            if (!_statuses.ContainsKey(component.Id))
+                _statuses[component.Id] = new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled);
+        }
+    }
 
-    private static string DisplayName(InstallerComponentTarget target) =>
-        target switch
+    private static void ValidateComponent(ProductComponent component, InstallerSession session)
+    {
+        if (!session.Manifest.Components.Any(c => c.Id == component.Id))
+            throw new InvalidOperationException(
+                $"Component '{component.Id}' is not declared in the '{session.Manifest.ProductName}' manifest.");
+    }
+
+    private static InstallOperationKind ComponentOperationKind(ProductComponent component) =>
+        component.Id switch
         {
-            InstallerComponentTarget.Cli => "CLI",
-            _ => target.ToString()
+            "server" => InstallOperationKind.RegisterService,
+            "cli" => InstallOperationKind.RegisterCli,
+            "desktop" => InstallOperationKind.RegisterDesktop,
+            _ => InstallOperationKind.InstallFiles
         };
 
     private static string ActionName(InstallerComponentAction action) =>

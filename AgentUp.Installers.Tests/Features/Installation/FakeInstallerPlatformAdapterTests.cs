@@ -49,16 +49,16 @@ public class FakeInstallerPlatformAdapterTests
 
         var progress = new List<InstallProgress>();
         await foreach (var item in adapter.ExecuteComponentActionAsync(
-                           InstallerComponentTarget.Cli,
+                           ProductComponent.Cli,
                            InstallerComponentAction.Install,
                            session))
         {
             progress.Add(item);
         }
 
-        var cli = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Cli, session);
-        var desktop = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Desktop, session);
-        Assert.That(progress, Has.Count.EqualTo(adapter.PlanComponentAction(InstallerComponentTarget.Cli, InstallerComponentAction.Install, session).Count));
+        var cli = await adapter.GetComponentStatusAsync(ProductComponent.Cli, session);
+        var desktop = await adapter.GetComponentStatusAsync(ProductComponent.Desktop, session);
+        Assert.That(progress, Has.Count.EqualTo(adapter.PlanComponentAction(ProductComponent.Cli, InstallerComponentAction.Install, session).Count));
         Assert.That(cli.Kind, Is.EqualTo(InstallerComponentStatusKind.Installed));
         Assert.That(desktop.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
     }
@@ -73,15 +73,15 @@ public class FakeInstallerPlatformAdapterTests
             PayloadSelection.Bundled(new Version(1, 2, 3)));
         var adapter = new FakeInstallerPlatformAdapter();
 
-        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Server, InstallerComponentAction.Install, session))
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Install, session))
         {
         }
 
-        await foreach (var _ in adapter.ExecuteComponentActionAsync(InstallerComponentTarget.Server, InstallerComponentAction.Uninstall, session))
+        await foreach (var _ in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Uninstall, session))
         {
         }
 
-        var server = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Server, session);
+        var server = await adapter.GetComponentStatusAsync(ProductComponent.Server, session);
         Assert.That(server.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
     }
 }

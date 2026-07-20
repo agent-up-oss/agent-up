@@ -11,7 +11,7 @@ public enum InstallerComponentStatusKind
 }
 
 public sealed record InstallerComponentStatus(
-    InstallerComponentTarget Target,
+    ProductComponent Component,
     InstallerComponentStatusKind Kind,
     Version? InstalledVersion = null,
     Version? AvailableVersion = null,

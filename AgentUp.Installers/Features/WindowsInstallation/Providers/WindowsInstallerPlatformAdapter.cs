@@ -43,26 +43,27 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         => await _dockerPrerequisite.CheckAsync(cancellationToken);
 
     public async Task<InstallerComponentStatus> GetComponentStatusAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerSession session,
         CancellationToken cancellationToken = default)
         => InstallerComponentOperations.StatusFromValidation(
-            target,
+            component,
             await ValidateInstalledStateAsync(session, cancellationToken),
             session.Version);
 
     public IReadOnlyList<InstallOperation> PlanComponentAction(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session)
-        => InstallerComponentOperations.Plan(target, action, session, PlanInstall);
+        => InstallerComponentOperations.Plan(TargetFor(component), action, session, PlanInstall);
 
     public IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session,
         CancellationToken cancellationToken = default)
     {
+        var target = TargetFor(component);
         if (action == InstallerComponentAction.Uninstall)
             return ExecuteComponentUninstallAsync(target, session, cancellationToken);
 
@@ -198,6 +199,11 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         yield return progress.Complete(InstallOperationKind.RegisterUninstall);
         yield return progress.Complete(InstallOperationKind.ValidateInstallation);
     }
+
+    private static InstallerComponentTarget TargetFor(ProductComponent component)
+        => Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
+            ? t
+            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the Windows adapter.");
 
     public async Task<ValidationReport> ValidateInstalledStateAsync(
         InstallerSession session,

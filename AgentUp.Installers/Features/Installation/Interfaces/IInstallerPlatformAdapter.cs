@@ -16,17 +16,17 @@ public interface IInstallerPlatformAdapter
     Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default);
 
     Task<InstallerComponentStatus> GetComponentStatusAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerSession session,
         CancellationToken cancellationToken = default);
 
     IReadOnlyList<InstallOperation> PlanComponentAction(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session);
 
     IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session,
         CancellationToken cancellationToken = default);

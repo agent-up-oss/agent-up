@@ -18,7 +18,7 @@ public sealed class NixOsInstallerPlatformAdapterTests
             new Lookup(("agent-up", "/nix/store/agent-up/bin/agent-up")),
             Docker());
 
-        var status = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Cli, Session());
+        var status = await adapter.GetComponentStatusAsync(ProductComponent.Cli, Session());
 
         Assert.That(adapter.SupportsInstallActions, Is.False);
         Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.Installed));
@@ -30,7 +30,7 @@ public sealed class NixOsInstallerPlatformAdapterTests
     {
         var adapter = new NixOsInstallerPlatformAdapter(new Lookup(), Docker());
 
-        var status = await adapter.GetComponentStatusAsync(InstallerComponentTarget.Desktop, Session());
+        var status = await adapter.GetComponentStatusAsync(ProductComponent.Desktop, Session());
 
         Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
         Assert.That(status.Message, Does.Contain("NixOS or Home Manager"));
@@ -43,7 +43,7 @@ public sealed class NixOsInstallerPlatformAdapterTests
 
         var progress = new List<InstallProgress>();
         await foreach (var item in adapter.ExecuteComponentActionAsync(
-                           InstallerComponentTarget.Server,
+                           ProductComponent.Server,
                            InstallerComponentAction.Install,
                            Session()))
         {
