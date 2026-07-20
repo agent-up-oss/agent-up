@@ -1,0 +1,81 @@
+reviews:
+  high_level_summary: true
+
+  auto_title_placeholder: "@coderabbitai"
+
+  auto_title_instructions: |
+    Generate a concise customer-facing pull-request title.
+
+    Describe the observable user outcome rather than the implementation.
+
+    The title must:
+    - be understandable without repository knowledge;
+    - describe what changes for the user;
+    - avoid Conventional Commit prefixes;
+    - avoid class, file, method, service, and exception names;
+    - avoid CI, tests, refactoring, dependencies, architecture, and implementation details;
+    - avoid inventing user impact not supported by the pull request.
+
+    Prefer titles such as:
+    - Fix the macOS installer failing to launch
+    - Support configurable installer components
+    - Prevent port conflicts when starting environments
+    - Improve Windows uninstallation reliability
+
+  suggested_labels: true
+  auto_apply_labels: true
+
+  labeling_instructions:
+    - label: release-note
+      instructions: |
+        Apply this label only when an end user can observe a meaningful
+        difference after the change.
+
+        Customer-visible impact includes:
+        - new functionality;
+        - corrected user-visible behavior;
+        - user-interface changes;
+        - CLI behavior or output changes;
+        - installation or uninstallation changes;
+        - configuration changes;
+        - public API changes;
+        - compatibility changes;
+        - meaningful performance improvements;
+        - meaningful security improvements;
+        - changes to documented user workflows.
+
+        Do not apply this label for:
+        - tests;
+        - CI/CD;
+        - dependency upgrades;
+        - logging;
+        - telemetry;
+        - code cleanup;
+        - internal refactoring;
+        - architecture-only changes;
+        - build-system changes;
+        - implementation-only packaging changes;
+        - maintainer-only documentation.
+
+        When customer impact is uncertain, do not apply this label.
+
+    - label: release:feature
+      instructions: |
+        Apply this label when a release-note-relevant pull request introduces
+        new customer-facing functionality.
+
+    - label: release:fix
+      instructions: |
+        Apply this label when a release-note-relevant pull request corrects
+        broken customer-visible behavior.
+
+    - label: release:improvement
+      instructions: |
+        Apply this label when a release-note-relevant pull request meaningfully
+        improves existing customer-facing behavior, usability, performance,
+        compatibility, installation, or configuration.
+
+    - label: release:breaking
+      instructions: |
+        Apply this label when customers must change configuration, commands,
+        integrations, installation steps, API usage, or workflows.
