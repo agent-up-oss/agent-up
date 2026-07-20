@@ -1,5 +1,7 @@
 reviews:
   high_level_summary: true
+  review_status: false
+  poem_in_pr_reviews: false
 
   auto_title_placeholder: "@coderabbitai"
 
@@ -79,3 +81,9 @@ reviews:
       instructions: |
         Apply this label when customers must change configuration, commands,
         integrations, installation steps, API usage, or workflows.
+
+finishing_touches:
+  docstrings:
+    enabled: false
+  unit_tests:
+    enabled: false
