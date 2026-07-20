@@ -7,12 +7,7 @@
         "preset": "conventionalcommits"
       }
     ],
-    [
-      "@semantic-release/release-notes-generator",
-      {
-        "preset": "conventionalcommits"
-      }
-    ],
+    "./.github/scripts/generate-release-notes.js",
     [
       "@semantic-release/github",
       {
