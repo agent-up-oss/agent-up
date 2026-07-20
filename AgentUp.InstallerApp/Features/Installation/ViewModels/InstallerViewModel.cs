@@ -30,12 +30,9 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         _session = session;
         _adapter = adapter;
         _capabilities = capabilities;
-        ComponentCards =
-        [
-            new ComponentCardViewModel(InstallerComponentTarget.Desktop, "Desktop", "Human UI for Agent-Up workspaces.", this, adapter.SupportsInstallActions),
-            new ComponentCardViewModel(InstallerComponentTarget.Server, "Server", "Local runtime authority and API service.", this, adapter.SupportsInstallActions),
-            new ComponentCardViewModel(InstallerComponentTarget.Cli, "CLI", "Terminal command wrapper for the local Server.", this, adapter.SupportsInstallActions)
-        ];
+        ComponentCards = new ObservableCollection<ComponentCardViewModel>(
+            session.Manifest.Components.Select(c =>
+                new ComponentCardViewModel(c, c.DisplayName, c.Description, this, adapter.SupportsInstallActions)));
         AddModuleCommand = new DelegateCommand(async _ => await ShowAddModuleAsync());
         BackToDashboardCommand = new DelegateCommand(_ => ShowDashboard());
     }
@@ -237,7 +234,7 @@ public sealed class ComponentCardViewModel : INotifyPropertyChanged
     private bool _isBusy;
 
     public ComponentCardViewModel(
-        InstallerComponentTarget target,
+        ProductComponent target,
         string title,
         string description,
         InstallerViewModel owner,
@@ -256,7 +253,7 @@ public sealed class ComponentCardViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public InstallerComponentTarget Target { get; }
+    public ProductComponent Target { get; }
 
     public string Title { get; }
 

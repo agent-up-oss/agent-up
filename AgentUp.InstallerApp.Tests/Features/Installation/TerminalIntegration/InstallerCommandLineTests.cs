@@ -62,10 +62,10 @@ public class InstallerCommandLineTests
         var uninstall = await InstallerCommandLine.RunAsync(adapter, ["--uninstall-component", "cli"], output, error);
 
         Assert.That(new[] { install, repair, update, uninstall }, Is.All.EqualTo(0));
-        Assert.That(output.ToString(), Does.Contain("Cli Install succeeded."));
-        Assert.That(output.ToString(), Does.Contain("Cli Repair succeeded."));
-        Assert.That(output.ToString(), Does.Contain("Cli Update succeeded."));
-        Assert.That(output.ToString(), Does.Contain("Cli Uninstall succeeded."));
+        Assert.That(output.ToString(), Does.Contain("CLI Install succeeded."));
+        Assert.That(output.ToString(), Does.Contain("CLI Repair succeeded."));
+        Assert.That(output.ToString(), Does.Contain("CLI Update succeeded."));
+        Assert.That(output.ToString(), Does.Contain("CLI Uninstall succeeded."));
         Assert.That(error.ToString(), Is.Empty);
     }
 
@@ -87,8 +87,8 @@ public class InstallerCommandLineTests
         Assert.That(log, Does.Contain("Desktop Uninstall succeeded."));
         Assert.That(log, Does.Contain("Server Install succeeded."));
         Assert.That(log, Does.Contain("Server Uninstall succeeded."));
-        Assert.That(log, Does.Contain("Cli Install succeeded."));
-        Assert.That(log, Does.Contain("Cli Uninstall succeeded."));
+        Assert.That(log, Does.Contain("CLI Install succeeded."));
+        Assert.That(log, Does.Contain("CLI Uninstall succeeded."));
         Assert.That(log.IndexOf("Desktop Install succeeded.", StringComparison.Ordinal), Is.LessThan(log.IndexOf("Core app installation succeeded.", StringComparison.Ordinal)));
         Assert.That(log, Does.Contain("Core app installation succeeded."));
         Assert.That(log, Does.Contain("Installed state validation succeeded."));

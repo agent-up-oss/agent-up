@@ -62,24 +62,26 @@ public static class InstallerComponentOperations
     }
 
     public static InstallerComponentStatus StatusFromValidation(
-        InstallerComponentTarget target,
+        ProductComponent component,
         ValidationReport report,
         Version expectedVersion)
     {
-        var codePrefix = target switch
-        {
-            InstallerComponentTarget.Desktop => "desktop.",
-            InstallerComponentTarget.Server => "service.",
-            InstallerComponentTarget.Cli => "cli.",
-            _ => ""
-        };
+        var codePrefix = Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
+            ? t switch
+            {
+                InstallerComponentTarget.Desktop => "desktop.",
+                InstallerComponentTarget.Server => "service.",
+                InstallerComponentTarget.Cli => "cli.",
+                _ => ""
+            }
+            : "";
 
         var failed = report.Findings.Any(finding =>
             finding.Severity == ValidationSeverity.Error && finding.Code.StartsWith(codePrefix, StringComparison.OrdinalIgnoreCase));
 
         return failed
-            ? new InstallerComponentStatus(target, InstallerComponentStatusKind.NotInstalled)
-            : new InstallerComponentStatus(target, InstallerComponentStatusKind.Installed, expectedVersion, expectedVersion);
+            ? new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled)
+            : new InstallerComponentStatus(component, InstallerComponentStatusKind.Installed, expectedVersion, expectedVersion);
     }
 
     private static bool IsRelevant(InstallOperationKind kind, InstallerComponentTarget target) =>

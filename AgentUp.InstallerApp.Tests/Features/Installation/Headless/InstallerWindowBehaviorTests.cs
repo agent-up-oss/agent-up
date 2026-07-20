@@ -104,7 +104,7 @@ public class InstallerWindowBehaviorTests
             await model.RefreshAsync();
             await HeadlessExtensions.FlushAsync();
 
-            var cli = model.ComponentCards.Single(card => card.Target == InstallerComponentTarget.Cli);
+            var cli = model.ComponentCards.Single(card => card.Target.Id == "cli");
             var dotnet = model.CapabilityCards.Single(card => card.Id == "dotnet");
 
             Assert.That(cli.StatusText, Is.EqualTo("Installed"));

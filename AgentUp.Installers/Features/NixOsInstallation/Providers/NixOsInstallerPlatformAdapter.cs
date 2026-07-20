@@ -20,39 +20,40 @@ public sealed class NixOsInstallerPlatformAdapter(
         => await dockerPrerequisite.CheckAsync(cancellationToken);
 
     public Task<InstallerComponentStatus> GetComponentStatusAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerSession session,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        var target = TargetFor(component);
         var executable = ExecutableName(target);
         var path = executables.Find(executable);
         return Task.FromResult(path is null
             ? new InstallerComponentStatus(
-                target,
+                component,
                 InstallerComponentStatusKind.NotInstalled,
                 Message: $"{executable} was not found on PATH. Add Agent-Up through the NixOS or Home Manager module.")
             : new InstallerComponentStatus(
-                target,
+                component,
                 InstallerComponentStatusKind.Installed,
                 Message: $"Found {executable} at {path}. Managed by NixOS."));
     }
 
     public IReadOnlyList<InstallOperation> PlanComponentAction(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session)
         =>
         [
             new(
                 InstallOperationKind.ValidateInstallation,
-                $"{DisplayName(target)} is managed by NixOS or Home Manager configuration",
+                $"{component.DisplayName} is managed by NixOS or Home Manager configuration",
                 false)
         ];
 
     public async IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         InstallerSession session,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -61,7 +62,7 @@ public sealed class NixOsInstallerPlatformAdapter(
         await Task.Yield();
         yield return new InstallProgress(
             InstallOperationKind.ValidateInstallation,
-            $"{DisplayName(target)} install actions are disabled on NixOS. Change services.agent-up or programs.agent-up instead.",
+            $"{component.DisplayName} install actions are disabled on NixOS. Change services.agent-up or programs.agent-up instead.",
             1,
             1);
     }
@@ -94,19 +95,25 @@ public sealed class NixOsInstallerPlatformAdapter(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var findings = Enum.GetValues<InstallerComponentTarget>()
-            .Select(target =>
+        var findings = session.Manifest.Components
+            .Select(component =>
             {
+                var target = TargetFor(component);
                 var executable = ExecutableName(target);
                 var path = executables.Find(executable);
                 return path is null
                     ? new ValidationFinding($"{target.ToString().ToLowerInvariant()}.path", $"{executable} was not found on PATH.", ValidationSeverity.Warning)
-                    : new ValidationFinding($"{target.ToString().ToLowerInvariant()}.path", $"{DisplayName(target)} found at {path}.", ValidationSeverity.Info);
+                    : new ValidationFinding($"{target.ToString().ToLowerInvariant()}.path", $"{component.DisplayName} found at {path}.", ValidationSeverity.Info);
             })
             .ToList();
 
         return Task.FromResult(new ValidationReport(findings));
     }
+
+    private static InstallerComponentTarget TargetFor(ProductComponent component)
+        => Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
+            ? t
+            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the NixOS adapter.");
 
     private static string ExecutableName(InstallerComponentTarget target)
         => target switch
@@ -115,14 +122,5 @@ public sealed class NixOsInstallerPlatformAdapter(
             InstallerComponentTarget.Server => "agent-up-server",
             InstallerComponentTarget.Cli => "agent-up",
             _ => throw new ArgumentOutOfRangeException(nameof(target), target, null)
-        };
-
-    private static string DisplayName(InstallerComponentTarget target)
-        => target switch
-        {
-            InstallerComponentTarget.Desktop => "Desktop",
-            InstallerComponentTarget.Server => "Server",
-            InstallerComponentTarget.Cli => "CLI",
-            _ => target.ToString()
         };
 }

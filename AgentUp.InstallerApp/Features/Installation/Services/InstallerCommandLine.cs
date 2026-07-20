@@ -117,11 +117,11 @@ public static class InstallerCommandLine
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        foreach (var target in Enum.GetValues<InstallerComponentTarget>())
+        foreach (var component in AgentUpManifest().Components)
         {
             foreach (var action in new[] { InstallerComponentAction.Install, InstallerComponentAction.Repair, InstallerComponentAction.Update, InstallerComponentAction.Uninstall })
             {
-                var exitCode = await RunComponentActionAsync(adapter, target, action, output, error, cancellationToken);
+                var exitCode = await RunComponentActionAsync(adapter, component, action, output, error, cancellationToken);
                 if (exitCode != 0)
                     return exitCode;
             }
@@ -141,7 +141,7 @@ public static class InstallerCommandLine
 
     private static async Task<int> RunComponentActionAsync(
         IInstallerPlatformAdapter adapter,
-        InstallerComponentTarget target,
+        ProductComponent component,
         InstallerComponentAction action,
         TextWriter output,
         TextWriter error,
@@ -154,21 +154,21 @@ public static class InstallerCommandLine
         }
 
         var session = CreateSession();
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(target, action, session, cancellationToken))
-            await output.WriteLineAsync($"{target} {action}: {progress.CompletedOperations}/{progress.TotalOperations}: {progress.Message}");
+        await foreach (var progress in adapter.ExecuteComponentActionAsync(component, action, session, cancellationToken))
+            await output.WriteLineAsync($"{component.DisplayName} {action}: {progress.CompletedOperations}/{progress.TotalOperations}: {progress.Message}");
 
-        var status = await adapter.GetComponentStatusAsync(target, session, cancellationToken);
+        var status = await adapter.GetComponentStatusAsync(component, session, cancellationToken);
         var expected = action == InstallerComponentAction.Uninstall
             ? InstallerComponentStatusKind.NotInstalled
             : InstallerComponentStatusKind.Installed;
 
         if (status.Kind == expected || action != InstallerComponentAction.Uninstall && status.Kind == InstallerComponentStatusKind.UpdateAvailable)
         {
-            await output.WriteLineAsync($"{target} {action} succeeded.");
+            await output.WriteLineAsync($"{component.DisplayName} {action} succeeded.");
             return 0;
         }
 
-        await error.WriteLineAsync($"{target} {action} expected {expected}, got {status.Kind}: {status.Message}");
+        await error.WriteLineAsync($"{component.DisplayName} {action} expected {expected}, got {status.Kind}: {status.Message}");
         return 1;
     }
 
@@ -192,9 +192,9 @@ public static class InstallerCommandLine
         return 1;
     }
 
-    private static bool TryComponentAction(string[] args, string argument, out InstallerComponentTarget target)
+    private static bool TryComponentAction(string[] args, string argument, out ProductComponent component)
     {
-        target = default;
+        component = ProductComponent.Desktop;
         for (var index = 0; index < args.Length; index++)
         {
             if (!args[index].Equals(argument, StringComparison.OrdinalIgnoreCase))
@@ -202,19 +202,19 @@ public static class InstallerCommandLine
             if (index + 1 >= args.Length || string.IsNullOrWhiteSpace(args[index + 1]))
                 throw new InvalidOperationException($"{argument} requires a component target.");
 
-            target = ParseTarget(args[index + 1]);
+            component = ParseComponent(args[index + 1]);
             return true;
         }
 
         return false;
     }
 
-    private static InstallerComponentTarget ParseTarget(string value)
+    private static ProductComponent ParseComponent(string value)
         => value.ToLowerInvariant() switch
         {
-            "desktop" => InstallerComponentTarget.Desktop,
-            "server" => InstallerComponentTarget.Server,
-            "cli" => InstallerComponentTarget.Cli,
+            "desktop" => ProductComponent.Desktop,
+            "server" => ProductComponent.Server,
+            "cli" => ProductComponent.Cli,
             _ => throw new InvalidOperationException($"Unknown installer component '{value}'. Expected desktop, server, or cli.")
         };
 
