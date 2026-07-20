@@ -173,7 +173,7 @@ public class MacOsInstallerPlatformAdapterTests
     }
 
     private static InstallerSession Session()
-        => InstallerSession.CreateDefault("Agent-Up", new Version(1, 2, 3), "/Applications/Agent-Up.app", PayloadSelection.Bundled(new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/Applications/Agent-Up.app", PayloadSelection.Bundled(new Version(1, 2, 3)));
 
     private static MacOsInstallerOptions Options()
         => new(

@@ -13,8 +13,14 @@ public sealed record PayloadSelection(
     string? DownloadUrl = null)
 {
     public static PayloadSelection Bundled(Version version)
-        => new(PayloadSourceKind.Bundled, version, $"Bundled Agent-Up {version}");
+        => Bundled("Agent-Up", version);
+
+    public static PayloadSelection Bundled(string productName, Version version)
+        => new(PayloadSourceKind.Bundled, version, $"Bundled {productName} {version}");
 
     public static PayloadSelection Online(Version version, string downloadUrl)
-        => new(PayloadSourceKind.Online, version, $"Online Agent-Up {version}", downloadUrl);
+        => Online("Agent-Up", version, downloadUrl);
+
+    public static PayloadSelection Online(string productName, Version version, string downloadUrl)
+        => new(PayloadSourceKind.Online, version, $"Online {productName} {version}", downloadUrl);
 }

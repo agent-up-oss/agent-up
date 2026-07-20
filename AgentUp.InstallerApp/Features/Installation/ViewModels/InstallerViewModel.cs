@@ -99,9 +99,10 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     public static InstallerViewModel CreateDefault()
     {
         var version = InstallerVersion();
+        var manifest = ProductManifest.AgentUp();
         var adapter = InstallerAdapterFactory.Create();
         var model = new InstallerViewModel(
-            InstallerSession.CreateDefault("Agent-Up", version, DefaultInstallRoot(), PayloadSelection.Bundled(version)),
+            InstallerSession.CreateDefault(manifest, version, manifest.DefaultInstallRoot(), PayloadSelection.Bundled(version)),
             adapter,
             adapter.SupportsInstallActions ? CapabilityDashboardService.CreateDefault() : CapabilityDashboardService.CreateNixOs());
         _ = model.RefreshAsync();
@@ -111,9 +112,11 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     public static InstallerViewModel CreateFakeForTests()
     {
         var version = new Version(0, 0, 0);
+        var manifest = ProductManifest.AgentUp();
+        var installRoot = manifest.DefaultInstallRoot();
         var model = new InstallerViewModel(
-            InstallerSession.CreateDefault("Agent-Up", version, DefaultInstallRoot(), PayloadSelection.Bundled(version)),
-            InstallerPlatformAdapterFactory.CreateFake(DefaultInstallRoot() + " dry run"),
+            InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
+            InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
             CapabilityDashboardService.CreateFake());
         _ = model.RefreshAsync();
         return model;
@@ -219,15 +222,6 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     {
         var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
         return v is null || v == new Version(0, 0, 0, 0) ? new Version(0, 0, 0) : new Version(v.Major, v.Minor, v.Build);
-    }
-
-    private static string DefaultInstallRoot()
-    {
-        if (OperatingSystem.IsWindows())
-            return @"C:\Program Files\Agent-Up";
-        if (OperatingSystem.IsMacOS())
-            return "/Applications/Agent-Up.app";
-        return "/opt/agent-up";
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

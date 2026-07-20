@@ -62,5 +62,5 @@ public class InstallerWorkflowTests
     }
 
     private static InstallerSession NewSession()
-        => InstallerSession.CreateDefault("Agent-Up", new Version(1, 2, 3), "/opt/agent-up", PayloadSelection.Bundled(new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/opt/agent-up", PayloadSelection.Bundled(new Version(1, 2, 3)));
 }

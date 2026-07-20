@@ -1,4 +1,5 @@
 using AgentUp.Installers.Features.Installation.Interfaces;
+using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
@@ -53,8 +54,11 @@ public static class InstallerPlatformAdapterFactory
         => new FakeInstallerPlatformAdapter(platformName);
 
     public static string ResolvePayloadRoot(string appBaseDirectory)
+        => ResolvePayloadRoot(appBaseDirectory, ProductManifest.AgentUp());
+
+    public static string ResolvePayloadRoot(string appBaseDirectory, ProductManifest manifest)
     {
-        var payloadRoot = Environment.GetEnvironmentVariable(PayloadRootVariable);
+        var payloadRoot = Environment.GetEnvironmentVariable(manifest.PayloadRootVariable);
         if (!string.IsNullOrWhiteSpace(payloadRoot))
             return payloadRoot;
 
@@ -65,7 +69,7 @@ public static class InstallerPlatformAdapterFactory
                 return bundledPayloadRoot;
         }
 
-        throw new InvalidOperationException($"{PayloadRootVariable} must point at a payload root containing desktop, server, and cli directories, or the installer app must include a bundled payload directory next to the executable.");
+        throw new InvalidOperationException($"{manifest.PayloadRootVariable} must point at a payload root containing desktop, server, and cli directories, or the installer app must include a bundled payload directory next to the executable.");
     }
 
     public static IReadOnlyList<string> PayloadCandidateDirectories(string appBaseDirectory)

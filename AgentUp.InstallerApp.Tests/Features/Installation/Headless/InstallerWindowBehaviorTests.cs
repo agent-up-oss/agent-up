@@ -90,7 +90,7 @@ public class InstallerWindowBehaviorTests
         {
             var version = new Version(1, 2, 3);
             var model = new InstallerViewModel(
-                InstallerSession.CreateDefault("Agent-Up", version, "/opt/agent-up", PayloadSelection.Bundled(version)),
+                InstallerSession.CreateDefault(ProductManifest.AgentUp(), version, "/opt/agent-up", PayloadSelection.Bundled(version)),
                 new NixOsInstallerPlatformAdapter(
                     new Lookup(("agent-up", "/nix/store/agent-up/bin/agent-up")),
                     new DockerPrerequisite(new DockerProvider(), new Version(27, 0, 0))),

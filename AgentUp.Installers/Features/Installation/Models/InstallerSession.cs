@@ -8,7 +8,7 @@ using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 namespace AgentUp.Installers.Features.Installation.Models;
 
 public sealed record InstallerSession(
-    string ProductName,
+    ProductManifest Manifest,
     Version Version,
     InstallerStep Step,
     bool LicenseAccepted,
@@ -19,18 +19,20 @@ public sealed record InstallerSession(
     PayloadSelection Payload,
     ValidationReport? ValidationReport)
 {
+    public string ProductName => Manifest.ProductName;
+
     public static InstallerSession CreateDefault(
-        string productName,
+        ProductManifest manifest,
         Version version,
         string installRoot,
         PayloadSelection payload)
         => new(
-            productName,
+            manifest,
             version,
             InstallerStep.Welcome,
             LicenseAccepted: false,
             DockerStatus: null,
-            Components: ComponentSelection.CreateDefault(productName, version, installRoot).Components,
+            Components: ComponentSelection.CreateDefault(manifest.ProductName, version, installRoot).Components,
             Location: new InstallLocation(installRoot),
             ServerUrl: "http://127.0.0.1:5000",
             Payload: payload,
