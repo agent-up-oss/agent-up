@@ -111,14 +111,14 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         {
             if (summary.Includes(InstallerComponent.Desktop))
             {
-                var tmpPlist = Path.GetTempFileName();
+                var tmpPlist = Path.Combine("/tmp", Path.GetRandomFileName());
                 await File.WriteAllTextAsync(tmpPlist, plists.DesktopInfoPlist(), cancellationToken);
                 tempFiles[_options.Paths.DesktopInfoPlistPath] = tmpPlist;
             }
 
             if (summary.Includes(InstallerComponent.Server))
             {
-                var tmpDaemon = Path.GetTempFileName();
+                var tmpDaemon = Path.Combine("/tmp", Path.GetRandomFileName());
                 await File.WriteAllTextAsync(tmpDaemon, plists.LaunchDaemonPlist(), cancellationToken);
                 tempFiles[_options.Paths.LaunchDaemonPath] = tmpDaemon;
             }
@@ -264,7 +264,9 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
 
     private async Task RunElevatedAsync(string script, CancellationToken cancellationToken)
     {
-        var tmpFile = Path.GetTempFileName();
+        // Use /tmp directly — macOS PKG installer sets TMPDIR to a PKInstallSandbox path
+        // that bash child processes cannot access, causing "No such file or directory".
+        var tmpFile = Path.Combine("/tmp", Path.GetRandomFileName());
         try
         {
             await File.WriteAllTextAsync(tmpFile, "#!/usr/bin/env bash\n" + script, cancellationToken);
