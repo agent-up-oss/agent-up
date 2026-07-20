@@ -61,23 +61,35 @@ reviews:
 
         When customer impact is uncertain, do not apply this label.
 
+        Every pull request that receives this label must also receive exactly
+        one of: release:breaking, release:feature, release:improvement,
+        release:fix. If you cannot confidently assign a category, do not apply
+        this label.
+
+    - label: release:breaking
+      instructions: |
+        Apply this label when customers must change configuration, commands,
+        integrations, installation steps, API usage, or workflows after
+        upgrading.
+
+        release:breaking takes priority over all other category labels. When a
+        pull request qualifies as breaking, apply only release:breaking and not
+        release:feature, release:improvement, or release:fix.
+
     - label: release:feature
       instructions: |
         Apply this label when a release-note-relevant pull request introduces
-        new customer-facing functionality.
-
-    - label: release:fix
-      instructions: |
-        Apply this label when a release-note-relevant pull request corrects
-        broken customer-visible behavior.
+        new customer-facing functionality, and the change is not breaking.
 
     - label: release:improvement
       instructions: |
         Apply this label when a release-note-relevant pull request meaningfully
         improves existing customer-facing behavior, usability, performance,
-        compatibility, installation, or configuration.
+        compatibility, installation, or configuration, and the change is not
+        breaking and does not introduce new functionality.
 
-    - label: release:breaking
+    - label: release:fix
       instructions: |
-        Apply this label when customers must change configuration, commands,
-        integrations, installation steps, API usage, or workflows.
+        Apply this label when a release-note-relevant pull request corrects
+        broken customer-visible behavior, and the change is not breaking, not a
+        new feature, and not a general improvement.
