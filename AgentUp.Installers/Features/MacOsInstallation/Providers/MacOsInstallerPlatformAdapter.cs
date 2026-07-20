@@ -265,7 +265,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     private async Task RunElevatedAsync(string script, CancellationToken cancellationToken)
     {
         // Use /tmp directly — macOS PKG installer sets TMPDIR to a PKInstallSandbox path
-        // that bash child processes cannot access, causing "No such file or directory".
+        // not accessible to child processes spawned via Process.Start.
         var tmpFile = Path.Combine("/tmp", Path.GetRandomFileName());
         try
         {
@@ -275,13 +275,27 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
 
             if (Environment.UserName == "root")
             {
-                await _requiredCommands.RunAsync("bash", $"'{tmpFile}'", cancellationToken);
+                // Pass the path unquoted — Process.Start with UseShellExecute=false does not
+                // process shell quotes in Arguments, so single-quoting is passed literally.
+                await _requiredCommands.RunAsync("bash", tmpFile, cancellationToken);
             }
             else
             {
-                await _requiredCommands.RunAsync("osascript",
-                    $"-e 'do shell script \"{tmpFile}\" with administrator privileges'",
-                    cancellationToken);
+                // Write AppleScript to a file to avoid quoting issues in Arguments string.
+                var appleScriptPath = Path.Combine("/tmp", Path.GetRandomFileName() + ".scpt");
+                try
+                {
+                    await File.WriteAllTextAsync(appleScriptPath,
+                        $"do shell script \"{tmpFile}\" with administrator privileges",
+                        cancellationToken);
+                    await _requiredCommands.RunAsync("osascript", appleScriptPath, cancellationToken);
+                }
+                finally
+                {
+                    try { File.Delete(appleScriptPath); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
             }
         }
         finally

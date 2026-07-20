@@ -117,13 +117,7 @@ public sealed class CapabilityLifecycleSmoke
         if (!string.IsNullOrWhiteSpace(image))
             return image;
 
-        if (!OperatingSystem.IsWindows())
-            return "nginx:alpine";
-
-        var tag = Environment.OSVersion.Version.Build >= 26000
-            ? "windowsservercore-ltsc2025"
-            : "windowsservercore-ltsc2022";
-        return $"mcr.microsoft.com/windows/servercore/iis:{tag}";
+        return "nginx:alpine";
     }
 
     private async Task GitCommitConfigAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
