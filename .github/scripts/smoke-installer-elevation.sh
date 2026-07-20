@@ -21,9 +21,16 @@ OSASCRIPT_LOG="$MOCK_BIN/osascript-calls.log"
 # Stub osascript: capture the invocation and return success without running the script.
 # We intentionally do not execute the script — this test only verifies that elevation
 # was requested with the right mechanism (do shell script ... with administrator privileges).
+# Also dump the content of any .scpt file argument so the grep below can find
+# 'administrator privileges' regardless of whether it was passed inline or via a file.
 cat > "$MOCK_BIN/osascript" << 'STUB_EOF'
 #!/usr/bin/env bash
 echo "$*" >> "$OSASCRIPT_ARGS_LOG"
+for arg in "$@"; do
+  if [ -f "$arg" ]; then
+    cat "$arg" >> "$OSASCRIPT_ARGS_LOG"
+  fi
+done
 STUB_EOF
 chmod +x "$MOCK_BIN/osascript"
 
