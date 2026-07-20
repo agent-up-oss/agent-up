@@ -71,7 +71,15 @@ public static class E2ETestRunner
 
     private static int RunTests(string[] args)
     {
-        return new AutoRun(typeof(E2ETestRunner).Assembly)
+        var exitCode = new AutoRun(typeof(E2ETestRunner).Assembly)
             .Execute(args.Length > 0 ? args : ["--workers=0"]);
+
+        // On Linux, force-exit via _exit() to bypass unmanaged GTK/WebKit cleanup
+        // that would otherwise SIGABRT the process during CLR shutdown.
+        // All test results have already been reported by the time AutoRun.Execute returns.
+        if (OperatingSystem.IsLinux())
+            Environment.Exit(exitCode);
+
+        return exitCode;
     }
 }
