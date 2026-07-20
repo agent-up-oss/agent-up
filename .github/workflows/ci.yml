@@ -7,7 +7,6 @@ concurrency:
     ${{ github.ref == 'refs/heads/main'
       && format('{0}-main-release', github.workflow)
       || format('{0}-{1}-{2}', github.workflow, github.ref, github.run_id) }}
-  queue: max
 
 permissions:
   contents: read
