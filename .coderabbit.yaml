@@ -81,9 +81,3 @@ reviews:
       instructions: |
         Apply this label when customers must change configuration, commands,
         integrations, installation steps, API usage, or workflows.
-
-finishing_touches:
-  docstrings:
-    enabled: false
-  unit_tests:
-    enabled: false
