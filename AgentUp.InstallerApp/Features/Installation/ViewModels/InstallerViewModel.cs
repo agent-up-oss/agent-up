@@ -5,6 +5,7 @@ using System.Windows.Input;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Capabilities.Services;
 using AgentUp.InstallerApp.Features.Installation.Factories;
+using AgentUp.InstallerApp.Features.Logging;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation.Interfaces;
@@ -133,6 +134,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
 
     internal async Task RunComponentActionAsync(ComponentCardViewModel card, InstallerComponentAction action)
     {
+        InstallerLog.Write($"{action} {card.Target} starting");
         card.Begin(action);
         try
         {
@@ -140,10 +142,12 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
                 card.ApplyProgress(progress);
 
             card.ApplyStatus(await _adapter.GetComponentStatusAsync(card.Target, _session));
+            InstallerLog.Write($"{action} {card.Target} completed");
         }
         catch (Exception ex)
         {
-            card.Fail(ex.Message);
+            InstallerLog.WriteException($"{action} {card.Target}", ex);
+            card.Fail($"{ex.Message}\n\nSee log: {InstallerLog.FilePath}");
             try
             {
                 var status = await _adapter.GetComponentStatusAsync(card.Target, _session);
@@ -152,7 +156,8 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
             }
             catch (Exception statusEx)
             {
-                card.Fail($"{ex.Message} (Status refresh failed: {statusEx.Message})");
+                InstallerLog.WriteException($"{action} {card.Target} status refresh", statusEx);
+                card.Fail($"{ex.Message} (Status refresh failed: {statusEx.Message})\n\nSee log: {InstallerLog.FilePath}");
             }
         }
     }

@@ -2,10 +2,14 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using AgentUp.InstallerApp;
 using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.InstallerApp.Features.Logging;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.WindowsInstallation.Models;
 using System.Diagnostics;
 using System.Text;
+
+InstallerLog.Write($"Installer starting: args=[{string.Join(", ", args)}]");
+Console.Error.WriteLine($"[Agent-Up Installer] Log: {InstallerLog.FilePath}");
 
 try
 {
@@ -13,9 +17,12 @@ try
         return await RunWindowsUninstallAsync();
 
     SetBundledPayloadRoot(args);
+    InstallerLog.Write($"Payload root: {Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable) ?? "(not set)"}");
+
     if (InstallerCommandLine.ShouldRunCommandLine(args))
         return await InstallerCommandLine.RunAsync(args, Console.Out, Console.Error);
 
+    InstallerLog.Write("Starting GUI");
     return AppBuilder.Configure<App>()
         .UsePlatformDetect()
         .WithInterFont()
@@ -24,7 +31,7 @@ try
 }
 catch (Exception exception)
 {
-    WriteStartupCrash(exception);
+    InstallerLog.WriteException("startup", exception);
     throw;
 }
 
@@ -61,25 +68,6 @@ static string? PayloadRootFromArgs(string[] args)
     return null;
 }
 
-static void WriteStartupCrash(Exception exception)
-{
-    try
-    {
-        var logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "Library",
-            "Logs",
-            "Agent-Up");
-        Directory.CreateDirectory(logDirectory);
-        File.AppendAllText(
-            Path.Combine(logDirectory, "installer-crash.log"),
-            $"[{DateTimeOffset.Now:O}] {exception}{Environment.NewLine}");
-    }
-    catch
-    {
-        // Startup diagnostics must never replace the original failure.
-    }
-}
 
 static async Task<int> RunWindowsUninstallAsync()
 {

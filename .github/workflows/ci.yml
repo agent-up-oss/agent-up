@@ -387,6 +387,20 @@ jobs:
           export AGENTUP_INSTALLER_FAKE=1
           ./.github/scripts/smoke-installer-flow.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
 
+      - name: Smoke test installer app startup
+        if: ${{ matrix.platform == 'macos' }}
+        shell: bash
+        run: |
+          export AGENTUP_INSTALLER_APP_COMMAND="$PWD/dotnet-ci/payloads/${{ matrix.rid }}/installer/AgentUp.InstallerApp"
+          ./.github/scripts/smoke-installer-startup.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
+
+      - name: Smoke test installer elevation
+        if: ${{ matrix.platform == 'macos' }}
+        shell: bash
+        run: |
+          export AGENTUP_INSTALLER_APP_COMMAND="$PWD/dotnet-ci/payloads/${{ matrix.rid }}/installer/AgentUp.InstallerApp"
+          ./.github/scripts/smoke-installer-elevation.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
+
       - name: Pre-pull Windows smoke Docker image
         if: ${{ matrix.platform == 'windows' }}
         shell: pwsh

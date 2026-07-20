@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
+using AgentUp.InstallerApp.Features.Logging;
 
 namespace AgentUp.InstallerApp;
 
@@ -10,6 +11,7 @@ public class App : Application
 {
     public override void Initialize()
     {
+        InstallerLog.Write("Avalonia initializing");
         AvaloniaXamlLoader.Load(this);
     }
 
@@ -17,10 +19,20 @@ public class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new InstallerWindow
+            InstallerLog.Write("Creating installer window");
+            try
             {
-                DataContext = InstallerViewModel.CreateDefault()
-            };
+                desktop.MainWindow = new InstallerWindow
+                {
+                    DataContext = InstallerViewModel.CreateDefault()
+                };
+                InstallerLog.Write("Installer window created successfully");
+            }
+            catch (Exception ex)
+            {
+                InstallerLog.WriteException("window initialization", ex);
+                throw;
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
