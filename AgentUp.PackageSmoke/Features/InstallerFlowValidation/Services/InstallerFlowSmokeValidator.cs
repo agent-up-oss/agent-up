@@ -24,8 +24,9 @@ public sealed class InstallerFlowSmokeValidator
         Directory.CreateDirectory(workDirectory);
 
         var version = new Version(0, 0, 0);
+        var manifest = ProductManifest.AgentUp();
         var session = InstallerSession.CreateDefault(
-            "Agent-Up",
+            manifest,
             version,
             DefaultInstallRoot(platform),
             PayloadSelection.Bundled(version));

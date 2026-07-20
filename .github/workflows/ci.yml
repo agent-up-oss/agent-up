@@ -201,7 +201,7 @@ jobs:
           retention-days: 1
 
       - name: Test Report
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: ${{ !cancelled() }}
         with:
           name: .NET Tests (Agent-Up)

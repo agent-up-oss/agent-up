@@ -56,7 +56,7 @@ public sealed class NixOsInstallerPlatformAdapterTests
 
     private static InstallerSession Session()
         => InstallerSession.CreateDefault(
-            "Agent-Up",
+            ProductManifest.AgentUp(),
             new Version(1, 2, 3),
             "/opt/agent-up",
             PayloadSelection.Bundled(new Version(1, 2, 3)));
