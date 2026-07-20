@@ -105,6 +105,13 @@ jobs:
                   break
                 else
                   test_status=$?
+                  echo "=== WebKit/GTK subprocesses still running after attempt $attempt ==="
+                  pgrep -la -f "WebKit|webkit|WebProcess|NetworkProcess" 2>/dev/null || echo "(none)"
+                  echo "=== dmesg tail (crash context) ==="
+                  dmesg 2>/dev/null | tail -20 || true
+                  echo "=== Killing lingering WebKit subprocesses before retry ==="
+                  pkill -9 -f "WebKitWebProcess|WebKitNetworkProcess|webkit_webproc" 2>/dev/null || true
+                  sleep 2
                 fi
               done
               if [ "$test_status" -ne 0 ]; then

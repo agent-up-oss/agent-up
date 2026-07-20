@@ -92,16 +92,21 @@ public sealed class BrowserCookieIsolationTests
 
         TestContext.Progress.WriteLine("Navigating WS1 to set login cookie.");
         Navigate("ws-1", $"http://localhost:{port}/set/logged_in/true");
+        TestContext.Progress.WriteLine("Waiting for WS1 set-cookie request.");
         await _server.WaitForRequestAsync("/set/logged_in/true");
+        TestContext.Progress.WriteLine("WS1 set-cookie request received.");
 
         TestContext.Progress.WriteLine("Checking WS1 login cookie header.");
         var ws1Req = await WaitForCookieHeaderAsync("ws-1", "ws1-login", contains: "logged_in=true");
         Assert.That(ws1Req.CookieHeader, Does.Contain("logged_in=true"),
             "WS1's page must see its own login cookie");
+        TestContext.Progress.WriteLine("WS1 cookie check passed.");
 
-        TestContext.Progress.WriteLine("Checking WS2 login cookie isolation.");
+        TestContext.Progress.WriteLine("Checking WS2 login cookie isolation (creating second WebView).");
         Navigate("ws-2", $"http://localhost:{port}/check/ws2-login");
+        TestContext.Progress.WriteLine("WS2 navigation posted; waiting for request.");
         var ws2Req = await _server.WaitForRequestAsync("/check/ws2-login");
+        TestContext.Progress.WriteLine("WS2 request received.");
         Assert.That(ws2Req.CookieHeader, Is.Null.Or.Not.Contain("logged_in"),
             "WS2's page must not see WS1's login cookie");
     }
@@ -180,7 +185,7 @@ public sealed class BrowserCookieIsolationTests
         // before any Navigate call triggers new NativeWebView() from a dispatcher callback.
         await Task.Delay(3000);
 
-        TestContext.Progress.WriteLine("Native WebView bootstrap wait completed.");
+        TestContext.Progress.WriteLine("Native WebView bootstrap wait completed. About to return window.");
         return window;
     }
 
