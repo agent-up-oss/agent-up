@@ -61,7 +61,11 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      image: 'img/social-card.svg',
+      colorMode: {
+        defaultMode: 'dark',
+        respectPrefersColorScheme: false,
+      },
+      image: 'img/social-card.png',
       navbar: {
         title: 'Agent-Up',
         logo: {
