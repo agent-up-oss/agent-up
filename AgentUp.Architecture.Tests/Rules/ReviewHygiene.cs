@@ -247,7 +247,7 @@ public sealed class ReviewHygiene
            || statement is BlockSyntax block && IsEmptyBlock(block);
 
     private static bool IsEmptyBlock(BlockSyntax block)
-        => block.Statements.Count == 0 || IsDiscardAssignmentOnlyBlock(block);
+        => block.Statements.Count == 0;
 
     private static bool IsDiscardAssignmentOnlyBlock(BlockSyntax block)
         => block.Statements.Count == 1 && IsDiscardAssignmentStatement(block.Statements[0]);

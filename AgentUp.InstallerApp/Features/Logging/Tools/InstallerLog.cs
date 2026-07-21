@@ -57,7 +57,7 @@ public static class InstallerLog
     {
         Write(message);
         try { Console.Error.WriteLine($"[Agent-Up Installer] {message}"); }
-        catch (IOException ex) { _ = ex; }
+        catch (IOException) { }
     }
 
     public static void WriteException(string context, Exception exception)
