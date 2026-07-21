@@ -160,16 +160,12 @@ public class MacOsInstallerPlatformAdapterTests
     }
 
     [Test]
-    public void InstallerPostInstallScript_runsInstallCoreBeforeOpeningGui()
+    public void InstallerPostInstallScript_onlyOpensGui()
     {
         var script = MacOsInstallerScripts.InstallerPostInstallScript();
 
-        Assert.That(script, Does.Contain("--install-core"));
-        Assert.That(script, Does.Contain("--payload-root"));
-        Assert.That(script, Does.Contain("open -a"));
-        // install-core must appear before open -a in the script
-        Assert.That(script.IndexOf("--install-core", StringComparison.Ordinal),
-            Is.LessThan(script.IndexOf("open -a", StringComparison.Ordinal)));
+        Assert.That(script, Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
+        Assert.That(script, Does.Not.Contain("--install-core"));
     }
 
     private static InstallerSession Session()

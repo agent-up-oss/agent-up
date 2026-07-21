@@ -130,8 +130,17 @@ public static class InstallerCommandLine
         var report = await adapter.ValidateInstalledStateAsync(session, cancellationToken);
         foreach (var finding in report.Findings)
         {
-            InstallerLog.Write($"{finding.Severity}: {finding.Code} {finding.Message}");
-            await output.WriteLineAsync($"{finding.Severity}: {finding.Code} {finding.Message}");
+            var line = $"{finding.Severity}: {finding.Code} {finding.Message}";
+            if (finding.Severity == ValidationSeverity.Error)
+            {
+                InstallerLog.WriteError(line);
+                await error.WriteLineAsync(line);
+            }
+            else
+            {
+                InstallerLog.Write(line);
+                await output.WriteLineAsync(line);
+            }
         }
 
         if (report.Succeeded)
