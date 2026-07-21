@@ -24,7 +24,11 @@ internal static class BrowserUrlStore
                 return null;
             return savedUri.Host == baseUri.Host && savedUri.Port == baseUri.Port ? saved : null;
         }
-        catch { return null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            _ = ex;
+            return null;
+        }
     }
 
     internal static void Write(string workspaceId, string url)
@@ -35,6 +39,9 @@ internal static class BrowserUrlStore
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Join(dir, "last-url.txt"), url);
         }
-        catch { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            _ = ex;
+        }
     }
 }

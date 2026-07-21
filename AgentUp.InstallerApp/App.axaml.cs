@@ -28,7 +28,7 @@ public class App : Application
                 };
                 InstallerLog.Write("Installer window created successfully");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
             {
                 InstallerLog.WriteException("window initialization", ex);
                 throw;

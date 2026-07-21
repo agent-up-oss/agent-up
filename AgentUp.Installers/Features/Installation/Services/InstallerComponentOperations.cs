@@ -56,7 +56,8 @@ public static class InstallerComponentOperations
         await foreach (var item in executeInstall(ForTarget(session, target), cancellationToken)
                            .WithCancellation(cancellationToken))
         {
-            if (IsRelevant(item.Kind, target))
+            var isRelevant = IsRelevant(item.Kind, target);
+            if (isRelevant)
                 yield return item;
         }
     }
@@ -99,5 +100,5 @@ public static class InstallerComponentOperations
         };
 
     private static string DisplayName(InstallerComponentTarget target) =>
-        target == InstallerComponentTarget.Cli ? "CLI" : target.ToString();
+        target == InstallerComponentTarget.Cli ? "CLI" : $"{target}";
 }

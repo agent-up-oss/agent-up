@@ -35,8 +35,9 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         {
             await _workspaceClient.CleanupTutorialWorkspacesAsync(cancellationToken);
         }
-        catch
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            _ = ex;
             // Cleanup is best-effort. The regular checks will surface any Server issue later.
         }
     }
@@ -306,20 +307,19 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         if (!Directory.Exists(fullPath))
             return FirstRunCheckResult.Failure("That project directory does not exist yet.");
 
-        foreach (var requiredPath in new[]
-                 {
-                     Path.Join(fullPath, "web", "package.json"),
-                     Path.Join(fullPath, "web", "index.html"),
-                     Path.Join(fullPath, "web", "src-App.jsx"),
-                     Path.Join(fullPath, "web", "vite.config.mjs"),
-                     Path.Join(fullPath, "api", "package.json"),
-                     Path.Join(fullPath, "api", "server.js"),
-                     Path.Join(fullPath, "docker-compose.yaml")
-                 })
-        {
-            if (!File.Exists(requiredPath))
-                return FirstRunCheckResult.Failure($"Missing sample file: {requiredPath}");
-        }
+        var missingPath = new[]
+            {
+                Path.Join(fullPath, "web", "package.json"),
+                Path.Join(fullPath, "web", "index.html"),
+                Path.Join(fullPath, "web", "src-App.jsx"),
+                Path.Join(fullPath, "web", "vite.config.mjs"),
+                Path.Join(fullPath, "api", "package.json"),
+                Path.Join(fullPath, "api", "server.js"),
+                Path.Join(fullPath, "docker-compose.yaml")
+            }
+            .FirstOrDefault(requiredPath => !File.Exists(requiredPath));
+        if (missingPath is not null)
+            return FirstRunCheckResult.Failure($"Missing sample file: {missingPath}");
 
         return FirstRunCheckResult.Success("Project files are present.");
     }
@@ -452,7 +452,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         var exited = await WaitForExitAsync(process, timeout, cancellationToken);
         if (!exited)
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
+            try { process.Kill(entireProcessTree: true); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { _ = ex; }
             return (-1, "", $"{fileName} did not respond in time.");
         }
 
@@ -482,6 +482,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
         {
+            _ = ex;
         }
 
         var cliProject = FindCliProject();

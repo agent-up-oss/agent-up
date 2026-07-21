@@ -21,7 +21,7 @@ public sealed class SocketPortAvailabilityProvider : IPortAvailabilityProvider
     {
         try
         {
-            var listener = new TcpListener(IPAddress.Loopback, port);
+            using var listener = new TcpListener(IPAddress.Loopback, port);
             listener.Start();
             listener.Stop();
             return true;

@@ -95,7 +95,6 @@ public class InstallerWindowBehaviorTests
                 CapabilitiesController.CreateNixOs(Path.Join(root, "tool-cache")));
             var window = new InstallerWindow { DataContext = model };
             window.Show();
-            await model.RefreshAsync();
             await HeadlessExtensions.FlushAsync();
 
             var cli = model.ComponentCards.Single(card => card.Target.Id == "cli");

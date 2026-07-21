@@ -6,7 +6,7 @@ using AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 
-public sealed class CapabilityLifecycleSmoke
+public sealed class CapabilityLifecycleSmoke : IDisposable
 {
     private const string WorkspaceName = "Capability Lifecycle Smoke Workspace";
     private const string DotnetAppName = "SmokeDotnet";
@@ -15,11 +15,13 @@ public sealed class CapabilityLifecycleSmoke
 
     private readonly ICommandRunner _commands;
     private readonly HttpClient _http;
+    private readonly bool _ownsHttp;
 
     public CapabilityLifecycleSmoke(ICommandRunner commands, HttpClient? http = null)
     {
         _commands = commands;
         _http = http ?? new HttpClient();
+        _ownsHttp = http is null;
     }
 
     public async Task RunAsync(
@@ -300,4 +302,10 @@ public sealed class CapabilityLifecycleSmoke
         => serverUrl.TrimEnd('/') + path;
 
     private readonly record struct WorkspaceSnapshot(string Id, JsonElement Json);
+
+    public void Dispose()
+    {
+        if (_ownsHttp)
+            _http.Dispose();
+    }
 }

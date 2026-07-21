@@ -34,10 +34,9 @@ public class InstallerLogTests
     }
 
     [Test]
-    public void FilePath_onWindows_isLocalAppDataPath()
+    public void FilePath_isFullyQualifiedAgentUpInstallerLogPath()
     {
-        Assume.That(OperatingSystem.IsWindows(), Is.True, "Windows path assertion only applies on Windows");
-        Assert.That(InstallerLog.FilePath, Does.Contain("Agent-Up"));
+        Assert.That(InstallerLog.FilePath, Does.Contain("agent-up").IgnoreCase);
         Assert.That(InstallerLog.FilePath, Does.EndWith("installer.log"));
         Assert.That(Path.IsPathFullyQualified(InstallerLog.FilePath), Is.True);
     }

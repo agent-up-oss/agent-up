@@ -159,15 +159,16 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
 
         await foreach (var line in File.ReadLinesAsync(packedRefsPath, cancellationToken))
         {
-            if (line.Length == 0 || line[0] is '#' or '^')
-                continue;
+            var candidateReference = line.Length > 0 && line[0] is not ('#' or '^');
+            if (candidateReference)
+            {
+                var separatorIndex = line.IndexOf(' ', StringComparison.Ordinal);
+                if (separatorIndex <= 0)
+                    continue;
 
-            var separatorIndex = line.IndexOf(' ', StringComparison.Ordinal);
-            if (separatorIndex <= 0)
-                continue;
-
-            if (string.Equals(line[(separatorIndex + 1)..], referenceName, StringComparison.Ordinal))
-                return line[..separatorIndex];
+                if (string.Equals(line[(separatorIndex + 1)..], referenceName, StringComparison.Ordinal))
+                    return line[..separatorIndex];
+            }
         }
 
         return null;

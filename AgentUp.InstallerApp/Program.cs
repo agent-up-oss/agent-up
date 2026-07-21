@@ -38,7 +38,7 @@ try
         .UseReactiveUI()
         .StartWithClassicDesktopLifetime(args);
 }
-catch (Exception exception)
+catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
 {
     InstallerLog.WriteException("startup", exception);
     throw;
@@ -71,7 +71,7 @@ static string? PayloadRootFromArgs(string[] args)
         var configured = args[index + 1];
         return Path.IsPathFullyQualified(configured)
             ? configured
-            : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, configured));
+            : Path.GetFullPath(Path.Join(AppContext.BaseDirectory, configured));
     }
 
     return null;

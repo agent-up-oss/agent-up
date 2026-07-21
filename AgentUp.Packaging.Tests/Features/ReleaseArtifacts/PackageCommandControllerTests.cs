@@ -25,7 +25,7 @@ public class PackageCommandControllerTests
                 _ => null,
             });
 
-        var error = new StringWriter();
+        using var error = new StringWriter();
         var exitCode = await controller.ExecuteAsync(["package", "ubuntu", "linux-x64", "1.2.3"], error);
 
         Assert.That(exitCode, Is.EqualTo(0));
@@ -43,9 +43,10 @@ public class PackageCommandControllerTests
             calls,
             environment: name => name == "AGENTUP_PACKAGE_PAYLOAD_ROOT" ? "/env-payload" : null);
 
+        using var error = new StringWriter();
         var exitCode = await controller.ExecuteAsync(
             ["package", "windows", "win-x64", "2.0.0", "release-output", "--payload-root", "/arg-payload"],
-            new StringWriter());
+            error);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(calls, Has.Count.EqualTo(1));
@@ -59,7 +60,8 @@ public class PackageCommandControllerTests
         var calls = new List<(string Target, PackageRequest Request)>();
         var controller = CreateController(calls);
 
-        var exitCode = await controller.ExecuteAsync(["package", "macos", "osx-arm64", "3.0.0", "dist"], new StringWriter());
+        using var error = new StringWriter();
+        var exitCode = await controller.ExecuteAsync(["package", "macos", "osx-arm64", "3.0.0", "dist"], error);
 
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(calls, Has.Count.EqualTo(1));
@@ -72,7 +74,7 @@ public class PackageCommandControllerTests
     {
         var calls = new List<(string Target, PackageRequest Request)>();
         var controller = CreateController(calls);
-        var error = new StringWriter();
+        using var error = new StringWriter();
 
         var exitCode = await controller.ExecuteAsync(["package", "nixos", "linux-x64", "1.2.3"], error);
 
@@ -85,7 +87,7 @@ public class PackageCommandControllerTests
     public async Task ExecuteAsync_withInvalidArgsReturnsUsageError()
     {
         var controller = CreateController([]);
-        var error = new StringWriter();
+        using var error = new StringWriter();
 
         var exitCode = await controller.ExecuteAsync(["package", "ubuntu"], error);
 
@@ -98,7 +100,7 @@ public class PackageCommandControllerTests
     {
         var calls = new List<(string Target, PackageRequest Request)>();
         var controller = CreateController(calls);
-        var error = new StringWriter();
+        using var error = new StringWriter();
 
         var exitCode = await controller.ExecuteAsync(["package", "ubuntu", "linux-x64", "1.2.3", "../outside"], error);
 

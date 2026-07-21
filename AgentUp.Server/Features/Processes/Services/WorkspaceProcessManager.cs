@@ -130,7 +130,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message);
             throw;
         }
-        catch
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
             throw;
@@ -211,14 +211,12 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                     _logger.LogInformation("Killed workspace application process with pid {Pid}", process.Id);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
             {
                 _logger.LogWarning(ex, "Failed to kill workspace application process");
             }
-            finally
-            {
-                process.Dispose();
-            }
+
+            process.Dispose();
         }
 
         if (containerName is not null)

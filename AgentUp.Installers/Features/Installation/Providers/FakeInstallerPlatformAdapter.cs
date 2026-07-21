@@ -122,11 +122,8 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
 
     private void EnsureInitialized(InstallerSession session)
     {
-        foreach (var component in session.Manifest.Components)
-        {
-            if (!_statuses.ContainsKey(component.Id))
-                _statuses[component.Id] = new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled);
-        }
+        foreach (var component in session.Manifest.Components.Where(component => !_statuses.ContainsKey(component.Id)))
+            _statuses[component.Id] = new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled);
     }
 
     private static void ValidateComponent(ProductComponent component, InstallerSession session)
@@ -152,6 +149,6 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
             InstallerComponentAction.Update => "Update",
             InstallerComponentAction.Uninstall => "Uninstall",
             InstallerComponentAction.Repair => "Repair",
-            _ => action.ToString()
+            _ => $"{action}"
         };
 }

@@ -21,7 +21,7 @@ public sealed class ListCommand
         {
             workspaces = await _client.ListAsync();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             _output.WriteLine($"Error: Failed to list workspaces: {ex.Message}");
             return 1;

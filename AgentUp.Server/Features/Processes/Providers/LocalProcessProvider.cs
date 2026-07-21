@@ -24,11 +24,8 @@ public sealed class LocalProcessProvider : ILocalProcessProvider
             ? Path.Join(workspace.WorktreePath, app.Path)
             : workspace.WorktreePath;
         var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
-        foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts))
-        {
-            if (mapping.Variable is not null)
-                startInfo.Environment[mapping.Variable] = mapping.AllocatedPort.ToString();
-        }
+        foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts).Where(mapping => mapping.Variable is not null))
+            startInfo.Environment[mapping.Variable!] = mapping.AllocatedPort.ToString();
 
         return startInfo;
     }

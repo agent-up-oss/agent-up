@@ -12,7 +12,7 @@ using AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
 namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
 
-public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks
+public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
 {
     private static readonly Regex VersionPattern = new(@"\d+\.\d+", RegexOptions.Compiled);
 
@@ -50,7 +50,7 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks
 
         if (nonLoopback.Count > 0)
             assert.Error("security.binding.loopback",
-                $"Server port {port} is bound to non-loopback address(es): {string.Join(", ", nonLoopback.Select(ep => ep.Address.ToString()))}");
+                $"Server port {port} is bound to non-loopback address(es): {string.Join(", ", nonLoopback.Select(ep => ep.Address))}");
         else
             assert.Info("security.binding.loopback", $"Port {port} is bound to loopback only.");
     }
@@ -79,4 +79,7 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks
                 $"Could not reach server to check response headers: {ex.Message}");
         }
     }
+
+    public void Dispose()
+        => _httpClient.Dispose();
 }

@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using NUnit.Framework;
 using NUnitLite;
 
 namespace AgentUp.Tests;
@@ -38,7 +39,7 @@ public static class E2ETestRunner
             {
                 exitCode = RunTests(args);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is AssertionException or InvalidOperationException or IOException)
             {
                 testException = ex;
             }

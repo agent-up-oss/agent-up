@@ -142,7 +142,7 @@ public sealed class PortAllocationService : IPortAllocationService
 
             _highWaterMark = data.HighWaterMark;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
             _logger.LogWarning(ex, "Failed to load port range assignments");
         }

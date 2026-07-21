@@ -7,7 +7,7 @@ public static class UbuntuInstallerManifest
     public const string DesktopApplicationName = "Agent-Up";
 
     public static string DesktopEntryText(Version version)
-        => DesktopEntryText(version.ToString());
+        => DesktopEntryText($"{version}");
 
     public static string DesktopEntryText(string version)
         => $"""

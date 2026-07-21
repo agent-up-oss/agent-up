@@ -177,7 +177,11 @@ sealed class HtmlTestServer : IDisposable
         {
             HttpListenerContext ctx;
             try { ctx = await _listener.GetContextAsync(); }
-            catch { break; }
+            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or InvalidOperationException)
+            {
+                _ = ex;
+                break;
+            }
 
             var path = ctx.Request.Url?.AbsolutePath ?? "/";
 
@@ -206,7 +210,7 @@ sealed class HtmlTestServer : IDisposable
 
     public void Dispose()
     {
-        try { _listener.Stop(); } catch { }
+        try { _listener.Stop(); } catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException) { _ = ex; }
     }
 }
 

@@ -8,7 +8,7 @@ public class VersionCommandTests
     [Test]
     public async Task Version_ExitsZero_AndDoesNotRequireServer()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
 
         var exitCode = await CliRunnerFactory.Create("http://localhost:1", Directory.GetCurrentDirectory(), output).RunAsync(["--version"]);
 
@@ -19,8 +19,8 @@ public class VersionCommandTests
     [Test]
     public async Task VersionCommand_UsesSameOutputAsVersionOption()
     {
-        var optionOutput = new StringWriter();
-        var commandOutput = new StringWriter();
+        using var optionOutput = new StringWriter();
+        using var commandOutput = new StringWriter();
 
         await CliRunnerFactory.Create("http://localhost:1", Directory.GetCurrentDirectory(), optionOutput).RunAsync(["--version"]);
         await CliRunnerFactory.Create("http://localhost:1", Directory.GetCurrentDirectory(), commandOutput).RunAsync(["version"]);

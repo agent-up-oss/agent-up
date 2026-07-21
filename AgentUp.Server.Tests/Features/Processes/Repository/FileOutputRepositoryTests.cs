@@ -10,7 +10,7 @@ public class FileOutputRepositoryTests
     [SetUp]
     public void SetUp()
     {
-        _tempRoot = Path.Combine(TestContext.CurrentContext.WorkDirectory, Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Join(TestContext.CurrentContext.WorkDirectory, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
     }
 
@@ -28,7 +28,7 @@ public class FileOutputRepositoryTests
 
         await repository.AppendAsync("../outside", "api/../../escape", "started");
 
-        var outputRoot = Path.Combine(_tempRoot, "output");
+        var outputRoot = Path.Join(_tempRoot, "output");
         var files = Directory.GetFiles(outputRoot, "*.log", SearchOption.AllDirectories);
 
         Assert.That(files, Has.Length.EqualTo(1));
@@ -52,7 +52,7 @@ public class FileOutputRepositoryTests
     public async Task ClearAsync_deletesOnlyTheOwnedLogFile()
     {
         var repository = new FileOutputRepository(_tempRoot);
-        var outsideFile = Path.Combine(_tempRoot, "escape.log");
+        var outsideFile = Path.Join(_tempRoot, "escape.log");
         await File.WriteAllTextAsync(outsideFile, "keep");
         await repository.AppendAsync("../escape", "app", "delete");
 

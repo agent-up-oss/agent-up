@@ -83,7 +83,7 @@ public static class InstallerCommandLine
         {
             throw;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or NotSupportedException or InvalidDataException)
         {
             InstallerLog.WriteException("CLI", exception);
             await error.WriteLineAsync(exception.Message);

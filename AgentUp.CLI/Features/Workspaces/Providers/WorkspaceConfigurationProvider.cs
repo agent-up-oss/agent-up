@@ -21,7 +21,7 @@ public sealed class WorkspaceConfigurationProvider : IWorkspaceConfigurationProv
                 ?? throw new InvalidOperationException("agent-up.json is empty or null.");
             return new WorkspaceConfigurationResult(config, null);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             return new WorkspaceConfigurationResult(null, $"Error: Failed to read agent-up.json: {ex.Message}");
         }

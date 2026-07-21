@@ -59,7 +59,7 @@ public sealed class StartCommand
                 Docker = docker
             });
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             _output.WriteLine($"Error: Failed to push workspace definition: {ex.Message}");
             return 1;
@@ -75,7 +75,7 @@ public sealed class StartCommand
         {
             await _client.StartWorkspaceAsync(workspace.Id);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             _output.WriteLine($"Error: {ex.Message}");
             return 1;

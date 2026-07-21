@@ -57,7 +57,7 @@ public sealed class SmokeValidationProvider : ISmokeValidationProvider
             request.RuntimeId,
             request.ArtifactDirectory,
             request.WorkDirectory);
-        var validator = InstalledServiceSmokeValidatorFactory.Create(smokeRequest.Platform, _commands, new HttpServerProbe());
+        using var validator = InstalledServiceSmokeValidatorFactory.Create(smokeRequest.Platform, _commands, new HttpServerProbe());
         var result = await validator.ValidateAsync(smokeRequest, cancellationToken);
         return new SmokeCommandResult(result.Succeeded, result.Findings);
     }

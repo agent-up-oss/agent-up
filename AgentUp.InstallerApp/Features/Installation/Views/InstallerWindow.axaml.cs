@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+using AgentUp.InstallerApp.Features.Installation.ViewModels;
+using AgentUp.InstallerApp.Features.Logging.Tools;
 
 namespace AgentUp.InstallerApp.Features.Installation.Views;
 
@@ -10,6 +12,22 @@ public partial class InstallerWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
         SetWindowIcon();
+    }
+
+    protected override async void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (DataContext is not InstallerViewModel model)
+            return;
+
+        try
+        {
+            await model.RefreshAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            InstallerLog.WriteException("window refresh", ex);
+        }
     }
 
     private void SetWindowIcon()
@@ -22,8 +40,9 @@ public partial class InstallerWindow : Window
             using var stream = File.OpenRead(iconPath);
             Icon = new WindowIcon(stream);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
+            InstallerLog.WriteException("window icon", ex);
             // Window icons are best-effort and should never block InstallerApp startup.
         }
     }

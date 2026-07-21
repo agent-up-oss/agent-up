@@ -22,7 +22,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsInfoFindingWhenAllListenersAreLoopback()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.Loopback, 5000), new IPEndPoint(IPAddress.IPv6Loopback, 5000)],
             serverHeader: "Kestrel");
         var assert = new FileAssertions();
@@ -36,7 +36,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsErrorFindingWhenListenerIsOnAnyIpv4()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.Any, 5000)],
             serverHeader: "Kestrel");
         var assert = new FileAssertions();
@@ -49,7 +49,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsErrorFindingWhenListenerIsOnAnyIpv6()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.IPv6Any, 5000)],
             serverHeader: "Kestrel");
         var assert = new FileAssertions();
@@ -62,7 +62,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsErrorFindingWhenLoopbackAndNonLoopbackBothPresent()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.Loopback, 5000), new IPEndPoint(IPAddress.Any, 5000)],
             serverHeader: "Kestrel");
         var assert = new FileAssertions();
@@ -75,7 +75,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_ignoresListenersOnOtherPorts()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.Any, 8080)],
             serverHeader: "Kestrel");
         var assert = new FileAssertions();
@@ -88,7 +88,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsInfoFindingWhenNoListenersFoundOnPort()
     {
-        var checks = MakeChecks(listeners: [], serverHeader: "Kestrel");
+        using var checks = MakeChecks(listeners: [], serverHeader: "Kestrel");
         var assert = new FileAssertions();
 
         await checks.RunAsync("http://127.0.0.1:5000", assert);
@@ -102,7 +102,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsInfoFindingForCleanServerHeader()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.Loopback, 5000)],
             serverHeader: "Kestrel");
         var assert = new FileAssertions();
@@ -116,7 +116,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsInfoFindingWhenServerHeaderIsAbsent()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.Loopback, 5000)],
             serverHeader: null);
         var assert = new FileAssertions();
@@ -129,7 +129,7 @@ public class RuntimeSecurityChecksTests
     [Test]
     public async Task RunAsync_addsErrorFindingWhenServerHeaderContainsVersion()
     {
-        var checks = MakeChecks(
+        using var checks = MakeChecks(
             listeners: [new IPEndPoint(IPAddress.Loopback, 5000)],
             serverHeader: "CustomServer/1.0");
         var assert = new FileAssertions();
@@ -144,7 +144,7 @@ public class RuntimeSecurityChecksTests
     {
         var handler = new FakeHttpMessageHandler(
             _ => Task.FromException<HttpResponseMessage>(new HttpRequestException("Connection refused")));
-        var checks = new RuntimeSecurityChecks(
+        using var checks = new RuntimeSecurityChecks(
             new FakeNetworkStateProvider(new IPEndPoint(IPAddress.Loopback, 5000)),
             new HttpClient(handler));
         var assert = new FileAssertions();
@@ -158,19 +158,16 @@ public class RuntimeSecurityChecksTests
 
     private static RuntimeSecurityChecks MakeChecks(IPEndPoint[] listeners, string? serverHeader)
     {
-        var handler = new FakeHttpMessageHandler(_ =>
-        {
-            using var response = new HttpResponseMessage(HttpStatusCode.OK);
-            if (serverHeader is not null)
-                response.Headers.TryAddWithoutValidation("Server", serverHeader);
-
-            var result = new HttpResponseMessage(response.StatusCode);
-            foreach (var header in response.Headers)
-                result.Headers.TryAddWithoutValidation(header.Key, header.Value);
-
-            return Task.FromResult(result);
-        });
+        var handler = new FakeHttpMessageHandler(_ => ResponseAsync(serverHeader));
         return new RuntimeSecurityChecks(new FakeNetworkStateProvider(listeners), new HttpClient(handler));
+    }
+
+    private static Task<HttpResponseMessage> ResponseAsync(string? serverHeader)
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK);
+        if (serverHeader is not null)
+            response.Headers.TryAddWithoutValidation("Server", serverHeader);
+        return Task.FromResult(response);
     }
 
     private static SmokeFinding? BindingError(FileAssertions assert)

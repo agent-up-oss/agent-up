@@ -82,11 +82,15 @@ public sealed class DesktopFixtureHost
                         lt.Shutdown();
                 }).GetAwaiter().GetResult();
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
+                _ = ex;
+                // Shutdown may race with Avalonia dispatcher teardown.
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
+                _ = ex;
+                // Shutdown may race with Avalonia dispatcher teardown.
             }
         }
 

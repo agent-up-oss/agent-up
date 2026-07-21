@@ -101,9 +101,10 @@ public sealed class NixOsInstallerPlatformAdapter(
                 var target = TargetFor(component);
                 var executable = ExecutableName(target);
                 var path = executables.Find(executable);
+                var findingCode = $"{target}".ToLowerInvariant() + ".path";
                 return path is null
-                    ? new ValidationFinding($"{target.ToString().ToLowerInvariant()}.path", $"{executable} was not found on PATH.", ValidationSeverity.Warning)
-                    : new ValidationFinding($"{target.ToString().ToLowerInvariant()}.path", $"{component.DisplayName} found at {path}.", ValidationSeverity.Info);
+                    ? new ValidationFinding(findingCode, $"{executable} was not found on PATH.", ValidationSeverity.Warning)
+                    : new ValidationFinding(findingCode, $"{component.DisplayName} found at {path}.", ValidationSeverity.Info);
             })
             .ToList();
 

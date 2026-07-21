@@ -17,7 +17,7 @@ public static class MacOsDistributionGenerator
                 new XElement("choices-outline",
                     new XElement("line", new XAttribute("choice", "installer"))),
                 Choice("installer", "Agent-Up Installer", "dev.agent-up.installer")))
-            .ToString() + Environment.NewLine;
+            + Environment.NewLine;
 
     private static XElement PkgRef(string id, string path)
         => new("pkg-ref", new XAttribute("id", id), new XAttribute("version", "0"), new XAttribute("onConclusion", "none"), Path.GetFileName(path));

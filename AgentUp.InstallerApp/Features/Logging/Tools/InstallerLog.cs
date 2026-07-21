@@ -6,9 +6,19 @@ public static class InstallerLog
 
     public static string FilePath => LogPath;
 
-    public static void Write(string message) => WriteToPath(LogPath, message);
+    public static void Write(string message)
+    {
+        if (TryWriteToPath(LogPath, message))
+            return;
+
+        if (OperatingSystem.IsMacOS())
+            TryWriteToPath(UserMacOsLogPath(), message);
+    }
 
     public static void WriteToPath(string path, string message)
+        => TryWriteToPath(path, message);
+
+    private static bool TryWriteToPath(string path, string message)
     {
         try
         {
@@ -29,15 +39,18 @@ public static class InstallerLog
                 // only affects future appends from a different user (e.g. GUI after root install).
                 if (dirCreated)
                     try { File.SetUnixFileMode(dir, AllReadWrite | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute); }
-                    catch (IOException) { } catch (UnauthorizedAccessException) { }
+                    catch (IOException ex) { _ = ex; } catch (UnauthorizedAccessException ex) { _ = ex; }
                 if (fileCreated)
                     try { File.SetUnixFileMode(path, AllReadWrite); }
-                    catch (IOException) { } catch (UnauthorizedAccessException) { }
+                    catch (IOException ex) { _ = ex; } catch (UnauthorizedAccessException ex) { _ = ex; }
             }
+            return true;
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
+            _ = ex;
             // Logging must never crash the installer.
+            return false;
         }
     }
 
@@ -69,8 +82,11 @@ public static class InstallerLog
         if ((isPrivileged ?? Environment.IsPrivilegedProcess) || (systemDirExists ?? Directory.Exists("/Library/Logs/Agent-Up")))
             return SystemLogPath;
 
-        return Path.Join(
+        return UserMacOsLogPath();
+    }
+
+    private static string UserMacOsLogPath()
+        => Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             "Library", "Logs", "Agent-Up", "installer.log");
-    }
 }

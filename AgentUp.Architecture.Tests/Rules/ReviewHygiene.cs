@@ -277,16 +277,86 @@ public sealed class ReviewHygiene
 
     private static bool IsOwnershipTransfer(ObjectCreationExpressionSyntax creation)
     {
+        if (creation.Ancestors().OfType<ReturnStatementSyntax>().Any()
+            || creation.Ancestors().OfType<ArrowExpressionClauseSyntax>().Any()
+            || IsAssignedToField(creation))
+        {
+            return true;
+        }
+
         var argument = creation.Ancestors().OfType<ArgumentSyntax>().FirstOrDefault();
-        if (argument?.Parent?.Parent is not ObjectCreationExpressionSyntax outerCreation)
+        if (argument?.Parent?.Parent is ObjectCreationExpressionSyntax outerCreation)
+        {
+            var outerType = ArchitectureFixture.FinalTypeSegment(outerCreation.Type);
+            return IsOwnershipType(outerType);
+        }
+
+        var local = creation.Ancestors().OfType<VariableDeclaratorSyntax>().FirstOrDefault();
+        if (local?.Parent?.Parent is not LocalDeclarationStatementSyntax localDeclaration)
             return false;
 
-        var outerType = ArchitectureFixture.FinalTypeSegment(outerCreation.Type);
-        return outerType.EndsWith("Client", StringComparison.Ordinal)
-               || outerType.EndsWith("Service", StringComparison.Ordinal)
-               || outerType.EndsWith("Provider", StringComparison.Ordinal)
-               || outerType.EndsWith("Validator", StringComparison.Ordinal);
+        var variableName = local.Identifier.Text;
+        var method = localDeclaration.Ancestors().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault();
+        if (method is null)
+            return false;
+
+        return method.DescendantNodes()
+            .OfType<ArgumentSyntax>()
+            .Any(arg => arg.Expression is IdentifierNameSyntax identifier
+                        && identifier.Identifier.Text == variableName
+                        && ArgumentIsPassedToOwner(arg))
+               || method.DescendantNodes()
+                   .OfType<AssignmentExpressionSyntax>()
+                   .Any(assignment => assignment.Right is IdentifierNameSyntax identifier
+                                      && identifier.Identifier.Text == variableName
+                                      && IsFieldOrPropertyExpression(assignment.Left))
+               || method.DescendantNodes()
+                   .OfType<ReturnStatementSyntax>()
+                   .Any(returnStatement => returnStatement.Expression is IdentifierNameSyntax identifier
+                                           && identifier.Identifier.Text == variableName
+                                           || ReturnPassesVariableToTaskResult(returnStatement, variableName));
     }
+
+    private static bool IsAssignedToField(ObjectCreationExpressionSyntax creation)
+        => creation.Ancestors().OfType<AssignmentExpressionSyntax>().FirstOrDefault() is { } assignment
+           && assignment.Right.DescendantNodesAndSelf().Contains(creation)
+           && IsFieldOrPropertyExpression(assignment.Left);
+
+    private static bool ArgumentIsPassedToOwner(ArgumentSyntax argument)
+    {
+        var call = argument.Parent?.Parent;
+        return call switch
+        {
+            ObjectCreationExpressionSyntax objectCreation => IsOwnershipType(ArchitectureFixture.FinalTypeSegment(objectCreation.Type)),
+            InvocationExpressionSyntax invocation => invocation.Expression.ToString().Contains("SetupWithLifetime", StringComparison.Ordinal),
+            _ => false
+        };
+    }
+
+    private static bool ReturnPassesVariableToTaskResult(ReturnStatementSyntax returnStatement, string variableName)
+        => returnStatement.Expression is InvocationExpressionSyntax
+           {
+               Expression: MemberAccessExpressionSyntax
+               {
+                   Expression: IdentifierNameSyntax { Identifier.Text: "Task" },
+                   Name.Identifier.Text: "FromResult"
+               },
+               ArgumentList.Arguments: [{ Expression: IdentifierNameSyntax identifier }]
+           }
+           && identifier.Identifier.Text == variableName;
+
+    private static bool IsOwnershipType(string typeName)
+        => typeName.EndsWith("Client", StringComparison.Ordinal)
+           || typeName.EndsWith("Service", StringComparison.Ordinal)
+           || typeName.EndsWith("Provider", StringComparison.Ordinal)
+           || typeName.EndsWith("Validator", StringComparison.Ordinal)
+           || typeName.EndsWith("ViewModel", StringComparison.Ordinal)
+           || typeName.EndsWith("Checks", StringComparison.Ordinal)
+           || typeName.EndsWith("Smoke", StringComparison.Ordinal);
+
+    private static bool IsFieldOrPropertyExpression(ExpressionSyntax expression)
+        => expression is IdentifierNameSyntax identifier && identifier.Identifier.Text.StartsWith("_", StringComparison.Ordinal)
+           || expression is MemberAccessExpressionSyntax;
 
     private static bool IsDisposeInvocation(InvocationExpressionSyntax invocation)
         => invocation.Expression is MemberAccessExpressionSyntax memberAccess
@@ -353,7 +423,7 @@ public sealed class ReviewHygiene
                 continue;
             }
 
-            if (statements.Count == 1 && IsCollectionAddProjection(statements[0]))
+            if (statements.Count == 1 && IsListProjectionReturnCandidate(forEach, statements[0]))
                 yield return $"{ArchitectureFixture.Location(root, path, tree, forEach)}: foreach projection should use Select";
         }
     }
@@ -362,14 +432,29 @@ public sealed class ReviewHygiene
         => statement is BlockSyntax { Statements.Count: 1 } block
            && block.Statements[0] is ContinueStatementSyntax;
 
-    private static bool IsCollectionAddProjection(StatementSyntax statement)
-        => statement is ExpressionStatementSyntax
+    private static bool IsListProjectionReturnCandidate(ForEachStatementSyntax forEach, StatementSyntax statement)
+    {
+        if (statement is not ExpressionStatementSyntax
         {
             Expression: InvocationExpressionSyntax
             {
-                Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Add" }
+                Expression: MemberAccessExpressionSyntax
+                {
+                    Expression: IdentifierNameSyntax target,
+                    Name.Identifier.Text: "Add"
+                }
             }
-        };
+        })
+        {
+            return false;
+        }
+
+        var method = forEach.Ancestors().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault();
+        return method?.DescendantNodes()
+            .OfType<ReturnStatementSyntax>()
+            .Any(returnStatement => returnStatement.Expression is IdentifierNameSyntax identifier
+                                    && identifier.Identifier.Text == target.Identifier.Text) == true;
+    }
 
     private static bool IsAssumeThatInvocation(InvocationExpressionSyntax invocation)
     {

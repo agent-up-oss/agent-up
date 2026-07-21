@@ -9,7 +9,7 @@ public sealed class FileOutputRepository : IOutputRepository
 
     public FileOutputRepository(string baseDir)
     {
-        _outputRoot = Path.GetFullPath(Path.Combine(baseDir, "output"));
+        _outputRoot = Path.GetFullPath(Path.Join(baseDir, "output"));
     }
 
     public async Task AppendAsync(string workspaceId, string appName, string line, CancellationToken ct = default)
@@ -38,7 +38,7 @@ public sealed class FileOutputRepository : IOutputRepository
     private string GetPath(string workspaceId, string appName)
     {
         var fileName = GetLogFileName(workspaceId, appName);
-        var path = Path.GetFullPath(Path.Combine(_outputRoot, fileName));
+        var path = Path.GetFullPath(Path.Join(_outputRoot, fileName));
         var root = _outputRoot.EndsWith(Path.DirectorySeparatorChar)
             ? _outputRoot
             : _outputRoot + Path.DirectorySeparatorChar;

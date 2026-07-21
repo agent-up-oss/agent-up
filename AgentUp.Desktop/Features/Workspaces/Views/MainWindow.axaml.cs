@@ -58,8 +58,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             using var stream = File.OpenRead(iconPath);
             Icon = new WindowIcon(stream);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
+            _ = ex;
             // Window icons are best-effort and should never block Desktop startup.
         }
     }
@@ -195,7 +196,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             UpdateErrorDisplay(workspaceId);
             return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
             _webViewErrors[workspaceId] = $"Could not start the browser: {ex.Message}";
             UpdateErrorDisplay(workspaceId);
@@ -349,8 +350,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             if (url is not null)
                 UpdateAddressFromWebView(_activeWorkspaceId, url);
         }
-        catch
+        catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
         {
+            _ = ex;
             // The page may still be loading or the native WebView may not be ready yet.
         }
     }
@@ -362,11 +364,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         foreach (var webView in _webViews.Values)
         {
-            try { webView.Stop(); } catch { }
-            try { PortPane.Children.Remove(webView); } catch { }
+            try { webView.Stop(); } catch (InvalidOperationException ex) { _ = ex; }
+            try { PortPane.Children.Remove(webView); } catch (InvalidOperationException ex) { _ = ex; }
             if (webView is IDisposable disposable)
             {
-                try { disposable.Dispose(); } catch { }
+                try { disposable.Dispose(); } catch (InvalidOperationException ex) { _ = ex; }
             }
         }
 
@@ -499,8 +501,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         {
             Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = false });
         }
-        catch
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
+            _ = ex;
             // Opening the file manager is a convenience action; setup checks remain authoritative.
         }
     }

@@ -41,7 +41,11 @@ internal sealed class CookieTestServer : IDisposable
         {
             HttpListenerContext ctx;
             try { ctx = await _listener.GetContextAsync(); }
-            catch { break; }
+            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or InvalidOperationException)
+            {
+                _ = ex;
+                break;
+            }
 
             var path = ctx.Request.Url?.AbsolutePath ?? "/";
             var cookieHeader = ctx.Request.Headers["Cookie"];
@@ -110,6 +114,9 @@ internal sealed class CookieTestServer : IDisposable
     public void Dispose()
     {
         try { _listener.Stop(); }
-        catch { /* ignore */ }
+        catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException)
+        {
+            _ = ex;
+        }
     }
 }
