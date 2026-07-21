@@ -132,38 +132,32 @@ internal static class ArchitectureFixture
             .Where(project => Directory.Exists(Path.Join(repositoryRoot, project)))
             .SelectMany(project => ProjectSourceFiles(repositoryRoot, project));
 
+    public static IEnumerable<string> AllSourceFiles(string repositoryRoot)
+        => ProductionSourceFiles(repositoryRoot).Concat(TestSourceFiles(repositoryRoot));
+
     public static IEnumerable<string> ProjectSourceFiles(string repositoryRoot, string project)
         => Directory.EnumerateFiles(Path.Join(repositoryRoot, project), "*.cs", SearchOption.AllDirectories)
             .Where(path => !HasPathPart(repositoryRoot, path, "bin") && !HasPathPart(repositoryRoot, path, "obj"));
 
     public static IEnumerable<string> FindConstructionsInFile(string root, string path, string[] typeSuffixes)
     {
-        var source = File.ReadAllText(path);
-        var tree = CSharpSyntaxTree.ParseText(source);
-        var rootNode = tree.GetRoot();
+        var (tree, rootNode) = ParseSourceFile(path);
 
         var objectCreations = rootNode.DescendantNodes()
             .OfType<ObjectCreationExpressionSyntax>()
             .Where(node =>
             {
-                var typeName = node.Type.ToString();
-                return typeSuffixes.Any(suffix => typeName.Contains(suffix, StringComparison.Ordinal));
+                var typeName = FinalTypeSegment(node.Type);
+                return typeSuffixes.Any(suffix => typeName.EndsWith(suffix, StringComparison.Ordinal));
             });
 
         foreach (var creation in objectCreations)
-        {
-            var lineSpan = tree.GetLineSpan(creation.Span);
-            var lineNumber = lineSpan.StartLinePosition.Line + 1;
-            var typeName = creation.Type.ToString();
-            yield return $"{Relative(root, path)}:{lineNumber}: new {typeName}(...)";
-        }
+            yield return $"{Location(root, path, tree, creation)}: new {creation.Type}(...)";
     }
 
     public static IEnumerable<string> FindStaticFactoryMethodsInFile(string root, string path)
     {
-        var source = File.ReadAllText(path);
-        var tree = CSharpSyntaxTree.ParseText(source);
-        var rootNode = tree.GetRoot();
+        var (tree, rootNode) = ParseSourceFile(path);
 
         var staticMethods = rootNode.DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
@@ -173,13 +167,45 @@ internal static class ArchitectureFixture
 
         foreach (var method in staticMethods)
         {
-            var lineSpan = tree.GetLineSpan(method.Span);
-            var lineNumber = lineSpan.StartLinePosition.Line + 1;
             var modifiers = string.Join(" ", method.Modifiers.Select(m => m.Text));
             var returnType = method.ReturnType.ToString();
             var methodName = method.Identifier.Text;
-            yield return $"{Relative(root, path)}:{lineNumber}: {modifiers} {returnType} {methodName}(...)";
+            yield return $"{Location(root, path, tree, method)}: {modifiers} {returnType} {methodName}(...)";
         }
+    }
+
+    public static (SyntaxTree Tree, CompilationUnitSyntax Root) ParseSourceFile(string path)
+    {
+        var source = File.ReadAllText(path);
+        var tree = CSharpSyntaxTree.ParseText(source);
+        return (tree, tree.GetCompilationUnitRoot());
+    }
+
+    public static string Location(string root, string path, SyntaxTree tree, SyntaxNode node)
+    {
+        var lineSpan = tree.GetLineSpan(node.Span);
+        var lineNumber = lineSpan.StartLinePosition.Line + 1;
+        return $"{Relative(root, path)}:{lineNumber}";
+    }
+
+    public static string FinalTypeSegment(TypeSyntax type)
+    {
+        var value = type switch
+        {
+            QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
+            AliasQualifiedNameSyntax aliasQualified => aliasQualified.Name.Identifier.Text,
+            GenericNameSyntax generic => generic.Identifier.Text,
+            IdentifierNameSyntax identifier => identifier.Identifier.Text,
+            NullableTypeSyntax nullable => FinalTypeSegment(nullable.ElementType),
+            ArrayTypeSyntax array => FinalTypeSegment(array.ElementType),
+            _ => type.ToString()
+        };
+
+        var genericDelimiter = value.IndexOf('<', StringComparison.Ordinal);
+        if (genericDelimiter >= 0)
+            value = value[..genericDelimiter];
+
+        return value.Split('.').Last();
     }
 
     public static bool HasPathPart(string root, string path, string part)

@@ -24,7 +24,7 @@ public sealed record ProductManifest(
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             if (string.IsNullOrWhiteSpace(programFiles))
                 programFiles = @"C:\Program Files";
-            return System.IO.Path.Combine(programFiles, ProductName);
+            return System.IO.Path.Join(programFiles, ProductName);
         }
 
         if (OperatingSystem.IsMacOS())

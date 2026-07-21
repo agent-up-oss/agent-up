@@ -85,7 +85,9 @@ public sealed class WindowsWixPackagingTool : IWindowsPackagingTool
                 entry.ExtractToFile(dllPath, overwrite: true);
                 break;
             }
-            catch (Exception) when (attempt < 3 && !cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (attempt < 3
+                                       && !cancellationToken.IsCancellationRequested
+                                       && ex is HttpRequestException or IOException or InvalidDataException)
             {
                 await Task.Delay(TimeSpan.FromSeconds(attempt * 15), cancellationToken);
             }

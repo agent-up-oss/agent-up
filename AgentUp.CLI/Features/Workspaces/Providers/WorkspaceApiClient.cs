@@ -49,8 +49,9 @@ public sealed class WorkspaceApiClient
                 return detail.GetString() ?? body;
             return body;
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
+            _ = ex;
             return $"HTTP {(int)response.StatusCode}";
         }
     }

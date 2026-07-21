@@ -102,7 +102,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
                 ? Workspaces.FirstOrDefault()
                 : Workspaces.FirstOrDefault(ws => ws.Id == selectedId) ?? Workspaces.FirstOrDefault();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             ErrorMessage = $"Could not connect to Agent-Up Server: {ex.Message}";
         }

@@ -45,7 +45,7 @@ public sealed class WorkspacesController(WorkspaceRegistry registry, IWorkspaceP
                 await registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
             return NoContent();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             await registry.UpdateStateAsync(id, WorkspaceState.Failed);
             return Problem(detail: ex.Message, statusCode: 500);
@@ -79,8 +79,9 @@ public sealed class WorkspacesController(WorkspaceRegistry registry, IWorkspaceP
             {
                 await processes.KillAsync(workspace.Id);
             }
-            catch
+            catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
             {
+                _ = ex;
                 // Cleanup is best-effort. Stale tutorial registry entries should still be removed
                 // even when their old process tree no longer exists or cannot be stopped.
             }

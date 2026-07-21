@@ -56,9 +56,8 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         Environment.SetEnvironmentVariable("LD_LIBRARY_PATH",
             existing.Length > 0 ? $"{ldPath}:{existing}" : ldPath);
 
-        foreach (var dir in ldPath.Split(':', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var dir in ldPath.Split(':', StringSplitOptions.RemoveEmptyEntries).Where(Directory.Exists))
         {
-            if (!Directory.Exists(dir)) continue;
             foreach (var file in Directory.GetFiles(dir, "*.so.*"))
                 NativeLibrary.TryLoad(file, out _);
         }
@@ -152,7 +151,7 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
             var stderr = proc.StandardError.ReadToEndAsync();
             if (!proc.WaitForExit(3000))
             {
-                try { proc.Kill(); } catch { }
+                try { proc.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { _ = ex; }
                 return false;
             }
 
@@ -168,7 +167,7 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
 
     public void Dispose()
     {
-        try { _xvfb?.Kill(); } catch { }
+        try { _xvfb?.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { _ = ex; }
         _xvfb?.Dispose();
     }
 }

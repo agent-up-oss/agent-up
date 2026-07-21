@@ -56,7 +56,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_ExitsZero_AndPrintsWorkspaceName()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
@@ -96,7 +96,7 @@ public class WorkspaceCommandsTests
         {
             Directory.CreateDirectory(plainDir);
             await WriteAgentUpJsonAsync(plainDir, "Plain Project");
-            var output = new StringWriter();
+            using var output = new StringWriter();
 
             var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", plainDir, output).RunAsync(["start"]);
 
@@ -167,7 +167,7 @@ public class WorkspaceCommandsTests
             new { name = "Frontend", command = "npm run dev", path = (string?)null }
         ]);
 
-        var output = new StringWriter();
+        using var output = new StringWriter();
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         var text = output.ToString();
@@ -202,7 +202,7 @@ public class WorkspaceCommandsTests
     public async Task Start_Fails_WhenAgentUpJsonMissing()
     {
         File.Delete(Path.Join(_workspaceDir, "agent-up.json"));
-        var output = new StringWriter();
+        using var output = new StringWriter();
 
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
@@ -213,7 +213,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Start_Fails_WhenServerUnreachable()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
 
         var exitCode = await CliRunnerFactory.Create("http://localhost:1", _workspaceDir, output).RunAsync(["start"]);
 
@@ -228,7 +228,7 @@ public class WorkspaceCommandsTests
     {
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
-        var output = new StringWriter();
+        using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
@@ -250,7 +250,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Stop_Fails_WhenWorkspaceNotStarted()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["stop"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
@@ -262,7 +262,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task List_ShowsEmpty_WhenNoWorkspacesRegistered()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
 
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
 
@@ -275,7 +275,7 @@ public class WorkspaceCommandsTests
     {
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
-        var output = new StringWriter();
+        using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
@@ -295,7 +295,7 @@ public class WorkspaceCommandsTests
             await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
             await CliRunnerFactory.Create($"http://localhost:{_port}", secondDir).RunAsync(["start"]);
 
-            var output = new StringWriter();
+            using var output = new StringWriter();
             await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["list"]);
 
             var text = output.ToString();
@@ -315,7 +315,7 @@ public class WorkspaceCommandsTests
     {
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
 
-        var output = new StringWriter();
+        using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
 
         Assert.That(exitCode, Is.EqualTo(0));
@@ -328,7 +328,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Status_ReturnsNonZero_WhenNotStarted()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["status"]);
 
         Assert.That(exitCode, Is.Not.EqualTo(0));
@@ -340,7 +340,7 @@ public class WorkspaceCommandsTests
     [Test]
     public async Task Help_ExitsZero_AndListsCommands()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync([]);
 
         Assert.That(exitCode, Is.EqualTo(0));
@@ -409,7 +409,7 @@ public class WorkspaceCommandsTests
             applications: [],
             services: [new { name = "Database", image = "postgres:16" }]);
 
-        var output = new StringWriter();
+        using var output = new StringWriter();
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         var text = output.ToString();
@@ -445,7 +445,7 @@ public class WorkspaceCommandsTests
         });
         await File.WriteAllTextAsync(Path.Join(_workspaceDir, "agent-up.json"), json);
 
-        var output = new StringWriter();
+        using var output = new StringWriter();
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",

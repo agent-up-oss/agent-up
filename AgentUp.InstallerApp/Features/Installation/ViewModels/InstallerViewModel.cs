@@ -2,8 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
-using AgentUp.InstallerApp.Features.Capabilities.Services;
 using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
@@ -13,7 +13,7 @@ namespace AgentUp.InstallerApp.Features.Installation.ViewModels;
 public sealed class InstallerViewModel : INotifyPropertyChanged
 {
     private readonly IInstallerPlatformAdapter _adapter;
-    private readonly CapabilityDashboardService _capabilities;
+    private readonly CapabilitiesController _capabilities;
     private readonly InstallerSession _session;
     private string _page = "Dashboard";
     private CapabilityCardViewModel? _selectedCapability;
@@ -22,7 +22,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     public InstallerViewModel(
         InstallerSession session,
         IInstallerPlatformAdapter adapter,
-        CapabilityDashboardService capabilities)
+        CapabilitiesController capabilities)
     {
         _session = session;
         _adapter = adapter;
@@ -117,7 +117,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
             card.ApplyStatus(await _adapter.GetComponentStatusAsync(card.Target, _session));
             InstallerLog.Write($"{action} {card.Target} completed");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or NotSupportedException)
         {
             InstallerLog.WriteException($"{action} {card.Target}", ex);
             card.Fail($"{ex.Message}\n\nSee log: {InstallerLog.FilePath}");
@@ -127,7 +127,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
                 if (status.Kind != InstallerComponentStatusKind.NotInstalled)
                     card.ApplyStatus(status);
             }
-            catch (Exception statusEx)
+            catch (Exception statusEx) when (statusEx is InvalidOperationException or IOException or UnauthorizedAccessException or NotSupportedException)
             {
                 InstallerLog.WriteException($"{action} {card.Target} status refresh", statusEx);
                 card.Fail($"{ex.Message} (Status refresh failed: {statusEx.Message})\n\nSee log: {InstallerLog.FilePath}");
@@ -183,7 +183,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
             var module = await _capabilities.InstallAsync(catalogEntry.Entry);
             installing.ApplyModule(module);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or NotSupportedException)
         {
             installing.Fail(ex.Message);
         }
@@ -417,7 +417,7 @@ public sealed class CapabilityCardViewModel : INotifyPropertyChanged
         foreach (var version in Module.Versions)
             Versions.Add(new CapabilityVersionViewModel(
                 version.Version,
-                version.Source.ToString(),
+                $"{version.Source}",
                 version.Version == Module.ActiveVersion,
                 SupportsVersionSelection,
                 async item => await _owner.SelectCapabilityVersionAsync(this, item)));

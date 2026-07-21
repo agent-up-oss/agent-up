@@ -15,7 +15,7 @@ public sealed class CapabilityLifecycleSmokeTests
     {
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
         var commands = new RecordingCommandRunner();
-        var http = new HttpClient(new SmokeHttpHandler());
+        using var http = new HttpClient(new SmokeHttpHandler());
         var assert = new FileAssertions();
 
         try
@@ -45,7 +45,7 @@ public sealed class CapabilityLifecycleSmokeTests
         var previous = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
         var commands = new RecordingCommandRunner();
-        var http = new HttpClient(new SmokeHttpHandler());
+        using var http = new HttpClient(new SmokeHttpHandler());
         var assert = new FileAssertions();
 
         try

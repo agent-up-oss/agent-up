@@ -11,7 +11,7 @@ public sealed class SourceFileLayout
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var violations = ArchitectureFixture.ProductionSourceFiles(root)
             .Where(path => !IsAllowedProductionRootFile(root, path))
-            .Where(path => !ArchitectureFixture.HasPathPart(root, path, "Features") && !ArchitectureFixture.HasPathPart(root, path, "Shared"))
+            .Where(path => !HasAllowedSourceRoot(root, path))
             .Select(path => ArchitectureFixture.Relative(root, path))
             .ToArray();
 
@@ -24,5 +24,11 @@ public sealed class SourceFileLayout
         var parts = ArchitectureFixture.Parts(root, path);
         return parts.Length == 2 && parts[1] is "Program.cs" or "App.axaml.cs"
                || parts.Length == 3 && parts[1] == "Properties" && parts[2] == "AssemblyInfo.cs";
+    }
+
+    private static bool HasAllowedSourceRoot(string root, string path)
+    {
+        var parts = ArchitectureFixture.Parts(root, path);
+        return parts.Length >= 3 && parts[1] is "Features" or "Shared";
     }
 }

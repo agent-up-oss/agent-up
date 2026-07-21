@@ -31,7 +31,7 @@ public sealed class ApplicationsController(WorkspaceRegistry registry, IWorkspac
             await registry.UpdateApplicationStateAsync(id, name, ApplicationState.Running);
             return NoContent();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             await registry.UpdateApplicationStateAsync(id, name, ApplicationState.Failed);
             return Problem(detail: ex.Message, statusCode: 500);
@@ -66,7 +66,7 @@ public sealed class ApplicationsController(WorkspaceRegistry registry, IWorkspac
             await registry.UpdateApplicationStateAsync(id, name, ApplicationState.Running);
             return NoContent();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             await registry.UpdateApplicationStateAsync(id, name, ApplicationState.Failed);
             return Problem(detail: ex.Message, statusCode: 500);

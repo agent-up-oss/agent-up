@@ -79,7 +79,7 @@ public sealed class MacOsInstallerPlistGenerator
         => new XDocument(
             new XDeclaration("1.0", "UTF-8", null),
             new XDocumentType("plist", "-//Apple//DTD PLIST 1.0//EN", "https://www.apple.com/DTDs/PropertyList-1.0.dtd", null),
-            new XElement("plist", new XAttribute("version", "1.0"), dict)).ToString() + Environment.NewLine;
+            new XElement("plist", new XAttribute("version", "1.0"), dict)) + Environment.NewLine;
 
     private static XElement Dict(params object[] children)
         => new("dict", children);

@@ -42,7 +42,10 @@ public sealed class ConsoleViewModel : ReactiveObject
                 Lines.Add(line);
             this.RaisePropertyChanged(nameof(ConsoleText));
         }
-        catch { /* output fetch failure is non-fatal */ }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _ = ex;
+        }
         finally
         {
             IsLoading = false;

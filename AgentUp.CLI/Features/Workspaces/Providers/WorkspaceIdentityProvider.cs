@@ -15,8 +15,9 @@ public sealed class WorkspaceIdentityProvider : IWorkspaceIdentityProvider
                 Branch: await git.GetBranchAsync(),
                 Commit: await git.GetCommitAsync());
         }
-        catch
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
+            _ = ex;
             return new WorkspaceIdentity(
                 RepositoryPath: workingDirectory,
                 Branch: "not on a git branch",

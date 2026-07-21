@@ -1,6 +1,9 @@
 using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.Installation.Services;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 namespace AgentUp.InstallerApp.Tests.Features.Installation.TerminalIntegration;
 
@@ -71,6 +74,39 @@ public class InstallerCommandLineTests
     }
 
     [Test]
+    public async Task RunAsync_installCore_emitsDockerAndProgressMessagesToOutput()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        await InstallerCommandLine.RunAsync(
+            new FakeInstallerPlatformAdapter("Test"),
+            ["--install-core"],
+            output,
+            error);
+
+        var log = output.ToString();
+        Assert.That(log, Does.Contain("1/"), "Expected numbered progress steps in output");
+        Assert.That(log, Does.Contain("Core app installation succeeded."));
+    }
+
+    [Test]
+    public async Task RunAsync_catchesUnexpectedException_returnsExitCodeOneAndWritesToError()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = await InstallerCommandLine.RunAsync(
+            new ThrowingInstallerPlatformAdapter(new InvalidDataException("something exploded unexpectedly")),
+            ["--install-core"],
+            output,
+            error);
+
+        Assert.That(exitCode, Is.EqualTo(1));
+        Assert.That(error.ToString(), Does.Contain("something exploded unexpectedly"));
+    }
+
+    [Test]
     public async Task RunAsync_smokeInstallerOperationsCoversCoreValidateAndComponentLifecycle()
     {
         using var output = new StringWriter();
@@ -116,16 +152,18 @@ public class InstallerCommandLineTests
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Editor Install succeeded."));
 
-        Assert.ThrowsAsync<InvalidOperationException>(
-            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "desktop"], output, error); });
-        Assert.ThrowsAsync<InvalidOperationException>(
-            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "server"], output, error); });
-        Assert.ThrowsAsync<InvalidOperationException>(
-            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "cli"], output, error); });
+        foreach (var componentId in new[] { "desktop", "server", "cli" })
+        {
+            error.GetStringBuilder().Clear();
+            exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", componentId], output, error);
+
+            Assert.That(exitCode, Is.EqualTo(1), $"Expected '{componentId}' to be rejected for Acme Studio");
+            Assert.That(error.ToString(), Does.Contain($"Unknown installer component '{componentId}'"));
+        }
     }
 
     [Test]
-    public async Task RunAsync_installComponent_throws_whenTargetIsMissing()
+    public async Task RunAsync_installComponent_reportsError_whenTargetIsMissing()
     {
         var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
         {
@@ -139,15 +177,15 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(
-            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component"], output, error); });
+        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component"], output, error);
 
-        Assert.That(ex!.Message, Does.Contain("--install-component"));
-        Assert.That(ex.Message, Does.Contain("requires a component target"));
+        Assert.That(exitCode, Is.EqualTo(1));
+        Assert.That(error.ToString(), Does.Contain("--install-component"));
+        Assert.That(error.ToString(), Does.Contain("requires a component target"));
     }
 
     [Test]
-    public async Task RunAsync_installComponent_throws_whenTargetIsWhitespaceOnly()
+    public async Task RunAsync_installComponent_reportsError_whenTargetIsWhitespaceOnly()
     {
         var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
         {
@@ -161,10 +199,44 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(
-            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "   "], output, error); });
+        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "   "], output, error);
 
-        Assert.That(ex!.Message, Does.Contain("--install-component"));
-        Assert.That(ex.Message, Does.Contain("requires a component target"));
+        Assert.That(exitCode, Is.EqualTo(1));
+        Assert.That(error.ToString(), Does.Contain("--install-component"));
+        Assert.That(error.ToString(), Does.Contain("requires a component target"));
+    }
+
+    private sealed class ThrowingInstallerPlatformAdapter(Exception exception) : IInstallerPlatformAdapter
+    {
+        public string PlatformName => "Throwing";
+        public bool SupportsInstallActions => true;
+
+        public Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new DockerStatus(DockerStatusKind.Operational, "OK", "OK", new Version(27, 0, 0)));
+
+        public Task<InstallerComponentStatus> GetComponentStatusAsync(ProductComponent component, InstallerSession session, CancellationToken cancellationToken = default)
+            => throw exception;
+
+        public IReadOnlyList<InstallOperation> PlanComponentAction(ProductComponent component, InstallerComponentAction action, InstallerSession session)
+            => throw exception;
+
+        public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
+            => throw exception;
+
+        public async IAsyncEnumerable<InstallProgress> ExecuteInstallAsync(InstallerSession session,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.Yield();
+            throw exception;
+#pragma warning disable CS0162
+            yield break;
+#pragma warning restore CS0162
+        }
+
+        public IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(ProductComponent component, InstallerComponentAction action, InstallerSession session, CancellationToken cancellationToken = default)
+            => throw exception;
+
+        public Task<ValidationReport> ValidateInstalledStateAsync(InstallerSession session, CancellationToken cancellationToken = default)
+            => Task.FromException<ValidationReport>(exception);
     }
 }

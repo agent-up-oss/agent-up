@@ -35,7 +35,7 @@ public sealed class StopCommand
         {
             await _client.StopWorkspaceAsync(workspace.Id);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             _output.WriteLine($"Error: {ex.Message}");
             return 1;

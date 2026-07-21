@@ -111,14 +111,14 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         {
             if (summary.Includes(InstallerComponent.Desktop))
             {
-                var tmpPlist = Path.Combine("/tmp", Path.GetRandomFileName());
+                var tmpPlist = Path.Join("/tmp", Path.GetRandomFileName());
                 await File.WriteAllTextAsync(tmpPlist, plists.DesktopInfoPlist(), cancellationToken);
                 tempFiles[_options.Paths.DesktopInfoPlistPath] = tmpPlist;
             }
 
             if (summary.Includes(InstallerComponent.Server))
             {
-                var tmpDaemon = Path.Combine("/tmp", Path.GetRandomFileName());
+                var tmpDaemon = Path.Join("/tmp", Path.GetRandomFileName());
                 await File.WriteAllTextAsync(tmpDaemon, plists.LaunchDaemonPlist(), cancellationToken);
                 tempFiles[_options.Paths.LaunchDaemonPath] = tmpDaemon;
             }
@@ -130,8 +130,8 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             foreach (var tmp in tempFiles.Values)
             {
                 try { File.Delete(tmp); }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
+                catch (IOException ex) { _ = ex; }
+                catch (UnauthorizedAccessException ex) { _ = ex; }
             }
         }
 
@@ -266,14 +266,14 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     {
         // Use /tmp directly — macOS PKG installer sets TMPDIR to a PKInstallSandbox path
         // not accessible to child processes spawned via Process.Start.
-        var tmpFile = Path.Combine("/tmp", Path.GetRandomFileName());
+        var tmpFile = Path.Join("/tmp", Path.GetRandomFileName());
         try
         {
             await File.WriteAllTextAsync(tmpFile, "#!/usr/bin/env bash\n" + script, cancellationToken);
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(tmpFile, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
-            if (Environment.UserName == "root")
+            if (Environment.IsPrivilegedProcess)
             {
                 // Pass the path unquoted — Process.Start with UseShellExecute=false does not
                 // process shell quotes in Arguments, so single-quoting is passed literally.
@@ -282,7 +282,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             else
             {
                 // Write AppleScript to a file to avoid quoting issues in Arguments string.
-                var appleScriptPath = Path.Combine("/tmp", Path.GetRandomFileName() + ".scpt");
+                var appleScriptPath = Path.Join("/tmp", Path.GetRandomFileName() + ".scpt");
                 try
                 {
                     await File.WriteAllTextAsync(appleScriptPath,
@@ -293,16 +293,16 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 finally
                 {
                     try { File.Delete(appleScriptPath); }
-                    catch (IOException) { }
-                    catch (UnauthorizedAccessException) { }
+                    catch (IOException ex) { _ = ex; }
+                    catch (UnauthorizedAccessException ex) { _ = ex; }
                 }
             }
         }
         finally
         {
             try { File.Delete(tmpFile); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (IOException ex) { _ = ex; }
+            catch (UnauthorizedAccessException ex) { _ = ex; }
         }
     }
 

@@ -56,6 +56,35 @@ public class DockerPrerequisiteTests
     }
 
     [Test]
+    public async Task CheckAsync_reportsDaemonNotResponding_whenDockerInfoTimesOut()
+    {
+        var check = new DockerPrerequisite(new DockerPrerequisiteProvider(new FakeCommandRunner
+        {
+            VersionResult = new ProcessResult(0, "27.0.0", ""),
+            DelayInfoUntilCancellation = true
+        }, TimeSpan.FromMilliseconds(1)), new Version(27, 0, 0));
+
+        var result = await check.CheckAsync();
+
+        Assert.That(result.Kind, Is.EqualTo(DockerStatusKind.DaemonNotRunning));
+        Assert.That(result.Detail, Does.Contain("timed out"));
+    }
+
+    [Test]
+    public void CheckAsync_propagatesCallerCancellation_whenCallerCancelsDockerInfo()
+    {
+        var check = new DockerPrerequisite(new DockerPrerequisiteProvider(new FakeCommandRunner
+        {
+            VersionResult = new ProcessResult(0, "27.0.0", ""),
+            DelayInfoUntilCancellation = true
+        }, TimeSpan.FromMinutes(1)), new Version(27, 0, 0));
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.That(async () => await check.CheckAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
     public async Task CheckAsync_reportsInaccessible_whenDockerInfoReturnsPermissionError()
     {
         var check = new DockerPrerequisite(new DockerPrerequisiteProvider(new FakeCommandRunner
@@ -87,6 +116,7 @@ public class DockerPrerequisiteTests
     private sealed class FakeCommandRunner : ICommandRunner
     {
         public bool ThrowOnDockerVersion { get; init; }
+        public bool DelayInfoUntilCancellation { get; init; }
         public ProcessResult VersionResult { get; init; } = new(0, "27.0.0", "");
         public ProcessResult InfoResult { get; init; } = new(0, "", "");
 
@@ -101,7 +131,13 @@ public class DockerPrerequisiteTests
             }
 
             if (fileName == "docker" && arguments == "info")
+            {
+                if (DelayInfoUntilCancellation)
+                    return Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken)
+                        .ContinueWith(_ => InfoResult, cancellationToken);
+
                 return Task.FromResult(InfoResult);
+            }
 
             throw new InvalidOperationException($"{fileName} {arguments}");
         }

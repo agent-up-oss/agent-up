@@ -6,10 +6,17 @@ namespace AgentUp.Installers.Features.PrerequisiteChecks.Providers;
 public sealed class DockerPrerequisiteProvider : IDockerPrerequisiteProvider
 {
     private readonly ICommandRunner _commands;
+    private readonly TimeSpan _infoTimeout;
 
     public DockerPrerequisiteProvider(ICommandRunner commands)
+        : this(commands, TimeSpan.FromSeconds(10))
+    {
+    }
+
+    internal DockerPrerequisiteProvider(ICommandRunner commands, TimeSpan infoTimeout)
     {
         _commands = commands;
+        _infoTimeout = infoTimeout;
     }
 
     public async Task<DockerStatus> CheckAsync(Version minimumVersion, CancellationToken cancellationToken = default)
@@ -45,7 +52,18 @@ public sealed class DockerPrerequisiteProvider : IDockerPrerequisiteProvider
                 parsedVersion);
         }
 
-        var info = await _commands.RunAsync("docker", "info", cancellationToken);
+        using var infoTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        infoTimeout.CancelAfter(_infoTimeout);
+        ProcessResult info;
+        try
+        {
+            info = await _commands.RunAsync("docker", "info", infoTimeout.Token);
+        }
+        catch (OperationCanceledException) when (infoTimeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            return new DockerStatus(DockerStatusKind.DaemonNotRunning, "Docker daemon is not responding",
+                "docker info timed out. Ensure the Docker daemon is running.", parsedVersion);
+        }
         if (info.ExitCode == 0)
         {
             return new DockerStatus(DockerStatusKind.Operational, "Docker is operational",

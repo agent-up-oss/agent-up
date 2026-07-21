@@ -55,7 +55,11 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             await _securityChecks.RunAsync(readyUrl, assert, cancellationToken);
             await SmokeCliWorkspaceAsync(request, context.CliCommand, context.CliEnvironment, readyUrl, assert, cancellationToken);
             if (Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL") != "1")
-                await new CapabilityLifecycleSmoke(_commands).RunAsync(request.WorkDirectory, context, readyUrl, assert, cancellationToken);
+            {
+                using var capabilitySmoke = new CapabilityLifecycleSmoke(_commands);
+                await capabilitySmoke.RunAsync(request.WorkDirectory, context, readyUrl, assert, cancellationToken);
+            }
+
             return new InstalledServiceSmokeResult(readyUrl, assert.Findings);
         }
         finally
@@ -212,6 +216,12 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     {
         foreach (var command in context.UninstallCommands)
             await _commands.RunAsync(command, cancellationToken);
+    }
+
+    public virtual void Dispose()
+    {
+        if (_securityChecks is IDisposable disposable)
+            disposable.Dispose();
     }
 
     private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";

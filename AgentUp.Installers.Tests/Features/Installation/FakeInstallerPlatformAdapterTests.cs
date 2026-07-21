@@ -73,12 +73,14 @@ public class FakeInstallerPlatformAdapterTests
             PayloadSelection.Bundled(new Version(1, 2, 3)));
         var adapter = new FakeInstallerPlatformAdapter();
 
-        await foreach (var _ in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Install, session))
+        await foreach (var progress in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Install, session))
         {
+            _ = progress;
         }
 
-        await foreach (var _ in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Uninstall, session))
+        await foreach (var progress in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Uninstall, session))
         {
+            _ = progress;
         }
 
         var server = await adapter.GetComponentStatusAsync(ProductComponent.Server, session);

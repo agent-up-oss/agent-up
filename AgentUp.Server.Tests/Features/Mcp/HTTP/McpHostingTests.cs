@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Mcp.Controllers;
 using AgentUp.Server.Features.Mcp.Interfaces;
 using AgentUp.Server.Features.Mcp.Providers;
@@ -39,6 +40,7 @@ public sealed class McpHostingTests
             .WithResources<AgentUpMcpResources>();
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();

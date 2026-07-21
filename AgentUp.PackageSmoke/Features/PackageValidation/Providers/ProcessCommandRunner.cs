@@ -598,13 +598,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
         if (string.IsNullOrWhiteSpace(key) || key[0] != '_' && !char.IsAsciiLetter(key[0]))
             return false;
 
-        foreach (var character in key)
-        {
-            if (character != '_' && !char.IsAsciiLetterOrDigit(character))
-                return false;
-        }
-
-        return true;
+        return key.All(character => character == '_' || char.IsAsciiLetterOrDigit(character));
     }
 
     private static bool TryGetAllowedCommandName(string fileName, out SmokeExecutable executable, out string error)

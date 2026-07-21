@@ -41,8 +41,9 @@ public sealed class PortSubTabViewModel : SubTabViewModel
             await tcp.ConnectAsync("127.0.0.1", AllocatedPort, cts.Token);
             IsOpen = true;
         }
-        catch
+        catch (Exception ex) when (ex is SocketException or OperationCanceledException)
         {
+            _ = ex;
             IsOpen = false;
         }
         this.RaisePropertyChanged(nameof(StatusColor));

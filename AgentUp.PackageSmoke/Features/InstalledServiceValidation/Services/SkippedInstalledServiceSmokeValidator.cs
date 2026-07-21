@@ -21,4 +21,8 @@ public sealed class SkippedInstalledServiceSmokeValidator : IInstalledServiceSmo
 
     public Task<InstalledServiceSmokeResult> ValidateAsync(InstalledServiceSmokeRequest request, CancellationToken cancellationToken = default)
         => Task.FromResult(new InstalledServiceSmokeResult(null, [new SmokeFinding(FindingSeverity.Info, "installed.skipped", _message)]));
+
+    public void Dispose()
+    {
+    }
 }

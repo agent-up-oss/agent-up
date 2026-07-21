@@ -121,7 +121,9 @@ Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feat
 
 Tests should stay feature-sliced, but test projects may use test-kind folders such as `Unit/`, `Headless/`, `HTTP/`, `Repository/`, `TerminalIntegration/`, `Fake/`, and `Support/` when that keeps test intent clear. `Unit/` tests must stay in memory and must not use real filesystem, process, socket, current-directory, or environment mutation APIs; use `Repository/` or `TerminalIntegration/` for tests that verify real directory state or terminal-like workflows.
 
-`AgentUp.Architecture.Tests` owns executable architecture rules. Use ArchUnitNET there for assembly/type dependency rules, and use narrowly scoped filesystem/source checks there for physical folder rules that assembly analysis cannot see.
+`AgentUp.Architecture.Tests` owns executable architecture and review-hygiene rules. Use ArchUnitNET there for assembly/type dependency rules, and use narrowly scoped filesystem/source checks there for physical folder rules and generic source-quality rules that assembly analysis cannot see.
+
+Review-hygiene rules should catch recurring patterns generically: generic or empty catch blocks, unsafe path construction, missing disposable ownership, sync-over-async in production startup/UI/composition paths, ambiguous timeout cancellation filters, static controller composition wrappers, and nondeterministic tests that skip coverage based on live platform privilege or filesystem state.
 
 Do not add broad technical buckets such as root-level `Controllers/`, `Services/`, `Models/`, `Http/`, `Commands/`, or `Git/`. Put the code in the owning feature slice and then in the appropriate type folder.
 
@@ -143,7 +145,7 @@ Do not add interfaces for 1:1 concrete mappings. An interface is justified only 
 
 ## Slice Lifecycle
 
-Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
+Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services. Controllers must not be static composition wrappers and must not expose another slice's internal services, providers, repositories, factories, interfaces, or models as return types.
 
 Services own domain lifecycle and orchestration behind controllers. Follow the service/provider rule above for the boundary between domain orchestration and low-level implementation.
 
