@@ -1,5 +1,7 @@
-using System.Text.RegularExpressions;
 using ArchUnitNET.Loader;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace AgentUp.Architecture.Tests.Fixtures;
 
@@ -104,13 +106,6 @@ internal static class ArchitectureFixture
         "Environment.GetEnvironmentVariable("
     ];
 
-    public static readonly Regex ConstructionInController = new(
-        @"new\s+\w*(Service|Provider|Repository|Factory)\s*\(",
-        RegexOptions.Compiled);
-
-    public static readonly Regex StaticFactoryInViewModel = new(
-        @"(public|internal)\s+static\s+\w[\w<>\[\],\s]*\bCreate\w*\s*\(",
-        RegexOptions.Compiled);
 
     public static readonly ArchUnitNET.Domain.Architecture ArchUnitArchitecture = new ArchLoader()
         .LoadAssemblies(ProductionProjects.Select(System.Reflection.Assembly.Load).ToArray())
@@ -142,14 +137,49 @@ internal static class ArchitectureFixture
         => Directory.EnumerateFiles(Path.Join(repositoryRoot, project), "*.cs", SearchOption.AllDirectories)
             .Where(path => !HasPathPart(repositoryRoot, path, "bin") && !HasPathPart(repositoryRoot, path, "obj"));
 
-    public static IEnumerable<string> MatchingLines(string root, string path, Regex regex)
+    public static IEnumerable<string> FindConstructionsInFile(string root, string path, string[] typeSuffixes)
     {
-        var lineNumber = 0;
-        foreach (var line in File.ReadLines(path))
+        var source = File.ReadAllText(path);
+        var tree = CSharpSyntaxTree.ParseText(source);
+        var rootNode = tree.GetRoot();
+
+        var objectCreations = rootNode.DescendantNodes()
+            .OfType<ObjectCreationExpressionSyntax>()
+            .Where(node =>
+            {
+                var typeName = node.Type.ToString();
+                return typeSuffixes.Any(suffix => typeName.Contains(suffix, StringComparison.Ordinal));
+            });
+
+        foreach (var creation in objectCreations)
         {
-            lineNumber++;
-            if (regex.IsMatch(line))
-                yield return $"{Relative(root, path)}:{lineNumber}: {line.Trim()}";
+            var lineSpan = tree.GetLineSpan(creation.Span);
+            var lineNumber = lineSpan.StartLinePosition.Line + 1;
+            var typeName = creation.Type.ToString();
+            yield return $"{Relative(root, path)}:{lineNumber}: new {typeName}(...)";
+        }
+    }
+
+    public static IEnumerable<string> FindStaticFactoryMethodsInFile(string root, string path)
+    {
+        var source = File.ReadAllText(path);
+        var tree = CSharpSyntaxTree.ParseText(source);
+        var rootNode = tree.GetRoot();
+
+        var staticMethods = rootNode.DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Where(method =>
+                method.Modifiers.Any(SyntaxKind.StaticKeyword) &&
+                method.Identifier.Text.StartsWith("Create", StringComparison.Ordinal));
+
+        foreach (var method in staticMethods)
+        {
+            var lineSpan = tree.GetLineSpan(method.Span);
+            var lineNumber = lineSpan.StartLinePosition.Line + 1;
+            var modifiers = string.Join(" ", method.Modifiers.Select(m => m.Text));
+            var returnType = method.ReturnType.ToString();
+            var methodName = method.Identifier.Text;
+            yield return $"{Relative(root, path)}:{lineNumber}: {modifiers} {returnType} {methodName}(...)";
         }
     }
 

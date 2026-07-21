@@ -18,7 +18,7 @@ public static class InstallerViewModelFactory
             InstallerSession.CreateDefault(manifest, version, manifest.DefaultInstallRoot(), PayloadSelection.Bundled(version)),
             adapter,
             adapter.SupportsInstallActions ? CapabilitiesController.CreateDefault() : CapabilitiesController.CreateNixOs());
-        _ = model.RefreshAsync();
+        InitializeViewModel(model);
         return model;
     }
 
@@ -31,7 +31,7 @@ public static class InstallerViewModelFactory
             InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
             InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
             CapabilitiesController.CreateFake());
-        _ = model.RefreshAsync();
+        InitializeViewModel(model);
         return model;
     }
 
@@ -44,8 +44,20 @@ public static class InstallerViewModelFactory
             InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
             InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
             CapabilitiesController.CreateEmpty());
-        _ = model.RefreshAsync();
+        InitializeViewModel(model);
         return model;
+    }
+
+    private static void InitializeViewModel(InstallerViewModel model)
+    {
+        try
+        {
+            model.RefreshAsync().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Failed to initialize InstallerViewModel", ex);
+        }
     }
 
     private static Version InstallerVersion()

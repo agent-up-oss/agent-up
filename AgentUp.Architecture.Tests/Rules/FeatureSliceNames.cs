@@ -11,6 +11,7 @@ public sealed class FeatureSliceNames
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var forbiddenSliceNames = ArchitectureFixture.AllowedFeatureTypeFolders
             .Concat(ArchitectureFixture.AllowedSharedTypeFolders)
+            .Concat(ArchitectureFixture.AllowedTestKindFolders)
             .ToHashSet(StringComparer.Ordinal);
 
         var violations = ArchitectureFixture.ProductionSourceFiles(root)
