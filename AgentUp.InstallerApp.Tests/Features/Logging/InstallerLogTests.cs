@@ -6,11 +6,34 @@ namespace AgentUp.InstallerApp.Tests.Features.Logging;
 public class InstallerLogTests
 {
     [Test]
-    public void FilePath_onMacOs_isSystemLogPath()
+    public void ResolveMacOsLogPath_whenPrivileged_isSystemLogPath()
     {
-        Assume.That(OperatingSystem.IsMacOS(), Is.True, "macOS path assertion only applies on macOS");
-        Assert.That(InstallerLog.FilePath, Is.EqualTo("/Library/Logs/Agent-Up/installer.log"),
-            "Must use a fixed system path so the root PKG postinstall process and the user GUI process both write to the same file. ~/Library would give root a different path.");
+        Assume.That(OperatingSystem.IsMacOS(), Is.True);
+        Assume.That(Environment.IsPrivilegedProcess, Is.True, "Only asserts system path when running as root");
+        Assert.That(InstallerLog.ResolveMacOsLogPath(), Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
+    }
+
+    [Test]
+    public void ResolveMacOsLogPath_whenSystemDirExists_isSystemLogPath()
+    {
+        Assume.That(OperatingSystem.IsMacOS(), Is.True);
+        Assume.That(Directory.Exists("/Library/Logs/Agent-Up"), Is.True,
+            "Only asserts system path when directory was already created by a prior root install");
+        Assert.That(InstallerLog.ResolveMacOsLogPath(), Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
+    }
+
+    [Test]
+    public void ResolveMacOsLogPath_whenUnprivilegedAndSystemDirAbsent_isUserLogPath()
+    {
+        Assume.That(OperatingSystem.IsMacOS(), Is.True);
+        Assume.That(!Environment.IsPrivilegedProcess && !Directory.Exists("/Library/Logs/Agent-Up"), Is.True,
+            "Fallback path only when non-root and system dir doesn't exist");
+        var path = InstallerLog.ResolveMacOsLogPath();
+        Assert.That(path, Does.StartWith(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+        Assert.That(path, Does.Contain("Agent-Up"));
+        Assert.That(path, Does.EndWith("installer.log"));
+        Assert.That(path, Does.Not.StartWith("/Library/Logs"),
+            "Must not use system path when non-root — non-root cannot create /Library/Logs/Agent-Up/");
     }
 
     [Test]
@@ -39,8 +62,8 @@ public class InstallerLogTests
     [Test]
     public void Write_appendsMessageToFile_whenPathIsWritable()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        var logPath = Path.Combine(tempDir, "test-installer.log");
+        var tempDir = Path.Join(Path.GetTempPath(), Path.GetRandomFileName());
+        var logPath = Path.Join(tempDir, "test-installer.log");
         try
         {
             InstallerLog.WriteToPath(logPath, "first message");
@@ -61,8 +84,8 @@ public class InstallerLogTests
     [Platform(Exclude = "Win")]
     public void Write_setsWorldReadWritePermissionsOnNewFile_whenPathIsWritable()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        var logPath = Path.Combine(tempDir, "test-installer.log");
+        var tempDir = Path.Join(Path.GetTempPath(), Path.GetRandomFileName());
+        var logPath = Path.Join(tempDir, "test-installer.log");
         try
         {
             InstallerLog.WriteToPath(logPath, "permission check");

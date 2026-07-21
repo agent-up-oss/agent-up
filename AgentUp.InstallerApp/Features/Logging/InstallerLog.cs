@@ -25,8 +25,14 @@ public static class InstallerLog
                     UnixFileMode.UserRead | UnixFileMode.UserWrite |
                     UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
                     UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
-                try { if (dirCreated) File.SetUnixFileMode(dir, AllReadWrite | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute); } catch { }
-                try { if (fileCreated) File.SetUnixFileMode(path, AllReadWrite); } catch { }
+                // chmod is best-effort: the log entry is already written; a permission failure
+                // only affects future appends from a different user (e.g. GUI after root install).
+                if (dirCreated)
+                    try { File.SetUnixFileMode(dir, AllReadWrite | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute); }
+                    catch (IOException) { } catch (UnauthorizedAccessException) { }
+                if (fileCreated)
+                    try { File.SetUnixFileMode(path, AllReadWrite); }
+                    catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
         }
         catch
@@ -41,10 +47,7 @@ public static class InstallerLog
     private static string ResolveLogPath()
     {
         if (OperatingSystem.IsMacOS())
-            // Use a fixed system path so the root process (--install-core via PKG postinstall)
-            // and the user process (GUI launched by open -a) both write to the same file.
-            // ~/Library/Logs is user-owned, so a root-created file there blocks user appends.
-            return "/Library/Logs/Agent-Up/installer.log";
+            return ResolveMacOsLogPath();
 
         if (OperatingSystem.IsWindows())
             return Path.Join(
@@ -54,5 +57,20 @@ public static class InstallerLog
         return Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".local", "share", "agent-up", "installer.log");
+    }
+
+    internal static string ResolveMacOsLogPath()
+    {
+        // Prefer the system path so the root PKG postinstall process (--install-core)
+        // and the user GUI process both write to the same file.
+        // Use it only when accessible: we're root, or a prior root run already created the directory.
+        // Falls back to ~/Library/Logs when neither condition holds (fresh launch, CI, etc.).
+        const string SystemLogPath = "/Library/Logs/Agent-Up/installer.log";
+        if (Environment.IsPrivilegedProcess || Directory.Exists("/Library/Logs/Agent-Up"))
+            return SystemLogPath;
+
+        return Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Library", "Logs", "Agent-Up", "installer.log");
     }
 }

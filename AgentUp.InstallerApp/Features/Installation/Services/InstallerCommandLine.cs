@@ -69,6 +69,10 @@ public static class InstallerCommandLine
             await error.WriteLineAsync("No installer command was provided.");
             return 2;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception exception)
         {
             InstallerLog.WriteException("CLI", exception);
