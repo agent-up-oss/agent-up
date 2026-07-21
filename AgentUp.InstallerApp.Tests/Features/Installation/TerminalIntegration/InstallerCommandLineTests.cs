@@ -123,4 +123,48 @@ public class InstallerCommandLineTests
         Assert.ThrowsAsync<InvalidOperationException>(
             async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "cli"], output, error); });
     }
+
+    [Test]
+    public async Task RunAsync_installComponent_throws_whenTargetIsMissing()
+    {
+        var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            Components =
+            [
+                new ProductComponent("editor", "Editor", "Visual editing surface."),
+                new ProductComponent("renderer", "Renderer", "Output renderer.")
+            ]
+        };
+        var adapter = new FakeInstallerPlatformAdapter("Test");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component"], output, error); });
+
+        Assert.That(ex!.Message, Does.Contain("--install-component"));
+        Assert.That(ex.Message, Does.Contain("requires a component target"));
+    }
+
+    [Test]
+    public async Task RunAsync_installComponent_throws_whenTargetIsWhitespaceOnly()
+    {
+        var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            Components =
+            [
+                new ProductComponent("editor", "Editor", "Visual editing surface."),
+                new ProductComponent("renderer", "Renderer", "Output renderer.")
+            ]
+        };
+        var adapter = new FakeInstallerPlatformAdapter("Test");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "   "], output, error); });
+
+        Assert.That(ex!.Message, Does.Contain("--install-component"));
+        Assert.That(ex.Message, Does.Contain("requires a component target"));
+    }
 }
