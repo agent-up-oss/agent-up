@@ -8,6 +8,15 @@ using AgentUp.Installers.Features.WindowsInstallation.Models;
 using System.Diagnostics;
 using System.Text;
 
+AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+    InstallerLog.WriteException("unhandled-exception", (Exception)e.ExceptionObject);
+
+TaskScheduler.UnobservedTaskException += (_, e) =>
+{
+    InstallerLog.WriteException("unobserved-task-exception", e.Exception);
+    e.SetObserved();
+};
+
 InstallerLog.Write($"Installer starting: args=[{string.Join(", ", args)}]");
 Console.Error.WriteLine($"[Agent-Up Installer] Log: {InstallerLog.FilePath}");
 

@@ -273,7 +273,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(tmpFile, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
-            if (Environment.UserName == "root")
+            if (Environment.IsPrivilegedProcess)
             {
                 // Pass the path unquoted — Process.Start with UseShellExecute=false does not
                 // process shell quotes in Arguments, so single-quoting is passed literally.

@@ -1,5 +1,9 @@
 using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.Installers.Features.Installation.Interfaces;
+using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.Installation.Services;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 namespace AgentUp.InstallerApp.Tests.Features.Installation.TerminalIntegration;
 
@@ -70,6 +74,39 @@ public class InstallerCommandLineTests
     }
 
     [Test]
+    public async Task RunAsync_installCore_emitsDockerAndProgressMessagesToOutput()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        await InstallerCommandLine.RunAsync(
+            new FakeInstallerPlatformAdapter("Test"),
+            ["--install-core"],
+            output,
+            error);
+
+        var log = output.ToString();
+        Assert.That(log, Does.Contain("1/"), "Expected numbered progress steps in output");
+        Assert.That(log, Does.Contain("Core app installation succeeded."));
+    }
+
+    [Test]
+    public async Task RunAsync_catchesUnexpectedException_returnsExitCodeOneAndWritesToError()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = await InstallerCommandLine.RunAsync(
+            new ThrowingInstallerPlatformAdapter(new InvalidDataException("something exploded unexpectedly")),
+            ["--install-core"],
+            output,
+            error);
+
+        Assert.That(exitCode, Is.EqualTo(1));
+        Assert.That(error.ToString(), Does.Contain("something exploded unexpectedly"));
+    }
+
+    [Test]
     public async Task RunAsync_smokeInstallerOperationsCoversCoreValidateAndComponentLifecycle()
     {
         using var output = new StringWriter();
@@ -94,5 +131,39 @@ public class InstallerCommandLineTests
         Assert.That(log, Does.Contain("Installed state validation succeeded."));
         Assert.That(log, Does.Contain("Installer operation smoke succeeded."));
         Assert.That(error.ToString(), Is.Empty);
+    }
+
+    private sealed class ThrowingInstallerPlatformAdapter(Exception exception) : IInstallerPlatformAdapter
+    {
+        public string PlatformName => "Throwing";
+        public bool SupportsInstallActions => true;
+
+        public Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new DockerStatus(DockerStatusKind.Operational, "OK", "OK", new Version(27, 0, 0)));
+
+        public Task<InstallerComponentStatus> GetComponentStatusAsync(ProductComponent component, InstallerSession session, CancellationToken cancellationToken = default)
+            => throw exception;
+
+        public IReadOnlyList<InstallOperation> PlanComponentAction(ProductComponent component, InstallerComponentAction action, InstallerSession session)
+            => throw exception;
+
+        public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
+            => throw exception;
+
+        public async IAsyncEnumerable<InstallProgress> ExecuteInstallAsync(InstallerSession session,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.Yield();
+            throw exception;
+#pragma warning disable CS0162
+            yield break;
+#pragma warning restore CS0162
+        }
+
+        public IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(ProductComponent component, InstallerComponentAction action, InstallerSession session, CancellationToken cancellationToken = default)
+            => throw exception;
+
+        public Task<ValidationReport> ValidateInstalledStateAsync(InstallerSession session, CancellationToken cancellationToken = default)
+            => Task.FromException<ValidationReport>(exception);
     }
 }

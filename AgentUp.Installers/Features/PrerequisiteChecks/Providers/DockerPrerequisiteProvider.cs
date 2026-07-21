@@ -45,7 +45,18 @@ public sealed class DockerPrerequisiteProvider : IDockerPrerequisiteProvider
                 parsedVersion);
         }
 
-        var info = await _commands.RunAsync("docker", "info", cancellationToken);
+        using var infoTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        infoTimeout.CancelAfter(TimeSpan.FromSeconds(10));
+        ProcessResult info;
+        try
+        {
+            info = await _commands.RunAsync("docker", "info", infoTimeout.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new DockerStatus(DockerStatusKind.DaemonNotRunning, "Docker daemon is not responding",
+                "docker info timed out. Ensure the Docker daemon is running.", parsedVersion);
+        }
         if (info.ExitCode == 0)
         {
             return new DockerStatus(DockerStatusKind.Operational, "Docker is operational",
