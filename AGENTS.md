@@ -466,8 +466,13 @@ New code should convert known failures into safe errors with status, title, deta
 Guidelines:
 
 - Convert provider/infrastructure exceptions at meaningful boundaries.
+- Catch specific known exception types. Do not use bare `catch`, unfiltered `catch (Exception)`, or empty catch blocks; best-effort cleanup must log, return a typed result, or use a documented helper.
+- When mapping operation cancellation to a timeout, verify the timeout `CancellationTokenSource` fired and preserve caller cancellation separately.
 - Validate command runner inputs before process launch. Package smoke command execution must choose from allowlisted command names and must not pass executable paths or unchecked user-provided strings into `ProcessStartInfo`.
 - Encode or otherwise canonicalize user-controlled IDs before using them in filesystem paths, and verify the resolved path stays under the owning storage root.
+- Use `Path.Join` or an owning path-validation provider instead of `Path.Combine` for repository/runtime paths.
+- Dispose local `IDisposable` values with `using`/`await using` unless ownership is intentionally transferred to a longer-lived object.
+- Do not block on async work with `.GetAwaiter().GetResult()`, `.Wait()`, or `.Result` in production startup, UI, or composition paths.
 - Do not add catch blocks at every layer.
 - Validate transport/request models at host boundaries.
 - Keep domain/runtime invariants in the owning slice.
@@ -495,7 +500,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Packaging` | `AgentUp.Packaging.Tests` |
 | `AgentUp.PackageSmoke` | `AgentUp.PackageSmoke.Tests` |
 
-`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, controller dependency construction rules, and test taxonomy rules. Keep architecture rules there instead of burying them in product E2E tests.
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, controller dependency construction rules, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. Keep architecture and generic source hygiene rules there instead of burying them in product E2E tests.
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
