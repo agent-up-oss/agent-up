@@ -1,8 +1,5 @@
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Providers;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Services;
 using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
-using AgentUp.InstallerApp.Features.Capabilities.Services;
+using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Installation.Factories;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
@@ -95,11 +92,7 @@ public class InstallerWindowBehaviorTests
                 new NixOsInstallerPlatformAdapter(
                     new Lookup(("agent-up", "/nix/store/agent-up/bin/agent-up")),
                     new DockerPrerequisite(new DockerProvider(), new Version(27, 0, 0))),
-                new CapabilityDashboardService(
-                    new OfficialCapabilityCatalogProvider(),
-                    new NixOsCapabilityModuleStore(new CapabilityInventoryFileProvider()),
-                    new CapabilityInstallPlanner(new CapabilityToolCacheLayout(Path.Join(root, "tool-cache"))),
-                    false));
+                CapabilitiesController.CreateNixOs(Path.Join(root, "tool-cache")));
             var window = new InstallerWindow { DataContext = model };
             window.Show();
             await model.RefreshAsync();

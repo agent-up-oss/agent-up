@@ -21,10 +21,15 @@ public sealed class SharedTypeFolders
 
     private static bool TrySharedTypeFolder(string[] parts, out string folder)
     {
-        folder = SharedTypeFolder(parts) ?? "";
-        return folder.Length > 0;
+        if (parts.Length < 3 || parts[1] != "Shared")
+        {
+            folder = "";
+            return false;
+        }
+        folder = parts.Length >= 4 ? parts[2] : "(none)";
+        return true;
     }
 
-    private static string? SharedTypeFolder(string[] parts)
-        => parts.Length >= 4 && parts[1] == "Shared" ? parts[2] : null;
+    private static string SharedTypeFolder(string[] parts)
+        => parts.Length >= 4 ? parts[2] : "(none)";
 }

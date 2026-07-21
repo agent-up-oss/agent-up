@@ -3,7 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using AgentUp.InstallerApp.Features.Installation.Factories;
 using AgentUp.InstallerApp.Features.Installation.Views;
-using AgentUp.InstallerApp.Features.Logging.Services;
+using AgentUp.InstallerApp.Features.Logging.Tools;
 
 namespace AgentUp.InstallerApp;
 

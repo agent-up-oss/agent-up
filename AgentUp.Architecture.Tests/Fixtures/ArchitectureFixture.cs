@@ -91,7 +91,10 @@ internal static class ArchitectureFixture
         "Environment.SetEnvironmentVariable",
         "TcpListener",
         "TcpClient",
-        "Socket"
+        "Socket",
+        "new FileInfo(",
+        "new DirectoryInfo(",
+        "new FileStream("
     ];
 
     public static readonly string[] ForbiddenInstallerAppServiceTokens =
@@ -106,7 +109,7 @@ internal static class ArchitectureFixture
         RegexOptions.Compiled);
 
     public static readonly Regex StaticFactoryInViewModel = new(
-        @"public\s+static\s+\w[\w<>\[\],\s]*\bCreate\w*\s*\(",
+        @"(public|internal)\s+static\s+\w[\w<>\[\],\s]*\bCreate\w*\s*\(",
         RegexOptions.Compiled);
 
     public static readonly ArchUnitNET.Domain.Architecture ArchUnitArchitecture = new ArchLoader()
@@ -132,11 +135,11 @@ internal static class ArchitectureFixture
 
     public static IEnumerable<string> TestSourceFiles(string repositoryRoot)
         => TestProjects
-            .Where(project => Directory.Exists(Path.Combine(repositoryRoot, project)))
+            .Where(project => Directory.Exists(Path.Join(repositoryRoot, project)))
             .SelectMany(project => ProjectSourceFiles(repositoryRoot, project));
 
     public static IEnumerable<string> ProjectSourceFiles(string repositoryRoot, string project)
-        => Directory.EnumerateFiles(Path.Combine(repositoryRoot, project), "*.cs", SearchOption.AllDirectories)
+        => Directory.EnumerateFiles(Path.Join(repositoryRoot, project), "*.cs", SearchOption.AllDirectories)
             .Where(path => !HasPathPart(repositoryRoot, path, "bin") && !HasPathPart(repositoryRoot, path, "obj"));
 
     public static IEnumerable<string> MatchingLines(string root, string path, Regex regex)

@@ -20,12 +20,15 @@ public static class CapabilityDashboardServiceFactory
     public static CapabilityDashboardService CreateNixOs()
     {
         var root = DefaultStateRoot();
-        return new CapabilityDashboardService(
+        return CreateNixOs(Path.Join(root, "tool-cache"));
+    }
+
+    public static CapabilityDashboardService CreateNixOs(string cacheRoot)
+        => new(
             new OfficialCapabilityCatalogProvider(),
             new NixOsCapabilityModuleStore(new CapabilityInventoryFileProvider()),
-            new CapabilityInstallPlanner(new CapabilityToolCacheLayout(Path.Join(root, "tool-cache"))),
+            new CapabilityInstallPlanner(new CapabilityToolCacheLayout(cacheRoot)),
             false);
-    }
 
     public static CapabilityDashboardService CreateFake()
     {

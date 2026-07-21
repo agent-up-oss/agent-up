@@ -21,10 +21,15 @@ public sealed class FeatureTypeFolders
 
     private static bool TryFeatureTypeFolder(string[] parts, out string folder)
     {
-        folder = FeatureTypeFolder(parts) ?? "";
-        return folder.Length > 0;
+        if (parts.Length < 4 || parts[1] != "Features")
+        {
+            folder = "";
+            return false;
+        }
+        folder = parts.Length >= 5 ? parts[3] : "(none)";
+        return true;
     }
 
-    private static string? FeatureTypeFolder(string[] parts)
-        => parts.Length >= 5 && parts[1] == "Features" ? parts[3] : null;
+    private static string FeatureTypeFolder(string[] parts)
+        => parts.Length >= 5 ? parts[3] : "(none)";
 }
