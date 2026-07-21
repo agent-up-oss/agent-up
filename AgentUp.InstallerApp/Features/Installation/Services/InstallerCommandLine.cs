@@ -1,3 +1,4 @@
+using AgentUp.InstallerApp.Features.Installation.TerminalIntegration;
 using AgentUp.InstallerApp.Features.Logging;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;
@@ -71,13 +72,13 @@ public static class InstallerCommandLine
             return await RunSmokeInstallerOperationsAsync(adapter, manifest, output, error, cancellationToken);
         if (args.Contains(ValidateInstalledArgument, StringComparer.OrdinalIgnoreCase))
             return await RunValidateInstalledAsync(adapter, manifest, output, error, cancellationToken);
-        if (TryComponentAction(args, InstallComponentArgument, manifest.Components, out var installTarget))
+        if (InstallerCommandLineParser.TryComponentAction(args, InstallComponentArgument, manifest.Components, out var installTarget))
             return await RunComponentActionAsync(adapter, installTarget, InstallerComponentAction.Install, manifest, output, error, cancellationToken);
-        if (TryComponentAction(args, UpdateComponentArgument, manifest.Components, out var updateTarget))
+        if (InstallerCommandLineParser.TryComponentAction(args, UpdateComponentArgument, manifest.Components, out var updateTarget))
             return await RunComponentActionAsync(adapter, updateTarget, InstallerComponentAction.Update, manifest, output, error, cancellationToken);
-        if (TryComponentAction(args, RepairComponentArgument, manifest.Components, out var repairTarget))
+        if (InstallerCommandLineParser.TryComponentAction(args, RepairComponentArgument, manifest.Components, out var repairTarget))
             return await RunComponentActionAsync(adapter, repairTarget, InstallerComponentAction.Repair, manifest, output, error, cancellationToken);
-        if (TryComponentAction(args, UninstallComponentArgument, manifest.Components, out var uninstallTarget))
+        if (InstallerCommandLineParser.TryComponentAction(args, UninstallComponentArgument, manifest.Components, out var uninstallTarget))
             return await RunComponentActionAsync(adapter, uninstallTarget, InstallerComponentAction.Uninstall, manifest, output, error, cancellationToken);
         if (args.Contains(InstallCoreArgument, StringComparer.OrdinalIgnoreCase))
             return await RunInstallCoreAsync(adapter, manifest, output, error, cancellationToken);
@@ -210,38 +211,6 @@ public static class InstallerCommandLine
 
         await error.WriteLineAsync("Installed state validation failed.");
         return 1;
-    }
-
-    private static bool TryComponentAction(
-        string[] args,
-        string argument,
-        IReadOnlyList<ProductComponent> components,
-        out ProductComponent component)
-    {
-        component = default!;
-        for (var index = 0; index < args.Length; index++)
-        {
-            if (!args[index].Equals(argument, StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (index + 1 >= args.Length || string.IsNullOrWhiteSpace(args[index + 1]))
-                throw new InvalidOperationException($"{argument} requires a component target.");
-
-            component = ParseComponent(args[index + 1], components);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static ProductComponent ParseComponent(string value, IReadOnlyList<ProductComponent> components)
-    {
-        var found = components.FirstOrDefault(c => c.Id.Equals(value, StringComparison.OrdinalIgnoreCase));
-        if (found is null)
-        {
-            var expected = string.Join(", ", components.Select(c => c.Id));
-            throw new InvalidOperationException($"Unknown installer component '{value}'. Expected {expected}.");
-        }
-        return found;
     }
 
     private static InstallerSession CreateSession(ProductManifest manifest)
