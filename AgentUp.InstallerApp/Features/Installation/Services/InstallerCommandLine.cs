@@ -1,5 +1,6 @@
 using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Logging;
+using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation.Interfaces;

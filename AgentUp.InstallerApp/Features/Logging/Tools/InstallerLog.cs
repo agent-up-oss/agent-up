@@ -1,4 +1,4 @@
-namespace AgentUp.InstallerApp.Features.Logging;
+namespace AgentUp.InstallerApp.Features.Logging.Tools;
 
 public static class InstallerLog
 {

@@ -4,10 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Capabilities.Services;
-using AgentUp.InstallerApp.Features.Installation.Factories;
-using AgentUp.InstallerApp.Features.Logging;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 
@@ -69,6 +66,8 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
 
     public bool IsAddModuleVisible => Page == "AddModule";
 
+    public bool IsCatalogEmpty => !CatalogEntries.Any();
+
     public bool IsCapabilityEditVisible
     {
         get => _isCapabilityEditVisible;
@@ -91,32 +90,6 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
             _selectedCapability = value;
             OnPropertyChanged();
         }
-    }
-
-    public static InstallerViewModel CreateDefault()
-    {
-        var version = InstallerVersion();
-        var manifest = ProductManifest.AgentUp();
-        var adapter = InstallerAdapterFactory.Create();
-        var model = new InstallerViewModel(
-            InstallerSession.CreateDefault(manifest, version, manifest.DefaultInstallRoot(), PayloadSelection.Bundled(version)),
-            adapter,
-            adapter.SupportsInstallActions ? CapabilityDashboardService.CreateDefault() : CapabilityDashboardService.CreateNixOs());
-        _ = model.RefreshAsync();
-        return model;
-    }
-
-    public static InstallerViewModel CreateFakeForTests()
-    {
-        var version = new Version(0, 0, 0);
-        var manifest = ProductManifest.AgentUp();
-        var installRoot = manifest.DefaultInstallRoot();
-        var model = new InstallerViewModel(
-            InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
-            InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
-            CapabilityDashboardService.CreateFake());
-        _ = model.RefreshAsync();
-        return model;
     }
 
     internal async Task RefreshAsync()
@@ -184,6 +157,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         foreach (var entry in await _capabilities.GetCatalogAsync())
             CatalogEntries.Add(new CatalogCapabilityViewModel(entry, installedIds.Contains(entry.Id), _capabilities.SupportsInstallActions, this));
 
+        OnPropertyChanged(nameof(IsCatalogEmpty));
         IsCapabilityEditVisible = false;
         Page = "AddModule";
     }
@@ -213,12 +187,6 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         {
             installing.Fail(ex.Message);
         }
-    }
-
-    private static Version InstallerVersion()
-    {
-        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        return v is null || v == new Version(0, 0, 0, 0) ? new Version(0, 0, 0) : new Version(v.Major, v.Minor, v.Build);
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

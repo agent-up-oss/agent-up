@@ -1,11 +1,9 @@
+using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
+using AgentUp.InstallerApp.Features.Capabilities.Controllers;
+using AgentUp.InstallerApp.Features.Installation.Factories;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
 using AgentUp.InstallerApp.Tests.Support;
-using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Providers;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Services;
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
-using AgentUp.InstallerApp.Features.Capabilities.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
@@ -94,11 +92,7 @@ public class InstallerWindowBehaviorTests
                 new NixOsInstallerPlatformAdapter(
                     new Lookup(("agent-up", "/nix/store/agent-up/bin/agent-up")),
                     new DockerPrerequisite(new DockerProvider(), new Version(27, 0, 0))),
-                new CapabilityDashboardService(
-                    new OfficialCapabilityCatalogProvider(),
-                    new NixOsCapabilityModuleStore(new CapabilityInventoryFileProvider()),
-                    new CapabilityInstallPlanner(new CapabilityToolCacheLayout(Path.Join(root, "tool-cache"))),
-                    false));
+                CapabilitiesController.CreateNixOs(Path.Join(root, "tool-cache")));
             var window = new InstallerWindow { DataContext = model };
             window.Show();
             await model.RefreshAsync();
@@ -127,6 +121,67 @@ public class InstallerWindowBehaviorTests
         }
     }
 
+    [AvaloniaTest]
+    public async Task Window_withNoModuleCatalog_rendersFullPageSetWithoutExceptions()
+    {
+        var window = await LaunchWithNoModulesAsync();
+
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("Dashboard"));
+        Assert.That(window.Find<ItemsControl>("ComponentCards").ItemCount, Is.EqualTo(3));
+        Assert.That(window.Find<Button>("AddModuleCard").IsVisible, Is.True);
+
+        window.Find<Button>("AddModuleCard").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("AddModule"));
+        Assert.That(window.Find<Border>("CapabilityEditPanel").IsVisible, Is.False);
+
+        window.Find<Button>("BackToDashboardButton").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("Dashboard"));
+    }
+
+    [AvaloniaTest]
+    public async Task AddModule_withEmptyCatalog_showsWellFormedEmptyState()
+    {
+        var window = await LaunchWithNoModulesAsync();
+
+        window.Find<Button>("AddModuleCard").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(window.Find<ItemsControl>("CatalogEntries").ItemCount, Is.EqualTo(0));
+        Assert.That(window.Find<TextBlock>("EmptyCatalogMessage").IsVisible, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task ComponentCards_installRepairAndUpdate_succeedWithNoModuleCatalog()
+    {
+        var window = await LaunchWithNoModulesAsync();
+        var model = (InstallerViewModel)window.DataContext!;
+        var desktop = model.ComponentCards.Single(card => card.Title == "Desktop");
+
+        desktop.InstallCommand.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(desktop.StatusText, Is.EqualTo("Installed"));
+        Assert.That(desktop.RepairCommand.CanExecute(null), Is.True);
+        Assert.That(desktop.UpdateCommand.CanExecute(null), Is.True);
+
+        desktop.RepairCommand.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(desktop.StatusText, Is.EqualTo("Installed"));
+
+        desktop.UpdateCommand.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(desktop.StatusText, Is.EqualTo("Installed"));
+    }
+
     [Test]
     public void ComponentCards_useConstrainedActionGridAndHideMutationButtonsInLookupOnlyMode()
     {
@@ -145,7 +200,15 @@ public class InstallerWindowBehaviorTests
 
     private static async Task<InstallerWindow> LaunchAsync()
     {
-        var window = new InstallerWindow { DataContext = InstallerViewModel.CreateFakeForTests() };
+        var window = new InstallerWindow { DataContext = InstallerViewModelFactory.CreateFakeForTests() };
+        window.Show();
+        await HeadlessExtensions.FlushAsync();
+        return window;
+    }
+
+    private static async Task<InstallerWindow> LaunchWithNoModulesAsync()
+    {
+        var window = new InstallerWindow { DataContext = InstallerViewModelFactory.CreateFakeWithNoModules() };
         window.Show();
         await HeadlessExtensions.FlushAsync();
         return window;

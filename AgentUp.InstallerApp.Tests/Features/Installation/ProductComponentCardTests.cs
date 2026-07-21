@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Capabilities.Services;
+using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
@@ -28,7 +28,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilityDashboardService.CreateFake());
+            CapabilitiesController.CreateFake());
 
         Assert.That(model.ComponentCards.Select(c => c.Target.Id), Is.EqualTo(new[] { "editor", "renderer" }));
         Assert.That(model.ComponentCards.Select(c => c.Title), Is.EqualTo(new[] { "Editor", "Renderer" }));
@@ -45,7 +45,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilityDashboardService.CreateFake());
+            CapabilitiesController.CreateFake());
 
         var allDescriptions = string.Join("|", model.ComponentCards.Select(c => c.Description));
         Assert.That(allDescriptions, Does.Not.Contain("Human UI for Agent-Up workspaces."));
@@ -63,7 +63,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilityDashboardService.CreateFake());
+            CapabilitiesController.CreateFake());
 
         var editor = model.ComponentCards.Single(c => c.Target.Id == "editor");
 
@@ -92,7 +92,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilityDashboardService.CreateFake());
+            CapabilitiesController.CreateFake());
 
         Assert.That(model.ComponentCards, Has.Count.EqualTo(3));
         Assert.That(model.ComponentCards.Select(c => c.Target.Id), Is.EqualTo(new[] { "desktop", "server", "cli" }));

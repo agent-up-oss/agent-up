@@ -1,3 +1,4 @@
+using AgentUp.InstallerApp.Features.Installation.Factories;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
 using Avalonia.Controls;
@@ -24,7 +25,7 @@ public sealed class InstallerNativeDisplayFlowTests
     {
         _window = await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            var window = new InstallerWindow { DataContext = InstallerViewModel.CreateFakeForTests() };
+            var window = new InstallerWindow { DataContext = InstallerViewModelFactory.CreateFakeForTests() };
             window.Show();
             return window;
         });
