@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using AgentUp.InstallerApp.Features.Installation.ViewModels;
+using AgentUp.InstallerApp.Features.Installation.Factories;
 using AgentUp.InstallerApp.Features.Installation.Views;
 using AgentUp.InstallerApp.Features.Logging.Services;
 
@@ -24,7 +24,7 @@ public class App : Application
             {
                 desktop.MainWindow = new InstallerWindow
                 {
-                    DataContext = InstallerViewModel.CreateDefault()
+                    DataContext = InstallerViewModelFactory.CreateDefault()
                 };
                 InstallerLog.Write("Installer window created successfully");
             }
