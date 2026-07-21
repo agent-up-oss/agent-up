@@ -5,14 +5,14 @@ namespace AgentUp.Installers.Features.WindowsInstallation.Services;
 public static class WindowsInstallerCommands
 {
     public static string ServiceCreateArguments(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
-        => $"create {manifest.ServiceName} binPath= \"\\\"{paths.ServerExecutable}\\\" --urls {manifest.ServerUrl}\" start= auto DisplayName= \"{manifest.ServiceDisplayName}\"";
+        => $"create {manifest.ServiceName} binPath= \"\\\"{paths.ServerExecutable}\\\" --urls {manifest.ServerUrl}\" start= auto DisplayName= \"{ScArg(manifest.ServiceDisplayName)}\"";
 
     public static string ServiceFailureArguments(WindowsInstallerManifest manifest)
         => $"failure {manifest.ServiceName} reset= 60 actions= restart/5000/restart/5000/\"\"/5000";
 
     public static string PrepareExistingServicePowerShell(WindowsInstallerManifest manifest)
         => $$"""
-             $serviceName = '{{manifest.ServiceName}}'
+             $serviceName = '{{Ps(manifest.ServiceName)}}'
              $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
              if ($null -ne $service) {
                if ($service.Status -ne 'Stopped') {
@@ -40,7 +40,7 @@ public static class WindowsInstallerCommands
 
     public static string PathRemovePowerShell(string binDirectory)
         => $$"""
-             $target = '{{binDirectory}}'
+             $target = '{{Ps(binDirectory)}}'
              $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
              if (-not [string]::IsNullOrWhiteSpace($machinePath)) {
                $entries = $machinePath -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_.TrimEnd('\') -ine $target.TrimEnd('\') }
@@ -50,7 +50,7 @@ public static class WindowsInstallerCommands
 
     public static string PathUpdatePowerShell(string binDirectory)
         => $$"""
-             $target = '{{binDirectory}}'
+             $target = '{{Ps(binDirectory)}}'
              $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
              $entries = @()
              if (-not [string]::IsNullOrWhiteSpace($machinePath)) {
@@ -63,13 +63,13 @@ public static class WindowsInstallerCommands
 
     public static string ShortcutPowerShell(WindowsInstallerPaths paths)
         => $$"""
-             $shortcutPath = '{{paths.StartMenuShortcutPath}}'
+             $shortcutPath = '{{Ps(paths.StartMenuShortcutPath)}}'
              New-Item -ItemType Directory -Force -Path (Split-Path -Parent $shortcutPath) | Out-Null
              $shell = New-Object -ComObject WScript.Shell
              $shortcut = $shell.CreateShortcut($shortcutPath)
-             $shortcut.TargetPath = '{{paths.DesktopExecutable}}'
-             $shortcut.WorkingDirectory = '{{paths.DesktopDirectory}}'
-             $shortcut.IconLocation = '{{paths.DesktopExecutable}},0'
+             $shortcut.TargetPath = '{{Ps(paths.DesktopExecutable)}}'
+             $shortcut.WorkingDirectory = '{{Ps(paths.DesktopDirectory)}}'
+             $shortcut.IconLocation = '{{Ps(paths.DesktopExecutable)}},0'
              $shortcut.Save()
              """;
 
@@ -80,30 +80,33 @@ public static class WindowsInstallerCommands
              sc.exe delete {{manifest.ServiceName}} | Out-Null
              $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
              if (-not [string]::IsNullOrWhiteSpace($machinePath)) {
-               $target = '{{paths.BinDirectory}}'
+               $target = '{{Ps(paths.BinDirectory)}}'
                $entries = $machinePath -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_.TrimEnd('\') -ine $target.TrimEnd('\') }
                [Environment]::SetEnvironmentVariable('Path', ($entries -join ';'), 'Machine')
              }
-             Remove-Item -Force '{{paths.StartMenuShortcutPath}}' -ErrorAction SilentlyContinue
-             Remove-Item -Recurse -Force '{{paths.RootDirectory}}' -ErrorAction SilentlyContinue
-             Remove-Item -Recurse -Force 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{manifest.RegistryKeyName}}' -ErrorAction SilentlyContinue
+             Remove-Item -Force '{{Ps(paths.StartMenuShortcutPath)}}' -ErrorAction SilentlyContinue
+             Remove-Item -Recurse -Force '{{Ps(paths.RootDirectory)}}' -ErrorAction SilentlyContinue
+             Remove-Item -Recurse -Force 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{Ps(manifest.RegistryKeyName)}}' -ErrorAction SilentlyContinue
              """;
 
     public static string UninstallRegistryPowerShell(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
         => $$"""
-             $key = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{manifest.RegistryKeyName}}'
+             $key = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{Ps(manifest.RegistryKeyName)}}'
              New-Item -Force -Path $key | Out-Null
-             New-ItemProperty -Force -Path $key -Name DisplayName -Value '{{manifest.ProductName}}' | Out-Null
-             New-ItemProperty -Force -Path $key -Name DisplayVersion -Value '{{manifest.Version}}' | Out-Null
-             New-ItemProperty -Force -Path $key -Name Publisher -Value '{{manifest.Manufacturer}}' | Out-Null
-             New-ItemProperty -Force -Path $key -Name InstallLocation -Value '{{paths.RootDirectory}}' | Out-Null
-             New-ItemProperty -Force -Path $key -Name DisplayIcon -Value '{{paths.DesktopExecutable}},0' | Out-Null
+             New-ItemProperty -Force -Path $key -Name DisplayName -Value '{{Ps(manifest.ProductName)}}' | Out-Null
+             New-ItemProperty -Force -Path $key -Name DisplayVersion -Value '{{Ps(manifest.Version)}}' | Out-Null
+             New-ItemProperty -Force -Path $key -Name Publisher -Value '{{Ps(manifest.Manufacturer)}}' | Out-Null
+             New-ItemProperty -Force -Path $key -Name InstallLocation -Value '{{Ps(paths.RootDirectory)}}' | Out-Null
+             New-ItemProperty -Force -Path $key -Name DisplayIcon -Value '{{Ps(paths.DesktopExecutable)}},0' | Out-Null
              New-ItemProperty -Force -Path $key -Name NoModify -PropertyType DWord -Value 1 | Out-Null
              New-ItemProperty -Force -Path $key -Name NoRepair -PropertyType DWord -Value 1 | Out-Null
-             New-ItemProperty -Force -Path $key -Name UninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{paths.UninstallScriptPath}}"' | Out-Null
-             New-ItemProperty -Force -Path $key -Name QuietUninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{paths.UninstallScriptPath}}"' | Out-Null
+             New-ItemProperty -Force -Path $key -Name UninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{Ps(paths.UninstallScriptPath)}}"' | Out-Null
+             New-ItemProperty -Force -Path $key -Name QuietUninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{Ps(paths.UninstallScriptPath)}}"' | Out-Null
              """;
 
     public static string FreshShellCliLookupPowerShell(string cliCommandName)
         => $"Get-Command {cliCommandName} -ErrorAction Stop | Out-Null";
+
+    private static string Ps(string value) => value.Replace("'", "''");
+    private static string ScArg(string value) => value.Replace("\"", "\\\"");
 }

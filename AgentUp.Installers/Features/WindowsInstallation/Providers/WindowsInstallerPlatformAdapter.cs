@@ -83,7 +83,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
     {
         var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, _ => []);
         var progress = new InstallProgressTracker(operations);
-        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString());
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
 
         switch (target)
         {
@@ -145,7 +145,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
     {
         var operations = PlanInstall(session);
         var progress = new InstallProgressTracker(operations);
-        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString());
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
         var summary = session.Summary();
 
         if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
@@ -209,7 +209,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         InstallerSession session,
         CancellationToken cancellationToken = default)
     {
-        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString());
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
         var service = await _commands.RunAsync("sc.exe", $"query {manifest.ServiceName}", cancellationToken);
         var cli = await _commands.RunAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -Command \"{WindowsInstallerCommands.FreshShellCliLookupPowerShell(manifest.CliCommandName)}\"", cancellationToken);
 

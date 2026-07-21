@@ -32,7 +32,7 @@ public sealed record WindowsInstallerManifest(
             BundleName: "Agent-Up",
             ServerUrl: "http://127.0.0.1:5000");
 
-    public static WindowsInstallerManifest From(ProductManifest product, string version)
+    public static WindowsInstallerManifest From(ProductManifest product, string version, string serverUrl)
         => new(
             ProductName: product.ProductName,
             Manufacturer: product.ProductName,
@@ -41,7 +41,7 @@ public sealed record WindowsInstallerManifest(
             ServiceName: product.ServiceName,
             CliShimName: $"{product.Slug}.cmd",
             BundleName: product.ProductName,
-            ServerUrl: "http://127.0.0.1:5000");
+            ServerUrl: serverUrl);
 
     private static string StableUpgradeCode(string slug)
     {

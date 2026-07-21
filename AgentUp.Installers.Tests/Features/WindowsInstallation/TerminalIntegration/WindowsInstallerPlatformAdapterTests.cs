@@ -342,7 +342,7 @@ public class WindowsInstallerPlatformAdapterTests
     {
         yield return new TestCaseData(
             ProductManifest.AgentUp(), Options(),
-            new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO"), AcmeStudioOptions())
+            AcmeStudio(), AcmeStudioOptions())
             .SetName("AgentUp_vs_AcmeStudio");
     }
 
@@ -350,7 +350,8 @@ public class WindowsInstallerPlatformAdapterTests
         => new("Acme Studio", "acme-studio", "ACMESTUDIO");
 
     private static InstallerSession AcmeStudioSession()
-        => InstallerSession.CreateDefault(AcmeStudio(), new Version(1, 2, 3), @"C:\Program Files\Acme Studio", PayloadSelection.Bundled("Acme Studio", new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(AcmeStudio(), new Version(1, 2, 3), @"C:\Program Files\Acme Studio", PayloadSelection.Bundled("Acme Studio", new Version(1, 2, 3)))
+            with { ServerUrl = "http://127.0.0.1:5001" };
 
     private static WindowsInstallerOptions AcmeStudioOptions()
         => new(
