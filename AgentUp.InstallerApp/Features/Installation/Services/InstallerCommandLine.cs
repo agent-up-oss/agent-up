@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Installation.TerminalIntegration;
+using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Logging;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;

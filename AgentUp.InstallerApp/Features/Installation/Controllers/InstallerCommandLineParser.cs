@@ -1,6 +1,6 @@
 using AgentUp.Installers.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Features.Installation.TerminalIntegration;
+namespace AgentUp.InstallerApp.Features.Installation.Controllers;
 
 internal static class InstallerCommandLineParser
 {
