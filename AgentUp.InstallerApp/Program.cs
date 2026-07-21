@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using AgentUp.InstallerApp;
 using AgentUp.InstallerApp.Features.Installation.Services;
-using AgentUp.InstallerApp.Features.Logging;
+using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.WindowsInstallation.Models;
 using System.Diagnostics;

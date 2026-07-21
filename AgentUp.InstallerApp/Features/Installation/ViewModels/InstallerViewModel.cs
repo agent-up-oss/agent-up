@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Capabilities.Services;
-using AgentUp.InstallerApp.Features.Logging;
+using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 
