@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.MacOsInstallation.Services;
+namespace AgentUp.Installers.Features.MacOsInstallation.Models;
 
 public static class MacOsInstallerScripts
 {

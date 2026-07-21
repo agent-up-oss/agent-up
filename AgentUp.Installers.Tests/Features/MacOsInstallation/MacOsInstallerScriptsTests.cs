@@ -1,4 +1,4 @@
-using AgentUp.Installers.Features.MacOsInstallation.Services;
+using AgentUp.Installers.Features.MacOsInstallation.Models;
 
 namespace AgentUp.Installers.Tests.Features.MacOsInstallation;
 

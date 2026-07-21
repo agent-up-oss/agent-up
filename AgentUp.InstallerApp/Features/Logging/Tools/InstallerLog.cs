@@ -57,29 +57,11 @@ public static class InstallerLog
     public static void WriteError(string message)
     {
         Write(message);
-        if (OperatingSystem.IsMacOS())
-            WriteMacOsUnifiedLog(message);
+        Console.Error.WriteLine($"[Agent-Up Installer] {message}");
     }
 
     public static void WriteException(string context, Exception exception)
         => WriteError($"ERROR in {context}: {exception}");
-
-    // syslog(3) feeds into the macOS Unified Logging System (visible in Console.app and
-    // `log show --predicate 'process contains "AgentUp"'`). The format "%s" avoids
-    // format-string injection; passing a single fixed arg is safe across the varargs ABI.
-    [System.Runtime.InteropServices.DllImport("libSystem.B.dylib", EntryPoint = "syslog",
-        CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl,
-        CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
-    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
-    private static extern void SyslogNative(int priority, string format, string arg);
-
-    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
-    private static void WriteMacOsUnifiedLog(string message)
-    {
-        const int LogUserErr = (1 << 3) | 3; // LOG_USER | LOG_ERR
-        try { SyslogNative(LogUserErr, "%s", message); }
-        catch (Exception ex) when (ex is EntryPointNotFoundException or DllNotFoundException) { _ = ex; }
-    }
 
     private static string ResolveLogPath()
     {

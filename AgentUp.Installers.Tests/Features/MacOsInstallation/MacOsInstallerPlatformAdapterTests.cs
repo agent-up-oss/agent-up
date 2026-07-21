@@ -8,7 +8,7 @@ using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.DTOs;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.Providers;
-using AgentUp.Installers.Features.MacOsInstallation.Services;
+using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
