@@ -1,3 +1,4 @@
+using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;
@@ -42,8 +43,17 @@ public static class InstallerCommandLine
         return await RunAsync(adapter, args, output, error, cancellationToken);
     }
 
+    public static Task<int> RunAsync(
+        IInstallerPlatformAdapter adapter,
+        string[] args,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken = default)
+        => RunAsync(adapter, AgentUpManifest(), args, output, error, cancellationToken);
+
     public static async Task<int> RunAsync(
         IInstallerPlatformAdapter adapter,
+        ProductManifest manifest,
         string[] args,
         TextWriter output,
         TextWriter error,
@@ -52,19 +62,19 @@ public static class InstallerCommandLine
         try
         {
             if (args.Contains(SmokeInstallerOperationsArgument, StringComparer.OrdinalIgnoreCase))
-                return await RunSmokeInstallerOperationsAsync(adapter, output, error, cancellationToken);
+                return await RunSmokeInstallerOperationsAsync(adapter, manifest, output, error, cancellationToken);
             if (args.Contains(ValidateInstalledArgument, StringComparer.OrdinalIgnoreCase))
-                return await RunValidateInstalledAsync(adapter, output, error, cancellationToken);
-            if (TryComponentAction(args, InstallComponentArgument, out var installTarget))
-                return await RunComponentActionAsync(adapter, installTarget, InstallerComponentAction.Install, output, error, cancellationToken);
-            if (TryComponentAction(args, UpdateComponentArgument, out var updateTarget))
-                return await RunComponentActionAsync(adapter, updateTarget, InstallerComponentAction.Update, output, error, cancellationToken);
-            if (TryComponentAction(args, RepairComponentArgument, out var repairTarget))
-                return await RunComponentActionAsync(adapter, repairTarget, InstallerComponentAction.Repair, output, error, cancellationToken);
-            if (TryComponentAction(args, UninstallComponentArgument, out var uninstallTarget))
-                return await RunComponentActionAsync(adapter, uninstallTarget, InstallerComponentAction.Uninstall, output, error, cancellationToken);
+                return await RunValidateInstalledAsync(adapter, manifest, output, error, cancellationToken);
+            if (InstallerCommandLineParser.TryComponentAction(args, InstallComponentArgument, manifest.Components, out var installTarget))
+                return await RunComponentActionAsync(adapter, installTarget, InstallerComponentAction.Install, manifest, output, error, cancellationToken);
+            if (InstallerCommandLineParser.TryComponentAction(args, UpdateComponentArgument, manifest.Components, out var updateTarget))
+                return await RunComponentActionAsync(adapter, updateTarget, InstallerComponentAction.Update, manifest, output, error, cancellationToken);
+            if (InstallerCommandLineParser.TryComponentAction(args, RepairComponentArgument, manifest.Components, out var repairTarget))
+                return await RunComponentActionAsync(adapter, repairTarget, InstallerComponentAction.Repair, manifest, output, error, cancellationToken);
+            if (InstallerCommandLineParser.TryComponentAction(args, UninstallComponentArgument, manifest.Components, out var uninstallTarget))
+                return await RunComponentActionAsync(adapter, uninstallTarget, InstallerComponentAction.Uninstall, manifest, output, error, cancellationToken);
             if (args.Contains(InstallCoreArgument, StringComparer.OrdinalIgnoreCase))
-                return await RunInstallCoreAsync(adapter, output, error, cancellationToken);
+                return await RunInstallCoreAsync(adapter, manifest, output, error, cancellationToken);
 
             await error.WriteLineAsync("No installer command was provided.");
             return 2;
@@ -81,11 +91,19 @@ public static class InstallerCommandLine
         }
     }
 
-    public static async Task<int> RunInstallCoreAsync(
+    public static Task<int> RunInstallCoreAsync(
         IInstallerPlatformAdapter adapter,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken = default)
+        => RunInstallCoreAsync(adapter, AgentUpManifest(), output, error, cancellationToken);
+
+    private static async Task<int> RunInstallCoreAsync(
+        IInstallerPlatformAdapter adapter,
+        ProductManifest manifest,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
     {
         if (!adapter.SupportsInstallActions)
         {
@@ -93,8 +111,7 @@ public static class InstallerCommandLine
             return 1;
         }
 
-        var session = CreateSession();
-
+        var session = CreateSession(manifest);
         InstallerLog.Write("Checking Docker prerequisites");
         var docker = await adapter.CheckDockerAsync(cancellationToken);
         InstallerLog.Write($"Docker: {docker.Kind} - {docker.Title}");
@@ -131,25 +148,26 @@ public static class InstallerCommandLine
 
     private static async Task<int> RunSmokeInstallerOperationsAsync(
         IInstallerPlatformAdapter adapter,
+        ProductManifest manifest,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        foreach (var component in AgentUpManifest().Components)
+        foreach (var component in manifest.Components)
         {
             foreach (var action in new[] { InstallerComponentAction.Install, InstallerComponentAction.Repair, InstallerComponentAction.Update, InstallerComponentAction.Uninstall })
             {
-                var exitCode = await RunComponentActionAsync(adapter, component, action, output, error, cancellationToken);
+                var exitCode = await RunComponentActionAsync(adapter, component, action, manifest, output, error, cancellationToken);
                 if (exitCode != 0)
                     return exitCode;
             }
         }
 
-        var coreExitCode = await RunInstallCoreAsync(adapter, output, error, cancellationToken);
+        var coreExitCode = await RunInstallCoreAsync(adapter, manifest, output, error, cancellationToken);
         if (coreExitCode != 0)
             return coreExitCode;
 
-        coreExitCode = await RunValidateInstalledAsync(adapter, output, error, cancellationToken);
+        coreExitCode = await RunValidateInstalledAsync(adapter, manifest, output, error, cancellationToken);
         if (coreExitCode != 0)
             return coreExitCode;
 
@@ -161,6 +179,7 @@ public static class InstallerCommandLine
         IInstallerPlatformAdapter adapter,
         ProductComponent component,
         InstallerComponentAction action,
+        ProductManifest manifest,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -171,7 +190,7 @@ public static class InstallerCommandLine
             return 1;
         }
 
-        var session = CreateSession();
+        var session = CreateSession(manifest);
         await foreach (var progress in adapter.ExecuteComponentActionAsync(component, action, session, cancellationToken))
             await output.WriteLineAsync($"{component.DisplayName} {action}: {progress.CompletedOperations}/{progress.TotalOperations}: {progress.Message}");
 
@@ -192,11 +211,12 @@ public static class InstallerCommandLine
 
     private static async Task<int> RunValidateInstalledAsync(
         IInstallerPlatformAdapter adapter,
+        ProductManifest manifest,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        var report = await adapter.ValidateInstalledStateAsync(CreateSession(), cancellationToken);
+        var report = await adapter.ValidateInstalledStateAsync(CreateSession(manifest), cancellationToken);
         foreach (var finding in report.Findings)
             await output.WriteLineAsync($"{finding.Severity}: {finding.Code} {finding.Message}");
 
@@ -210,41 +230,14 @@ public static class InstallerCommandLine
         return 1;
     }
 
-    private static bool TryComponentAction(string[] args, string argument, out ProductComponent component)
-    {
-        component = ProductComponent.Desktop;
-        for (var index = 0; index < args.Length; index++)
-        {
-            if (!args[index].Equals(argument, StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (index + 1 >= args.Length || string.IsNullOrWhiteSpace(args[index + 1]))
-                throw new InvalidOperationException($"{argument} requires a component target.");
-
-            component = ParseComponent(args[index + 1]);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static ProductComponent ParseComponent(string value)
-        => value.ToLowerInvariant() switch
-        {
-            "desktop" => ProductComponent.Desktop,
-            "server" => ProductComponent.Server,
-            "cli" => ProductComponent.Cli,
-            _ => throw new InvalidOperationException($"Unknown installer component '{value}'. Expected desktop, server, or cli.")
-        };
-
-    private static InstallerSession CreateSession()
+    private static InstallerSession CreateSession(ProductManifest manifest)
     {
         var version = InstallerVersion();
-        var manifest = AgentUpManifest();
         return InstallerSession.CreateDefault(
             manifest,
             version,
             manifest.DefaultInstallRoot(),
-            PayloadSelection.Bundled(version));
+            PayloadSelection.Bundled(manifest.ProductName, version));
     }
 
     private static Version InstallerVersion()

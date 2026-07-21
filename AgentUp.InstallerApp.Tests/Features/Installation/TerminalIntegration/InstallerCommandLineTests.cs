@@ -133,6 +133,79 @@ public class InstallerCommandLineTests
         Assert.That(error.ToString(), Is.Empty);
     }
 
+    [Test]
+    public async Task RunAsync_installComponent_acceptsOnlyDeclaredProductComponentIds()
+    {
+        var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            Components =
+            [
+                new ProductComponent("editor", "Editor", "Visual editing surface."),
+                new ProductComponent("renderer", "Renderer", "Output renderer.")
+            ]
+        };
+        var adapter = new FakeInstallerPlatformAdapter("Test");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "editor"], output, error);
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output.ToString(), Does.Contain("Editor Install succeeded."));
+
+        foreach (var componentId in new[] { "desktop", "server", "cli" })
+        {
+            error.GetStringBuilder().Clear();
+            exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", componentId], output, error);
+
+            Assert.That(exitCode, Is.EqualTo(1), $"Expected '{componentId}' to be rejected for Acme Studio");
+            Assert.That(error.ToString(), Does.Contain($"Unknown installer component '{componentId}'"));
+        }
+    }
+
+    [Test]
+    public async Task RunAsync_installComponent_reportsError_whenTargetIsMissing()
+    {
+        var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            Components =
+            [
+                new ProductComponent("editor", "Editor", "Visual editing surface."),
+                new ProductComponent("renderer", "Renderer", "Output renderer.")
+            ]
+        };
+        var adapter = new FakeInstallerPlatformAdapter("Test");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component"], output, error);
+
+        Assert.That(exitCode, Is.EqualTo(1));
+        Assert.That(error.ToString(), Does.Contain("--install-component"));
+        Assert.That(error.ToString(), Does.Contain("requires a component target"));
+    }
+
+    [Test]
+    public async Task RunAsync_installComponent_reportsError_whenTargetIsWhitespaceOnly()
+    {
+        var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            Components =
+            [
+                new ProductComponent("editor", "Editor", "Visual editing surface."),
+                new ProductComponent("renderer", "Renderer", "Output renderer.")
+            ]
+        };
+        var adapter = new FakeInstallerPlatformAdapter("Test");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "   "], output, error);
+
+        Assert.That(exitCode, Is.EqualTo(1));
+        Assert.That(error.ToString(), Does.Contain("--install-component"));
+        Assert.That(error.ToString(), Does.Contain("requires a component target"));
+    }
+
     private sealed class ThrowingInstallerPlatformAdapter(Exception exception) : IInstallerPlatformAdapter
     {
         public string PlatformName => "Throwing";
