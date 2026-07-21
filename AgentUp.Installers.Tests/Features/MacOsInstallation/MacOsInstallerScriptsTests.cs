@@ -14,6 +14,15 @@ public class MacOsInstallerScriptsTests
     }
 
     [Test]
+    public void InstallerPreInstallScript_cleansUpDotNetExtractionDirectory()
+    {
+        var script = MacOsInstallerScripts.InstallerPreInstallScript();
+
+        Assert.That(script, Does.Contain(".net/AgentUp.InstallerApp"));
+        Assert.That(script, Does.Contain("CONSOLE_USER"));
+    }
+
+    [Test]
     public void InstallerPostInstallScript_opensInstallerApp()
     {
         var script = MacOsInstallerScripts.InstallerPostInstallScript();
