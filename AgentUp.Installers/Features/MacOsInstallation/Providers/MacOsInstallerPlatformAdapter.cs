@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
@@ -130,8 +131,8 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             foreach (var tmp in tempFiles.Values)
             {
                 try { File.Delete(tmp); }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
+                catch (IOException ex) { Trace.TraceWarning(ex.Message); }
+                catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
             }
         }
 
@@ -293,16 +294,16 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 finally
                 {
                     try { File.Delete(appleScriptPath); }
-                    catch (IOException) { }
-                    catch (UnauthorizedAccessException) { }
+                    catch (IOException ex) { Trace.TraceWarning(ex.Message); }
+                    catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
                 }
             }
         }
         finally
         {
             try { File.Delete(tmpFile); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (IOException ex) { Trace.TraceWarning(ex.Message); }
+            catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
         }
     }
 

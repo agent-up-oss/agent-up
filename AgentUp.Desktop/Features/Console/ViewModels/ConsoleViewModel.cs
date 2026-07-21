@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using AgentUp.Desktop.Features.Console.Providers;
 using ReactiveUI;
 
@@ -44,6 +45,7 @@ public sealed class ConsoleViewModel : ReactiveObject
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            Trace.TraceWarning(ex.Message);
         }
         finally
         {

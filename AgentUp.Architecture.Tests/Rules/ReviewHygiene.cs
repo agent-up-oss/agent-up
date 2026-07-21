@@ -228,8 +228,7 @@ public sealed class ReviewHygiene
         var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
 
         foreach (var catchClause in rootNode.DescendantNodes().OfType<CatchClauseSyntax>()
-                     .Where(c => IsDiscardAssignmentOnlyBlock(c.Block)
-                                 || (c.Block.Statements.Count == 0 && IsGenericCatch(c) && !HasNarrowingExceptionFilter(c))))
+                     .Where(c => c.Block.Statements.Count == 0 || IsDiscardAssignmentOnlyBlock(c.Block)))
             yield return $"{ArchitectureFixture.Location(root, path, tree, catchClause)}: empty catch block";
 
         foreach (var ifStatement in rootNode.DescendantNodes().OfType<IfStatementSyntax>().Where(i => IsEmptyStatement(i.Statement)))

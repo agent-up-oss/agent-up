@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Tests.Fixtures;
 using Avalonia;
@@ -82,13 +83,15 @@ public sealed class DesktopFixtureHost
                         lt.Shutdown();
                 }).GetAwaiter().GetResult();
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
                 // Shutdown may race with Avalonia dispatcher teardown.
+                Trace.TraceWarning(ex.Message);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
                 // Shutdown may race with Avalonia dispatcher teardown.
+                Trace.TraceWarning(ex.Message);
             }
         }
 

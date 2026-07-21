@@ -61,6 +61,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             // Window icons are best-effort and should never block Desktop startup.
+            Trace.TraceWarning(ex.Message);
         }
     }
 
@@ -352,6 +353,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
         {
             // The page may still be loading or the native WebView may not be ready yet.
+            Trace.TraceWarning(ex.Message);
         }
     }
 
@@ -362,11 +364,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         foreach (var webView in _webViews.Values)
         {
-            try { webView.Stop(); } catch (InvalidOperationException) { }
-            try { PortPane.Children.Remove(webView); } catch (InvalidOperationException) { }
+            try { webView.Stop(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+            try { PortPane.Children.Remove(webView); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
             if (webView is IDisposable disposable)
             {
-                try { disposable.Dispose(); } catch (InvalidOperationException) { }
+                try { disposable.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
             }
         }
 
@@ -502,6 +504,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
             // Opening the file manager is a convenience action; setup checks remain authoritative.
+            Trace.TraceWarning(ex.Message);
         }
     }
 }

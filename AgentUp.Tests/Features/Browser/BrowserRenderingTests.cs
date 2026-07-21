@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -209,7 +210,7 @@ sealed class HtmlTestServer : IDisposable
 
     public void Dispose()
     {
-        try { _listener.Stop(); } catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException) { }
+        try { _listener.Stop(); } catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException) { Trace.TraceWarning(ex.Message); }
     }
 }
 

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 
@@ -115,6 +116,7 @@ internal sealed class CookieTestServer : IDisposable
         try { _listener.Stop(); }
         catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException)
         {
+            Trace.TraceWarning(ex.Message);
         }
     }
 }
