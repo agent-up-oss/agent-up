@@ -87,6 +87,7 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Not.Contain("ExePackage"));
         Assert.That(xml, Does.Not.Contain("InstallArguments"));
         Assert.That(xml, Does.Not.Contain("UninstallArguments"));
+        Assert.That(xml, Does.Not.Contain("--install-core"));
         Assert.That(xml, Does.Not.Contain("RegistrySearch"));
         Assert.That(xml, Does.Not.Contain("Win64="));
         Assert.That(xml, Does.Not.Contain("Permanent=\"yes\""));
