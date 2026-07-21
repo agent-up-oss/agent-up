@@ -1,6 +1,6 @@
-using AgentUp.InstallerApp.Features.Logging;
+using AgentUp.InstallerApp.Features.Logging.Services;
 
-namespace AgentUp.InstallerApp.Tests.Features.Logging;
+namespace AgentUp.InstallerApp.Tests.Features.Logging.TerminalIntegration;
 
 [TestFixture]
 public class InstallerLogTests
@@ -8,32 +8,29 @@ public class InstallerLogTests
     [Test]
     public void ResolveMacOsLogPath_whenPrivileged_isSystemLogPath()
     {
-        Assume.That(OperatingSystem.IsMacOS(), Is.True);
-        Assume.That(Environment.IsPrivilegedProcess, Is.True, "Only asserts system path when running as root");
-        Assert.That(InstallerLog.ResolveMacOsLogPath(), Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
+        Assert.That(
+            InstallerLog.ResolveMacOsLogPath(isPrivileged: true, systemDirExists: false),
+            Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
     }
 
     [Test]
     public void ResolveMacOsLogPath_whenSystemDirExists_isSystemLogPath()
     {
-        Assume.That(OperatingSystem.IsMacOS(), Is.True);
-        Assume.That(Directory.Exists("/Library/Logs/Agent-Up"), Is.True,
-            "Only asserts system path when directory was already created by a prior root install");
-        Assert.That(InstallerLog.ResolveMacOsLogPath(), Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
+        Assert.That(
+            InstallerLog.ResolveMacOsLogPath(isPrivileged: false, systemDirExists: true),
+            Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
     }
 
     [Test]
     public void ResolveMacOsLogPath_whenUnprivilegedAndSystemDirAbsent_isUserLogPath()
     {
-        Assume.That(OperatingSystem.IsMacOS(), Is.True);
-        Assume.That(!Environment.IsPrivilegedProcess && !Directory.Exists("/Library/Logs/Agent-Up"), Is.True,
-            "Fallback path only when non-root and system dir doesn't exist");
-        var path = InstallerLog.ResolveMacOsLogPath();
-        Assert.That(path, Does.StartWith(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+        var path = InstallerLog.ResolveMacOsLogPath(isPrivileged: false, systemDirExists: false);
+        Assert.That(path, Does.StartWith(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+            "Must fall back to the user home directory when non-root and system dir absent");
         Assert.That(path, Does.Contain("Agent-Up"));
         Assert.That(path, Does.EndWith("installer.log"));
         Assert.That(path, Does.Not.StartWith("/Library/Logs"),
-            "Must not use system path when non-root — non-root cannot create /Library/Logs/Agent-Up/");
+            "Must not use system path — non-root cannot create /Library/Logs/Agent-Up/");
     }
 
     [Test]

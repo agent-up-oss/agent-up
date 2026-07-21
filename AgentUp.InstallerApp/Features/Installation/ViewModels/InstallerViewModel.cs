@@ -5,7 +5,7 @@ using System.Windows.Input;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Capabilities.Services;
 using AgentUp.InstallerApp.Features.Installation.Factories;
-using AgentUp.InstallerApp.Features.Logging;
+using AgentUp.InstallerApp.Features.Logging.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation.Interfaces;

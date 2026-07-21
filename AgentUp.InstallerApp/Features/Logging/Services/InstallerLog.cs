@@ -1,4 +1,4 @@
-namespace AgentUp.InstallerApp.Features.Logging;
+namespace AgentUp.InstallerApp.Features.Logging.Services;
 
 public static class InstallerLog
 {
@@ -59,14 +59,14 @@ public static class InstallerLog
             ".local", "share", "agent-up", "installer.log");
     }
 
-    internal static string ResolveMacOsLogPath()
+    internal static string ResolveMacOsLogPath(bool? isPrivileged = null, bool? systemDirExists = null)
     {
         // Prefer the system path so the root PKG postinstall process (--install-core)
         // and the user GUI process both write to the same file.
         // Use it only when accessible: we're root, or a prior root run already created the directory.
         // Falls back to ~/Library/Logs when neither condition holds (fresh launch, CI, etc.).
         const string SystemLogPath = "/Library/Logs/Agent-Up/installer.log";
-        if (Environment.IsPrivilegedProcess || Directory.Exists("/Library/Logs/Agent-Up"))
+        if ((isPrivileged ?? Environment.IsPrivilegedProcess) || (systemDirExists ?? Directory.Exists("/Library/Logs/Agent-Up")))
             return SystemLogPath;
 
         return Path.Join(
