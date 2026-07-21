@@ -121,6 +121,67 @@ public class InstallerWindowBehaviorTests
         }
     }
 
+    [AvaloniaTest]
+    public async Task Window_withNoModuleCatalog_rendersFullPageSetWithoutExceptions()
+    {
+        var window = await LaunchWithNoModulesAsync();
+
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("Dashboard"));
+        Assert.That(window.Find<ItemsControl>("ComponentCards").ItemCount, Is.EqualTo(3));
+        Assert.That(window.Find<Button>("AddModuleCard").IsVisible, Is.True);
+
+        window.Find<Button>("AddModuleCard").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("AddModule"));
+        Assert.That(window.Find<Border>("CapabilityEditPanel").IsVisible, Is.False);
+
+        window.Find<Button>("BackToDashboardButton").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("Dashboard"));
+    }
+
+    [AvaloniaTest]
+    public async Task AddModule_withEmptyCatalog_showsWellFormedEmptyState()
+    {
+        var window = await LaunchWithNoModulesAsync();
+
+        window.Find<Button>("AddModuleCard").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(window.Find<ItemsControl>("CatalogEntries").ItemCount, Is.EqualTo(0));
+        Assert.That(window.Find<TextBlock>("EmptyCatalogMessage").IsVisible, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task ComponentCards_installRepairAndUpdate_succeedWithNoModuleCatalog()
+    {
+        var window = await LaunchWithNoModulesAsync();
+        var model = (InstallerViewModel)window.DataContext!;
+        var desktop = model.ComponentCards.Single(card => card.Title == "Desktop");
+
+        desktop.InstallCommand.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(desktop.StatusText, Is.EqualTo("Installed"));
+        Assert.That(desktop.RepairCommand.CanExecute(null), Is.True);
+        Assert.That(desktop.UpdateCommand.CanExecute(null), Is.True);
+
+        desktop.RepairCommand.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(desktop.StatusText, Is.EqualTo("Installed"));
+
+        desktop.UpdateCommand.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(desktop.StatusText, Is.EqualTo("Installed"));
+    }
+
     [Test]
     public void ComponentCards_useConstrainedActionGridAndHideMutationButtonsInLookupOnlyMode()
     {
@@ -152,7 +213,6 @@ public class InstallerWindowBehaviorTests
         await HeadlessExtensions.FlushAsync();
         return window;
     }
-
 
     private static string FindRepositoryRoot(string startDirectory)
     {

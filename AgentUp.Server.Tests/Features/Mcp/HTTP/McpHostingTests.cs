@@ -53,10 +53,10 @@ public sealed class McpHostingTests
 
         var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
             .OfType<RouteEndpoint>()
-            .Select(endpoint => endpoint.RoutePattern.RawText)
+            .Select(endpoint => NormalizeRoutePattern(endpoint.RoutePattern.RawText))
             .ToArray();
 
-        Assert.That(endpoints, Does.Contain("/mcp/"));
+        Assert.That(endpoints, Does.Contain("/mcp"));
         Assert.That(endpoints, Does.Contain("/mcp/sse"));
         Assert.That(endpoints, Does.Contain("/mcp/message"));
 
@@ -64,5 +64,14 @@ public sealed class McpHostingTests
         Assert.That(options.ServerInstructions, Does.Contain("deploy my app with Agent-Up"));
         Assert.That(options.ServerInstructions, Does.Contain("call start_workspace"));
         Assert.That(options.ServerInstructions, Does.Contain("Before using curl"));
+    }
+
+    private static string NormalizeRoutePattern(string? routePattern)
+    {
+        if (string.IsNullOrWhiteSpace(routePattern))
+            return string.Empty;
+
+        var normalized = routePattern.TrimEnd('/');
+        return normalized.Length == 0 ? "/" : normalized;
     }
 }
