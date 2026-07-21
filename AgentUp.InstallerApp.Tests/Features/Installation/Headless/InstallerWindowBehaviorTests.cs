@@ -1,11 +1,12 @@
+using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Providers;
+using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Services;
+using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
+using AgentUp.InstallerApp.Features.Capabilities.Providers;
+using AgentUp.InstallerApp.Features.Capabilities.Services;
+using AgentUp.InstallerApp.Features.Installation.Factories;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
 using AgentUp.InstallerApp.Tests.Support;
-using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Providers;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Services;
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
-using AgentUp.InstallerApp.Features.Capabilities.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
@@ -206,7 +207,7 @@ public class InstallerWindowBehaviorTests
 
     private static async Task<InstallerWindow> LaunchAsync()
     {
-        var window = new InstallerWindow { DataContext = InstallerViewModel.CreateFakeForTests() };
+        var window = new InstallerWindow { DataContext = InstallerViewModelFactory.CreateFakeForTests() };
         window.Show();
         await HeadlessExtensions.FlushAsync();
         return window;
@@ -214,7 +215,7 @@ public class InstallerWindowBehaviorTests
 
     private static async Task<InstallerWindow> LaunchWithNoModulesAsync()
     {
-        var window = new InstallerWindow { DataContext = InstallerViewModel.CreateFakeWithNoModules() };
+        var window = new InstallerWindow { DataContext = InstallerViewModelFactory.CreateFakeWithNoModules() };
         window.Show();
         await HeadlessExtensions.FlushAsync();
         return window;

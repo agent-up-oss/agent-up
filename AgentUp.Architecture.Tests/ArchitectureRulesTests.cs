@@ -99,8 +99,19 @@ public sealed class ArchitectureRulesTests
         "Socket"
     ];
 
+    private static readonly string[] ForbiddenServiceTokens =
+    [
+        "Path.GetTempPath(",
+        "Environment.GetFolderPath(",
+        "Environment.GetEnvironmentVariable("
+    ];
+
     private static readonly Regex ConstructionInController = new(
         @"new\s+\w*(Service|Provider|Repository|Factory)\s*\(",
+        RegexOptions.Compiled);
+
+    private static readonly Regex StaticFactoryInServiceOrViewModel = new(
+        @"public\s+static\s+\w[\w<>\[\],\s]*\bCreate\w*\s*\(",
         RegexOptions.Compiled);
 
     private static readonly ArchUnitNET.Domain.Architecture Architecture = new ArchLoader().LoadAssemblies(
@@ -192,6 +203,34 @@ public sealed class ArchitectureRulesTests
 
         Assert.That(violations, Is.Empty,
             "Controllers must receive dependencies through constructors and map DTO calls to services.");
+    }
+
+    [Test]
+    public void InstallerApp_services_do_not_contain_environment_lookup_or_temp_path_construction()
+    {
+        var root = FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var violations = ProjectSourceFiles(root, "AgentUp.InstallerApp")
+            .Where(path => HasPathPart(root, path, "Services"))
+            .SelectMany(path => ForbiddenServiceTokens
+                .Where(token => File.ReadAllText(path).Contains(token, StringComparison.Ordinal))
+                .Select(token => $"{Relative(root, path)} contains {token}"))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty,
+            "InstallerApp service classes must not perform environment lookup or construct temp paths; move composition to Factories.");
+    }
+
+    [Test]
+    public void InstallerApp_view_models_do_not_contain_static_factory_methods()
+    {
+        var root = FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var violations = ProjectSourceFiles(root, "AgentUp.InstallerApp")
+            .Where(path => HasPathPart(root, path, "ViewModels"))
+            .SelectMany(path => MatchingLines(root, path, StaticFactoryInServiceOrViewModel))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty,
+            "InstallerApp view models must not contain static factory methods; move composition to Factories.");
     }
 
     [Test]
