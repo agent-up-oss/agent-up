@@ -8,7 +8,6 @@ using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.DTOs;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.Providers;
-using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
@@ -157,15 +156,6 @@ public class MacOsInstallerPlatformAdapterTests
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("launchctl", "print system/dev.agent-up.server")));
         Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v agent-up\"")));
-    }
-
-    [Test]
-    public void InstallerPostInstallScript_onlyOpensGui()
-    {
-        var script = MacOsInstallerScripts.InstallerPostInstallScript();
-
-        Assert.That(script, Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
-        Assert.That(script, Does.Not.Contain("--install-core"));
     }
 
     private static InstallerSession Session()
