@@ -85,7 +85,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Uninstall, Session())) { _ = progress; }
+        await adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Uninstall, Session()).DrainAsync();
 
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("sc.exe delete $serviceName", StringComparison.Ordinal)), Is.True);
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\server"));
@@ -98,7 +98,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(ProductComponent.Cli, InstallerComponentAction.Uninstall, Session())) { _ = progress; }
+        await adapter.ExecuteComponentActionAsync(ProductComponent.Cli, InstallerComponentAction.Uninstall, Session()).DrainAsync();
 
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("GetEnvironmentVariable('Path'", StringComparison.Ordinal) && script.Contains("-ine $target", StringComparison.Ordinal)), Is.True);
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\cli"));
@@ -112,7 +112,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(ProductComponent.Desktop, InstallerComponentAction.Uninstall, Session())) { _ = progress; }
+        await adapter.ExecuteComponentActionAsync(ProductComponent.Desktop, InstallerComponentAction.Uninstall, Session()).DrainAsync();
 
         Assert.That(files.DeletedFiles, Does.Contain(@"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk"));
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\desktop"));
@@ -126,11 +126,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(ProductComponent.Desktop, InstallerComponentAction.Install, Session()))
-        {
-            _ = progress;
-            // Intentionally consume all progress events to execute the full action pipeline.
-        }
+        await adapter.ExecuteComponentActionAsync(ProductComponent.Desktop, InstallerComponentAction.Install, Session()).DrainAsync();
 
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal)), Is.False);
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/desktop", @"C:\Program Files\Agent-Up\desktop")));
@@ -143,11 +139,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Install, Session()))
-        {
-            _ = progress;
-            // Intentionally consume all progress events to execute the full action pipeline.
-        }
+        await adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Install, Session()).DrainAsync();
 
         Assert.That(PowerShellScripts(commands).Any(script =>
             script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal) &&

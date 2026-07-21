@@ -4,4 +4,5 @@ namespace AgentUp.Installers.Features.UbuntuInstallation.DTOs;
 
 public sealed record UbuntuInstallerOptions(
     UbuntuInstallPayload Payload,
-    UbuntuInstallerPaths Paths);
+    UbuntuInstallerPaths Paths,
+    UbuntuInstallerManifest Manifest);

@@ -44,7 +44,6 @@ public sealed class ConsoleViewModel : ReactiveObject
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            _ = ex;
         }
         finally
         {

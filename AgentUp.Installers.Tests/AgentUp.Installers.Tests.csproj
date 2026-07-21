@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
+    <Using Include="AgentUp.Installers.Tests.Support" />
   </ItemGroup>
 
   <ItemGroup>

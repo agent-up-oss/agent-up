@@ -29,7 +29,7 @@ public class ProductComponentTests
         var renderer = manifest.Components[1];
 
         // Install editor
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(editor, InstallerComponentAction.Install, session)) { _ = progress; }
+        await adapter.ExecuteComponentActionAsync(editor, InstallerComponentAction.Install, session).DrainAsync();
         var editorStatus = await adapter.GetComponentStatusAsync(editor, session);
         var rendererStatus = await adapter.GetComponentStatusAsync(renderer, session);
 
@@ -37,8 +37,8 @@ public class ProductComponentTests
         Assert.That(rendererStatus.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
 
         // Uninstall editor, then repair renderer
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(editor, InstallerComponentAction.Uninstall, session)) { _ = progress; }
-        await foreach (var progress in adapter.ExecuteComponentActionAsync(renderer, InstallerComponentAction.Repair, session)) { _ = progress; }
+        await adapter.ExecuteComponentActionAsync(editor, InstallerComponentAction.Uninstall, session).DrainAsync();
+        await adapter.ExecuteComponentActionAsync(renderer, InstallerComponentAction.Repair, session).DrainAsync();
 
         // Collect all plan titles and progress messages
         var allTitles = new List<string>();
@@ -99,7 +99,7 @@ public class ProductComponentTests
 
         foreach (var component in session.Manifest.Components)
         {
-            await foreach (var progress in adapter.ExecuteComponentActionAsync(component, InstallerComponentAction.Install, session)) { _ = progress; }
+            await adapter.ExecuteComponentActionAsync(component, InstallerComponentAction.Install, session).DrainAsync();
             var status = await adapter.GetComponentStatusAsync(component, session);
             var plan = adapter.PlanComponentAction(component, InstallerComponentAction.Install, session);
 

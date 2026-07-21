@@ -39,16 +39,15 @@ public static class InstallerLog
                 // only affects future appends from a different user (e.g. GUI after root install).
                 if (dirCreated)
                     try { File.SetUnixFileMode(dir, AllReadWrite | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute); }
-                    catch (IOException ex) { _ = ex; } catch (UnauthorizedAccessException ex) { _ = ex; }
+                    catch (IOException) { } catch (UnauthorizedAccessException) { }
                 if (fileCreated)
                     try { File.SetUnixFileMode(path, AllReadWrite); }
-                    catch (IOException ex) { _ = ex; } catch (UnauthorizedAccessException ex) { _ = ex; }
+                    catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
-            _ = ex;
             // Logging must never crash the installer.
             return false;
         }

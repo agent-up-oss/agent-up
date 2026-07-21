@@ -21,12 +21,14 @@ public class UbuntuPackageManifestTests
 
         var manifest = UbuntuPackageManifest.From(request);
 
+        var installerManifest = UbuntuInstallerManifest.AgentUp();
+        var installerPaths = UbuntuInstallerPaths.ForProduct(installerManifest);
         Assert.That(manifest.Version, Is.EqualTo("1.2.3"));
-        Assert.That(manifest.PackageName, Is.EqualTo(UbuntuInstallerManifest.PackageName));
-        Assert.That(manifest.ServiceName, Is.EqualTo(UbuntuInstallerManifest.ServiceName));
-        Assert.That(manifest.CliSymlinkTarget, Is.EqualTo(UbuntuInstallerPaths.SystemDefault().CliExecutable));
-        Assert.That(manifest.DesktopEntryPath, Is.EqualTo(UbuntuInstallerPaths.SystemDefault().DesktopEntryPath));
-        Assert.That(manifest.IconPath, Is.EqualTo(UbuntuInstallerPaths.SystemDefault().IconPath));
+        Assert.That(manifest.PackageName, Is.EqualTo(installerManifest.PackageName));
+        Assert.That(manifest.ServiceName, Is.EqualTo(installerManifest.ServiceUnitName));
+        Assert.That(manifest.CliSymlinkTarget, Is.EqualTo(installerPaths.CliExecutable));
+        Assert.That(manifest.DesktopEntryPath, Is.EqualTo(installerPaths.DesktopEntryPath));
+        Assert.That(manifest.IconPath, Is.EqualTo(installerPaths.IconPath));
     }
 
     [Test]

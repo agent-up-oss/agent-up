@@ -130,8 +130,8 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             foreach (var tmp in tempFiles.Values)
             {
                 try { File.Delete(tmp); }
-                catch (IOException ex) { _ = ex; }
-                catch (UnauthorizedAccessException ex) { _ = ex; }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
             }
         }
 
@@ -293,16 +293,16 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 finally
                 {
                     try { File.Delete(appleScriptPath); }
-                    catch (IOException ex) { _ = ex; }
-                    catch (UnauthorizedAccessException ex) { _ = ex; }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
                 }
             }
         }
         finally
         {
             try { File.Delete(tmpFile); }
-            catch (IOException ex) { _ = ex; }
-            catch (UnauthorizedAccessException ex) { _ = ex; }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
     }
 

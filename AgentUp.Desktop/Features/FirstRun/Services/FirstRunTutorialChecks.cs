@@ -37,7 +37,6 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            _ = ex;
             // Cleanup is best-effort. The regular checks will surface any Server issue later.
         }
     }
@@ -452,7 +451,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         var exited = await WaitForExitAsync(process, timeout, cancellationToken);
         if (!exited)
         {
-            try { process.Kill(entireProcessTree: true); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { _ = ex; }
+            try { process.Kill(entireProcessTree: true); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
             return (-1, "", $"{fileName} did not respond in time.");
         }
 
@@ -482,7 +481,6 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
         {
-            _ = ex;
         }
 
         var cliProject = FindCliProject();

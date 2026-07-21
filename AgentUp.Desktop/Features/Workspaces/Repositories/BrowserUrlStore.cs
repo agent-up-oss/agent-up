@@ -26,7 +26,6 @@ internal static class BrowserUrlStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            _ = ex;
             return null;
         }
     }
@@ -41,7 +40,6 @@ internal static class BrowserUrlStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            _ = ex;
         }
     }
 }

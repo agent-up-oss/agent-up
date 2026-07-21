@@ -43,7 +43,6 @@ public sealed class PortSubTabViewModel : SubTabViewModel
         }
         catch (Exception ex) when (ex is SocketException or OperationCanceledException)
         {
-            _ = ex;
             IsOpen = false;
         }
         this.RaisePropertyChanged(nameof(StatusColor));

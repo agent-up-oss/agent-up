@@ -179,7 +179,6 @@ sealed class HtmlTestServer : IDisposable
             try { ctx = await _listener.GetContextAsync(); }
             catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or InvalidOperationException)
             {
-                _ = ex;
                 break;
             }
 
@@ -210,7 +209,7 @@ sealed class HtmlTestServer : IDisposable
 
     public void Dispose()
     {
-        try { _listener.Stop(); } catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException) { _ = ex; }
+        try { _listener.Stop(); } catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException) { }
     }
 }
 
