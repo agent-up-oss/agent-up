@@ -65,7 +65,7 @@ const config = {
         defaultMode: 'dark',
         respectPrefersColorScheme: false,
       },
-      image: 'img/social-card.svg',
+      image: 'img/social-card.png',
       navbar: {
         title: 'Agent-Up',
         logo: {
