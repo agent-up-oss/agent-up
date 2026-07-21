@@ -1,3 +1,4 @@
+using AgentUp.Installers.Features.Installation.Models;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
@@ -16,6 +17,10 @@ public sealed record WindowsInstallerManifest(
 {
     public const string DefaultCliShimName = "agent-up.cmd";
 
+    public string ServiceDisplayName => $"{ProductName} Server";
+    public string RegistryKeyName => ProductName;
+    public string CliCommandName => System.IO.Path.GetFileNameWithoutExtension(CliShimName);
+
     public static WindowsInstallerManifest Create(string version)
         => new(
             ProductName: "Agent-Up",
@@ -26,6 +31,23 @@ public sealed record WindowsInstallerManifest(
             CliShimName: DefaultCliShimName,
             BundleName: "Agent-Up",
             ServerUrl: "http://127.0.0.1:5000");
+
+    public static WindowsInstallerManifest From(ProductManifest product, string version, string serverUrl)
+        => new(
+            ProductName: product.ProductName,
+            Manufacturer: product.ProductName,
+            Version: version,
+            UpgradeCode: StableUpgradeCode(product.Slug),
+            ServiceName: product.ServiceName,
+            CliShimName: $"{product.Slug}.cmd",
+            BundleName: product.ProductName,
+            ServerUrl: serverUrl);
+
+    private static string StableUpgradeCode(string slug)
+    {
+        var bytes = MD5.HashData(Encoding.UTF8.GetBytes("Windows Installer Upgrade Code:" + slug));
+        return new Guid(bytes).ToString("D").ToUpperInvariant();
+    }
 }
 
 public sealed record WindowsInstallerLayout(

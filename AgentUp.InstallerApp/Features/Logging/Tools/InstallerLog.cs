@@ -28,7 +28,7 @@ public static class InstallerLog
             var fileCreated = !File.Exists(path);
             File.AppendAllText(path, $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}] {message}{Environment.NewLine}");
             // Make the log dir and file writable by all users so the GUI (running as the
-            // logged-in user) can append after --install-core created them as root.
+            // logged-in user) can append after an elevated install run created them as root.
             if ((dirCreated || fileCreated) && !OperatingSystem.IsWindows())
             {
                 const UnixFileMode AllReadWrite =
@@ -53,8 +53,15 @@ public static class InstallerLog
         }
     }
 
+    public static void WriteError(string message)
+    {
+        Write(message);
+        try { Console.Error.WriteLine($"[Agent-Up Installer] {message}"); }
+        catch (IOException ex) { _ = ex; }
+    }
+
     public static void WriteException(string context, Exception exception)
-        => Write($"ERROR in {context}: {exception}");
+        => WriteError($"ERROR in {context}: {exception}");
 
     private static string ResolveLogPath()
     {
@@ -73,7 +80,7 @@ public static class InstallerLog
 
     internal static string ResolveMacOsLogPath(bool? isPrivileged = null, bool? systemDirExists = null)
     {
-        // Prefer the system path so the root PKG postinstall process (--install-core)
+        // Prefer the system path so an elevated install run (root via osascript)
         // and the user GUI process both write to the same file.
         // Use it only when accessible: we're root, or a prior root run already created the directory.
         // Falls back to ~/Library/Logs when neither condition holds (fresh launch, CI, etc.).

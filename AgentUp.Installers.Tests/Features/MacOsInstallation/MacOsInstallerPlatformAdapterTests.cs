@@ -8,7 +8,6 @@ using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.DTOs;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.Providers;
-using AgentUp.Installers.Features.MacOsInstallation.Services;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
@@ -157,19 +156,6 @@ public class MacOsInstallerPlatformAdapterTests
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("launchctl", "print system/dev.agent-up.server")));
         Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v agent-up\"")));
-    }
-
-    [Test]
-    public void InstallerPostInstallScript_runsInstallCoreBeforeOpeningGui()
-    {
-        var script = MacOsInstallerScripts.InstallerPostInstallScript();
-
-        Assert.That(script, Does.Contain("--install-core"));
-        Assert.That(script, Does.Contain("--payload-root"));
-        Assert.That(script, Does.Contain("open -a"));
-        // install-core must appear before open -a in the script
-        Assert.That(script.IndexOf("--install-core", StringComparison.Ordinal),
-            Is.LessThan(script.IndexOf("open -a", StringComparison.Ordinal)));
     }
 
     private static InstallerSession Session()

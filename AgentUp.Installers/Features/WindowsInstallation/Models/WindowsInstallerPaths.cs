@@ -28,11 +28,13 @@ public sealed record WindowsInstallerPaths(
             StartMenuShortcutPath: WindowsCombine(commonStartMenu, "Programs", "Agent-Up", "Agent-Up.lnk"));
     }
 
+    public string UninstallScriptName { get; init; } = "uninstall-agent-up.ps1";
+
     public string DesktopExecutable => WindowsCombine(DesktopDirectory, "AgentUp.Desktop.exe");
     public string ServerExecutable => WindowsCombine(ServerDirectory, "AgentUp.Server.exe");
     public string CliExecutable => WindowsCombine(CliDirectory, "AgentUp.CLI.exe");
     public string CliShimPath => WindowsCombine(BinDirectory, WindowsInstallerManifest.DefaultCliShimName);
-    public string UninstallScriptPath => WindowsCombine(RootDirectory, "uninstall-agent-up.ps1");
+    public string UninstallScriptPath => WindowsCombine(RootDirectory, UninstallScriptName);
 
     private static string WindowsCombine(params string[] parts)
         => string.Join('\\', parts.Select(part => part.Trim('\\')).Where(part => !string.IsNullOrWhiteSpace(part)));
