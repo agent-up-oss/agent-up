@@ -151,7 +151,7 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
             var stderr = proc.StandardError.ReadToEndAsync();
             if (!proc.WaitForExit(3000))
             {
-                try { proc.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { _ = ex; }
+                try { proc.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { Trace.TraceWarning(ex.Message); }
                 return false;
             }
 
@@ -167,7 +167,7 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
 
     public void Dispose()
     {
-        try { _xvfb?.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { _ = ex; }
+        try { _xvfb?.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { Trace.TraceWarning(ex.Message); }
         _xvfb?.Dispose();
     }
 }

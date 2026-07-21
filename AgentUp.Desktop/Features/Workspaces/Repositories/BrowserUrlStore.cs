@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace AgentUp.Desktop.Features.Workspaces.Repositories;
 
 internal static class BrowserUrlStore
@@ -26,7 +28,6 @@ internal static class BrowserUrlStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            _ = ex;
             return null;
         }
     }
@@ -41,7 +42,7 @@ internal static class BrowserUrlStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            _ = ex;
+            Trace.TraceWarning(ex.Message);
         }
     }
 }

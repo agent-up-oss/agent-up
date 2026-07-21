@@ -1,27 +1,39 @@
+using AgentUp.Installers.Features.Installation.Models;
+
 namespace AgentUp.Installers.Features.UbuntuInstallation.Models;
 
-public static class UbuntuInstallerManifest
+public sealed record UbuntuInstallerManifest(
+    string PackageName,
+    string ServiceUnitName,
+    string CliCommandName,
+    string DesktopApplicationName)
 {
-    public const string PackageName = "agent-up";
-    public const string ServiceName = "agent-up-server.service";
-    public const string DesktopApplicationName = "Agent-Up";
+    public static UbuntuInstallerManifest AgentUp()
+        => new("agent-up", "agent-up-server.service", "agent-up", "Agent-Up");
 
-    public static string DesktopEntryText(Version version)
-        => DesktopEntryText($"{version}");
+    public static UbuntuInstallerManifest ForProduct(ProductManifest manifest)
+        => new(
+            PackageName: manifest.Slug,
+            ServiceUnitName: $"{manifest.ServiceName}.service",
+            CliCommandName: manifest.CliCommandName,
+            DesktopApplicationName: manifest.ProductName);
 
-    public static string DesktopEntryText(string version)
-        => $"""
-           [Desktop Entry]
-           Type=Application
-           Name={DesktopApplicationName}
-           Comment=Agent-Up desktop workspace client
-           Exec=/opt/agent-up/desktop/AgentUp.Desktop
-           Icon=agent-up
-           Terminal=false
-           Categories=Development;
-           StartupNotify=true
-           X-AgentUp-Version={version}
-           """ + Environment.NewLine;
+    public string DesktopEntryText(string executablePath, string version)
+    {
+        var versionKey = DesktopApplicationName.Replace("-", "").Replace(" ", "");
+        return $"""
+               [Desktop Entry]
+               Type=Application
+               Name={DesktopApplicationName}
+               Comment={DesktopApplicationName} desktop workspace client
+               Exec={executablePath}
+               Icon={PackageName}
+               Terminal=false
+               Categories=Development;
+               StartupNotify=true
+               X-{versionKey}-Version={version}
+               """ + Environment.NewLine;
+    }
 
     public static string PostInstallScript()
         => """

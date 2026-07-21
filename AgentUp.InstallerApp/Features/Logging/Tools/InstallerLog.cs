@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace AgentUp.InstallerApp.Features.Logging.Tools;
 
 public static class InstallerLog
@@ -39,16 +41,15 @@ public static class InstallerLog
                 // only affects future appends from a different user (e.g. GUI after root install).
                 if (dirCreated)
                     try { File.SetUnixFileMode(dir, AllReadWrite | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute); }
-                    catch (IOException ex) { _ = ex; } catch (UnauthorizedAccessException ex) { _ = ex; }
+                    catch (IOException ex) { Trace.TraceWarning(ex.Message); } catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
                 if (fileCreated)
                     try { File.SetUnixFileMode(path, AllReadWrite); }
-                    catch (IOException ex) { _ = ex; } catch (UnauthorizedAccessException ex) { _ = ex; }
+                    catch (IOException ex) { Trace.TraceWarning(ex.Message); } catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
             }
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
-            _ = ex;
             // Logging must never crash the installer.
             return false;
         }
@@ -58,7 +59,7 @@ public static class InstallerLog
     {
         Write(message);
         try { Console.Error.WriteLine($"[Agent-Up Installer] {message}"); }
-        catch (IOException ex) { _ = ex; }
+        catch (IOException ex) { Trace.TraceWarning(ex.Message); }
     }
 
     public static void WriteException(string context, Exception exception)

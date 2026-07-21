@@ -103,17 +103,19 @@ public static class InstallerPlatformAdapterFactory
     {
         var composition = Composition();
         var repositoryRoot = FindRepositoryRoot(AppContext.BaseDirectory);
+        var manifest = UbuntuInstallerManifest.AgentUp();
+        var paths = UbuntuInstallerPaths.ForProduct(manifest);
         var payload = new UbuntuInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
-            ServiceFilePath: System.IO.Path.Join(repositoryRoot, "packaging", "linux", "agent-up-server.service"),
+            ServiceFilePath: System.IO.Path.Join(repositoryRoot, "packaging", "linux", manifest.ServiceUnitName),
             IconPath: System.IO.Path.Join(repositoryRoot, "media", "logo.png"));
 
         return new UbuntuInstallerPlatformAdapter(
             composition.Commands,
             new UbuntuInstallerFileSystem(),
-            new UbuntuInstallerOptions(payload, UbuntuInstallerPaths.SystemDefault()),
+            new UbuntuInstallerOptions(payload, paths, manifest),
             composition.RequiredCommands,
             composition.DockerPrerequisite);
     }

@@ -18,14 +18,15 @@ public sealed record UbuntuPackageManifest(
 {
     public static UbuntuPackageManifest From(PackageRequest request)
     {
-        var paths = UbuntuInstallerPaths.SystemDefault();
+        var installerManifest = UbuntuInstallerManifest.AgentUp();
+        var paths = UbuntuInstallerPaths.ForProduct(installerManifest);
         return new UbuntuPackageManifest(
-            PackageName: UbuntuInstallerManifest.PackageName,
+            PackageName: installerManifest.PackageName,
             Version: request.NormalizedVersion,
             Architecture: "amd64",
             Maintainer: "Agent-Up <ci@agent-up.local>",
             Description: "Local Agent-Up desktop, CLI, and server service.",
-            ServiceName: UbuntuInstallerManifest.ServiceName,
+            ServiceName: installerManifest.ServiceUnitName,
             CliSymlinkTarget: paths.CliExecutable,
             DesktopEntryPath: paths.DesktopEntryPath,
             IconPath: paths.IconPath);
@@ -43,7 +44,7 @@ public sealed record UbuntuPackageManifest(
            """ + Environment.NewLine;
 
     public string DesktopEntryText()
-        => UbuntuInstallerManifest.DesktopEntryText(Version);
+        => UbuntuInstallerManifest.AgentUp().DesktopEntryText(UbuntuInstallerPaths.ForProduct(UbuntuInstallerManifest.AgentUp()).DesktopExecutable, Version);
 
     public static string PostInstallScript()
         => UbuntuInstallerManifest.PostInstallScript();

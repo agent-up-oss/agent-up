@@ -17,7 +17,6 @@ public sealed class WorkspaceIdentityProvider : IWorkspaceIdentityProvider
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
-            _ = ex;
             return new WorkspaceIdentity(
                 RepositoryPath: workingDirectory,
                 Branch: "not on a git branch",

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 
@@ -43,7 +44,6 @@ internal sealed class CookieTestServer : IDisposable
             try { ctx = await _listener.GetContextAsync(); }
             catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or InvalidOperationException)
             {
-                _ = ex;
                 break;
             }
 
@@ -116,7 +116,7 @@ internal sealed class CookieTestServer : IDisposable
         try { _listener.Stop(); }
         catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException)
         {
-            _ = ex;
+            Trace.TraceWarning(ex.Message);
         }
     }
 }

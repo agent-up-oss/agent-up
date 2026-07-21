@@ -50,7 +50,7 @@ public class MacOsInstallerPlatformAdapterTests
         var commands = new ScriptCapturingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteInstallAsync(Session())) { _ = progress; }
+        await adapter.ExecuteInstallAsync(Session()).DrainAsync();
 
         var script = commands.CapturedScript;
         Assert.That(script, Is.Not.Null.And.Not.Empty, "Elevated script was not executed.");
@@ -85,7 +85,7 @@ public class MacOsInstallerPlatformAdapterTests
         var commands = new ScriptCapturingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteInstallAsync(Session())) { _ = progress; }
+        await adapter.ExecuteInstallAsync(Session()).DrainAsync();
 
         Assert.That(commands.PlainCommands, Does.Contain(
             ("launchctl", "bootout system /Library/LaunchDaemons/dev.agent-up.server.plist")));
@@ -122,7 +122,7 @@ public class MacOsInstallerPlatformAdapterTests
         var commands = new ScriptCapturingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteUninstallAsync(InstallerComponentTarget.Cli, Session())) { _ = progress; }
+        await adapter.ExecuteUninstallAsync(InstallerComponentTarget.Cli, Session()).DrainAsync();
 
         var script = commands.CapturedScript;
         Assert.That(script, Does.Contain("rm -rf '/usr/local/agent-up/cli'"));
@@ -136,7 +136,7 @@ public class MacOsInstallerPlatformAdapterTests
         var commands = new ScriptCapturingCommandRunner();
         var adapter = Adapter(commands, files);
 
-        await foreach (var progress in adapter.ExecuteUninstallAsync(InstallerComponentTarget.Desktop, Session())) { _ = progress; }
+        await adapter.ExecuteUninstallAsync(InstallerComponentTarget.Desktop, Session()).DrainAsync();
 
         var script = commands.CapturedScript;
         Assert.That(script, Does.Contain("rm -rf '/Applications/Agent-Up.app'"));

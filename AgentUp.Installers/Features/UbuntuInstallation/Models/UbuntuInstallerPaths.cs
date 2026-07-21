@@ -11,15 +11,18 @@ public sealed record UbuntuInstallerPaths(
     string ErrorLogPath)
 {
     public static UbuntuInstallerPaths SystemDefault()
+        => ForProduct(UbuntuInstallerManifest.AgentUp());
+
+    public static UbuntuInstallerPaths ForProduct(UbuntuInstallerManifest manifest)
         => new(
-            RootDirectory: "/opt/agent-up",
-            ServicePath: "/etc/systemd/system/agent-up-server.service",
-            CliSymlinkPath: "/usr/bin/agent-up",
-            DesktopEntryPath: "/usr/share/applications/agent-up.desktop",
-            IconPath: "/usr/share/pixmaps/agent-up.png",
-            DataDirectory: "/var/lib/agent-up",
-            LogPath: "/var/log/agent-up-server.log",
-            ErrorLogPath: "/var/log/agent-up-server.err.log");
+            RootDirectory: $"/opt/{manifest.PackageName}",
+            ServicePath: $"/etc/systemd/system/{manifest.ServiceUnitName}",
+            CliSymlinkPath: $"/usr/bin/{manifest.CliCommandName}",
+            DesktopEntryPath: $"/usr/share/applications/{manifest.PackageName}.desktop",
+            IconPath: $"/usr/share/pixmaps/{manifest.PackageName}.png",
+            DataDirectory: $"/var/lib/{manifest.PackageName}",
+            LogPath: $"/var/log/{manifest.PackageName}-server.log",
+            ErrorLogPath: $"/var/log/{manifest.PackageName}-server.err.log");
 
     public string DesktopDirectory => System.IO.Path.Join(RootDirectory, "desktop");
     public string ServerDirectory => System.IO.Path.Join(RootDirectory, "server");

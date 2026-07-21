@@ -227,7 +227,8 @@ public sealed class ReviewHygiene
     {
         var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
 
-        foreach (var catchClause in rootNode.DescendantNodes().OfType<CatchClauseSyntax>().Where(c => IsEmptyBlock(c.Block)))
+        foreach (var catchClause in rootNode.DescendantNodes().OfType<CatchClauseSyntax>()
+                     .Where(c => c.Block.Statements.Count == 0 || IsDiscardAssignmentOnlyBlock(c.Block)))
             yield return $"{ArchitectureFixture.Location(root, path, tree, catchClause)}: empty catch block";
 
         foreach (var ifStatement in rootNode.DescendantNodes().OfType<IfStatementSyntax>().Where(i => IsEmptyStatement(i.Statement)))
@@ -241,10 +242,23 @@ public sealed class ReviewHygiene
     }
 
     private static bool IsEmptyStatement(StatementSyntax statement)
-        => statement is EmptyStatementSyntax || statement is BlockSyntax block && IsEmptyBlock(block);
+        => statement is EmptyStatementSyntax
+           || statement is BlockSyntax block && IsEmptyBlock(block);
 
     private static bool IsEmptyBlock(BlockSyntax block)
         => block.Statements.Count == 0;
+
+    private static bool IsDiscardAssignmentOnlyBlock(BlockSyntax block)
+        => block.Statements.Count == 1 && IsDiscardAssignmentStatement(block.Statements[0]);
+
+    private static bool IsDiscardAssignmentStatement(StatementSyntax statement)
+        => statement is ExpressionStatementSyntax
+           {
+               Expression: AssignmentExpressionSyntax
+               {
+                   Left: IdentifierNameSyntax { Identifier.Text: "_" }
+               }
+           };
 
     private static bool IsLoopWithEmptyBody(SyntaxNode node)
         => node switch

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -81,9 +82,9 @@ public sealed class WorkspacesController(WorkspaceRegistry registry, IWorkspaceP
             }
             catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
             {
-                _ = ex;
                 // Cleanup is best-effort. Stale tutorial registry entries should still be removed
                 // even when their old process tree no longer exists or cannot be stopped.
+                Trace.TraceWarning(ex.Message);
             }
 
             await registry.RemoveAsync(workspace.Id);
