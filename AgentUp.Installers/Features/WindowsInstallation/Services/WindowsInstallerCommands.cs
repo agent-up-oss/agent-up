@@ -5,7 +5,7 @@ namespace AgentUp.Installers.Features.WindowsInstallation.Services;
 public static class WindowsInstallerCommands
 {
     public static string ServiceCreateArguments(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
-        => $"create {manifest.ServiceName} binPath= \"\\\"{paths.ServerExecutable}\\\" --urls {manifest.ServerUrl}\" start= auto DisplayName= \"Agent-Up Server\"";
+        => $"create {manifest.ServiceName} binPath= \"\\\"{paths.ServerExecutable}\\\" --urls {manifest.ServerUrl}\" start= auto DisplayName= \"{manifest.ServiceDisplayName}\"";
 
     public static string ServiceFailureArguments(WindowsInstallerManifest manifest)
         => $"failure {manifest.ServiceName} reset= 60 actions= restart/5000/restart/5000/\"\"/5000";
@@ -86,12 +86,12 @@ public static class WindowsInstallerCommands
              }
              Remove-Item -Force '{{paths.StartMenuShortcutPath}}' -ErrorAction SilentlyContinue
              Remove-Item -Recurse -Force '{{paths.RootDirectory}}' -ErrorAction SilentlyContinue
-             Remove-Item -Recurse -Force 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up' -ErrorAction SilentlyContinue
+             Remove-Item -Recurse -Force 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{manifest.RegistryKeyName}}' -ErrorAction SilentlyContinue
              """;
 
     public static string UninstallRegistryPowerShell(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
         => $$"""
-             $key = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Agent-Up'
+             $key = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{manifest.RegistryKeyName}}'
              New-Item -Force -Path $key | Out-Null
              New-ItemProperty -Force -Path $key -Name DisplayName -Value '{{manifest.ProductName}}' | Out-Null
              New-ItemProperty -Force -Path $key -Name DisplayVersion -Value '{{manifest.Version}}' | Out-Null
@@ -104,6 +104,6 @@ public static class WindowsInstallerCommands
              New-ItemProperty -Force -Path $key -Name QuietUninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{paths.UninstallScriptPath}}"' | Out-Null
              """;
 
-    public static string FreshShellCliLookupPowerShell()
-        => "Get-Command agent-up -ErrorAction Stop | Out-Null";
+    public static string FreshShellCliLookupPowerShell(string cliCommandName)
+        => $"Get-Command {cliCommandName} -ErrorAction Stop | Out-Null";
 }
