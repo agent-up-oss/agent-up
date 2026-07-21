@@ -501,6 +501,14 @@ This applies to every production/test project pair once created:
 
 Changes to packaging, installers, CI payload staging, Desktop startup, browser/WebView hosting, or installed app layout that can affect the delivered Desktop or InstallerApp runtime must run the relevant project tests and `AgentUp.Tests` in the same verification pass. Do not claim completion for those changes after only running the package, installer, or app unit test projects.
 
+After every task that touches any production project, run the architecture tests before reporting completion:
+
+```
+dotnet test AgentUp.Architecture.Tests/AgentUp.Architecture.Tests.csproj
+```
+
+All 8 architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+
 Forbidden:
 
 - Changing production behavior without updating or adding tests for that behavior.
