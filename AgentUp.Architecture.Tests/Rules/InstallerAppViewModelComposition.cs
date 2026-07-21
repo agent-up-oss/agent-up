@@ -11,7 +11,7 @@ public sealed class InstallerAppViewModelComposition
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.InstallerApp")
             .Where(path => ArchitectureFixture.HasPathPart(root, path, "ViewModels"))
-            .SelectMany(path => ArchitectureFixture.MatchingLines(root, path, ArchitectureFixture.StaticFactoryInViewModel))
+            .SelectMany(path => ArchitectureFixture.FindStaticFactoryMethodsInFile(root, path))
             .ToArray();
 
         Assert.That(violations, Is.Empty,
