@@ -1,7 +1,7 @@
 using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.Installers.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Controllers;
+namespace AgentUp.InstallerApp.Tests.Features.Installation.TerminalIntegration;
 
 [TestFixture]
 public class InstallerCommandLineParserTests
