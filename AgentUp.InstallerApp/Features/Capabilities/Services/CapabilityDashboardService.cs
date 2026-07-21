@@ -86,6 +86,15 @@ public sealed class CapabilityDashboardService(
             new CapabilityInstallPlanner(new CapabilityToolCacheLayout(root)));
     }
 
+    public static CapabilityDashboardService CreateEmpty()
+    {
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-InstallerApp-Empty", Guid.NewGuid().ToString());
+        return new CapabilityDashboardService(
+            new EmptyCapabilityCatalogProvider(),
+            new InMemoryCapabilityModuleStore(),
+            new CapabilityInstallPlanner(new CapabilityToolCacheLayout(root)));
+    }
+
     private static string DefaultStateRoot()
     {
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

@@ -69,6 +69,8 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
 
     public bool IsAddModuleVisible => Page == "AddModule";
 
+    public bool IsCatalogEmpty => !CatalogEntries.Any();
+
     public bool IsCapabilityEditVisible
     {
         get => _isCapabilityEditVisible;
@@ -115,6 +117,19 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
             InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
             InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
             CapabilityDashboardService.CreateFake());
+        _ = model.RefreshAsync();
+        return model;
+    }
+
+    public static InstallerViewModel CreateFakeWithNoModules()
+    {
+        var version = new Version(0, 0, 0);
+        var manifest = ProductManifest.AgentUp();
+        var installRoot = manifest.DefaultInstallRoot();
+        var model = new InstallerViewModel(
+            InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
+            InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
+            CapabilityDashboardService.CreateEmpty());
         _ = model.RefreshAsync();
         return model;
     }
@@ -184,6 +199,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         foreach (var entry in await _capabilities.GetCatalogAsync())
             CatalogEntries.Add(new CatalogCapabilityViewModel(entry, installedIds.Contains(entry.Id), _capabilities.SupportsInstallActions, this));
 
+        OnPropertyChanged(nameof(IsCatalogEmpty));
         IsCapabilityEditVisible = false;
         Page = "AddModule";
     }
