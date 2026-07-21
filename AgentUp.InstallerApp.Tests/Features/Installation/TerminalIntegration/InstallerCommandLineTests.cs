@@ -1,4 +1,5 @@
 using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
 
 namespace AgentUp.InstallerApp.Tests.Features.Installation.TerminalIntegration;
@@ -94,5 +95,32 @@ public class InstallerCommandLineTests
         Assert.That(log, Does.Contain("Installed state validation succeeded."));
         Assert.That(log, Does.Contain("Installer operation smoke succeeded."));
         Assert.That(error.ToString(), Is.Empty);
+    }
+
+    [Test]
+    public async Task RunAsync_installComponent_acceptsOnlyDeclaredProductComponentIds()
+    {
+        var manifest = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            Components =
+            [
+                new ProductComponent("editor", "Editor", "Visual editing surface."),
+                new ProductComponent("renderer", "Renderer", "Output renderer.")
+            ]
+        };
+        var adapter = new FakeInstallerPlatformAdapter("Test");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "editor"], output, error);
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(output.ToString(), Does.Contain("Editor Install succeeded."));
+
+        Assert.ThrowsAsync<InvalidOperationException>(
+            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "desktop"], output, error); });
+        Assert.ThrowsAsync<InvalidOperationException>(
+            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "server"], output, error); });
+        Assert.ThrowsAsync<InvalidOperationException>(
+            async () => { _ = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "cli"], output, error); });
     }
 }
