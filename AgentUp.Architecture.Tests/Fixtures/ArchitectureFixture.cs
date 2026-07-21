@@ -72,7 +72,6 @@ internal static class ArchitectureFixture
         "Headless",
         "HTTP",
         "Http",
-        "Mcp",
         "Provider",
         "Repository",
         "Resources",

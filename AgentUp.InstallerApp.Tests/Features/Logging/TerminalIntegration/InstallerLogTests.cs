@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Logging.Services;
+using AgentUp.InstallerApp.Features.Logging.Tools;
 
 namespace AgentUp.InstallerApp.Tests.Features.Logging.TerminalIntegration;
 
