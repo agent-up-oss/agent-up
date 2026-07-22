@@ -191,8 +191,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
         // Refresh when loading completes while console tab is visible.
         vm.Console.WhenAnyValue(c => c.IsLoading)
-            .Where(loading => !loading)
             .Skip(1)
+            .Where(loading => !loading)
             .Where(_ => vm.ShowConsole)
             .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
             .DisposeWith(_subscriptions);
@@ -558,8 +558,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         try { File.Delete(ConsoleHtmlPath()); } catch (IOException ex) { Trace.TraceWarning(ex.Message); }
     }
 
-    private static string ConsoleHtmlPath()
-        => Path.Join(Path.GetTempPath(), "agentup-console-output.html");
+    private static readonly string _consoleHtmlPath =
+        Path.Join(Path.GetTempPath(), $"agentup-console-{Environment.ProcessId}.html");
+
+    private static string ConsoleHtmlPath() => _consoleHtmlPath;
 
     internal static string BuildConsoleHtml(IEnumerable<string> lines)
     {
@@ -743,7 +745,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private async void OnConsoleOverlayKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.C || !e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+        var copyModifier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? KeyModifiers.Meta
+            : KeyModifiers.Control;
+        if (e.Key != Key.C || !e.KeyModifiers.HasFlag(copyModifier)) return;
         if (_consoleWebView is null || _isClosed) return;
         e.Handled = true;
         try
