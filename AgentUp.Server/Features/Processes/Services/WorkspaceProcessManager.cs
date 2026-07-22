@@ -62,7 +62,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
         if (app.ServiceType == ServiceType.Docker)
         {
-            await LaunchDockerServiceAsync(workspace.Id, app);
+            await LaunchDockerServiceAsync(workspace, app);
             return;
         }
 
@@ -99,8 +99,9 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);
     }
 
-    private async Task LaunchDockerServiceAsync(string workspaceId, ApplicationInstance app)
+    private async Task LaunchDockerServiceAsync(Workspace workspace, ApplicationInstance app)
     {
+        var workspaceId = workspace.Id;
         var containerName = _docker.GetContainerName(workspaceId, app.Name);
         _containerNames[(workspaceId, app.Name)] = containerName;
 
@@ -109,7 +110,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             // Remove any stale container with this name
             await _docker.RunAsync("rm", "-f", containerName);
 
-            var run = await _docker.RunAsync([.. _docker.CreateRunArguments(containerName, app)]);
+            var run = await _docker.RunAsync([.. _docker.CreateRunArguments(containerName, app, workspace.WorktreePath)]);
             if (run.ExitCode != 0)
             {
                 await AppendDockerErrorAsync(workspaceId, app.Name, run.Stderr);

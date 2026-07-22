@@ -10,7 +10,16 @@ const sidebars = {
         'setup',
         'workspace',
         'configuration',
-        'agent-up-json',
+        {
+          type: 'category',
+          label: 'agent-up.json',
+          items: [
+            'agent-up-json',
+            'agent-up-json-reference',
+            'agent-up-json-environment',
+            'agent-up-json-examples',
+          ],
+        },
         'releases',
         'limitations',
       ],

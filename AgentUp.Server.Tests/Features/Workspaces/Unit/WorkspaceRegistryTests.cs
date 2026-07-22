@@ -299,6 +299,28 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task Register_TypedDotnet_PreservesEnvironmentAndEnvironmentFiles()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Dotnet =
+            [
+                new DotnetApplicationDefinition(
+                    "Api",
+                    "10.0.x",
+                    new DotnetRunDefinition("src/Api/Api.csproj"),
+                    null,
+                    new Dictionary<string, string> { ["ASPNETCORE_ENVIRONMENT"] = "Development" },
+                    [".env"])
+            ]
+        });
+
+        var app = workspace.Applications.Single();
+        Assert.That(app.Environment!["ASPNETCORE_ENVIRONMENT"], Is.EqualTo("Development"));
+        Assert.That(app.EnvironmentFiles, Is.EqualTo(new[] { ".env" }));
+    }
+
+    [Test]
     public async Task Register_TypedDocker_UsesDockerCapabilityMetadata()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
@@ -317,6 +339,29 @@ public class WorkspaceRegistryTests
         Assert.That(app.CapabilityId, Is.EqualTo("docker"));
         Assert.That(app.Image, Is.EqualTo("postgres:17"));
         Assert.That(app.CapabilityStatus!.CanRun, Is.True);
+    }
+
+    [Test]
+    public async Task Register_TypedDocker_PreservesEnvironmentAndEnvironmentFiles()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Docker =
+            [
+                new DockerCapabilityDefinition(
+                    "Database",
+                    "postgres:17",
+                    null,
+                    new Dictionary<string, string> { ["POSTGRES_USER"] = "user" },
+                    ["pgdata:/var/lib/postgresql/data"],
+                    [".env.database"])
+            ]
+        });
+
+        var app = workspace.Applications.Single();
+        Assert.That(app.Environment!["POSTGRES_USER"], Is.EqualTo("user"));
+        Assert.That(app.EnvironmentFiles, Is.EqualTo(new[] { ".env.database" }));
+        Assert.That(app.Volumes, Is.EqualTo(new[] { "pgdata:/var/lib/postgresql/data" }));
     }
 
     private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>

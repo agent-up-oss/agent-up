@@ -1,12 +1,13 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 
 namespace AgentUp.Server.Features.Processes.Providers;
 
-public sealed class LocalProcessProvider : ILocalProcessProvider
+public sealed partial class LocalProcessProvider : ILocalProcessProvider
 {
     public Process CreateApplicationProcess(Workspace workspace, ApplicationInstance app)
         => new()
@@ -24,10 +25,84 @@ public sealed class LocalProcessProvider : ILocalProcessProvider
             ? Path.Join(workspace.WorktreePath, app.Path)
             : workspace.WorktreePath;
         var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
+        foreach (var (key, value) in LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles))
+            startInfo.Environment[key] = value;
+
+        foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
+            startInfo.Environment[key] = value;
+
         foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts).Where(mapping => mapping.Variable is not null))
             startInfo.Environment[mapping.Variable!] = mapping.AllocatedPort.ToString();
 
         return startInfo;
+    }
+
+    private static Dictionary<string, string> LoadEnvironmentFiles(string worktreePath, IReadOnlyList<string>? environmentFiles)
+    {
+        var environment = new Dictionary<string, string>();
+        foreach (var environmentFile in environmentFiles ?? [])
+        {
+            var fullPath = ResolveEnvironmentFilePath(worktreePath, environmentFile);
+            if (!File.Exists(fullPath))
+                throw new InvalidOperationException($"Environment file '{environmentFile}' was not found.");
+
+            foreach (var (key, value) in ParseEnvironmentFile(File.ReadLines(fullPath), environmentFile))
+                environment[key] = value;
+        }
+
+        return environment;
+    }
+
+    private static string ResolveEnvironmentFilePath(string worktreePath, string environmentFile)
+    {
+        if (string.IsNullOrWhiteSpace(environmentFile))
+            throw new InvalidOperationException("Environment file paths must not be empty.");
+
+        if (Path.IsPathRooted(environmentFile))
+            throw new InvalidOperationException($"Environment file '{environmentFile}' must be relative to the workspace root.");
+
+        var root = Path.GetFullPath(worktreePath);
+        var fullPath = Path.GetFullPath(Path.Join(root, environmentFile));
+        var relative = Path.GetRelativePath(root, fullPath);
+        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Environment file '{environmentFile}' must stay under the workspace root.");
+
+        return fullPath;
+    }
+
+    internal static Dictionary<string, string> ParseEnvironmentFile(IEnumerable<string> lines, string sourceName)
+    {
+        var environment = new Dictionary<string, string>();
+        var lineNumber = 0;
+        foreach (var rawLine in lines)
+        {
+            lineNumber++;
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#'))
+                continue;
+
+            if (line.StartsWith("export ", StringComparison.Ordinal))
+                line = line["export ".Length..].TrimStart();
+
+            var equalsIndex = line.IndexOf('=');
+            if (equalsIndex <= 0)
+                throw new InvalidOperationException($"Environment file '{sourceName}' has an invalid entry on line {lineNumber}.");
+
+            var key = line[..equalsIndex].Trim();
+            if (!EnvironmentVariableName().IsMatch(key))
+                throw new InvalidOperationException($"Environment file '{sourceName}' has an invalid variable name on line {lineNumber}.");
+
+            var value = line[(equalsIndex + 1)..].Trim();
+            if (value.Length >= 2
+                && ((value[0] == '"' && value[^1] == '"') || (value[0] == '\'' && value[^1] == '\'')))
+            {
+                value = value[1..^1];
+            }
+
+            environment[key] = value;
+        }
+
+        return environment;
     }
 
     private static ProcessStartInfo CreateShellStartInfo(string command, string workingDirectory)
@@ -56,4 +131,7 @@ public sealed class LocalProcessProvider : ILocalProcessProvider
         startInfo.ArgumentList.Add(command);
         return startInfo;
     }
+
+    [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]
+    private static partial Regex EnvironmentVariableName();
 }
