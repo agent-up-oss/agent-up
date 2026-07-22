@@ -28,6 +28,7 @@ public sealed record PackageRequest
             ? null
             : PackagePathValidator.ResolveRootOrRelativeUnderRoot(RepositoryRoot, payloadRoot!, nameof(PayloadRoot));
         ProductManifest = productManifest ?? PackageProductManifest.AgentUp();
+        PackageProductManifest.Validate(ProductManifest);
         PackagePathValidator.RequireSafePathComponent(ProductManifest.Slug, nameof(ProductManifest.Slug));
     }
 

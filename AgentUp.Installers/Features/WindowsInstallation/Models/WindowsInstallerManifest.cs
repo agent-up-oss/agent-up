@@ -17,6 +17,32 @@ public sealed record WindowsInstallerManifest(
 {
     public const string DefaultCliShimName = "agent-up.cmd";
     private const string AgentUpUpgradeCode = "5E8FB224-E5E3-4D48-8B62-2F50D521CBB0";
+    private static readonly char[] WindowsInvalidFileNameChars = ['<', '>', '"', '|', '?', '*'];
+    private static readonly string[] WindowsReservedDeviceNames =
+    [
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        "COM1",
+        "COM2",
+        "COM3",
+        "COM4",
+        "COM5",
+        "COM6",
+        "COM7",
+        "COM8",
+        "COM9",
+        "LPT1",
+        "LPT2",
+        "LPT3",
+        "LPT4",
+        "LPT5",
+        "LPT6",
+        "LPT7",
+        "LPT8",
+        "LPT9"
+    ];
 
     public string ServiceDisplayName => $"{ProductName} Server";
     public string ServiceDescription => $"Local {ProductName} runtime authority for workspaces, processes, ports, diagnostics, and automation.";
@@ -57,11 +83,19 @@ public sealed record WindowsInstallerManifest(
             throw new ArgumentException("CLI shim name must not be empty.", nameof(cliShimName));
 
         if (cliShimName is "." or ".."
+            || cliShimName.EndsWith(' ')
+            || cliShimName.EndsWith('.')
             || cliShimName.Contains('/', StringComparison.Ordinal)
             || cliShimName.Contains('\\', StringComparison.Ordinal)
             || cliShimName.Contains(':', StringComparison.Ordinal)
+            || cliShimName.IndexOfAny(WindowsInvalidFileNameChars) >= 0
+            || cliShimName.Any(char.IsControl)
             || System.IO.Path.IsPathFullyQualified(cliShimName)
             || !System.IO.Path.GetFileName(cliShimName).Equals(cliShimName, StringComparison.Ordinal))
+            throw new ArgumentException("CLI shim name must be a safe file name.", nameof(cliShimName));
+
+        var baseName = cliShimName.Split('.')[0];
+        if (WindowsReservedDeviceNames.Contains(baseName, StringComparer.OrdinalIgnoreCase))
             throw new ArgumentException("CLI shim name must be a safe file name.", nameof(cliShimName));
 
         return cliShimName;

@@ -182,7 +182,7 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 `AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
 
-Packaging must expose package-owned request and product DTOs. It may map those DTOs to explicit platform installer contracts, but it must not depend on installer workflow product/session internals. Product identity values that become path components or filenames must be validated at request or path-construction boundaries. Installer GUID seeds for fixed components, shortcuts, and bundles must include product identity, with any legacy unscoped compatibility path made explicit and covered by architecture tests.
+Packaging must expose package-owned request and product DTOs. It may map those DTOs to explicit platform installer contracts, but it must not depend on installer workflow product/session internals. Product identity values that become artifact names, path components, filenames, WiX identity, service names, server URLs, or command arguments must be validated at request or path-construction boundaries. Installer GUID seeds for fixed components, shortcuts, and bundles must include product identity, with any legacy unscoped compatibility path made explicit and covered by architecture tests.
 
 `AgentUp.PackageSmoke` owns the shared package and installed-service smoke validator used by CI smoke scripts. It validates the same abstract package, service, CLI, and uninstall properties through platform adapters while keeping shell scripts focused on selecting arguments and runner setup.
 

@@ -656,7 +656,7 @@ Installer and packaging behavior is testable product behavior. Shared installer 
 
 Windows package product identity must come from the product manifest: WiX product and bundle metadata, service name, safe CLI shim filename, registry keys, shortcuts, upgrade GUID, product-scoped component and bundle GUIDs, MSI sidecar name, and bootstrapper name are product-branded. The Agent-Up manifest must continue to produce the existing `agent-up-windows-<rid>` artifact names and WiX command shape.
 
-Packaging request/product DTOs belong to `AgentUp.Packaging`; packaging code may map them to explicit platform installer contracts but must not depend on installer workflow product/session internals.
+Packaging request/product DTOs belong to `AgentUp.Packaging`; packaging code may map them to explicit platform installer contracts but must not depend on installer workflow product/session internals. Package request boundaries must validate the complete product manifest before artifact names, install paths, WiX identity, service names, shim filenames, server URLs, or command arguments are generated.
 
 All `AgentUp.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative and must remain under the repository root; prebuilt payload roots may be absolute CI-provided paths or repository-relative paths normalized under the repository root.
 

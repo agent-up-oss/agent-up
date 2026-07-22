@@ -75,4 +75,49 @@ public class PackageRequestTests
 
         Assert.That(exception!.ParamName, Is.EqualTo("Slug"));
     }
+
+    [TestCase("ProductName", "Bad/Product")]
+    [TestCase("WindowsUpgradeCode", "not-a-guid")]
+    [TestCase("WindowsServiceName", "bad\\service")]
+    [TestCase("WindowsCliShimName", "CON.cmd")]
+    [TestCase("WindowsCliShimName", "orbit?.cmd")]
+    [TestCase("WindowsCliShimName", "orbit.cmd.")]
+    [TestCase("WindowsServerUrl", "not-a-url")]
+    public void Constructor_rejectsInvalidProductManifestValues(string expectedParamName, string invalidValue)
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new PackageRequest(
+                "/repo",
+                "windows",
+                "win-x64",
+                "1.2.3",
+                "artifacts",
+                "Release",
+                productManifest: ProductWithInvalidValue(expectedParamName, invalidValue)));
+
+        Assert.That(exception!.ParamName, Is.EqualTo(expectedParamName));
+    }
+
+    private static PackageProductManifest ProductWithInvalidValue(string field, string value)
+        => field switch
+        {
+            "ProductName" => new PackageProductManifest(value, "orbit-desk", "ORBITDESK"),
+            "WindowsUpgradeCode" => new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+            {
+                WindowsUpgradeCode = value
+            },
+            "WindowsServiceName" => new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+            {
+                WindowsServiceName = value
+            },
+            "WindowsCliShimName" => new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+            {
+                WindowsCliShimName = value
+            },
+            "WindowsServerUrl" => new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+            {
+                WindowsServerUrl = value
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(field), field, null)
+        };
 }

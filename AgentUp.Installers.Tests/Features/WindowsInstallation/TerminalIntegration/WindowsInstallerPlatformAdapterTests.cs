@@ -261,22 +261,30 @@ public class WindowsInstallerPlatformAdapterTests
         }
     }
 
-    [Test]
-    public void WindowsWixSourceGenerator_rejectsUnsafeCliShimNameBeforeBuildingSourcePath()
+    [TestCase(@"..\outside.cmd")]
+    [TestCase("orbit?.cmd")]
+    [TestCase("CON.cmd")]
+    [TestCase("shim.cmd.")]
+    [TestCase("shim.cmd ")]
+    public void WindowsWixSourceGenerator_rejectsUnsafeCliShimNameBeforeBuildingSourcePath(string cliShimName)
     {
-        var manifest = WindowsInstallerManifest.Create("1.2.3") with { CliShimName = @"..\outside.cmd" };
+        var manifest = WindowsInstallerManifest.Create("1.2.3") with { CliShimName = cliShimName };
 
         var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
 
         Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
     }
 
-    [Test]
-    public void WindowsInstallerPaths_rejectsUnsafeCliShimNameBeforeBuildingPath()
+    [TestCase(@"..\outside.cmd")]
+    [TestCase("orbit?.cmd")]
+    [TestCase("CON.cmd")]
+    [TestCase("shim.cmd.")]
+    [TestCase("shim.cmd ")]
+    public void WindowsInstallerPaths_rejectsUnsafeCliShimNameBeforeBuildingPath(string cliShimName)
     {
         var paths = Options().Paths;
 
-        var exception = Assert.Throws<ArgumentException>(() => paths.CliShimPathFor(@"..\outside.cmd"));
+        var exception = Assert.Throws<ArgumentException>(() => paths.CliShimPathFor(cliShimName));
 
         Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
     }
