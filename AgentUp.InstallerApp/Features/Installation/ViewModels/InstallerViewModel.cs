@@ -59,12 +59,18 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsDashboardVisible));
             OnPropertyChanged(nameof(IsAddModuleVisible));
+            OnPropertyChanged(nameof(IsCapabilityEditPageVisible));
+            OnPropertyChanged(nameof(IsBackVisible));
         }
     }
 
     public bool IsDashboardVisible => Page == "Dashboard";
 
     public bool IsAddModuleVisible => Page == "AddModule";
+
+    public bool IsCapabilityEditPageVisible => Page == "CapabilityEdit";
+
+    public bool IsBackVisible => IsAddModuleVisible || IsCapabilityEditPageVisible;
 
     public bool IsCatalogEmpty => !CatalogEntries.Any();
 
@@ -138,7 +144,8 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     internal void ShowCapabilityEditor(CapabilityCardViewModel card)
     {
         SelectedCapability = card;
-        IsCapabilityEditVisible = true;
+        IsCapabilityEditVisible = false;
+        Page = "CapabilityEdit";
     }
 
     internal async Task SelectCapabilityVersionAsync(CapabilityCardViewModel card, CapabilityVersionViewModel version)
@@ -166,15 +173,25 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     {
         Page = "Dashboard";
         IsCapabilityEditVisible = false;
+        SelectedCapability = null;
     }
 
     internal async Task InstallCatalogModuleAsync(CatalogCapabilityViewModel? catalogEntry)
     {
-        if (catalogEntry is null || catalogEntry.IsInstalled || !_capabilities.SupportsInstallActions)
+        if (catalogEntry is null || !_capabilities.SupportsInstallActions)
             return;
 
-        var installing = CapabilityCardViewModel.Installing(catalogEntry.Entry, this);
-        CapabilityCards.Add(installing);
+        var installing = CapabilityCards.FirstOrDefault(card => card.Id.Equals(catalogEntry.Entry.Id, StringComparison.OrdinalIgnoreCase));
+        if (installing is null)
+        {
+            installing = CapabilityCardViewModel.Installing(catalogEntry.Entry, this);
+            CapabilityCards.Add(installing);
+        }
+        else
+        {
+            installing.BeginInstall();
+        }
+
         ShowDashboard();
         await Task.Yield();
 
@@ -213,8 +230,8 @@ public sealed class ComponentCardViewModel : INotifyPropertyChanged
         Description = description;
         _owner = owner;
         SupportsInstallActions = supportsInstallActions;
-        InstallCommand = new DelegateCommand(async _ => await _owner.RunComponentActionAsync(this, IsInstalled ? InstallerComponentAction.Update : InstallerComponentAction.Install), _ => SupportsInstallActions && !IsBusy);
-        UpdateCommand = new DelegateCommand(async _ => await _owner.RunComponentActionAsync(this, InstallerComponentAction.Update), _ => SupportsInstallActions && !IsBusy && IsInstalled);
+        InstallCommand = new DelegateCommand(async _ => await _owner.RunComponentActionAsync(this, IsUpdateAvailable ? InstallerComponentAction.Update : InstallerComponentAction.Install), _ => SupportsInstallActions && !IsBusy && (!IsInstalled || IsUpdateAvailable));
+        UpdateCommand = new DelegateCommand(async _ => await _owner.RunComponentActionAsync(this, InstallerComponentAction.Update), _ => SupportsInstallActions && !IsBusy && IsUpdateAvailable);
         UninstallCommand = new DelegateCommand(async _ => await _owner.RunComponentActionAsync(this, InstallerComponentAction.Uninstall), _ => SupportsInstallActions && !IsBusy && IsInstalled);
         RepairCommand = new DelegateCommand(async _ => await _owner.RunComponentActionAsync(this, InstallerComponentAction.Repair), _ => SupportsInstallActions && !IsBusy && IsInstalled);
     }
@@ -257,9 +274,11 @@ public sealed class ComponentCardViewModel : INotifyPropertyChanged
         _ => "#98a2b3"
     };
 
-    public string PrimaryButtonText => SupportsInstallActions ? IsInstalled ? "Update" : "Install" : "Managed by NixOS";
+    public string PrimaryButtonText => SupportsInstallActions ? IsUpdateAvailable ? "Update" : IsInstalled ? "Installed" : "Install" : "Managed by NixOS";
 
     public bool IsInstalled => _status is InstallerComponentStatusKind.Installed or InstallerComponentStatusKind.UpdateAvailable or InstallerComponentStatusKind.Failed;
+
+    public bool IsUpdateAvailable => _status == InstallerComponentStatusKind.UpdateAvailable;
 
     public bool IsBusy => _isBusy;
 
@@ -310,6 +329,7 @@ public sealed class ComponentCardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(StatusBrush));
         OnPropertyChanged(nameof(PrimaryButtonText));
         OnPropertyChanged(nameof(IsInstalled));
+        OnPropertyChanged(nameof(IsUpdateAvailable));
         OnPropertyChanged(nameof(IsBusy));
         OnPropertyChanged(nameof(IsProgressVisible));
         OnPropertyChanged(nameof(Progress));
@@ -339,8 +359,8 @@ public sealed class CapabilityCardViewModel : INotifyPropertyChanged
         Module = module;
         _status = status;
         _owner = owner;
-        _activeVersion = module.ActiveVersion;
-        _detail = status == CapabilityModuleStatus.Installing ? "Installing" : $"Active version {_activeVersion}";
+        _activeVersion = ActiveVersionOrEmpty(module);
+        _detail = status == CapabilityModuleStatus.Installing ? "Installing" : DetailForActiveVersion(_activeVersion);
         EditCommand = new DelegateCommand(_ => _owner.ShowCapabilityEditor(this), _ => IsInstalled);
     }
 
@@ -398,9 +418,16 @@ public sealed class CapabilityCardViewModel : INotifyPropertyChanged
     {
         Module = module;
         _status = CapabilityModuleStatus.Installed;
-        _activeVersion = module.ActiveVersion;
-        _detail = $"Active version {_activeVersion}";
+        _activeVersion = ActiveVersionOrEmpty(module);
+        _detail = DetailForActiveVersion(_activeVersion);
         LoadVersions();
+        RaiseAll();
+    }
+
+    public void BeginInstall()
+    {
+        _status = CapabilityModuleStatus.Installing;
+        _detail = "Installing";
         RaiseAll();
     }
 
@@ -418,10 +445,25 @@ public sealed class CapabilityCardViewModel : INotifyPropertyChanged
             Versions.Add(new CapabilityVersionViewModel(
                 version.Version,
                 $"{version.Source}",
-                version.Version == Module.ActiveVersion,
+                HasActiveVersion && version.Version == ActiveVersion,
                 SupportsVersionSelection,
                 async item => await _owner.SelectCapabilityVersionAsync(this, item)));
     }
+
+    private bool HasActiveVersion => !string.IsNullOrWhiteSpace(_activeVersion);
+
+    private static string ActiveVersionOrEmpty(InstalledCapabilityModule module)
+    {
+        if (string.IsNullOrWhiteSpace(module.ActiveVersion))
+            return "";
+
+        return module.Versions.Any(version => version.Version.Equals(module.ActiveVersion, StringComparison.OrdinalIgnoreCase))
+            ? module.ActiveVersion
+            : "";
+    }
+
+    private static string DetailForActiveVersion(string activeVersion)
+        => string.IsNullOrWhiteSpace(activeVersion) ? "No active version selected" : $"Active version {activeVersion}";
 
     private void RaiseAll()
     {
@@ -477,7 +519,7 @@ public sealed class CatalogCapabilityViewModel
         Entry = entry;
         IsInstalled = isInstalled;
         SupportsInstallActions = supportsInstallActions;
-        InstallCommand = new DelegateCommand(async _ => await owner.InstallCatalogModuleAsync(this), _ => SupportsInstallActions && !IsInstalled);
+        InstallCommand = new DelegateCommand(async _ => await owner.InstallCatalogModuleAsync(this), _ => SupportsInstallActions);
     }
 
     public CapabilityCatalogEntry Entry { get; }
@@ -492,7 +534,7 @@ public sealed class CatalogCapabilityViewModel
 
     public bool SupportsInstallActions { get; }
 
-    public string ButtonText => IsInstalled ? "Installed" : SupportsInstallActions ? "Install" : "Managed by NixOS";
+    public string ButtonText => IsInstalled ? "Add version" : SupportsInstallActions ? "Install" : "Managed by NixOS";
 
     public ICommand InstallCommand { get; }
 }

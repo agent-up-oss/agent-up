@@ -45,7 +45,7 @@ public class InstallerWindowBehaviorTests
     }
 
     [AvaloniaTest]
-    public async Task AddModule_installsCatalogCapabilityAndShowsEditPanel()
+    public async Task AddModule_installsCatalogCapabilityAndOpensFullPageEditor()
     {
         var window = await LaunchAsync();
         var model = (InstallerViewModel)window.DataContext!;
@@ -66,8 +66,14 @@ public class InstallerWindowBehaviorTests
         card.EditCommand.Execute(null);
         await HeadlessExtensions.FlushAsync();
 
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("CapabilityEdit"));
         Assert.That(window.Find<Border>("CapabilityEditPanel").IsVisible, Is.True);
         Assert.That(window.Find<ItemsControl>("CapabilityVersions").ItemCount, Is.EqualTo(1));
+
+        window.Find<Button>("BackToDashboardButton").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("Dashboard"));
     }
 
     [AvaloniaTest]
@@ -166,7 +172,9 @@ public class InstallerWindowBehaviorTests
 
         Assert.That(desktop.StatusText, Is.EqualTo("Installed"));
         Assert.That(desktop.RepairCommand.CanExecute(null), Is.True);
-        Assert.That(desktop.UpdateCommand.CanExecute(null), Is.True);
+        Assert.That(desktop.PrimaryButtonText, Is.EqualTo("Installed"));
+        Assert.That(desktop.InstallCommand.CanExecute(null), Is.False);
+        Assert.That(desktop.UpdateCommand.CanExecute(null), Is.False);
 
         desktop.RepairCommand.Execute(null);
         await HeadlessExtensions.FlushAsync();
@@ -192,9 +200,11 @@ public class InstallerWindowBehaviorTests
             "Views",
             "InstallerWindow.axaml"));
 
-        Assert.That(xaml, Does.Contain("ColumnDefinitions=\"*,Auto,Auto\""));
+        Assert.That(xaml, Does.Contain("ColumnDefinitions=\"*,Auto\""));
         Assert.That(xaml, Does.Contain("TextTrimming=\"CharacterEllipsis\""));
         Assert.That(xaml, Does.Contain("IsVisible=\"{Binding SupportsInstallActions}\""));
+        Assert.That(xaml, Does.Not.Contain(">Repair<"));
+        Assert.That(xaml, Does.Contain("IsVisible=\"{Binding IsCapabilityEditPageVisible}\""));
     }
 
     private static async Task<InstallerWindow> LaunchAsync()

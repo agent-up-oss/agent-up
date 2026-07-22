@@ -77,12 +77,24 @@ public static class InstallerComponentOperations
             }
             : "";
 
-        var failed = report.Findings.Any(finding =>
-            finding.Severity == ValidationSeverity.Error && finding.Code.StartsWith(codePrefix, StringComparison.OrdinalIgnoreCase));
+        var errors = report.Findings
+            .Where(finding =>
+                finding.Severity == ValidationSeverity.Error
+                && finding.Code.StartsWith(codePrefix, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
-        return failed
-            ? new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled)
-            : new InstallerComponentStatus(component, InstallerComponentStatusKind.Installed, expectedVersion, expectedVersion);
+        if (errors.Any(finding => finding.Code.EndsWith(".missing", StringComparison.OrdinalIgnoreCase)
+                                  || finding.Code.EndsWith(".path", StringComparison.OrdinalIgnoreCase)))
+        {
+            return new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled);
+        }
+
+        if (errors.Any(finding => finding.Code.EndsWith(".version", StringComparison.OrdinalIgnoreCase)))
+        {
+            return new InstallerComponentStatus(component, InstallerComponentStatusKind.UpdateAvailable, AvailableVersion: expectedVersion);
+        }
+
+        return new InstallerComponentStatus(component, InstallerComponentStatusKind.Installed, expectedVersion, expectedVersion);
     }
 
     private static bool IsRelevant(InstallOperationKind kind, InstallerComponentTarget target) =>

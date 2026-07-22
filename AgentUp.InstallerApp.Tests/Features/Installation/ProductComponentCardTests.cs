@@ -1,5 +1,7 @@
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
+using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
+using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
@@ -75,11 +77,18 @@ public class ProductComponentCardTests
 
         editor.ApplyStatus(new InstallerComponentStatus(editor.Target, InstallerComponentStatusKind.Installed, new Version(1, 0, 0), new Version(1, 0, 0)));
 
-        Assert.That(editor.PrimaryButtonText, Is.EqualTo("Update"));
+        Assert.That(editor.PrimaryButtonText, Is.EqualTo("Installed"));
         Assert.That(editor.StatusText, Is.EqualTo("Installed"));
-        Assert.That(editor.UpdateCommand.CanExecute(null), Is.True);
+        Assert.That(editor.InstallCommand.CanExecute(null), Is.False);
+        Assert.That(editor.UpdateCommand.CanExecute(null), Is.False);
         Assert.That(editor.UninstallCommand.CanExecute(null), Is.True);
         Assert.That(editor.RepairCommand.CanExecute(null), Is.True);
+
+        editor.ApplyStatus(new InstallerComponentStatus(editor.Target, InstallerComponentStatusKind.UpdateAvailable, new Version(1, 0, 0), new Version(1, 1, 0)));
+
+        Assert.That(editor.PrimaryButtonText, Is.EqualTo("Update"));
+        Assert.That(editor.InstallCommand.CanExecute(null), Is.True);
+        Assert.That(editor.UpdateCommand.CanExecute(null), Is.True);
     }
 
     [Test]
@@ -96,5 +105,29 @@ public class ProductComponentCardTests
 
         Assert.That(model.ComponentCards, Has.Count.EqualTo(3));
         Assert.That(model.ComponentCards.Select(c => c.Target.Id), Is.EqualTo(new[] { "desktop", "server", "cli" }));
+    }
+
+    [Test]
+    public void CapabilityCard_withoutMatchingActiveVersion_doesNotShowActiveVersionDetail()
+    {
+        var session = InstallerSession.CreateDefault(
+            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
+            PayloadSelection.Bundled(new Version(1, 0, 0)));
+        var model = new InstallerViewModel(
+            session,
+            new FakeInstallerPlatformAdapter(),
+            CapabilitiesController.CreateFake());
+        var module = new InstalledCapabilityModule(
+            "dotnet",
+            ".NET",
+            ".NET SDK capability.",
+            "10.0.x",
+            [new CapabilityInstalledVersion("dotnet", "9.0.x", "/tool-cache/dotnet/9.0.x", CapabilityVersionSource.AgentUpManaged, true)]);
+
+        var card = new CapabilityCardViewModel(module, model);
+
+        Assert.That(card.ActiveVersion, Is.Empty);
+        Assert.That(card.Detail, Is.EqualTo("No active version selected"));
+        Assert.That(card.Versions.Single().ActiveText, Is.EqualTo("Available"));
     }
 }
