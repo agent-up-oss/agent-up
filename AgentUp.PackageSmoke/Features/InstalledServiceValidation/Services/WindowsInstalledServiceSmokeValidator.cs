@@ -26,9 +26,10 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var installer = Path.Join(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
-        var productMsi = Path.Join(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
-        var installDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Agent-Up");
+        var product = request.Product;
+        var installer = Path.Join(request.ArtifactDirectory, $"{product.ArtifactBaseName}-windows-{request.RuntimeId}.exe");
+        var productMsi = Path.Join(request.ArtifactDirectory, $"{product.ArtifactBaseName}-windows-{request.RuntimeId}.msi");
+        var installDir = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), product.InstallDirName);
         assert.FileExists(installer, "installed.windows.artifact");
         assert.FileExists(productMsi, "installed.windows.product.msi");
         if (!File.Exists(installer) || !File.Exists(productMsi))
@@ -36,13 +37,13 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         var installLog = Path.Join(request.WorkDirectory, "windows-msi-install.log");
         await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/l*vx!", installLog], installLog, "installed.windows.install", cancellationToken);
-        await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", "agent-up-server"]), "installed.windows.service.start", cancellationToken);
+        await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", product.ServiceName]), "installed.windows.service.start", cancellationToken);
 
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
-        assert.FileExists(Path.Join(installDir, "bin", "agent-up.cmd"), "installed.windows.path.shim");
+        assert.FileExists(Path.Join(installDir, "bin", $"{product.CliShimName}.cmd"), "installed.windows.path.shim");
         assert.FileExists(cli, "installed.windows.cli");
 
-        const string pathCheck = "$installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq 'Agent-Up' -or $_.DisplayName -eq 'Agent-Up Setup' } | Select-Object -First 1; if (-not $registration) { throw 'Agent-Up uninstall registration missing' }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"Agent-Up PATH entry missing: $bin\" }";
+        var pathCheck = $"$installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object {{ Test-Path $_ }} | ForEach-Object {{ Get-ChildItem $_ }} | ForEach-Object {{ Get-ItemProperty $_.PSPath }} | Where-Object {{ $_.DisplayName -eq '{product.DisplayName}' -or $_.DisplayName -eq '{product.DisplayName} Setup' }} | Select-Object -First 1; if (-not $registration) {{ throw '{product.DisplayName} uninstall registration missing' }}; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object {{ $_ }} | ForEach-Object {{ [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }}); if (-not ($entries | Where-Object {{ [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) }})) {{ throw \"{product.DisplayName} PATH entry missing: $bin\" }}";
 
         await RunRequiredAsync(
             assert,
@@ -54,7 +55,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             "cmd.exe",
             InstalledCliEnvironment(Path.Join(installDir, "bin")),
             [new CommandSpec("msiexec.exe", ["/x", productMsi, "/qn", "/norestart", "/l*vx!", Path.Join(request.WorkDirectory, "windows-msi-uninstall.log")])],
-            [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"])]);
+            [new CommandSpec("powershell.exe", ["-NoProfile", "-Command", $"Get-Service {product.ServiceName} -ErrorAction SilentlyContinue | Format-List *"])]);
     }
 
     private static Dictionary<string, string> InstalledCliEnvironment(string binDirectory)
