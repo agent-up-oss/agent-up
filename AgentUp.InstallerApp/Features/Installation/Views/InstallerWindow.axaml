@@ -56,7 +56,7 @@
                     Name="BackToDashboardButton"
                     Classes="secondary"
                     Command="{Binding BackToDashboardCommand}"
-                    IsVisible="{Binding IsAddModuleVisible}"
+                    IsVisible="{Binding IsBackVisible}"
                     VerticalAlignment="Center">
                 Back
             </Button>
@@ -103,7 +103,7 @@
                                              Height="8"
                                              Margin="0,14,0,0"/>
                                 <Grid Grid.Row="4"
-                                      ColumnDefinitions="*,Auto,Auto"
+                                      ColumnDefinitions="*,Auto"
                                       ColumnSpacing="8"
                                       Margin="0,18,0,0">
                                     <Button Classes="primary"
@@ -114,12 +114,6 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </Button>
                                     <Button Grid.Column="1"
-                                            Classes="secondary"
-                                            Command="{Binding RepairCommand}"
-                                            IsVisible="{Binding SupportsInstallActions}">
-                                        Repair
-                                    </Button>
-                                    <Button Grid.Column="2"
                                             Classes="secondary"
                                             Command="{Binding UninstallCommand}"
                                             IsVisible="{Binding SupportsInstallActions}">
@@ -200,50 +194,6 @@
                     </Button>
                 </WrapPanel>
             </ScrollViewer>
-
-            <Border Name="CapabilityEditPanel"
-                    Classes="card"
-                    Width="360"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Stretch"
-                    IsVisible="{Binding IsCapabilityEditVisible}">
-                <StackPanel Spacing="12">
-                    <TextBlock Text="{Binding SelectedCapability.DisplayName}"
-                               Foreground="#f5fbf7"
-                               FontSize="22"
-                               FontWeight="Bold"/>
-                    <TextBlock Text="{Binding SelectedCapability.Description}"
-                               Foreground="#b9c8c2"
-                               TextWrapping="Wrap"/>
-                    <TextBlock Text="Versions"
-                               Foreground="#f5fbf7"
-                               FontSize="16"
-                               FontWeight="Bold"
-                               Margin="0,10,0,0"/>
-                    <ItemsControl Name="CapabilityVersions" ItemsSource="{Binding SelectedCapability.Versions}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Version}" Foreground="#f5fbf7"/>
-                                        <TextBlock Text="{Binding Source}" Foreground="#8798a0" FontSize="12"/>
-                                    </StackPanel>
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding ActiveText}"
-                                               Foreground="#32d583"
-                                               VerticalAlignment="Center"
-                                               Margin="0,0,8,0"/>
-                                    <Button Grid.Column="2"
-                                            Classes="secondary"
-                                            Command="{Binding SelectCommand}">
-                                        Use
-                                    </Button>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
         </Grid>
 
         <Grid Grid.Row="1" IsVisible="{Binding IsAddModuleVisible}" RowDefinitions="Auto,*">
@@ -292,6 +242,57 @@
                     </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
+        </Grid>
+
+        <Grid Grid.Row="1"
+              IsVisible="{Binding IsCapabilityEditPageVisible}"
+              RowDefinitions="Auto,Auto,*">
+            <TextBlock Text="{Binding SelectedCapability.DisplayName}"
+                       Foreground="#f5fbf7"
+                       FontSize="26"
+                       FontWeight="Bold"/>
+            <TextBlock Grid.Row="1"
+                       Text="{Binding SelectedCapability.Description}"
+                       Foreground="#b9c8c2"
+                       TextWrapping="Wrap"
+                       Margin="0,8,0,22"/>
+            <Border Grid.Row="2"
+                    Name="CapabilityEditPanel"
+                    Classes="card"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    IsVisible="{Binding IsCapabilityEditPageVisible}">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Text="Versions"
+                               Foreground="#f5fbf7"
+                               FontSize="18"
+                               FontWeight="Bold"/>
+                    <ScrollViewer Grid.Row="1" Margin="0,14,0,0">
+                        <ItemsControl Name="CapabilityVersions" ItemsSource="{Binding SelectedCapability.Versions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Version}" Foreground="#f5fbf7"/>
+                                            <TextBlock Text="{Binding Source}" Foreground="#8798a0" FontSize="12"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding ActiveText}"
+                                                   Foreground="#32d583"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,10,0"/>
+                                        <Button Grid.Column="2"
+                                                Classes="secondary"
+                                                Command="{Binding SelectCommand}">
+                                            Use
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </Window>

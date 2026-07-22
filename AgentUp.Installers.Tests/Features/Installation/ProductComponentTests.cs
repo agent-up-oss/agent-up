@@ -1,6 +1,7 @@
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.Installation.Services;
 
 namespace AgentUp.Installers.Tests.Features.Installation;
 
@@ -109,6 +110,71 @@ public class ProductComponentTests
         }
 
         Assert.That(session.Manifest.Components, Has.Count.EqualTo(3));
+    }
+
+    [Test]
+    public void StatusFromValidation_reportsCliInstalledWhenCliIsAvailableDespiteOtherComponentFailures()
+    {
+        var report = new ValidationReport(
+        [
+            new ValidationFinding("service.missing", "Server service is not registered.", ValidationSeverity.Error),
+            new ValidationFinding("desktop.missing", "Desktop application is missing.", ValidationSeverity.Error)
+        ]);
+
+        var status = InstallerComponentOperations.StatusFromValidation(
+            ProductComponent.Cli,
+            report,
+            new Version(1, 2, 3));
+
+        Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.Installed));
+    }
+
+    [Test]
+    public void StatusFromValidation_reportsCliNotInstalledOnlyWhenCliPathIsMissing()
+    {
+        var report = new ValidationReport(
+        [
+            new ValidationFinding("cli.path", "CLI is not available from a new shell.", ValidationSeverity.Error)
+        ]);
+
+        var status = InstallerComponentOperations.StatusFromValidation(
+            ProductComponent.Cli,
+            report,
+            new Version(1, 2, 3));
+
+        Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
+    }
+
+    [Test]
+    public void StatusFromValidation_reportsUpdateAvailableWhenCliVersionDoesNotMatch()
+    {
+        var report = new ValidationReport(
+        [
+            new ValidationFinding("cli.version", "CLI version could not be read.", ValidationSeverity.Error)
+        ]);
+
+        var status = InstallerComponentOperations.StatusFromValidation(
+            ProductComponent.Cli,
+            report,
+            new Version(1, 2, 3));
+
+        Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.UpdateAvailable));
+    }
+
+    [Test]
+    public void StatusFromValidation_reportsUpdateAvailableWhenServerVersionDoesNotMatch()
+    {
+        var report = new ValidationReport(
+        [
+            new ValidationFinding("server.version", "Server version could not be read.", ValidationSeverity.Error)
+        ]);
+
+        var status = InstallerComponentOperations.StatusFromValidation(
+            ProductComponent.Server,
+            report,
+            new Version(1, 2, 3));
+
+        Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.UpdateAvailable));
     }
 
     private static IEnumerable<TestCaseData> ManifestCases()
