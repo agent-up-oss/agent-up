@@ -19,6 +19,10 @@ Configuration is declarative. Capability-aware sections describe ecosystem requi
         "project": "src/Api/Api.csproj",
         "arguments": ["--no-launch-profile"]
       },
+      "environmentFiles": [".env"],
+      "environment": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
       "ports": [{ "variable": "API_PORT", "defaultPort": 5000 }]
     }
   ],
@@ -26,6 +30,7 @@ Configuration is declarative. Capability-aware sections describe ecosystem requi
     {
       "name": "Database",
       "image": "postgres:17",
+      "environmentFiles": [".env.database"],
       "ports": [{ "variable": "DB_PORT", "defaultPort": 5432 }]
     }
   ]
@@ -42,6 +47,10 @@ Legacy opaque commands remain supported when Agent-Up should only launch the com
       "name": "Frontend",
       "command": "dotnet run --project src/Web",
       "path": "/",
+      "environmentFiles": [".env"],
+      "environment": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
       "ports": [{ "variable": "WEB_PORT", "defaultPort": 5100 }]
     }
   ],
@@ -70,3 +79,9 @@ The Server owns port allocation and injects the workspace's full allocated port 
 Capability sections such as `dotnet` and `docker` are framework-aware at the ecosystem boundary: Agent-Up can discover installed versions, compare them with declared requirements, and report version mismatch errors before launch.
 
 The legacy `applications` list remains available for opaque commands, and legacy Docker `services` remain available for compatibility. Agent-Up runs legacy application commands through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Use command syntax that is valid on the operating systems where the workspace will run.
+
+## Environment And Secrets
+
+Applications, capability-backed applications, Docker capabilities, and legacy Docker services can declare `environmentFiles` for `.env`-style secrets and `environment` for inline non-secret values. Environment file paths are relative to the workspace root. File values are loaded when the Server launches the process and are not copied into saved workspace state; inline `environment` values are part of the workspace definition.
+
+Agent-Up applies local process environment values in this order: environment files, inline `environment`, then Server-allocated port variables.

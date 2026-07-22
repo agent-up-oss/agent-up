@@ -5,4 +5,5 @@ public record DockerCapabilityDefinition(
     string Image,
     IReadOnlyList<PortDeclaration>? Ports = null,
     IReadOnlyDictionary<string, string>? Environment = null,
-    IReadOnlyList<string>? Volumes = null);
+    IReadOnlyList<string>? Volumes = null,
+    IReadOnlyList<string>? EnvironmentFiles = null);

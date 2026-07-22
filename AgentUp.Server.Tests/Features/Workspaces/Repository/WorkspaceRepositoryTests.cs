@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
 
 namespace AgentUp.Server.Tests.Features.Workspaces.Repository;
@@ -51,7 +52,17 @@ public class WorkspaceRepositoryTests
             repositoryPath: "/repos/app",
             worktreePath: "/repos/app/.worktrees/alpha",
             commit: "abc1234",
-            state: WorkspaceState.Running);
+            state: WorkspaceState.Running,
+            applications:
+            [
+                new ApplicationInstance
+                {
+                    Name = "Web",
+                    Command = "npm run dev",
+                    Environment = new Dictionary<string, string> { ["PUBLIC_MODE"] = "dev" },
+                    EnvironmentFiles = [".env"]
+                }
+            ]);
 
         await _repository.SaveAllAsync([original]);
         var loaded = await _repository.LoadAllAsync();
@@ -65,6 +76,8 @@ public class WorkspaceRepositoryTests
         Assert.That(w.WorktreePath, Is.EqualTo("/repos/app/.worktrees/alpha"));
         Assert.That(w.Commit, Is.EqualTo("abc1234"));
         Assert.That(w.State, Is.EqualTo(WorkspaceState.Running));
+        Assert.That(w.Applications.Single().Environment!["PUBLIC_MODE"], Is.EqualTo("dev"));
+        Assert.That(w.Applications.Single().EnvironmentFiles, Is.EqualTo(new[] { ".env" }));
     }
 
     [Test]
@@ -151,7 +164,8 @@ public class WorkspaceRepositoryTests
         string repositoryPath = "/r",
         string worktreePath = "/r/w",
         string commit = "c1",
-        WorkspaceState state = WorkspaceState.Stopped) =>
+        WorkspaceState state = WorkspaceState.Stopped,
+        IReadOnlyList<ApplicationInstance>? applications = null) =>
         new()
         {
             Id = id,
@@ -160,6 +174,7 @@ public class WorkspaceRepositoryTests
             RepositoryPath = repositoryPath,
             WorktreePath = worktreePath,
             Commit = commit,
-            State = state
+            State = state,
+            Applications = applications ?? []
         };
 }

@@ -14,10 +14,11 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         return $"agentup-{safeId}-{safeName}";
     }
 
-    public IReadOnlyList<string> CreateRunArguments(string containerName, ApplicationInstance app)
+    public IReadOnlyList<string> CreateRunArguments(string containerName, ApplicationInstance app, string worktreePath)
     {
         var runArgs = new List<string> { "run", "-d", "--name", containerName };
         AddDockerPortArgs(runArgs, app);
+        AddDockerEnvironmentFileArgs(runArgs, app, worktreePath);
         AddDockerEnvironmentArgs(runArgs, app);
         AddDockerVolumeArgs(runArgs, app);
         runArgs.Add(app.Image!);
@@ -92,6 +93,15 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         {
             runArgs.Add("-e");
             runArgs.Add($"{key}={value}");
+        }
+    }
+
+    private static void AddDockerEnvironmentFileArgs(List<string> runArgs, ApplicationInstance app, string worktreePath)
+    {
+        foreach (var environmentFile in app.EnvironmentFiles ?? [])
+        {
+            runArgs.Add("--env-file");
+            runArgs.Add(EnvironmentFilePathProvider.ResolveExistingWorkspaceFile(worktreePath, environmentFile));
         }
     }
 

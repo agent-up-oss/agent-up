@@ -11,8 +11,9 @@ public class ApplicationInstance
     // Process fields
     public string? Command { get; init; }
     public string? Path { get; init; }
+    public IReadOnlyList<string>? EnvironmentFiles { get; init; }
 
-    // Docker fields
+    // Process and Docker fields
     public string? Image { get; init; }
     public IReadOnlyDictionary<string, string>? Environment { get; init; }
     public IReadOnlyList<string>? Volumes { get; init; }

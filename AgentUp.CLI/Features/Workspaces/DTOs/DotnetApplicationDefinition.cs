@@ -4,4 +4,6 @@ public record DotnetApplicationDefinition(
     string Name,
     string? Sdk,
     DotnetRunDefinition Run,
-    IReadOnlyList<PortDeclaration>? Ports = null);
+    IReadOnlyList<PortDeclaration>? Ports = null,
+    IReadOnlyDictionary<string, string>? Environment = null,
+    IReadOnlyList<string>? EnvironmentFiles = null);

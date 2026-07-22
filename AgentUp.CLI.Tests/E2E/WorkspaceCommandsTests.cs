@@ -145,7 +145,14 @@ public class WorkspaceCommandsTests
     {
         await WriteAgentUpJsonAsync(_workspaceDir, "My App",
         [
-            new { name = "Frontend", command = "npm run dev", path = "./ui" },
+            new
+            {
+                name = "Frontend",
+                command = "npm run dev",
+                path = "./ui",
+                environment = new Dictionary<string, string> { ["PUBLIC_MODE"] = "dev" },
+                environmentFiles = new[] { ".env" }
+            },
             new { name = "Backend", command = "dotnet run", path = "./api" }
         ]);
 
@@ -156,6 +163,8 @@ public class WorkspaceCommandsTests
 
         Assert.That(workspaces![0].Applications, Has.Count.EqualTo(2));
         Assert.That(workspaces[0].Applications[0].Name, Is.EqualTo("Frontend"));
+        Assert.That(workspaces[0].Applications[0].Environment!["PUBLIC_MODE"], Is.EqualTo("dev"));
+        Assert.That(workspaces[0].Applications[0].EnvironmentFiles, Is.EqualTo(new[] { ".env" }));
         Assert.That(workspaces[0].Applications[1].Name, Is.EqualTo("Backend"));
     }
 
@@ -430,6 +439,8 @@ public class WorkspaceCommandsTests
                     name = "Api",
                     sdk = "10.0.x",
                     run = new { project = "src/Api/Api.csproj", arguments = new[] { "--no-launch-profile" } },
+                    environment = new Dictionary<string, string> { ["ASPNETCORE_ENVIRONMENT"] = "Development" },
+                    environmentFiles = new[] { ".env" },
                     ports = new[] { new { variable = "API_PORT", defaultPort = 5000 } }
                 }
             },
@@ -439,6 +450,8 @@ public class WorkspaceCommandsTests
                 {
                     name = "Database",
                     image = "postgres:17",
+                    environment = new Dictionary<string, string> { ["POSTGRES_USER"] = "user" },
+                    environmentFiles = new[] { ".env.database" },
                     ports = new[] { new { variable = "DB_PORT", defaultPort = 5432 } }
                 }
             }
@@ -451,6 +464,10 @@ public class WorkspaceCommandsTests
         var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         Assert.That(workspaces![0].Applications.Select(app => app.Name), Is.EquivalentTo(new[] { "Api", "Database" }));
+        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Api").Environment!["ASPNETCORE_ENVIRONMENT"], Is.EqualTo("Development"));
+        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Api").EnvironmentFiles, Is.EqualTo(new[] { ".env" }));
+        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Database").Environment!["POSTGRES_USER"], Is.EqualTo("user"));
+        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Database").EnvironmentFiles, Is.EqualTo(new[] { ".env.database" }));
         Assert.That(output.ToString(), Does.Contain(".NET (1):"));
         Assert.That(output.ToString(), Does.Contain("Docker (1):"));
     }
