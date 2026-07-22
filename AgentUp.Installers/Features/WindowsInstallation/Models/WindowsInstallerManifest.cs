@@ -33,6 +33,9 @@ public sealed record WindowsInstallerManifest(
         "COM7",
         "COM8",
         "COM9",
+        "COM¹",
+        "COM²",
+        "COM³",
         "LPT1",
         "LPT2",
         "LPT3",
@@ -41,7 +44,10 @@ public sealed record WindowsInstallerManifest(
         "LPT6",
         "LPT7",
         "LPT8",
-        "LPT9"
+        "LPT9",
+        "LPT¹",
+        "LPT²",
+        "LPT³"
     ];
 
     public string ServiceDisplayName => $"{ProductName} Server";

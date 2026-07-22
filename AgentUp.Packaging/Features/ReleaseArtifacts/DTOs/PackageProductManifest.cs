@@ -18,6 +18,9 @@ public sealed record PackageProductManifest
         "COM7",
         "COM8",
         "COM9",
+        "COM¹",
+        "COM²",
+        "COM³",
         "LPT1",
         "LPT2",
         "LPT3",
@@ -26,7 +29,10 @@ public sealed record PackageProductManifest
         "LPT6",
         "LPT7",
         "LPT8",
-        "LPT9"
+        "LPT9",
+        "LPT¹",
+        "LPT²",
+        "LPT³"
     ];
 
     private static readonly PackageProductManifest AgentUpManifest = new("Agent-Up", "agent-up", "AGENTUP")

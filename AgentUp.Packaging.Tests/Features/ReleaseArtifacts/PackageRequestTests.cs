@@ -80,6 +80,8 @@ public class PackageRequestTests
     [TestCase("WindowsUpgradeCode", "not-a-guid")]
     [TestCase("WindowsServiceName", "bad\\service")]
     [TestCase("WindowsCliShimName", "CON.cmd")]
+    [TestCase("WindowsCliShimName", "COM¹.cmd")]
+    [TestCase("WindowsCliShimName", "LPT².cmd")]
     [TestCase("WindowsCliShimName", "orbit?.cmd")]
     [TestCase("WindowsCliShimName", "orbit.cmd.")]
     [TestCase("WindowsServerUrl", "not-a-url")]

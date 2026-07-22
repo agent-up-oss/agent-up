@@ -264,6 +264,8 @@ public class WindowsInstallerPlatformAdapterTests
     [TestCase(@"..\outside.cmd")]
     [TestCase("orbit?.cmd")]
     [TestCase("CON.cmd")]
+    [TestCase("COM¹.cmd")]
+    [TestCase("LPT².cmd")]
     [TestCase("shim.cmd.")]
     [TestCase("shim.cmd ")]
     public void WindowsWixSourceGenerator_rejectsUnsafeCliShimNameBeforeBuildingSourcePath(string cliShimName)
@@ -278,6 +280,8 @@ public class WindowsInstallerPlatformAdapterTests
     [TestCase(@"..\outside.cmd")]
     [TestCase("orbit?.cmd")]
     [TestCase("CON.cmd")]
+    [TestCase("COM¹.cmd")]
+    [TestCase("LPT².cmd")]
     [TestCase("shim.cmd.")]
     [TestCase("shim.cmd ")]
     public void WindowsInstallerPaths_rejectsUnsafeCliShimNameBeforeBuildingPath(string cliShimName)
