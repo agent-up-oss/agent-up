@@ -529,13 +529,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             NavigateWebView(_consoleWebView, new Uri("file://" + htmlPath));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
             // WebView creation is best-effort — GTK/WebView2 may not be available in all environments.
             Trace.TraceWarning($"Could not load console WebView: {ex.Message}");
             if (_consoleOverlay is not null)
             {
-                try { ConsolePane.Children.Remove(_consoleOverlay); } catch { }
+                try { ConsolePane.Children.Remove(_consoleOverlay); } catch (InvalidOperationException rex) { Trace.TraceWarning(rex.Message); }
                 _consoleOverlay = null;
             }
             _consoleWebView = null;
@@ -555,11 +555,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (_consoleWebView is IDisposable disposable)
             try { disposable.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
         _consoleWebView = null;
-        try { File.Delete(ConsoleHtmlPath()); } catch { }
+        try { File.Delete(ConsoleHtmlPath()); } catch (IOException ex) { Trace.TraceWarning(ex.Message); }
     }
 
     private static string ConsoleHtmlPath()
-        => Path.Combine(Path.GetTempPath(), "agentup-console-output.html");
+        => Path.Join(Path.GetTempPath(), "agentup-console-output.html");
 
     internal static string BuildConsoleHtml(IEnumerable<string> lines)
     {
