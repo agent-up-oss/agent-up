@@ -3,8 +3,8 @@ using System.Diagnostics;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Repositories;
+using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -16,14 +16,14 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private readonly ConcurrentDictionary<(string, string), Process> _processes = new();
     private readonly ConcurrentDictionary<(string, string), string> _containerNames = new();
 
-    private readonly WorkspaceRegistry _registry;
+    private readonly WorkspaceStateController _registry;
     private readonly IOutputRepository _output;
     private readonly ILocalProcessProvider _localProcesses;
     private readonly IDockerProcessProvider _docker;
     private readonly ILogger<WorkspaceProcessManager> _logger;
 
     public WorkspaceProcessManager(
-        WorkspaceRegistry registry,
+        WorkspaceStateController registry,
         IOutputRepository output,
         ILocalProcessProvider localProcesses,
         IDockerProcessProvider docker,

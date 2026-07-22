@@ -1,14 +1,14 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
+using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
-using AgentUp.Desktop.Features.Workspaces.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 public sealed class WorkspaceListViewModel : ReactiveObject
 {
-    private readonly WorkspaceApiClient _client;
+    private readonly WorkspacesController _workspaces;
     private WorkspaceItemViewModel? _selectedWorkspace;
     private bool _isCollapsed;
     private bool _isLoading;
@@ -77,9 +77,9 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
 
-    public WorkspaceListViewModel(WorkspaceApiClient client)
+    public WorkspaceListViewModel(WorkspacesController workspaces)
     {
-        _client = client;
+        _workspaces = workspaces;
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
     }
@@ -91,7 +91,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
         try
         {
             var selectedId = SelectedWorkspace?.Id;
-            var workspaces = await _client.ListAsync(ct);
+            var workspaces = await _workspaces.ListAsync(ct);
             Workspaces.Clear();
             foreach (var ws in workspaces)
                 Workspaces.Add(new WorkspaceItemViewModel(

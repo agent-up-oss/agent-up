@@ -1,4 +1,5 @@
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
+using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
@@ -30,7 +31,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
 
         Assert.That(model.ComponentCards.Select(c => c.Target.Id), Is.EqualTo(new[] { "editor", "renderer" }));
         Assert.That(model.ComponentCards.Select(c => c.Title), Is.EqualTo(new[] { "Editor", "Renderer" }));
@@ -47,7 +48,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
 
         var allDescriptions = string.Join("|", model.ComponentCards.Select(c => c.Description));
         Assert.That(allDescriptions, Does.Not.Contain("Human UI for Agent-Up workspaces."));
@@ -65,7 +66,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
 
         var editor = model.ComponentCards.Single(c => c.Target.Id == "editor");
 
@@ -101,7 +102,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
 
         Assert.That(model.ComponentCards, Has.Count.EqualTo(3));
         Assert.That(model.ComponentCards.Select(c => c.Target.Id), Is.EqualTo(new[] { "desktop", "server", "cli" }));
@@ -116,7 +117,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
         var module = new InstalledCapabilityModule(
             "dotnet",
             ".NET",
@@ -140,7 +141,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
         var existingModule = new InstalledCapabilityModule(
             "dotnet",
             ".NET",
@@ -176,7 +177,7 @@ public class ProductComponentCardTests
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
         var catalogEntry = new CatalogCapabilityViewModel(
             new CapabilityCatalogEntry(
                 "dotnet",

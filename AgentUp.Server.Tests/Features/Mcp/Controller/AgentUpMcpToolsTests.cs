@@ -24,18 +24,15 @@ public sealed class AgentUpMcpToolsTests
     [SetUp]
     public async Task SetUp()
     {
-        _registry = new WorkspaceRegistry(
-            new InMemoryWorkspaceRepository(),
-            new InMemoryPortAllocationService(),
-            new CapabilityReconciliationService([]));
+        _registry = ServerTestComposition.CreateRegistry();
         await _registry.StartAsync(CancellationToken.None);
 
         _configuration = new FakeConfigurationProvider();
-        var workspaceController = new McpWorkspaceController(new McpWorkspaceService(
+        var workspaceController = ServerTestComposition.CreateMcpWorkspaceController(
             _registry,
             new NullWorkspaceProcessManager(),
             _configuration,
-            new FakeWorkspaceIdentityProvider()));
+            new FakeWorkspaceIdentityProvider());
         var contextController = new McpContextController(new AgentUpContextProvider());
         _tools = new AgentUpMcpTools(workspaceController, contextController);
     }
@@ -83,11 +80,11 @@ public sealed class AgentUpMcpToolsTests
     [Test]
     public async Task StartWorkspace_ReturnsStructuredError_WhenConfigurationReadFails()
     {
-        var workspaceController = new McpWorkspaceController(new McpWorkspaceService(
+        var workspaceController = ServerTestComposition.CreateMcpWorkspaceController(
             _registry,
             new NullWorkspaceProcessManager(),
             new ThrowingConfigurationProvider(),
-            new FakeWorkspaceIdentityProvider()));
+            new FakeWorkspaceIdentityProvider());
         var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new AgentUpContextProvider()));
 
         var result = await tools.StartWorkspace("/repos/bad-config", CancellationToken.None);
@@ -123,11 +120,11 @@ public sealed class AgentUpMcpToolsTests
     public async Task StopWorkspace_ReturnsStructuredError_WhenProcessStopFails()
     {
         var workspace = await RegisterRunningWorkspace("/repos/app");
-        var workspaceController = new McpWorkspaceController(new McpWorkspaceService(
+        var workspaceController = ServerTestComposition.CreateMcpWorkspaceController(
             _registry,
             new FailingWorkspaceProcessManager(),
             _configuration,
-            new FakeWorkspaceIdentityProvider()));
+            new FakeWorkspaceIdentityProvider());
         var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new AgentUpContextProvider()));
 
         var result = await tools.StopWorkspace(workspace.Id);

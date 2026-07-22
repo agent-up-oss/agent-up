@@ -1,32 +1,29 @@
 using AgentUp.CLI.Features.Workspaces.DTOs;
-using AgentUp.CLI.Features.Workspaces.Providers;
+using AgentUp.CLI.Features.Workspaces.Services;
 
 namespace AgentUp.CLI.Features.Workspaces.Controllers;
 
 public sealed class ListCommand
 {
-    private readonly WorkspaceApiClient _client;
+    private readonly WorkspaceCommandService _service;
     private readonly TextWriter _output;
 
-    public ListCommand(WorkspaceApiClient client, TextWriter output)
+    public ListCommand(WorkspaceCommandService service, TextWriter output)
     {
-        _client = client;
+        _service = service;
         _output = output;
     }
 
     public async Task<int> RunAsync()
     {
-        List<WorkspaceDto> workspaces;
-        try
+        var result = await _service.ListAsync();
+        if (!result.Succeeded)
         {
-            workspaces = await _client.ListAsync();
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
-        {
-            _output.WriteLine($"Error: Failed to list workspaces: {ex.Message}");
+            _output.WriteLine(result.Error);
             return 1;
         }
 
+        var workspaces = result.Value!;
         if (workspaces.Count == 0)
         {
             _output.WriteLine("No workspaces registered.");

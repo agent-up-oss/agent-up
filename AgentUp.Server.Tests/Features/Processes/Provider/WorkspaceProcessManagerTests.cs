@@ -23,13 +23,10 @@ public class WorkspaceProcessManagerTests
     public async Task SetUp()
     {
         _output = new InMemoryOutputRepository();
-        _registry = new WorkspaceRegistry(
-            new InMemoryWorkspaceRepository(),
-            new InMemoryPortAllocationService(),
-            new CapabilityReconciliationService([]));
+        _registry = ServerTestComposition.CreateRegistry();
         await ((IHostedService)_registry).StartAsync(CancellationToken.None);
         _manager = new WorkspaceProcessManager(
-            _registry,
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
             _output,
             new LocalProcessProvider(),
             new DockerProcessProvider(),

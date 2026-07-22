@@ -2,7 +2,7 @@ using System.ComponentModel;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Mcp.DTOs;
 using AgentUp.Server.Features.Mcp.Interfaces;
-using AgentUp.Server.Features.Processes.Services;
+using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 
@@ -14,13 +14,13 @@ public sealed class McpWorkspaceService
         "agent-up.json was not found. Inspect docs/user-docs/agent-up-json.md, search the repository for an existing agent-up.json, or ask the user before creating one.";
 
     private readonly WorkspaceRegistry _registry;
-    private readonly IWorkspaceProcessManager _processes;
+    private readonly ProcessesController _processes;
     private readonly IAgentUpConfigurationProvider _configuration;
     private readonly IWorkspaceIdentityProvider _identity;
 
     public McpWorkspaceService(
         WorkspaceRegistry registry,
-        IWorkspaceProcessManager processes,
+        ProcessesController processes,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
     {
@@ -99,7 +99,7 @@ public sealed class McpWorkspaceService
 
         try
         {
-            await _processes.KillAsync(workspace.Id);
+            await _processes.KillWorkspaceAsync(workspace.Id);
         }
         catch (InvalidOperationException ex)
         {
@@ -145,7 +145,7 @@ public sealed class McpWorkspaceService
         try
         {
             await _registry.ReallocatePortsAsync(id);
-            await _processes.LaunchAsync(workspace);
+            await _processes.LaunchWorkspaceAsync(workspace);
             await _registry.UpdateStateAsync(id, WorkspaceState.Running);
             foreach (var app in workspace.Applications)
                 await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);

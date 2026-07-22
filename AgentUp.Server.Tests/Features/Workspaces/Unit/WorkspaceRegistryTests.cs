@@ -365,10 +365,7 @@ public class WorkspaceRegistryTests
     }
 
     private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
-        new(
-            new InMemoryWorkspaceRepository(),
-            new InMemoryPortAllocationService(),
-            new CapabilityReconciliationService(adapters));
+        ServerTestComposition.CreateRegistry(adapters);
 
     private sealed class FakeCapabilityAdapter(string capabilityId) : ICapabilityAdapter
     {

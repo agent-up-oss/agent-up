@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using AgentUp.Server.Features.Applications.DTOs;
-using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Ports.Models;
-using AgentUp.Server.Features.Ports.Services;
+using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using Microsoft.Extensions.Hosting;
@@ -13,13 +13,13 @@ public sealed class WorkspaceRegistry : IHostedService
 {
     private readonly ConcurrentDictionary<string, Workspace> _workspaces = new();
     private readonly IWorkspaceRepository _repository;
-    private readonly IPortAllocationService _ports;
-    private readonly CapabilityReconciliationService _capabilities;
+    private readonly PortsController _ports;
+    private readonly CapabilitiesController _capabilities;
 
     public WorkspaceRegistry(
         IWorkspaceRepository repository,
-        IPortAllocationService ports,
-        CapabilityReconciliationService capabilities)
+        PortsController ports,
+        CapabilitiesController capabilities)
     {
         _repository = repository;
         _ports = ports;

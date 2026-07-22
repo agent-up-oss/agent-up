@@ -12,18 +12,19 @@ public static class CliRunnerFactory
         var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
         var client = new WorkspaceApiClient(http);
         var resolver = new CurrentWorkspaceResolver(client, workingDirectory);
+        var service = new WorkspaceCommandService(
+            client,
+            new WorkspaceConfigurationProvider(),
+            new WorkspaceIdentityProvider(),
+            resolver,
+            workingDirectory);
 
         return new CliRunner(
             serverUrl,
             writer,
-            new StartCommand(
-                client,
-                new WorkspaceConfigurationProvider(),
-                new WorkspaceIdentityProvider(),
-                workingDirectory,
-                writer),
-            new StopCommand(client, resolver, writer),
-            new ListCommand(client, writer),
-            new StatusCommand(resolver, writer));
+            new StartCommand(service, writer),
+            new StopCommand(service, writer),
+            new ListCommand(service, writer),
+            new StatusCommand(service, writer));
     }
 }

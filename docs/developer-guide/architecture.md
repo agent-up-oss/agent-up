@@ -145,7 +145,7 @@ Do not add interfaces for 1:1 concrete mappings. An interface is justified only 
 
 ## Slice Lifecycle
 
-Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services. Controllers must not be static composition wrappers and must not expose another slice's internal services, providers, repositories, factories, interfaces, or models as return types.
+Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services. Controllers must not import providers, repositories, or factories directly, must not be static composition wrappers, and must not expose another slice's internal services, providers, repositories, factories, interfaces, or models as return types.
 
 Services own domain lifecycle and orchestration behind controllers. Follow the service/provider rule above for the boundary between domain orchestration and low-level implementation.
 

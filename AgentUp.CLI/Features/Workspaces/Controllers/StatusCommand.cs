@@ -4,18 +4,18 @@ namespace AgentUp.CLI.Features.Workspaces.Controllers;
 
 public sealed class StatusCommand
 {
-    private readonly CurrentWorkspaceResolver _resolver;
+    private readonly WorkspaceCommandService _service;
     private readonly TextWriter _output;
 
-    public StatusCommand(CurrentWorkspaceResolver resolver, TextWriter output)
+    public StatusCommand(WorkspaceCommandService service, TextWriter output)
     {
-        _resolver = resolver;
+        _service = service;
         _output = output;
     }
 
     public async Task<int> RunAsync()
     {
-        var resolution = await _resolver.ResolveAsync(
+        var resolution = await _service.ResolveCurrentAsync(
             "Error: Failed to query workspaces",
             "No workspace registered for this directory.");
         if (!resolution.Succeeded)

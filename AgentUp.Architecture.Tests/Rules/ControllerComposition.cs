@@ -73,6 +73,20 @@ public sealed class ControllerComposition
     }
 
     [Test]
+    public void Controllers_do_not_import_low_level_implementation_folders()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var lowLevelFolders = new[] { "Providers", "Repositories", "Factories" };
+        var violations = ArchitectureFixture.ProductionSourceFiles(root)
+            .Where(path => ArchitectureFixture.HasPathPart(root, path, "Controllers"))
+            .SelectMany(path => FindLowLevelControllerUsings(root, path, lowLevelFolders))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty,
+            "Controllers must route DTOs to domain services; providers, repositories, and factories stay behind services or composition roots.");
+    }
+
+    [Test]
     public void Feature_slices_with_inbound_same_project_traffic_have_controller_boundaries()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
@@ -95,6 +109,20 @@ public sealed class ControllerComposition
         var text = returnType.ToString();
         return InternalTypeFolders.Any(folder => text.Contains($".{folder}.", StringComparison.Ordinal))
                || InternalTypeFolders.Any(folder => ArchitectureFixture.FinalTypeSegment(returnType).EndsWith(folder[..^1], StringComparison.Ordinal));
+    }
+
+    private static IEnumerable<string> FindLowLevelControllerUsings(string root, string path, IReadOnlyCollection<string> lowLevelFolders)
+    {
+        var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
+        foreach (var usingDirective in rootNode.DescendantNodes().OfType<UsingDirectiveSyntax>())
+        {
+            var name = usingDirective.Name?.ToString();
+            if (name is null)
+                continue;
+
+            if (lowLevelFolders.Any(folder => name.Contains($".{folder}", StringComparison.Ordinal)))
+                yield return $"{ArchitectureFixture.Location(root, path, tree, usingDirective)}: using {name}";
+        }
     }
 
     private static IEnumerable<(string Project, string Slice)> FindInboundFeatureTargets(string root, string path, string[] sourceParts)

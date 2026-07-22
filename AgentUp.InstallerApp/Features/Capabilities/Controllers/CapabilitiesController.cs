@@ -1,4 +1,3 @@
-using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Capabilities.Services;
 
@@ -23,18 +22,4 @@ public sealed class CapabilitiesController(CapabilityDashboardService service)
         CancellationToken cancellationToken = default)
         => service.SelectVersionAsync(module, version, cancellationToken);
 
-    public static CapabilitiesController CreateDefault()
-        => new(CapabilityDashboardServiceFactory.CreateDefault());
-
-    public static CapabilitiesController CreateNixOs()
-        => new(CapabilityDashboardServiceFactory.CreateNixOs());
-
-    public static CapabilitiesController CreateNixOs(string cacheRoot)
-        => new(CapabilityDashboardServiceFactory.CreateNixOs(cacheRoot));
-
-    public static CapabilitiesController CreateFake()
-        => new(CapabilityDashboardServiceFactory.CreateFake());
-
-    public static CapabilitiesController CreateEmpty()
-        => new(CapabilityDashboardServiceFactory.CreateEmpty());
 }

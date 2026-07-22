@@ -20,17 +20,14 @@ public sealed class AgentUpMcpResourcesTests
     [SetUp]
     public async Task SetUp()
     {
-        _registry = new WorkspaceRegistry(
-            new InMemoryWorkspaceRepository(),
-            new InMemoryPortAllocationService(),
-            new CapabilityReconciliationService([]));
+        _registry = ServerTestComposition.CreateRegistry();
         await _registry.StartAsync(CancellationToken.None);
 
-        var workspaceController = new McpWorkspaceController(new McpWorkspaceService(
+        var workspaceController = ServerTestComposition.CreateMcpWorkspaceController(
             _registry,
             new NullWorkspaceProcessManager(),
             new FakeConfigurationProvider(),
-            new FakeWorkspaceIdentityProvider()));
+            new FakeWorkspaceIdentityProvider());
         var contextController = new McpContextController(new AgentUpContextProvider());
         _resources = new AgentUpMcpResources(workspaceController, contextController);
     }
