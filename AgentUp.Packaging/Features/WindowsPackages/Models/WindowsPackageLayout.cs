@@ -34,8 +34,8 @@ public sealed record WindowsPackageLayout(
             BundleWxsPath: Path.Join(installerSource, "Bundle.wxs"),
             LicenseRtfPath: Path.Join(installerSource, "License.rtf"),
             ProductMsiPath: Path.Join(stage, "Product.msi"),
-            ProductMsiOutputPath: Path.Join(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.msi"),
-            SetupExePath: Path.Join(request.OutputRoot, $"agent-up-windows-{request.RuntimeId}.exe"));
+            ProductMsiOutputPath: Path.Join(request.OutputRoot, $"{request.ProductManifest.Slug}-windows-{request.RuntimeId}.msi"),
+            SetupExePath: Path.Join(request.OutputRoot, $"{request.ProductManifest.Slug}-windows-{request.RuntimeId}.exe"));
     }
 
     public WindowsInstallerLayout ToInstallerLayout()

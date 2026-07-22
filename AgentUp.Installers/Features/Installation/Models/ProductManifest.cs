@@ -5,13 +5,17 @@ public sealed record ProductManifest(
     string Slug,
     string EnvironmentPrefix)
 {
+    private static readonly ProductManifest AgentUpManifest = new("Agent-Up", "agent-up", "AGENTUP")
+    {
+        Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+    };
+
     public IReadOnlyList<ProductComponent> Components { get; init; } = [];
+    public string? Manufacturer { get; init; }
+    public string? WindowsUpgradeCode { get; init; }
 
     public static ProductManifest AgentUp()
-        => new("Agent-Up", "agent-up", "AGENTUP")
-        {
-            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
-        };
+        => AgentUpManifest;
 
     public string ServiceName => $"{Slug}-server";
     public string CliCommandName => Slug;

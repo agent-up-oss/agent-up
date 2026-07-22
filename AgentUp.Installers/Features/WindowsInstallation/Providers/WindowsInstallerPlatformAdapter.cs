@@ -170,7 +170,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             _files.ResetDirectory(_options.Paths.CliDirectory);
             _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
             _files.CreateDirectory(_options.Paths.BinDirectory);
-            _files.WriteText(_options.Paths.CliShimPath, WindowsWixSourceGenerator.CliShimText());
+            _files.WriteText(_options.Paths.CliShimPathFor(manifest.CliShimName), WindowsWixSourceGenerator.CliShimText());
         }
         yield return progress.Complete(InstallOperationKind.InstallFiles);
 
