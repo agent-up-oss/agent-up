@@ -20,13 +20,43 @@ public class WindowsWixPackagingToolTests
         await tool.BuildProductMsiAsync(layout);
         await tool.BuildBundleAsync(request, layout);
 
-        Assert.That(commands.Commands.Count(command => command.FileName == "wix"), Is.EqualTo(3));
-        Assert.That(commands.Commands[0].Arguments, Is.EqualTo(new[] { "eula", "accept", "wix7" }));
-        Assert.That(commands.Commands[1].Arguments, Does.Contain(layout.ProductWxsPath));
-        Assert.That(commands.Commands[1].Arguments, Does.Contain(layout.ProductMsiPath));
-        Assert.That(commands.Commands[2].Arguments, Does.Contain(layout.BundleWxsPath));
-        Assert.That(commands.Commands[2].Arguments, Does.Contain("WixToolset.Bal.wixext"));
-        Assert.That(commands.Commands[2].Arguments, Does.Contain(layout.SetupExePath));
+        Assert.That(CommandBytes(commands.Commands), Is.EqualTo(CommandBytes(ExpectedAgentUpWixCommands(layout))));
+    }
+
+    private static IReadOnlyList<CommandSpec> ExpectedAgentUpWixCommands(WindowsPackageLayout layout)
+    {
+        string[] accept = ["eula", "accept", "wix7"];
+        string[] product =
+        [
+            "build",
+            layout.ProductWxsPath,
+            "-arch", "x64",
+            "-o", layout.ProductMsiPath
+        ];
+        string[] bundle =
+        [
+            "build",
+            layout.BundleWxsPath,
+            "-ext", "WixToolset.Bal.wixext",
+            "-o", layout.SetupExePath
+        ];
+
+        if (OperatingSystem.IsWindows())
+        {
+            return
+            [
+                new CommandSpec("cmd.exe", ["/c", "wix", .. accept]),
+                new CommandSpec("cmd.exe", ["/c", "wix", .. product]),
+                new CommandSpec("cmd.exe", ["/c", "wix", .. bundle])
+            ];
+        }
+
+        return
+        [
+            new CommandSpec("wix", accept),
+            new CommandSpec("wix", product),
+            new CommandSpec("wix", bundle)
+        ];
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner
@@ -39,4 +69,8 @@ public class WindowsWixPackagingToolTests
             return Task.FromResult(new CommandResult(0, "", ""));
         }
     }
+
+    private static IReadOnlyList<string> CommandBytes(IEnumerable<CommandSpec> commands)
+        => commands.Select(command => string.Join('\u001f',
+            [command.FileName, command.WorkingDirectory ?? "", .. command.Arguments])).ToArray();
 }

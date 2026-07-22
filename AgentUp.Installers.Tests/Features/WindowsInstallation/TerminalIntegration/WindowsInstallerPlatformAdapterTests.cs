@@ -212,6 +212,88 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public void WindowsWixSourceGenerator_forNonAgentUpManifest_containsProductIdentityAndNoAgentUpBranding()
+    {
+        var root = System.IO.Path.Join(System.IO.Path.GetTempPath(), "AgentUp-WindowsInstallerTests", Guid.NewGuid().ToString());
+        try
+        {
+            var layout = new WindowsInstallerLayout(
+                InstallerSourceDirectory: System.IO.Path.Join(root, "wix"),
+                InstallerPublishDirectory: System.IO.Path.Join(root, "installer"),
+                DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
+                ServerPublishDirectory: System.IO.Path.Join(root, "server"),
+                CliPublishDirectory: System.IO.Path.Join(root, "cli"),
+                LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
+                ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
+            WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+            WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+            WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+            WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+            Directory.CreateDirectory(layout.InstallerSourceDirectory);
+            File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "acme-studio.cmd"), "");
+            var manifest = WindowsInstallerManifest.From(AcmeStudio(), "1.2.3", "http://127.0.0.1:5001");
+
+            var generator = new WindowsWixSourceGenerator(manifest);
+            var product = generator.ProductWxs(layout);
+            var bundle = generator.BundleWxs(layout);
+            var output = product + Environment.NewLine + bundle;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(product, Does.Contain("Name=\"Acme Studio\""));
+                Assert.That(product, Does.Contain("Manufacturer=\"Acme Studio\""));
+                Assert.That(product, Does.Contain("Name=\"acme-studio-server\""));
+                Assert.That(product, Does.Contain("DisplayName=\"Acme Studio Server\""));
+                Assert.That(product, Does.Contain("Local Acme Studio runtime authority"));
+                Assert.That(product, Does.Contain("Acme Studio Installer"));
+                Assert.That(product, Does.Contain("Software\\Acme Studio"));
+                Assert.That(product, Does.Contain("acme-studio.cmd"));
+                Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Acme Studio\installer\AgentUp.InstallerApp.exe"""));
+                Assert.That(bundle, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Acme Studio\installer"""));
+                Assert.That(output, Does.Not.Contain("Agent-Up"));
+                Assert.That(output, Does.Not.Contain("agent-up"));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [TestCase(@"..\outside.cmd")]
+    [TestCase("orbit?.cmd")]
+    [TestCase("CON.cmd")]
+    [TestCase("COM¹.cmd")]
+    [TestCase("LPT².cmd")]
+    [TestCase("shim.cmd.")]
+    [TestCase("shim.cmd ")]
+    public void WindowsWixSourceGenerator_rejectsUnsafeCliShimNameBeforeBuildingSourcePath(string cliShimName)
+    {
+        var manifest = WindowsInstallerManifest.Create("1.2.3") with { CliShimName = cliShimName };
+
+        var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
+
+        Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
+    }
+
+    [TestCase(@"..\outside.cmd")]
+    [TestCase("orbit?.cmd")]
+    [TestCase("CON.cmd")]
+    [TestCase("COM¹.cmd")]
+    [TestCase("LPT².cmd")]
+    [TestCase("shim.cmd.")]
+    [TestCase("shim.cmd ")]
+    public void WindowsInstallerPaths_rejectsUnsafeCliShimNameBeforeBuildingPath(string cliShimName)
+    {
+        var paths = Options().Paths;
+
+        var exception = Assert.Throws<ArgumentException>(() => paths.CliShimPathFor(cliShimName));
+
+        Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
+    }
+
+    [Test]
     public async Task ExecuteInstallAsync_withNonAgentUpManifest_registersProductServiceAndDoesNotQueryAgentUpService()
     {
         var files = new RecordingWindowsFileSystem();
@@ -227,6 +309,8 @@ public class WindowsInstallerPlatformAdapterTests
         {
             Assert.That(scArguments.Any(a => a.Contains("acme-studio-server")), Is.True, "Should register Acme Studio service");
             Assert.That(scArguments.Any(a => a.Contains("agent-up")), Is.False, "Should not reference Agent-Up service name");
+            Assert.That(files.Writes.Keys, Does.Contain(@"C:\Program Files\Acme Studio\bin\acme-studio.cmd"));
+            Assert.That(files.Writes.Keys, Does.Not.Contain(@"C:\Program Files\Acme Studio\bin\agent-up.cmd"));
         });
     }
 

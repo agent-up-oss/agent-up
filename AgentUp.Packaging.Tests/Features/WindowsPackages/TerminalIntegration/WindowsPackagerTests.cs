@@ -76,6 +76,39 @@ public class WindowsPackagerTests
         }
     }
 
+    [Test]
+    public async Task PackageAsync_forNonAgentUpProductWritesProductCliShimAndProductMsiArtifact()
+    {
+        var commands = new RecordingCommandRunner();
+        var writer = new RecordingWindowsPackageWriter();
+        var packagingTool = new RecordingWindowsPackagingTool();
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
+        var request = new PackageRequest(
+            root,
+            "windows",
+            "win-x64",
+            "1.2.3",
+            "out",
+            "Release",
+            productManifest: new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
+
+        try
+        {
+            await new WindowsPackager(writer, CreatePayloads(commands, writer), packagingTool).PackageAsync(request);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+
+        Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("orbit-desk.cmd", StringComparison.Ordinal)), Is.True);
+        Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("agent-up.cmd", StringComparison.Ordinal)), Is.False);
+        Assert.That(writer.CopiedFiles, Does.Contain((
+            Path.Join(root, "artifacts", "stage", "windows-win-x64", "Product.msi"),
+            Path.Join(root, "out", "orbit-desk-windows-win-x64.msi"))));
+    }
+
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)
     {
         var directory = Path.Join(payloadRoot, component);
