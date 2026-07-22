@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Installers.Features.MacOsInstallation.Models;
 
@@ -20,6 +21,19 @@ public sealed record MacOsInstallerManifest(
             BundleIconFile: "Agent-Up.png",
             Version: version,
             ServerUrl: "http://127.0.0.1:5000");
+
+    public static MacOsInstallerManifest From(
+        ProductManifest product,
+        string version,
+        string serverUrl = "http://127.0.0.1:5000")
+        => new(
+            ProductName: product.ProductName,
+            DesktopBundleIdentifier: $"dev.{product.Slug}.desktop",
+            InstallerBundleIdentifier: $"dev.{product.Slug}.installer",
+            ServerLaunchDaemonLabel: $"dev.{product.Slug}.server",
+            BundleIconFile: $"{product.ProductName.Replace(" ", "-")}.png",
+            Version: version,
+            ServerUrl: serverUrl);
 }
 
 public sealed class MacOsInstallerPlistGenerator

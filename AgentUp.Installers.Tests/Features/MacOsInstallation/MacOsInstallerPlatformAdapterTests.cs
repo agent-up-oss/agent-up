@@ -158,6 +158,166 @@ public class MacOsInstallerPlatformAdapterTests
         Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v agent-up\"")));
     }
 
+    [Test]
+    public async Task Install_withNonAgentUpManifest_registersProductLaunchdLabel_notAgentUpLabel()
+    {
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = Adapter(commands, new RecordingMacOsFileSystem(), AcmePaths());
+        var session = AcmeSession();
+
+        await adapter.ExecuteInstallAsync(session).DrainAsync();
+        await adapter.ValidateInstalledStateAsync(session);
+
+        var script = commands.CapturedScript;
+        Assert.Multiple(() =>
+        {
+            Assert.That(script, Does.Contain("dev.acme-studio.server"), "Install script must reference the product's launchd label");
+            Assert.That(script, Does.Contain("launchctl bootstrap system '/Library/LaunchDaemons/dev.acme-studio.server.plist'"));
+            Assert.That(script, Does.Contain("launchctl kickstart -k system/dev.acme-studio.server"));
+            Assert.That(commands.PlainCommands, Does.Contain(("launchctl", "print system/dev.acme-studio.server")),
+                "Validation must query the product's launchd service, not Agent-Up's");
+            Assert.That(script, Does.Not.Contain("dev.agent-up.server"), "Agent-Up's launchd label must not appear in a non-Agent-Up install");
+            Assert.That(commands.PlainCommands, Does.Not.Contain(("launchctl", "print system/dev.agent-up.server")),
+                "Agent-Up's launchd label must not be queried");
+        });
+    }
+
+    [Test]
+    public async Task Install_withNonAgentUpManifest_placesAppBundleUnderProductName_allowingCoexistence()
+    {
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = Adapter(commands, new RecordingMacOsFileSystem(), AcmePaths());
+
+        await adapter.ExecuteInstallAsync(AcmeSession()).DrainAsync();
+
+        var script = commands.CapturedScript;
+        Assert.Multiple(() =>
+        {
+            Assert.That(script, Does.Contain("'/Applications/Acme Studio.app'"), "App bundle must be placed under the product name");
+            Assert.That(script, Does.Not.Contain("Agent-Up.app"), "Agent-Up bundle must not be mentioned");
+            Assert.That(AcmePaths().AppBundleDirectory, Is.Not.EqualTo(MacOsInstallerPaths.SystemDefault().AppBundleDirectory),
+                "The two products must have distinct bundle directories");
+        });
+    }
+
+    [Test]
+    public async Task Install_withNonAgentUpManifest_createsCliSymlinkWithProductSlug()
+    {
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = Adapter(commands, new RecordingMacOsFileSystem(), AcmePaths());
+        var session = AcmeSession();
+
+        await adapter.ExecuteInstallAsync(session).DrainAsync();
+        await adapter.ValidateInstalledStateAsync(session);
+
+        var script = commands.CapturedScript;
+        Assert.Multiple(() =>
+        {
+            Assert.That(script, Does.Contain("'/usr/local/bin/acme-studio'"), "CLI symlink must use the product's slug");
+            Assert.That(commands.PlainCommands, Does.Contain(("bash", "-lc \"command -v acme-studio\"")),
+                "Shell validation must check the product's CLI name");
+            Assert.That(script, Does.Not.Contain("'/usr/local/bin/agent-up'"), "Agent-Up CLI symlink must not be created");
+        });
+    }
+
+    [Test]
+    public async Task Uninstall_withNonAgentUpManifest_removesOnlyProductEntries_withoutTouchingAgentUp()
+    {
+        var session = AcmeSession();
+        var serverCommands = new ScriptCapturingCommandRunner();
+        var cliCommands = new ScriptCapturingCommandRunner();
+        var desktopCommands = new ScriptCapturingCommandRunner();
+
+        await Adapter(serverCommands, new RecordingMacOsFileSystem(), AcmePaths())
+            .ExecuteUninstallAsync(InstallerComponentTarget.Server, session).DrainAsync();
+        await Adapter(cliCommands, new RecordingMacOsFileSystem(), AcmePaths())
+            .ExecuteUninstallAsync(InstallerComponentTarget.Cli, session).DrainAsync();
+        await Adapter(desktopCommands, new RecordingMacOsFileSystem(), AcmePaths())
+            .ExecuteUninstallAsync(InstallerComponentTarget.Desktop, session).DrainAsync();
+
+        var serverScript = serverCommands.CapturedScript ?? "";
+        var cliScript = cliCommands.CapturedScript ?? "";
+        var desktopScript = desktopCommands.CapturedScript ?? "";
+        var allScripts = serverScript + cliScript + desktopScript;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(serverScript, Does.Contain("'/Library/LaunchDaemons/dev.acme-studio.server.plist'"));
+            Assert.That(serverScript, Does.Contain("'/Library/Application Support/Acme Studio/server'"));
+            Assert.That(serverScript, Does.Contain("'/usr/local/bin/acme-studio-server'"));
+            Assert.That(cliScript, Does.Contain("'/usr/local/acme-studio/cli'"));
+            Assert.That(cliScript, Does.Contain("'/usr/local/bin/acme-studio'"));
+            Assert.That(desktopScript, Does.Contain("'/Applications/Acme Studio.app'"));
+            Assert.That(desktopScript, Does.Contain("'/usr/local/bin/acme-studio-desktop'"));
+            Assert.That(allScripts, Does.Not.Contain("agent-up").And.Not.Contain("Agent-Up"),
+                "Uninstall must not touch any Agent-Up entries");
+        });
+    }
+
+    private static IEnumerable<TestCaseData> ManifestPairs()
+    {
+        yield return new TestCaseData(ProductManifest.AgentUp(), AcmeStudio)
+            .SetName("AgentUp_vs_AcmeStudio");
+    }
+
+    [TestCaseSource(nameof(ManifestPairs))]
+    public async Task TwoManifests_haveDistinctMacOsIdentities_andBothInstallsCoexist(ProductManifest first, ProductManifest second)
+    {
+        var firstPaths = MacOsInstallerPaths.From(first);
+        var secondPaths = MacOsInstallerPaths.From(second);
+        var firstCommands = new ScriptCapturingCommandRunner();
+        var secondCommands = new ScriptCapturingCommandRunner();
+
+        await Adapter(firstCommands, new RecordingMacOsFileSystem(), firstPaths)
+            .ExecuteInstallAsync(SessionFor(first)).DrainAsync();
+        await Adapter(secondCommands, new RecordingMacOsFileSystem(), secondPaths)
+            .ExecuteInstallAsync(SessionFor(second)).DrainAsync();
+
+        var firstScript = firstCommands.CapturedScript ?? "";
+        var secondScript = secondCommands.CapturedScript ?? "";
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstPaths.LaunchDaemonPath, Is.Not.EqualTo(secondPaths.LaunchDaemonPath), "launchd plist paths must differ");
+            Assert.That(firstPaths.AppBundleDirectory, Is.Not.EqualTo(secondPaths.AppBundleDirectory), "App bundle paths must differ");
+            Assert.That(firstPaths.CliSymlinkPath, Is.Not.EqualTo(secondPaths.CliSymlinkPath), "CLI symlink paths must differ");
+
+            Assert.That(firstScript, Does.Contain($"dev.{first.Slug}.server"));
+            Assert.That(secondScript, Does.Contain($"dev.{second.Slug}.server"));
+            Assert.That(firstScript, Does.Contain($"'{firstPaths.AppBundleDirectory}'"));
+            Assert.That(secondScript, Does.Contain($"'{secondPaths.AppBundleDirectory}'"));
+            Assert.That(firstScript, Does.Contain($"'{firstPaths.CliSymlinkPath}'"));
+            Assert.That(secondScript, Does.Contain($"'{secondPaths.CliSymlinkPath}'"));
+
+            Assert.That(firstScript, Does.Not.Contain($"'{secondPaths.AppBundleDirectory}'"), "First install must not touch second product's bundle");
+            Assert.That(secondScript, Does.Not.Contain($"'{firstPaths.AppBundleDirectory}'"), "Second install must not touch first product's bundle");
+            Assert.That(firstScript, Does.Not.Contain($"'{secondPaths.LaunchDaemonPath}'"), "First install must not register second product's launchd service");
+            Assert.That(secondScript, Does.Not.Contain($"'{firstPaths.LaunchDaemonPath}'"), "Second install must not register first product's launchd service");
+        });
+    }
+
+    private static ProductManifest AcmeStudio
+        => new("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+        };
+
+    private static MacOsInstallerPaths AcmePaths()
+        => MacOsInstallerPaths.From(AcmeStudio);
+
+    private static InstallerSession AcmeSession()
+        => SessionFor(AcmeStudio);
+
+    private static InstallerSession SessionFor(ProductManifest manifest)
+    {
+        var paths = MacOsInstallerPaths.From(manifest);
+        return InstallerSession.CreateDefault(
+            manifest,
+            new Version(1, 2, 3),
+            paths.AppBundleDirectory,
+            PayloadSelection.Bundled(manifest.ProductName, new Version(1, 2, 3)));
+    }
+
     private static InstallerSession Session()
         => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/Applications/Agent-Up.app", PayloadSelection.Bundled(new Version(1, 2, 3)));
 
@@ -173,6 +333,19 @@ public class MacOsInstallerPlatformAdapterTests
             commands,
             files,
             Options(),
+            new RequiredCommandRunner(commands),
+            new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
+
+    private static MacOsInstallerPlatformAdapter Adapter(
+        ICommandRunner commands,
+        RecordingMacOsFileSystem files,
+        MacOsInstallerPaths paths)
+        => new(
+            commands,
+            files,
+            new MacOsInstallerOptions(
+                new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", $"/payload/icon/{paths.BundleIconFile}"),
+                paths),
             new RequiredCommandRunner(commands),
             new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
 

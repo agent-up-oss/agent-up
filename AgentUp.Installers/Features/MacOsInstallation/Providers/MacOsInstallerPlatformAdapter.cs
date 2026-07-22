@@ -74,19 +74,20 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
     {
         var summary = session.Summary();
+        var launchDaemonLabel = $"dev.{session.Manifest.Slug}.server";
         var operations = new List<InstallOperation>
         {
             new(InstallOperationKind.ValidatePrerequisites, "Validate Docker and macOS prerequisites", false),
             new(InstallOperationKind.StagePayload, $"Use {session.Payload.Description}", false),
-            new(InstallOperationKind.InstallFiles, "Install selected Agent-Up files", true)
+            new(InstallOperationKind.InstallFiles, $"Install selected {session.ProductName} files", true)
         };
 
         if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterService, "Register and start dev.agent-up.server launchd service", true));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterService, $"Register and start {launchDaemonLabel} launchd service", true));
         if (summary.Includes(InstallerComponent.Cli))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, "Register /usr/local/bin Agent-Up commands", true));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, $"Register /usr/local/bin {session.ProductName} commands", true));
         if (summary.Includes(InstallerComponent.Desktop))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, "Register Agent-Up.app in /Applications", true));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, $"Register {session.ProductName}.app in /Applications", true));
 
         operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true));
         operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate macOS installed state", false));
@@ -99,7 +100,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     {
         var operations = PlanInstall(session);
         var progress = new InstallProgressTracker(operations);
-        var manifest = MacOsInstallerManifest.Create(session.Version.ToString());
+        var manifest = MacOsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
         var plists = new MacOsInstallerPlistGenerator(manifest);
 
         await _commands.RunAsync("launchctl", $"bootout system {_options.Paths.LaunchDaemonPath}", cancellationToken);
@@ -169,8 +170,9 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         InstallerSession session,
         CancellationToken cancellationToken = default)
     {
-        var service = await _commands.RunAsync("launchctl", "print system/dev.agent-up.server", cancellationToken);
-        var cli = await _commands.RunAsync("bash", "-lc \"command -v agent-up\"", cancellationToken);
+        var launchDaemonLabel = $"dev.{session.Manifest.Slug}.server";
+        var service = await _commands.RunAsync("launchctl", $"print system/{launchDaemonLabel}", cancellationToken);
+        var cli = await _commands.RunAsync("bash", $"-lc \"command -v {session.Manifest.CliCommandName}\"", cancellationToken);
 
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,
