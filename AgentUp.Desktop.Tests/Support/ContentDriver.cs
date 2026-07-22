@@ -113,6 +113,8 @@ internal sealed class ContentDriver(MainWindow window)
 
     public IReadOnlyList<string> ConsoleLines => [.. Vm.Console.Lines];
 
+    public bool ConsoleWasTruncated => Vm.Console.WasTruncated;
+
     public async Task SelectApplicationByIndexAsync(int index)
     {
         Vm.Applications.SelectedApplication = Vm.Applications.Applications[index];

@@ -104,8 +104,8 @@ internal sealed class AppDriver
     {
         var vm = MainViewModelFactory.Create(workspaceClient, consoleClient, tutorial ?? CompletedTutorial());
         var window = new MainWindow { DataContext = vm };
-        if (webViewFactory is not null)
-            window.WebViewFactory = webViewFactory;
+        window.WebViewFactory = webViewFactory
+            ?? (() => throw new InvalidOperationException("WebView not available in headless tests"));
         window.Show();
 
         await vm.InitializeAsync();

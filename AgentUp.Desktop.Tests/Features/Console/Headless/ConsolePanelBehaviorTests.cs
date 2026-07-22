@@ -1,5 +1,7 @@
 using Avalonia.Headless.NUnit;
 using Avalonia.Controls;
+using AgentUp.Desktop.Features.Console.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Console.Headless;
@@ -20,18 +22,70 @@ public class ConsolePanelBehaviorTests
         Assert.That(app.Content.ConsoleLines[0], Is.EqualTo(outputLines[0]));
     }
 
+    [Test]
+    public void Html_encodesLinesAsPreformattedTerminalPage()
+    {
+        var lines = new[] { "$ cargo run", "<error> & 'warning'", "done" };
+
+        var html = MainWindow.BuildConsoleHtml(lines);
+
+        Assert.That(html, Does.Contain("$ cargo run"));
+        Assert.That(html, Does.Contain("&lt;error&gt; &amp; 'warning'"));
+        Assert.That(html, Does.Contain("done"));
+        Assert.That(html, Does.Contain("<pre>"));
+        Assert.That(html, Does.Contain("#07110f"));
+    }
+
+    [Test]
+    public void Html_stripsAnsiEscapeCodes()
+    {
+        var lines = new[] { "\x1B[32mgreen text\x1B[0m", "plain" };
+
+        var html = MainWindow.BuildConsoleHtml(lines);
+
+        Assert.That(html, Does.Contain("green text"));
+        Assert.That(html, Does.Not.Contain("[32m"));
+        Assert.That(html.IndexOf('\x1B'), Is.EqualTo(-1), "HTML should not contain ESC characters");
+    }
+
     [AvaloniaTest]
-    public async Task Panel_rendersConsoleOutput_asSelectableReadOnlyText()
+    public async Task Panel_capsConsoleOutput_atMaxLines()
     {
         var workspace = WorkspaceFixtures.WithApplications();
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["copyable error", "second line"]);
+        var tooManyLines = Enumerable.Range(0, ConsoleViewModel.MaxLines + 1)
+            .Select(i => $"line {i}")
+            .ToList();
+        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, tooManyLines);
 
         var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
 
-        var selectableLine = app.Window.FindControl<SelectableTextBlock>("ConsoleOutput");
-        Assert.That(selectableLine, Is.Not.Null);
-        Assert.That(selectableLine!.Text, Is.EqualTo($"copyable error{Environment.NewLine}second line"));
-        Assert.That(selectableLine.TextWrapping, Is.EqualTo(Avalonia.Media.TextWrapping.Wrap));
+        Assert.That(app.Content.ConsoleLines, Has.Count.EqualTo(ConsoleViewModel.MaxLines));
+        Assert.That(app.Content.ConsoleLines[^1], Is.EqualTo($"line {ConsoleViewModel.MaxLines}"));
+    }
+
+    [AvaloniaTest]
+    public async Task Panel_showsTruncationNotice_whenOutputExceedsMaxLines()
+    {
+        var workspace = WorkspaceFixtures.WithApplications();
+        var tooManyLines = Enumerable.Range(0, ConsoleViewModel.MaxLines + 1)
+            .Select(i => $"line {i}")
+            .ToList();
+        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, tooManyLines);
+
+        var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
+
+        Assert.That(app.Content.ConsoleWasTruncated, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task Panel_doesNotShowTruncationNotice_whenOutputFitsWithinMaxLines()
+    {
+        var workspace = WorkspaceFixtures.WithApplications();
+        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1", "line 2"]);
+
+        var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
+
+        Assert.That(app.Content.ConsoleWasTruncated, Is.False);
     }
 
     [AvaloniaTest]

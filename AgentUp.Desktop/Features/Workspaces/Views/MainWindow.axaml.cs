@@ -28,6 +28,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly DispatcherTimer _addressPollTimer;
     private string? _activeWorkspaceId;
     private bool _isClosed;
+    private NativeWebView? _consoleWebView;
 
     // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
@@ -101,6 +102,18 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)))
             .DisposeWith(_subscriptions);
         ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
+        // Refresh when loading completes while console tab is visible.
+        vm.Console.WhenAnyValue(c => c.IsLoading)
+            .Where(loading => !loading)
+            .Skip(1)
+            .Where(_ => vm.ShowConsole)
+            .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
+            .DisposeWith(_subscriptions);
+        // Refresh when user switches to the console tab (data may already be loaded).
+        vm.WhenAnyValue(v => v.ShowConsole)
+            .Where(visible => visible && !vm.Console.IsLoading)
+            .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
+            .DisposeWith(_subscriptions);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -110,6 +123,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
         _subscriptions.Dispose();
         DestroyWorkspaceWebViews();
+        DestroyConsoleWebView();
         base.OnClosed(e);
     }
 
@@ -359,6 +373,87 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
+
+    private void RefreshConsoleWebView()
+    {
+        if (_isClosed) return;
+        if (DataContext is not MainViewModel vm) return;
+
+        try
+        {
+            if (_consoleWebView is null)
+            {
+                _consoleWebView = WebViewFactory();
+                ConsolePane.Children.Add(_consoleWebView);
+            }
+
+            var html = BuildConsoleHtml(vm.Console.Lines);
+            var htmlPath = ConsoleHtmlPath();
+            File.WriteAllText(htmlPath, html, Encoding.UTF8);
+            _consoleWebView.Source = new Uri(htmlPath);
+        }
+        catch (Exception ex)
+        {
+            // WebView creation is best-effort — GTK/WebView2 may not be available in all environments.
+            Trace.TraceWarning($"Could not load console WebView: {ex.Message}");
+            _consoleWebView = null;
+        }
+    }
+
+    private void DestroyConsoleWebView()
+    {
+        if (_consoleWebView is null) return;
+        try { _consoleWebView.Stop(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+        try { ConsolePane.Children.Remove(_consoleWebView); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+        if (_consoleWebView is IDisposable disposable)
+            try { disposable.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+        _consoleWebView = null;
+        try { File.Delete(ConsoleHtmlPath()); } catch { }
+    }
+
+    private static string ConsoleHtmlPath()
+        => Path.Combine(Path.GetTempPath(), "agentup-console-output.html");
+
+    internal static string BuildConsoleHtml(IEnumerable<string> lines)
+    {
+        var sb = new StringBuilder();
+        sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>");
+        sb.Append("* { margin: 0; padding: 0; box-sizing: border-box; }");
+        sb.Append("html, body { height: 100%; background: #07110f; }");
+        sb.Append("pre { color: #c6d4ce; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; word-break: normal; line-height: 1.4; }");
+        sb.Append("</style></head><body><pre>");
+        foreach (var line in lines)
+        {
+            AppendHtmlLine(sb, line);
+            sb.Append('\n');
+        }
+        sb.Append("</pre></body></html>");
+        return sb.ToString();
+    }
+
+    private static void AppendHtmlLine(StringBuilder sb, string line)
+    {
+        var i = 0;
+        while (i < line.Length)
+        {
+            var c = line[i];
+            if (c == '\x1B' && i + 1 < line.Length && line[i + 1] == '[')
+            {
+                // Skip ESC[ ... <letter> (CSI escape sequence)
+                i += 2;
+                while (i < line.Length && !char.IsLetter(line[i]))
+                    i++;
+                if (i < line.Length) i++;
+            }
+            else
+            {
+                sb.Append(c switch { '&' => "&amp;", '<' => "&lt;", '>' => "&gt;", _ => null });
+                if (c is not '&' and not '<' and not '>')
+                    sb.Append(c);
+                i++;
+            }
+        }
+    }
 
     private void DestroyWorkspaceWebViews()
     {

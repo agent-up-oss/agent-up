@@ -632,19 +632,17 @@
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
 
-                            <!-- Console output -->
-                            <ScrollViewer x:Name="ConsolePane"
-                                          IsVisible="{Binding ShowConsole}"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled">
-                                <SelectableTextBlock x:Name="ConsoleOutput"
-                                                     Text="{Binding Console.ConsoleText}"
-                                                     FontFamily="Consolas,Courier New,monospace"
-                                                     FontSize="12"
-                                                     Foreground="#c6d4ce"
-                                                     TextWrapping="Wrap"
-                                                     Margin="20,14"/>
-                            </ScrollViewer>
+                            <!-- Console output — populated by code-behind with a NativeWebView -->
+                            <Grid IsVisible="{Binding ShowConsole}"
+                                  RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0"
+                                           IsVisible="{Binding Console.WasTruncated}"
+                                           Text="Showing last 50,000 lines. Earlier output is not displayed."
+                                           Foreground="#556060"
+                                           FontSize="11"
+                                           Margin="20,8,20,0"/>
+                                <Panel x:Name="ConsolePane" Grid.Row="1" />
+                            </Grid>
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->
                             <Panel x:Name="PortPane"
