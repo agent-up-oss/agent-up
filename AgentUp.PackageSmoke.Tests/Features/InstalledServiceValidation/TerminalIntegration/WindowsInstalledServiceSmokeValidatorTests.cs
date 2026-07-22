@@ -55,7 +55,13 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
             Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, "start")), Is.True);
             Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, "status")), Is.True);
-            Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("DisplayName -eq 'Agent-Up'", StringComparison.Ordinal)), Is.True);
+            Assert.That(commands.Commands.Any(command =>
+                    command.FileName == "powershell.exe" &&
+                    command.Arguments.Last().Contains("DisplayName -eq $displayName", StringComparison.Ordinal) &&
+                    command.Environment is not null &&
+                    command.Environment.TryGetValue("AGENTUP_PRODUCT_DISPLAY_NAME", out var displayName) &&
+                    displayName == "Agent-Up"),
+                Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(1));
         }
         finally

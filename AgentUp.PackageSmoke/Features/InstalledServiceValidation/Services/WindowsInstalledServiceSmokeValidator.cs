@@ -43,11 +43,15 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         assert.FileExists(Path.Join(installDir, "bin", $"{product.CliShimName}.cmd"), "installed.windows.path.shim");
         assert.FileExists(cli, "installed.windows.cli");
 
-        var pathCheck = $"$installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object {{ Test-Path $_ }} | ForEach-Object {{ Get-ChildItem $_ }} | ForEach-Object {{ Get-ItemProperty $_.PSPath }} | Where-Object {{ $_.DisplayName -eq '{product.DisplayName}' -or $_.DisplayName -eq '{product.DisplayName} Setup' }} | Select-Object -First 1; if (-not $registration) {{ throw '{product.DisplayName} uninstall registration missing' }}; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object {{ $_ }} | ForEach-Object {{ [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }}); if (-not ($entries | Where-Object {{ [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) }})) {{ throw \"{product.DisplayName} PATH entry missing: $bin\" }}";
+        const string pathCheck = "$displayName = $env:AGENTUP_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }";
 
         await RunRequiredAsync(
             assert,
-            new CommandSpec("powershell.exe", ["-NoProfile", "-Command", pathCheck], Environment: new Dictionary<string, string> { ["AGENTUP_INSTALL_DIR"] = installDir }),
+            new CommandSpec("powershell.exe", ["-NoProfile", "-Command", pathCheck], Environment: new Dictionary<string, string>
+            {
+                ["AGENTUP_INSTALL_DIR"] = installDir,
+                ["AGENTUP_PRODUCT_DISPLAY_NAME"] = product.DisplayName
+            }),
             "installed.windows.registration",
             cancellationToken);
 

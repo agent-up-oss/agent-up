@@ -259,16 +259,16 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
             ?
             [
                 (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q"], Environment: environment), "capability.git.init"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email ci@agent-up.local"], Environment: environment), "capability.git.email"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Agent-Up CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
                 (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json"], Environment: environment), "capability.git.add"),
                 (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
             ]
             :
             [
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q"], Environment: environment), "capability.git.init"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email ci@agent-up.local"], Environment: environment), "capability.git.email"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Agent-Up CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json"], Environment: environment), "capability.git.add"),
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
             ];

@@ -4,10 +4,11 @@ using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 using AgentUp.PackageSmoke.Features.PackageValidation;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+using AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation;
 using AgentUp.PackageSmoke.Tests.Features.PackageValidation;
 using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation;
+namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.TerminalIntegration;
 
 [TestFixture]
 public sealed class InstalledServiceSmokeValidatorProductTests

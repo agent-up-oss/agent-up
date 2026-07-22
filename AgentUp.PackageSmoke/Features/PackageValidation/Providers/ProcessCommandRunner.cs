@@ -230,19 +230,19 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (IsArguments(command, "config", "user.email", "ci@agent-up.local"))
+        if (IsArguments(command, "config", "user.email", "smoke@ci.local"))
         {
             startInfo.ArgumentList.Add("config");
             startInfo.ArgumentList.Add("user.email");
-            startInfo.ArgumentList.Add("ci@agent-up.local");
+            startInfo.ArgumentList.Add("smoke@ci.local");
             return true;
         }
 
-        if (IsArguments(command, "config", "user.name", "Agent-Up CI"))
+        if (IsArguments(command, "config", "user.name", "Smoke CI"))
         {
             startInfo.ArgumentList.Add("config");
             startInfo.ArgumentList.Add("user.name");
-            startInfo.ArgumentList.Add("Agent-Up CI");
+            startInfo.ArgumentList.Add("Smoke CI");
             return true;
         }
 
@@ -348,7 +348,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (IsArguments(command, "-NoProfile", "-Command", "$installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq 'Agent-Up' -or $_.DisplayName -eq 'Agent-Up Setup' } | Select-Object -First 1; if (-not $registration) { throw 'Agent-Up uninstall registration missing' }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"Agent-Up PATH entry missing: $bin\" }"))
+        if (IsArguments(command, "-NoProfile", "-Command", "$displayName = $env:AGENTUP_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }"))
         {
             startInfo.ArgumentList.Add("-NoProfile");
             startInfo.ArgumentList.Add("-Command");
@@ -666,8 +666,8 @@ public sealed class ProcessCommandRunner : ICommandRunner
             "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up start" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up start",
             "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up status" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up status",
             "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email ci@agent-up.local" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email ci@agent-up.local",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Agent-Up CI\"" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Agent-Up CI\"",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local",
+            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"",
             "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json",
             "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
             _ => null
@@ -679,8 +679,8 @@ public sealed class ProcessCommandRunner : ICommandRunner
             "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd start" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd start",
             "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd status" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd status",
             "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email ci@agent-up.local" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email ci@agent-up.local",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Agent-Up CI\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Agent-Up CI\"",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local",
+            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"",
             "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json",
             "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
             _ => null
