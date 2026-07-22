@@ -100,30 +100,9 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
     {
         foreach (var environmentFile in app.EnvironmentFiles ?? [])
         {
-            var fullPath = ResolveEnvironmentFilePath(worktreePath, environmentFile);
-            if (!File.Exists(fullPath))
-                throw new InvalidOperationException($"Environment file '{environmentFile}' was not found.");
-
             runArgs.Add("--env-file");
-            runArgs.Add(fullPath);
+            runArgs.Add(EnvironmentFilePathProvider.ResolveExistingWorkspaceFile(worktreePath, environmentFile));
         }
-    }
-
-    private static string ResolveEnvironmentFilePath(string worktreePath, string environmentFile)
-    {
-        if (string.IsNullOrWhiteSpace(environmentFile))
-            throw new InvalidOperationException("Environment file paths must not be empty.");
-
-        if (Path.IsPathRooted(environmentFile))
-            throw new InvalidOperationException($"Environment file '{environmentFile}' must be relative to the workspace root.");
-
-        var root = Path.GetFullPath(worktreePath);
-        var fullPath = Path.GetFullPath(Path.Join(root, environmentFile));
-        var relative = Path.GetRelativePath(root, fullPath);
-        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Environment file '{environmentFile}' must stay under the workspace root.");
-
-        return fullPath;
     }
 
     private static void AddDockerVolumeArgs(List<string> runArgs, ApplicationInstance app)

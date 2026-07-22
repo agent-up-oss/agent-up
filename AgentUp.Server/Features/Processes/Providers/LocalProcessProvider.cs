@@ -42,32 +42,12 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         var environment = new Dictionary<string, string>();
         foreach (var environmentFile in environmentFiles ?? [])
         {
-            var fullPath = ResolveEnvironmentFilePath(worktreePath, environmentFile);
-            if (!File.Exists(fullPath))
-                throw new InvalidOperationException($"Environment file '{environmentFile}' was not found.");
-
+            var fullPath = EnvironmentFilePathProvider.ResolveExistingWorkspaceFile(worktreePath, environmentFile);
             foreach (var (key, value) in ParseEnvironmentFile(File.ReadLines(fullPath), environmentFile))
                 environment[key] = value;
         }
 
         return environment;
-    }
-
-    private static string ResolveEnvironmentFilePath(string worktreePath, string environmentFile)
-    {
-        if (string.IsNullOrWhiteSpace(environmentFile))
-            throw new InvalidOperationException("Environment file paths must not be empty.");
-
-        if (Path.IsPathRooted(environmentFile))
-            throw new InvalidOperationException($"Environment file '{environmentFile}' must be relative to the workspace root.");
-
-        var root = Path.GetFullPath(worktreePath);
-        var fullPath = Path.GetFullPath(Path.Join(root, environmentFile));
-        var relative = Path.GetRelativePath(root, fullPath);
-        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Environment file '{environmentFile}' must stay under the workspace root.");
-
-        return fullPath;
     }
 
     internal static Dictionary<string, string> ParseEnvironmentFile(IEnumerable<string> lines, string sourceName)
