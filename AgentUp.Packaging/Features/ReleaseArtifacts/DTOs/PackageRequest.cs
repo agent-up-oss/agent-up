@@ -1,4 +1,3 @@
-using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Packaging.Shared.Providers;
 
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
@@ -13,7 +12,7 @@ public sealed record PackageRequest
         string outputDirectory,
         string configuration,
         string? payloadRoot = null,
-        ProductManifest? productManifest = null)
+        PackageProductManifest? productManifest = null)
     {
         RepositoryRoot = PackagePathValidator.RequireFullyQualifiedPath(repositoryRoot, nameof(RepositoryRoot));
         Platform = platform;
@@ -28,7 +27,7 @@ public sealed record PackageRequest
         PayloadRoot = payloadRoot is null
             ? null
             : PackagePathValidator.ResolveRootOrRelativeUnderRoot(RepositoryRoot, payloadRoot!, nameof(PayloadRoot));
-        ProductManifest = productManifest ?? ProductManifest.AgentUp();
+        ProductManifest = productManifest ?? PackageProductManifest.AgentUp();
         PackagePathValidator.RequireSafePathComponent(ProductManifest.Slug, nameof(ProductManifest.Slug));
     }
 
@@ -39,7 +38,7 @@ public sealed record PackageRequest
     public string OutputDirectory { get; init; }
     public string Configuration { get; init; }
     public string? PayloadRoot { get; init; }
-    public ProductManifest ProductManifest { get; init; }
+    public PackageProductManifest ProductManifest { get; init; }
 
     public string NormalizedVersion => Version.TrimStart('v', 'V');
     public string WindowsInstallerVersion => NormalizeWindowsInstallerVersion(NormalizedVersion);

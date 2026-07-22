@@ -262,6 +262,26 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public void WindowsWixSourceGenerator_rejectsUnsafeCliShimNameBeforeBuildingSourcePath()
+    {
+        var manifest = WindowsInstallerManifest.Create("1.2.3") with { CliShimName = @"..\outside.cmd" };
+
+        var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
+
+        Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
+    }
+
+    [Test]
+    public void WindowsInstallerPaths_rejectsUnsafeCliShimNameBeforeBuildingPath()
+    {
+        var paths = Options().Paths;
+
+        var exception = Assert.Throws<ArgumentException>(() => paths.CliShimPathFor(@"..\outside.cmd"));
+
+        Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
+    }
+
+    [Test]
     public async Task ExecuteInstallAsync_withNonAgentUpManifest_registersProductServiceAndDoesNotQueryAgentUpService()
     {
         var files = new RecordingWindowsFileSystem();

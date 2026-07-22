@@ -161,6 +161,63 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(manifest.UpgradeCode, Is.EqualTo("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC"));
     }
 
+    [Test]
+    public void WindowsPackageManifest_fromAgentUpSlugHonorsExplicitIdentityOverrides()
+    {
+        var request = new PackageRequest(
+            _root,
+            "windows",
+            "win-x64",
+            "1.2.3",
+            "artifacts",
+            "Release",
+            productManifest: new("Agent-Up Fork", "agent-up", "AGENTUPFORK")
+            {
+                Manufacturer = "Forked Systems",
+                WindowsUpgradeCode = "A0D1584E-3E94-4218-B81A-A0D52D3580B7",
+                WindowsServiceName = "agent-up-fork-service",
+                WindowsCliShimName = "agent-up-fork.cmd",
+                WindowsServerUrl = "http://127.0.0.1:5050"
+            });
+
+        var manifest = WindowsPackageManifest.From(request).InstallerManifest;
+
+        Assert.That(manifest.ProductName, Is.EqualTo("Agent-Up Fork"));
+        Assert.That(manifest.Manufacturer, Is.EqualTo("Forked Systems"));
+        Assert.That(manifest.UpgradeCode, Is.EqualTo("A0D1584E-3E94-4218-B81A-A0D52D3580B7"));
+        Assert.That(manifest.ServiceName, Is.EqualTo("agent-up-fork-service"));
+        Assert.That(manifest.CliShimName, Is.EqualTo("agent-up-fork.cmd"));
+        Assert.That(manifest.ServerUrl, Is.EqualTo("http://127.0.0.1:5050"));
+    }
+
+    [Test]
+    public void BundleAndComponentGuids_areScopedToProductIdentity()
+    {
+        var layout = CreateLayoutWithPublishedFiles();
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "orbitctl.cmd"), "");
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "nova.cmd"), "");
+        var orbit = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
+        var nova = new WindowsInstallerManifest(
+            ProductName: "Nova Build",
+            Manufacturer: "Nova Labs",
+            Version: "1.2.3",
+            UpgradeCode: "16357A7B-6C17-4635-85D5-28E74D12F4F3",
+            ServiceName: "nova-build-core",
+            CliShimName: "nova.cmd",
+            BundleName: "Nova Build",
+            ServerUrl: "http://127.0.0.1:5002");
+        var orbitGenerator = new WindowsWixSourceGenerator(new WindowsPackageManifest(orbit));
+        var novaGenerator = new WindowsWixSourceGenerator(new WindowsPackageManifest(nova));
+
+        var orbitProduct = orbitGenerator.ProductWxs(layout);
+        var novaProduct = novaGenerator.ProductWxs(layout);
+        var orbitBundle = orbitGenerator.BundleWxs(layout);
+        var novaBundle = novaGenerator.BundleWxs(layout);
+
+        Assert.That(BundleUpgradeCode(orbitBundle), Is.Not.EqualTo(BundleUpgradeCode(novaBundle)));
+        Assert.That(ComponentGuids(orbitProduct).Intersect(ComponentGuids(novaProduct)), Is.Empty);
+    }
+
     [TestCaseSource(nameof(ProductIdentityCases))]
     public void ProductWxsAndBundleWxs_forTwoProductsHaveDisjointProductIdentifyingStrings(
         WindowsInstallerManifest first,
@@ -230,6 +287,23 @@ public class WindowsWixSourceGeneratorTests
     {
         XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
         return (string?)XDocument.Parse(productWxs).Descendants(wix + "Package").Single().Attribute("UpgradeCode");
+    }
+
+    private static string? BundleUpgradeCode(string bundleWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return (string?)XDocument.Parse(bundleWxs).Descendants(wix + "Bundle").Single().Attribute("UpgradeCode");
+    }
+
+    private static IReadOnlyCollection<string> ComponentGuids(string productWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return XDocument.Parse(productWxs)
+            .Descendants(wix + "Component")
+            .Select(component => (string?)component.Attribute("Guid"))
+            .Where(guid => !string.IsNullOrWhiteSpace(guid))
+            .Cast<string>()
+            .ToArray();
     }
 
     private static void WritePublishedFile(string directory, string name)

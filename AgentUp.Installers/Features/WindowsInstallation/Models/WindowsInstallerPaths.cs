@@ -33,8 +33,9 @@ public sealed record WindowsInstallerPaths(
     public string DesktopExecutable => WindowsCombine(DesktopDirectory, "AgentUp.Desktop.exe");
     public string ServerExecutable => WindowsCombine(ServerDirectory, "AgentUp.Server.exe");
     public string CliExecutable => WindowsCombine(CliDirectory, "AgentUp.CLI.exe");
-    public string CliShimPath => WindowsCombine(BinDirectory, WindowsInstallerManifest.DefaultCliShimName);
-    public string CliShimPathFor(string cliShimName) => WindowsCombine(BinDirectory, cliShimName);
+    public string CliShimPath => CliShimPathFor(WindowsInstallerManifest.DefaultCliShimName);
+    public string CliShimPathFor(string cliShimName)
+        => WindowsCombine(BinDirectory, WindowsInstallerManifest.RequireSafeCliShimFileName(cliShimName));
     public string UninstallScriptPath => WindowsCombine(RootDirectory, UninstallScriptName);
 
     private static string WindowsCombine(params string[] parts)

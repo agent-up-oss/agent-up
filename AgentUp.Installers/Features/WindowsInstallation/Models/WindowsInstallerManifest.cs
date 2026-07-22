@@ -16,6 +16,7 @@ public sealed record WindowsInstallerManifest(
     string ServerUrl)
 {
     public const string DefaultCliShimName = "agent-up.cmd";
+    private const string AgentUpUpgradeCode = "5E8FB224-E5E3-4D48-8B62-2F50D521CBB0";
 
     public string ServiceDisplayName => $"{ProductName} Server";
     public string ServiceDescription => $"Local {ProductName} runtime authority for workspaces, processes, ports, diagnostics, and automation.";
@@ -27,7 +28,7 @@ public sealed record WindowsInstallerManifest(
             ProductName: "Agent-Up",
             Manufacturer: "Agent-Up",
             Version: version,
-            UpgradeCode: "5E8FB224-E5E3-4D48-8B62-2F50D521CBB0",
+            UpgradeCode: AgentUpUpgradeCode,
             ServiceName: "agent-up-server",
             CliShimName: DefaultCliShimName,
             BundleName: "Agent-Up",
@@ -49,6 +50,26 @@ public sealed record WindowsInstallerManifest(
         var bytes = MD5.HashData(Encoding.UTF8.GetBytes("Windows Installer Upgrade Code:" + slug));
         return new Guid(bytes).ToString("D").ToUpperInvariant();
     }
+
+    public static string RequireSafeCliShimFileName(string cliShimName)
+    {
+        if (string.IsNullOrWhiteSpace(cliShimName))
+            throw new ArgumentException("CLI shim name must not be empty.", nameof(cliShimName));
+
+        if (cliShimName is "." or ".."
+            || cliShimName.Contains('/', StringComparison.Ordinal)
+            || cliShimName.Contains('\\', StringComparison.Ordinal)
+            || cliShimName.Contains(':', StringComparison.Ordinal)
+            || System.IO.Path.IsPathFullyQualified(cliShimName)
+            || !System.IO.Path.GetFileName(cliShimName).Equals(cliShimName, StringComparison.Ordinal))
+            throw new ArgumentException("CLI shim name must be a safe file name.", nameof(cliShimName));
+
+        return cliShimName;
+    }
+
+    public bool UsesLegacyAgentUpGuidScope
+        => ProductName.Equals("Agent-Up", StringComparison.Ordinal)
+           && UpgradeCode.Equals(AgentUpUpgradeCode, StringComparison.OrdinalIgnoreCase);
 }
 
 public sealed record WindowsInstallerLayout(
@@ -69,6 +90,7 @@ public sealed class WindowsWixSourceGenerator
     public WindowsWixSourceGenerator(WindowsInstallerManifest manifest)
     {
         _manifest = manifest;
+        WindowsInstallerManifest.RequireSafeCliShimFileName(_manifest.CliShimName);
     }
 
     public string ProductWxs(WindowsInstallerLayout layout)
@@ -205,7 +227,9 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("Guid", StableGuid("cli-shim")),
             new XElement(Wix + "File",
                 new XAttribute("Id", "CliShimFile"),
-                new XAttribute("Source", System.IO.Path.Join(layout.InstallerSourceDirectory, _manifest.CliShimName)),
+                new XAttribute("Source", System.IO.Path.Join(
+                    layout.InstallerSourceDirectory,
+                    WindowsInstallerManifest.RequireSafeCliShimFileName(_manifest.CliShimName))),
                 new XAttribute("KeyPath", "yes")),
             new XElement(Wix + "Environment",
                 new XAttribute("Id", "CliPathEntry"),
@@ -257,7 +281,7 @@ public sealed class WindowsWixSourceGenerator
         yield return ("InstallerStartMenuShortcutComponent", installerShortcut);
     }
 
-    private static (string Id, XElement Element) FileComponent(string prefix, string directoryId, string root, string file)
+    private (string Id, XElement Element) FileComponent(string prefix, string directoryId, string root, string file)
     {
         var relative = System.IO.Path.GetRelativePath(root, file);
         var id = $"{prefix}_{Sanitize(relative)}";
@@ -279,9 +303,12 @@ public sealed class WindowsWixSourceGenerator
         return builder.ToString();
     }
 
-    private static string StableGuid(string value)
+    private string StableGuid(string value)
     {
-        var bytes = MD5.HashData(Encoding.UTF8.GetBytes("Agent-Up Windows Installer:" + value));
+        var seed = _manifest.UsesLegacyAgentUpGuidScope
+            ? $"Agent-Up Windows Installer:{value}"
+            : $"Agent-Up Windows Installer:{_manifest.UpgradeCode}:{value}";
+        var bytes = MD5.HashData(Encoding.UTF8.GetBytes(seed));
         return new Guid(bytes).ToString("D").ToUpperInvariant();
     }
 }

@@ -6,7 +6,6 @@ using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
 using AgentUp.Packaging.Features.WindowsPackages.Services;
-using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Packaging.Tests.Features.WindowsPackages.TerminalIntegration;
 
@@ -91,7 +90,7 @@ public class WindowsPackagerTests
             "1.2.3",
             "out",
             "Release",
-            productManifest: new ProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
+            productManifest: new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
 
         try
         {

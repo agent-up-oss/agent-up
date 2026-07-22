@@ -1,6 +1,5 @@
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
-using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts;
 
@@ -55,9 +54,25 @@ public class PackageRequestTests
             "1.2.3",
             "artifacts",
             "Release",
-            productManifest: new ProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
+            productManifest: new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
 
         Assert.That(WindowsPackageLayout.From(agentUp).ProductMsiOutputPath, Is.EqualTo(Path.GetFullPath("/repo/artifacts/agent-up-windows-win-x64.msi")));
         Assert.That(WindowsPackageLayout.From(orbit).ProductMsiOutputPath, Is.EqualTo(Path.GetFullPath("/repo/artifacts/orbit-desk-windows-win-x64.msi")));
+    }
+
+    [Test]
+    public void Constructor_rejectsProductSlugTraversal()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new PackageRequest(
+                "/repo",
+                "windows",
+                "win-x64",
+                "1.2.3",
+                "artifacts",
+                "Release",
+                productManifest: new PackageProductManifest("Outside", "../outside", "OUTSIDE")));
+
+        Assert.That(exception!.ParamName, Is.EqualTo("Slug"));
     }
 }

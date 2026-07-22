@@ -33,7 +33,9 @@ public sealed class WindowsPackager
         var manifest = WindowsPackageManifest.From(request);
         var generator = new WindowsWixSourceGenerator(manifest);
         _writer.WriteText(
-            Path.Join(layout.InstallerSourceDirectory, manifest.InstallerManifest.CliShimName),
+            Path.Join(
+                layout.InstallerSourceDirectory,
+                AgentUp.Installers.Features.WindowsInstallation.Models.WindowsInstallerManifest.RequireSafeCliShimFileName(manifest.InstallerManifest.CliShimName)),
             WindowsWixSourceGenerator.CliShimText());
         _writer.WriteText(layout.ProductWxsPath, generator.ProductWxs(layout));
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));

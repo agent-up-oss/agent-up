@@ -95,7 +95,7 @@ The generated Nix package-set flake exports both `nixosModules.default` and `hom
 
 Windows packaging uses WiX through `AgentUp.Packaging`. The packaging app generates `Product.wxs`, `Bundle.wxs`, the CLI shim, and the bootstrapper license file, stages required WiX extension DLLs on Windows, then invokes `wix build` for the staged `Product.msi` and bootstrapper executable.
 
-Windows WiX metadata is product-manifest-driven: product name, manufacturer, service name, CLI shim name, upgrade GUID, install root, shortcuts, registry keys, MSI sidecar name, and bootstrapper name must come from the manifest. The Agent-Up manifest still emits the existing `agent-up-windows-<rid>.msi` sidecar artifact for direct native validation and troubleshooting.
+Windows WiX metadata is product-manifest-driven: product name, manufacturer, service name, CLI shim name, upgrade GUID, product-scoped component and bundle GUIDs, install root, shortcuts, registry keys, MSI sidecar name, and bootstrapper name must come from the manifest. CLI shim names must be safe filenames, and the Agent-Up manifest still emits the existing `agent-up-windows-<rid>.msi` sidecar artifact for direct native validation and troubleshooting.
 
 The Windows bootstrapper executable chains the generated `Product.msi`; it must not launch `AgentUp.InstallerApp` midway through installation. The MSI installs `AgentUp.InstallerApp` as a standalone app under the product's `Program Files\<ProductName>\installer` directory, installs a local `installer\payload` cache, and creates a separate Start Menu shortcut for opening the installer app after installation. The Burn success page may offer to launch the installed installer app after the MSI completes.
 
