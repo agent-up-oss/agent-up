@@ -138,7 +138,7 @@ public static class InstallerPlatformAdapterFactory
         return new MacOsInstallerPlatformAdapter(
             composition.Commands,
             new MacOsInstallerFileSystem(),
-            new MacOsInstallerOptions(payload, MacOsInstallerPaths.SystemDefault()),
+            new MacOsInstallerOptions(payload),
             composition.RequiredCommands,
             composition.DockerPrerequisite);
     }
