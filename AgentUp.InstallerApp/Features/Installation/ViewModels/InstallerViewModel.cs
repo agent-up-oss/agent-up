@@ -534,7 +534,7 @@ public sealed class CatalogCapabilityViewModel
 
     public bool SupportsInstallActions { get; }
 
-    public string ButtonText => IsInstalled ? "Add version" : SupportsInstallActions ? "Install" : "Managed by NixOS";
+    public string ButtonText => SupportsInstallActions ? IsInstalled ? "Add version" : "Install" : "Managed by NixOS";
 
     public ICommand InstallCommand { get; }
 }

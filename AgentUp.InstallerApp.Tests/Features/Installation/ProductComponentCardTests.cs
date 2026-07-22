@@ -130,4 +130,64 @@ public class ProductComponentCardTests
         Assert.That(card.Detail, Is.EqualTo("No active version selected"));
         Assert.That(card.Versions.Single().ActiveText, Is.EqualTo("Available"));
     }
+
+    [Test]
+    public async Task InstallCatalogModuleAsync_forExistingCapability_reusesCardAndAppliesInstalledModule()
+    {
+        var session = InstallerSession.CreateDefault(
+            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
+            PayloadSelection.Bundled(new Version(1, 0, 0)));
+        var model = new InstallerViewModel(
+            session,
+            new FakeInstallerPlatformAdapter(),
+            CapabilitiesController.CreateFake());
+        var existingModule = new InstalledCapabilityModule(
+            "dotnet",
+            ".NET",
+            ".NET SDK capability.",
+            "9.0.x",
+            [new CapabilityInstalledVersion("dotnet", "9.0.x", "/tool-cache/dotnet/9.0.x", CapabilityVersionSource.AgentUpManaged, true)]);
+        var existingCard = new CapabilityCardViewModel(existingModule, model);
+        model.CapabilityCards.Add(existingCard);
+        var catalogEntry = new CatalogCapabilityViewModel(
+            new CapabilityCatalogEntry(
+                "dotnet",
+                ".NET",
+                ".NET SDK capability.",
+                [new CapabilityArtifact("dotnet", "10.0.x", new Uri("https://example.invalid/dotnet.tar.gz"), "abc123")]),
+            isInstalled: true,
+            supportsInstallActions: true,
+            model);
+
+        await model.InstallCatalogModuleAsync(catalogEntry);
+
+        Assert.That(model.CapabilityCards, Has.Count.EqualTo(1));
+        Assert.That(model.CapabilityCards.Single(), Is.SameAs(existingCard));
+        Assert.That(existingCard.StatusText, Is.EqualTo("Installed"));
+        Assert.That(existingCard.ActiveVersion, Is.EqualTo("10.0.x"));
+    }
+
+    [Test]
+    public void CatalogCapabilityButtonText_forNixOsManagedInstalledCapability_reportsManagedByNixOs()
+    {
+        var session = InstallerSession.CreateDefault(
+            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
+            PayloadSelection.Bundled(new Version(1, 0, 0)));
+        var model = new InstallerViewModel(
+            session,
+            new FakeInstallerPlatformAdapter(),
+            CapabilitiesController.CreateFake());
+        var catalogEntry = new CatalogCapabilityViewModel(
+            new CapabilityCatalogEntry(
+                "dotnet",
+                ".NET",
+                ".NET SDK capability.",
+                [new CapabilityArtifact("dotnet", "10.0.x", new Uri("https://example.invalid/dotnet.tar.gz"), "abc123")]),
+            isInstalled: true,
+            supportsInstallActions: false,
+            model);
+
+        Assert.That(catalogEntry.ButtonText, Is.EqualTo("Managed by NixOS"));
+        Assert.That(catalogEntry.InstallCommand.CanExecute(null), Is.False);
+    }
 }

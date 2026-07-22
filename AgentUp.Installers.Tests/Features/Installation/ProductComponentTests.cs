@@ -161,6 +161,22 @@ public class ProductComponentTests
         Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.UpdateAvailable));
     }
 
+    [Test]
+    public void StatusFromValidation_reportsUpdateAvailableWhenServerVersionDoesNotMatch()
+    {
+        var report = new ValidationReport(
+        [
+            new ValidationFinding("server.version", "Server version could not be read.", ValidationSeverity.Error)
+        ]);
+
+        var status = InstallerComponentOperations.StatusFromValidation(
+            ProductComponent.Server,
+            report,
+            new Version(1, 2, 3));
+
+        Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.UpdateAvailable));
+    }
+
     private static IEnumerable<TestCaseData> ManifestCases()
     {
         yield return new TestCaseData(ProductManifest.AgentUp()).SetName("AgentUp_threeComponents");

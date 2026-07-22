@@ -67,20 +67,12 @@ public static class InstallerComponentOperations
         ValidationReport report,
         Version expectedVersion)
     {
-        var codePrefix = Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
-            ? t switch
-            {
-                InstallerComponentTarget.Desktop => "desktop.",
-                InstallerComponentTarget.Server => "service.",
-                InstallerComponentTarget.Cli => "cli.",
-                _ => ""
-            }
-            : "";
+        var codePrefixes = CodePrefixesFor(component);
 
         var errors = report.Findings
             .Where(finding =>
                 finding.Severity == ValidationSeverity.Error
-                && finding.Code.StartsWith(codePrefix, StringComparison.OrdinalIgnoreCase))
+                && codePrefixes.Any(prefix => finding.Code.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
         if (errors.Any(finding => finding.Code.EndsWith(".missing", StringComparison.OrdinalIgnoreCase)
@@ -95,6 +87,20 @@ public static class InstallerComponentOperations
         }
 
         return new InstallerComponentStatus(component, InstallerComponentStatusKind.Installed, expectedVersion, expectedVersion);
+    }
+
+    private static IReadOnlyList<string> CodePrefixesFor(ProductComponent component)
+    {
+        if (!Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var target))
+            return [];
+
+        return target switch
+        {
+            InstallerComponentTarget.Desktop => ["desktop."],
+            InstallerComponentTarget.Server => ["service.", "server."],
+            InstallerComponentTarget.Cli => ["cli."],
+            _ => []
+        };
     }
 
     private static bool IsRelevant(InstallOperationKind kind, InstallerComponentTarget target) =>
