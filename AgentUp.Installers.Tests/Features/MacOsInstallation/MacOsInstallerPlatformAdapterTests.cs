@@ -155,7 +155,7 @@ public class MacOsInstallerPlatformAdapterTests
 
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("launchctl", "print system/dev.agent-up.server")));
-        Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v agent-up\"")));
+        Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v \\\"$1\\\"\" -- agent-up")));
     }
 
     [Test]
@@ -214,7 +214,7 @@ public class MacOsInstallerPlatformAdapterTests
         Assert.Multiple(() =>
         {
             Assert.That(script, Does.Contain("'/usr/local/bin/acme-studio'"), "CLI symlink must use the product's slug");
-            Assert.That(commands.PlainCommands, Does.Contain(("bash", "-lc \"command -v acme-studio\"")),
+            Assert.That(commands.PlainCommands, Does.Contain(("bash", "-lc \"command -v \\\"$1\\\"\" -- acme-studio")),
                 "Shell validation must check the product's CLI name");
             Assert.That(script, Does.Not.Contain("'/usr/local/bin/agent-up'"), "Agent-Up CLI symlink must not be created");
         });

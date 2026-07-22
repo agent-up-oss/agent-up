@@ -174,7 +174,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     {
         var launchDaemonLabel = $"dev.{session.Manifest.Slug}.server";
         var service = await _commands.RunAsync("launchctl", $"print system/{launchDaemonLabel}", cancellationToken);
-        var cli = await _commands.RunAsync("bash", $"-lc \"command -v {session.Manifest.CliCommandName}\"", cancellationToken);
+        var cli = await _commands.RunAsync("bash", $"-lc \"command -v \\\"$1\\\"\" -- {session.Manifest.CliCommandName}", cancellationToken);
 
         var paths = MacOsInstallerPaths.From(session.Manifest);
         return PostInstallValidation.Validate(new InstalledState(
