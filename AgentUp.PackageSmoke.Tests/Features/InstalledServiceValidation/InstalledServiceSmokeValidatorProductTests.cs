@@ -238,5 +238,5 @@ public sealed class InstalledServiceSmokeValidatorProductTests
            && command.Environment.ContainsKey("AGENTUP_SMOKE_WORKING_DIRECTORY");
 
     private static string TempRoot(string tag)
-        => Path.Join(Path.GetTempPath(), $"AgentUp-SmokeProduct-{tag}", Guid.NewGuid().ToString());
+        => Path.Join(Path.GetTempPath(), $"AgentUp-SmokeProduct-{tag}", $"{Guid.NewGuid()}");
 }
