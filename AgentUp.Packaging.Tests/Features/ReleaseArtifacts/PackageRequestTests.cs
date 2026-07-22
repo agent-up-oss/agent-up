@@ -98,6 +98,24 @@ public class PackageRequestTests
         Assert.That(exception!.ParamName, Is.EqualTo(expectedParamName));
     }
 
+    [TestCase("ProductName")]
+    [TestCase("Slug")]
+    [TestCase("EnvironmentPrefix")]
+    public void ProductManifest_IsValidRejectsRequiredFieldsOverwrittenAfterConstruction(string field)
+    {
+        var manifest = new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK");
+
+        manifest = field switch
+        {
+            "ProductName" => manifest with { ProductName = "Bad/Product" },
+            "Slug" => manifest with { Slug = "../outside" },
+            "EnvironmentPrefix" => manifest with { EnvironmentPrefix = "orbit-desk" },
+            _ => throw new ArgumentOutOfRangeException(nameof(field), field, null)
+        };
+
+        Assert.That(manifest.IsValid(), Is.False);
+    }
+
     private static PackageProductManifest ProductWithInvalidValue(string field, string value)
         => field switch
         {

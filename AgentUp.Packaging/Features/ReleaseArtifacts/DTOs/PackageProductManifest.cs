@@ -58,7 +58,10 @@ public sealed record PackageProductManifest
         => AgentUpManifest;
 
     public bool IsValid()
-        => IsValidOptionalWindowsPathComponent(Manufacturer)
+        => IsValidWindowsPathComponent(ProductName)
+           && IsValidSlug(Slug)
+           && IsValidEnvironmentPrefix(EnvironmentPrefix)
+           && IsValidOptionalWindowsPathComponent(Manufacturer)
            && IsValidOptionalGuid(WindowsUpgradeCode)
            && IsValidOptionalWindowsServiceName(WindowsServiceName)
            && IsValidOptionalWindowsFileName(WindowsCliShimName)
@@ -87,6 +90,15 @@ public sealed record PackageProductManifest
 
     private static bool IsValidOptionalWindowsPathComponent(string? value)
         => value is null || Try(() => RequireSafeWindowsPathComponent(value, nameof(value)));
+
+    private static bool IsValidWindowsPathComponent(string value)
+        => Try(() => RequireSafeWindowsPathComponent(value, nameof(value)));
+
+    private static bool IsValidSlug(string value)
+        => Try(() => global::AgentUp.Packaging.Shared.Providers.PackagePathValidator.RequireSafePathComponent(value, nameof(value)));
+
+    private static bool IsValidEnvironmentPrefix(string value)
+        => Try(() => RequireEnvironmentPrefix(value, nameof(value)));
 
     private static bool IsValidOptionalGuid(string? value)
         => value is null || Guid.TryParseExact(value, "D", out _);
