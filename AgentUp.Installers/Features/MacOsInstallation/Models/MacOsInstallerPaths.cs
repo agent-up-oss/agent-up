@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Installers.Features.MacOsInstallation.Models;
@@ -27,8 +28,21 @@ public sealed record MacOsInstallerPaths(
             DesktopSymlinkPath: "/usr/local/bin/agent-up-desktop",
             BundleIconFile: "Agent-Up.png");
 
+    private static readonly Regex SafeSlug = new(@"^[a-z][a-z0-9-]+$", RegexOptions.Compiled);
+    private static readonly Regex SafeName = new(@"^[A-Za-z][A-Za-z0-9 -]*$", RegexOptions.Compiled);
+
     public static MacOsInstallerPaths From(ProductManifest product)
-        => new(
+    {
+        if (!SafeSlug.IsMatch(product.Slug))
+            throw new ArgumentException(
+                $"Slug '{product.Slug}' must contain only lowercase letters, digits, and hyphens.",
+                nameof(product));
+        if (!SafeName.IsMatch(product.ProductName))
+            throw new ArgumentException(
+                $"ProductName '{product.ProductName}' contains characters that are unsafe for macOS paths.",
+                nameof(product));
+
+        return new(
             AppBundleDirectory: $"/Applications/{product.ProductName}.app",
             ApplicationSupportDirectory: $"/Library/Application Support/{product.ProductName}",
             ServerDirectory: $"/Library/Application Support/{product.ProductName}/server",
@@ -39,6 +53,7 @@ public sealed record MacOsInstallerPaths(
             ServerSymlinkPath: $"/usr/local/bin/{product.Slug}-server",
             DesktopSymlinkPath: $"/usr/local/bin/{product.Slug}-desktop",
             BundleIconFile: $"{product.ProductName.Replace(" ", "-")}.png");
+    }
 
     public string DesktopExecutable => System.IO.Path.Join(AppBundleDirectory, "Contents", "MacOS", "AgentUp.Desktop");
     public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");

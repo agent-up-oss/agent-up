@@ -162,7 +162,7 @@ public class MacOsInstallerPlatformAdapterTests
     public async Task Install_withNonAgentUpManifest_registersProductLaunchdLabel_notAgentUpLabel()
     {
         var commands = new ScriptCapturingCommandRunner();
-        var adapter = Adapter(commands, new RecordingMacOsFileSystem(), AcmePaths());
+        var adapter = Adapter(commands, new RecordingMacOsFileSystem());
         var session = AcmeSession();
 
         await adapter.ExecuteInstallAsync(session).DrainAsync();
@@ -186,7 +186,7 @@ public class MacOsInstallerPlatformAdapterTests
     public async Task Install_withNonAgentUpManifest_placesAppBundleUnderProductName_allowingCoexistence()
     {
         var commands = new ScriptCapturingCommandRunner();
-        var adapter = Adapter(commands, new RecordingMacOsFileSystem(), AcmePaths());
+        var adapter = Adapter(commands, new RecordingMacOsFileSystem());
 
         await adapter.ExecuteInstallAsync(AcmeSession()).DrainAsync();
 
@@ -204,7 +204,7 @@ public class MacOsInstallerPlatformAdapterTests
     public async Task Install_withNonAgentUpManifest_createsCliSymlinkWithProductSlug()
     {
         var commands = new ScriptCapturingCommandRunner();
-        var adapter = Adapter(commands, new RecordingMacOsFileSystem(), AcmePaths());
+        var adapter = Adapter(commands, new RecordingMacOsFileSystem());
         var session = AcmeSession();
 
         await adapter.ExecuteInstallAsync(session).DrainAsync();
@@ -228,11 +228,11 @@ public class MacOsInstallerPlatformAdapterTests
         var cliCommands = new ScriptCapturingCommandRunner();
         var desktopCommands = new ScriptCapturingCommandRunner();
 
-        await Adapter(serverCommands, new RecordingMacOsFileSystem(), AcmePaths())
+        await Adapter(serverCommands, new RecordingMacOsFileSystem())
             .ExecuteUninstallAsync(InstallerComponentTarget.Server, session).DrainAsync();
-        await Adapter(cliCommands, new RecordingMacOsFileSystem(), AcmePaths())
+        await Adapter(cliCommands, new RecordingMacOsFileSystem())
             .ExecuteUninstallAsync(InstallerComponentTarget.Cli, session).DrainAsync();
-        await Adapter(desktopCommands, new RecordingMacOsFileSystem(), AcmePaths())
+        await Adapter(desktopCommands, new RecordingMacOsFileSystem())
             .ExecuteUninstallAsync(InstallerComponentTarget.Desktop, session).DrainAsync();
 
         var serverScript = serverCommands.CapturedScript ?? "";
@@ -268,9 +268,9 @@ public class MacOsInstallerPlatformAdapterTests
         var firstCommands = new ScriptCapturingCommandRunner();
         var secondCommands = new ScriptCapturingCommandRunner();
 
-        await Adapter(firstCommands, new RecordingMacOsFileSystem(), firstPaths)
+        await Adapter(firstCommands, new RecordingMacOsFileSystem())
             .ExecuteInstallAsync(SessionFor(first)).DrainAsync();
-        await Adapter(secondCommands, new RecordingMacOsFileSystem(), secondPaths)
+        await Adapter(secondCommands, new RecordingMacOsFileSystem())
             .ExecuteInstallAsync(SessionFor(second)).DrainAsync();
 
         var firstScript = firstCommands.CapturedScript ?? "";
@@ -322,9 +322,7 @@ public class MacOsInstallerPlatformAdapterTests
         => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/Applications/Agent-Up.app", PayloadSelection.Bundled(new Version(1, 2, 3)));
 
     private static MacOsInstallerOptions Options()
-        => new(
-            new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/icon/Agent-Up.png"),
-            MacOsInstallerPaths.SystemDefault());
+        => new(new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/icon/Agent-Up.png"));
 
     private static MacOsInstallerPlatformAdapter Adapter(
         ICommandRunner commands,
@@ -333,19 +331,6 @@ public class MacOsInstallerPlatformAdapterTests
             commands,
             files,
             Options(),
-            new RequiredCommandRunner(commands),
-            new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
-
-    private static MacOsInstallerPlatformAdapter Adapter(
-        ICommandRunner commands,
-        RecordingMacOsFileSystem files,
-        MacOsInstallerPaths paths)
-        => new(
-            commands,
-            files,
-            new MacOsInstallerOptions(
-                new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", $"/payload/icon/{paths.BundleIconFile}"),
-                paths),
             new RequiredCommandRunner(commands),
             new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
 

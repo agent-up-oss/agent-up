@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using AgentUp.Installers.Features.Installation.Models;
 
@@ -22,11 +23,19 @@ public sealed record MacOsInstallerManifest(
             Version: version,
             ServerUrl: "http://127.0.0.1:5000");
 
+    private static readonly Regex SafeSlug = new(@"^[a-z][a-z0-9-]+$", RegexOptions.Compiled);
+
     public static MacOsInstallerManifest From(
         ProductManifest product,
         string version,
         string serverUrl = "http://127.0.0.1:5000")
-        => new(
+    {
+        if (!SafeSlug.IsMatch(product.Slug))
+            throw new ArgumentException(
+                $"Slug '{product.Slug}' must contain only lowercase letters, digits, and hyphens.",
+                nameof(product));
+
+        return new(
             ProductName: product.ProductName,
             DesktopBundleIdentifier: $"dev.{product.Slug}.desktop",
             InstallerBundleIdentifier: $"dev.{product.Slug}.installer",
@@ -34,6 +43,7 @@ public sealed record MacOsInstallerManifest(
             BundleIconFile: $"{product.ProductName.Replace(" ", "-")}.png",
             Version: version,
             ServerUrl: serverUrl);
+    }
 }
 
 public sealed class MacOsInstallerPlistGenerator
