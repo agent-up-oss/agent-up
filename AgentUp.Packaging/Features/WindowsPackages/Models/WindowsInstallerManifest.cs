@@ -8,7 +8,9 @@ namespace AgentUp.Packaging.Features.WindowsPackages.Models;
 public sealed record WindowsPackageManifest(WindowsInstallerManifest InstallerManifest)
 {
     public static WindowsPackageManifest From(PackageRequest request)
-        => new(WindowsInstallerManifest.Create(request.WindowsInstallerVersion));
+        => new(request.ProductManifest.Slug.Equals("agent-up", StringComparison.Ordinal)
+            ? WindowsInstallerManifest.Create(request.WindowsInstallerVersion)
+            : WindowsInstallerManifest.From(request.ProductManifest, request.WindowsInstallerVersion, "http://127.0.0.1:5000"));
 }
 
 public sealed class WindowsWixSourceGenerator

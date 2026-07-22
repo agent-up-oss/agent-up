@@ -18,6 +18,7 @@ public sealed record WindowsInstallerManifest(
     public const string DefaultCliShimName = "agent-up.cmd";
 
     public string ServiceDisplayName => $"{ProductName} Server";
+    public string ServiceDescription => $"Local {ProductName} runtime authority for workspaces, processes, ports, diagnostics, and automation.";
     public string RegistryKeyName => ProductName;
     public string CliCommandName => System.IO.Path.GetFileNameWithoutExtension(CliShimName);
 
@@ -35,9 +36,9 @@ public sealed record WindowsInstallerManifest(
     public static WindowsInstallerManifest From(ProductManifest product, string version, string serverUrl)
         => new(
             ProductName: product.ProductName,
-            Manufacturer: product.ProductName,
+            Manufacturer: product.Manufacturer ?? product.ProductName,
             Version: version,
-            UpgradeCode: StableUpgradeCode(product.Slug),
+            UpgradeCode: product.WindowsUpgradeCode ?? StableUpgradeCode(product.Slug),
             ServiceName: product.ServiceName,
             CliShimName: $"{product.Slug}.cmd",
             BundleName: product.ProductName,
@@ -80,7 +81,7 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("Scope", "perMachine"));
 
         package.Add(new XElement(Wix + "MajorUpgrade",
-            new XAttribute("DowngradeErrorMessage", "A newer version of Agent-Up is already installed.")));
+            new XAttribute("DowngradeErrorMessage", $"A newer version of {_manifest.ProductName} is already installed.")));
         package.Add(new XElement(Wix + "MediaTemplate", new XAttribute("EmbedCab", "yes")));
         package.Add(
             new XElement(Wix + "Property", new XAttribute("Id", "ARPNOMODIFY"), new XAttribute("Value", "1")),
@@ -138,8 +139,8 @@ public sealed class WindowsWixSourceGenerator
                 new XElement(Bal + "WixStandardBootstrapperApplication",
                     new XAttribute("Theme", "rtfLicense"),
                     new XAttribute("LicenseFile", layout.LicenseRtfPath),
-                    new XAttribute("LaunchTarget", @"[ProgramFiles64Folder]Agent-Up\installer\AgentUp.InstallerApp.exe"),
-                    new XAttribute("LaunchWorkingFolder", @"[ProgramFiles64Folder]Agent-Up\installer"))),
+                    new XAttribute("LaunchTarget", $@"[ProgramFiles64Folder]{_manifest.ProductName}\installer\AgentUp.InstallerApp.exe"),
+                    new XAttribute("LaunchWorkingFolder", $@"[ProgramFiles64Folder]{_manifest.ProductName}\installer"))),
             new XElement(Wix + "Chain",
                 new XElement(Wix + "MsiPackage",
                     new XAttribute("SourceFile", layout.ProductMsiPath),
@@ -175,8 +176,8 @@ public sealed class WindowsWixSourceGenerator
                         new XAttribute("Id", "AgentUpServerService"),
                         new XAttribute("Type", "ownProcess"),
                         new XAttribute("Name", _manifest.ServiceName),
-                        new XAttribute("DisplayName", "Agent-Up Server"),
-                        new XAttribute("Description", "Local Agent-Up runtime authority for workspaces, processes, ports, diagnostics, and automation."),
+                        new XAttribute("DisplayName", _manifest.ServiceDisplayName),
+                        new XAttribute("Description", _manifest.ServiceDescription),
                         new XAttribute("Start", "auto"),
                         new XAttribute("ErrorControl", "normal"),
                         new XAttribute("Arguments", $"--urls {_manifest.ServerUrl}")),
@@ -203,11 +204,11 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("Directory", "BinDir"),
             new XAttribute("Guid", StableGuid("cli-shim")),
             new XElement(Wix + "File",
-                new XAttribute("Id", "AgentUpCliShim"),
+                new XAttribute("Id", "CliShimFile"),
                 new XAttribute("Source", System.IO.Path.Join(layout.InstallerSourceDirectory, _manifest.CliShimName)),
                 new XAttribute("KeyPath", "yes")),
             new XElement(Wix + "Environment",
-                new XAttribute("Id", "AgentUpPathEntry"),
+                new XAttribute("Id", "CliPathEntry"),
                 new XAttribute("Name", "PATH"),
                 new XAttribute("Value", "[BinDir]"),
                 new XAttribute("Permanent", "no"),
@@ -221,7 +222,7 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("Directory", "ApplicationProgramsFolder"),
             new XAttribute("Guid", StableGuid("start-menu-shortcut")),
             new XElement(Wix + "Shortcut",
-                new XAttribute("Id", "AgentUpStartMenuShortcut"),
+                new XAttribute("Id", "ApplicationStartMenuShortcut"),
                 new XAttribute("Name", _manifest.ProductName),
                 new XAttribute("Target", "[DesktopDir]AgentUp.Desktop.exe"),
                 new XAttribute("WorkingDirectory", "DesktopDir")),
@@ -230,7 +231,7 @@ public sealed class WindowsWixSourceGenerator
                 new XAttribute("On", "uninstall")),
             new XElement(Wix + "RegistryValue",
                 new XAttribute("Root", "HKCU"),
-                new XAttribute("Key", "Software\\Agent-Up"),
+                new XAttribute("Key", $"Software\\{_manifest.RegistryKeyName}"),
                 new XAttribute("Name", "installed"),
                 new XAttribute("Type", "integer"),
                 new XAttribute("Value", "1"),
@@ -242,13 +243,13 @@ public sealed class WindowsWixSourceGenerator
             new XAttribute("Directory", "ApplicationProgramsFolder"),
             new XAttribute("Guid", StableGuid("installer-start-menu-shortcut")),
             new XElement(Wix + "Shortcut",
-                new XAttribute("Id", "AgentUpInstallerStartMenuShortcut"),
-                new XAttribute("Name", "Agent-Up Installer"),
+                new XAttribute("Id", "InstallerStartMenuShortcut"),
+                new XAttribute("Name", $"{_manifest.ProductName} Installer"),
                 new XAttribute("Target", "[InstallerDir]AgentUp.InstallerApp.exe"),
                 new XAttribute("WorkingDirectory", "InstallerDir")),
             new XElement(Wix + "RegistryValue",
                 new XAttribute("Root", "HKCU"),
-                new XAttribute("Key", "Software\\Agent-Up"),
+                new XAttribute("Key", $"Software\\{_manifest.RegistryKeyName}"),
                 new XAttribute("Name", "installerInstalled"),
                 new XAttribute("Type", "integer"),
                 new XAttribute("Value", "1"),

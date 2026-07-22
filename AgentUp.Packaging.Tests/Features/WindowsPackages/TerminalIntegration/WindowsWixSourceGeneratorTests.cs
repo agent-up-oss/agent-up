@@ -1,11 +1,7 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages;
 using AgentUp.Packaging.Features.WindowsPackages.Models;
+using System.Xml.Linq;
+using WindowsInstallerManifest = AgentUp.Installers.Features.WindowsInstallation.Models.WindowsInstallerManifest;
 
 namespace AgentUp.Packaging.Tests.Features.WindowsPackages.TerminalIntegration;
 
@@ -92,6 +88,148 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Not.Contain("Win64="));
         Assert.That(xml, Does.Not.Contain("Permanent=\"yes\""));
         Assert.That(xml, Does.Contain("http://wixtoolset.org/schemas/v4/wxs/bal"));
+    }
+
+    [Test]
+    public void ProductWxs_forNonAgentUpManifestContainsOnlyProductBranding()
+    {
+        var layout = CreateLayoutWithPublishedFiles();
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "orbitctl.cmd"), "");
+        var manifest = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
+
+        var xml = new WindowsWixSourceGenerator(new WindowsPackageManifest(manifest)).ProductWxs(layout);
+
+        Assert.That(xml, Does.Contain("Name=\"Orbit Desk\""));
+        Assert.That(xml, Does.Contain("Manufacturer=\"Orbit Systems\""));
+        Assert.That(xml, Does.Contain("Name=\"orbit-desk-core\""));
+        Assert.That(xml, Does.Contain("DisplayName=\"Orbit Desk Server\""));
+        Assert.That(xml, Does.Contain("Local Orbit Desk runtime authority"));
+        Assert.That(xml, Does.Contain("Orbit Desk Installer"));
+        Assert.That(xml, Does.Contain("Software\\Orbit Desk"));
+        Assert.That(xml, Does.Contain("orbitctl.cmd"));
+        Assert.That(xml, Does.Not.Contain("Agent-Up"));
+        Assert.That(xml, Does.Not.Contain("agent-up"));
+    }
+
+    [Test]
+    public void ProductWxs_usesManifestUpgradeGuidSoDistinctProductsCannotUpgradeEachOther()
+    {
+        var layout = CreateLayoutWithPublishedFiles();
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "orbitctl.cmd"), "");
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "nova.cmd"), "");
+        var orbit = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
+        var nova = new WindowsInstallerManifest(
+            ProductName: "Nova Build",
+            Manufacturer: "Nova Labs",
+            Version: "1.2.3",
+            UpgradeCode: "16357A7B-6C17-4635-85D5-28E74D12F4F3",
+            ServiceName: "nova-build-core",
+            CliShimName: "nova.cmd",
+            BundleName: "Nova Build",
+            ServerUrl: "http://127.0.0.1:5002");
+
+        var orbitUpgradeCode = ProductUpgradeCode(new WindowsWixSourceGenerator(new WindowsPackageManifest(orbit)).ProductWxs(layout));
+        var novaUpgradeCode = ProductUpgradeCode(new WindowsWixSourceGenerator(new WindowsPackageManifest(nova)).ProductWxs(layout));
+
+        Assert.That(orbitUpgradeCode, Is.EqualTo(orbit.UpgradeCode));
+        Assert.That(novaUpgradeCode, Is.EqualTo(nova.UpgradeCode));
+        Assert.That(orbitUpgradeCode, Is.Not.EqualTo(novaUpgradeCode));
+    }
+
+    [Test]
+    public void WindowsPackageManifest_fromNonAgentUpPackageRequestUsesProductManufacturerAndUpgradeGuid()
+    {
+        var request = new PackageRequest(
+            _root,
+            "windows",
+            "win-x64",
+            "1.2.3",
+            "artifacts",
+            "Release",
+            productManifest: new("Orbit Desk", "orbit-desk", "ORBITDESK")
+            {
+                Manufacturer = "Orbit Systems",
+                WindowsUpgradeCode = "8F7D9E6B-1B58-4B28-9567-7B09D779B0AC"
+            });
+
+        var manifest = WindowsPackageManifest.From(request).InstallerManifest;
+
+        Assert.That(manifest.ProductName, Is.EqualTo("Orbit Desk"));
+        Assert.That(manifest.Manufacturer, Is.EqualTo("Orbit Systems"));
+        Assert.That(manifest.ServiceName, Is.EqualTo("orbit-desk-server"));
+        Assert.That(manifest.CliShimName, Is.EqualTo("orbit-desk.cmd"));
+        Assert.That(manifest.UpgradeCode, Is.EqualTo("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC"));
+    }
+
+    [TestCaseSource(nameof(ProductIdentityCases))]
+    public void ProductWxsAndBundleWxs_forTwoProductsHaveDisjointProductIdentifyingStrings(
+        WindowsInstallerManifest first,
+        IReadOnlyCollection<string> firstIdentity,
+        WindowsInstallerManifest second,
+        IReadOnlyCollection<string> secondIdentity)
+    {
+        var layout = CreateLayoutWithPublishedFiles();
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, first.CliShimName), "");
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, second.CliShimName), "");
+
+        var firstOutput = GeneratedOutput(first, layout);
+        var secondOutput = GeneratedOutput(second, layout);
+
+        Assert.Multiple(() =>
+        {
+            foreach (var value in firstIdentity)
+                Assert.That(secondOutput, Does.Not.Contain(value), $"{value} leaked into {second.ProductName}");
+            foreach (var value in secondIdentity)
+                Assert.That(firstOutput, Does.Not.Contain(value), $"{value} leaked into {first.ProductName}");
+        });
+    }
+
+    private static IEnumerable<TestCaseData> ProductIdentityCases()
+    {
+        var agentUp = WindowsInstallerManifest.Create("1.2.3");
+        var orbit = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
+
+        yield return new TestCaseData(
+            agentUp,
+            new[] { "Agent-Up", "agent-up-server", "agent-up.cmd", agentUp.UpgradeCode },
+            orbit,
+            new[] { "Orbit Desk", "Orbit Systems", "orbit-desk-core", "orbitctl.cmd", orbit.UpgradeCode })
+            .SetName("AgentUp_vs_OrbitDesk");
+    }
+
+    private WindowsPackageLayout CreateLayoutWithPublishedFiles()
+    {
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
+        var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+        WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        Directory.CreateDirectory(layout.InstallerSourceDirectory);
+        return layout;
+    }
+
+    private static WindowsInstallerManifest OrbitDeskManifest(string upgradeCode)
+        => new(
+            ProductName: "Orbit Desk",
+            Manufacturer: "Orbit Systems",
+            Version: "1.2.3",
+            UpgradeCode: upgradeCode,
+            ServiceName: "orbit-desk-core",
+            CliShimName: "orbitctl.cmd",
+            BundleName: "Orbit Desk",
+            ServerUrl: "http://127.0.0.1:5001");
+
+    private static string GeneratedOutput(WindowsInstallerManifest manifest, WindowsPackageLayout layout)
+    {
+        var generator = new WindowsWixSourceGenerator(new WindowsPackageManifest(manifest));
+        return generator.ProductWxs(layout) + Environment.NewLine + generator.BundleWxs(layout);
+    }
+
+    private static string? ProductUpgradeCode(string productWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return (string?)XDocument.Parse(productWxs).Descendants(wix + "Package").Single().Attribute("UpgradeCode");
     }
 
     private static void WritePublishedFile(string directory, string name)
