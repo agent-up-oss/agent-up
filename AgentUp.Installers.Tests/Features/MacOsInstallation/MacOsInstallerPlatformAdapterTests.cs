@@ -159,6 +159,22 @@ public class MacOsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public void ValidateInstalledStateAsync_withUnsafeManifestIdentity_throwsBeforeRunningCommands()
+    {
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, new RecordingMacOsFileSystem());
+        var manifest = new ProductManifest("Acme Studio", "acme;open", "ACMESTUDIO");
+        var session = InstallerSession.CreateDefault(
+            manifest,
+            new Version(1, 2, 3),
+            "/Applications/Acme Studio.app",
+            PayloadSelection.Bundled(manifest.ProductName, new Version(1, 2, 3)));
+
+        Assert.That(async () => await adapter.ValidateInstalledStateAsync(session), Throws.ArgumentException);
+        Assert.That(commands.Commands, Is.Empty);
+    }
+
+    [Test]
     public async Task Install_withNonAgentUpManifest_registersProductLaunchdLabel_notAgentUpLabel()
     {
         var commands = new ScriptCapturingCommandRunner();
@@ -301,6 +317,17 @@ public class MacOsInstallerPlatformAdapterTests
         {
             Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
         };
+
+    [TestCase("Acme Studio", "../acme")]
+    [TestCase("../Acme Studio", "acme-studio")]
+    public void MacOsInstallerPaths_From_withUnsafeProductIdentity_throwsArgumentException(
+        string productName,
+        string slug)
+    {
+        var manifest = new ProductManifest(productName, slug, "ACMESTUDIO");
+
+        Assert.That(() => MacOsInstallerPaths.From(manifest), Throws.ArgumentException);
+    }
 
     private static MacOsInstallerPaths AcmePaths()
         => MacOsInstallerPaths.From(AcmeStudio);

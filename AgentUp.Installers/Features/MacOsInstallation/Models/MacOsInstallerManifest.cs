@@ -24,27 +24,41 @@ public sealed record MacOsInstallerManifest(
             ServerUrl: "http://127.0.0.1:5000");
 
     private static readonly Regex SafeSlug = new(@"^[a-z][a-z0-9-]+$", RegexOptions.Compiled);
+    private static readonly Regex SafeName = new(@"^[A-Za-z][A-Za-z0-9 -]*$", RegexOptions.Compiled);
 
     public static MacOsInstallerManifest From(
         ProductManifest product,
         string version,
         string serverUrl = "http://127.0.0.1:5000")
     {
+        var identity = ValidatedIdentityFrom(product);
+
+        return new(
+            ProductName: identity.ProductName,
+            DesktopBundleIdentifier: $"dev.{identity.Slug}.desktop",
+            InstallerBundleIdentifier: $"dev.{identity.Slug}.installer",
+            ServerLaunchDaemonLabel: $"dev.{identity.Slug}.server",
+            BundleIconFile: identity.BundleIconFile,
+            Version: version,
+            ServerUrl: serverUrl);
+    }
+
+    internal static MacOsProductIdentity ValidatedIdentityFrom(ProductManifest product)
+    {
         if (!SafeSlug.IsMatch(product.Slug))
             throw new ArgumentException(
                 $"Slug '{product.Slug}' must contain only lowercase letters, digits, and hyphens.",
                 nameof(product));
+        if (!SafeName.IsMatch(product.ProductName))
+            throw new ArgumentException(
+                $"ProductName '{product.ProductName}' contains characters that are unsafe for macOS paths.",
+                nameof(product));
 
-        return new(
-            ProductName: product.ProductName,
-            DesktopBundleIdentifier: $"dev.{product.Slug}.desktop",
-            InstallerBundleIdentifier: $"dev.{product.Slug}.installer",
-            ServerLaunchDaemonLabel: $"dev.{product.Slug}.server",
-            BundleIconFile: $"{product.ProductName.Replace(" ", "-")}.png",
-            Version: version,
-            ServerUrl: serverUrl);
+        return new(product.ProductName, product.Slug, $"{product.ProductName.Replace(" ", "-")}.png");
     }
 }
+
+internal sealed record MacOsProductIdentity(string ProductName, string Slug, string BundleIconFile);
 
 public sealed class MacOsInstallerPlistGenerator
 {

@@ -172,11 +172,11 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         InstallerSession session,
         CancellationToken cancellationToken = default)
     {
+        var paths = MacOsInstallerPaths.From(session.Manifest);
         var launchDaemonLabel = $"dev.{session.Manifest.Slug}.server";
         var service = await _commands.RunAsync("launchctl", $"print system/{launchDaemonLabel}", cancellationToken);
         var cli = await _commands.RunAsync("bash", $"-lc \"command -v \\\"$1\\\"\" -- {session.Manifest.CliCommandName}", cancellationToken);
 
-        var paths = MacOsInstallerPaths.From(session.Manifest);
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,
             ServiceRunning: service.ExitCode == 0,
