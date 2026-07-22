@@ -31,6 +31,10 @@ public class UbuntuProductBrandingTests
         foreach (var (path, text) in writer.WrittenText)
             Assert.That(text, Does.Not.Contain("agent-up"),
                 $"artifact written to '{path}' must not contain 'agent-up'");
+
+        foreach (var path in writer.AllPaths)
+            Assert.That(path, Does.Not.Contain("agent-up"),
+                $"staged path '{path}' must not contain 'agent-up'");
     }
 
     // Test 2: generated post-install script installs files under the product's install root
@@ -97,16 +101,16 @@ public class UbuntuProductBrandingTests
     public void ProductArtifacts_twoProducts_haveDisjointProductIdentifyingStrings(
         string firstSlug, string secondSlug)
     {
-        var firstText = CollectAllArtifactText(firstSlug);
-        var secondText = CollectAllArtifactText(secondSlug);
+        var firstOutput = CollectAllArtifactOutput(firstSlug);
+        var secondOutput = CollectAllArtifactOutput(secondSlug);
 
-        Assert.That(secondText, Does.Not.Contain(firstSlug),
+        Assert.That(secondOutput, Does.Not.Contain(firstSlug),
             $"Second product's artifacts must not contain '{firstSlug}'");
-        Assert.That(firstText, Does.Not.Contain(secondSlug),
+        Assert.That(firstOutput, Does.Not.Contain(secondSlug),
             $"First product's artifacts must not contain '{secondSlug}'");
     }
 
-    private static string CollectAllArtifactText(string slug)
+    private static string CollectAllArtifactOutput(string slug)
     {
         var product = new ProductManifest(SlugToProductName(slug), slug, slug.ToUpperInvariant().Replace("-", ""));
         var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release");
@@ -116,7 +120,7 @@ public class UbuntuProductBrandingTests
 
         new UbuntuPackageStager(writer).Stage(request, layout, manifest);
 
-        return string.Concat(writer.WrittenText.Values);
+        return string.Concat(writer.WrittenText.Values) + string.Concat(writer.AllPaths);
     }
 
     private static string SlugToProductName(string slug)
@@ -125,14 +129,15 @@ public class UbuntuProductBrandingTests
     private sealed class RecordingPackageWriter : IPackageWriter
     {
         public Dictionary<string, string> WrittenText { get; } = [];
+        public List<string> AllPaths { get; } = [];
 
-        public void ResetDirectory(string path) { }
-        public void CreateDirectory(string path) { }
-        public void CopyDirectory(string source, string destination) { }
-        public void CopyFile(string source, string destination) { }
-        public void WriteText(string path, string text) => WrittenText[path] = text;
-        public void CreateSymbolicLink(string linkPath, string targetPath) { }
-        public void SetExecutable(string path) { }
+        public void ResetDirectory(string path) => AllPaths.Add(path);
+        public void CreateDirectory(string path) => AllPaths.Add(path);
+        public void CopyDirectory(string source, string destination) => AllPaths.Add(destination);
+        public void CopyFile(string source, string destination) => AllPaths.Add(destination);
+        public void WriteText(string path, string text) { AllPaths.Add(path); WrittenText[path] = text; }
+        public void CreateSymbolicLink(string linkPath, string targetPath) => AllPaths.Add(linkPath);
+        public void SetExecutable(string path) => AllPaths.Add(path);
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner

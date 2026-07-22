@@ -1,5 +1,6 @@
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
 using AgentUp.Packaging.Shared.Interfaces;
+using AgentUp.Packaging.Shared.Providers;
 using AgentUp.Installers.Features.UbuntuInstallation.Models;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
@@ -24,6 +25,7 @@ public sealed record UbuntuPackageManifest(
     public static UbuntuPackageManifest From(PackageRequest request, ProductManifest product)
     {
         var installerManifest = UbuntuInstallerManifest.ForProduct(product);
+        PackagePathValidator.RequireSafePathComponent(installerManifest.PackageName, nameof(PackageName));
         var paths = UbuntuInstallerPaths.ForProduct(installerManifest);
         return new UbuntuPackageManifest(
             PackageName: installerManifest.PackageName,
