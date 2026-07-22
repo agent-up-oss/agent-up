@@ -119,7 +119,7 @@ Inside a feature slice, use only these type folders:
 
 Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
 
-Tests should stay feature-sliced, but test projects may use test-kind folders such as `Unit/`, `Headless/`, `HTTP/`, `Repository/`, `TerminalIntegration/`, `Fake/`, and `Support/` when that keeps test intent clear. `Unit/` tests must stay in memory and must not use real filesystem, process, socket, current-directory, or environment mutation APIs; use `Repository/` or `TerminalIntegration/` for tests that verify real directory state or terminal-like workflows.
+Tests must stay feature-sliced and use clear test-kind folders. Feature tests live under `Features/<Slice>/<TestKind>/` with `Unit/`, `Controller/`, `HTTP/`, `Repository/`, `Provider/`, `Headless/`, or `E2E/`. Use `Controller/` for slice-external communication boundaries such as controllers, command parsers, CLI command surfaces, MCP tools, and MCP resources. `Unit/` tests must stay in memory and must not use real filesystem, process, socket, current-directory, or environment mutation APIs; use `Repository/` or `Provider/` for tests that verify real directory state, platform adapters, command providers, package writers/stagers, probes, or process-style command shapes.
 
 `AgentUp.Architecture.Tests` owns executable architecture and review-hygiene rules. Use ArchUnitNET there for assembly/type dependency rules, and use narrowly scoped filesystem/source checks there for physical folder rules and generic source-quality rules that assembly analysis cannot see.
 

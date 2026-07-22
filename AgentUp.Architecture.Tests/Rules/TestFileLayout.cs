@@ -17,7 +17,7 @@ public sealed class TestFileLayout
             .ToArray();
 
         Assert.That(violations, Is.Empty,
-            "Tests must live under Features/<Slice>/, Features/<Slice>/<TestKind>/, Fake/, Support/, E2E/, Fixtures/, or Architecture/.");
+            "Tests must live under Features/<Slice>/<TestKind>/, Fake/, Support/, E2E/, Fixtures/, or Architecture/.");
     }
 
     private static bool IsAllowedTestSupportFile(string root, string path)
@@ -35,6 +35,6 @@ public sealed class TestFileLayout
         if (parts.Length < 4 || parts[1] != "Features")
             return false;
 
-        return parts.Length == 4 || ArchitectureFixture.AllowedTestKindFolders.Contains(parts[3]);
+        return parts.Length >= 5 && ArchitectureFixture.AllowedTestKindFolders.Contains(parts[3]);
     }
 }

@@ -3,7 +3,7 @@ using AgentUp.Capabilities.Common.Features.CapabilityDiscovery.Models;
 using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
 using AgentUp.Capabilities.Docker.Features.DockerCapability.Providers;
 
-namespace AgentUp.Capabilities.Docker.Tests.Features.DockerCapability.Unit;
+namespace AgentUp.Capabilities.Docker.Tests.Features.DockerCapability.Provider;
 
 [TestFixture]
 public sealed class DockerVersionProviderTests

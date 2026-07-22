@@ -1,0 +1,282 @@
+using System.Net.Http.Json;
+using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Console.Providers;
+using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Factories;
+using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.Views;
+using AgentUp.Desktop.Features.Workspaces.Repositories;
+using AgentUp.Tests.Support;
+using Avalonia.Threading;
+
+namespace AgentUp.Tests.Features.Browser.E2E;
+
+// These tests drive the real MainWindow with the platform WebView backend selected
+// by the AgentUp.Fixtures.* adapter for the current test runner OS.
+//
+// Each NavigateTo call is dispatched to the UI thread, then the test thread waits
+// for the HTTP server to receive the request. This keeps the UI thread free to
+// process GTK/WebKit events during the wait.
+//
+// Run explicitly:
+//   dotnet test AgentUp.Tests/ --filter "Category=E2E"
+[TestFixture, Category("E2E")]
+public sealed class BrowserCookieIsolationTests
+{
+    private CookieTestServer _server = null!;
+    private MainWindow? _window;
+    private string _profileRoot = null!;
+    private string _savedProfileRoot = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _profileRoot = Path.Join(Path.GetTempPath(), $"agentup-e2e-cookie-{Guid.NewGuid()}");
+        _savedProfileRoot = BrowserUrlStore.RootPath;
+        BrowserUrlStore.RootPath = _profileRoot;
+        _server = new CookieTestServer();
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        var w = _window;
+        _window = null;
+        if (w is not null)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => w.Close());
+            await FlushDispatcherAsync();
+        }
+
+        _server.Dispose();
+        BrowserUrlStore.RootPath = _savedProfileRoot;
+    }
+
+    // Scenario 1: Two workspaces, two apps each.
+    // WS1 sets session=ws1, then WS2 sets session=ws2 for the same cookie name.
+    // WS1's cookie must not be overwritten by WS2.
+    [Test, CancelAfter(60000)]
+    public async Task Workspace_cookies_are_isolated_from_each_other()
+    {
+        int port = _server.Port;
+        _window = await LaunchWindowAsync([MakeWorkspace("ws-1", port), MakeWorkspace("ws-2", port)]);
+
+        Navigate("ws-1", $"http://localhost:{port}/set/session/ws1");
+        await _server.WaitForRequestAsync("/set/session/ws1");
+        var ws1Initial = await WaitForCookieHeaderAsync("ws-1", "ws1-initial", contains: "session=ws1");
+        Assert.That(ws1Initial.CookieHeader, Does.Contain("session=ws1"),
+            "WS1's page must send the cookie it just set");
+
+        Navigate("ws-2", $"http://localhost:{port}/set/session/ws2");
+        await _server.WaitForRequestAsync("/set/session/ws2");
+        var ws2Initial = await WaitForCookieHeaderAsync("ws-2", "ws2-initial", contains: "session=ws2", excludes: "session=ws1");
+        Assert.That(ws2Initial.CookieHeader, Does.Contain("session=ws2"),
+            "WS2's page must send the cookie it just set");
+        Assert.That(ws2Initial.CookieHeader, Does.Not.Contain("session=ws1"),
+            "WS2 must not see WS1's cookie value");
+
+        var req = await WaitForCookieHeaderAsync("ws-1", "ws1-after-ws2", contains: "session=ws1");
+        Assert.That(req.CookieHeader, Does.Contain("session=ws1"),
+            "WS1's cookie must not be overwritten by WS2's write to the same name");
+    }
+
+    // Scenario 2: WS1 logs in (sets a cookie). WS2 must not see that cookie.
+    [Test, CancelAfter(60000)]
+    public async Task Login_cookie_does_not_leak_to_other_workspace()
+    {
+        int port = _server.Port;
+        TestContext.Progress.WriteLine($"Launching cookie isolation window on port {port}.");
+        _window = await LaunchWindowAsync([MakeWorkspace("ws-1", port), MakeWorkspace("ws-2", port)]);
+
+        TestContext.Progress.WriteLine("Navigating WS1 to set login cookie.");
+        Navigate("ws-1", $"http://localhost:{port}/set/logged_in/true");
+        TestContext.Progress.WriteLine("Waiting for WS1 set-cookie request.");
+        await _server.WaitForRequestAsync("/set/logged_in/true");
+        TestContext.Progress.WriteLine("WS1 set-cookie request received.");
+
+        TestContext.Progress.WriteLine("Checking WS1 login cookie header.");
+        var ws1Req = await WaitForCookieHeaderAsync("ws-1", "ws1-login", contains: "logged_in=true");
+        Assert.That(ws1Req.CookieHeader, Does.Contain("logged_in=true"),
+            "WS1's page must see its own login cookie");
+        TestContext.Progress.WriteLine("WS1 cookie check passed.");
+
+        TestContext.Progress.WriteLine("Checking WS2 login cookie isolation (creating second WebView).");
+        Navigate("ws-2", $"http://localhost:{port}/check/ws2-login");
+        TestContext.Progress.WriteLine("WS2 navigation posted; waiting for request.");
+        var ws2Req = await _server.WaitForRequestAsync("/check/ws2-login");
+        TestContext.Progress.WriteLine("WS2 request received.");
+        Assert.That(ws2Req.CookieHeader, Is.Null.Or.Not.Contain("logged_in"),
+            "WS2's page must not see WS1's login cookie");
+    }
+
+    // Scenario 3: Full 2×2 isolation.
+    //
+    // Two workspaces, two apps each. Within a workspace, App1 and App2 share
+    // the same browser profile so cookies set by one are visible to the other.
+    // Across workspaces, the same cookie name is used but the values never
+    // collide — each workspace has its own isolated profile.
+    //
+    //   WS1/App1 → set session=ws1
+    //   WS1/App2 → check         → must see session=ws1  (intra-workspace sharing)
+    //   WS2/App1 → set session=ws2
+    //   WS2/App2 → check         → must see session=ws2  (intra-workspace sharing)
+    //   WS1/App2 → check again   → must still see session=ws1, not ws2  (inter-workspace isolation)
+    [Test, CancelAfter(90000)]
+    public async Task Two_apps_within_workspace_share_profile_isolated_from_other_workspace()
+    {
+        int port = _server.Port;
+        _window = await LaunchWindowAsync([MakeWorkspace("ws-1", port), MakeWorkspace("ws-2", port)]);
+
+        // WS1/App1 sets a cookie.
+        Navigate("ws-1", $"http://localhost:{port}/set/session/ws1");
+        await _server.WaitForRequestAsync("/set/session/ws1");
+
+        // WS1/App2 reads — must share the cookie from App1 (same browser profile).
+        var ws1App2First = await WaitForCookieHeaderAsync("ws-1", "ws1-app2-first", contains: "session=ws1");
+        Assert.That(ws1App2First.CookieHeader, Does.Contain("session=ws1"),
+            "App2 of WS1 must see the cookie set by App1 of WS1 — they share a browser profile");
+
+        // WS2/App1 sets the same-named cookie with a different value.
+        Navigate("ws-2", $"http://localhost:{port}/set/session/ws2");
+        await _server.WaitForRequestAsync("/set/session/ws2");
+
+        // WS2/App2 reads — must share WS2's cookie, not WS1's.
+        var ws2App2 = await WaitForCookieHeaderAsync("ws-2", "ws2-app2", contains: "session=ws2", excludes: "session=ws1");
+        Assert.That(ws2App2.CookieHeader, Does.Contain("session=ws2"),
+            "App2 of WS2 must see the cookie set by App1 of WS2 — they share a browser profile");
+        Assert.That(ws2App2.CookieHeader, Does.Not.Contain("session=ws1"),
+            "WS2 must not see WS1's cookie value");
+
+        // WS1/App2 re-checks — must still see ws1, not contaminated by WS2.
+        var ws1App2Second = await WaitForCookieHeaderAsync("ws-1", "ws1-app2-second", contains: "session=ws1", excludes: "session=ws2");
+        Assert.That(ws1App2Second.CookieHeader, Does.Contain("session=ws1"),
+            "WS1's cookie must survive WS2 writing the same cookie name");
+        Assert.That(ws1App2Second.CookieHeader, Does.Not.Contain("session=ws2"),
+            "WS1 must not see WS2's cookie value");
+    }
+
+    // Window creation runs on the UI thread (Avalonia controls must be created there).
+    // WaitForRequestAsync runs on the test thread so the UI thread stays free to
+    // drive WebKit's network stack.
+    private async Task<MainWindow> LaunchWindowAsync(List<WorkspaceDto> workspaces)
+    {
+        TestContext.Progress.WriteLine("Creating MainWindow on Avalonia UI thread.");
+        var window = await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            TestContext.Progress.WriteLine("UI thread entered MainWindow creation.");
+            var handler = new FakeHttpHandler(workspaces);
+            var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+            var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), new ConsoleApiClient(http));
+            TestContext.Progress.WriteLine("MainViewModel created.");
+            var window = new MainWindow { DataContext = vm };
+            TestContext.Progress.WriteLine("MainWindow constructed.");
+            window.Show();
+            TestContext.Progress.WriteLine("MainWindow shown.");
+            await vm.InitializeAsync();
+            TestContext.Progress.WriteLine("MainViewModel initialized.");
+            return window;
+        });
+
+        TestContext.Progress.WriteLine("MainWindow initialized; pre-creating all workspace WebViews.");
+        // Pre-create every workspace WebView sequentially and confirm each NetworkProcess
+        // is up before moving to the next. Creating the second WebView mid-test while the
+        // first NetworkProcess is actively loading pages triggers a GTK/WebKit crash on
+        // Linux. The HTTP request arriving at the test server is the concrete signal that
+        // a NetworkProcess is running — InvokeAsync alone only waits for Source to be set,
+        // not for the page to load.
+        int port = _server.Port;
+        foreach (var ws in workspaces)
+        {
+            TestContext.Progress.WriteLine($"Pre-warming WebView for workspace {ws.Id}.");
+            await Dispatcher.UIThread.InvokeAsync(() => window.NavigateTo(ws.Id, $"http://localhost:{port}/pre-warm/{ws.Id}"));
+            await _server.WaitForRequestAsync($"/pre-warm/{ws.Id}", TimeSpan.FromSeconds(15));
+            TestContext.Progress.WriteLine($"WebView for workspace {ws.Id} confirmed ready.");
+        }
+
+        TestContext.Progress.WriteLine("All WebViews confirmed ready; giving WebKit a moment to settle.");
+        await Task.Delay(2000);
+
+        TestContext.Progress.WriteLine("Bootstrap complete. About to return window.");
+        return window;
+    }
+
+    private void Navigate(string workspaceId, string url)
+    {
+        TestContext.Progress.WriteLine($"Posting navigation for {workspaceId}: {url}");
+        Dispatcher.UIThread.Post(() => _window!.NavigateTo(workspaceId, url));
+    }
+
+    private static async Task FlushDispatcherAsync()
+    {
+        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+        await Task.Delay(100);
+        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+    }
+
+    private async Task<CookieTestServer.ReceivedRequest> WaitForCookieHeaderAsync(
+        string workspaceId,
+        string checkName,
+        string contains,
+        string? excludes = null,
+        TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+        CookieTestServer.ReceivedRequest? lastRequest = null;
+        var attempt = 0;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            var path = $"/check/{checkName}/{attempt++}";
+            Navigate(workspaceId, $"http://localhost:{_server.Port}{path}");
+            lastRequest = await _server.WaitForRequestAsync(path, TimeSpan.FromSeconds(5));
+
+            if (lastRequest.CookieHeader?.Contains(contains, StringComparison.Ordinal) == true
+                && (excludes is null || !lastRequest.CookieHeader.Contains(excludes, StringComparison.Ordinal)))
+                return lastRequest;
+
+            await Task.Delay(250);
+        }
+
+        Assert.Fail(
+            $"Expected cookie header containing '{contains}'"
+            + (excludes is null ? "" : $" and excluding '{excludes}'")
+            + $" for workspace '{workspaceId}', but last header was '{lastRequest?.CookieHeader ?? "(null)"}'.");
+
+        throw new InvalidOperationException("Assert.Fail did not throw.");
+    }
+
+    // Each workspace has two apps (App1 and App2) both pointing at the same
+    // cookie test server — simulating two web apps in the same workspace.
+    private static WorkspaceDto MakeWorkspace(string id, int port) =>
+        new(id, id, $"/repo/{id}", $"/worktrees/{id}", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App1", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 8080, port)]
+                },
+                new ApplicationDto("App2", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 8081, port)]
+                }
+            ]
+        };
+}
+
+file sealed class FakeHttpHandler(List<WorkspaceDto> workspaces) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken ct)
+    {
+        var path = request.RequestUri?.AbsolutePath ?? "";
+        if (path == "/api/workspaces")
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                { Content = JsonContent.Create(workspaces) });
+
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            { Content = JsonContent.Create(Array.Empty<string>()) });
+    }
+}

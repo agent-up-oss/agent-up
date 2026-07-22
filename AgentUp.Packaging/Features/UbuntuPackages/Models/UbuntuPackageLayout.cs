@@ -1,7 +1,5 @@
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
 using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.UbuntuInstallation.Models;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 
 namespace AgentUp.Packaging.Features.UbuntuPackages.Models;
@@ -14,11 +12,12 @@ public sealed record UbuntuPackageLayout(
     string CliPublishDirectory)
 {
     public static UbuntuPackageLayout From(PackageRequest request)
-        => From(request, ProductManifest.AgentUp());
+        => From(request, request.ProductManifest);
 
-    public static UbuntuPackageLayout From(PackageRequest request, ProductManifest product)
+    public static UbuntuPackageLayout From(PackageRequest request, PackageProductManifest product)
     {
-        var packageName = UbuntuInstallerManifest.ForProduct(product).PackageName;
+        PackageProductManifest.Validate(product);
+        var packageName = product.Slug;
         var stage = request.StageDirectory;
         return new UbuntuPackageLayout(
             DebRoot: Path.Join(stage, "deb-root"),

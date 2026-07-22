@@ -540,20 +540,20 @@ AgentUp.Server.Tests/
       HTTP/
     Processes/
       Unit/
-      TerminalIntegration/
+      Provider/
     Browser/
-      Automation/
+      Provider/
       Unit/
     Mcp/
-      Tools/
-      Resources/
+      Controller/
+      Provider/
 
 AgentUp.Desktop.Tests/
   Features/
     Workspaces/
       Headless/     (Avalonia headless tests for sidebar/workspace-list UI)
       Unit/         (ViewModel unit tests, no UI)
-      TerminalIntegration/ (tests that inspect real project or filesystem state)
+      Provider/     (tests for low-level providers, filesystem/project-icon adapters, and similar boundaries)
     Applications/
       Headless/     (Avalonia headless tests for application panel UI)
     Console/
@@ -566,13 +566,14 @@ AgentUp.Desktop.Tests/
 Use layered tests with clear ownership:
 
 - Unit tests verify domain/runtime rules and edge cases.
+- Controller tests verify slice-external communication boundaries such as controllers, command parsers, CLI command surfaces, MCP tools, and MCP resources with repositories and providers mocked or faked.
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
-- MCP tests verify tool/resource contracts and safe errors.
 - Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
-- Terminal integration tests verify terminal-like workflows, generated directory state, process-style behavior, package layouts, installer smoke behavior, and post-run filesystem assertions.
+- Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them.
+- Headless tests verify Avalonia UI behavior without native display dependencies.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 
-`Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `TerminalIntegration/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
+`Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
 
 Avoid duplicate tests that assert the same rule through multiple layers.
 

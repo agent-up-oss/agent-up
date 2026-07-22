@@ -4,7 +4,7 @@ using AgentUp.Capabilities.Common.Features.CapabilityDiscovery.Models;
 using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 
-namespace AgentUp.Capabilities.Dotnet.Tests.Features.DotnetCapability.Unit;
+namespace AgentUp.Capabilities.Dotnet.Tests.Features.DotnetCapability.Provider;
 
 [TestFixture]
 public sealed class DotnetVersionProviderTests
