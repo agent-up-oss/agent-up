@@ -32,7 +32,7 @@ public class ConsolePanelBehaviorTests
         Assert.That(html, Does.Contain("$ cargo run"));
         Assert.That(html, Does.Contain("&lt;error&gt; &amp; 'warning'"));
         Assert.That(html, Does.Contain("done"));
-        Assert.That(html, Does.Contain("<textarea"));
+        Assert.That(html, Does.Contain("<pre"));
         Assert.That(html, Does.Contain("#07110f"));
     }
 

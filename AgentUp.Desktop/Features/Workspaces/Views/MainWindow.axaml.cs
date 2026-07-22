@@ -9,9 +9,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Input.Platform;
 using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -30,6 +32,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private string? _activeWorkspaceId;
     private bool _isClosed;
     private NativeWebView? _consoleWebView;
+    private Panel? _consoleOverlay;
+    private bool _consoleSelecting;
 
     // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
@@ -39,6 +43,88 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         || _webViewErrors.Count > 0
         || _lastKnownBrowserUrls.Count > 0
         || _activeWorkspaceId is not null;
+
+    // Injected into port WebViews after each navigation. Injects ::selection CSS so the
+    // highlight is visible even when the GTK widget isn't keyboard-focused (inactive
+    // selection uses a grey that's invisible on many backgrounds). Also wires _selStart/
+    // _selEnd helpers for platforms where Avalonia can relay pointer events.
+    private const string SelectionJs =
+        "(function(){" +
+        "if(!document.getElementById('_au_sel')){" +
+        "var st=document.createElement('style');st.id='_au_sel';" +
+        "st.textContent='::selection{background-color:#17614f!important;color:#f5fbf7!important}';" +
+        "(document.head||document.documentElement).appendChild(st);}" +
+        "var active=false;" +
+        "window._selStart=function(x,y){" +
+        "active=true;" +
+        "var r=document.caretRangeFromPoint(x,y);" +
+        "if(!r)return;" +
+        "var s=window.getSelection();" +
+        "s.removeAllRanges();" +
+        "var g=document.createRange();" +
+        "g.setStart(r.startContainer,r.startOffset);" +
+        "g.collapse(true);" +
+        "s.addRange(g);" +
+        "};" +
+        "window._selEnd=function(){active=false;};" +
+        "document.addEventListener('mousemove',function(e){" +
+        "if(!active)return;" +
+        "var r=document.caretRangeFromPoint(e.clientX,e.clientY);" +
+        "if(!r)return;" +
+        "var s=window.getSelection();" +
+        "if(!s.anchorNode)return;" +
+        "try{s.extend(r.startContainer,r.startOffset);}catch(ex){}" +
+        "},true);" +
+        "})();";
+
+    // Embedded in the console HTML page. The Avalonia overlay above the WebView drives all
+    // interactions via InvokeScript — no mousemove listener needed since Avalonia reports moves.
+    // _selStart / _selWord / _selLine also focus the <pre> element so WebKit renders the
+    // selection with the active (coloured) highlight rather than the invisible inactive grey.
+    private const string ConsoleJs =
+        "(function(){" +
+        "function focus(){var c=document.getElementById('content');if(c)c.focus({preventScroll:true});}" +
+        "window._selStart=function(x,y){" +
+        "focus();" +
+        "var r=document.caretRangeFromPoint(x,y);" +
+        "if(!r)return;" +
+        "var s=window.getSelection();" +
+        "s.removeAllRanges();" +
+        "var g=document.createRange();" +
+        "g.setStart(r.startContainer,r.startOffset);" +
+        "g.collapse(true);" +
+        "s.addRange(g);" +
+        "};" +
+        "window._selExtend=function(x,y){" +
+        "var r=document.caretRangeFromPoint(x,y);" +
+        "if(!r)return;" +
+        "var s=window.getSelection();" +
+        "if(!s.anchorNode)return;" +
+        "try{s.extend(r.startContainer,r.startOffset);}catch(ex){}" +
+        "};" +
+        "window._selWord=function(x,y){" +
+        "focus();" +
+        "var r=document.caretRangeFromPoint(x,y);" +
+        "if(!r)return;" +
+        "var s=window.getSelection();" +
+        "s.removeAllRanges();s.addRange(r);" +
+        "s.modify('expand','backward','word');" +
+        "s.modify('extend','forward','word');" +
+        "};" +
+        "window._selLine=function(x,y){" +
+        "focus();" +
+        "var r=document.caretRangeFromPoint(x,y);" +
+        "if(!r)return;" +
+        "var s=window.getSelection();" +
+        "s.removeAllRanges();s.addRange(r);" +
+        "s.modify('expand','backward','lineboundary');" +
+        "s.modify('extend','forward','lineboundary');" +
+        "};" +
+        "window._scroll=function(dy){" +
+        "var c=document.getElementById('content');" +
+        "if(c)c.scrollTop+=dy;" +
+        "};" +
+        "})();";
 
     public MainWindow()
     {
@@ -239,6 +325,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         {
             if (!e.IsSuccess || e.Request is not { } uri) return;
             UpdateAddressFromWebView(workspaceId, uri);
+            _ = webView.InvokeScript(SelectionJs);
             if (firstNavDone) return;
             firstNavDone = true;
             ForceFirstWebKitPaint(workspaceId, webView);
@@ -394,7 +481,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 wv.NavigationCompleted += (_, e) =>
                 {
                     if (!e.IsSuccess) return;
-                    _ = wv.InvokeScript("var t=document.querySelector('textarea');if(t)t.scrollTop=t.scrollHeight;");
+                    _ = wv.InvokeScript("var t=document.getElementById('content');if(t)t.scrollTop=t.scrollHeight;");
                     if (firstNavDone) return;
                     firstNavDone = true;
                     // Same Expose-event fix as ForceFirstWebKitPaint: GTK only composites the
@@ -412,6 +499,25 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 };
                 ConsolePane.Children.Add(wv);
                 _consoleWebView = wv;
+
+                // Transparent overlay stacked above the WebView so Avalonia sees pointer events.
+                // On GTK/X11, button-press events go directly to WebKit's native window; they
+                // never reach Avalonia's event system. An ordinary Avalonia control does receive
+                // them, so the overlay intercepts press/move/release and drives selection via
+                // InvokeScript. Scroll wheel is also forwarded so the overlay doesn't break it.
+                var overlay = new Panel
+                {
+                    Background = Brushes.Transparent,
+                    Cursor = new Cursor(StandardCursorType.Ibeam),
+                    Focusable = true,
+                };
+                overlay.PointerPressed += OnConsoleOverlayPointerPressed;
+                overlay.PointerMoved += OnConsoleOverlayPointerMoved;
+                overlay.PointerReleased += OnConsoleOverlayPointerReleased;
+                overlay.PointerWheelChanged += OnConsoleOverlayWheelChanged;
+                overlay.KeyDown += OnConsoleOverlayKeyDown;
+                ConsolePane.Children.Add(overlay);
+                _consoleOverlay = overlay;
             }
 
             IEnumerable<string> linesToShow = vm.Console.ShowAllLines
@@ -427,12 +533,22 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         {
             // WebView creation is best-effort — GTK/WebView2 may not be available in all environments.
             Trace.TraceWarning($"Could not load console WebView: {ex.Message}");
+            if (_consoleOverlay is not null)
+            {
+                try { ConsolePane.Children.Remove(_consoleOverlay); } catch { }
+                _consoleOverlay = null;
+            }
             _consoleWebView = null;
         }
     }
 
     private void DestroyConsoleWebView()
     {
+        if (_consoleOverlay is not null)
+        {
+            try { ConsolePane.Children.Remove(_consoleOverlay); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+            _consoleOverlay = null;
+        }
         if (_consoleWebView is null) return;
         try { _consoleWebView.Stop(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
         try { ConsolePane.Children.Remove(_consoleWebView); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
@@ -451,15 +567,20 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>");
         sb.Append("* { margin: 0; padding: 0; box-sizing: border-box; }");
         sb.Append("html, body { height: 100%; overflow: hidden; background: #07110f; }");
-        sb.Append("textarea { display: block; width: 100%; height: 100%; background: #07110f; color: #c6d4ce; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; border: none; outline: none; resize: none; line-height: 1.4; overflow: auto; }");
+        sb.Append("::selection { background-color: #17614f; color: #f5fbf7; }");
+        sb.Append("#content { display: block; width: 100%; height: 100%; background: #07110f; color: #c6d4ce; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }");
         sb.Append("</style></head><body>");
-        sb.Append("<textarea readonly spellcheck=\"false\" autocorrect=\"off\" autocomplete=\"off\">");
+        sb.Append("<pre id=\"content\" tabindex=\"-1\">");
         foreach (var line in lines)
         {
             AppendHtmlLine(sb, line);
             sb.Append('\n');
         }
-        sb.Append("</textarea></body></html>");
+        sb.Append("</pre>");
+        sb.Append("<script>");
+        sb.Append(ConsoleJs);
+        sb.Append("</script>");
+        sb.Append("</body></html>");
         return sb.ToString();
     }
 
@@ -573,6 +694,74 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
         return new Guid(hash[..16]);
+    }
+
+    private void OnConsoleOverlayPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_consoleWebView is null || _isClosed) return;
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        _consoleOverlay?.Focus();
+        var pos = e.GetPosition(_consoleOverlay);
+        if (e.ClickCount >= 3)
+        {
+            _consoleSelecting = false;
+            _ = _consoleWebView.InvokeScript($"window._selLine({pos.X:F1},{pos.Y:F1})");
+        }
+        else if (e.ClickCount == 2)
+        {
+            _consoleSelecting = false;
+            _ = _consoleWebView.InvokeScript($"window._selWord({pos.X:F1},{pos.Y:F1})");
+        }
+        else
+        {
+            _consoleSelecting = true;
+            _ = _consoleWebView.InvokeScript($"window._selStart({pos.X:F1},{pos.Y:F1})");
+        }
+    }
+
+    private void OnConsoleOverlayPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_consoleSelecting || _consoleWebView is null || _isClosed) return;
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            _consoleSelecting = false;
+            return;
+        }
+        var pos = e.GetPosition(_consoleOverlay);
+        _ = _consoleWebView.InvokeScript($"window._selExtend({pos.X:F1},{pos.Y:F1})");
+    }
+
+    private void OnConsoleOverlayPointerReleased(object? sender, PointerReleasedEventArgs e)
+        => _consoleSelecting = false;
+
+    private void OnConsoleOverlayWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (_consoleWebView is null || _isClosed) return;
+        var delta = -e.Delta.Y * 60.0;
+        _ = _consoleWebView.InvokeScript($"window._scroll({delta:F1})");
+    }
+
+    private async void OnConsoleOverlayKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.C || !e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+        if (_consoleWebView is null || _isClosed) return;
+        e.Handled = true;
+        try
+        {
+            var result = await _consoleWebView.InvokeScript(
+                "(function(){var s=window.getSelection();return s?s.toString():'';})()");
+            var text = NormalizeScriptResult(result);
+            if (!string.IsNullOrEmpty(text))
+            {
+                var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                if (clipboard is not null)
+                    await clipboard.SetTextAsync(text);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
+        {
+            Trace.TraceWarning(ex.Message);
+        }
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
