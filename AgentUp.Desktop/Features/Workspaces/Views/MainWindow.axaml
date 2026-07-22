@@ -634,14 +634,33 @@
 
                             <!-- Console output — populated by code-behind with a NativeWebView -->
                             <Grid IsVisible="{Binding ShowConsole}"
-                                  RowDefinitions="Auto,*">
+                                  RowDefinitions="Auto,*,Auto">
                                 <TextBlock Grid.Row="0"
                                            IsVisible="{Binding Console.WasTruncated}"
-                                           Text="Showing last 50,000 lines. Earlier output is not displayed."
+                                           Text="Server output was capped at 50,000 lines."
                                            Foreground="#556060"
                                            FontSize="11"
                                            Margin="20,8,20,0"/>
                                 <Panel x:Name="ConsolePane" Grid.Row="1" />
+                                <StackPanel Grid.Row="2"
+                                            IsVisible="{Binding Console.HasHiddenLines}"
+                                            Orientation="Horizontal"
+                                            Spacing="4"
+                                            Margin="20,6,20,6">
+                                    <TextBlock Foreground="#556060"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Text="Showing last 2,000 lines."/>
+                                    <Button Command="{Binding Console.ShowMoreCommand}"
+                                            Padding="0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            VerticalAlignment="Center"
+                                            Foreground="#4a8060"
+                                            FontSize="11"
+                                            Cursor="Hand"
+                                            Content="Show all"/>
+                                </StackPanel>
                             </Grid>
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->

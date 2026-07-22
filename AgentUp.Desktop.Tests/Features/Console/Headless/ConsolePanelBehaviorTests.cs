@@ -32,7 +32,7 @@ public class ConsolePanelBehaviorTests
         Assert.That(html, Does.Contain("$ cargo run"));
         Assert.That(html, Does.Contain("&lt;error&gt; &amp; 'warning'"));
         Assert.That(html, Does.Contain("done"));
-        Assert.That(html, Does.Contain("<pre>"));
+        Assert.That(html, Does.Contain("<textarea"));
         Assert.That(html, Does.Contain("#07110f"));
     }
 
@@ -103,5 +103,30 @@ public class ConsolePanelBehaviorTests
 
         Assert.That(app.Content.SelectedApplicationName, Is.EqualTo(workspace.Applications[1].Name));
         Assert.That(app.Content.ConsoleLines, Has.Some.EqualTo("line from Docs"));
+    }
+
+    [AvaloniaTest]
+    public async Task Panel_showsHasHiddenLines_whenOutputExceedsDefaultDisplayLines()
+    {
+        var workspace = WorkspaceFixtures.WithApplications();
+        var manyLines = Enumerable.Range(0, ConsoleViewModel.DefaultDisplayLines + 1)
+            .Select(i => $"line {i}")
+            .ToList();
+        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, manyLines);
+
+        var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
+
+        Assert.That(app.Content.ConsoleHasHiddenLines, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task Panel_doesNotShowHasHiddenLines_whenOutputFitsWithinDefaultDisplayLines()
+    {
+        var workspace = WorkspaceFixtures.WithApplications();
+        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1", "line 2"]);
+
+        var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
+
+        Assert.That(app.Content.ConsoleHasHiddenLines, Is.False);
     }
 }

@@ -13,6 +13,7 @@ using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Repositories;
 using ReactiveUI;
@@ -112,6 +113,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         // Refresh when user switches to the console tab (data may already be loaded).
         vm.WhenAnyValue(v => v.ShowConsole)
             .Where(visible => visible && !vm.Console.IsLoading)
+            .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
+            .DisposeWith(_subscriptions);
+        // Refresh when the user expands to show all lines.
+        vm.Console.WhenAnyValue(c => c.ShowAllLines)
+            .Where(all => all && vm.ShowConsole)
             .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
             .DisposeWith(_subscriptions);
     }
@@ -383,14 +389,39 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         {
             if (_consoleWebView is null)
             {
-                _consoleWebView = WebViewFactory();
-                ConsolePane.Children.Add(_consoleWebView);
+                var wv = WebViewFactory();
+                var firstNavDone = false;
+                wv.NavigationCompleted += (_, e) =>
+                {
+                    if (!e.IsSuccess) return;
+                    _ = wv.InvokeScript("var t=document.querySelector('textarea');if(t)t.scrollTop=t.scrollHeight;");
+                    if (firstNavDone) return;
+                    firstNavDone = true;
+                    // Same Expose-event fix as ForceFirstWebKitPaint: GTK only composites the
+                    // native WebKit window when XMapWindow fires an Expose event. Because the
+                    // window was already mapped before navigation completed, no Expose arrives.
+                    // A hide→show at separate dispatcher priorities forces the repaint.
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (!ReferenceEquals(_consoleWebView, wv) || !wv.IsVisible) return;
+                        wv.IsVisible = false;
+                        Dispatcher.UIThread.Post(
+                            () => { if (ReferenceEquals(_consoleWebView, wv)) wv.IsVisible = true; },
+                            DispatcherPriority.Background);
+                    });
+                };
+                ConsolePane.Children.Add(wv);
+                _consoleWebView = wv;
             }
 
-            var html = BuildConsoleHtml(vm.Console.Lines);
+            IEnumerable<string> linesToShow = vm.Console.ShowAllLines
+                ? vm.Console.Lines
+                : vm.Console.Lines.Skip(Math.Max(0, vm.Console.Lines.Count - ConsoleViewModel.DefaultDisplayLines));
+
+            var html = BuildConsoleHtml(linesToShow);
             var htmlPath = ConsoleHtmlPath();
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
-            _consoleWebView.Source = new Uri(htmlPath);
+            NavigateWebView(_consoleWebView, new Uri("file://" + htmlPath));
         }
         catch (Exception ex)
         {
@@ -419,15 +450,16 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>");
         sb.Append("* { margin: 0; padding: 0; box-sizing: border-box; }");
-        sb.Append("html, body { height: 100%; background: #07110f; }");
-        sb.Append("pre { color: #c6d4ce; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; word-break: normal; line-height: 1.4; }");
-        sb.Append("</style></head><body><pre>");
+        sb.Append("html, body { height: 100%; overflow: hidden; background: #07110f; }");
+        sb.Append("textarea { display: block; width: 100%; height: 100%; background: #07110f; color: #c6d4ce; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; border: none; outline: none; resize: none; line-height: 1.4; overflow: auto; }");
+        sb.Append("</style></head><body>");
+        sb.Append("<textarea readonly spellcheck=\"false\" autocorrect=\"off\" autocomplete=\"off\">");
         foreach (var line in lines)
         {
             AppendHtmlLine(sb, line);
             sb.Append('\n');
         }
-        sb.Append("</pre></body></html>");
+        sb.Append("</textarea></body></html>");
         return sb.ToString();
     }
 
