@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
@@ -15,7 +16,6 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Repositories;
 using ReactiveUI;
@@ -27,6 +27,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, NativeWebView> _webViews = new();
     private readonly Dictionary<string, string> _webViewErrors = new();
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
+    private readonly Dictionary<string, int> _navigationVersions = new();
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private string? _activeWorkspaceId;
@@ -34,6 +35,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private NativeWebView? _consoleWebView;
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
+    private const int ConsoleDefaultDisplayLines = 2_000;
+    private static readonly HttpClient PortProbeHttpClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(2)
+    };
 
     // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
@@ -261,7 +267,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (!TryGetOrCreateWebView(workspaceId, url, out var webView, out var destinationUrl)) return;
 
         webView.IsVisible = !tutorialVisible;
-        NavigateWebView(webView, new Uri(destinationUrl));
+        var destination = new Uri(destinationUrl);
+        var navigationVersion = _navigationVersions.GetValueOrDefault(workspaceId) + 1;
+        _navigationVersions[workspaceId] = navigationVersion;
+        _ = NavigatePortWebViewAsync(workspaceId, webView, destination, navigationVersion);
     }
 
     private void ActivateWorkspaceWebView(string? workspaceId, bool tutorialVisible)
@@ -323,7 +332,21 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var firstNavDone = false;
         webView.NavigationCompleted += (_, e) =>
         {
-            if (!e.IsSuccess || e.Request is not { } uri) return;
+            if (!e.IsSuccess)
+            {
+                if (e.Request is { } failedUri && failedUri.Scheme is "http" or "https")
+                {
+                    ShowBrowserErrorPage(
+                        workspaceId,
+                        webView,
+                        failedUri,
+                        "Could not load page",
+                        "The embedded browser could not load this route.");
+                }
+                return;
+            }
+
+            if (e.Request is not { } uri) return;
             UpdateAddressFromWebView(workspaceId, uri);
             _ = webView.InvokeScript(SelectionJs);
             if (firstNavDone) return;
@@ -332,6 +355,75 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         };
 
         return webView;
+    }
+
+    private async Task NavigatePortWebViewAsync(
+        string workspaceId,
+        NativeWebView webView,
+        Uri destination,
+        int navigationVersion)
+    {
+        var errorHtml = await ProbeBrowserDestinationAsync(destination);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (!CanTouchWebView(workspaceId, webView)) return;
+            if (_navigationVersions.GetValueOrDefault(workspaceId) != navigationVersion) return;
+
+            NavigateWebView(
+                webView,
+                errorHtml is null
+                    ? destination
+                    : WriteBrowserErrorPage(workspaceId, errorHtml));
+        });
+    }
+
+    private static async Task<string?> ProbeBrowserDestinationAsync(Uri destination)
+    {
+        if (destination.Scheme is not ("http" or "https") || !destination.IsLoopback)
+            return null;
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, destination);
+            using var response = await PortProbeHttpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead);
+
+            if ((int)response.StatusCode < 400)
+                return null;
+
+            return BuildBrowserErrorHtml(
+                $"{response.ReasonPhrase ?? "Not found"} {(int)response.StatusCode}",
+                response.ReasonPhrase ?? "Request failed",
+                destination);
+        }
+        catch (HttpRequestException ex)
+        {
+            return BuildBrowserErrorHtml(
+                "Could not reach app",
+                ex.Message,
+                destination);
+        }
+        catch (TaskCanceledException)
+        {
+            return BuildBrowserErrorHtml(
+                "App did not respond",
+                "The request timed out before the embedded browser loaded the page.",
+                destination);
+        }
+    }
+
+    private void ShowBrowserErrorPage(
+        string workspaceId,
+        NativeWebView webView,
+        Uri destination,
+        string title,
+        string detail)
+    {
+        if (!CanTouchWebView(workspaceId, webView)) return;
+
+        var html = BuildBrowserErrorHtml(title, detail, destination);
+        NavigateWebView(webView, WriteBrowserErrorPage(workspaceId, html));
     }
 
     private static void NavigateWebView(NativeWebView webView, Uri destination)
@@ -522,7 +614,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
             IEnumerable<string> linesToShow = vm.Console.ShowAllLines
                 ? vm.Console.Lines
-                : vm.Console.Lines.Skip(Math.Max(0, vm.Console.Lines.Count - ConsoleViewModel.DefaultDisplayLines));
+                : vm.Console.Lines.Skip(Math.Max(0, vm.Console.Lines.Count - ConsoleDefaultDisplayLines));
 
             var html = BuildConsoleHtml(linesToShow);
             var htmlPath = ConsoleHtmlPath();
@@ -562,6 +654,81 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Path.Join(Path.GetTempPath(), $"agentup-console-{Environment.ProcessId}.html");
 
     private static string ConsoleHtmlPath() => _consoleHtmlPath;
+
+    private static string BrowserErrorHtmlPath(string workspaceId)
+    {
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(workspaceId)));
+        return Path.Join(Path.GetTempPath(), $"agentup-browser-error-{hash[..16]}.html");
+    }
+
+    private static Uri WriteBrowserErrorPage(string workspaceId, string html)
+    {
+        var htmlPath = BrowserErrorHtmlPath(workspaceId);
+        File.WriteAllText(htmlPath, html, Encoding.UTF8);
+        return new Uri("file://" + htmlPath);
+    }
+
+    internal static string BuildBrowserErrorHtml(string title, string detail, Uri destination)
+    {
+        var safeTitle = WebUtility.HtmlEncode(title);
+        var safeUrl = WebUtility.HtmlEncode(destination.ToString());
+
+        return $$"""
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { box-sizing: border-box; }
+html, body {
+  min-height: 100%;
+  margin: 0;
+  background: #000000;
+  color: #f5fbf7;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+body {
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+.panel {
+  width: min(620px, 100%);
+  border: 1px solid #287038;
+  border-radius: 8px;
+  background: #050505;
+  box-shadow: 0 0 34px rgba(0, 184, 80, 0.18);
+  padding: 28px;
+}
+h1 {
+  margin: 0 0 18px;
+  color: #f5fbf7;
+  font-size: 30px;
+  line-height: 1.1;
+}
+code {
+  display: block;
+  padding: 12px;
+  border: 1px solid #184820;
+  border-radius: 7px;
+  background: #000000;
+  color: #00d66b;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+</style>
+</head>
+<body>
+  <main class="panel">
+    <h1>{{safeTitle}}</h1>
+    <code>{{safeUrl}}</code>
+  </main>
+</body>
+</html>
+""";
+    }
 
     internal static string BuildConsoleHtml(IEnumerable<string> lines)
     {
@@ -625,6 +792,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _webViews.Clear();
         _webViewErrors.Clear();
         _lastKnownBrowserUrls.Clear();
+        _navigationVersions.Clear();
         _activeWorkspaceId = null;
     }
 

@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Browser.Headless;
@@ -9,6 +10,37 @@ namespace AgentUp.Desktop.Tests.Features.Browser.Headless;
 [TestFixture]
 public sealed class WebViewErrorBannerTests
 {
+    [Test]
+    public void BrowserErrorPage_usesBrandedDarkTheme()
+    {
+        var html = MainWindow.BuildBrowserErrorHtml(
+            "Not found 404",
+            "Not Found",
+            new Uri("http://localhost:3000/missing"));
+
+        Assert.That(html, Does.Contain("background: #000000"));
+        Assert.That(html, Does.Contain("border: 1px solid #287038"));
+        Assert.That(html, Does.Contain("color: #00d66b"));
+        Assert.That(html, Does.Contain("Not found 404"));
+        Assert.That(html, Does.Contain("http://localhost:3000/missing"));
+        Assert.That(html, Does.Not.Contain("Agent-Up browser"));
+        Assert.That(html, Does.Not.Contain("Not Found</p>"));
+    }
+
+    [Test]
+    public void BrowserErrorPage_escapesServerContent()
+    {
+        var html = MainWindow.BuildBrowserErrorHtml(
+            "<Not Found>",
+            "route has <script>alert('x')</script>",
+            new Uri("http://localhost:3000/a?b=<c>"));
+
+        Assert.That(html, Does.Contain("&lt;Not Found&gt;"));
+        Assert.That(html, Does.Not.Contain("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;"));
+        Assert.That(html, Does.Contain("http://localhost:3000/a?b=&lt;c&gt;"));
+        Assert.That(html, Does.Not.Contain("<script>alert"));
+    }
+
     [AvaloniaTest]
     public async Task PortPane_showsErrorBanner_whenWebViewCreationFails()
     {
