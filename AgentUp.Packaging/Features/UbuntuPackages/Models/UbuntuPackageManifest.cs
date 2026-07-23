@@ -7,15 +7,12 @@ namespace AgentUp.Packaging.Features.UbuntuPackages.Models;
 
 public sealed record UbuntuPackageManifest(
     string PackageName,
+    string ApplicationName,
     string Version,
     string Architecture,
     string Maintainer,
     string Description,
-    string ServiceName,
-    string CliSymlinkTarget,
-    string DesktopEntryPath,
-    string IconPath,
-    string ApplicationName)
+    string ServiceName)
 {
     public static UbuntuPackageManifest From(PackageRequest request)
         => From(request, request.ProductManifest);
@@ -25,18 +22,14 @@ public sealed record UbuntuPackageManifest(
         PackageProductManifest.Validate(product);
         var packageName = PackagePathValidator.RequireSafePathComponent(product.Slug, nameof(PackageName));
         var serviceName = $"{packageName}-server.service";
-        var rootDirectory = $"/opt/{packageName}";
         return new UbuntuPackageManifest(
             PackageName: packageName,
+            ApplicationName: product.ProductName,
             Version: request.NormalizedVersion,
             Architecture: "amd64",
             Maintainer: $"{product.ProductName} <ci@{product.Slug}.local>",
-            Description: $"Local {product.ProductName} desktop, CLI, and server service.",
-            ServiceName: serviceName,
-            CliSymlinkTarget: Path.Join(rootDirectory, "cli", "AgentUp.CLI"),
-            DesktopEntryPath: $"/usr/share/applications/{packageName}.desktop",
-            IconPath: $"/usr/share/pixmaps/{packageName}.png",
-            ApplicationName: product.ProductName);
+            Description: $"Local {product.ProductName} installer.",
+            ServiceName: serviceName);
     }
 
     public string ControlFileText()
@@ -50,42 +43,37 @@ public sealed record UbuntuPackageManifest(
            Description: {Description}
            """ + Environment.NewLine;
 
-    public string DesktopEntryText()
-    {
-        var versionKey = ApplicationName.Replace("-", "").Replace(" ", "");
-        return $"""
-               [Desktop Entry]
-               Type=Application
-               Name={ApplicationName}
-               Comment={ApplicationName} desktop workspace client
-               Exec=/opt/{PackageName}/desktop/AgentUp.Desktop
-               Icon={PackageName}
-               Terminal=false
-               Categories=Development;
-               StartupNotify=true
-               X-{versionKey}-Version={Version}
-               """ + Environment.NewLine;
-    }
-
     public string PostInstallScript()
         => $"""
            #!/usr/bin/env bash
            set -e
-           mkdir -p /var/lib/{PackageName}
-           touch /var/log/{PackageName}-server.log /var/log/{PackageName}-server.err.log
-           chmod +x /opt/{PackageName}/desktop/AgentUp.Desktop /opt/{PackageName}/server/AgentUp.Server /opt/{PackageName}/cli/AgentUp.CLI
-           systemctl daemon-reload
-           systemctl enable --now {ServiceName}
+           chmod +x /opt/{PackageName}/installer/AgentUp.InstallerApp
            if command -v update-desktop-database >/dev/null 2>&1; then
-             update-desktop-database /usr/share/applications || true
+             update-desktop-database /usr/share/applications 2>/dev/null || true
            fi
+           if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
+             su "$SUDO_USER" -c "/opt/{PackageName}/installer/AgentUp.InstallerApp &" 2>/dev/null || true
+           fi
+           """ + Environment.NewLine;
+
+    public string InstallerDesktopEntryText()
+        => $"""
+           [Desktop Entry]
+           Name={ApplicationName} Installer
+           Comment={Description}
+           Exec=/opt/{PackageName}/installer/AgentUp.InstallerApp
+           Icon={PackageName}
+           Type=Application
+           Categories=System;
            """ + Environment.NewLine;
 
     public string PreRemoveScript()
         => $"""
            #!/usr/bin/env bash
            set -e
-           systemctl disable --now {ServiceName} 2>/dev/null || true
+           /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component server 2>/dev/null || true
+           /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component cli 2>/dev/null || true
+           /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component desktop 2>/dev/null || true
            """ + Environment.NewLine;
 
     public static string PostRemoveScript()

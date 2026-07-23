@@ -34,26 +34,33 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         if (!controlExtract.Succeeded)
             assert.Error("ubuntu.control", controlExtract.ErrorMessage!);
 
-        var desktop = SafeSmokePaths.Child(root, "opt", "agent-up", "desktop", "AgentUp.Desktop");
-        var server = SafeSmokePaths.Child(root, "opt", "agent-up", "server", "AgentUp.Server");
-        var cli = SafeSmokePaths.Child(root, "opt", "agent-up", "cli", "AgentUp.CLI");
-        assert.ExecutableExists(desktop, "ubuntu.desktop");
-        assert.ExecutableExists(server, "ubuntu.server");
-        assert.ExecutableExists(cli, "ubuntu.cli");
-        var desktopEntry = SafeSmokePaths.Child(root, "usr", "share", "applications", "agent-up.desktop");
-        var serviceUnit = SafeSmokePaths.Child(root, "etc", "systemd", "system", "agent-up-server.service");
-        assert.SymlinkExists(SafeSmokePaths.Child(root, "usr", "bin", "agent-up"), "ubuntu.cli.path");
-        assert.FileExists(desktopEntry, "ubuntu.desktop.entry");
-        assert.FileExists(SafeSmokePaths.Child(root, "usr", "share", "pixmaps", "agent-up.png"), "ubuntu.icon");
+        var installerApp = SafeSmokePaths.Child(root, "opt", "agent-up", "installer", "AgentUp.InstallerApp");
+        assert.ExecutableExists(installerApp, "ubuntu.installer");
+
+        var payloadDesktop = SafeSmokePaths.Child(root, "opt", "agent-up", "installer", "payload", "desktop", "AgentUp.Desktop");
+        var payloadServer = SafeSmokePaths.Child(root, "opt", "agent-up", "installer", "payload", "server", "AgentUp.Server");
+        var payloadCli = SafeSmokePaths.Child(root, "opt", "agent-up", "installer", "payload", "cli", "AgentUp.CLI");
+        assert.ExecutableExists(payloadDesktop, "ubuntu.desktop");
+        assert.ExecutableExists(payloadServer, "ubuntu.server");
+        assert.ExecutableExists(payloadCli, "ubuntu.cli");
+
+        var serviceUnit = SafeSmokePaths.Child(root, "opt", "agent-up", "installer", "payload", "service", "agent-up-server.service");
+        assert.FileExists(serviceUnit, "ubuntu.service");
         assert.Contains(serviceUnit, "ExecStart=/opt/agent-up/server/AgentUp.Server", "ubuntu.service.exec");
         assert.Contains(serviceUnit, "RestartSec=5", "ubuntu.service.restart");
         assert.Contains(serviceUnit, "DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up", "ubuntu.service.bundle.extract");
         assert.Contains(serviceUnit, "CacheDirectory=agent-up", "ubuntu.service.cache");
-        assert.Contains(desktopEntry, "Exec=/opt/agent-up/desktop/AgentUp.Desktop", "ubuntu.desktop.exec");
-        assert.Contains(desktopEntry, "Icon=agent-up", "ubuntu.desktop.icon");
-        assert.Contains(SafeSmokePaths.Child(control, "postinst"), "systemctl enable --now agent-up-server.service", "ubuntu.postinst");
+
+        assert.FileExists(SafeSmokePaths.Child(root, "opt", "agent-up", "installer", "payload", "icon", "Agent-Up.png"), "ubuntu.payload.icon");
+        assert.FileExists(SafeSmokePaths.Child(root, "usr", "share", "pixmaps", "agent-up.png"), "ubuntu.icon");
+
+        var installerDesktop = SafeSmokePaths.Child(root, "usr", "share", "applications", "agent-up-installer.desktop");
+        assert.FileExists(installerDesktop, "ubuntu.installer.desktop");
+
+        var postinst = SafeSmokePaths.Child(control, "postinst");
+        assert.Contains(postinst, "chmod +x /opt/agent-up/installer/AgentUp.InstallerApp", "ubuntu.postinst");
         assert.FileExists(SafeSmokePaths.Child(control, "prerm"), "ubuntu.prerm");
 
-        return new PackageValidationResult(server, cli, assert.Findings);
+        return new PackageValidationResult(payloadServer, payloadCli, assert.Findings);
     }
 }

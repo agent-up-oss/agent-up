@@ -20,10 +20,8 @@ public class UbuntuPackageManifestTests
 
         Assert.That(manifest.Version, Is.EqualTo("1.2.3"));
         Assert.That(manifest.PackageName, Is.EqualTo("agent-up"));
+        Assert.That(manifest.ApplicationName, Is.EqualTo("Agent-Up"));
         Assert.That(manifest.ServiceName, Is.EqualTo("agent-up-server.service"));
-        Assert.That(manifest.CliSymlinkTarget, Is.EqualTo("/opt/agent-up/cli/AgentUp.CLI"));
-        Assert.That(manifest.DesktopEntryPath, Is.EqualTo("/usr/share/applications/agent-up.desktop"));
-        Assert.That(manifest.IconPath, Is.EqualTo("/usr/share/pixmaps/agent-up.png"));
     }
 
     [Test]
@@ -37,18 +35,5 @@ public class UbuntuPackageManifestTests
         Assert.That(text, Does.Contain("Version: 1.2.3"));
         Assert.That(text, Does.Contain("Architecture: amd64"));
         Assert.That(text, Does.EndWith(Environment.NewLine));
-    }
-
-    [Test]
-    public void DesktopEntryText_registersDesktopApplication()
-    {
-        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
-
-        var text = manifest.DesktopEntryText();
-
-        Assert.That(text, Does.Contain("Name=Agent-Up"));
-        Assert.That(text, Does.Contain("Exec=/opt/agent-up/desktop/AgentUp.Desktop"));
-        Assert.That(text, Does.Contain("Icon=agent-up"));
-        Assert.That(text, Does.Contain("X-AgentUp-Version=1.2.3"));
     }
 }

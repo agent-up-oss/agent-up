@@ -18,35 +18,38 @@ public sealed class UbuntuPackageStager
     public void Stage(PackageRequest request, UbuntuPackageLayout layout, UbuntuPackageManifest manifest)
     {
         var pkg = manifest.PackageName;
+        var installerDir = Path.Join(layout.DebRoot, "opt", pkg, "installer");
+        var payloadDir = Path.Join(installerDir, "payload");
 
         _writer.ResetDirectory(layout.DebRoot);
         _writer.CreateDirectory(Path.Join(layout.DebRoot, "DEBIAN"));
-        _writer.CreateDirectory(Path.Join(layout.DebRoot, "opt", pkg));
-        _writer.CreateDirectory(Path.Join(layout.DebRoot, "etc", "systemd", "system"));
-        _writer.CreateDirectory(Path.Join(layout.DebRoot, "usr", "bin"));
         _writer.CreateDirectory(Path.Join(layout.DebRoot, "usr", "share", "applications"));
         _writer.CreateDirectory(Path.Join(layout.DebRoot, "usr", "share", "pixmaps"));
 
-        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(layout.DebRoot, "opt", pkg, "desktop"));
-        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(layout.DebRoot, "opt", pkg, "server"));
-        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(layout.DebRoot, "opt", pkg, "cli"));
+        _writer.CopyDirectory(layout.InstallerPublishDirectory, installerDir);
+        _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(payloadDir, "desktop"));
+        _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(payloadDir, "server"));
+        _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(payloadDir, "cli"));
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "packaging", "linux", manifest.ServiceName),
-            Path.Join(layout.DebRoot, "etc", "systemd", "system", manifest.ServiceName));
+            Path.Join(payloadDir, "service", manifest.ServiceName));
+        _writer.CopyFile(
+            Path.Join(request.RepositoryRoot, "media", "logo.png"),
+            Path.Join(payloadDir, "icon", "Agent-Up.png"));
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "media", "logo.png"),
             Path.Join(layout.DebRoot, "usr", "share", "pixmaps", $"{pkg}.png"));
 
-        _writer.CreateSymbolicLink(Path.Join(layout.DebRoot, "usr", "bin", pkg), manifest.CliSymlinkTarget);
-        _writer.WriteText(Path.Join(layout.DebRoot, "usr", "share", "applications", $"{pkg}.desktop"), manifest.DesktopEntryText());
+        _writer.SetExecutable(Path.Join(installerDir, "AgentUp.InstallerApp"));
+
+        _writer.WriteText(
+            Path.Join(layout.DebRoot, "usr", "share", "applications", $"{pkg}-installer.desktop"),
+            manifest.InstallerDesktopEntryText());
+
         _writer.WriteText(Path.Join(layout.DebRoot, "DEBIAN", "control"), manifest.ControlFileText());
         _writer.WriteText(Path.Join(layout.DebRoot, "DEBIAN", "postinst"), manifest.PostInstallScript());
         _writer.WriteText(Path.Join(layout.DebRoot, "DEBIAN", "prerm"), manifest.PreRemoveScript());
         _writer.WriteText(Path.Join(layout.DebRoot, "DEBIAN", "postrm"), UbuntuPackageManifest.PostRemoveScript());
-
-        _writer.SetExecutable(Path.Join(layout.DebRoot, "opt", pkg, "desktop", "AgentUp.Desktop"));
-        _writer.SetExecutable(Path.Join(layout.DebRoot, "opt", pkg, "server", "AgentUp.Server"));
-        _writer.SetExecutable(Path.Join(layout.DebRoot, "opt", pkg, "cli", "AgentUp.CLI"));
         _writer.SetExecutable(Path.Join(layout.DebRoot, "DEBIAN", "postinst"));
         _writer.SetExecutable(Path.Join(layout.DebRoot, "DEBIAN", "prerm"));
         _writer.SetExecutable(Path.Join(layout.DebRoot, "DEBIAN", "postrm"));
