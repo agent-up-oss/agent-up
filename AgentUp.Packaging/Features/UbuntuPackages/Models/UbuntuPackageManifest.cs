@@ -1,3 +1,4 @@
+using System.Security;
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
 using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Shared.Providers;
@@ -79,23 +80,26 @@ public sealed record UbuntuPackageManifest(
     public string MetainfoText()
     {
         var date = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var pkg = SecurityElement.Escape(PackageName)!;
+        var app = SecurityElement.Escape(ApplicationName)!;
+        var ver = SecurityElement.Escape(Version)!;
         return $"""
                <?xml version="1.0" encoding="UTF-8"?>
                <component type="desktop-application">
-                 <id>{PackageName}-installer.desktop</id>
+                 <id>{pkg}-installer.desktop</id>
                  <metadata_license>MIT</metadata_license>
                  <project_license>MIT</project_license>
-                 <name>{ApplicationName} Installer</name>
-                 <summary>Local {ApplicationName} installer</summary>
+                 <name>{app} Installer</name>
+                 <summary>Local {app} installer</summary>
                  <description>
-                   <p>Installer for {ApplicationName}.</p>
+                   <p>Installer for {app}.</p>
                  </description>
-                 <launchable type="desktop-id">{PackageName}-installer.desktop</launchable>
+                 <launchable type="desktop-id">{pkg}-installer.desktop</launchable>
                  <provides>
-                   <pkgname>{PackageName}</pkgname>
+                   <pkgname>{pkg}</pkgname>
                  </provides>
                  <releases>
-                   <release version="{Version}" date="{date}"/>
+                   <release version="{ver}" date="{date}"/>
                  </releases>
                  <content_rating type="oars-1.1"/>
                </component>

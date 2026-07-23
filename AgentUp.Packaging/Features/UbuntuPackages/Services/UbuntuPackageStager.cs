@@ -47,7 +47,7 @@ public sealed class UbuntuPackageStager
             Path.Join(layout.DebRoot, "usr", "share", "applications", $"{pkg}-installer.desktop"),
             manifest.InstallerDesktopEntryText());
         _writer.WriteText(
-            Path.Join(layout.DebRoot, "usr", "share", "metainfo", $"{pkg}.metainfo.xml"),
+            Path.Join(layout.DebRoot, "usr", "share", "metainfo", $"{pkg}-installer.desktop.metainfo.xml"),
             manifest.MetainfoText());
 
         _writer.WriteText(Path.Join(layout.DebRoot, "DEBIAN", "control"), manifest.ControlFileText());

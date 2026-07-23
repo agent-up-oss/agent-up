@@ -23,9 +23,9 @@ public static class PackageSmokeServiceRegistry
         var packageValidation = new PackageValidationController(platform =>
             PackageValidatorFactory.Create(platform, commands));
         var installerFlow = new InstallerFlowSmokeController(new InstallerFlowSmokeValidator());
-        var securityChecks = new RuntimeSecurityChecks(new SystemNetworkStateProvider(), new HttpClient());
         var installedService = new InstalledServiceSmokeController(platform =>
-            InstalledServiceSmokeValidatorFactory.Create(platform, commands, new HttpServerProbe(), securityChecks));
+            InstalledServiceSmokeValidatorFactory.Create(platform, commands, new HttpServerProbe(),
+                new RuntimeSecurityChecks(new SystemNetworkStateProvider(), new HttpClient())));
         var validation = new SmokeValidationProvider(packageValidation, installerFlow, installedService, workDirectory);
 
         return new SmokeCommandController(

@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
 using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
@@ -35,6 +36,7 @@ public class UbuntuPackageManifestTests
         Assert.That(text, Does.Contain("<release version=\"1.2.3\""));
         Assert.That(text, Does.Contain("agent-up-installer.desktop"));
         Assert.That(text, Does.EndWith(Environment.NewLine));
+        Assert.DoesNotThrow(() => XDocument.Parse(text.Trim()), "MetainfoText must be valid XML");
     }
 
     [Test]
