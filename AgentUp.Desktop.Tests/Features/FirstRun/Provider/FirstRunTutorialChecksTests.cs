@@ -252,7 +252,7 @@ public class FirstRunTutorialChecksTests
 
     private static FirstRunTutorialChecks CreateChecks(
         List<WorkspaceDto> workspaces,
-        FirstRunTutorialChecks.ProcessRunner processRunner)
+        ProcessRunner processRunner)
     {
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };

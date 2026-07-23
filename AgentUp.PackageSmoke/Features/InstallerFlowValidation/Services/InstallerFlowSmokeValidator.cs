@@ -16,7 +16,8 @@ public sealed class InstallerFlowSmokeValidator
         CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        Directory.CreateDirectory(workDirectory);
+        var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
+        Directory.CreateDirectory(safeWorkDirectory);
 
         var version = new Version(0, 0, 0);
         var manifest = ProductManifest.AgentUp();
@@ -62,7 +63,7 @@ public sealed class InstallerFlowSmokeValidator
             assert.Error("installer.flow.validation", "Dry-run installed-state validation failed.");
 
         await File.WriteAllLinesAsync(
-            Path.Join(workDirectory, "installer-flow.log"),
+            SafeSmokePaths.Child(safeWorkDirectory, "installer-flow.log"),
             progress.Select(item => $"{item.CompletedOperations}/{item.TotalOperations}: {item.Message}"),
             cancellationToken);
 

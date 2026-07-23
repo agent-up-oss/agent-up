@@ -1,6 +1,8 @@
+using AgentUp.PackageSmoke.Shared.Interfaces;
+
 namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 
 public interface IRuntimeSecurityChecks
 {
-    Task RunAsync(string serverUrl, IRuntimeSecurityFindingSink findings, CancellationToken cancellationToken = default);
+    Task RunAsync(string serverUrl, IFindingSink findings, CancellationToken cancellationToken = default);
 }

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Providers;
+using AgentUp.PackageSmoke.Shared.Interfaces;
 
 namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
 
@@ -18,13 +19,13 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
         _httpClient = httpClient;
     }
 
-    public async Task RunAsync(string serverUrl, IRuntimeSecurityFindingSink findings, CancellationToken cancellationToken = default)
+    public async Task RunAsync(string serverUrl, IFindingSink findings, CancellationToken cancellationToken = default)
     {
         CheckPortBinding(serverUrl, findings);
         await CheckResponseHeadersAsync(serverUrl, findings, cancellationToken);
     }
 
-    private void CheckPortBinding(string serverUrl, IRuntimeSecurityFindingSink findings)
+    private void CheckPortBinding(string serverUrl, IFindingSink findings)
     {
         var port = new Uri(serverUrl).Port;
         var onPort = _networkState.GetActiveTcpListeners()
@@ -48,7 +49,7 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
             findings.Info("security.binding.loopback", $"Port {port} is bound to loopback only.");
     }
 
-    private async Task CheckResponseHeadersAsync(string serverUrl, IRuntimeSecurityFindingSink findings, CancellationToken cancellationToken)
+    private async Task CheckResponseHeadersAsync(string serverUrl, IFindingSink findings, CancellationToken cancellationToken)
     {
         try
         {

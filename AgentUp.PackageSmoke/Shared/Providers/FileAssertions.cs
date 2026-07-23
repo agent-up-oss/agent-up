@@ -1,9 +1,9 @@
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using AgentUp.PackageSmoke.Shared.Interfaces;
 
 namespace AgentUp.PackageSmoke.Shared.Providers;
 
-public sealed class FileAssertions : IRuntimeSecurityFindingSink
+public sealed class FileAssertions : IFindingSink
 {
     private readonly List<SmokeFinding> _findings = [];
 
@@ -11,18 +11,20 @@ public sealed class FileAssertions : IRuntimeSecurityFindingSink
 
     public void FileExists(string path, string code)
     {
-        if (!File.Exists(path))
+        var safePath = SafeObservedPath(path);
+        if (safePath is null || !File.Exists(safePath))
             Error(code, $"Expected file missing: {path}");
     }
 
     public void ExecutableExists(string path, string code)
     {
         FileExists(path, code);
-        if (!OperatingSystem.IsWindows() && File.Exists(path))
+        var safePath = SafeObservedPath(path);
+        if (!OperatingSystem.IsWindows() && safePath is not null && File.Exists(safePath))
         {
             try
             {
-                var mode = File.GetUnixFileMode(path);
+                var mode = File.GetUnixFileMode(safePath);
                 if (!mode.HasFlag(UnixFileMode.UserExecute))
                     Error(code, $"Expected executable missing execute bit: {path}");
             }
@@ -35,8 +37,15 @@ public sealed class FileAssertions : IRuntimeSecurityFindingSink
 
     public void SymlinkExists(string path, string code)
     {
-        var info = new FileInfo(path);
-        if (!File.Exists(path) && !Directory.Exists(path) && string.IsNullOrEmpty(info.LinkTarget))
+        var safePath = SafeObservedPath(path);
+        if (safePath is null)
+        {
+            Error(code, $"Expected symlink missing: {path}");
+            return;
+        }
+
+        var info = new FileInfo(safePath);
+        if (!File.Exists(safePath) && !Directory.Exists(safePath) && string.IsNullOrEmpty(info.LinkTarget))
         {
             Error(code, $"Expected symlink missing: {path}");
             return;
@@ -49,7 +58,8 @@ public sealed class FileAssertions : IRuntimeSecurityFindingSink
     public void Contains(string path, string expected, string code)
     {
         FileExists(path, code);
-        if (File.Exists(path) && !File.ReadAllText(path).Contains(expected, StringComparison.Ordinal))
+        var safePath = SafeObservedPath(path);
+        if (safePath is not null && File.Exists(safePath) && !File.ReadAllText(safePath).Contains(expected, StringComparison.Ordinal))
             Error(code, $"Expected {path} to contain: {expected}");
     }
 
@@ -58,4 +68,12 @@ public sealed class FileAssertions : IRuntimeSecurityFindingSink
 
     public void Error(string code, string message)
         => _findings.Add(new SmokeFinding(FindingSeverity.Error, code, message));
+
+    private static string? SafeObservedPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        return Path.GetFullPath(path);
+    }
 }

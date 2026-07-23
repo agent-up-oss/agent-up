@@ -1,4 +1,5 @@
 using AgentUp.Architecture.Tests.Fixtures;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace AgentUp.Architecture.Tests.Rules;
@@ -22,19 +23,28 @@ public sealed class NestedTypeBoundaries
     {
         var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
         return rootNode.DescendantNodes()
-            .OfType<BaseTypeDeclarationSyntax>()
-            .Where(type => type.Parent is BaseTypeDeclarationSyntax)
-            .Select(type => $"{ArchitectureFixture.Location(root, path, tree, type)}: nested {KindName(type)} {type.Identifier.Text}");
+            .Where(node => node is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax)
+            .Where(node => node.Parent is BaseTypeDeclarationSyntax)
+            .Select(node => $"{ArchitectureFixture.Location(root, path, tree, node)}: nested {KindName(node)} {Identifier(node)}");
     }
 
-    private static string KindName(BaseTypeDeclarationSyntax type)
-        => type switch
+    private static string KindName(SyntaxNode node)
+        => node switch
         {
             ClassDeclarationSyntax => "class",
             RecordDeclarationSyntax => "record",
             StructDeclarationSyntax => "struct",
             InterfaceDeclarationSyntax => "interface",
             EnumDeclarationSyntax => "enum",
+            DelegateDeclarationSyntax => "delegate",
             _ => "type"
+        };
+
+    private static string Identifier(SyntaxNode node)
+        => node switch
+        {
+            BaseTypeDeclarationSyntax type => type.Identifier.Text,
+            DelegateDeclarationSyntax type => type.Identifier.Text,
+            _ => ""
         };
 }

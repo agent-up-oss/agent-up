@@ -32,13 +32,14 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var repo = Path.Join(workDirectory, "capability-workspace");
+        var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
+        var repo = SafeSmokePaths.Child(safeWorkDirectory, "capability-workspace");
         PrepareWorkspace(repo);
         await GitCommitConfigAsync(repo, assert, cancellationToken);
 
         var environment = MergeEnvironment(context.CliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
         var start = await _commands.RunAsync(CliCommand(context.CliCommand, "start", repo, environment), cancellationToken);
-        await File.WriteAllTextAsync(Path.Join(workDirectory, "capability-cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
+        await File.WriteAllTextAsync(SafeSmokePaths.Child(safeWorkDirectory, "capability-cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains($"Started workspace \"{WorkspaceName}\"", StringComparison.Ordinal))
         {
             assert.Error("capability.cli.start", $"Capability workspace start failed: {start.Stderr}{start.Stdout}");
@@ -74,8 +75,8 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
 
     private static void PrepareWorkspace(string repo)
     {
-        Directory.CreateDirectory(Path.Join(repo, "SmokeDotnet"));
-        File.WriteAllText(Path.Join(repo, "SmokeDotnet", "SmokeDotnet.csproj"), """
+        Directory.CreateDirectory(SafeSmokePaths.Child(repo, "SmokeDotnet"));
+        File.WriteAllText(SafeSmokePaths.Child(repo, "SmokeDotnet", "SmokeDotnet.csproj"), """
             <Project Sdk="Microsoft.NET.Sdk.Web">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
@@ -83,14 +84,14 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
               </PropertyGroup>
             </Project>
             """);
-        File.WriteAllText(Path.Join(repo, "SmokeDotnet", "Program.cs"), """
+        File.WriteAllText(SafeSmokePaths.Child(repo, "SmokeDotnet", "Program.cs"), """
             var builder = WebApplication.CreateBuilder(args);
             var app = builder.Build();
             app.MapGet("/", () => "dotnet capability smoke");
             var port = Environment.GetEnvironmentVariable("WEB_PORT") ?? "5000";
             app.Run($"http://127.0.0.1:{port}");
             """);
-        File.WriteAllText(Path.Join(repo, "agent-up.json"), $$"""
+        File.WriteAllText(SafeSmokePaths.Child(repo, "agent-up.json"), $$"""
             {
               "name": "Capability Lifecycle Smoke Workspace",
               "dotnet": [

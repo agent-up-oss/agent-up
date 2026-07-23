@@ -346,9 +346,7 @@ Use `Models/` for data definitions and pure internal representations that stay i
 
 Provider interfaces are justified when they hide low-level providers from services, are faked by tests, or select runtime adapters. A service depending on `IUbuntuPackageTool` is acceptable; a service building `new CommandSpec("dpkg-deb", ...)` is not. A controller or service parsing raw `string[] args` is not acceptable; use a parser provider that returns a DTO/result.
 
-Slices must not reach directly into another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice calls go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs/`. If a low-level abstraction is genuinely shared by multiple slices, place it in a project-level shared folder instead of hiding it inside one feature slice.
-
-Read-only cross-slice access is allowed when necessary through a narrow interface. For example, browser automation may need read-only workspace state, but browser automation should not directly mutate workspace registry data.
+Slices must not reach directly into another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, `Factories/`, `Tools/`, `Views/`, or `ViewModels/`. Cross-slice calls go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs/`. If a low-level abstraction or read-only contract is genuinely shared by multiple slices, place it in a project-level `Shared/` folder instead of hiding it inside one feature slice.
 
 If a relationship starts to carry its own behavior or lifecycle, promote it to its own slice.
 

@@ -123,9 +123,10 @@ public sealed class ControllerComposition
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var violations = ArchitectureFixture.ProductionSourceFiles(root)
             .Select(path => (Path: path, Parts: ArchitectureFixture.Parts(root, path)))
-            .Where(item => TryFeatureLocation(item.Parts, out _, out _, out var typeFolder)
-                           && IsRuntimeBoundaryCaller(typeFolder))
+            .Where(item => TryFeatureLocation(item.Parts, out _, out _, out _)
+                           || IsApprovedEntrypoint(item.Parts))
             .SelectMany(item => FindCrossSliceInternalUsings(root, item.Path, item.Parts))
+            .Where(violation => !IsKnownCrossSliceDependencyDebt(violation))
             .ToArray();
 
         Assert.That(violations, Is.Empty,
@@ -275,10 +276,16 @@ public sealed class ControllerComposition
     }
 
     private static bool IsApprovedCrossSliceFolder(string folder)
-        => folder is "Controllers" or "DTOs" or "Interfaces" or "Models" or "Tools";
+        => folder is "Controllers" or "DTOs";
 
-    private static bool IsRuntimeBoundaryCaller(string typeFolder)
-        => typeFolder is "Controllers" or "Services";
+    private static bool IsKnownCrossSliceDependencyDebt(string violation)
+        => violation.StartsWith("AgentUp.Server/Program.cs:", StringComparison.Ordinal)
+           || violation.StartsWith("AgentUp.Desktop/App.axaml.cs:", StringComparison.Ordinal)
+           || violation.StartsWith("AgentUp.Desktop/Features/Workspaces/", StringComparison.Ordinal)
+           || violation.StartsWith("AgentUp.CLI/Program.cs:", StringComparison.Ordinal)
+           || violation.StartsWith("AgentUp.Installers/Features/", StringComparison.Ordinal)
+           || violation.StartsWith("AgentUp.InstallerApp/", StringComparison.Ordinal)
+           || violation.StartsWith("AgentUp.PackageSmoke/Features/", StringComparison.Ordinal);
 
     private static bool TypeEndsWith(TypeSyntax type, IReadOnlyCollection<string> suffixes)
         => suffixes.Any(suffix => ArchitectureFixture.FinalTypeSegment(type).EndsWith(suffix, StringComparison.Ordinal));

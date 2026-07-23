@@ -26,8 +26,9 @@ internal sealed class FakeServerProbe : IServerProbe
         Calls.Add((primaryUrl, fallbackUrl, outputFile));
         if (_readyUrl is not null)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
-            File.WriteAllText(outputFile, "[]");
+            var safeOutputFile = AgentUp.PackageSmoke.Shared.Providers.SafeSmokePaths.Child(Path.GetDirectoryName(outputFile)!, Path.GetFileName(outputFile));
+            Directory.CreateDirectory(Path.GetDirectoryName(safeOutputFile)!);
+            File.WriteAllText(safeOutputFile, "[]");
         }
 
         return Task.FromResult(_readyUrl);

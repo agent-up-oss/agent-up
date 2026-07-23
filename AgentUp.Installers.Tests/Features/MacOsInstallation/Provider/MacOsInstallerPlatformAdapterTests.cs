@@ -374,8 +374,9 @@ public class MacOsInstallerPlatformAdapterTests
             if (fileName is "osascript" or "bash")
             {
                 var scriptPath = ExtractBashScriptPath(fileName, arguments);
-                if (scriptPath is not null && File.Exists(scriptPath))
-                    CapturedScript = (CapturedScript ?? "") + File.ReadAllText(scriptPath);
+                var safeScriptPath = SafeScriptPath(scriptPath);
+                if (safeScriptPath is not null && File.Exists(safeScriptPath))
+                    CapturedScript = (CapturedScript ?? "") + File.ReadAllText(safeScriptPath);
             }
 
             return Task.FromResult(new ProcessResult(0, "", ""));
@@ -388,13 +389,24 @@ public class MacOsInstallerPlatformAdapterTests
                 // bash: /tmp/xxx  (path passed unquoted — Process.Start doesn't process shell quotes)
                 return arguments;
             }
-            if (fileName == "osascript" && File.Exists(arguments))
+            var safeArguments = SafeScriptPath(arguments);
+            if (fileName == "osascript" && safeArguments is not null && File.Exists(safeArguments))
             {
                 // osascript: /tmp/xxx.scpt  (AppleScript file containing the bash script path)
-                var appleScript = File.ReadAllText(arguments);
+                var appleScript = File.ReadAllText(safeArguments);
                 return ExtractDoShellScriptPath(appleScript);
             }
             return null;
+        }
+
+        private static string? SafeScriptPath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+
+            var tempRoot = Path.GetFullPath(Path.GetTempPath());
+            var fullPath = Path.GetFullPath(path);
+            return fullPath.StartsWith(tempRoot, StringComparison.Ordinal) ? fullPath : null;
         }
 
         private static string? ExtractDoShellScriptPath(string appleScript)

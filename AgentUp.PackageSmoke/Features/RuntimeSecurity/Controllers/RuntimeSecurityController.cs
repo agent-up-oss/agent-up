@@ -1,4 +1,5 @@
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
+using AgentUp.PackageSmoke.Shared.Interfaces;
 
 namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Controllers;
 
@@ -13,7 +14,7 @@ public sealed class RuntimeSecurityController
 
     public async Task RunAsync(
         string serverUrl,
-        IRuntimeSecurityFindingSink findings,
+        IFindingSink findings,
         CancellationToken cancellationToken = default)
         => await _checks.RunAsync(serverUrl, findings, cancellationToken);
 }

@@ -17,8 +17,8 @@ public sealed class MacOsPackageValidator : IPackageValidator
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        var archive = Path.Join(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
-        var expanded = Path.Join(request.WorkDirectory, "pkg-expanded");
+        var archive = SafeSmokePaths.Child(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
+        var expanded = SafeSmokePaths.Child(request.WorkDirectory, "pkg-expanded");
         assert.FileExists(archive, "macos.artifact");
         if (!File.Exists(archive))
             return new PackageValidationResult(null, null, assert.Findings);

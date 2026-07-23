@@ -1,4 +1,5 @@
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using AgentUp.PackageSmoke.Features.PackageValidation.Models;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using System.Diagnostics;
 

@@ -123,7 +123,7 @@ Tests must stay feature-sliced and use clear test-kind folders. Feature tests li
 
 `AgentUp.Architecture.Tests` owns executable architecture and review-hygiene rules. Use ArchUnitNET there for assembly/type dependency rules, and use narrowly scoped filesystem/source checks there for physical folder rules and generic source-quality rules that assembly analysis cannot see. Slices that receive same-project inbound traffic must expose a concrete `*Controller` boundary, and architecture rules should verify that controllers and services do not bypass sibling slice boundaries through implementation-folder imports.
 
-Architecture rules also enforce review-prone structural limits deterministically: production source must not use nested types, controllers must not depend on providers/repositories/factories, controller methods must stay thin with low cyclomatic complexity and no loops/switch/try blocks, and feature slices with controllers, services/models, or providers must have matching `Controller/`, `Unit/`, or `Provider/` test-kind coverage. Existing coverage gaps are tracked as an explicit architecture-test debt baseline; do not add new entries to that baseline when adding or expanding a slice.
+Architecture rules also enforce review-prone structural limits deterministically: production source must not use nested types or nested delegates, controllers must not depend on providers/repositories/factories, controller methods must stay thin with low cyclomatic complexity and no loops/switch/try blocks, sibling-slice imports must use only target `Controllers/` or `DTOs/`, and feature slices with controllers, services/models, or providers must have matching `Controller/`, `Unit/`, or `Provider/` test-kind coverage. Existing coverage and cross-slice dependency gaps are tracked as explicit architecture-test debt baselines; do not add new entries to those baselines when adding or expanding a slice.
 
 Review-hygiene rules should catch recurring patterns generically: generic or empty catch blocks, unsafe path construction, missing disposable ownership, sync-over-async in production startup/UI/composition paths, ambiguous timeout cancellation filters, static controller composition wrappers, and nondeterministic tests that skip coverage based on live platform privilege or filesystem state.
 
@@ -151,7 +151,7 @@ Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, 
 
 Services own domain lifecycle and orchestration behind controllers. Follow the service/provider rule above for the boundary between domain orchestration and low-level implementation.
 
-Slices should not import another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice communication should go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs`. Read-only cross-slice access is allowed only through a narrow, intentional boundary when one slice needs state owned by another slice and must not mutate it.
+Slices should not import another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, `Factories/`, `Tools/`, `Views/`, or `ViewModels/`. Cross-slice communication should go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs`. If read-only access or low-level abstractions need a non-controller contract, move that contract to a project-level `Shared/` folder instead of exposing a feature-owned interface.
 
 ## Component Responsibilities
 

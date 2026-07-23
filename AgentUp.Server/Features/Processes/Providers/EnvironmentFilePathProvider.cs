@@ -5,10 +5,11 @@ public static class EnvironmentFilePathProvider
     public static string ResolveExistingWorkspaceFile(string worktreePath, string environmentFile)
     {
         var fullPath = ResolveWorkspaceFile(worktreePath, environmentFile);
-        if (!File.Exists(fullPath))
+        var safeFullPath = Path.GetFullPath(fullPath);
+        if (!File.Exists(safeFullPath))
             throw new InvalidOperationException($"Environment file '{environmentFile}' was not found.");
 
-        return fullPath;
+        return safeFullPath;
     }
 
     private static string ResolveWorkspaceFile(string worktreePath, string environmentFile)

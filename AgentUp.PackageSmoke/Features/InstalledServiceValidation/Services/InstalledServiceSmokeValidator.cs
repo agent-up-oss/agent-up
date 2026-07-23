@@ -87,7 +87,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         CancellationToken cancellationToken)
     {
         var configFileName = request.Product.WorkspaceConfigFileName;
-        var repo = Path.Join(request.WorkDirectory, "example-workspace");
+        var repo = SafeSmokePaths.Child(request.WorkDirectory, "example-workspace");
         Directory.CreateDirectory(repo);
         var configPath = SafeWorkspaceConfigPath(repo, configFileName);
         await File.WriteAllTextAsync(configPath, """
@@ -105,12 +105,12 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
         var environment = MergeEnvironment(cliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
         var start = await _commands.RunAsync(CliCommand(cliCommand, shimName, "start", repo, environment), cancellationToken);
-        await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
+        await File.WriteAllTextAsync(SafeSmokePaths.Child(request.WorkDirectory, "cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains("Started workspace \"Installed Service Smoke Workspace\"", StringComparison.Ordinal))
             assert.Error("installed.cli.start", $"CLI start failed or returned unexpected output: {start.Stderr}{start.Stdout}");
 
         var status = await _commands.RunAsync(CliCommand(cliCommand, shimName, "status", repo, environment), cancellationToken);
-        await File.WriteAllTextAsync(Path.Join(request.WorkDirectory, "cli-status.log"), status.Stdout + status.Stderr, cancellationToken);
+        await File.WriteAllTextAsync(SafeSmokePaths.Child(request.WorkDirectory, "cli-status.log"), status.Stdout + status.Stderr, cancellationToken);
         if (status.ExitCode != 0
             || !status.Stdout.Contains("Name:       Installed Service Smoke Workspace", StringComparison.Ordinal)
             || !status.Stdout.Contains("State:      Running", StringComparison.Ordinal))

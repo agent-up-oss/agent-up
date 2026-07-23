@@ -52,31 +52,43 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateLocalProcessStartInfo_ProvidesAllWorkspacePortVariables_ToLocalProcess()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(Path.Join(worktreePath, "web"));
+        Directory.CreateDirectory(Path.Join(worktreePath, "api"));
+
+        try
         {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Web",
-                    "npm run dev",
-                    "web",
-                    [new PortDeclaration("WEB_PORT", 5173)]),
-                new ApplicationDefinition(
-                    "Api",
-                    "dotnet run",
-                    "api",
-                    [new PortDeclaration("API_PORT", 3001)])
-            ]
-        });
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "npm run dev",
+                        "web",
+                        [new PortDeclaration("WEB_PORT", 5173)]),
+                    new ApplicationDefinition(
+                        "Api",
+                        "dotnet run",
+                        "api",
+                        [new PortDeclaration("API_PORT", 3001)])
+                ]
+            });
 
-        var web = workspace.Applications.Single(app => app.Name == "Web");
-        var api = workspace.Applications.Single(app => app.Name == "Api");
+            var web = workspace.Applications.Single(app => app.Name == "Web");
+            var api = workspace.Applications.Single(app => app.Name == "Api");
 
-        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, web);
+            var startInfo = LocalProcessProvider.CreateStartInfo(workspace, web);
 
-        Assert.That(startInfo.WorkingDirectory, Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
-        Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));
-        Assert.That(startInfo.Environment["API_PORT"], Is.EqualTo(api.AllocatedPorts.Single().AllocatedPort.ToString()));
+            Assert.That(startInfo.WorkingDirectory, Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+            Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));
+            Assert.That(startInfo.Environment["API_PORT"], Is.EqualTo(api.AllocatedPorts.Single().AllocatedPort.ToString()));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
     }
 
     [Test]

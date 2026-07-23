@@ -21,11 +21,10 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
 
     internal static ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
     {
-        var workingDirectory = app.Path is not null
-            ? Path.Join(workspace.WorktreePath, app.Path)
-            : workspace.WorktreePath;
+        var workingDirectory = ResolveWorkspacePath(workspace.WorktreePath, app.Path);
+        var fileEnvironment = LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles);
         var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
-        foreach (var (key, value) in LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles))
+        foreach (var (key, value) in fileEnvironment)
             startInfo.Environment[key] = value;
 
         foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
@@ -87,6 +86,7 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
 
     private static ProcessStartInfo CreateShellStartInfo(string command, string workingDirectory)
     {
+        var scriptPath = WriteCommandScript(command, workingDirectory);
         var startInfo = new ProcessStartInfo
         {
             WorkingDirectory = workingDirectory,
@@ -99,17 +99,56 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             startInfo.FileName = "cmd.exe";
+            startInfo.ArgumentList.Add("/D");
+            startInfo.ArgumentList.Add("/Q");
             startInfo.ArgumentList.Add("/C");
+            startInfo.ArgumentList.Add(scriptPath);
         }
         else
         {
             startInfo.FileName = "/usr/bin/env";
             startInfo.ArgumentList.Add("bash");
-            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add(scriptPath);
         }
 
-        startInfo.ArgumentList.Add(command);
         return startInfo;
+    }
+
+    private static string WriteCommandScript(string command, string workingDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(command))
+            throw new InvalidOperationException("Application command must not be empty.");
+
+        var runtimeDirectory = ResolveWorkspacePath(workingDirectory, Path.Join(".agent-up", "runtime", "commands"));
+        Directory.CreateDirectory(runtimeDirectory);
+        var scriptName = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(command)))[..16]
+                         + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".cmd" : ".sh");
+        var scriptPath = ResolveWorkspacePath(runtimeDirectory, scriptName);
+        File.WriteAllText(scriptPath, command);
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        return scriptPath;
+    }
+
+    private static string ResolveWorkspacePath(string root, string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(root))
+            throw new InvalidOperationException("Workspace path must not be empty.");
+
+        var rootFullPath = Path.GetFullPath(root);
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return rootFullPath;
+
+        if (Path.IsPathRooted(relativePath))
+            throw new InvalidOperationException("Application path must be relative to the workspace root.");
+
+        var fullPath = Path.GetFullPath(Path.Join(rootFullPath, relativePath));
+        var relative = Path.GetRelativePath(rootFullPath, fullPath);
+        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
+            throw new InvalidOperationException("Application path must stay under the workspace root.");
+
+        return fullPath;
     }
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]
