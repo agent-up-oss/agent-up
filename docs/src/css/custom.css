@@ -7,18 +7,18 @@
   --agentup-forest-3: #287038;
   --agentup-forest-accent: #00d66b;
   --agentup-forest-accent-2: #2bf27a;
-  --agentup-cream: #f7f4ed;
-  --agentup-mist: #e7efe9;
+  --agentup-cream: #000000;
+  --agentup-mist: #07120a;
   --agentup-line: rgba(40, 112, 56, 0.55);
-  --agentup-ink: #0b1110;
-  --agentup-muted: #51605a;
-  --agentup-surface: #ffffff;
-  --agentup-surface-soft: #f3f7f2;
+  --agentup-ink: #f4f7f2;
+  --agentup-muted: #aebcb3;
+  --agentup-surface: #050505;
+  --agentup-surface-soft: #080808;
   --agentup-teal: #00b850;
   --agentup-teal-soft: #287038;
   --agentup-accent: var(--agentup-forest-accent);
   --agentup-accent-soft: var(--agentup-forest-accent-2);
-  --agentup-paper: #fbfaf6;
+  --agentup-paper: #000000;
   --ifm-color-primary: #00d66b;
   --ifm-color-primary-dark: #00b850;
   --ifm-color-primary-darker: #0f7a45;
@@ -26,8 +26,8 @@
   --ifm-color-primary-light: #2bf27a;
   --ifm-color-primary-lighter: #6bff9f;
   --ifm-color-primary-lightest: #a7ffc4;
-  --ifm-color-emphasis-200: rgba(11, 17, 16, 0.12);
-  --ifm-color-emphasis-300: rgba(11, 17, 16, 0.18);
+  --ifm-color-emphasis-200: rgba(231, 239, 233, 0.12);
+  --ifm-color-emphasis-300: rgba(231, 239, 233, 0.18);
   --ifm-code-font-size: 95%;
   --ifm-navbar-height: 4rem;
   --ifm-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -40,10 +40,12 @@
   --ifm-footer-background-color: var(--agentup-black);
   --ifm-font-color-base: var(--agentup-ink);
   --ifm-heading-color: var(--agentup-ink);
-  --ifm-link-color: var(--agentup-forest-2);
+  --ifm-link-color: #00d66b;
   --ifm-link-hover-color: var(--agentup-forest-accent);
-  --ifm-code-background: rgba(16, 63, 53, 0.08);
-  --ifm-code-color: var(--agentup-forest);
+  --ifm-code-background: rgba(8, 239, 117, 0.12);
+  --ifm-code-color: #2bf27a;
+  --ifm-pre-background: #020402;
+  --ifm-pre-color: #d8e7dc;
   --ifm-global-radius: 8px;
   --ifm-alert-border-radius: 8px;
   --ifm-card-border-radius: 8px;
@@ -78,8 +80,10 @@
   --ifm-heading-color: var(--agentup-ink);
   --ifm-link-color: #00d66b;
   --ifm-link-hover-color: var(--agentup-forest-accent-2);
-  --ifm-code-background: rgba(115, 196, 167, 0.12);
+  --ifm-code-background: rgba(8, 239, 117, 0.12);
   --ifm-code-color: #2bf27a;
+  --ifm-pre-background: #020402;
+  --ifm-pre-color: #d8e7dc;
 }
 
 html,
@@ -210,15 +214,20 @@ body {
 }
 
 .theme-doc-markdown code {
-  border: 1px solid color-mix(in srgb, var(--agentup-teal) 18%, transparent);
+  background: rgba(8, 239, 117, 0.1);
+  border: 1px solid rgba(8, 239, 117, 0.24);
   border-radius: 6px;
+  color: var(--agentup-accent-soft);
   font-weight: 650;
 }
 
 .theme-doc-markdown pre {
-  border: 1px solid var(--agentup-line);
+  background: #020402;
+  border: 1px solid rgba(8, 239, 117, 0.28);
   border-radius: 8px;
-  box-shadow: 0 18px 44px color-mix(in srgb, var(--agentup-black) 8%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(157, 248, 188, 0.08),
+    0 18px 44px rgba(0, 0, 0, 0.26);
 }
 
 .theme-doc-markdown table {
@@ -350,32 +359,54 @@ body {
 }
 
 .theme-code-block {
-  border: 1px solid var(--agentup-line);
+  background: #020402;
+  border: 1px solid rgba(8, 239, 117, 0.28);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 16px 38px color-mix(in srgb, var(--agentup-black) 10%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(157, 248, 188, 0.08),
+    0 16px 38px rgba(0, 0, 0, 0.28);
 }
 
 .prism-code {
+  background: #020402 !important;
+  color: #d8e7dc;
   font-size: 0.88rem;
   line-height: 1.65;
 }
 
 [class*='codeBlockTitle'] {
   color: var(--agentup-accent);
-  background: color-mix(in srgb, var(--agentup-mist) 70%, var(--agentup-surface));
-  border-bottom: 1px solid var(--agentup-line);
+  background:
+    linear-gradient(90deg, rgba(8, 239, 117, 0.14), rgba(8, 239, 117, 0.03)),
+    #030703;
+  border-bottom: 1px solid rgba(8, 239, 117, 0.24);
   font-size: 0.8rem;
   font-weight: 700;
 }
 
 [class*='copyButton'] {
-  color: var(--agentup-muted);
+  border: 1px solid rgba(8, 239, 117, 0.18);
+  color: #9bb6a3;
 }
 
 [class*='copyButton']:hover {
   color: var(--agentup-accent);
-  background: color-mix(in srgb, var(--agentup-forest-accent) 12%, transparent);
+  background: rgba(8, 239, 117, 0.12);
+  border-color: rgba(8, 239, 117, 0.36);
+}
+
+[class*='codeLineNumber'] {
+  color: rgba(157, 248, 188, 0.42);
+}
+
+[class*='codeLineContent'] {
+  color: #d8e7dc;
+}
+
+[class*='codeLine'][class*='highlighted'] {
+  background: rgba(8, 239, 117, 0.12);
+  box-shadow: inset 3px 0 0 var(--agentup-accent);
 }
 
 .tabs {
