@@ -36,9 +36,8 @@ public class UbuntuProductBrandingTests
                 $"staged path '{path}' must not contain 'agent-up'");
     }
 
-    // Test 2: generated post-install script installs files under the product's install root
-    // and registers the product's systemd unit name, with no reference to /opt/agent-up
-    // or agent-up-server.service.
+    // Test 2: generated post-install script invokes the installer under the product's install root
+    // with --install-core, with no reference to /opt/agent-up.
     [Test]
     public void PostInstallScript_forNonAgentUpProduct_usesProductInstallRootAndUnitName()
     {
@@ -49,16 +48,16 @@ public class UbuntuProductBrandingTests
 
         Assert.That(script, Does.Contain("/opt/acme-studio"),
             "post-install script must reference the product's install root");
-        Assert.That(script, Does.Contain("acme-studio-server.service"),
-            "post-install script must register the product's systemd unit");
+        Assert.That(script, Does.Contain("SUDO_USER"),
+            "post-install script must attempt to launch the installer GUI for the invoking user");
+        Assert.That(script, Does.Not.Contain("--install-core"),
+            "post-install script must not run a headless install");
         Assert.That(script, Does.Not.Contain("/opt/agent-up"),
             "post-install script must not reference /opt/agent-up");
-        Assert.That(script, Does.Not.Contain("agent-up-server.service"),
-            "post-install script must not reference agent-up-server.service");
     }
 
-    // Test 3: generated pre-remove script stops and removes the product's unit only,
-    // and an "acme-studio" pre-remove script contains no "agent-up" unit name.
+    // Test 3: generated pre-remove script uninstalls each component via the product's installer,
+    // and an "acme-studio" pre-remove script contains no "agent-up" string.
     [Test]
     public void PreRemoveScript_forAcmeStudio_stopsProductUnitAndContainsNoAgentUpUnitName()
     {
@@ -67,8 +66,10 @@ public class UbuntuProductBrandingTests
 
         var script = manifest.PreRemoveScript();
 
-        Assert.That(script, Does.Contain("acme-studio-server.service"),
-            "pre-remove script must disable the product's own unit");
+        Assert.That(script, Does.Contain("/opt/acme-studio/installer"),
+            "pre-remove script must invoke the product's installer");
+        Assert.That(script, Does.Contain("--uninstall-component"),
+            "pre-remove script must uninstall each component");
         Assert.That(script, Does.Not.Contain("agent-up"),
             "pre-remove script for acme-studio must not contain any 'agent-up' string");
     }

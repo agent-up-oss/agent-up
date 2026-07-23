@@ -25,10 +25,13 @@ public class UbuntuPackageStagerTests
         new UbuntuPackageStager(writer).Stage(request, layout, manifest);
 
         Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join(layout.DebRoot, "DEBIAN")));
-        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "cli"))));
-        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join("/repo", "packaging", "linux", "agent-up-server.service"), Path.Join(layout.DebRoot, "etc", "systemd", "system", "agent-up-server.service"))));
-        Assert.That(writer.Symlinks, Does.Contain((Path.Join(layout.DebRoot, "usr", "bin", "agent-up"), "/opt/agent-up/cli/AgentUp.CLI")));
-        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "usr", "share", "applications", "agent-up.desktop")], Does.Contain("Exec=/opt/agent-up/desktop/AgentUp.Desktop"));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.InstallerPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "installer"))));
+        Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "payload", "cli"))));
+        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join("/repo", "packaging", "linux", "agent-up-server.service"), Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "payload", "service", "agent-up-server.service"))));
+        Assert.That(writer.ExecutablePaths, Does.Contain(Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "AgentUp.InstallerApp")));
+        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Contain("AgentUp.InstallerApp"));
+        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Not.Contain("--install-core"));
+        Assert.That(writer.WrittenText, Contains.Key(Path.Join(layout.DebRoot, "usr", "share", "applications", "agent-up-installer.desktop")));
         Assert.That(writer.ExecutablePaths, Does.Contain(Path.Join(layout.DebRoot, "DEBIAN", "postinst")));
     }
 

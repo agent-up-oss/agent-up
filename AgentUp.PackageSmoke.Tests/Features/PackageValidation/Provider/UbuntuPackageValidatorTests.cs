@@ -42,8 +42,8 @@ public class UbuntuPackageValidatorTests
             var result = await new UbuntuPackageValidator(new UbuntuPackageArchiveProvider(commands)).ValidateAsync(new PackageValidationRequest("ubuntu", "linux-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.ServerPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "agent-up", "server", "AgentUp.Server")));
-            Assert.That(result.CliPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "agent-up", "cli", "AgentUp.CLI")));
+            Assert.That(result.ServerPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "agent-up", "installer", "payload", "server", "AgentUp.Server")));
+            Assert.That(result.CliPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "agent-up", "installer", "payload", "cli", "AgentUp.CLI")));
         }
         finally
         {
@@ -54,20 +54,21 @@ public class UbuntuPackageValidatorTests
 
     private static void CreateUbuntuRoot(string root)
     {
-        WriteExecutable(Path.Join(root, "opt", "agent-up", "desktop", "AgentUp.Desktop"));
-        WriteExecutable(Path.Join(root, "opt", "agent-up", "server", "AgentUp.Server"));
-        WriteExecutable(Path.Join(root, "opt", "agent-up", "cli", "AgentUp.CLI"));
-        Directory.CreateDirectory(Path.Join(root, "usr", "bin"));
-        File.CreateSymbolicLink(Path.Join(root, "usr", "bin", "agent-up"), "/opt/agent-up/cli/AgentUp.CLI");
-        WriteText(Path.Join(root, "usr", "share", "applications", "agent-up.desktop"), "Exec=/opt/agent-up/desktop/AgentUp.Desktop\nIcon=agent-up\n");
+        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "AgentUp.InstallerApp"));
+        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "desktop", "AgentUp.Desktop"));
+        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "server", "AgentUp.Server"));
+        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "cli", "AgentUp.CLI"));
+        WriteText(Path.Join(root, "opt", "agent-up", "installer", "payload", "service", "agent-up-server.service"),
+            "ExecStart=/opt/agent-up/server/AgentUp.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up\nCacheDirectory=agent-up\nRestartSec=5\n");
+        WriteText(Path.Join(root, "opt", "agent-up", "installer", "payload", "icon", "Agent-Up.png"), "png");
+        WriteText(Path.Join(root, "usr", "share", "applications", "agent-up-installer.desktop"), "[Desktop Entry]\nName=Agent-Up Installer\n");
         WriteText(Path.Join(root, "usr", "share", "pixmaps", "agent-up.png"), "png");
-        WriteText(Path.Join(root, "etc", "systemd", "system", "agent-up-server.service"), "ExecStart=/opt/agent-up/server/AgentUp.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up\nCacheDirectory=agent-up\nRestartSec=5\n");
     }
 
     private static void CreateUbuntuControl(string control)
     {
-        WriteText(Path.Join(control, "postinst"), "systemctl enable --now agent-up-server.service\n");
-        WriteText(Path.Join(control, "prerm"), "systemctl stop agent-up-server.service\n");
+        WriteText(Path.Join(control, "postinst"), "#!/usr/bin/env bash\nchmod +x /opt/agent-up/installer/AgentUp.InstallerApp\n");
+        WriteText(Path.Join(control, "prerm"), "#!/usr/bin/env bash\n");
     }
 
     private static void WriteExecutable(string path)

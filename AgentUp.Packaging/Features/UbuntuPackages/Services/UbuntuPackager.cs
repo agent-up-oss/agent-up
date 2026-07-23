@@ -28,7 +28,7 @@ public sealed class UbuntuPackager
         var manifest = UbuntuPackageManifest.From(request, _product);
         await _payloads.StageAsync(new PayloadStagingRequest(
             request,
-            null,
+            layout.InstallerPublishDirectory,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
             layout.CliPublishDirectory),

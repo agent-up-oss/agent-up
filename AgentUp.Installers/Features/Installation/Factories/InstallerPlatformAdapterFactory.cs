@@ -102,15 +102,14 @@ public static class InstallerPlatformAdapterFactory
     private static IInstallerPlatformAdapter CreateUbuntuAdapter(string payloadRoot)
     {
         var composition = Composition();
-        var repositoryRoot = FindRepositoryRoot(AppContext.BaseDirectory);
         var manifest = UbuntuInstallerManifest.AgentUp();
         var paths = UbuntuInstallerPaths.ForProduct(manifest);
         var payload = new UbuntuInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
-            ServiceFilePath: System.IO.Path.Join(repositoryRoot, "packaging", "linux", manifest.ServiceUnitName),
-            IconPath: System.IO.Path.Join(repositoryRoot, "media", "logo.png"));
+            ServiceFilePath: System.IO.Path.Join(payloadRoot, "service", manifest.ServiceUnitName),
+            IconPath: System.IO.Path.Join(payloadRoot, "icon", "Agent-Up.png"));
 
         return new UbuntuInstallerPlatformAdapter(
             composition.Commands,
@@ -194,19 +193,6 @@ public static class InstallerPlatformAdapterFactory
             new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
     }
 
-    private static string FindRepositoryRoot(string startDirectory)
-    {
-        var directory = new DirectoryInfo(startDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(System.IO.Path.Join(directory.FullName, "agent-up.sln")))
-                return directory.FullName;
-
-            directory = directory.Parent;
-        }
-
-        return Directory.GetCurrentDirectory();
-    }
 }
 
 internal sealed record InstallerAdapterComposition(

@@ -175,6 +175,12 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             throw new InvalidOperationException("Workspace directory alias already exists with a different target.");
         }
 
+        // A broken symlink (target deleted) is not a directory, so Directory.Exists returns
+        // false above, but the symlink file still exists and blocks CreateSymbolicLink.
+        var staleLink = new FileInfo(aliasPath);
+        if (staleLink.LinkTarget is not null)
+            staleLink.Delete();
+
         try
         {
             Directory.CreateSymbolicLink(aliasPath, workingDirectory);
