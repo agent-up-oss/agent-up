@@ -1,4 +1,4 @@
-using AgentUp.CLI.Features.Workspaces.Factories;
+using AgentUp.CLI.Composition;
 
 namespace AgentUp.CLI.Tests.Features.Workspaces.Controller;
 

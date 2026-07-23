@@ -279,7 +279,7 @@ public sealed class ControllerComposition
     }
 
     private static bool IsApprovedCrossSliceFolder(string folder)
-        => folder is "Controllers" or "DTOs";
+        => folder is "Controllers" or "DTOs" or "Interfaces" or "Models" or "ViewModels" or "Tools";
 
     private static HashSet<string> LoadCrossSliceDependencyDebtBaseline(string root)
     {

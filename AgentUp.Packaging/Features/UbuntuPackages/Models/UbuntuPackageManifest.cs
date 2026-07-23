@@ -1,3 +1,4 @@
+using System.Security;
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
 using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Shared.Providers;
@@ -75,6 +76,35 @@ public sealed record UbuntuPackageManifest(
            /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component cli 2>/dev/null || true
            /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component desktop 2>/dev/null || true
            """ + Environment.NewLine;
+
+    public string MetainfoText()
+    {
+        var date = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var pkg = SecurityElement.Escape(PackageName)!;
+        var app = SecurityElement.Escape(ApplicationName)!;
+        var ver = SecurityElement.Escape(Version)!;
+        return $"""
+               <?xml version="1.0" encoding="UTF-8"?>
+               <component type="desktop-application">
+                 <id>{pkg}-installer.desktop</id>
+                 <metadata_license>MIT</metadata_license>
+                 <project_license>MIT</project_license>
+                 <name>{app} Installer</name>
+                 <summary>Local {app} installer</summary>
+                 <description>
+                   <p>Installer for {app}.</p>
+                 </description>
+                 <launchable type="desktop-id">{pkg}-installer.desktop</launchable>
+                 <provides>
+                   <pkgname>{pkg}</pkgname>
+                 </provides>
+                 <releases>
+                   <release version="{ver}" date="{date}"/>
+                 </releases>
+                 <content_rating type="oars-1.1"/>
+               </component>
+               """ + Environment.NewLine;
+    }
 
     public static string PostRemoveScript()
         => """

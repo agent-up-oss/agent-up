@@ -4,7 +4,7 @@ using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
 using AgentUp.Installers.Features.NixOsInstallation.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Services;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 namespace AgentUp.Installers.Tests.Features.NixOsInstallation.Provider;
 

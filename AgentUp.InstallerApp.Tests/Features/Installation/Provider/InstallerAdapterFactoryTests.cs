@@ -1,5 +1,5 @@
 using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Composition;
 using AgentUp.InstallerApp.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation;
 using AgentUp.Installers.Features.Installation.Providers;

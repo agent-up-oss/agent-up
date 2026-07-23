@@ -1,4 +1,4 @@
-using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
@@ -11,7 +11,7 @@ using AgentUp.Installers.Features.MacOsInstallation.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Services;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 namespace AgentUp.Installers.Tests.Features.MacOsInstallation.Provider;
 

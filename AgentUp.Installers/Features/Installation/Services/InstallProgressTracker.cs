@@ -1,6 +1,6 @@
 using AgentUp.Installers.Features.Installation.Models;
 
-namespace AgentUp.Installers.Features.Installation.Services;
+namespace AgentUp.Installers.Features.Installation.Models;
 
 public sealed class InstallProgressTracker
 {

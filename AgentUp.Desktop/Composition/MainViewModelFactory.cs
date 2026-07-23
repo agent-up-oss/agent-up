@@ -15,7 +15,7 @@ using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 
-namespace AgentUp.Desktop.Features.Workspaces.Factories;
+namespace AgentUp.Desktop.Composition;
 
 public static class MainViewModelFactory
 {

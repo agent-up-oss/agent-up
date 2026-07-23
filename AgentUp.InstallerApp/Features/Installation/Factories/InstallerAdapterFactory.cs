@@ -1,4 +1,4 @@
-using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.Interfaces;
 
 namespace AgentUp.InstallerApp.Features.Installation.Factories;

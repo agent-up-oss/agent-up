@@ -264,9 +264,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           artifact_name="dotnet-ci-${{ matrix.platform }}-${{ matrix.rid }}"
-          artifact_id="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id" | head -n 1)"
+          artifact_id="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id" 2>/dev/null | head -n 1)"
           if [ -n "$artifact_id" ]; then
-            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id"
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
           fi
 
       - name: Mark downloaded tools executable
@@ -484,7 +484,7 @@ jobs:
           gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select(.name | startswith("package-") or .name == "sbom") | .id' |
             while IFS= read -r artifact_id; do
               if [ -n "$artifact_id" ]; then
-                gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id"
+                gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
               fi
             done
 

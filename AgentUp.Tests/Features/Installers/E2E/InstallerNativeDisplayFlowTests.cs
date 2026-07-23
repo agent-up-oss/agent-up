@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Installation.Factories;
+using AgentUp.InstallerApp.Composition;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
 using Avalonia.Controls;

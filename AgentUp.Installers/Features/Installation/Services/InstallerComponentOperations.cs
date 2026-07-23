@@ -1,7 +1,7 @@
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
 
-namespace AgentUp.Installers.Features.Installation.Services;
+namespace AgentUp.Installers.Features.Installation.Models;
 
 public static class InstallerComponentOperations
 {

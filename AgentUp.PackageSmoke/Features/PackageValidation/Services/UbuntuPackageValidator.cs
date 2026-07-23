@@ -57,6 +57,11 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         var installerDesktop = SafeSmokePaths.Child(root, "usr", "share", "applications", "agent-up-installer.desktop");
         assert.FileExists(installerDesktop, "ubuntu.installer.desktop");
 
+        var metainfo = SafeSmokePaths.Child(root, "usr", "share", "metainfo", "agent-up-installer.desktop.metainfo.xml");
+        assert.FileExists(metainfo, "ubuntu.metainfo");
+        assert.Contains(metainfo, "<pkgname>agent-up</pkgname>", "ubuntu.metainfo.pkgname");
+        assert.Contains(metainfo, "<release version=", "ubuntu.metainfo.version");
+
         var postinst = SafeSmokePaths.Child(control, "postinst");
         assert.Contains(postinst, "chmod +x /opt/agent-up/installer/AgentUp.InstallerApp", "ubuntu.postinst");
         assert.FileExists(SafeSmokePaths.Child(control, "prerm"), "ubuntu.prerm");

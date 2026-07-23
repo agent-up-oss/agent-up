@@ -1,7 +1,7 @@
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.PrerequisiteChecks.Services;
+namespace AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 public sealed class DockerPrerequisite
 {

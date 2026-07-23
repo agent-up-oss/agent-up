@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
 using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
@@ -22,6 +23,20 @@ public class UbuntuPackageManifestTests
         Assert.That(manifest.PackageName, Is.EqualTo("agent-up"));
         Assert.That(manifest.ApplicationName, Is.EqualTo("Agent-Up"));
         Assert.That(manifest.ServiceName, Is.EqualTo("agent-up-server.service"));
+    }
+
+    [Test]
+    public void MetainfoText_containsAppStreamComponentWithVersionAndPackageName()
+    {
+        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+
+        var text = manifest.MetainfoText();
+
+        Assert.That(text, Does.Contain("<pkgname>agent-up</pkgname>"));
+        Assert.That(text, Does.Contain("<release version=\"1.2.3\""));
+        Assert.That(text, Does.Contain("agent-up-installer.desktop"));
+        Assert.That(text, Does.EndWith(Environment.NewLine));
+        Assert.DoesNotThrow(() => XDocument.Parse(text.Trim()), "MetainfoText must be valid XML");
     }
 
     [Test]

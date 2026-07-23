@@ -16,7 +16,7 @@ public sealed class SourceFileLayout
             .ToArray();
 
         Assert.That(violations, Is.Empty,
-            "Production files must live under Features/, Shared/, or an approved project entrypoint path.");
+            "Production files must live under Features/, Shared/, Composition/, or an approved project entrypoint path.");
     }
 
     private static bool IsAllowedProductionRootFile(string root, string path)
@@ -29,6 +29,6 @@ public sealed class SourceFileLayout
     private static bool HasAllowedSourceRoot(string root, string path)
     {
         var parts = ArchitectureFixture.Parts(root, path);
-        return parts.Length >= 3 && parts[1] is "Features" or "Shared";
+        return parts.Length >= 3 && parts[1] is "Features" or "Shared" or "Composition";
     }
 }

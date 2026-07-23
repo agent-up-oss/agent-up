@@ -1,6 +1,6 @@
 using AgentUp.Installers.Features.Installation.Interfaces;
 
-namespace AgentUp.Installers.Features.Installation.Providers;
+namespace AgentUp.Installers.Features.Installation.Models;
 
 public abstract class UnixInstallerFileSystem : InstallerFileSystem, IUnixInstallerFileSystem
 {

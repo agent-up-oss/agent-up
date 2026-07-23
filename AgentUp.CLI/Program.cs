@@ -1,4 +1,4 @@
-using AgentUp.CLI.Features.Workspaces.Factories;
+using AgentUp.CLI.Composition;
 
 var serverUrl = GetServerUrl(args);
 var runner = CliRunnerFactory.Create(serverUrl, Directory.GetCurrentDirectory());
