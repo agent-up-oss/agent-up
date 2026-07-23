@@ -691,6 +691,11 @@
   transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
+.serviceTab *,
+.secondaryTab * {
+  cursor: pointer;
+}
+
 .serviceTab:hover {
   color: #f5fbf7;
   background: rgba(8, 239, 117, 0.08);
@@ -730,24 +735,34 @@
   border-bottom: 1px solid rgba(40, 112, 56, 0.65);
   background: #000000;
   flex-shrink: 0;
+  cursor: default;
 }
 
 .secondaryTab {
   all: unset;
+  display: inline-flex;
+  align-items: center;
   padding: 0.34rem 0.72rem;
   border-radius: 999px;
   font: inherit;
   font-size: 0.68rem;
   font-weight: 900;
   color: var(--agentup-muted);
-  cursor: pointer;
+  cursor: pointer !important;
   transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
+.secondaryBar button,
+.secondaryBar button:hover,
+.secondaryBar button *,
+.secondaryBar button:hover * {
+  cursor: pointer !important;
+}
+
 .secondaryTab:hover {
-  color: var(--agentup-ink);
-  background: rgba(8, 8, 8, 0.94);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--agentup-forest-accent) 14%, transparent);
+  color: #f5fbf7;
+  background: rgba(8, 239, 117, 0.12);
+  box-shadow: 0 0 0 1px rgba(8, 239, 117, 0.28);
 }
 
 .secondaryTabActive {
@@ -953,23 +968,59 @@
 }
 
 .mockupHeroSection {
-  padding: 1.6rem 1.2rem 0.8rem;
-  background: linear-gradient(135deg, #050505, #000000);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.55rem 1.4rem 1rem;
+  background:
+    radial-gradient(circle at 12% 28%, rgba(8, 239, 117, 0.12), transparent 11rem),
+    linear-gradient(135deg, #050505, #000000);
   flex: 1;
 }
 
+.mockupProductBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  margin-bottom: 1.05rem;
+  color: #f5fbf7;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.mockupBrandMark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(8, 239, 117, 0.45);
+  border-radius: 7px;
+  background: rgba(8, 239, 117, 0.1);
+  color: #08ef75;
+  font-size: 0.82rem;
+  font-weight: 900;
+  box-shadow: 0 0 18px rgba(8, 239, 117, 0.12);
+}
+
 .mockupHeadline {
-  font-size: 1.25rem;
+  max-width: 420px;
+  font-size: 1.62rem;
   font-weight: 900;
   color: var(--agentup-ink);
-  line-height: 1.1;
-  margin-bottom: 0.45rem;
+  line-height: 1.02;
+  margin-bottom: 0.65rem;
+}
+
+.mockupHeadline span {
+  color: #00d66b;
 }
 
 .mockupSubline {
+  max-width: 380px;
   font-size: 0.8rem;
   color: var(--agentup-muted);
-  margin-bottom: 0.85rem;
+  line-height: 1.55;
+  margin-bottom: 1rem;
 }
 
 .mockupCtaRow {
@@ -999,16 +1050,33 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  padding: 0.7rem 1rem;
+  padding: 0.75rem 1.2rem;
   background: #000000;
   flex-shrink: 0;
 }
 
 .mockupCard {
-  height: 48px;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.18rem;
+  padding: 0.55rem 0.65rem;
   border-radius: 8px;
   background: #050505;
   border: 1px solid var(--agentup-line);
+}
+
+.mockupCard strong {
+  color: #f5fbf7;
+  font-size: 0.74rem;
+  line-height: 1.1;
+}
+
+.mockupCard span {
+  color: var(--agentup-muted);
+  font-size: 0.66rem;
+  line-height: 1.2;
 }
 
 .mockupCard:nth-child(1) { border-top: 2px solid var(--agentup-accent); }

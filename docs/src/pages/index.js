@@ -74,8 +74,8 @@ const capabilities = [
 // ── Projects ──────────────────────────────────────────────────────────────────
 
 const projects = [
-  { id: 'A', name: 'Agent-Up workspace', agents: ['agent-1', 'agent-2'] },
-  { id: 'B', name: 'Shop workspace', agents: ['agent-3'] },
+  { id: 'A', name: 'SaaS', agents: ['agent-1', 'agent-2'] },
+  { id: 'B', name: 'Online shop', agents: ['agent-3'] },
 ];
 
 const agentServiceConfig = {
@@ -115,9 +115,9 @@ const getInitials = (id) => {
 };
 
 const agentMeta = {
-  'agent-1': { name: 'agent-up-agent1', branch: '104-the-ubuntu-installer-i...', path: '/workspaces/project-a' },
-  'agent-2': { name: 'agent-up-agent2', branch: '159-align-docs-and-desk...', path: '/workspaces/project-a-2' },
-  'agent-3': { name: 'agent-up-agent3', branch: 'main', path: '/workspaces/shopcraft' },
+  'agent-1': { name: 'SaaS-agent1', branch: 'feat/login', path: '/workspaces/project-a' },
+  'agent-2': { name: 'SaaS-agent2', branch: 'feat/pricing', path: '/workspaces/project-a-2' },
+  'agent-3': { name: 'online-shop-agent1', branch: 'main', path: '/workspaces/shopcraft' },
 };
 
 // page path lookup for URL bar
@@ -366,17 +366,27 @@ function WebsiteMockup({ agent, page, setPage }) {
     <div className={styles.websiteMockup}>
       {nav}
       <div className={`${styles.mockupHeroSection} ${v2 ? styles.mockupHeroV2 : ''}`}>
-        <div className={styles.mockupHeadline}>{v2 ? 'Ship 10× faster with AI' : 'Build something great'}</div>
-        <div className={styles.mockupSubline}>{v2 ? 'Built for the AI era. Deploy in minutes.' : 'A modern platform for modern teams.'}</div>
+        {!v2 && (
+          <div className={styles.mockupProductBrand}>
+            <span className={styles.mockupBrandMark}>M</span>
+            <span>myapp</span>
+          </div>
+        )}
+        <div className={styles.mockupHeadline}>
+          {v2 ? 'Ship faster with clear SaaS pricing' : <>Launch your <span>team portal</span> faster.</>}
+        </div>
+        <div className={styles.mockupSubline}>
+          {v2 ? 'Built for the AI era. Deploy in minutes.' : 'A polished workspace for customers, analytics, billing, and team operations.'}
+        </div>
         <div className={styles.mockupCtaRow}>
-          <span className={styles.mockupPrimaryBtn}>{v2 ? 'Start free trial' : 'Get started'}</span>
-          {!v2 && <span className={styles.mockupSecondaryBtn}>Learn more</span>}
+          <span className={styles.mockupPrimaryBtn}>{v2 ? 'Start free trial' : 'Start free'}</span>
+          {!v2 && <span className={styles.mockupSecondaryBtn}>View demo</span>}
         </div>
       </div>
       <div className={`${styles.mockupCardRow} ${v2 ? styles.mockupCardRowV2 : ''}`}>
-        <div className={styles.mockupCard} />
-        <div className={styles.mockupCard} />
-        {!v2 && <div className={styles.mockupCard} />}
+        <div className={styles.mockupCard}><strong>Analytics</strong><span>Live growth signals</span></div>
+        <div className={styles.mockupCard}><strong>Billing</strong><span>Plans and invoices</span></div>
+        {!v2 && <div className={styles.mockupCard}><strong>Teams</strong><span>Roles and access</span></div>}
       </div>
     </div>
   );
