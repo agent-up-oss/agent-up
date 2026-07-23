@@ -33,7 +33,7 @@ public class ConsolePanelBehaviorTests
         Assert.That(html, Does.Contain("&lt;error&gt; &amp; 'warning'"));
         Assert.That(html, Does.Contain("done"));
         Assert.That(html, Does.Contain("<pre"));
-        Assert.That(html, Does.Contain("#07110f"));
+        Assert.That(html, Does.Contain("#020806"));
     }
 
     [Test]

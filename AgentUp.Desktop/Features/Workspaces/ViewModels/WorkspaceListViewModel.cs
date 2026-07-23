@@ -72,7 +72,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     public string ServerStatusText => _errorMessage is not null
         ? "SERVER OFFLINE"
         : _isLoading ? "CONNECTING" : "SERVER ONLINE";
-    public string ServerStatusColor => _errorMessage is null ? "#35a98b" : "#d84f4f";
+    public string ServerStatusColor => _errorMessage is null ? "#00d66b" : "#d84f4f";
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }

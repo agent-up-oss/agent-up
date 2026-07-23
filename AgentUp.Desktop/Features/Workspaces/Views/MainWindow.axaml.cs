@@ -52,7 +52,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         "(function(){" +
         "if(!document.getElementById('_au_sel')){" +
         "var st=document.createElement('style');st.id='_au_sel';" +
-        "st.textContent='::selection{background-color:#17614f!important;color:#f5fbf7!important}';" +
+        "st.textContent='::selection{background-color:#0f7a45!important;color:#f5fbf7!important}';" +
         "(document.head||document.documentElement).appendChild(st);}" +
         "var active=false;" +
         "window._selStart=function(x,y){" +
@@ -568,9 +568,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>");
         sb.Append("* { margin: 0; padding: 0; box-sizing: border-box; }");
-        sb.Append("html, body { height: 100%; overflow: hidden; background: #07110f; }");
-        sb.Append("::selection { background-color: #17614f; color: #f5fbf7; }");
-        sb.Append("#content { display: block; width: 100%; height: 100%; background: #07110f; color: #c6d4ce; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }");
+        sb.Append("html, body { height: 100%; overflow: hidden; background: #020806; }");
+        sb.Append("::selection { background-color: #0f7a45; color: #f5fbf7; }");
+        sb.Append("#content { display: block; width: 100%; height: 100%; background: #020806; color: #c7d9d0; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }");
         sb.Append("</style></head><body>");
         sb.Append("<pre id=\"content\" tabindex=\"-1\">");
         foreach (var line in lines)

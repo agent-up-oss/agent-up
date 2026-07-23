@@ -43,7 +43,7 @@ public class WindowChromeBehaviorTests
         var app = await AppDriver.LaunchEmptyAsync();
 
         Assert.That(app.Window.FindControl<TextBlock>("ServerStatusText")?.Text, Is.EqualTo("SERVER ONLINE"));
-        Assert.That(app.Window.FindControl<Border>("ServerStatusBadge")?.BorderBrush?.ToString(), Is.EqualTo("#ff35a98b"));
+        Assert.That(app.Window.FindControl<Border>("ServerStatusBadge")?.BorderBrush?.ToString(), Is.EqualTo("#ff00d66b"));
     }
 
     [AvaloniaTest]

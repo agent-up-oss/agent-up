@@ -22,7 +22,7 @@ public sealed class PortSubTabViewModel : SubTabViewModel
         private set => this.RaiseAndSetIfChanged(ref _isOpen, value);
     }
 
-    public string StatusColor => IsOpen ? "#4cbe78" : "#b85a5a";
+    public string StatusColor => IsOpen ? "#00d66b" : "#b85a5a";
 
     public PortSubTabViewModel(string? variable, int defaultPort, int allocatedPort, string protocol = "http")
     {

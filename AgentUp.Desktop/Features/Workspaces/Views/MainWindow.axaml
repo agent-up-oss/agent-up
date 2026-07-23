@@ -9,14 +9,14 @@
         MinWidth="640" MinHeight="400"
         Title="Agent-Up"
         WindowDecorations="None"
-        Background="#07110f">
+        Background="#020806">
 
     <Window.DataTemplates>
         <!-- Console sub-tab -->
         <DataTemplate DataType="portVm:ConsoleSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
                 <TextBlock Text="Console"
-                           Foreground="#aab7b0"
+                           Foreground="#c2d2ca"
                            FontSize="12"
                            FontWeight="Bold"/>
             </Border>
@@ -89,7 +89,7 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <Style Selector="Button:pointerover Border.chromeButton">
-            <Setter Property="Background" Value="#183a31"/>
+            <Setter Property="Background" Value="#0d4f32"/>
         </Style>
         <Style Selector="Button:pointerover Border.chromeClose">
             <Setter Property="Background" Value="#c42b1c"/>
@@ -123,7 +123,7 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <Style Selector="Button:pointerover Border.titleToolButton">
-            <Setter Property="Background" Value="#183a31"/>
+            <Setter Property="Background" Value="#0d4f32"/>
         </Style>
 
         <!-- Application tab bar -->
@@ -133,11 +133,11 @@
             <Setter Property="BorderThickness" Value="0,0,0,2"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.appTab">
-            <Setter Property="Background" Value="#12251f"/>
+            <Setter Property="Background" Value="#092819"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.appTab">
-            <Setter Property="Background" Value="#102b24"/>
-            <Setter Property="BorderBrush" Value="#17614f"/>
+            <Setter Property="Background" Value="#0a3b28"/>
+            <Setter Property="BorderBrush" Value="#0f7a45"/>
         </Style>
 
         <!-- Sub-navbar tab -->
@@ -148,80 +148,80 @@
             <Setter Property="CornerRadius" Value="999"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.subTab">
-            <Setter Property="Background" Value="#14251f"/>
+            <Setter Property="Background" Value="#0a2f20"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.subTab">
-            <Setter Property="Background" Value="#17614f"/>
+            <Setter Property="Background" Value="#0f7a45"/>
         </Style>
 
         <!-- Browser address bar -->
         <Style Selector="TextBox.addressBar">
-            <Setter Property="Background" Value="#091613"/>
-            <Setter Property="BorderBrush" Value="#1d3b32"/>
+            <Setter Property="Background" Value="#04100b"/>
+            <Setter Property="BorderBrush" Value="#145a38"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Foreground" Value="#c9d7d0"/>
             <Setter Property="CaretBrush" Value="#c9d7d0"/>
-            <Setter Property="SelectionBrush" Value="#17614f"/>
+            <Setter Property="SelectionBrush" Value="#0f7a45"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="FontSize" Value="12"/>
         </Style>
         <Style Selector="TextBox.addressBar:focus">
-            <Setter Property="BorderBrush" Value="#35a98b"/>
+            <Setter Property="BorderBrush" Value="#00d66b"/>
         </Style>
         <Style Selector="Border.browserButton">
             <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
             <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Background" Value="#10211c"/>
+            <Setter Property="Background" Value="#082418"/>
         </Style>
         <Style Selector="Button:pointerover Border.browserButton">
-            <Setter Property="Background" Value="#183a31"/>
+            <Setter Property="Background" Value="#0d4f32"/>
         </Style>
 
         <!-- Workspace entry: normal / hover / selected -->
         <Style Selector="Border.wsEntry">
-            <Setter Property="Background" Value="#18211e"/>
+            <Setter Property="Background" Value="#06140f"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.wsEntry">
-            <Setter Property="Background" Value="#1f332d"/>
+            <Setter Property="Background" Value="#0f5a38"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.wsEntry">
-            <Setter Property="Background" Value="#17614f"/>
+            <Setter Property="Background" Value="#0f7a45"/>
         </Style>
 
         <!-- Collapsed avatar: highlight selected -->
         <Style Selector="Border.wsAvatar">
-            <Setter Property="Background" Value="#18211e"/>
+            <Setter Property="Background" Value="#06140f"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.wsAvatar">
-            <Setter Property="Background" Value="#1f332d"/>
+            <Setter Property="Background" Value="#0f5a38"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.wsAvatar">
-            <Setter Property="Background" Value="#17614f"/>
+            <Setter Property="Background" Value="#0f7a45"/>
         </Style>
 
         <!-- First-run tutorial -->
         <Style Selector="Border.tutorialButton">
             <Setter Property="CornerRadius" Value="7"/>
             <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Background" Value="#17614f"/>
+            <Setter Property="Background" Value="#0f7a45"/>
         </Style>
         <Style Selector="Button:pointerover Border.tutorialButton">
-            <Setter Property="Background" Value="#21836b"/>
+            <Setter Property="Background" Value="#22e17b"/>
         </Style>
         <Style Selector="Button:disabled Border.tutorialButton">
-            <Setter Property="Background" Value="#20352f"/>
+            <Setter Property="Background" Value="#143424"/>
         </Style>
         <Style Selector="Border.tutorialSecondaryButton">
             <Setter Property="CornerRadius" Value="7"/>
             <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Background" Value="#10211c"/>
-            <Setter Property="BorderBrush" Value="#264c42"/>
+            <Setter Property="Background" Value="#082418"/>
+            <Setter Property="BorderBrush" Value="#147346"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style Selector="Button:pointerover Border.tutorialSecondaryButton">
-            <Setter Property="Background" Value="#183a31"/>
+            <Setter Property="Background" Value="#0d4f32"/>
         </Style>
         <Style Selector="TextBlock.tutorialButtonText">
             <Setter Property="Foreground" Value="#f5fbf7"/>
@@ -230,8 +230,8 @@
         </Style>
     </Window.Styles>
 
-    <Border Background="#07110f"
-            BorderBrush="#1f3b33"
+    <Border Background="#020806"
+            BorderBrush="#0f4d32"
             BorderThickness="1">
     <Grid RowDefinitions="42,*">
 
@@ -245,7 +245,7 @@
         <!-- Integrated window controls / drag surface -->
         <Border Grid.Row="0"
                 x:Name="WindowChrome"
-                Background="#07110f"
+                Background="#020806"
                 PointerPressed="OnWindowChromePointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0"
@@ -273,7 +273,7 @@
                             CornerRadius="999"
                             BorderBrush="{Binding Sidebar.ServerStatusColor}"
                             BorderThickness="1"
-                            Background="#091613"
+                            Background="#04100b"
                             VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Border Width="9"
@@ -337,8 +337,8 @@
         <Border Grid.Column="0"
                 x:Name="SidebarRail"
                 Width="{Binding Sidebar.Width}"
-                Background="#09110f"
-                BorderBrush="#13241f"
+                Background="#030b08"
+                BorderBrush="#082014"
                 BorderThickness="0,0,1,0">
             <DockPanel>
 
@@ -347,7 +347,7 @@
                         Padding="16,12,16,6"
                         IsVisible="{Binding Sidebar.IsExpanded}">
                     <TextBlock Text="Workspaces"
-                               Foreground="#70b099"
+                               Foreground="#2bf27a"
                                FontSize="11"
                                FontWeight="Bold"
                                VerticalAlignment="Center"/>
@@ -397,7 +397,7 @@
                                                            VerticalAlignment="Center"/>
                                             </DockPanel>
                                             <TextBlock Text="{Binding Branch}"
-                                                       Foreground="#9aa8a1"
+                                                       Foreground="#9fb2a8"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"
                                                        Margin="13,0,0,0"/>
@@ -441,14 +441,14 @@
         </Border>
 
         <!-- ── Main content ───────────────────────────────────────────────────── -->
-        <Border Grid.Column="1" Background="#07110f">
+        <Border Grid.Column="1" Background="#020806">
             <Panel>
 
                 <!-- Loading -->
                 <TextBlock x:Name="LoadingIndicator"
                            IsVisible="{Binding Sidebar.IsLoading}"
                            Text="Connecting to server…"
-                           Foreground="#70b099"
+                           Foreground="#2bf27a"
                            FontSize="14"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
@@ -469,7 +469,7 @@
                                        FontSize="13"/>
                             <Button Command="{Binding Sidebar.RefreshCommand}"
                                     HorizontalAlignment="Center">
-                                <Border Background="#17614f" CornerRadius="7" Padding="14,7">
+                                <Border Background="#0f7a45" CornerRadius="7" Padding="14,7">
                                     <TextBlock Text="Retry" Foreground="#f5fbf7" FontSize="12"/>
                                 </Border>
                             </Button>
@@ -484,12 +484,12 @@
                             VerticalAlignment="Center"
                             Spacing="10">
                     <TextBlock Text="No workspaces registered"
-                               Foreground="#70b099"
+                               Foreground="#2bf27a"
                                FontSize="16"
                                FontWeight="Medium"
                                HorizontalAlignment="Center"/>
                     <TextBlock Text="Run  agent-up register  in your project directory to get started."
-                               Foreground="#596963"
+                               Foreground="#789085"
                                FontSize="12"
                                HorizontalAlignment="Center"/>
                 </StackPanel>
@@ -501,8 +501,8 @@
 
                         <!-- Application tab bar -->
                         <Border Grid.Row="0"
-                                Background="#0c1c18"
-                                BorderBrush="#173029"
+                                Background="#05180f"
+                                BorderBrush="#0d3827"
                                 BorderThickness="0,0,0,1">
                             <ListBox x:Name="ApplicationTabs"
                                      ItemsSource="{Binding Applications.Applications}"
@@ -522,7 +522,7 @@
                                                         Background="{Binding StateColor}"
                                                         VerticalAlignment="Center"/>
                                                 <TextBlock Text="{Binding Name}"
-                                                           Foreground="#aab7b0"
+                                                           Foreground="#c2d2ca"
                                                            FontSize="14"
                                                            FontWeight="Bold"
                                                            VerticalAlignment="Center"/>
@@ -536,8 +536,8 @@
                         <!-- Sub-navbar: Console + port tabs for the selected app -->
                         <Border Grid.Row="1"
                                 IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                Background="#0a1714"
-                                BorderBrush="#173029"
+                                Background="#04130d"
+                                BorderBrush="#0d3827"
                                 BorderThickness="0,0,0,1"
                                 Padding="14,8">
                             <ListBox x:Name="SubNavBar"
@@ -558,8 +558,8 @@
                         <Border Grid.Row="2"
                                 x:Name="AddressNavBar"
                                 IsVisible="{Binding ShowPortView}"
-                                Background="#091613"
-                                BorderBrush="#173029"
+                                Background="#04100b"
+                                BorderBrush="#0d3827"
                                 BorderThickness="0,0,0,1"
                                 Padding="16,7">
                             <Grid ColumnDefinitions="Auto,Auto,Auto,*"
@@ -570,7 +570,7 @@
                                         ToolTip.Tip="Back">
                                     <Border Classes="browserButton">
                                         <TextBlock Text="‹"
-                                                   Foreground="#dcdce8"
+                                                   Foreground="#d3eadf"
                                                    FontSize="18"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"/>
@@ -582,7 +582,7 @@
                                         ToolTip.Tip="Forward">
                                     <Border Classes="browserButton">
                                         <TextBlock Text="›"
-                                                   Foreground="#dcdce8"
+                                                   Foreground="#d3eadf"
                                                    FontSize="18"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"/>
@@ -594,7 +594,7 @@
                                         ToolTip.Tip="Reload">
                                     <Border Classes="browserButton">
                                         <TextBlock Text="↺"
-                                                   Foreground="#dcdce8"
+                                                   Foreground="#d3eadf"
                                                    FontSize="14"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"/>
@@ -622,12 +622,12 @@
                                         VerticalAlignment="Center"
                                         Spacing="8">
                                 <TextBlock Text="No apps in this workspace"
-                                           Foreground="#2e2e42"
+                                           Foreground="#6f857a"
                                            FontSize="14"
                                            FontWeight="Medium"
                                            HorizontalAlignment="Center"/>
                                 <TextBlock Text="Add an agent-up.json with an applications list."
-                                           Foreground="#222230"
+                                           Foreground="#52685d"
                                            FontSize="11"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
@@ -638,7 +638,7 @@
                                 <TextBlock Grid.Row="0"
                                            IsVisible="{Binding Console.WasTruncated}"
                                            Text="Server output was capped at 50,000 lines."
-                                           Foreground="#556060"
+                                           Foreground="#789085"
                                            FontSize="11"
                                            Margin="20,8,20,0"/>
                                 <Panel x:Name="ConsolePane" Grid.Row="1" />
@@ -647,7 +647,7 @@
                                             Orientation="Horizontal"
                                             Spacing="4"
                                             Margin="20,6,20,6">
-                                    <TextBlock Foreground="#556060"
+                                    <TextBlock Foreground="#789085"
                                                FontSize="11"
                                                VerticalAlignment="Center"
                                                Text="Showing last 2,000 lines."/>
@@ -656,7 +656,7 @@
                                             Background="Transparent"
                                             BorderThickness="0"
                                             VerticalAlignment="Center"
-                                            Foreground="#4a8060"
+                                            Foreground="#0f7a45"
                                             FontSize="11"
                                             Cursor="Hand"
                                             Content="Show all"/>
@@ -690,12 +690,12 @@
                                         VerticalAlignment="Center"
                                         Spacing="8">
                                 <TextBlock Text="TCP port"
-                                           Foreground="#2e2e42"
+                                           Foreground="#6f857a"
                                            FontSize="14"
                                            FontWeight="Medium"
                                            HorizontalAlignment="Center"/>
                                 <TextBlock Text="This port is not an HTTP service."
-                                           Foreground="#222230"
+                                           Foreground="#52685d"
                                            FontSize="11"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
@@ -730,8 +730,8 @@
                     MaxHeight="620"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
-                    Background="#0a1714"
-                    BorderBrush="#2c6f5f"
+                    Background="#04130d"
+                    BorderBrush="#00d66b"
                     BorderThickness="1"
                     CornerRadius="8"
                     Padding="28">
@@ -742,7 +742,7 @@
                                    FontSize="28"
                                    FontWeight="Bold"/>
                         <TextBlock Text="Set up a complete two-workspace JavaScript demo before entering the app."
-                                   Foreground="#9eb6ad"
+                                   Foreground="#acd0bd"
                                    FontSize="15"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
@@ -757,7 +757,7 @@
                                            FontSize="22"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="15">
                                     <Run Text="Agent-Up needs "/>
                                     <Run Text="Docker" FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -780,7 +780,7 @@
                                            FontSize="22"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="15">
                                     <Run Text="Choose the stack Agent-Up should prove end-to-end. The JavaScript path builds a "/>
                                     <Run Text="real React + Express + Postgres workspace" FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -793,7 +793,7 @@
                                     <Button Grid.Column="0"
                                             x:Name="TutorialSelectJavaScriptButton"
                                             Command="{Binding Tutorial.SelectJavaScriptCommand}">
-                                        <Border Background="#10211c" BorderBrush="#35a98b" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Border Background="#082418" BorderBrush="#00d66b" BorderThickness="1" CornerRadius="8" Padding="16">
                                             <StackPanel Spacing="8">
                                                 <TextBlock Text="JS"
                                                            Foreground="#f4dd4b"
@@ -801,22 +801,22 @@
                                                            FontWeight="Bold"
                                                            HorizontalAlignment="Center"/>
                                                 <TextBlock Text="Node + JavaScript" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="React SPA, Express API, Postgres" Foreground="#9eb6ad" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"/>
+                                                <TextBlock Text="React SPA, Express API, Postgres" Foreground="#acd0bd" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
                                     </Button>
-                                    <Border Grid.Column="1" Background="#091613" BorderBrush="#23483f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                    <Border Grid.Column="1" Background="#04100b" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text=".NET" Foreground="#8bb7ff" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text=".NET" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Coming later" Foreground="#9eb6ad" FontSize="11" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Coming later" Foreground="#acd0bd" FontSize="11" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
-                                    <Border Grid.Column="2" Background="#091613" BorderBrush="#23483f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                    <Border Grid.Column="2" Background="#04100b" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text="PY" Foreground="#ffd66b" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Python" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Coming later" Foreground="#9eb6ad" FontSize="11" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Coming later" Foreground="#acd0bd" FontSize="11" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
                                 </Grid>
@@ -828,7 +828,7 @@
                                            FontSize="22"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="15">
                                     <Run Text="The sample apps run on "/>
                                     <Run Text="Node.js 20 or newer" FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -849,7 +849,7 @@
                                            FontSize="22"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="15">
                                     <Run Text="Agent-Up Desktop creates "/>
                                     <Run Text="example-agent1" FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -866,11 +866,11 @@
                                             Spacing="10"
                                             Margin="0,8,0,0">
                                     <TextBlock Text="{Binding Tutorial.ProjectDirectory}"
-                                               Foreground="#cde0d8"
+                                               Foreground="#d3eadf"
                                                FontSize="12"
                                                TextWrapping="Wrap"/>
                                     <TextBlock Text="These are the files Agent-Up will manage. The smoke check confirms the project shape is complete."
-                                               Foreground="#9eb6ad"
+                                               Foreground="#acd0bd"
                                                FontSize="14"
                                                TextWrapping="Wrap"/>
                                     <TextBox IsVisible="{Binding Tutorial.ShowDirectoryTree}"
@@ -881,9 +881,9 @@
                                              FontFamily="Consolas,Courier New,monospace"
                                              FontSize="12"
                                              MinHeight="130"
-                                             Background="#07110f"
-                                             BorderBrush="#23483f"
-                                             Foreground="#d8e7e1"
+                                             Background="#020806"
+                                             BorderBrush="#11683f"
+                                             Foreground="#dcf3e7"
                                              Padding="12"/>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <Button x:Name="OpenTutorialFolderButton"
@@ -908,7 +908,7 @@
                                            FontSize="22"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="15">
                                     <Run Text="agent-up.json is the "/>
                                     <Run Text="contract between your project and Agent-Up" FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -921,13 +921,13 @@
                                          FontFamily="Consolas,Courier New,monospace"
                                          FontSize="12"
                                          MinHeight="220"
-                                         Background="#07110f"
-                                         BorderBrush="#23483f"
-                                         Foreground="#d8e7e1"
+                                         Background="#020806"
+                                         BorderBrush="#11683f"
+                                         Foreground="#dcf3e7"
                                          Padding="12"/>
                                 <StackPanel Spacing="10" Margin="0,8,0,0">
                                     <TextBlock Text="Agent-Up Desktop writes this file for you, then checks it before continuing."
-                                               Foreground="#9eb6ad"
+                                               Foreground="#acd0bd"
                                                FontSize="12"
                                                TextWrapping="Wrap"/>
                                     <Button x:Name="TutorialCreateAgentUpJsonButton"
@@ -942,7 +942,7 @@
                                             Spacing="10"
                                             Margin="0,8,0,0">
                                     <TextBlock Text="Now check that agent-up.json exists and can be parsed."
-                                               Foreground="#9eb6ad"
+                                               Foreground="#acd0bd"
                                                FontSize="12"
                                                TextWrapping="Wrap"/>
                                     <Button x:Name="TutorialCheckAgentUpJsonButton"
@@ -961,7 +961,7 @@
                                            FontSize="22"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="15">
                                     <Run Text="Starting the workspace registers it with the "/>
                                     <Run Text="Agent-Up Server" FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -980,7 +980,7 @@
                                             Spacing="10"
                                             Margin="0,8,0,0">
                                     <TextBlock Text="Command output"
-                                               Foreground="#9eb6ad"
+                                               Foreground="#acd0bd"
                                                FontSize="12"
                                                FontWeight="Bold"/>
                                     <TextBox Text="{Binding Tutorial.CommandOutput}"
@@ -990,16 +990,16 @@
                                              FontFamily="Consolas,Courier New,monospace"
                                              FontSize="12"
                                              MinHeight="120"
-                                             Background="#07110f"
-                                             BorderBrush="#23483f"
-                                             Foreground="#d8e7e1"
+                                             Background="#020806"
+                                             BorderBrush="#11683f"
+                                             Foreground="#dcf3e7"
                                              Padding="12"/>
                                 </StackPanel>
                                 <StackPanel IsVisible="{Binding Tutorial.ShowWorkspaceCheckSection}"
                                             Spacing="10"
                                             Margin="0,8,0,0">
                                     <TextBlock Text="The command succeeded. Now ask the Server whether it sees React, Express, and Postgres."
-                                               Foreground="#9eb6ad"
+                                               Foreground="#acd0bd"
                                                FontSize="14"
                                                TextWrapping="Wrap"/>
                                     <Button x:Name="TutorialCheckWorkspaceButton"
@@ -1018,7 +1018,7 @@
                                            FontSize="22"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="15">
                                     <Run Text="Now Agent-Up copies "/>
                                     <Run Text="example-agent1 to example-agent2" FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -1035,7 +1035,7 @@
                                             Spacing="10"
                                             Margin="0,8,0,0">
                                     <TextBlock Text="The duplicate has started. Check that both workspaces are registered and every allocated port is unique."
-                                               Foreground="#9eb6ad"
+                                               Foreground="#acd0bd"
                                                FontSize="14"
                                                TextWrapping="Wrap"/>
                                     <Button x:Name="TutorialCheckDuplicateButton"
@@ -1054,21 +1054,21 @@
                                            FontSize="24"
                                            FontWeight="Bold"/>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="16">
                                     <Run Text="Agent-Up created "/>
                                     <Run Text="two isolated workspaces" FontWeight="Bold" Foreground="#f5fbf7"/>
                                     <Run Text=" from the same JavaScript project, started the same React, Express, and Postgres components in both, and let the Server allocate ports without collisions."/>
                                 </TextBlock>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="16">
                                     <Run Text="The second workspace also has "/>
                                     <Run Text="different seeded product data" FontWeight="Bold" Foreground="#f5fbf7"/>
                                     <Run Text=", so the React dashboard table makes it obvious which isolated environment you are viewing."/>
                                 </TextBlock>
                                 <TextBlock TextWrapping="Wrap"
-                                           Foreground="#b7c8c0"
+                                           Foreground="#c6ddd2"
                                            FontSize="16">
                                     <Run Text="That matters because agents can now work in parallel on duplicate environments while sharing the same runtime rules: "/>
                                     <Run Text="workspace identity, process lifecycle, Docker, browser profiles, diagnostics, and ports all stay Server-owned." FontWeight="Bold" Foreground="#f5fbf7"/>
@@ -1076,14 +1076,14 @@
                             </StackPanel>
 
                             <Border IsVisible="{Binding Tutorial.StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                    Background="#07110f"
-                                    BorderBrush="#23483f"
+                                    Background="#020806"
+                                    BorderBrush="#11683f"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="12">
                                 <TextBlock x:Name="TutorialStatusMessage"
                                            Text="{Binding Tutorial.StatusMessage}"
-                                           Foreground="#cde0d8"
+                                           Foreground="#d3eadf"
                                            FontSize="13"
                                            TextWrapping="Wrap"/>
                             </Border>
@@ -1095,7 +1095,7 @@
                           ColumnSpacing="10">
                         <TextBlock Grid.Column="0"
                                    Text="{Binding Tutorial.CurrentStep, StringFormat='Step {0} of 8'}"
-                                   Foreground="#70b099"
+                                   Foreground="#2bf27a"
                                    FontSize="12"
                                    FontWeight="Bold"
                                    VerticalAlignment="Center"/>
