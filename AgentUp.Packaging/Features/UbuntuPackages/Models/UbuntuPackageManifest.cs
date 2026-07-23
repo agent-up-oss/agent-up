@@ -52,7 +52,7 @@ public sealed record UbuntuPackageManifest(
              update-desktop-database /usr/share/applications 2>/dev/null || true
            fi
            if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
-             su "$SUDO_USER" -c "/opt/{PackageName}/installer/AgentUp.InstallerApp" 2>/dev/null || true
+             su "$SUDO_USER" -c "/opt/{PackageName}/installer/AgentUp.InstallerApp &" 2>/dev/null || true
            fi
            """ + Environment.NewLine;
 
