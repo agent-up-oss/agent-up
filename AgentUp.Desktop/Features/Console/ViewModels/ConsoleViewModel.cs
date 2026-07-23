@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Reactive.Linq;
-using AgentUp.Desktop.Features.Console.Providers;
+using AgentUp.Desktop.Features.Console.Controllers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Console.ViewModels;
@@ -11,7 +11,7 @@ public sealed class ConsoleViewModel : ReactiveObject
     internal const int DefaultDisplayLines = 2_000;
     internal const int MaxLines = 50_000;
 
-    private readonly ConsoleApiClient _client;
+    private readonly ConsoleController _console;
     private bool _isLoading;
     private bool _wasTruncated;
     private bool _hasHiddenLines;
@@ -45,9 +45,9 @@ public sealed class ConsoleViewModel : ReactiveObject
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ShowMoreCommand { get; }
 
-    public ConsoleViewModel(ConsoleApiClient client)
+    public ConsoleViewModel(ConsoleController console)
     {
-        _client = client;
+        _console = console;
         ShowMoreCommand = ReactiveCommand.Create(() => { ShowAllLines = true; });
     }
 
@@ -68,7 +68,7 @@ public sealed class ConsoleViewModel : ReactiveObject
         IsLoading = true;
         try
         {
-            var lines = await _client.GetOutputAsync(workspaceId, appName, ct);
+            var lines = await _console.GetOutputAsync(workspaceId, appName, ct);
             WasTruncated = lines.Count > MaxLines;
             Lines.Clear();
             foreach (var line in lines.TakeLast(MaxLines))

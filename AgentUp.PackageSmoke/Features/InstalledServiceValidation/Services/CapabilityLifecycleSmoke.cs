@@ -1,8 +1,10 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 
@@ -14,12 +16,14 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
     private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
 
     private readonly ICommandRunner _commands;
+    private readonly CapabilityWorkspaceProvider _workspace;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
 
-    public CapabilityLifecycleSmoke(ICommandRunner commands, HttpClient? http = null)
+    public CapabilityLifecycleSmoke(ICommandRunner commands, CapabilityWorkspaceProvider workspace, HttpClient? http = null)
     {
         _commands = commands;
+        _workspace = workspace;
         _http = http ?? new HttpClient();
         _ownsHttp = http is null;
     }
@@ -31,13 +35,13 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var repo = Path.Join(workDirectory, "capability-workspace");
-        PrepareWorkspace(repo);
+        var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
+        var repo = _workspace.Prepare(safeWorkDirectory);
         await GitCommitConfigAsync(repo, assert, cancellationToken);
 
         var environment = MergeEnvironment(context.CliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
         var start = await _commands.RunAsync(CliCommand(context.CliCommand, "start", repo, environment), cancellationToken);
-        await File.WriteAllTextAsync(Path.Join(workDirectory, "capability-cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
+        await File.WriteAllTextAsync(SafeSmokePaths.Child(safeWorkDirectory, "capability-cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains($"Started workspace \"{WorkspaceName}\"", StringComparison.Ordinal))
         {
             assert.Error("capability.cli.start", $"Capability workspace start failed: {start.Stderr}{start.Stdout}");
@@ -69,57 +73,6 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         await StopWorkspaceAsync(serverUrl, workspace.Value.Id, assert, cancellationToken);
         await AssertStateAsync(serverUrl, workspace.Value.Id, DotnetAppName, "Stopped", assert, cancellationToken);
         await AssertStateAsync(serverUrl, workspace.Value.Id, DockerAppName, "Stopped", assert, cancellationToken);
-    }
-
-    private static void PrepareWorkspace(string repo)
-    {
-        Directory.CreateDirectory(Path.Join(repo, "SmokeDotnet"));
-        File.WriteAllText(Path.Join(repo, "SmokeDotnet", "SmokeDotnet.csproj"), """
-            <Project Sdk="Microsoft.NET.Sdk.Web">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <Nullable>enable</Nullable>
-              </PropertyGroup>
-            </Project>
-            """);
-        File.WriteAllText(Path.Join(repo, "SmokeDotnet", "Program.cs"), """
-            var builder = WebApplication.CreateBuilder(args);
-            var app = builder.Build();
-            app.MapGet("/", () => "dotnet capability smoke");
-            var port = Environment.GetEnvironmentVariable("WEB_PORT") ?? "5000";
-            app.Run($"http://127.0.0.1:{port}");
-            """);
-        File.WriteAllText(Path.Join(repo, "agent-up.json"), $$"""
-            {
-              "name": "Capability Lifecycle Smoke Workspace",
-              "dotnet": [
-                {
-                  "name": "SmokeDotnet",
-                  "sdk": "10.0.x",
-                  "run": {
-                    "project": "SmokeDotnet/SmokeDotnet.csproj"
-                  },
-                  "ports": [{ "variable": "WEB_PORT", "defaultPort": 5000, "protocol": "http" }]
-                }
-              ],
-              "docker": [
-                {
-                  "name": "SmokeDocker",
-                  "image": "{{DockerSmokeImage()}}",
-                  "ports": [{ "variable": "DOCKER_WEB_PORT", "defaultPort": 80, "protocol": "http" }]
-                }
-              ]
-            }
-            """);
-    }
-
-    private static string DockerSmokeImage()
-    {
-        var image = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
-        if (!string.IsNullOrWhiteSpace(image))
-            return image;
-
-        return "nginx:alpine";
     }
 
     private async Task GitCommitConfigAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
@@ -259,16 +212,16 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
             ?
             [
                 (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q"], Environment: environment), "capability.git.init"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email ci@agent-up.local"], Environment: environment), "capability.git.email"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Agent-Up CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
                 (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json"], Environment: environment), "capability.git.add"),
                 (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
             ]
             :
             [
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q"], Environment: environment), "capability.git.init"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email ci@agent-up.local"], Environment: environment), "capability.git.email"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Agent-Up CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json"], Environment: environment), "capability.git.add"),
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
             ];
@@ -300,8 +253,6 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
 
     private static string Endpoint(string serverUrl, string path)
         => serverUrl.TrimEnd('/') + path;
-
-    private readonly record struct WorkspaceSnapshot(string Id, JsonElement Json);
 
     public void Dispose()
     {

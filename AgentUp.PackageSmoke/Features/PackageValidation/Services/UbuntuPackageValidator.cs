@@ -1,13 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Features.Installation.Factories;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
@@ -23,9 +17,9 @@ public sealed class UbuntuPackageValidator : IPackageValidator
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        var archive = Path.Join(request.ArtifactDirectory, $"agent-up-ubuntu-{request.RuntimeId}.deb");
-        var root = Path.Join(request.WorkDirectory, "root");
-        var control = Path.Join(request.WorkDirectory, "control");
+        var archive = SafeSmokePaths.Child(request.ArtifactDirectory, $"agent-up-ubuntu-{request.RuntimeId}.deb");
+        var root = SafeSmokePaths.Child(request.WorkDirectory, "root");
+        var control = SafeSmokePaths.Child(request.WorkDirectory, "control");
         assert.FileExists(archive, "ubuntu.artifact");
 
         if (!File.Exists(archive))
@@ -40,23 +34,25 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         if (!controlExtract.Succeeded)
             assert.Error("ubuntu.control", controlExtract.ErrorMessage!);
 
-        var desktop = Path.Join(root, "opt", "agent-up", "desktop", "AgentUp.Desktop");
-        var server = Path.Join(root, "opt", "agent-up", "server", "AgentUp.Server");
-        var cli = Path.Join(root, "opt", "agent-up", "cli", "AgentUp.CLI");
+        var desktop = SafeSmokePaths.Child(root, "opt", "agent-up", "desktop", "AgentUp.Desktop");
+        var server = SafeSmokePaths.Child(root, "opt", "agent-up", "server", "AgentUp.Server");
+        var cli = SafeSmokePaths.Child(root, "opt", "agent-up", "cli", "AgentUp.CLI");
         assert.ExecutableExists(desktop, "ubuntu.desktop");
         assert.ExecutableExists(server, "ubuntu.server");
         assert.ExecutableExists(cli, "ubuntu.cli");
-        assert.SymlinkExists(Path.Join(root, "usr", "bin", "agent-up"), "ubuntu.cli.path");
-        assert.FileExists(Path.Join(root, "usr", "share", "applications", "agent-up.desktop"), "ubuntu.desktop.entry");
-        assert.FileExists(Path.Join(root, "usr", "share", "pixmaps", "agent-up.png"), "ubuntu.icon");
-        assert.Contains(Path.Join(root, "etc", "systemd", "system", "agent-up-server.service"), "ExecStart=/opt/agent-up/server/AgentUp.Server", "ubuntu.service.exec");
-        assert.Contains(Path.Join(root, "etc", "systemd", "system", "agent-up-server.service"), "RestartSec=5", "ubuntu.service.restart");
-        assert.Contains(Path.Join(root, "etc", "systemd", "system", "agent-up-server.service"), "DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up", "ubuntu.service.bundle.extract");
-        assert.Contains(Path.Join(root, "etc", "systemd", "system", "agent-up-server.service"), "CacheDirectory=agent-up", "ubuntu.service.cache");
-        assert.Contains(Path.Join(root, "usr", "share", "applications", "agent-up.desktop"), "Exec=/opt/agent-up/desktop/AgentUp.Desktop", "ubuntu.desktop.exec");
-        assert.Contains(Path.Join(root, "usr", "share", "applications", "agent-up.desktop"), "Icon=agent-up", "ubuntu.desktop.icon");
-        assert.Contains(Path.Join(control, "postinst"), "systemctl enable --now agent-up-server.service", "ubuntu.postinst");
-        assert.FileExists(Path.Join(control, "prerm"), "ubuntu.prerm");
+        var desktopEntry = SafeSmokePaths.Child(root, "usr", "share", "applications", "agent-up.desktop");
+        var serviceUnit = SafeSmokePaths.Child(root, "etc", "systemd", "system", "agent-up-server.service");
+        assert.SymlinkExists(SafeSmokePaths.Child(root, "usr", "bin", "agent-up"), "ubuntu.cli.path");
+        assert.FileExists(desktopEntry, "ubuntu.desktop.entry");
+        assert.FileExists(SafeSmokePaths.Child(root, "usr", "share", "pixmaps", "agent-up.png"), "ubuntu.icon");
+        assert.Contains(serviceUnit, "ExecStart=/opt/agent-up/server/AgentUp.Server", "ubuntu.service.exec");
+        assert.Contains(serviceUnit, "RestartSec=5", "ubuntu.service.restart");
+        assert.Contains(serviceUnit, "DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up", "ubuntu.service.bundle.extract");
+        assert.Contains(serviceUnit, "CacheDirectory=agent-up", "ubuntu.service.cache");
+        assert.Contains(desktopEntry, "Exec=/opt/agent-up/desktop/AgentUp.Desktop", "ubuntu.desktop.exec");
+        assert.Contains(desktopEntry, "Icon=agent-up", "ubuntu.desktop.icon");
+        assert.Contains(SafeSmokePaths.Child(control, "postinst"), "systemctl enable --now agent-up-server.service", "ubuntu.postinst");
+        assert.FileExists(SafeSmokePaths.Child(control, "prerm"), "ubuntu.prerm");
 
         return new PackageValidationResult(server, cli, assert.Findings);
     }

@@ -1,15 +1,8 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Features.Installation.Factories;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Interfaces;
 
 namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 
 public interface IRuntimeSecurityChecks
 {
-    Task RunAsync(string serverUrl, FileAssertions assert, CancellationToken cancellationToken = default);
+    Task RunAsync(string serverUrl, IFindingSink findings, CancellationToken cancellationToken = default);
 }

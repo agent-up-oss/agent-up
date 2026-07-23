@@ -4,8 +4,12 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Ports.Services;
+using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -46,10 +50,18 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
+        builder.Services.AddSingleton<PortsController>();
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
+        builder.Services.AddSingleton<ProcessOutputService>();
+        builder.Services.AddSingleton<ProcessesController>();
+        builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<WorkspaceStateController>();
+        builder.Services.AddSingleton<WorkspaceLifecycleService>();
+        builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         _app = builder.Build();
@@ -210,17 +222,16 @@ public class WorkspacesHttpTests
     [Test]
     public async Task TutorialCleanup_RemovesWorkspace_WhenProcessKillFails()
     {
-        var registry = new WorkspaceRegistry(
-            new InMemoryWorkspaceRepository(),
-            new InMemoryPortAllocationService(),
-            new CapabilityReconciliationService([]));
+        var registry = ServerTestComposition.CreateRegistry();
         await registry.RegisterAsync(new RegisterWorkspaceRequest(
             "Normal",
             "/repos/app",
             "/repos/app",
             "main",
             ""));
-        var controller = new WorkspacesController(registry, new KillFailingWorkspaceProcessManager());
+        var processes = ServerTestComposition.CreateProcessesController(new KillFailingWorkspaceProcessManager());
+        var lifecycle = new WorkspaceLifecycleService(registry, processes);
+        var controller = new WorkspacesController(registry, lifecycle);
 
         await controller.CleanupTutorialWorkspaces();
 
@@ -297,10 +308,18 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
+        builder.Services.AddSingleton<PortsController>();
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, FailingWorkspaceProcessManager>();
+        builder.Services.AddSingleton<ProcessOutputService>();
+        builder.Services.AddSingleton<ProcessesController>();
+        builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<WorkspaceStateController>();
+        builder.Services.AddSingleton<WorkspaceLifecycleService>();
+        builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.None);
         var app = builder.Build();
         app.MapControllers();
@@ -315,7 +334,8 @@ public class WorkspacesHttpTests
         Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
 
         var body = await startResponse.Content.ReadAsStringAsync();
-        Assert.That(body, Does.Contain("No such file or directory"));
+        Assert.That(body, Does.Contain("Workspace could not be started."));
+        Assert.That(body, Does.Not.Contain("No such file or directory"));
 
         var workspace = await client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}", JsonOptions);
         Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Failed));

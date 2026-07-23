@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using AgentUp.Server.Features.Applications.DTOs;
-using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +6,7 @@ namespace AgentUp.Server.Features.Workspaces.Controllers;
 
 [ApiController]
 [Route("api/workspaces")]
-public sealed class WorkspacesController(WorkspaceRegistry registry, IWorkspaceProcessManager processes) : ControllerBase
+public sealed class WorkspacesController(WorkspaceRegistry registry, WorkspaceLifecycleService lifecycle) : ControllerBase
 {
     [HttpGet]
     public IActionResult GetAll() => Ok(registry.GetAll());
@@ -30,80 +27,38 @@ public sealed class WorkspacesController(WorkspaceRegistry registry, IWorkspaceP
 
     [HttpPost("{id}/start")]
     public async Task<IActionResult> Start(string id)
-    {
-        var workspace = registry.GetById(id);
-        if (workspace is null) return NotFound();
-
-        await registry.UpdateStateAsync(id, WorkspaceState.Starting);
-        foreach (var app in workspace.Applications)
-            await registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
-        try
-        {
-            await registry.ReallocatePortsAsync(id);
-            await processes.LaunchAsync(workspace);
-            await registry.UpdateStateAsync(id, WorkspaceState.Running);
-            foreach (var app in workspace.Applications)
-                await registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
-            return NoContent();
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
-        {
-            await registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return Problem(detail: ex.Message, statusCode: 500);
-        }
-    }
+        => LifecycleResult(this, await lifecycle.StartAsync(id));
 
     [HttpPost("{id}/stop")]
     public async Task<IActionResult> Stop(string id)
-    {
-        var workspace = registry.GetById(id);
-        if (workspace is null) return NotFound();
-
-        await registry.UpdateStateAsync(id, WorkspaceState.Stopping);
-        foreach (var app in workspace.Applications)
-            await registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopping);
-        await processes.KillAsync(id);
-        await registry.UpdateStateAsync(id, WorkspaceState.Stopped);
-        foreach (var app in workspace.Applications)
-            await registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopped);
-        return NoContent();
-    }
+        => FoundResult(this, await lifecycle.StopAsync(id));
 
     [HttpPost("tutorial/cleanup")]
     public async Task<IActionResult> CleanupTutorialWorkspaces()
     {
-        var workspaces = registry.GetAll().ToList();
-
-        foreach (var workspace in workspaces)
-        {
-            try
-            {
-                await processes.KillAsync(workspace.Id);
-            }
-            catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
-            {
-                // Cleanup is best-effort. Stale tutorial registry entries should still be removed
-                // even when their old process tree no longer exists or cannot be stopped.
-                Trace.TraceWarning(ex.Message);
-            }
-
-            await registry.RemoveAsync(workspace.Id);
-        }
-
-        return Ok(new { removed = workspaces.Count });
+        var removed = await lifecycle.CleanupTutorialWorkspacesAsync();
+        return Ok(new { removed });
     }
 
     [HttpPatch("{id}/state")]
     public async Task<IActionResult> UpdateState(string id, UpdateWorkspaceStateRequest request)
-    {
-        var updated = await registry.UpdateStateAsync(id, request.State);
-        return updated ? NoContent() : NotFound();
-    }
+        => BoolResult(this, await registry.UpdateStateAsync(id, request.State));
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
+        => BoolResult(this, await registry.RemoveAsync(id));
+
+    private static IActionResult LifecycleResult(ControllerBase controller, WorkspaceLifecycleResult result)
     {
-        var removed = await registry.RemoveAsync(id);
-        return removed ? NoContent() : NotFound();
+        if (!result.Found)
+            return controller.NotFound();
+
+        return result.Succeeded ? controller.NoContent() : controller.Problem(detail: result.Error, statusCode: 500);
     }
+
+    private static IActionResult FoundResult(ControllerBase controller, WorkspaceLifecycleResult result)
+        => result.Found ? controller.NoContent() : controller.NotFound();
+
+    private static IActionResult BoolResult(ControllerBase controller, bool found)
+        => found ? controller.NoContent() : controller.NotFound();
 }

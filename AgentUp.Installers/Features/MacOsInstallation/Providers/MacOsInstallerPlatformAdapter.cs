@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
@@ -104,7 +105,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         var plists = new MacOsInstallerPlistGenerator(manifest);
 
         var paths = MacOsInstallerPaths.From(session.Manifest);
-        await _commands.RunAsync("launchctl", $"bootout system {paths.LaunchDaemonPath}", cancellationToken);
+        await _commands.RunAsync("launchctl", ["bootout", "system", paths.LaunchDaemonPath], cancellationToken);
         yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
         yield return progress.Complete(InstallOperationKind.StagePayload);
 
@@ -174,8 +175,8 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     {
         var paths = MacOsInstallerPaths.From(session.Manifest);
         var launchDaemonLabel = $"dev.{session.Manifest.Slug}.server";
-        var service = await _commands.RunAsync("launchctl", $"print system/{launchDaemonLabel}", cancellationToken);
-        var cli = await _commands.RunAsync("bash", $"-lc \"command -v \\\"$1\\\"\" -- {session.Manifest.CliCommandName}", cancellationToken);
+        var service = await _commands.RunAsync("launchctl", ["print", $"system/{launchDaemonLabel}"], cancellationToken);
+        var cli = await _commands.RunAsync("bash", ["-lc", "command -v \"$1\"", "--", session.Manifest.CliCommandName], cancellationToken);
 
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,
@@ -284,7 +285,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             {
                 // Pass the path unquoted — Process.Start with UseShellExecute=false does not
                 // process shell quotes in Arguments, so single-quoting is passed literally.
-                await _requiredCommands.RunAsync("bash", tmpFile, cancellationToken);
+                await _requiredCommands.RunAsync("bash", [tmpFile], cancellationToken);
             }
             else
             {
@@ -295,7 +296,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
                     await File.WriteAllTextAsync(appleScriptPath,
                         $"do shell script \"{tmpFile}\" with administrator privileges",
                         cancellationToken);
-                    await _requiredCommands.RunAsync("osascript", appleScriptPath, cancellationToken);
+                    await _requiredCommands.RunAsync("osascript", [appleScriptPath], cancellationToken);
                 }
                 finally
                 {

@@ -6,24 +6,26 @@ namespace AgentUp.CLI.Features.Workspaces.Factories;
 
 public static class CliRunnerFactory
 {
-    public static CliRunner Create(string serverUrl, string workingDirectory, TextWriter? output = null)
+    public static WorkspacesController Create(string serverUrl, string workingDirectory, TextWriter? output = null)
     {
         var writer = output ?? Console.Out;
         var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
         var client = new WorkspaceApiClient(http);
         var resolver = new CurrentWorkspaceResolver(client, workingDirectory);
+        var service = new WorkspaceCommandService(
+            client,
+            new WorkspaceConfigurationProvider(),
+            new WorkspaceIdentityProvider(),
+            resolver,
+            workingDirectory);
+        var commandOutput = new WorkspaceCommandOutputService(writer);
 
-        return new CliRunner(
+        return new WorkspacesController(
             serverUrl,
             writer,
-            new StartCommand(
-                client,
-                new WorkspaceConfigurationProvider(),
-                new WorkspaceIdentityProvider(),
-                workingDirectory,
-                writer),
-            new StopCommand(client, resolver, writer),
-            new ListCommand(client, writer),
-            new StatusCommand(resolver, writer));
+            new StartCommand(service, commandOutput),
+            new StopCommand(service, writer),
+            new ListCommand(service, commandOutput),
+            new StatusCommand(service, commandOutput));
     }
 }

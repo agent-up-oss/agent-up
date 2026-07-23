@@ -1,39 +1,29 @@
 using System.Diagnostics;
 using System.Text.Json;
+using AgentUp.Desktop.Features.FirstRun.DTOs;
+using AgentUp.Desktop.Features.FirstRun.Interfaces;
+using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
-using AgentUp.Desktop.Features.Workspaces.Providers;
 
 namespace AgentUp.Desktop.Features.FirstRun.Services;
 
 public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 {
     private static readonly string[] RequiredApplicationNames = ["React SPA", "Express API", "Postgres"];
-    private readonly WorkspaceApiClient _workspaceClient;
-    private readonly ProcessRunner _runProcessAsync;
+    private readonly WorkspacesController _workspaces;
+    private readonly IFirstRunProcessProvider _processes;
 
-    public FirstRunTutorialChecks(WorkspaceApiClient workspaceClient)
-        : this(workspaceClient, RunProcessAsync)
+    public FirstRunTutorialChecks(WorkspacesController workspaces, IFirstRunProcessProvider processes)
     {
+        _workspaces = workspaces;
+        _processes = processes;
     }
-
-    internal FirstRunTutorialChecks(WorkspaceApiClient workspaceClient, ProcessRunner runProcessAsync)
-    {
-        _workspaceClient = workspaceClient;
-        _runProcessAsync = runProcessAsync;
-    }
-
-    internal delegate Task<(int ExitCode, string Stdout, string Stderr)> ProcessRunner(
-        string fileName,
-        string arguments,
-        TimeSpan timeout,
-        CancellationToken cancellationToken,
-        string? workingDirectory = null);
 
     public async Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            await _workspaceClient.CleanupTutorialWorkspacesAsync(cancellationToken);
+            await _workspaces.CleanupTutorialWorkspacesAsync(cancellationToken);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -46,7 +36,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
     {
         try
         {
-            var docker = await _runProcessAsync(
+            var docker = await _processes.RunAsync(
                 "docker",
                 "--version",
                 TimeSpan.FromSeconds(5),
@@ -56,7 +46,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
                     ? "Docker was found but did not report a version. Start Docker Desktop or the Docker daemon, then try again."
                     : docker.Stderr);
 
-            var engine = await _runProcessAsync(
+            var engine = await _processes.RunAsync(
                 "docker",
                 "info",
                 TimeSpan.FromSeconds(8),
@@ -85,26 +75,26 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
     {
         try
         {
-            var (exitCode, output, error) = await _runProcessAsync(
+            var result = await _processes.RunAsync(
                 "node",
                 "--version",
                 TimeSpan.FromSeconds(5),
                 cancellationToken);
-            if (exitCode != 0)
-                return FirstRunCheckResult.Failure(string.IsNullOrWhiteSpace(error)
+            if (result.ExitCode != 0)
+                return FirstRunCheckResult.Failure(string.IsNullOrWhiteSpace(result.Stderr)
                     ? "Node is not responding. Install Node.js 20 or newer, then restart Agent-Up Desktop."
-                    : error);
+                    : result.Stderr);
 
-            var versionText = output.Trim().TrimStart('v', 'V');
+            var versionText = result.Stdout.Trim().TrimStart('v', 'V');
             var majorText = versionText.Split('.', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
             if (!int.TryParse(majorText, out var major) || major < 20)
-                return FirstRunCheckResult.Failure($"Node {output.Trim()} was found. Install Node.js 20 or newer, then restart Agent-Up Desktop.");
+                return FirstRunCheckResult.Failure($"Node {result.Stdout.Trim()} was found. Install Node.js 20 or newer, then restart Agent-Up Desktop.");
 
-            var npm = await _runProcessAsync("npm", "--version", TimeSpan.FromSeconds(5), cancellationToken);
+            var npm = await _processes.RunAsync("npm", "--version", TimeSpan.FromSeconds(5), cancellationToken);
             if (npm.ExitCode != 0)
                 return FirstRunCheckResult.Failure("Node was found, but npm is not available in this desktop session. Restart Agent-Up Desktop and try again.");
 
-            return FirstRunCheckResult.Success($"Node {output.Trim()} and npm {npm.Stdout.Trim()} are available.");
+            return FirstRunCheckResult.Success($"Node {result.Stdout.Trim()} and npm {npm.Stdout.Trim()} are available.");
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
         {
@@ -183,7 +173,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         if (agentUpCommand is null)
             return FirstRunCheckResult.Failure("Agent-Up CLI was not found. Install `agent-up` or run from a checkout that contains AgentUp.CLI.csproj.");
 
-        var result = await _runProcessAsync(
+        var result = await _processes.RunAsync(
             agentUpCommand.FileName,
             $"{agentUpCommand.ArgumentsPrefix} start".Trim(),
             TimeSpan.FromSeconds(30),
@@ -252,7 +242,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
             if (agentUpCommand is null)
                 return FirstRunCheckResult.Failure("Copied example-agent2, but Agent-Up CLI was not found.");
 
-            var result = await _runProcessAsync(
+            var result = await _processes.RunAsync(
                 agentUpCommand.FileName,
                 $"{agentUpCommand.ArgumentsPrefix} start".Trim(),
                 TimeSpan.FromSeconds(30),
@@ -364,7 +354,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
     {
         try
         {
-            return (await _workspaceClient.ListAsync(cancellationToken), null);
+            return ((await _workspaces.ListAsync(cancellationToken)).ToList(), null);
         }
         catch (HttpRequestException ex)
         {
@@ -429,38 +419,6 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         }
     }
 
-    private static async Task<(int ExitCode, string Stdout, string Stderr)> RunProcessAsync(
-        string fileName,
-        string arguments,
-        TimeSpan timeout,
-        CancellationToken cancellationToken,
-        string? workingDirectory = null)
-    {
-        var startInfo = new ProcessStartInfo(fileName, arguments)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory
-        };
-
-        using var process = Process.Start(startInfo);
-        if (process is null)
-            throw new InvalidOperationException($"{fileName} could not be started.");
-
-        var exited = await WaitForExitAsync(process, timeout, cancellationToken);
-        if (!exited)
-        {
-            try { process.Kill(entireProcessTree: true); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { Trace.TraceWarning(ex.Message); }
-            return (-1, "", $"{fileName} did not respond in time.");
-        }
-
-        var output = (await process.StandardOutput.ReadToEndAsync(cancellationToken)).Trim();
-        var error = (await process.StandardError.ReadToEndAsync(cancellationToken)).Trim();
-        return (process.ExitCode, output, error);
-    }
-
     private async Task<FirstRunCheckResult> CheckAgentUpCommandAsync(CancellationToken cancellationToken)
     {
         var command = await ResolveAgentUpCommandAsync(cancellationToken);
@@ -476,7 +434,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
     {
         try
         {
-            var installed = await _runProcessAsync("agent-up", "--help", TimeSpan.FromSeconds(5), cancellationToken);
+            var installed = await _processes.RunAsync("agent-up", "--help", TimeSpan.FromSeconds(5), cancellationToken);
             if (installed.ExitCode == 0)
                 return new AgentUpCommand("agent-up", "", false);
         }
@@ -491,7 +449,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
         try
         {
-            var fallback = await _runProcessAsync("dotnet", $"run --project \"{cliProject}\" -- --help", TimeSpan.FromSeconds(15), cancellationToken);
+            var fallback = await _processes.RunAsync("dotnet", $"run --project \"{cliProject}\" -- --help", TimeSpan.FromSeconds(15), cancellationToken);
             return fallback.ExitCode == 0
                 ? new AgentUpCommand("dotnet", $"run --project \"{cliProject}\" --", true)
                 : null;
@@ -520,7 +478,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         return null;
     }
 
-    private static string FormatCommandOutput(string summary, (int ExitCode, string Stdout, string Stderr) result)
+    private static string FormatCommandOutput(string summary, FirstRunProcessResult result)
     {
         var parts = new List<string>
         {
@@ -536,15 +494,6 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
         return string.Join(Environment.NewLine + Environment.NewLine, parts);
     }
-
-    private static async Task<bool> WaitForExitAsync(Process process, TimeSpan timeout, CancellationToken cancellationToken)
-    {
-        var exitTask = process.WaitForExitAsync(cancellationToken);
-        var delayTask = Task.Delay(timeout, cancellationToken);
-        return await Task.WhenAny(exitTask, delayTask) == exitTask;
-    }
-
-    private sealed record AgentUpCommand(string FileName, string ArgumentsPrefix, bool IsFallback);
 
     private const string AgentUpJson = """
         {

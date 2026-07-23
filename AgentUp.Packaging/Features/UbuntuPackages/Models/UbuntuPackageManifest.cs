@@ -1,8 +1,6 @@
 using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
 using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Packaging.Shared.Providers;
-using AgentUp.Installers.Features.UbuntuInstallation.Models;
-using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 
 namespace AgentUp.Packaging.Features.UbuntuPackages.Models;
@@ -20,24 +18,25 @@ public sealed record UbuntuPackageManifest(
     string ApplicationName)
 {
     public static UbuntuPackageManifest From(PackageRequest request)
-        => From(request, ProductManifest.AgentUp());
+        => From(request, request.ProductManifest);
 
-    public static UbuntuPackageManifest From(PackageRequest request, ProductManifest product)
+    public static UbuntuPackageManifest From(PackageRequest request, PackageProductManifest product)
     {
-        var installerManifest = UbuntuInstallerManifest.ForProduct(product);
-        PackagePathValidator.RequireSafePathComponent(installerManifest.PackageName, nameof(PackageName));
-        var paths = UbuntuInstallerPaths.ForProduct(installerManifest);
+        PackageProductManifest.Validate(product);
+        var packageName = PackagePathValidator.RequireSafePathComponent(product.Slug, nameof(PackageName));
+        var serviceName = $"{packageName}-server.service";
+        var rootDirectory = $"/opt/{packageName}";
         return new UbuntuPackageManifest(
-            PackageName: installerManifest.PackageName,
+            PackageName: packageName,
             Version: request.NormalizedVersion,
             Architecture: "amd64",
             Maintainer: $"{product.ProductName} <ci@{product.Slug}.local>",
             Description: $"Local {product.ProductName} desktop, CLI, and server service.",
-            ServiceName: installerManifest.ServiceUnitName,
-            CliSymlinkTarget: paths.CliExecutable,
-            DesktopEntryPath: paths.DesktopEntryPath,
-            IconPath: paths.IconPath,
-            ApplicationName: installerManifest.DesktopApplicationName);
+            ServiceName: serviceName,
+            CliSymlinkTarget: Path.Join(rootDirectory, "cli", "AgentUp.CLI"),
+            DesktopEntryPath: $"/usr/share/applications/{packageName}.desktop",
+            IconPath: $"/usr/share/pixmaps/{packageName}.png",
+            ApplicationName: product.ProductName);
     }
 
     public string ControlFileText()

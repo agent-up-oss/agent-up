@@ -346,9 +346,7 @@ Use `Models/` for data definitions and pure internal representations that stay i
 
 Provider interfaces are justified when they hide low-level providers from services, are faked by tests, or select runtime adapters. A service depending on `IUbuntuPackageTool` is acceptable; a service building `new CommandSpec("dpkg-deb", ...)` is not. A controller or service parsing raw `string[] args` is not acceptable; use a parser provider that returns a DTO/result.
 
-Slices must not reach directly into another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, or `Factories/`. Cross-slice calls go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs/`. If a low-level abstraction is genuinely shared by multiple slices, place it in a project-level shared folder instead of hiding it inside one feature slice.
-
-Read-only cross-slice access is allowed when necessary through a narrow interface. For example, browser automation may need read-only workspace state, but browser automation should not directly mutate workspace registry data.
+Slices must not reach directly into another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, `Factories/`, `Tools/`, `Views/`, or `ViewModels/`. Cross-slice calls go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs/`. If a low-level abstraction or read-only contract is genuinely shared by multiple slices, place it in a project-level `Shared/` folder instead of hiding it inside one feature slice.
 
 If a relationship starts to carry its own behavior or lifecycle, promote it to its own slice.
 
@@ -412,7 +410,7 @@ Every managed repository is described declaratively with `agent-up.json`.
 
 Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration.
 
-Legacy local application commands and legacy Docker `services` remain supported. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
+Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
 User docs:
 
@@ -500,7 +498,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Packaging` | `AgentUp.Packaging.Tests` |
 | `AgentUp.PackageSmoke` | `AgentUp.PackageSmoke.Tests` |
 
-`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, controller dependency construction rules, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. Keep architecture and generic source hygiene rules there instead of burying them in product E2E tests.
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. Keep architecture and generic source hygiene rules there instead of burying them in product E2E tests.
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
@@ -512,7 +510,7 @@ After every task that touches any production project, run the architecture tests
 dotnet test AgentUp.Architecture.Tests/AgentUp.Architecture.Tests.csproj
 ```
 
-All 8 architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
 
 Forbidden:
 
@@ -527,7 +525,9 @@ Forbidden:
 
 Tests should follow the same feature/slice layout as production code.
 
-Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe.
+Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind folders such as `Controller/` must stay under `Features/<Slice>/`.
+
+Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` should have matching `Controller/`, `Unit/`, and `Provider/` test-kind coverage. Existing gaps are tracked as explicit architecture-test debt; new or expanded slices must not add to that baseline.
 
 ```text
 AgentUp.Server.Tests/
@@ -540,20 +540,20 @@ AgentUp.Server.Tests/
       HTTP/
     Processes/
       Unit/
-      TerminalIntegration/
+      Provider/
     Browser/
-      Automation/
+      Provider/
       Unit/
     Mcp/
-      Tools/
-      Resources/
+      Controller/
+      Provider/
 
 AgentUp.Desktop.Tests/
   Features/
     Workspaces/
       Headless/     (Avalonia headless tests for sidebar/workspace-list UI)
       Unit/         (ViewModel unit tests, no UI)
-      TerminalIntegration/ (tests that inspect real project or filesystem state)
+      Provider/     (tests for low-level providers, filesystem/project-icon adapters, and similar boundaries)
     Applications/
       Headless/     (Avalonia headless tests for application panel UI)
     Console/
@@ -566,13 +566,14 @@ AgentUp.Desktop.Tests/
 Use layered tests with clear ownership:
 
 - Unit tests verify domain/runtime rules and edge cases.
+- Controller tests verify slice-external communication boundaries such as controllers, command parsers, CLI command surfaces, MCP tools, and MCP resources with repositories and providers mocked or faked.
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
-- MCP tests verify tool/resource contracts and safe errors.
 - Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
-- Terminal integration tests verify terminal-like workflows, generated directory state, process-style behavior, package layouts, installer smoke behavior, and post-run filesystem assertions.
+- Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them.
+- Headless tests verify Avalonia UI behavior without native display dependencies.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 
-`Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `TerminalIntegration/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
+`Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
 
 Avoid duplicate tests that assert the same rule through multiple layers.
 
@@ -590,7 +591,7 @@ Read: `docs/user-docs/workspace.md`.
 
 Agent-Up uses declarative repository configuration through `agent-up.json`. Applications declare launch commands, port environment variables, browser paths, and Docker setup without source-code integration.
 
-Capability sections such as `dotnet` and `docker` are the preferred shape for ecosystem-aware requirements. Capability adapters discover system and Agent-Up-managed versions, reconcile declared requirements, return structured mismatch status, and produce Server-owned launch plans. The legacy `applications` list remains supported for opaque shell commands, and legacy Docker `services` remain supported for compatibility.
+Capability sections such as `dotnet` and `docker` are the preferred shape for ecosystem-aware requirements. Capability adapters discover system and Agent-Up-managed versions, reconcile declared requirements, return structured mismatch status, and produce Server-owned launch plans. The legacy `applications` list remains supported for executable-plus-arguments commands, and legacy Docker `services` remain supported for compatibility.
 
 Read: `docs/user-docs/configuration.md` and `docs/user-docs/agent-up-json.md`.
 
@@ -660,7 +661,7 @@ Packaging request/product DTOs belong to `AgentUp.Packaging`; packaging code may
 
 All `AgentUp.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative and must remain under the repository root; prebuilt payload roots may be absolute CI-provided paths or repository-relative paths normalized under the repository root.
 
-All `AgentUp.PackageSmoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, installed CLIs, Git, and capability-backed sample app lifecycle commands, but execution must choose from allowlisted command names before `ProcessStartInfo` is created. Artifact paths, installed executable paths, working directories, arguments, and environment keys stay data and must be validated before use.
+All `AgentUp.PackageSmoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, installed CLIs, Git, and capability-backed sample app lifecycle commands, but execution must choose from allowlisted command names before `ProcessStartInfo` is created. Artifact paths, installed executable paths, working directories, arguments, product metadata, and environment keys stay data and must be validated before use.
 
 macOS `.pkg` artifacts install only `Agent-Up Installer.app`. The installer app owns the dashboard install and maintenance flow and contains a bundled offline payload with Desktop, Server, and CLI bits; it may also resolve an online latest payload when that capability is implemented. Desktop, Server, CLI, launchd registration, symlinks, validation, and uninstall behavior must stay in the InstallerApp/macOS adapter path, not in direct macOS package components. macOS installed-service smoke is skipped until InstallerApp-driven service installation is enabled in CI after package installation.
 

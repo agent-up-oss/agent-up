@@ -1,3 +1,4 @@
+using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
@@ -178,7 +179,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         {
             await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceCreateArguments(manifest, _options.Paths), cancellationToken);
             await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceFailureArguments(manifest), cancellationToken);
-            await _requiredCommands.RunAsync("sc.exe", $"start {manifest.ServiceName}", cancellationToken);
+            await _requiredCommands.RunAsync("sc.exe", ["start", manifest.ServiceName], cancellationToken);
             yield return progress.Complete(InstallOperationKind.RegisterService);
         }
 
@@ -210,8 +211,11 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         CancellationToken cancellationToken = default)
     {
         var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
-        var service = await _commands.RunAsync("sc.exe", $"query {manifest.ServiceName}", cancellationToken);
-        var cli = await _commands.RunAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -Command \"{WindowsInstallerCommands.FreshShellCliLookupPowerShell(manifest.CliCommandName)}\"", cancellationToken);
+        var service = await _commands.RunAsync("sc.exe", ["query", manifest.ServiceName], cancellationToken);
+        var cli = await _commands.RunAsync(
+            "powershell.exe",
+            ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", WindowsInstallerCommands.FreshShellCliLookupPowerShell(manifest.CliCommandName)],
+            cancellationToken);
 
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,

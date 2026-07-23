@@ -174,11 +174,4 @@ public sealed class GitWorkspaceIdentityProvider : IWorkspaceIdentityProvider
         return null;
     }
 
-    private sealed record GitRepository(
-        string WorktreeRoot,
-        string GitDirectory,
-        string CommonDirectory,
-        string RepositoryPath);
-
-    private sealed record GitHead(string Branch, string Commit);
 }

@@ -2,9 +2,9 @@ using System.ComponentModel;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Mcp.DTOs;
 using AgentUp.Server.Features.Mcp.Interfaces;
-using AgentUp.Server.Features.Processes.Services;
+using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Features.Workspaces.Services;
 
 namespace AgentUp.Server.Features.Mcp.Services;
 
@@ -13,18 +13,21 @@ public sealed class McpWorkspaceService
     private const string MissingConfigurationGuidance =
         "agent-up.json was not found. Inspect docs/user-docs/agent-up-json.md, search the repository for an existing agent-up.json, or ask the user before creating one.";
 
-    private readonly WorkspaceRegistry _registry;
-    private readonly IWorkspaceProcessManager _processes;
+    private readonly WorkspaceQueryController _workspaces;
+    private readonly WorkspaceStateController _states;
+    private readonly ProcessesController _processes;
     private readonly IAgentUpConfigurationProvider _configuration;
     private readonly IWorkspaceIdentityProvider _identity;
 
     public McpWorkspaceService(
-        WorkspaceRegistry registry,
-        IWorkspaceProcessManager processes,
+        WorkspaceQueryController workspaces,
+        WorkspaceStateController states,
+        ProcessesController processes,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
     {
-        _registry = registry;
+        _workspaces = workspaces;
+        _states = states;
         _processes = processes;
         _configuration = configuration;
         _identity = identity;
@@ -69,7 +72,7 @@ public sealed class McpWorkspaceService
             return new McpToolResult(false, MissingConfigurationGuidance);
 
         var identity = await _identity.ReadAsync(worktreePath, cancellationToken);
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest(
+        var workspace = await _workspaces.RegisterAsync(new RegisterWorkspaceRequest(
             DisplayName: config.Name,
             RepositoryPath: identity.RepositoryPath,
             WorktreePath: worktreePath,
@@ -83,7 +86,7 @@ public sealed class McpWorkspaceService
         var startResult = await StartRegisteredAsync(workspace.Id);
         return startResult with
         {
-            Data = _registry.GetById(workspace.Id)
+            Data = _workspaces.GetById(workspace.Id)
         };
     }
 
@@ -93,13 +96,13 @@ public sealed class McpWorkspaceService
         if (workspace is null)
             return new McpToolResult(false, "Workspace not found.");
 
-        await _registry.UpdateStateAsync(workspace.Id, WorkspaceState.Stopping);
+        await _states.UpdateWorkspaceStateAsync(workspace.Id, WorkspaceState.Stopping);
         foreach (var app in workspace.Applications)
-            await _registry.UpdateApplicationStateAsync(workspace.Id, app.Name, ApplicationState.Stopping);
+            await _states.UpdateApplicationStateAsync(workspace.Id, app.Name, ApplicationState.Stopping);
 
         try
         {
-            await _processes.KillAsync(workspace.Id);
+            await _processes.KillWorkspaceAsync(workspace.Id);
         }
         catch (InvalidOperationException ex)
         {
@@ -110,17 +113,17 @@ public sealed class McpWorkspaceService
             return await CreateWorkspaceOperationFailureAsync(workspace.Id, ex);
         }
 
-        await _registry.UpdateStateAsync(workspace.Id, WorkspaceState.Stopped);
+        await _states.UpdateWorkspaceStateAsync(workspace.Id, WorkspaceState.Stopped);
         foreach (var app in workspace.Applications)
-            await _registry.UpdateApplicationStateAsync(workspace.Id, app.Name, ApplicationState.Stopped);
+            await _states.UpdateApplicationStateAsync(workspace.Id, app.Name, ApplicationState.Stopped);
 
-        return new McpToolResult(true, $"Stopped workspace \"{workspace.DisplayName}\".", _registry.GetById(workspace.Id));
+        return new McpToolResult(true, $"Stopped workspace \"{workspace.DisplayName}\".", _workspaces.GetById(workspace.Id));
     }
 
     public McpToolResult GetStatus(string? id, string? worktreePath)
     {
         if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(true, "Returned all workspaces.", _registry.GetAll());
+            return new McpToolResult(true, "Returned all workspaces.", _workspaces.GetAll());
 
         var workspace = ResolveWorkspace(id, worktreePath);
         return workspace is null
@@ -128,27 +131,27 @@ public sealed class McpWorkspaceService
             : new McpToolResult(true, "Returned workspace status.", workspace);
     }
 
-    public IReadOnlyList<Workspace> List() => _registry.GetAll();
+    public IReadOnlyList<Workspace> List() => _workspaces.GetAll();
 
-    public Workspace? GetById(string id) => _registry.GetById(id);
+    public Workspace? GetById(string id) => _workspaces.GetById(id);
 
     private async Task<McpToolResult> StartRegisteredAsync(string id)
     {
-        var workspace = _registry.GetById(id);
+        var workspace = _workspaces.GetById(id);
         if (workspace is null)
             return new McpToolResult(false, "Workspace not found.");
 
-        await _registry.UpdateStateAsync(id, WorkspaceState.Starting);
+        await _states.UpdateWorkspaceStateAsync(id, WorkspaceState.Starting);
         foreach (var app in workspace.Applications)
-            await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
+            await _states.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
 
         try
         {
-            await _registry.ReallocatePortsAsync(id);
-            await _processes.LaunchAsync(workspace);
-            await _registry.UpdateStateAsync(id, WorkspaceState.Running);
+            await _workspaces.ReallocatePortsAsync(id);
+            await _processes.LaunchWorkspaceAsync(workspace);
+            await _states.UpdateWorkspaceStateAsync(id, WorkspaceState.Running);
             foreach (var app in workspace.Applications)
-                await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
+                await _states.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
 
             return new McpToolResult(true, $"Started workspace \"{workspace.DisplayName}\".");
         }
@@ -171,19 +174,19 @@ public sealed class McpWorkspaceService
 
     private async Task<McpToolResult> CreateWorkspaceOperationFailureAsync(string workspaceId, Exception ex)
     {
-        await _registry.UpdateStateAsync(workspaceId, WorkspaceState.Failed);
-        return new McpToolResult(false, ex.Message, _registry.GetById(workspaceId));
+        await _states.UpdateWorkspaceStateAsync(workspaceId, WorkspaceState.Failed);
+        return new McpToolResult(false, ex.Message, _workspaces.GetById(workspaceId));
     }
 
     private Workspace? ResolveWorkspace(string? id, string? worktreePath)
     {
         if (!string.IsNullOrWhiteSpace(id))
-            return _registry.GetById(id);
+            return _workspaces.GetById(id);
 
         if (string.IsNullOrWhiteSpace(worktreePath))
             return null;
 
-        return _registry.GetAll().FirstOrDefault(w =>
+        return _workspaces.GetAll().FirstOrDefault(w =>
             string.Equals(w.WorktreePath, worktreePath, StringComparison.OrdinalIgnoreCase));
     }
 }

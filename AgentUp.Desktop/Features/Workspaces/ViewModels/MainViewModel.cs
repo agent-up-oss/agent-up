@@ -5,6 +5,8 @@ using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
+using AgentUp.Desktop.Features.Ports.Controllers;
+using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using ReactiveUI;
@@ -15,6 +17,7 @@ public sealed class MainViewModel : ReactiveObject
 {
     private SubTabViewModel? _selectedSubTab;
     private string? _addressBarUrl;
+    private readonly PortsController _ports;
     private readonly Subject<(string? WorkspaceId, string? Url)> _addressNavigations = new();
     private readonly Subject<BrowserCommand> _browserCommands = new();
 
@@ -55,12 +58,14 @@ public sealed class MainViewModel : ReactiveObject
         WorkspaceListViewModel sidebar,
         ApplicationListViewModel applications,
         ConsoleViewModel console,
-        FirstRunTutorialViewModel tutorial)
+        FirstRunTutorialViewModel tutorial,
+        PortsController ports)
     {
         Sidebar = sidebar;
         Applications = applications;
         Console = console;
         Tutorial = tutorial;
+        _ports = ports;
 
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
@@ -200,9 +205,11 @@ public sealed class MainViewModel : ReactiveObject
         SubTabs.Clear();
         if (app is null) return;
 
-        foreach (var port in app.AllocatedPorts)
-            SubTabs.Add(new PortSubTabViewModel(port.Variable, port.DefaultPort, port.AllocatedPort, port.Protocol));
-        SubTabs.Add(new ConsoleSubTabViewModel());
+        var ports = app.AllocatedPorts
+            .Select(port => new PortTabRequest(port.Variable ?? string.Empty, port.DefaultPort, port.AllocatedPort, port.Protocol))
+            .ToList();
+        foreach (var tab in _ports.CreateTabs(ports))
+            SubTabs.Add(tab);
 
         SelectedSubTab = SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault()
             ?? (SubTabViewModel)SubTabs[0];

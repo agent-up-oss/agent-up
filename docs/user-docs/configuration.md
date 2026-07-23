@@ -37,7 +37,7 @@ Configuration is declarative. Capability-aware sections describe ecosystem requi
 }
 ```
 
-Legacy opaque commands remain supported when Agent-Up should only launch the command and inject ports:
+Legacy executable commands remain supported when Agent-Up should only launch the process and inject ports:
 
 ```json
 {
@@ -78,7 +78,7 @@ The Server owns port allocation and injects the workspace's full allocated port 
 
 Capability sections such as `dotnet` and `docker` are framework-aware at the ecosystem boundary: Agent-Up can discover installed versions, compare them with declared requirements, and report version mismatch errors before launch.
 
-The legacy `applications` list remains available for opaque commands, and legacy Docker `services` remain available for compatibility. Agent-Up runs legacy application commands through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Use command syntax that is valid on the operating systems where the workspace will run.
+The legacy `applications` list remains available for executable-plus-arguments commands, and legacy Docker `services` remain available for compatibility. Agent-Up launches local application commands directly with an argument list; shell expressions such as pipes, redirects, variable expansion, command chaining, and subshells are rejected. Put that behavior in a checked-in script and call the script through an allowed runtime command when needed.
 
 ## Environment And Secrets
 

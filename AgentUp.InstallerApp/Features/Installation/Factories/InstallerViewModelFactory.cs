@@ -1,4 +1,5 @@
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
+using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Factories;
@@ -17,7 +18,9 @@ public static class InstallerViewModelFactory
         var model = new InstallerViewModel(
             InstallerSession.CreateDefault(manifest, version, manifest.DefaultInstallRoot(), PayloadSelection.Bundled(version)),
             adapter,
-            adapter.SupportsInstallActions ? CapabilitiesController.CreateDefault() : CapabilitiesController.CreateNixOs());
+            new CapabilitiesController(adapter.SupportsInstallActions
+                ? CapabilityDashboardServiceFactory.CreateDefault()
+                : CapabilityDashboardServiceFactory.CreateNixOs()));
         return model;
     }
 
@@ -29,7 +32,7 @@ public static class InstallerViewModelFactory
         var model = new InstallerViewModel(
             InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
             InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
-            CapabilitiesController.CreateFake());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
         return model;
     }
 
@@ -41,7 +44,7 @@ public static class InstallerViewModelFactory
         var model = new InstallerViewModel(
             InstallerSession.CreateDefault(manifest, version, installRoot, PayloadSelection.Bundled(version)),
             InstallerPlatformAdapterFactory.CreateFake(installRoot + " dry run"),
-            CapabilitiesController.CreateEmpty());
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateEmpty()));
         return model;
     }
 

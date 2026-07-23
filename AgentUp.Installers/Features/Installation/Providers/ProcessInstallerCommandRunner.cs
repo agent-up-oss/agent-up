@@ -7,17 +7,34 @@ namespace AgentUp.Installers.Features.Installation.Providers;
 
 public sealed class ProcessInstallerCommandRunner : ICommandRunner
 {
-    public async Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
+    private static readonly HashSet<string> AllowedCommands = new(StringComparer.Ordinal)
     {
+        "bash",
+        "docker",
+        "dpkg-query",
+        "launchctl",
+        "osascript",
+        "powershell.exe",
+        "sc.exe",
+        "systemctl",
+        "update-desktop-database"
+    };
+
+    public async Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
+    {
+        if (!AllowedCommands.Contains(fileName))
+            return new ProcessResult(127, "", $"Unsupported installer command: {fileName}.");
+
         var startInfo = new System.Diagnostics.ProcessStartInfo
         {
             FileName = fileName,
-            Arguments = arguments,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
+        foreach (var argument in arguments)
+            startInfo.ArgumentList.Add(argument);
 
         System.Diagnostics.Process? process;
         try

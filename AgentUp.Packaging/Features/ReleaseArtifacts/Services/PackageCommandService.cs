@@ -8,6 +8,7 @@ namespace AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
 public sealed class PackageCommandService
 {
+    private readonly IPackageCommandParser _parser;
     private readonly IRepositoryPathProvider _repositoryPaths;
     private readonly IEnvironmentVariableProvider _environment;
     private readonly IUbuntuPackageController _ubuntu;
@@ -15,17 +16,38 @@ public sealed class PackageCommandService
     private readonly IMacOsPackageController _macOs;
 
     public PackageCommandService(
+        IPackageCommandParser parser,
         IRepositoryPathProvider repositoryPaths,
         IEnvironmentVariableProvider environment,
         IUbuntuPackageController ubuntu,
         IWindowsPackageController windows,
         IMacOsPackageController macOs)
     {
+        _parser = parser;
         _repositoryPaths = repositoryPaths;
         _environment = environment;
         _ubuntu = ubuntu;
         _windows = windows;
         _macOs = macOs;
+    }
+
+    public async Task<int> ExecuteAsync(
+        string[] args,
+        TextWriter standardError,
+        CancellationToken cancellationToken = default)
+    {
+        var parsed = _parser.Parse(args);
+        if (!parsed.Succeeded)
+        {
+            standardError.WriteLine(parsed.ErrorMessage);
+            return 2;
+        }
+
+        var result = await ExecuteAsync(parsed.Command!, cancellationToken);
+        if (result.ErrorMessage is not null)
+            standardError.WriteLine(result.ErrorMessage);
+
+        return result.ExitCode;
     }
 
     public async Task<PackageCommandResult> ExecuteAsync(PackageCommand command, CancellationToken cancellationToken = default)

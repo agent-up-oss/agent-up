@@ -64,21 +64,23 @@ internal static class ArchitectureFixture
 
     public static readonly string[] AllowedTestKindFolders =
     [
-        "Architecture",
-        "Automation",
-        "Commands",
+        "Controller",
         "E2E",
         "Fake",
         "Headless",
         "HTTP",
-        "Http",
         "Provider",
         "Repository",
-        "Resources",
-        "Support",
-        "TerminalIntegration",
-        "Tools",
         "Unit"
+    ];
+
+    public static readonly string[] AllowedRootTestSupportFolders =
+    [
+        "Architecture",
+        "E2E",
+        "Fake",
+        "Fixtures",
+        "Support"
     ];
 
     public static readonly string[] ForbiddenUnitTestTokens =

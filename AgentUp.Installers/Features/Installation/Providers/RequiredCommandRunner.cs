@@ -14,17 +14,20 @@ public sealed class RequiredCommandRunner : IRequiredCommandRunner
         _commands = commands;
     }
 
-    public async Task RunAsync(string fileName, string arguments, CancellationToken cancellationToken)
+    public async Task RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
         var result = await _commands.RunAsync(fileName, arguments, cancellationToken);
         if (result.ExitCode != 0)
-            throw new InvalidOperationException($"{fileName} {arguments} failed: {CommandOutput(result)}");
+            throw new InvalidOperationException($"{fileName} {string.Join(" ", arguments)} failed: {CommandOutput(result)}");
     }
 
     public async Task RunPowerShellAsync(string command, CancellationToken cancellationToken)
     {
         var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
-        var result = await _commands.RunAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}", cancellationToken);
+        var result = await _commands.RunAsync(
+            "powershell.exe",
+            ["-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded],
+            cancellationToken);
         if (result.ExitCode != 0)
             throw new InvalidOperationException($"PowerShell command failed: {CommandOutput(result)}");
     }

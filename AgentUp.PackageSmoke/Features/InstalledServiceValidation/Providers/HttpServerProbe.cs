@@ -1,10 +1,6 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Features.Installation.Factories;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+using AgentUp.PackageSmoke.Shared.Providers;
+
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 
 public sealed class HttpServerProbe : IServerProbe
@@ -35,8 +31,9 @@ public sealed class HttpServerProbe : IServerProbe
         try
         {
             var body = await _httpClient.GetStringAsync($"{baseUrl.TrimEnd('/')}/api/workspaces", cancellationToken);
-            Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
-            await File.WriteAllTextAsync(outputFile, body, cancellationToken);
+            var safeOutputFile = SafeSmokePaths.Child(Path.GetDirectoryName(outputFile)!, Path.GetFileName(outputFile));
+            Directory.CreateDirectory(Path.GetDirectoryName(safeOutputFile)!);
+            await File.WriteAllTextAsync(safeOutputFile, body, cancellationToken);
             return baseUrl;
         }
         catch (HttpRequestException)

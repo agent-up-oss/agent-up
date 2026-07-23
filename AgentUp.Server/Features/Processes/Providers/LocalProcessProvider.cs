@@ -1,5 +1,6 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
@@ -21,11 +22,13 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
 
     internal static ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
     {
-        var workingDirectory = app.Path is not null
-            ? Path.Join(workspace.WorktreePath, app.Path)
-            : workspace.WorktreePath;
-        var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
-        foreach (var (key, value) in LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles))
+        var workingDirectory = WorkspacePathProvider.ResolveWorkspacePath(
+            workspace.WorktreePath,
+            app.Path,
+            "Application path");
+        var fileEnvironment = LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles);
+        var startInfo = CreateProcessStartInfo(app.Command!, workingDirectory);
+        foreach (var (key, value) in fileEnvironment)
             startInfo.Environment[key] = value;
 
         foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
@@ -42,8 +45,8 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         var environment = new Dictionary<string, string>();
         foreach (var environmentFile in environmentFiles ?? [])
         {
-            var fullPath = EnvironmentFilePathProvider.ResolveExistingWorkspaceFile(worktreePath, environmentFile);
-            foreach (var (key, value) in ParseEnvironmentFile(File.ReadLines(fullPath), environmentFile))
+            var lines = EnvironmentFilePathProvider.ReadExistingWorkspaceFileLines(worktreePath, environmentFile);
+            foreach (var (key, value) in ParseEnvironmentFile(lines, environmentFile))
                 environment[key] = value;
         }
 
@@ -85,32 +88,132 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         return environment;
     }
 
-    private static ProcessStartInfo CreateShellStartInfo(string command, string workingDirectory)
+    private static ProcessStartInfo CreateProcessStartInfo(string command, string workingDirectory)
     {
+        var parsed = ParseApplicationCommand(command);
         var startInfo = new ProcessStartInfo
         {
-            WorkingDirectory = workingDirectory,
+            FileName = parsed.FileName,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
+        foreach (var argument in ApplyWorkingDirectoryArguments(parsed.FileName, parsed.Arguments, workingDirectory))
+            startInfo.ArgumentList.Add(argument);
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            startInfo.FileName = "cmd.exe";
-            startInfo.ArgumentList.Add("/C");
-        }
-        else
-        {
-            startInfo.FileName = "/usr/bin/env";
-            startInfo.ArgumentList.Add("bash");
-            startInfo.ArgumentList.Add("-c");
-        }
-
-        startInfo.ArgumentList.Add(command);
         return startInfo;
     }
+
+    private static (string FileName, IReadOnlyList<string> Arguments) ParseApplicationCommand(string command)
+    {
+        if (string.IsNullOrWhiteSpace(command))
+            throw new InvalidOperationException("Application command must not be empty.");
+
+        if (ShellMetacharacters().IsMatch(command))
+            throw new InvalidOperationException("Application command must be an executable plus arguments, not a shell expression.");
+
+        var tokens = CommandToken().Matches(command)
+            .Select(match => match.Groups["doubleQuoted"].Success
+                ? match.Groups["doubleQuoted"].Value
+                : match.Groups["singleQuoted"].Success
+                    ? match.Groups["singleQuoted"].Value
+                    : match.Groups["bare"].Value)
+            .ToArray();
+        if (tokens.Length == 0)
+            throw new InvalidOperationException("Application command must not be empty.");
+        if (tokens.Any(token => token.Contains('"') || token.Contains('\'')))
+            throw new InvalidOperationException("Application command contains invalid quoting.");
+
+        return ValidateParsedApplicationCommand(tokens);
+    }
+
+    private static (string FileName, IReadOnlyList<string> Arguments) ValidateParsedApplicationCommand(IReadOnlyList<string> tokens)
+    {
+        var fileName = ResolveAllowedApplicationExecutable(tokens[0]);
+
+        if (tokens.Skip(1).Any(argument => argument.Any(char.IsControl)))
+            throw new InvalidOperationException("Application command arguments must not contain control characters.");
+
+        return (fileName, tokens.Skip(1).ToArray());
+    }
+
+    private static IReadOnlyList<string> ApplyWorkingDirectoryArguments(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string workingDirectory)
+    {
+        var directory = CreateWorkspaceDirectoryAlias(workingDirectory);
+        return fileName switch
+        {
+            "bun" => ["--cwd", directory, .. arguments],
+            "dotnet" when arguments.Count > 0 && arguments[0] == "run" && !arguments.Contains("--project", StringComparer.Ordinal)
+                => [.. arguments, "--project", directory],
+            "gradle" => ["-p", directory, .. arguments],
+            "make" => ["-C", directory, .. arguments],
+            "mvn" => ["-f", Path.Join(directory, "pom.xml"), .. arguments],
+            "npm" => ["--prefix", directory, .. arguments],
+            "pnpm" => ["--dir", directory, .. arguments],
+            "yarn" => ["--cwd", directory, .. arguments],
+            _ => arguments
+        };
+    }
+
+    private static string CreateWorkspaceDirectoryAlias(string workingDirectory)
+    {
+        var aliasRoot = Path.Join(Path.GetTempPath(), "AgentUp-WorkspaceDirectories");
+        Directory.CreateDirectory(aliasRoot);
+        var aliasName = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(workingDirectory)))[..32];
+        var aliasPath = Path.Join(aliasRoot, aliasName);
+
+        if (Directory.Exists(aliasPath))
+        {
+            var target = Directory.ResolveLinkTarget(aliasPath, returnFinalTarget: true);
+            if (target is not null && string.Equals(Path.GetFullPath(target.FullName), Path.GetFullPath(workingDirectory), StringComparison.Ordinal))
+                return aliasPath;
+
+            throw new InvalidOperationException("Workspace directory alias already exists with a different target.");
+        }
+
+        try
+        {
+            Directory.CreateSymbolicLink(aliasPath, workingDirectory);
+        }
+        catch (IOException) when (Directory.Exists(aliasPath))
+        {
+            return aliasPath;
+        }
+
+        return aliasPath;
+    }
+
+    private static string ResolveAllowedApplicationExecutable(string fileName)
+        => fileName switch
+        {
+            "bun" => "bun",
+            "cargo" => "cargo",
+            "dotnet" => "dotnet",
+            "go" => "go",
+            "gradle" => "gradle",
+            "java" => "java",
+            "make" => "make",
+            "mvn" => "mvn",
+            "node" => "node",
+            "npm" => "npm",
+            "npx" => "npx",
+            "pnpm" => "pnpm",
+            "printenv" => "printenv",
+            "python" => "python",
+            "python3" => "python3",
+            "yarn" => "yarn",
+            _ => throw new InvalidOperationException($"Application command executable '{fileName}' is not allowed.")
+        };
+
+    [GeneratedRegex(@"""(?<doubleQuoted>[^""]*)""|'(?<singleQuoted>[^']*)'|(?<bare>\S+)")]
+    private static partial Regex CommandToken();
+
+    [GeneratedRegex(@"[|&;<>()`$]|[\r\n]")]
+    private static partial Regex ShellMetacharacters();
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]
     private static partial Regex EnvironmentVariableName();

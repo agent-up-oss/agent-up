@@ -1,15 +1,10 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.InstallerFlowValidation.Services;
 
@@ -21,7 +16,8 @@ public sealed class InstallerFlowSmokeValidator
         CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        Directory.CreateDirectory(workDirectory);
+        var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
+        Directory.CreateDirectory(safeWorkDirectory);
 
         var version = new Version(0, 0, 0);
         var manifest = ProductManifest.AgentUp();
@@ -67,7 +63,7 @@ public sealed class InstallerFlowSmokeValidator
             assert.Error("installer.flow.validation", "Dry-run installed-state validation failed.");
 
         await File.WriteAllLinesAsync(
-            Path.Join(workDirectory, "installer-flow.log"),
+            SafeSmokePaths.Child(safeWorkDirectory, "installer-flow.log"),
             progress.Select(item => $"{item.CompletedOperations}/{item.TotalOperations}: {item.Message}"),
             cancellationToken);
 

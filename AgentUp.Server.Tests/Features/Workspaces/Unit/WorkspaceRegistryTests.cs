@@ -2,7 +2,7 @@ using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
-using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
@@ -365,10 +365,7 @@ public class WorkspaceRegistryTests
     }
 
     private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
-        new(
-            new InMemoryWorkspaceRepository(),
-            new InMemoryPortAllocationService(),
-            new CapabilityReconciliationService(adapters));
+        ServerTestComposition.CreateRegistry(adapters);
 
     private sealed class FakeCapabilityAdapter(string capabilityId) : ICapabilityAdapter
     {

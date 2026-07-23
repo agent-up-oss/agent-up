@@ -35,7 +35,7 @@ Use capability-aware sections when Agent-Up should understand the ecosystem boun
 
 Use compatibility sections when Agent-Up should preserve an opaque legacy command or Docker service shape:
 
-- `applications` for local shell-command applications.
+- `applications` for local executable-plus-arguments applications.
 - `services` for legacy Docker services.
 
 The complete field contract is in the [reference](./agent-up-json-reference.md).
