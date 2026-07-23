@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
@@ -70,38 +72,6 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             ExecuteUninstallAsync,
             cancellationToken);
 
-    private async IAsyncEnumerable<InstallProgress> ExecuteUninstallAsync(
-        InstallerComponentTarget target,
-        InstallerSession session,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, PlanInstall);
-        var progress = new InstallProgressTracker(operations);
-
-        switch (target)
-        {
-            case InstallerComponentTarget.Server:
-                await _commands.RunAsync("systemctl", ["disable", "--now", _options.Manifest.ServiceUnitName], cancellationToken);
-                _files.DeleteFile(_options.Paths.ServicePath);
-                await _commands.RunAsync("systemctl", ["daemon-reload"], cancellationToken);
-                _files.DeleteDirectory(_options.Paths.ServerDirectory);
-                break;
-            case InstallerComponentTarget.Cli:
-                _files.DeleteFile(_options.Paths.CliSymlinkPath);
-                _files.DeleteDirectory(_options.Paths.CliDirectory);
-                break;
-            case InstallerComponentTarget.Desktop:
-                _files.DeleteFile(_options.Paths.DesktopEntryPath);
-                await _commands.RunAsync("update-desktop-database", ["/usr/share/applications"], cancellationToken);
-                _files.DeleteFile(_options.Paths.IconPath);
-                _files.DeleteDirectory(_options.Paths.DesktopDirectory);
-                break;
-        }
-
-        yield return progress.Complete(InstallerComponentOperations.TargetOperationKind(target));
-        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
-    }
-
     public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
     {
         var summary = session.Summary();
@@ -132,64 +102,158 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
     {
         var operations = PlanInstall(session);
         var progress = new InstallProgressTracker(operations);
+        var summary = session.Summary();
 
-        _files.CreateDirectory(_options.Paths.DataDirectory);
-        _files.WriteText(_options.Paths.LogPath, "");
-        _files.WriteText(_options.Paths.ErrorLogPath, "");
         yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
-
         yield return progress.Complete(InstallOperationKind.StagePayload);
 
-        var summary = session.Summary();
+        var tempFiles = new Dictionary<string, string>();
+        try
+        {
+            if (summary.Includes(InstallerComponent.Desktop))
+            {
+                var tmpEntry = Path.Join("/tmp", Path.GetRandomFileName());
+                await File.WriteAllTextAsync(tmpEntry,
+                    _options.Manifest.DesktopEntryText(_options.Paths.DesktopExecutable, session.Version.ToString()),
+                    cancellationToken);
+                tempFiles[_options.Paths.DesktopEntryPath] = tmpEntry;
+            }
+
+            await RunElevatedAsync(BuildInstallScript(summary, tempFiles), cancellationToken);
+        }
+        finally
+        {
+            foreach (var tmp in tempFiles.Values)
+            {
+                try { File.Delete(tmp); }
+                catch (IOException ex) { Trace.TraceWarning(ex.Message); }
+                catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
+            }
+        }
+
+        yield return progress.Complete(InstallOperationKind.InstallFiles);
+
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+            yield return progress.Complete(InstallOperationKind.RegisterService);
+        if (summary.Includes(InstallerComponent.Cli))
+            yield return progress.Complete(InstallOperationKind.RegisterCli);
+        if (summary.Includes(InstallerComponent.Desktop))
+            yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+
+        await _commands.RunAsync("dpkg-query", ["-W", _options.Manifest.PackageName], cancellationToken);
+        yield return progress.Complete(InstallOperationKind.RegisterUninstall);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
+
+    private async IAsyncEnumerable<InstallProgress> ExecuteUninstallAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, PlanInstall);
+        var progress = new InstallProgressTracker(operations);
+
+        await RunElevatedAsync(BuildUninstallScript(target), cancellationToken);
+
+        yield return progress.Complete(InstallerComponentOperations.TargetOperationKind(target));
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
+
+    private string BuildInstallScript(InstallSummary summary, Dictionary<string, string> tempFiles)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("set -euo pipefail");
+        sb.AppendLine($"mkdir -p {Q(_options.Paths.DataDirectory)}");
+        sb.AppendLine($"touch {Q(_options.Paths.LogPath)}");
+        sb.AppendLine($"touch {Q(_options.Paths.ErrorLogPath)}");
+
         if (summary.Includes(InstallerComponent.Desktop))
         {
-            _files.ResetDirectory(_options.Paths.DesktopDirectory);
-            _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
-            _files.CopyFile(_options.Payload.IconPath, _options.Paths.IconPath);
-            _files.SetExecutable(_options.Paths.DesktopExecutable);
+            sb.AppendLine($"rm -rf {Q(_options.Paths.DesktopDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.DesktopDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.DesktopDirectory)}/. {Q(_options.Paths.DesktopDirectory)}");
+            sb.AppendLine($"cp {Q(_options.Payload.IconPath)} {Q(_options.Paths.IconPath)}");
+            sb.AppendLine($"chmod +x {Q(_options.Paths.DesktopExecutable)}");
+            sb.AppendLine($"cp {Q(tempFiles[_options.Paths.DesktopEntryPath])} {Q(_options.Paths.DesktopEntryPath)}");
+            sb.AppendLine("update-desktop-database /usr/share/applications 2>/dev/null || true");
         }
 
         if (summary.Includes(InstallerComponent.Server))
         {
-            _files.ResetDirectory(_options.Paths.ServerDirectory);
-            _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
-            _files.CopyFile(_options.Payload.ServiceFilePath, _options.Paths.ServicePath);
-            _files.SetExecutable(_options.Paths.ServerExecutable);
+            sb.AppendLine($"rm -rf {Q(_options.Paths.ServerDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.ServerDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.ServerDirectory)}/. {Q(_options.Paths.ServerDirectory)}");
+            sb.AppendLine($"chmod +x {Q(_options.Paths.ServerExecutable)}");
+            sb.AppendLine($"cp {Q(_options.Payload.ServiceFilePath)} {Q(_options.Paths.ServicePath)}");
+            sb.AppendLine("systemctl daemon-reload");
+            sb.AppendLine($"systemctl enable --now {Q(_options.Manifest.ServiceUnitName)}");
         }
 
         if (summary.Includes(InstallerComponent.Cli))
         {
-            _files.ResetDirectory(_options.Paths.CliDirectory);
-            _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
-            _files.SetExecutable(_options.Paths.CliExecutable);
-        }
-        yield return progress.Complete(InstallOperationKind.InstallFiles);
-
-        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
-        {
-            await _requiredCommands.RunAsync("systemctl", ["daemon-reload"], cancellationToken);
-            await _requiredCommands.RunAsync("systemctl", ["enable", "--now", _options.Manifest.ServiceUnitName], cancellationToken);
-            yield return progress.Complete(InstallOperationKind.RegisterService);
+            sb.AppendLine($"rm -rf {Q(_options.Paths.CliDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.CliDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.CliDirectory)}/. {Q(_options.Paths.CliDirectory)}");
+            sb.AppendLine($"chmod +x {Q(_options.Paths.CliExecutable)}");
+            sb.AppendLine($"rm -f {Q(_options.Paths.CliSymlinkPath)}");
+            sb.AppendLine($"ln -sf {Q(_options.Paths.CliExecutable)} {Q(_options.Paths.CliSymlinkPath)}");
         }
 
-        if (summary.Includes(InstallerComponent.Cli))
-        {
-            _files.CreateSymbolicLink(_options.Paths.CliSymlinkPath, _options.Paths.CliExecutable);
-            yield return progress.Complete(InstallOperationKind.RegisterCli);
-        }
-
-        if (summary.Includes(InstallerComponent.Desktop))
-        {
-            _files.WriteText(_options.Paths.DesktopEntryPath, _options.Manifest.DesktopEntryText(_options.Paths.DesktopExecutable, session.Version.ToString()));
-            await _commands.RunAsync("update-desktop-database", ["/usr/share/applications"], cancellationToken);
-            yield return progress.Complete(InstallOperationKind.RegisterDesktop);
-        }
-
-        await _commands.RunAsync("dpkg-query", ["-W", _options.Manifest.PackageName], cancellationToken);
-        yield return progress.Complete(InstallOperationKind.RegisterUninstall);
-
-        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+        return sb.ToString();
     }
+
+    private string BuildUninstallScript(InstallerComponentTarget target)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("set -euo pipefail");
+
+        switch (target)
+        {
+            case InstallerComponentTarget.Server:
+                sb.AppendLine($"systemctl disable --now {Q(_options.Manifest.ServiceUnitName)} 2>/dev/null || true");
+                sb.AppendLine($"rm -f {Q(_options.Paths.ServicePath)}");
+                sb.AppendLine("systemctl daemon-reload");
+                sb.AppendLine($"rm -rf {Q(_options.Paths.ServerDirectory)}");
+                break;
+            case InstallerComponentTarget.Cli:
+                sb.AppendLine($"rm -f {Q(_options.Paths.CliSymlinkPath)}");
+                sb.AppendLine($"rm -rf {Q(_options.Paths.CliDirectory)}");
+                break;
+            case InstallerComponentTarget.Desktop:
+                sb.AppendLine($"rm -f {Q(_options.Paths.DesktopEntryPath)}");
+                sb.AppendLine("update-desktop-database /usr/share/applications 2>/dev/null || true");
+                sb.AppendLine($"rm -f {Q(_options.Paths.IconPath)}");
+                sb.AppendLine($"rm -rf {Q(_options.Paths.DesktopDirectory)}");
+                break;
+        }
+
+        return sb.ToString();
+    }
+
+    private async Task RunElevatedAsync(string script, CancellationToken cancellationToken)
+    {
+        // Use /tmp directly — same rationale as macOS: avoid sandbox-constrained TMPDIR.
+        var tmpFile = Path.Join("/tmp", Path.GetRandomFileName());
+        try
+        {
+            await File.WriteAllTextAsync(tmpFile, "#!/usr/bin/env bash\n" + script, cancellationToken);
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(tmpFile, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+            if (Environment.IsPrivilegedProcess)
+                await _requiredCommands.RunAsync("bash", [tmpFile], cancellationToken);
+            else
+                await _requiredCommands.RunAsync("pkexec", ["bash", tmpFile], cancellationToken);
+        }
+        finally
+        {
+            try { File.Delete(tmpFile); }
+            catch (IOException ex) { Trace.TraceWarning(ex.Message); }
+            catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
+        }
+    }
+
+    private static string Q(string path) => $"'{path.Replace("'", "'\\''")}'";
 
     private static InstallerComponentTarget TargetFor(ProductComponent component)
         => Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
@@ -214,5 +278,4 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             ServerVersion: session.Version,
             DesktopVersion: session.Version), session.Version);
     }
-
 }

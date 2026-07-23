@@ -25,6 +25,19 @@ public class UbuntuPackageManifestTests
     }
 
     [Test]
+    public void MetainfoText_containsAppStreamComponentWithVersionAndPackageName()
+    {
+        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+
+        var text = manifest.MetainfoText();
+
+        Assert.That(text, Does.Contain("<pkgname>agent-up</pkgname>"));
+        Assert.That(text, Does.Contain("<release version=\"1.2.3\""));
+        Assert.That(text, Does.Contain("agent-up-installer.desktop"));
+        Assert.That(text, Does.EndWith(Environment.NewLine));
+    }
+
+    [Test]
     public void ControlFileText_containsDebianPackageMetadata()
     {
         var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));

@@ -24,6 +24,7 @@ public sealed class UbuntuPackageStager
         _writer.ResetDirectory(layout.DebRoot);
         _writer.CreateDirectory(Path.Join(layout.DebRoot, "DEBIAN"));
         _writer.CreateDirectory(Path.Join(layout.DebRoot, "usr", "share", "applications"));
+        _writer.CreateDirectory(Path.Join(layout.DebRoot, "usr", "share", "metainfo"));
         _writer.CreateDirectory(Path.Join(layout.DebRoot, "usr", "share", "pixmaps"));
 
         _writer.CopyDirectory(layout.InstallerPublishDirectory, installerDir);
@@ -45,6 +46,9 @@ public sealed class UbuntuPackageStager
         _writer.WriteText(
             Path.Join(layout.DebRoot, "usr", "share", "applications", $"{pkg}-installer.desktop"),
             manifest.InstallerDesktopEntryText());
+        _writer.WriteText(
+            Path.Join(layout.DebRoot, "usr", "share", "metainfo", $"{pkg}.metainfo.xml"),
+            manifest.MetainfoText());
 
         _writer.WriteText(Path.Join(layout.DebRoot, "DEBIAN", "control"), manifest.ControlFileText());
         _writer.WriteText(Path.Join(layout.DebRoot, "DEBIAN", "postinst"), manifest.PostInstallScript());

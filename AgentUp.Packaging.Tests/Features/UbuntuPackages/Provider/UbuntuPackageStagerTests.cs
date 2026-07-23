@@ -32,6 +32,9 @@ public class UbuntuPackageStagerTests
         Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Contain("AgentUp.InstallerApp"));
         Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Not.Contain("--install-core"));
         Assert.That(writer.WrittenText, Contains.Key(Path.Join(layout.DebRoot, "usr", "share", "applications", "agent-up-installer.desktop")));
+        Assert.That(writer.WrittenText, Contains.Key(Path.Join(layout.DebRoot, "usr", "share", "metainfo", "agent-up.metainfo.xml")));
+        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "usr", "share", "metainfo", "agent-up.metainfo.xml")], Does.Contain("<pkgname>agent-up</pkgname>"));
+        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "usr", "share", "metainfo", "agent-up.metainfo.xml")], Does.Contain("<release version=\"1.2.3\""));
         Assert.That(writer.ExecutablePaths, Does.Contain(Path.Join(layout.DebRoot, "DEBIAN", "postinst")));
     }
 

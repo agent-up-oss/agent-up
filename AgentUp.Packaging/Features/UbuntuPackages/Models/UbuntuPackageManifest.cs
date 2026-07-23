@@ -76,6 +76,32 @@ public sealed record UbuntuPackageManifest(
            /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component desktop 2>/dev/null || true
            """ + Environment.NewLine;
 
+    public string MetainfoText()
+    {
+        var date = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        return $"""
+               <?xml version="1.0" encoding="UTF-8"?>
+               <component type="desktop-application">
+                 <id>{PackageName}-installer.desktop</id>
+                 <metadata_license>MIT</metadata_license>
+                 <project_license>MIT</project_license>
+                 <name>{ApplicationName} Installer</name>
+                 <summary>Local {ApplicationName} installer</summary>
+                 <description>
+                   <p>Installer for {ApplicationName}.</p>
+                 </description>
+                 <launchable type="desktop-id">{PackageName}-installer.desktop</launchable>
+                 <provides>
+                   <pkgname>{PackageName}</pkgname>
+                 </provides>
+                 <releases>
+                   <release version="{Version}" date="{date}"/>
+                 </releases>
+                 <content_rating type="oars-1.1"/>
+               </component>
+               """ + Environment.NewLine;
+    }
+
     public static string PostRemoveScript()
         => """
            #!/usr/bin/env bash

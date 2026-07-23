@@ -26,11 +26,10 @@ public class UbuntuInstallerPlatformAdapterTests
     // ── existing tests (Agent-Up product) ────────────────────────────────────
 
     [Test]
-    public async Task ExecuteInstallAsync_appliesPayloadAndRegistersNativeUbuntuIntegration()
+    public async Task ExecuteInstallAsync_yieldsCorrectProgressSequence()
     {
-        var files = new RecordingUbuntuFileSystem();
-        var commands = new RecordingCommandRunner();
-        var adapter = Adapter(commands, files);
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = Adapter(commands, new RecordingUbuntuFileSystem());
         var session = Session();
 
         var progress = new List<InstallProgress>();
@@ -48,18 +47,39 @@ public class UbuntuInstallerPlatformAdapterTests
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
-        Assert.That(files.ResetDirectories, Does.Contain("/opt/agent-up/desktop")
-            .And.Contain("/opt/agent-up/server")
-            .And.Contain("/opt/agent-up/cli"));
-        Assert.That(files.ResetDirectories, Does.Not.Contain("/opt/agent-up"));
-        Assert.That(files.CopiedDirectories, Does.Contain(("/payload/desktop", "/opt/agent-up/desktop")));
-        Assert.That(files.CopiedDirectories, Does.Contain(("/payload/server", "/opt/agent-up/server")));
-        Assert.That(files.CopiedDirectories, Does.Contain(("/payload/cli", "/opt/agent-up/cli")));
-        Assert.That(files.CopiedFiles, Does.Contain(("/payload/agent-up-server.service", "/etc/systemd/system/agent-up-server.service")));
-        Assert.That(files.Symlinks, Does.Contain(("/usr/bin/agent-up", "/opt/agent-up/cli/AgentUp.CLI")));
-        Assert.That(files.Writes["/usr/share/applications/agent-up.desktop"], Does.Contain("Exec=/opt/agent-up/desktop/AgentUp.Desktop"));
-        Assert.That(commands.Commands, Does.Contain(("systemctl", "daemon-reload")));
-        Assert.That(commands.Commands, Does.Contain(("systemctl", "enable --now agent-up-server.service")));
+    }
+
+    [Test]
+    public async Task ExecuteInstallAsync_runsElevatedScriptContainingAllComponents()
+    {
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = Adapter(commands, new RecordingUbuntuFileSystem());
+
+        await adapter.ExecuteInstallAsync(Session()).DrainAsync();
+
+        var script = commands.CapturedScript;
+        Assert.That(script, Is.Not.Null.And.Not.Empty, "Elevated script was not executed.");
+
+        // Desktop operations
+        Assert.That(script, Does.Contain("rm -rf '/opt/agent-up/desktop'"));
+        Assert.That(script, Does.Contain("cp -r '/payload/desktop'/."));
+        Assert.That(script, Does.Contain("cp '/payload/logo.png' '/usr/share/pixmaps/agent-up.png'"));
+        Assert.That(script, Does.Contain("chmod +x '/opt/agent-up/desktop/AgentUp.Desktop'"));
+        Assert.That(script, Does.Contain("'/usr/share/applications/agent-up.desktop'"));
+        Assert.That(script, Does.Contain("update-desktop-database /usr/share/applications"));
+
+        // Server operations
+        Assert.That(script, Does.Contain("rm -rf '/opt/agent-up/server'"));
+        Assert.That(script, Does.Contain("cp -r '/payload/server'/."));
+        Assert.That(script, Does.Contain("cp '/payload/agent-up-server.service' '/etc/systemd/system/agent-up-server.service'"));
+        Assert.That(script, Does.Contain("systemctl daemon-reload"));
+        Assert.That(script, Does.Contain("systemctl enable --now 'agent-up-server.service'"));
+
+        // CLI operations
+        Assert.That(script, Does.Contain("rm -rf '/opt/agent-up/cli'"));
+        Assert.That(script, Does.Contain("cp -r '/payload/cli'/."));
+        Assert.That(script, Does.Contain("chmod +x '/opt/agent-up/cli/AgentUp.CLI'"));
+        Assert.That(script, Does.Contain("ln -sf '/opt/agent-up/cli/AgentUp.CLI' '/usr/bin/agent-up'"));
     }
 
     [Test]
@@ -100,14 +120,14 @@ public class UbuntuInstallerPlatformAdapterTests
     [Test]
     public async Task ExecuteInstallAsync_withCustomManifest_registersProductServiceUnitNotAgentUpUnit()
     {
-        var files = new RecordingUbuntuFileSystem();
-        var commands = new RecordingCommandRunner();
-        var adapter = CustomAdapter(commands, files);
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = CustomAdapter(commands, new RecordingUbuntuFileSystem());
 
         await adapter.ExecuteInstallAsync(CustomSession()).DrainAsync();
 
-        Assert.That(commands.Commands, Does.Contain(("systemctl", "enable --now acme-studio-server.service")));
-        Assert.That(commands.Commands, Does.Not.Contain(("systemctl", "enable --now agent-up-server.service")));
+        var script = commands.CapturedScript;
+        Assert.That(script, Does.Contain("acme-studio-server.service"));
+        Assert.That(script, Does.Not.Contain("agent-up-server.service"));
     }
 
     [Test]
@@ -130,14 +150,14 @@ public class UbuntuInstallerPlatformAdapterTests
     [Test]
     public async Task ExecuteInstallAsync_withCustomManifest_createsCliSymlinkAtProductName()
     {
-        var files = new RecordingUbuntuFileSystem();
-        var commands = new RecordingCommandRunner();
-        var adapter = CustomAdapter(commands, files);
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = CustomAdapter(commands, new RecordingUbuntuFileSystem());
 
         await adapter.ExecuteInstallAsync(CustomSession()).DrainAsync();
 
-        Assert.That(files.Symlinks, Does.Contain(("/usr/bin/acme-studio", "/opt/acme-studio/cli/AgentUp.CLI")));
-        Assert.That(files.Symlinks.Select(s => s.Path), Does.Not.Contain("/usr/bin/agent-up"));
+        var script = commands.CapturedScript;
+        Assert.That(script, Does.Contain("'/usr/bin/acme-studio'"));
+        Assert.That(script, Does.Not.Contain("'/usr/bin/agent-up'"));
     }
 
     [Test]
@@ -159,21 +179,16 @@ public class UbuntuInstallerPlatformAdapterTests
     [Test]
     public async Task ExecuteInstallAsync_withCustomManifest_installsUnderProductRootNotAgentUpRoot()
     {
-        var files = new RecordingUbuntuFileSystem();
-        var commands = new RecordingCommandRunner();
-        var adapter = CustomAdapter(commands, files);
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = CustomAdapter(commands, new RecordingUbuntuFileSystem());
 
         await adapter.ExecuteInstallAsync(CustomSession()).DrainAsync();
 
-        Assert.That(files.ResetDirectories, Does.Contain("/opt/acme-studio/desktop")
-            .And.Contain("/opt/acme-studio/server")
-            .And.Contain("/opt/acme-studio/cli"));
-        Assert.That(files.ResetDirectories, Does.Not.Contain("/opt/acme-studio"));
-        Assert.That(files.ResetDirectories, Does.Not.Contain("/opt/agent-up"));
-        Assert.That(files.CopiedDirectories.Select(d => d.Destination),
-            Does.Not.Contain("/opt/agent-up/desktop")
-            .And.Not.Contain("/opt/agent-up/server")
-            .And.Not.Contain("/opt/agent-up/cli"));
+        var script = commands.CapturedScript;
+        Assert.That(script, Does.Contain("'/opt/acme-studio/desktop'")
+            .And.Contain("'/opt/acme-studio/server'")
+            .And.Contain("'/opt/acme-studio/cli'"));
+        Assert.That(script, Does.Not.Contain("'/opt/agent-up/"));
     }
 
     // ── Test 4: uninstall removes exactly the product's artifacts ─────────────
@@ -181,31 +196,37 @@ public class UbuntuInstallerPlatformAdapterTests
     [Test]
     public async Task ExecuteComponentActionAsync_uninstall_withCustomManifest_removesOnlyProductArtifacts()
     {
-        var files = new RecordingUbuntuFileSystem();
-        var commands = new RecordingCommandRunner();
-        var adapter = CustomAdapter(commands, files);
         var session = CustomSession();
+        var serverCommands = new ScriptCapturingCommandRunner();
+        var cliCommands = new ScriptCapturingCommandRunner();
+        var desktopCommands = new ScriptCapturingCommandRunner();
 
-        await adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Uninstall, session).DrainAsync();
-        await adapter.ExecuteComponentActionAsync(ProductComponent.Cli, InstallerComponentAction.Uninstall, session).DrainAsync();
-        await adapter.ExecuteComponentActionAsync(ProductComponent.Desktop, InstallerComponentAction.Uninstall, session).DrainAsync();
+        await CustomAdapter(serverCommands, new RecordingUbuntuFileSystem())
+            .ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Uninstall, session).DrainAsync();
+        await CustomAdapter(cliCommands, new RecordingUbuntuFileSystem())
+            .ExecuteComponentActionAsync(ProductComponent.Cli, InstallerComponentAction.Uninstall, session).DrainAsync();
+        await CustomAdapter(desktopCommands, new RecordingUbuntuFileSystem())
+            .ExecuteComponentActionAsync(ProductComponent.Desktop, InstallerComponentAction.Uninstall, session).DrainAsync();
+
+        var serverScript = serverCommands.CapturedScript ?? "";
+        var cliScript = cliCommands.CapturedScript ?? "";
+        var desktopScript = desktopCommands.CapturedScript ?? "";
 
         Assert.Multiple(() =>
         {
-            // Removes the product's systemd unit
-            Assert.That(commands.Commands, Does.Contain(("systemctl", "disable --now acme-studio-server.service")));
-            Assert.That(files.DeletedFiles, Does.Contain("/etc/systemd/system/acme-studio-server.service"));
-            // Removes the product's CLI symlink
-            Assert.That(files.DeletedFiles, Does.Contain("/usr/bin/acme-studio"));
-            // Removes the product's desktop entry
-            Assert.That(files.DeletedFiles, Does.Contain("/usr/share/applications/acme-studio.desktop"));
+            Assert.That(serverScript, Does.Contain("acme-studio-server.service"));
+            Assert.That(serverScript, Does.Contain("'/etc/systemd/system/acme-studio-server.service'"));
+            Assert.That(serverScript, Does.Contain("'/opt/acme-studio/server'"));
 
-            // Does NOT touch Agent-Up paths
-            Assert.That(commands.Commands.Select(c => c.Arguments),
-                Does.Not.Contain("disable --now agent-up-server.service"));
-            Assert.That(files.DeletedFiles, Does.Not.Contain("/etc/systemd/system/agent-up-server.service"));
-            Assert.That(files.DeletedFiles, Does.Not.Contain("/usr/bin/agent-up"));
-            Assert.That(files.DeletedFiles, Does.Not.Contain("/usr/share/applications/agent-up.desktop"));
+            Assert.That(cliScript, Does.Contain("'/usr/bin/acme-studio'"));
+            Assert.That(cliScript, Does.Contain("'/opt/acme-studio/cli'"));
+
+            Assert.That(desktopScript, Does.Contain("'/usr/share/applications/acme-studio.desktop'"));
+            Assert.That(desktopScript, Does.Contain("'/opt/acme-studio/desktop'"));
+
+            var allScripts = serverScript + cliScript + desktopScript;
+            Assert.That(allScripts, Does.Not.Contain("agent-up"),
+                "Uninstall must not touch any Agent-Up paths");
         });
     }
 
@@ -284,7 +305,7 @@ public class UbuntuInstallerPlatformAdapterTests
     }
 
     private static UbuntuInstallerPlatformAdapter Adapter(
-        RecordingCommandRunner commands,
+        ICommandRunner commands,
         RecordingUbuntuFileSystem files)
         => new(
             commands,
@@ -294,7 +315,7 @@ public class UbuntuInstallerPlatformAdapterTests
             new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
 
     private static UbuntuInstallerPlatformAdapter CustomAdapter(
-        RecordingCommandRunner commands,
+        ICommandRunner commands,
         RecordingUbuntuFileSystem files)
         => new(
             commands,
@@ -302,6 +323,42 @@ public class UbuntuInstallerPlatformAdapterTests
             CustomOptions(),
             new RequiredCommandRunner(commands),
             new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
+
+    // Reads the temp script file written by RunElevatedAsync before the command is invoked.
+    private sealed class ScriptCapturingCommandRunner : ICommandRunner
+    {
+        public List<(string FileName, string Arguments)> PlainCommands { get; } = [];
+        public string? CapturedScript { get; private set; }
+
+        public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
+        {
+            PlainCommands.Add((fileName, string.Join(" ", arguments)));
+
+            var scriptPath = ExtractScriptPath(fileName, arguments);
+            if (scriptPath is not null && IsUnderTemp(scriptPath) && File.Exists(scriptPath))
+                CapturedScript = (CapturedScript ?? "") + File.ReadAllText(scriptPath);
+
+            return Task.FromResult(new ProcessResult(0, "", ""));
+        }
+
+        private static string? ExtractScriptPath(string fileName, IReadOnlyList<string> arguments)
+        {
+            // bash <path>  (already root — Environment.IsPrivilegedProcess)
+            if (fileName == "bash" && arguments.Count == 1 && !arguments[0].StartsWith("-", StringComparison.Ordinal))
+                return arguments[0];
+            // pkexec bash <path>  (non-root elevation)
+            if (fileName == "pkexec" && arguments.Count == 2 && arguments[0] == "bash")
+                return arguments[1];
+            return null;
+        }
+
+        private static bool IsUnderTemp(string path)
+        {
+            var tempRoot = Path.GetFullPath(Path.GetTempPath());
+            var fullPath = Path.GetFullPath(path);
+            return fullPath.StartsWith(tempRoot, StringComparison.Ordinal);
+        }
+    }
 
     private sealed class RecordingCommandRunner : ICommandRunner
     {
@@ -316,30 +373,17 @@ public class UbuntuInstallerPlatformAdapterTests
 
     private sealed class RecordingUbuntuFileSystem : IUbuntuInstallerFileSystem
     {
-        public List<string> ResetDirectories { get; } = [];
-        public List<string> CreatedDirectories { get; } = [];
-        public List<string> DeletedDirectories { get; } = [];
-        public List<string> DeletedFiles { get; } = [];
-        public List<(string Source, string Destination)> CopiedDirectories { get; } = [];
-        public List<(string Source, string Destination)> CopiedFiles { get; } = [];
-        public Dictionary<string, string> Writes { get; } = [];
-        public List<(string Path, string Target)> Symlinks { get; } = [];
-        public List<string> Executables { get; } = [];
         public HashSet<string> ExistingFiles { get; } = [];
 
-        public void ResetDirectory(string path) => ResetDirectories.Add(path);
-        public void DeleteDirectory(string path) => DeletedDirectories.Add(path);
-        public void DeleteFile(string path) => DeletedFiles.Add(path);
-        public void CreateDirectory(string path) => CreatedDirectories.Add(path);
-        public void CopyDirectory(string source, string destination) => CopiedDirectories.Add((source, destination));
-        public void CopyFile(string source, string destination) => CopiedFiles.Add((source, destination));
-        public void WriteText(string path, string text)
-        {
-            Writes[path] = text;
-            ExistingFiles.Add(path);
-        }
-        public void CreateSymbolicLink(string path, string target) => Symlinks.Add((path, target));
-        public void SetExecutable(string path) => Executables.Add(path);
+        public void ResetDirectory(string path) { }
+        public void DeleteDirectory(string path) { }
+        public void DeleteFile(string path) { }
+        public void CreateDirectory(string path) { }
+        public void CopyDirectory(string source, string destination) { }
+        public void CopyFile(string source, string destination) { }
+        public void WriteText(string path, string text) => ExistingFiles.Add(path);
+        public void CreateSymbolicLink(string path, string target) { }
+        public void SetExecutable(string path) { }
         public bool FileExists(string path) => ExistingFiles.Contains(path);
     }
 }
