@@ -26,6 +26,8 @@ public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmoke
             return null;
 
         await RunRequiredAsync(assert, new CommandSpec("sudo", ["apt-get", "install", "-y", debPath]), "installed.ubuntu.install", cancellationToken);
+        var installerPath = Path.Join("/opt", product.ArtifactBaseName, "installer", "AgentUp.InstallerApp");
+        await RunRequiredAsync(assert, new CommandSpec("sudo", [installerPath, "--install-core"]), "installed.ubuntu.install-core", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("bash", ["-lc", $"command -v {product.CliShimName}"]), "installed.ubuntu.path", cancellationToken);
         assert.FileExists(Path.Join(request.SystemRoot, "usr", "share", "applications", $"{product.CliShimName}.desktop"), "installed.ubuntu.desktop.entry");
         assert.FileExists(Path.Join(request.SystemRoot, "usr", "share", "pixmaps", $"{product.CliShimName}.png"), "installed.ubuntu.icon");
