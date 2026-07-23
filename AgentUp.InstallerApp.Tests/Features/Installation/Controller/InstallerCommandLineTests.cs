@@ -1,4 +1,5 @@
 using AgentUp.InstallerApp.Features.Installation.Controllers;
+using AgentUp.InstallerApp.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
@@ -14,10 +15,10 @@ public class InstallerCommandLineTests
     [Test]
     public void ShouldRunCommandLine_detectsInstallerCommandArguments()
     {
-        Assert.That(InstallerCommandLine.ShouldRunCommandLine(["--payload-root", "/payload", "--install-core"]), Is.True);
-        Assert.That(InstallerCommandLine.ShouldRunCommandLine(["--smoke-installer-operations"]), Is.True);
-        Assert.That(InstallerCommandLine.ShouldRunCommandLine(["--install-component", "cli"]), Is.True);
-        Assert.That(InstallerCommandLine.ShouldRunCommandLine(["--payload-root", "/payload"]), Is.False);
+        Assert.That(CommandLine().ShouldRunCommandLine(["--payload-root", "/payload", "--install-core"]), Is.True);
+        Assert.That(CommandLine().ShouldRunCommandLine(["--smoke-installer-operations"]), Is.True);
+        Assert.That(CommandLine().ShouldRunCommandLine(["--install-component", "cli"]), Is.True);
+        Assert.That(CommandLine().ShouldRunCommandLine(["--payload-root", "/payload"]), Is.False);
     }
 
     [Test]
@@ -26,7 +27,7 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = await InstallerCommandLine.RunAsync(
+        var exitCode = await CommandLine().RunAsync(
             new FakeInstallerPlatformAdapter("Test"),
             ["--install-core"],
             output,
@@ -43,7 +44,7 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = await InstallerCommandLine.RunAsync(
+        var exitCode = await CommandLine().RunAsync(
             new FakeInstallerPlatformAdapter("Test"),
             ["--validate-installed"],
             output,
@@ -61,10 +62,10 @@ public class InstallerCommandLineTests
         using var error = new StringWriter();
         var adapter = new FakeInstallerPlatformAdapter("Test");
 
-        var install = await InstallerCommandLine.RunAsync(adapter, ["--install-component", "cli"], output, error);
-        var repair = await InstallerCommandLine.RunAsync(adapter, ["--repair-component", "cli"], output, error);
-        var update = await InstallerCommandLine.RunAsync(adapter, ["--update-component", "cli"], output, error);
-        var uninstall = await InstallerCommandLine.RunAsync(adapter, ["--uninstall-component", "cli"], output, error);
+        var install = await CommandLine().RunAsync(adapter, ["--install-component", "cli"], output, error);
+        var repair = await CommandLine().RunAsync(adapter, ["--repair-component", "cli"], output, error);
+        var update = await CommandLine().RunAsync(adapter, ["--update-component", "cli"], output, error);
+        var uninstall = await CommandLine().RunAsync(adapter, ["--uninstall-component", "cli"], output, error);
 
         Assert.That(new[] { install, repair, update, uninstall }, Is.All.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("CLI Install succeeded."));
@@ -80,7 +81,7 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        await InstallerCommandLine.RunAsync(
+        await CommandLine().RunAsync(
             new FakeInstallerPlatformAdapter("Test"),
             ["--install-core"],
             output,
@@ -97,7 +98,7 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = await InstallerCommandLine.RunAsync(
+        var exitCode = await CommandLine().RunAsync(
             new ThrowingInstallerPlatformAdapter(new InvalidDataException("something exploded unexpectedly")),
             ["--install-core"],
             output,
@@ -113,7 +114,7 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = await InstallerCommandLine.RunAsync(
+        var exitCode = await CommandLine().RunAsync(
             new FakeInstallerPlatformAdapter("Test"),
             ["--smoke-installer-operations"],
             output,
@@ -149,14 +150,14 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "editor"], output, error);
+        var exitCode = await CommandLine().RunAsync(adapter, manifest, ["--install-component", "editor"], output, error);
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("Editor Install succeeded."));
 
         foreach (var componentId in new[] { "desktop", "server", "cli" })
         {
             error.GetStringBuilder().Clear();
-            exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", componentId], output, error);
+            exitCode = await CommandLine().RunAsync(adapter, manifest, ["--install-component", componentId], output, error);
 
             Assert.That(exitCode, Is.EqualTo(1), $"Expected '{componentId}' to be rejected for Acme Studio");
             Assert.That(error.ToString(), Does.Contain($"Unknown installer component '{componentId}'"));
@@ -178,7 +179,7 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component"], output, error);
+        var exitCode = await CommandLine().RunAsync(adapter, manifest, ["--install-component"], output, error);
 
         Assert.That(exitCode, Is.EqualTo(1));
         Assert.That(error.ToString(), Does.Contain("--install-component"));
@@ -200,12 +201,15 @@ public class InstallerCommandLineTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = await InstallerCommandLine.RunAsync(adapter, manifest, ["--install-component", "   "], output, error);
+        var exitCode = await CommandLine().RunAsync(adapter, manifest, ["--install-component", "   "], output, error);
 
         Assert.That(exitCode, Is.EqualTo(1));
         Assert.That(error.ToString(), Does.Contain("--install-component"));
         Assert.That(error.ToString(), Does.Contain("requires a component target"));
     }
+
+    private static InstallerCommandLineController CommandLine()
+        => new(new InstallerCommandLineService());
 
     private sealed class ThrowingInstallerPlatformAdapter(Exception exception) : IInstallerPlatformAdapter
     {

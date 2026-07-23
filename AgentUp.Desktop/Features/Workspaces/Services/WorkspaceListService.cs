@@ -1,13 +1,13 @@
 using AgentUp.Desktop.Features.Workspaces.DTOs;
-using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Interfaces;
 
 namespace AgentUp.Desktop.Features.Workspaces.Services;
 
 public sealed class WorkspaceListService
 {
-    private readonly WorkspaceApiClient _client;
+    private readonly IWorkspaceApiProvider _client;
 
-    public WorkspaceListService(WorkspaceApiClient client)
+    public WorkspaceListService(IWorkspaceApiProvider client)
     {
         _client = client;
     }

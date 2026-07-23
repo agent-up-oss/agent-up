@@ -1,23 +1,23 @@
 using System.Diagnostics;
 using System.Text.Json;
 using AgentUp.Desktop.Features.FirstRun.DTOs;
-using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Interfaces;
 
 namespace AgentUp.Desktop.Features.FirstRun.Services;
 
 public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 {
     private static readonly string[] RequiredApplicationNames = ["React SPA", "Express API", "Postgres"];
-    private readonly WorkspacesController _workspaces;
+    private readonly IWorkspaceFirstRunBoundary _workspaces;
     private readonly ProcessRunner _runProcessAsync;
 
-    public FirstRunTutorialChecks(WorkspacesController workspaces)
+    public FirstRunTutorialChecks(IWorkspaceFirstRunBoundary workspaces)
         : this(workspaces, RunProcessAsync)
     {
     }
 
-    internal FirstRunTutorialChecks(WorkspacesController workspaces, ProcessRunner runProcessAsync)
+    internal FirstRunTutorialChecks(IWorkspaceFirstRunBoundary workspaces, ProcessRunner runProcessAsync)
     {
         _workspaces = workspaces;
         _runProcessAsync = runProcessAsync;

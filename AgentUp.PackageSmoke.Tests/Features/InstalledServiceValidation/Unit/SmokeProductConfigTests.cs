@@ -25,6 +25,9 @@ public sealed class SmokeProductConfigTests
     [TestCase("WorkspaceConfigFileName", "../acme.json")]
     [TestCase("WorkspaceConfigFileName", "-acme.json")]
     [TestCase("WorkspaceConfigFileName", "acme.json;git")]
+    [TestCase("WorkspaceConfigFileName", "acme.json$HOME")]
+    [TestCase("WorkspaceConfigFileName", "acme config.json")]
+    [TestCase("WorkspaceConfigFileName", "acme`touch`.json")]
     [TestCase("DisplayName", "Acme\nSetup")]
     public void Constructor_rejectsUnsafeProductMetadata(string propertyName, string unsafeValue)
     {

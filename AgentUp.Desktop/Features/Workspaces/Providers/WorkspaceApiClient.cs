@@ -1,10 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Interfaces;
 
 namespace AgentUp.Desktop.Features.Workspaces.Providers;
 
-public sealed class WorkspaceApiClient(HttpClient http)
+public sealed class WorkspaceApiClient(HttpClient http) : IWorkspaceApiProvider
 {
     private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
 

@@ -219,7 +219,7 @@ public sealed class ControllerComposition
     private static IEnumerable<(string Project, string Slice)> FindInboundFeatureTargets(string root, string path, string[] sourceParts)
     {
         var sourceIsFeature = TryFeatureLocation(sourceParts, out var sourceProject, out var sourceSlice, out _);
-        if (!sourceIsFeature)
+        if (!sourceIsFeature && !IsApprovedEntrypoint(sourceParts))
             yield break;
 
         var (_, rootNode) = ArchitectureFixture.ParseSourceFile(path);

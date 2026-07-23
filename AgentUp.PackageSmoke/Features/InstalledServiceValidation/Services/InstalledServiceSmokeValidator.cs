@@ -171,34 +171,50 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
     private static CommandSpec GitCommand(string workingDirectory, GitSmokeCommand command, string configFileName)
     {
+        var safeConfigFileName = SafeWorkspaceConfigFileName(configFileName);
         var environment = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [WorkingDirectoryEnvironmentKey] = workingDirectory
         };
 
         return OperatingSystem.IsWindows()
-            ? new CommandSpec("powershell.exe", ["-NoProfile", "-Command", WindowsGitCommand(command, configFileName)], Environment: environment)
-            : new CommandSpec("bash", ["-lc", UnixGitCommand(command, configFileName)], Environment: environment);
+            ? new CommandSpec("powershell.exe", ["-NoProfile", "-Command", WindowsGitCommand(command, safeConfigFileName)], Environment: environment)
+            : new CommandSpec("bash", ["-lc", UnixGitCommand(command, safeConfigFileName)], Environment: environment);
     }
 
     private static string SafeWorkspaceConfigPath(string repositoryDirectory, string configFileName)
     {
-        if (string.IsNullOrWhiteSpace(configFileName)
-            || Path.IsPathRooted(configFileName)
-            || configFileName.Contains("..", StringComparison.Ordinal)
-            || configFileName.IndexOfAny(['/', '\\', ':']) >= 0
-            || !string.Equals(configFileName, Path.GetFileName(configFileName), StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Workspace config file name must be a single safe file name.");
-        }
-
+        var safeConfigFileName = SafeWorkspaceConfigFileName(configFileName);
         var repositoryRoot = Path.GetFullPath(repositoryDirectory);
-        var configPath = Path.GetFullPath(Path.Join(repositoryRoot, configFileName));
+        var configPath = Path.GetFullPath(Path.Join(repositoryRoot, safeConfigFileName));
         if (!configPath.StartsWith(repositoryRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             throw new InvalidOperationException("Workspace config file path escaped the workspace repository.");
 
         return configPath;
     }
+
+    private static string SafeWorkspaceConfigFileName(string configFileName)
+    {
+        if (string.IsNullOrWhiteSpace(configFileName)
+            || Path.IsPathRooted(configFileName)
+            || configFileName != configFileName.Trim()
+            || configFileName[0] is '-' or '.'
+            || configFileName.Contains("..", StringComparison.Ordinal)
+            || configFileName.IndexOfAny(['/', '\\', ':']) >= 0
+            || !string.Equals(configFileName, Path.GetFileName(configFileName), StringComparison.Ordinal)
+            || !configFileName.EndsWith(".json", StringComparison.Ordinal)
+            || configFileName.Any(character => !IsSafeWorkspaceConfigFileNameCharacter(character)))
+        {
+            throw new InvalidOperationException("Workspace config file name must be a single safe file name.");
+        }
+
+        return configFileName;
+    }
+
+    private static bool IsSafeWorkspaceConfigFileNameCharacter(char character)
+        => character is >= 'a' and <= 'z'
+           || char.IsAsciiDigit(character)
+           || character is '-' or '_' or '.';
 
     private static string UnixGitCommand(GitSmokeCommand command, string configFileName)
         => command switch

@@ -1,12 +1,13 @@
+using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Services;
 
-namespace AgentUp.InstallerApp.Features.Installation.Controllers;
+namespace AgentUp.InstallerApp.Features.Installation.Services;
 
-public static class InstallerCommandLine
+public sealed class InstallerCommandLineService
 {
     public const string InstallCoreArgument = "--install-core";
     public const string SmokeInstallerOperationsArgument = "--smoke-installer-operations";
@@ -27,10 +28,10 @@ public static class InstallerCommandLine
         UninstallComponentArgument
     ];
 
-    public static bool ShouldRunCommandLine(string[] args)
+    public bool ShouldRunCommandLine(string[] args)
         => args.Any(arg => CommandArguments.Contains(arg, StringComparer.OrdinalIgnoreCase));
 
-    public static Task<int> RunAsync(
+    public Task<int> RunAsync(
         IInstallerPlatformAdapter adapter,
         string[] args,
         TextWriter output,
@@ -38,7 +39,7 @@ public static class InstallerCommandLine
         CancellationToken cancellationToken = default)
         => RunAsync(adapter, AgentUpManifest(), args, output, error, cancellationToken);
 
-    public static async Task<int> RunAsync(
+    public async Task<int> RunAsync(
         IInstallerPlatformAdapter adapter,
         ProductManifest manifest,
         string[] args,
@@ -78,7 +79,7 @@ public static class InstallerCommandLine
         }
     }
 
-    public static Task<int> RunInstallCoreAsync(
+    public Task<int> RunInstallCoreAsync(
         IInstallerPlatformAdapter adapter,
         TextWriter output,
         TextWriter error,

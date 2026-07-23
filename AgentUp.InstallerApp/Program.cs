@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using AgentUp.InstallerApp;
 using AgentUp.InstallerApp.Features.Installation.Controllers;
+using AgentUp.InstallerApp.Features.Installation.Services;
 using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.WindowsInstallation.Models;
@@ -28,8 +29,9 @@ try
     SetBundledPayloadRoot(args);
     InstallerLog.Write($"Payload root: {Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable) ?? "(not set)"}");
 
-    if (InstallerCommandLine.ShouldRunCommandLine(args))
-        return await InstallerCommandLine.RunAsync(InstallerPlatformAdapterFactory.Create(), args, Console.Out, Console.Error);
+    var commandLine = new InstallerCommandLineController(new InstallerCommandLineService());
+    if (commandLine.ShouldRunCommandLine(args))
+        return await commandLine.RunAsync(InstallerPlatformAdapterFactory.Create(), args, Console.Out, Console.Error);
 
     InstallerLog.Write("Starting GUI");
     return AppBuilder.Configure<App>()
