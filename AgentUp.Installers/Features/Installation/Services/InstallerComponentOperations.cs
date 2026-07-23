@@ -1,3 +1,4 @@
+using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Installers.Features.Installation.Services;

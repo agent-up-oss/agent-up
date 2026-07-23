@@ -1,6 +1,6 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
-using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;

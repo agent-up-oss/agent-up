@@ -1,6 +1,6 @@
 using AgentUp.Installers.Features.Installation.Interfaces;
+using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Services;
 
 namespace AgentUp.Installers.Features.WindowsInstallation.Services;
 

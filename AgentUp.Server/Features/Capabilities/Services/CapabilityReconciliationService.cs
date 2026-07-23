@@ -2,7 +2,7 @@ using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.DTOs;
-using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.DTOs;
 
 namespace AgentUp.Server.Features.Capabilities.Services;
 

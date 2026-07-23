@@ -1,24 +1,24 @@
 using System.Diagnostics;
 using System.Text.Json;
+using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
-using AgentUp.Desktop.Features.Workspaces.Providers;
 
 namespace AgentUp.Desktop.Features.FirstRun.Services;
 
 public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 {
     private static readonly string[] RequiredApplicationNames = ["React SPA", "Express API", "Postgres"];
-    private readonly WorkspaceApiClient _workspaceClient;
+    private readonly WorkspacesController _workspaces;
     private readonly ProcessRunner _runProcessAsync;
 
-    public FirstRunTutorialChecks(WorkspaceApiClient workspaceClient)
-        : this(workspaceClient, RunProcessAsync)
+    public FirstRunTutorialChecks(WorkspacesController workspaces)
+        : this(workspaces, RunProcessAsync)
     {
     }
 
-    internal FirstRunTutorialChecks(WorkspaceApiClient workspaceClient, ProcessRunner runProcessAsync)
+    internal FirstRunTutorialChecks(WorkspacesController workspaces, ProcessRunner runProcessAsync)
     {
-        _workspaceClient = workspaceClient;
+        _workspaces = workspaces;
         _runProcessAsync = runProcessAsync;
     }
 
@@ -33,7 +33,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
     {
         try
         {
-            await _workspaceClient.CleanupTutorialWorkspacesAsync(cancellationToken);
+            await _workspaces.CleanupTutorialWorkspacesAsync(cancellationToken);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -364,7 +364,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
     {
         try
         {
-            return (await _workspaceClient.ListAsync(cancellationToken), null);
+            return ((await _workspaces.ListAsync(cancellationToken)).ToList(), null);
         }
         catch (HttpRequestException ex)
         {

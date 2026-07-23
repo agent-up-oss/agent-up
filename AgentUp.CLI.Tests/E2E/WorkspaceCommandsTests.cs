@@ -387,6 +387,7 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Services.AddSingleton<ProcessOutputService>();
         builder.Services.AddSingleton<ProcessesController>();
+        builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();

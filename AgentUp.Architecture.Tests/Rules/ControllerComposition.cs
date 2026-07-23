@@ -104,6 +104,21 @@ public sealed class ControllerComposition
             "Feature slices that receive inbound traffic from entrypoints or sibling slices must expose a Controllers/ boundary.");
     }
 
+    [Test]
+    public void Feature_slices_do_not_import_sibling_slice_internals()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var violations = ArchitectureFixture.ProductionSourceFiles(root)
+            .Select(path => (Path: path, Parts: ArchitectureFixture.Parts(root, path)))
+            .Where(item => TryFeatureLocation(item.Parts, out _, out _, out var typeFolder)
+                           && IsRuntimeBoundaryCaller(item.Parts[0], typeFolder))
+            .SelectMany(item => FindCrossSliceInternalUsings(root, item.Path, item.Parts))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty,
+            "Controllers, and Server domain services, must call sibling slices through Controllers/ or explicit contracts, not implementation services/providers/repositories/factories.");
+    }
+
     private static bool ReturnTypeLooksInternal(TypeSyntax returnType)
     {
         var text = returnType.ToString();
@@ -128,37 +143,67 @@ public sealed class ControllerComposition
     private static IEnumerable<(string Project, string Slice)> FindInboundFeatureTargets(string root, string path, string[] sourceParts)
     {
         var sourceIsFeature = TryFeatureLocation(sourceParts, out var sourceProject, out var sourceSlice, out _);
-        if (!sourceIsFeature && !IsApprovedEntrypoint(sourceParts))
+        if (!sourceIsFeature)
             yield break;
 
         var (_, rootNode) = ArchitectureFixture.ParseSourceFile(path);
         var project = sourceIsFeature ? sourceProject : sourceParts[0];
         var prefix = $"{project}.Features.";
 
-        foreach (var usingDirective in rootNode.DescendantNodes().OfType<UsingDirectiveSyntax>())
-        {
-            var name = usingDirective.Name?.ToString();
-            if (name is null || !name.StartsWith(prefix, StringComparison.Ordinal))
-                continue;
-
-            var targetParts = name[prefix.Length..].Split('.');
-            if (targetParts.Length < 1)
-                continue;
-
-            var targetSlice = targetParts[0];
-            if (sourceIsFeature && targetSlice == sourceSlice)
-                continue;
-
-            yield return (project, targetSlice);
-        }
+        foreach (var target in rootNode.DescendantNodes()
+                     .OfType<UsingDirectiveSyntax>()
+                     .Select(usingDirective => usingDirective.Name?.ToString())
+                     .Where(name => name is not null && name.StartsWith(prefix, StringComparison.Ordinal))
+                     .Select(name => name![prefix.Length..].Split('.'))
+                     .Where(targetParts => targetParts.Length >= 1)
+                     .Select(targetParts => targetParts[0])
+                     .Where(targetSlice => !sourceIsFeature || targetSlice != sourceSlice))
+            yield return (project, target);
     }
 
     private static bool FeatureHasController(string root, string project, string slice)
     {
         var controllers = Path.Join(root, project, "Features", slice, "Controllers");
-        return Directory.Exists(controllers)
-               && Directory.EnumerateFiles(controllers, "*.cs", SearchOption.TopDirectoryOnly).Any();
+        return Directory.Exists(controllers) &&
+               Directory.EnumerateFiles(controllers, "*.cs", SearchOption.TopDirectoryOnly)
+                   .Any(path =>
+                   {
+                       var (_, rootNode) = ArchitectureFixture.ParseSourceFile(path);
+                       return rootNode.DescendantNodes()
+                           .OfType<TypeDeclarationSyntax>()
+                           .Any(type => type.Identifier.Text.EndsWith("Controller", StringComparison.Ordinal)
+                                        && !type.Modifiers.Any(modifier => modifier.RawKind == (int)SyntaxKind.StaticKeyword)
+                                        && !type.Modifiers.Any(modifier => modifier.RawKind == (int)SyntaxKind.AbstractKeyword));
+                   });
     }
+
+    private static IEnumerable<string> FindCrossSliceInternalUsings(string root, string path, string[] sourceParts)
+    {
+        var sourceIsFeature = TryFeatureLocation(sourceParts, out var sourceProject, out var sourceSlice, out _);
+        if (!sourceIsFeature && !IsApprovedEntrypoint(sourceParts))
+            yield break;
+
+        var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
+        var project = sourceIsFeature ? sourceProject : sourceParts[0];
+        var prefix = $"{project}.Features.";
+        foreach (var violation in rootNode.DescendantNodes()
+                     .OfType<UsingDirectiveSyntax>()
+                     .Select(usingDirective => (Using: usingDirective, Name: usingDirective.Name?.ToString()))
+                     .Where(item => item.Name is not null && item.Name.StartsWith(prefix, StringComparison.Ordinal))
+                     .Select(item => (item.Using, TargetParts: item.Name![prefix.Length..].Split('.'), item.Name))
+                     .Where(item => item.TargetParts.Length >= 2)
+                     .Where(item => !sourceIsFeature || item.TargetParts[0] != sourceSlice)
+                     .Where(item => !IsApprovedCrossSliceFolder(item.TargetParts[1]))
+                     .Select(item => $"{ArchitectureFixture.Location(root, path, tree, item.Using)}: using {item.Name}"))
+            yield return violation;
+    }
+
+    private static bool IsApprovedCrossSliceFolder(string folder)
+        => folder is "Controllers" or "DTOs" or "Interfaces" or "Models";
+
+    private static bool IsRuntimeBoundaryCaller(string project, string typeFolder)
+        => typeFolder == "Controllers"
+           || (project == "AgentUp.Server" && typeFolder == "Services");
 
     private static bool IsApprovedEntrypoint(string[] parts)
         => parts.Length == 2

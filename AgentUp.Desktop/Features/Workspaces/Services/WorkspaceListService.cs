@@ -14,4 +14,7 @@ public sealed class WorkspaceListService
 
     public async Task<IReadOnlyList<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default)
         => await _client.ListAsync(cancellationToken);
+
+    public async Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
+        => await _client.CleanupTutorialWorkspacesAsync(cancellationToken);
 }

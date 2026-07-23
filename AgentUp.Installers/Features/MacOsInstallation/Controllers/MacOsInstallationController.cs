@@ -1,5 +1,5 @@
+using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.MacOsInstallation.Services;
 
 namespace AgentUp.Installers.Features.MacOsInstallation.Controllers;

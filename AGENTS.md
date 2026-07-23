@@ -500,7 +500,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Packaging` | `AgentUp.Packaging.Tests` |
 | `AgentUp.PackageSmoke` | `AgentUp.PackageSmoke.Tests` |
 
-`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. Keep architecture and generic source hygiene rules there instead of burying them in product E2E tests.
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and Server-service sibling-slice boundary usage, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. Keep architecture and generic source hygiene rules there instead of burying them in product E2E tests.
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
@@ -512,7 +512,7 @@ After every task that touches any production project, run the architecture tests
 dotnet test AgentUp.Architecture.Tests/AgentUp.Architecture.Tests.csproj
 ```
 
-All 8 architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
 
 Forbidden:
 
@@ -527,7 +527,7 @@ Forbidden:
 
 Tests should follow the same feature/slice layout as production code.
 
-Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe.
+Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind folders such as `Controller/` must stay under `Features/<Slice>/`.
 
 ```text
 AgentUp.Server.Tests/

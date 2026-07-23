@@ -25,8 +25,7 @@ public sealed class TestFileLayout
         var parts = ArchitectureFixture.Parts(root, path);
         return parts.Length == 2 && parts[1] == "Program.cs"
                || parts[0] == "AgentUp.Architecture.Tests"
-               || parts.Length >= 2 && ArchitectureFixture.AllowedTestKindFolders.Contains(parts[1])
-               || parts.Length >= 2 && parts[1] == "Fixtures"
+               || parts.Length >= 2 && ArchitectureFixture.AllowedRootTestSupportFolders.Contains(parts[1])
                || parts.Length >= 3 && parts[1] == "Properties";
     }
 

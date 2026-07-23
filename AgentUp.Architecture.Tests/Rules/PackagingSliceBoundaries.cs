@@ -1,9 +1,10 @@
 using System.Text.RegularExpressions;
+using AgentUp.Architecture.Tests.Fixtures;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Controller;
+namespace AgentUp.Architecture.Tests.Rules;
 
 [TestFixture]
-public class PackagingSliceBoundaryTests
+public sealed class PackagingSliceBoundaries
 {
     private static readonly Regex CrossSliceUsingPattern = new(
         @"^using AgentUp\.Packaging\.Features\.(?<slice>[^.]+)\.(?<folder>Services|Models|Providers|Interfaces|Factories);$",
@@ -12,7 +13,8 @@ public class PackagingSliceBoundaryTests
     [Test]
     public void FeatureSlicesDoNotReachIntoOtherSlicesInternals()
     {
-        var sourceRoot = FindPackagingSourceRoot();
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var sourceRoot = Path.Join(root, "AgentUp.Packaging");
         var violations = new List<string>();
 
         foreach (var file in Directory.EnumerateFiles(Path.Join(sourceRoot, "Features"), "*.cs", SearchOption.AllDirectories))
@@ -40,7 +42,8 @@ public class PackagingSliceBoundaryTests
     [Test]
     public void ProgramUsesCompositionRootAndFeatureControllerEntrypoint()
     {
-        var sourceRoot = FindPackagingSourceRoot();
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var sourceRoot = Path.Join(root, "AgentUp.Packaging");
         var programSource = File.ReadAllText(Path.Join(sourceRoot, "Program.cs"));
         var featureUsings = Regex.Matches(programSource, @"^using AgentUp\.Packaging\.Features\.[^;]+;$", RegexOptions.Multiline)
             .Select(match => match.Value)
@@ -54,7 +57,8 @@ public class PackagingSliceBoundaryTests
     [Test]
     public void ControllersDoNotInstantiateDependencies()
     {
-        var sourceRoot = FindPackagingSourceRoot();
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var sourceRoot = Path.Join(root, "AgentUp.Packaging");
         var violations = Directory
             .EnumerateFiles(Path.Join(sourceRoot, "Features"), "*.cs", SearchOption.AllDirectories)
             .Where(file => file.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Contains("Controllers"))
@@ -65,20 +69,5 @@ public class PackagingSliceBoundaryTests
             .ToArray();
 
         Assert.That(violations, Is.Empty, string.Join(Environment.NewLine, violations));
-    }
-
-    private static string FindPackagingSourceRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var candidate = Path.Join(directory.FullName, "AgentUp.Packaging");
-            if (File.Exists(Path.Join(candidate, "AgentUp.Packaging.csproj")))
-                return candidate;
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not find AgentUp.Packaging source root.");
     }
 }

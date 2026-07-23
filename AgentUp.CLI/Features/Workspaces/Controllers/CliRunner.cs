@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace AgentUp.CLI.Features.Workspaces.Controllers;
 
-public sealed class CliRunner
+public sealed class WorkspacesController
 {
     private readonly string _serverUrl;
     private readonly TextWriter _output;
@@ -11,7 +11,7 @@ public sealed class CliRunner
     private readonly ListCommand _list;
     private readonly StatusCommand _status;
 
-    public CliRunner(
+    public WorkspacesController(
         string serverUrl,
         TextWriter output,
         StartCommand start,
@@ -63,8 +63,8 @@ public sealed class CliRunner
 
     private int PrintVersion()
     {
-        var version = typeof(CliRunner).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-                      ?? typeof(CliRunner).Assembly.GetName().Version?.ToString()
+        var version = typeof(WorkspacesController).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                      ?? typeof(WorkspacesController).Assembly.GetName().Version?.ToString()
                       ?? "0.0.0";
         _output.WriteLine(version);
         return 0;

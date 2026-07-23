@@ -33,7 +33,8 @@ internal static class ServerTestComposition
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
         => new(new McpWorkspaceService(
-            registry,
+            new WorkspaceQueryController(registry),
+            new WorkspaceStateController(registry),
             CreateProcessesController(processes),
             configuration,
             identity));

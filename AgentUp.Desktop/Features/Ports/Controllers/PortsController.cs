@@ -1,4 +1,4 @@
-using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.Services;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 
@@ -13,6 +13,6 @@ public sealed class PortsController
         _service = service;
     }
 
-    public IReadOnlyList<SubTabViewModel> CreateTabs(ApplicationViewModel application)
-        => _service.CreateTabs(application);
+    public IReadOnlyList<SubTabViewModel> CreateTabs(IReadOnlyList<PortTabRequest> ports)
+        => _service.CreateTabs(ports);
 }

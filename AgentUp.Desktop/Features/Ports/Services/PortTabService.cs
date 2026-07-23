@@ -1,13 +1,13 @@
-using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 
 namespace AgentUp.Desktop.Features.Ports.Services;
 
 public sealed class PortTabService
 {
-    public IReadOnlyList<SubTabViewModel> CreateTabs(ApplicationViewModel application)
+    public IReadOnlyList<SubTabViewModel> CreateTabs(IReadOnlyList<PortTabRequest> ports)
     {
-        var tabs = application.AllocatedPorts
+        var tabs = ports
             .Select(port => (SubTabViewModel)new PortSubTabViewModel(
                 port.Variable,
                 port.DefaultPort,

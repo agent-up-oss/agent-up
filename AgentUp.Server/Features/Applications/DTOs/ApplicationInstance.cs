@@ -1,4 +1,4 @@
-using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Capabilities.DTOs;
 
 namespace AgentUp.Server.Features.Applications.DTOs;

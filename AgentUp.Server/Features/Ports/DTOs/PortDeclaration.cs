@@ -1,4 +1,4 @@
-namespace AgentUp.Server.Features.Ports.Models;
+namespace AgentUp.Server.Features.Ports.DTOs;
 
 public record PortDeclaration(
     string? Variable,

@@ -1,5 +1,5 @@
+using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.UbuntuInstallation.Services;
 
 namespace AgentUp.Installers.Features.UbuntuInstallation.Controllers;

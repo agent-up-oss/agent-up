@@ -8,7 +8,7 @@ using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
-using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -59,6 +59,7 @@ public class ApplicationsHttpTests
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
         builder.Services.AddSingleton<ProcessOutputService>();
         builder.Services.AddSingleton<ProcessesController>();
+        builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();

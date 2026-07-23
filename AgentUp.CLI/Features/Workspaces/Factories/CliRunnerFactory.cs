@@ -6,7 +6,7 @@ namespace AgentUp.CLI.Features.Workspaces.Factories;
 
 public static class CliRunnerFactory
 {
-    public static CliRunner Create(string serverUrl, string workingDirectory, TextWriter? output = null)
+    public static WorkspacesController Create(string serverUrl, string workingDirectory, TextWriter? output = null)
     {
         var writer = output ?? Console.Out;
         var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
@@ -19,7 +19,7 @@ public static class CliRunnerFactory
             resolver,
             workingDirectory);
 
-        return new CliRunner(
+        return new WorkspacesController(
             serverUrl,
             writer,
             new StartCommand(service, writer),

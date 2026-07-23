@@ -1,8 +1,10 @@
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.FirstRun.Provider;
@@ -245,7 +247,7 @@ public class FirstRunTutorialChecksTests
     {
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        return new FirstRunTutorialChecks(new WorkspaceApiClient(http));
+        return new FirstRunTutorialChecks(new WorkspacesController(new WorkspaceListService(new WorkspaceApiClient(http))));
     }
 
     private static FirstRunTutorialChecks CreateChecks(
@@ -254,7 +256,7 @@ public class FirstRunTutorialChecksTests
     {
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        return new FirstRunTutorialChecks(new WorkspaceApiClient(http), processRunner);
+        return new FirstRunTutorialChecks(new WorkspacesController(new WorkspaceListService(new WorkspaceApiClient(http))), processRunner);
     }
 
     private static WorkspaceDto SampleWorkspace(string path, int webPort, int apiPort, int postgresPort)

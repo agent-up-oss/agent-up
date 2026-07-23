@@ -1,16 +1,9 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Features.Installation.Factories;
-using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
@@ -96,7 +89,8 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         var configFileName = request.Product.WorkspaceConfigFileName;
         var repo = Path.Join(request.WorkDirectory, "example-workspace");
         Directory.CreateDirectory(repo);
-        await File.WriteAllTextAsync(Path.Join(repo, configFileName), """
+        var configPath = SafeWorkspaceConfigPath(repo, configFileName);
+        await File.WriteAllTextAsync(configPath, """
             {
               "name": "Installed Service Smoke Workspace",
               "applications": []
@@ -185,6 +179,25 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         return OperatingSystem.IsWindows()
             ? new CommandSpec("powershell.exe", ["-NoProfile", "-Command", WindowsGitCommand(command, configFileName)], Environment: environment)
             : new CommandSpec("bash", ["-lc", UnixGitCommand(command, configFileName)], Environment: environment);
+    }
+
+    private static string SafeWorkspaceConfigPath(string repositoryDirectory, string configFileName)
+    {
+        if (string.IsNullOrWhiteSpace(configFileName)
+            || Path.IsPathRooted(configFileName)
+            || configFileName.Contains("..", StringComparison.Ordinal)
+            || configFileName.IndexOfAny(['/', '\\', ':']) >= 0
+            || !string.Equals(configFileName, Path.GetFileName(configFileName), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Workspace config file name must be a single safe file name.");
+        }
+
+        var repositoryRoot = Path.GetFullPath(repositoryDirectory);
+        var configPath = Path.GetFullPath(Path.Join(repositoryRoot, configFileName));
+        if (!configPath.StartsWith(repositoryRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            throw new InvalidOperationException("Workspace config file path escaped the workspace repository.");
+
+        return configPath;
     }
 
     private static string UnixGitCommand(GitSmokeCommand command, string configFileName)

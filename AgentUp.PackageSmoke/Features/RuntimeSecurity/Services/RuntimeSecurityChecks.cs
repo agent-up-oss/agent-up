@@ -1,14 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Features.Installation.Factories;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using System.Net;
 using System.Text.RegularExpressions;
+using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Providers;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
 namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
 
@@ -25,13 +18,13 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
         _httpClient = httpClient;
     }
 
-    public async Task RunAsync(string serverUrl, FileAssertions assert, CancellationToken cancellationToken = default)
+    public async Task RunAsync(string serverUrl, IRuntimeSecurityFindingSink findings, CancellationToken cancellationToken = default)
     {
-        CheckPortBinding(serverUrl, assert);
-        await CheckResponseHeadersAsync(serverUrl, assert, cancellationToken);
+        CheckPortBinding(serverUrl, findings);
+        await CheckResponseHeadersAsync(serverUrl, findings, cancellationToken);
     }
 
-    private void CheckPortBinding(string serverUrl, FileAssertions assert)
+    private void CheckPortBinding(string serverUrl, IRuntimeSecurityFindingSink findings)
     {
         var port = new Uri(serverUrl).Port;
         var onPort = _networkState.GetActiveTcpListeners()
@@ -40,7 +33,7 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
 
         if (onPort.Count == 0)
         {
-            assert.Info("security.binding.loopback", $"No TCP listeners found on port {port}.");
+            findings.Info("security.binding.loopback", $"No TCP listeners found on port {port}.");
             return;
         }
 
@@ -49,13 +42,13 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
             .ToList();
 
         if (nonLoopback.Count > 0)
-            assert.Error("security.binding.loopback",
+            findings.Error("security.binding.loopback",
                 $"Server port {port} is bound to non-loopback address(es): {string.Join(", ", nonLoopback.Select(ep => ep.Address))}");
         else
-            assert.Info("security.binding.loopback", $"Port {port} is bound to loopback only.");
+            findings.Info("security.binding.loopback", $"Port {port} is bound to loopback only.");
     }
 
-    private async Task CheckResponseHeadersAsync(string serverUrl, FileAssertions assert, CancellationToken cancellationToken)
+    private async Task CheckResponseHeadersAsync(string serverUrl, IRuntimeSecurityFindingSink findings, CancellationToken cancellationToken)
     {
         try
         {
@@ -67,15 +60,15 @@ public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
             var serverHeader = response.Headers.Server.ToString();
 
             if (VersionPattern.IsMatch(serverHeader))
-                assert.Error("security.headers.server",
+                findings.Error("security.headers.server",
                     $"Server header exposes version information: \"{serverHeader}\"");
             else
-                assert.Info("security.headers.server",
+                findings.Info("security.headers.server",
                     $"Server header is non-disclosing: \"{serverHeader}\"");
         }
         catch (HttpRequestException ex)
         {
-            assert.Error("security.headers.probe",
+            findings.Error("security.headers.probe",
                 $"Could not reach server to check response headers: {ex.Message}");
         }
     }

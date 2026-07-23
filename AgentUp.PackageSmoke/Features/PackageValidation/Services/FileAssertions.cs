@@ -1,15 +1,9 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Features.Installation.Factories;
-using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 
 namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
 
-public sealed class FileAssertions
+public sealed class FileAssertions : IRuntimeSecurityFindingSink
 {
     private readonly List<SmokeFinding> _findings = [];
 

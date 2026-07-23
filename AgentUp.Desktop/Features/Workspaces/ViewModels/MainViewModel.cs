@@ -6,6 +6,7 @@ using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
+using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using ReactiveUI;
@@ -204,7 +205,10 @@ public sealed class MainViewModel : ReactiveObject
         SubTabs.Clear();
         if (app is null) return;
 
-        foreach (var tab in _ports.CreateTabs(app))
+        var ports = app.AllocatedPorts
+            .Select(port => new PortTabRequest(port.Variable ?? string.Empty, port.DefaultPort, port.AllocatedPort, port.Protocol))
+            .ToList();
+        foreach (var tab in _ports.CreateTabs(ports))
             SubTabs.Add(tab);
 
         SelectedSubTab = SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault()

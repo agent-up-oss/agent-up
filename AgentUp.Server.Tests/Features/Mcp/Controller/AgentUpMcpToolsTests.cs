@@ -7,7 +7,7 @@ using AgentUp.Server.Features.Mcp.Providers;
 using AgentUp.Server.Features.Mcp.Services;
 using AgentUp.Server.Features.Mcp.Tools;
 using AgentUp.Server.Features.Processes.Services;
-using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;

@@ -1,23 +1,28 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Features.Workspaces.Services;
 
 namespace AgentUp.Server.Features.Applications.Services;
 
 public sealed class ApplicationLifecycleService
 {
-    private readonly WorkspaceRegistry _registry;
+    private readonly WorkspaceQueryController _workspaces;
+    private readonly WorkspaceStateController _states;
     private readonly ProcessesController _processes;
 
-    public ApplicationLifecycleService(WorkspaceRegistry registry, ProcessesController processes)
+    public ApplicationLifecycleService(
+        WorkspaceQueryController workspaces,
+        WorkspaceStateController states,
+        ProcessesController processes)
     {
-        _registry = registry;
+        _workspaces = workspaces;
+        _states = states;
         _processes = processes;
     }
 
     public IReadOnlyList<ApplicationInstance>? GetApplications(string workspaceId)
-        => _registry.GetById(workspaceId)?.Applications;
+        => _workspaces.GetById(workspaceId)?.Applications;
 
     public async Task<ApplicationLifecycleResult> StartAsync(string workspaceId, string applicationName)
     {
@@ -25,17 +30,17 @@ public sealed class ApplicationLifecycleService
         if (workspace is null)
             return ApplicationLifecycleResult.NotFound();
 
-        await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Starting);
+        await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Starting);
         try
         {
             await _processes.LaunchApplicationAsync(workspace, applicationName);
-            await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
+            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
             return ApplicationLifecycleResult.Success();
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
-            await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Failed);
-            return ApplicationLifecycleResult.Failed(ex.Message);
+            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Failed);
+            return ApplicationLifecycleResult.Failed("Application could not be started.");
         }
     }
 
@@ -45,10 +50,18 @@ public sealed class ApplicationLifecycleService
         if (workspace is null)
             return ApplicationLifecycleResult.NotFound();
 
-        await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Stopping);
-        await _processes.KillApplicationAsync(workspaceId, applicationName);
-        await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Stopped);
-        return ApplicationLifecycleResult.Success();
+        await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Stopping);
+        try
+        {
+            await _processes.KillApplicationAsync(workspaceId, applicationName);
+            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Stopped);
+            return ApplicationLifecycleResult.Success();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Failed);
+            return ApplicationLifecycleResult.Failed("Application could not be stopped.");
+        }
     }
 
     public async Task<ApplicationLifecycleResult> RestartAsync(string workspaceId, string applicationName)
@@ -57,18 +70,18 @@ public sealed class ApplicationLifecycleService
         if (workspace is null)
             return ApplicationLifecycleResult.NotFound();
 
-        await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Starting);
+        await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Starting);
         try
         {
             await _processes.KillApplicationAsync(workspaceId, applicationName);
             await _processes.LaunchApplicationAsync(workspace, applicationName);
-            await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
+            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
             return ApplicationLifecycleResult.Success();
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
-            await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Failed);
-            return ApplicationLifecycleResult.Failed(ex.Message);
+            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Failed);
+            return ApplicationLifecycleResult.Failed("Application could not be restarted.");
         }
     }
 
@@ -82,7 +95,7 @@ public sealed class ApplicationLifecycleService
 
     private Workspace? Resolve(string workspaceId, string applicationName)
     {
-        var workspace = _registry.GetById(workspaceId);
+        var workspace = _workspaces.GetById(workspaceId);
         return workspace is null || workspace.Applications.All(app => app.Name != applicationName)
             ? null
             : workspace;

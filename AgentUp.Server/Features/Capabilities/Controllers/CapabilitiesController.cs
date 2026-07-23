@@ -1,6 +1,6 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
-using AgentUp.Server.Features.Ports.Models;
+using AgentUp.Server.Features.Ports.DTOs;
 
 namespace AgentUp.Server.Features.Capabilities.Controllers;
 

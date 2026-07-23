@@ -1,26 +1,34 @@
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Services;
+using AgentUp.Installers.Features.Installation.DTOs;
 
 namespace AgentUp.Installers.Features.Installation.Controllers;
 
 public sealed class InstallerWorkflowController
 {
-    public bool CanGoBack(InstallerSession session) => Services.InstallerWorkflow.CanGoBack(session);
+    private readonly InstallerWorkflowService _service;
 
-    public bool CanGoNext(InstallerSession session) => Services.InstallerWorkflow.CanGoNext(session);
+    public InstallerWorkflowController(InstallerWorkflowService service)
+    {
+        _service = service;
+    }
 
-    public InstallerSession GoNext(InstallerSession session) => Services.InstallerWorkflow.GoNext(session);
+    public bool CanGoBack(InstallerSession session) => _service.CanGoBack(session);
 
-    public InstallerSession GoBack(InstallerSession session) => Services.InstallerWorkflow.GoBack(session);
+    public bool CanGoNext(InstallerSession session) => _service.CanGoNext(session);
+
+    public InstallerSession GoNext(InstallerSession session) => _service.GoNext(session);
+
+    public InstallerSession GoBack(InstallerSession session) => _service.GoBack(session);
 
     public InstallerSession AcceptLicense(InstallerSession session, bool accepted)
-        => Services.InstallerWorkflow.AcceptLicense(session, accepted);
+        => _service.AcceptLicense(session, accepted);
 
-    public InstallerSession WithDockerStatus(InstallerSession session, PrerequisiteChecks.Models.DockerStatus status)
-        => Services.InstallerWorkflow.WithDockerStatus(session, status);
+    public InstallerSession WithDockerStatus(InstallerSession session, WorkflowDockerStatus status)
+        => _service.WithDockerStatus(session, status);
 
-    public InstallerSession StartInstall(InstallerSession session) => Services.InstallerWorkflow.StartInstall(session);
+    public InstallerSession StartInstall(InstallerSession session) => _service.StartInstall(session);
 
     public InstallerSession Complete(InstallerSession session, ValidationReport report)
-        => Services.InstallerWorkflow.Complete(session, report);
+        => _service.Complete(session, report);
 }

@@ -34,7 +34,7 @@ public static class MainViewModelFactory
             new ConsoleViewModel(console),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
-                new FirstRunTutorialChecks(workspaceClient)),
+                new FirstRunTutorialChecks(workspaces)),
             ports);
     }
 

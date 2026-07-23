@@ -39,7 +39,7 @@ public sealed class WorkspaceLifecycleService
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return WorkspaceLifecycleResult.Failed(ex.Message);
+            return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
         }
     }
 
@@ -52,12 +52,21 @@ public sealed class WorkspaceLifecycleService
         await _registry.UpdateStateAsync(id, WorkspaceState.Stopping);
         foreach (var app in workspace.Applications)
             await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopping);
-        await _processes.KillWorkspaceAsync(id);
-        await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);
-        foreach (var app in workspace.Applications)
-            await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopped);
 
-        return WorkspaceLifecycleResult.Success();
+        try
+        {
+            await _processes.KillWorkspaceAsync(id);
+            await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);
+            foreach (var app in workspace.Applications)
+                await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopped);
+
+            return WorkspaceLifecycleResult.Success();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
+            return WorkspaceLifecycleResult.Failed("Workspace could not be stopped.");
+        }
     }
 
     public async Task<int> CleanupTutorialWorkspacesAsync()
