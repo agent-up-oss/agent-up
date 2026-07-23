@@ -48,7 +48,10 @@ public class UbuntuInstallerPlatformAdapterTests
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
-        Assert.That(files.ResetDirectories, Does.Contain("/opt/agent-up"));
+        Assert.That(files.ResetDirectories, Does.Contain("/opt/agent-up/desktop")
+            .And.Contain("/opt/agent-up/server")
+            .And.Contain("/opt/agent-up/cli"));
+        Assert.That(files.ResetDirectories, Does.Not.Contain("/opt/agent-up"));
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/desktop", "/opt/agent-up/desktop")));
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/server", "/opt/agent-up/server")));
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/cli", "/opt/agent-up/cli")));
@@ -162,7 +165,10 @@ public class UbuntuInstallerPlatformAdapterTests
 
         await adapter.ExecuteInstallAsync(CustomSession()).DrainAsync();
 
-        Assert.That(files.ResetDirectories, Does.Contain("/opt/acme-studio"));
+        Assert.That(files.ResetDirectories, Does.Contain("/opt/acme-studio/desktop")
+            .And.Contain("/opt/acme-studio/server")
+            .And.Contain("/opt/acme-studio/cli"));
+        Assert.That(files.ResetDirectories, Does.Not.Contain("/opt/acme-studio"));
         Assert.That(files.ResetDirectories, Does.Not.Contain("/opt/agent-up"));
         Assert.That(files.CopiedDirectories.Select(d => d.Destination),
             Does.Not.Contain("/opt/agent-up/desktop")

@@ -141,9 +141,9 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         yield return progress.Complete(InstallOperationKind.StagePayload);
 
         var summary = session.Summary();
-        _files.ResetDirectory(_options.Paths.RootDirectory);
         if (summary.Includes(InstallerComponent.Desktop))
         {
+            _files.ResetDirectory(_options.Paths.DesktopDirectory);
             _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
             _files.CopyFile(_options.Payload.IconPath, _options.Paths.IconPath);
             _files.SetExecutable(_options.Paths.DesktopExecutable);
@@ -151,6 +151,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
 
         if (summary.Includes(InstallerComponent.Server))
         {
+            _files.ResetDirectory(_options.Paths.ServerDirectory);
             _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
             _files.CopyFile(_options.Payload.ServiceFilePath, _options.Paths.ServicePath);
             _files.SetExecutable(_options.Paths.ServerExecutable);
@@ -158,6 +159,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
 
         if (summary.Includes(InstallerComponent.Cli))
         {
+            _files.ResetDirectory(_options.Paths.CliDirectory);
             _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
             _files.SetExecutable(_options.Paths.CliExecutable);
         }
