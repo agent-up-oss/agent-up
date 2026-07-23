@@ -80,7 +80,10 @@ public class WorkspaceProcessManagerTests
 
             var startInfo = LocalProcessProvider.CreateStartInfo(workspace, web);
 
-            Assert.That(startInfo.WorkingDirectory, Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+            Assert.That(startInfo.WorkingDirectory, Is.Empty);
+            Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
+            Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
+                Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));
             Assert.That(startInfo.Environment["API_PORT"], Is.EqualTo(api.AllocatedPorts.Single().AllocatedPort.ToString()));
         }
@@ -155,7 +158,11 @@ public class WorkspaceProcessManagerTests
         var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
 
         Assert.That(startInfo.FileName, Is.EqualTo("npm"));
-        Assert.That(startInfo.ArgumentList, Is.EqualTo(new[] { "run", "dev server" }));
+        Assert.That(startInfo.WorkingDirectory, Is.Empty);
+        Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
+        Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
+            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList.Skip(2), Is.EqualTo(new[] { "run", "dev server" }));
     }
 
     [Test]

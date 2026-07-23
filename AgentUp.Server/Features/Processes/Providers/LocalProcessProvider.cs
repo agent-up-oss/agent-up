@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
@@ -92,13 +94,12 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         var startInfo = new ProcessStartInfo
         {
             FileName = parsed.FileName,
-            WorkingDirectory = workingDirectory,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        foreach (var argument in parsed.Arguments)
+        foreach (var argument in ApplyWorkingDirectoryArguments(parsed.FileName, parsed.Arguments, workingDirectory))
             startInfo.ArgumentList.Add(argument);
 
         return startInfo;
@@ -135,6 +136,55 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             throw new InvalidOperationException("Application command arguments must not contain control characters.");
 
         return (fileName, tokens.Skip(1).ToArray());
+    }
+
+    private static IReadOnlyList<string> ApplyWorkingDirectoryArguments(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string workingDirectory)
+    {
+        var directory = CreateWorkspaceDirectoryAlias(workingDirectory);
+        return fileName switch
+        {
+            "bun" => ["--cwd", directory, .. arguments],
+            "dotnet" when arguments.Count > 0 && arguments[0] == "run" && !arguments.Contains("--project", StringComparer.Ordinal)
+                => [.. arguments, "--project", directory],
+            "gradle" => ["-p", directory, .. arguments],
+            "make" => ["-C", directory, .. arguments],
+            "mvn" => ["-f", Path.Join(directory, "pom.xml"), .. arguments],
+            "npm" => ["--prefix", directory, .. arguments],
+            "pnpm" => ["--dir", directory, .. arguments],
+            "yarn" => ["--cwd", directory, .. arguments],
+            _ => arguments
+        };
+    }
+
+    private static string CreateWorkspaceDirectoryAlias(string workingDirectory)
+    {
+        var aliasRoot = Path.Join(Path.GetTempPath(), "AgentUp-WorkspaceDirectories");
+        Directory.CreateDirectory(aliasRoot);
+        var aliasName = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(workingDirectory)))[..32];
+        var aliasPath = Path.Join(aliasRoot, aliasName);
+
+        if (Directory.Exists(aliasPath))
+        {
+            var target = Directory.ResolveLinkTarget(aliasPath, returnFinalTarget: true);
+            if (target is not null && string.Equals(Path.GetFullPath(target.FullName), Path.GetFullPath(workingDirectory), StringComparison.Ordinal))
+                return aliasPath;
+
+            throw new InvalidOperationException("Workspace directory alias already exists with a different target.");
+        }
+
+        try
+        {
+            Directory.CreateSymbolicLink(aliasPath, workingDirectory);
+        }
+        catch (IOException) when (Directory.Exists(aliasPath))
+        {
+            return aliasPath;
+        }
+
+        return aliasPath;
     }
 
     private static string ResolveAllowedApplicationExecutable(string fileName)
