@@ -9,7 +9,7 @@
         MinWidth="640" MinHeight="400"
         Title="Agent-Up"
         WindowDecorations="None"
-        Background="#020806">
+        Background="#000000">
 
     <Window.DataTemplates>
         <!-- Console sub-tab -->
@@ -133,11 +133,11 @@
             <Setter Property="BorderThickness" Value="0,0,0,2"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.appTab">
-            <Setter Property="Background" Value="#092819"/>
+            <Setter Property="Background" Value="#0a0a0a"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.appTab">
-            <Setter Property="Background" Value="#0a3b28"/>
-            <Setter Property="BorderBrush" Value="#0f7a45"/>
+            <Setter Property="Background" Value="#07120a"/>
+            <Setter Property="BorderBrush" Value="#00b850"/>
         </Style>
 
         <!-- Sub-navbar tab -->
@@ -148,7 +148,7 @@
             <Setter Property="CornerRadius" Value="999"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.subTab">
-            <Setter Property="Background" Value="#0a2f20"/>
+            <Setter Property="Background" Value="#0a0a0a"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.subTab">
             <Setter Property="Background" Value="#0f7a45"/>
@@ -156,8 +156,8 @@
 
         <!-- Browser address bar -->
         <Style Selector="TextBox.addressBar">
-            <Setter Property="Background" Value="#04100b"/>
-            <Setter Property="BorderBrush" Value="#145a38"/>
+            <Setter Property="Background" Value="#030303"/>
+            <Setter Property="BorderBrush" Value="#184820"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Foreground" Value="#c9d7d0"/>
@@ -173,7 +173,7 @@
             <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
             <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Background" Value="#082418"/>
+            <Setter Property="Background" Value="#080808"/>
         </Style>
         <Style Selector="Button:pointerover Border.browserButton">
             <Setter Property="Background" Value="#0d4f32"/>
@@ -181,7 +181,7 @@
 
         <!-- Workspace entry: normal / hover / selected -->
         <Style Selector="Border.wsEntry">
-            <Setter Property="Background" Value="#06140f"/>
+            <Setter Property="Background" Value="#050505"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.wsEntry">
             <Setter Property="Background" Value="#0f5a38"/>
@@ -192,7 +192,7 @@
 
         <!-- Collapsed avatar: highlight selected -->
         <Style Selector="Border.wsAvatar">
-            <Setter Property="Background" Value="#06140f"/>
+            <Setter Property="Background" Value="#050505"/>
         </Style>
         <Style Selector="ListBoxItem:pointerover Border.wsAvatar">
             <Setter Property="Background" Value="#0f5a38"/>
@@ -211,12 +211,12 @@
             <Setter Property="Background" Value="#22e17b"/>
         </Style>
         <Style Selector="Button:disabled Border.tutorialButton">
-            <Setter Property="Background" Value="#143424"/>
+            <Setter Property="Background" Value="#202020"/>
         </Style>
         <Style Selector="Border.tutorialSecondaryButton">
             <Setter Property="CornerRadius" Value="7"/>
             <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Background" Value="#082418"/>
+            <Setter Property="Background" Value="#080808"/>
             <Setter Property="BorderBrush" Value="#147346"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
@@ -230,8 +230,8 @@
         </Style>
     </Window.Styles>
 
-    <Border Background="#020806"
-            BorderBrush="#0f4d32"
+    <Border Background="#000000"
+            BorderBrush="#287038"
             BorderThickness="1">
     <Grid RowDefinitions="42,*">
 
@@ -245,7 +245,7 @@
         <!-- Integrated window controls / drag surface -->
         <Border Grid.Row="0"
                 x:Name="WindowChrome"
-                Background="#020806"
+                Background="#000000"
                 PointerPressed="OnWindowChromePointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0"
@@ -273,7 +273,7 @@
                             CornerRadius="999"
                             BorderBrush="{Binding Sidebar.ServerStatusColor}"
                             BorderThickness="1"
-                            Background="#04100b"
+                            Background="#030303"
                             VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Border Width="9"
@@ -290,13 +290,21 @@
                     </Border>
                 </StackPanel>
 
-                <TextBlock Grid.Column="1"
-                           Text="Agent-Up"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="#f5fbf7"
-                           FontSize="13"
-                           FontWeight="Bold"/>
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <Image Source="avares://AgentUp.Desktop/media/logo.png"
+                           Width="18"
+                           Height="18"
+                           Stretch="Uniform"/>
+                    <TextBlock Text="Agent-Up"
+                               Foreground="#f5fbf7"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
 
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
@@ -337,8 +345,8 @@
         <Border Grid.Column="0"
                 x:Name="SidebarRail"
                 Width="{Binding Sidebar.Width}"
-                Background="#030b08"
-                BorderBrush="#082014"
+                Background="#000000"
+                BorderBrush="#184820"
                 BorderThickness="0,0,1,0">
             <DockPanel>
 
@@ -441,7 +449,7 @@
         </Border>
 
         <!-- ── Main content ───────────────────────────────────────────────────── -->
-        <Border Grid.Column="1" Background="#020806">
+        <Border Grid.Column="1" Background="#000000">
             <Panel>
 
                 <!-- Loading -->
@@ -501,8 +509,8 @@
 
                         <!-- Application tab bar -->
                         <Border Grid.Row="0"
-                                Background="#05180f"
-                                BorderBrush="#0d3827"
+                                Background="#050505"
+                                BorderBrush="#287038"
                                 BorderThickness="0,0,0,1">
                             <ListBox x:Name="ApplicationTabs"
                                      ItemsSource="{Binding Applications.Applications}"
@@ -536,8 +544,8 @@
                         <!-- Sub-navbar: Console + port tabs for the selected app -->
                         <Border Grid.Row="1"
                                 IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                Background="#04130d"
-                                BorderBrush="#0d3827"
+                                Background="#000000"
+                                BorderBrush="#184820"
                                 BorderThickness="0,0,0,1"
                                 Padding="14,8">
                             <ListBox x:Name="SubNavBar"
@@ -558,8 +566,8 @@
                         <Border Grid.Row="2"
                                 x:Name="AddressNavBar"
                                 IsVisible="{Binding ShowPortView}"
-                                Background="#04100b"
-                                BorderBrush="#0d3827"
+                                Background="#000000"
+                                BorderBrush="#104818"
                                 BorderThickness="0,0,0,1"
                                 Padding="16,7">
                             <Grid ColumnDefinitions="Auto,Auto,Auto,*"
@@ -730,8 +738,8 @@
                     MaxHeight="620"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
-                    Background="#04130d"
-                    BorderBrush="#00d66b"
+                    Background="#050505"
+                    BorderBrush="#00b850"
                     BorderThickness="1"
                     CornerRadius="8"
                     Padding="28">
@@ -793,7 +801,7 @@
                                     <Button Grid.Column="0"
                                             x:Name="TutorialSelectJavaScriptButton"
                                             Command="{Binding Tutorial.SelectJavaScriptCommand}">
-                                        <Border Background="#082418" BorderBrush="#00d66b" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Border Background="#080808" BorderBrush="#00b850" BorderThickness="1" CornerRadius="8" Padding="16">
                                             <StackPanel Spacing="8">
                                                 <TextBlock Text="JS"
                                                            Foreground="#f4dd4b"
@@ -805,14 +813,14 @@
                                             </StackPanel>
                                         </Border>
                                     </Button>
-                                    <Border Grid.Column="1" Background="#04100b" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                    <Border Grid.Column="1" Background="#050505" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text=".NET" Foreground="#8bb7ff" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text=".NET" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Coming later" Foreground="#acd0bd" FontSize="11" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
-                                    <Border Grid.Column="2" Background="#04100b" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                    <Border Grid.Column="2" Background="#050505" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text="PY" Foreground="#ffd66b" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Python" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
@@ -881,7 +889,7 @@
                                              FontFamily="Consolas,Courier New,monospace"
                                              FontSize="12"
                                              MinHeight="130"
-                                             Background="#020806"
+                                             Background="#000000"
                                              BorderBrush="#11683f"
                                              Foreground="#dcf3e7"
                                              Padding="12"/>
@@ -921,7 +929,7 @@
                                          FontFamily="Consolas,Courier New,monospace"
                                          FontSize="12"
                                          MinHeight="220"
-                                         Background="#020806"
+                                         Background="#000000"
                                          BorderBrush="#11683f"
                                          Foreground="#dcf3e7"
                                          Padding="12"/>
@@ -990,7 +998,7 @@
                                              FontFamily="Consolas,Courier New,monospace"
                                              FontSize="12"
                                              MinHeight="120"
-                                             Background="#020806"
+                                             Background="#000000"
                                              BorderBrush="#11683f"
                                              Foreground="#dcf3e7"
                                              Padding="12"/>
@@ -1076,7 +1084,7 @@
                             </StackPanel>
 
                             <Border IsVisible="{Binding Tutorial.StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                    Background="#020806"
+                                    Background="#000000"
                                     BorderBrush="#11683f"
                                     BorderThickness="1"
                                     CornerRadius="8"

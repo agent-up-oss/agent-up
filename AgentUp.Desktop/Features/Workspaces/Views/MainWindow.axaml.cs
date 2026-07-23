@@ -568,9 +568,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>");
         sb.Append("* { margin: 0; padding: 0; box-sizing: border-box; }");
-        sb.Append("html, body { height: 100%; overflow: hidden; background: #020806; }");
+        sb.Append("html, body { height: 100%; overflow: hidden; background: #000000; }");
         sb.Append("::selection { background-color: #0f7a45; color: #f5fbf7; }");
-        sb.Append("#content { display: block; width: 100%; height: 100%; background: #020806; color: #c7d9d0; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }");
+        sb.Append("#content { display: block; width: 100%; height: 100%; background: #000000; color: #c7d9d0; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }");
         sb.Append("</style></head><body>");
         sb.Append("<pre id=\"content\" tabindex=\"-1\">");
         foreach (var line in lines)
