@@ -74,8 +74,8 @@ const capabilities = [
 // ── Projects ──────────────────────────────────────────────────────────────────
 
 const projects = [
-  { id: 'A', name: 'Project A', agents: ['agent-1', 'agent-2'] },
-  { id: 'B', name: 'Project B', agents: ['agent-3'] },
+  { id: 'A', name: 'Agent-Up workspace', agents: ['agent-1', 'agent-2'] },
+  { id: 'B', name: 'Shop workspace', agents: ['agent-3'] },
 ];
 
 const agentServiceConfig = {
@@ -115,9 +115,9 @@ const getInitials = (id) => {
 };
 
 const agentMeta = {
-  'agent-1': { branch: 'feat/user-auth',     path: '/workspaces/project-a' },
-  'agent-2': { branch: 'feat/pricing-page',  path: '/workspaces/project-a-2' },
-  'agent-3': { branch: 'feat/inventory',     path: '/workspaces/shopcraft' },
+  'agent-1': { name: 'agent-up-agent1', branch: '104-the-ubuntu-installer-i...', path: '/workspaces/project-a' },
+  'agent-2': { name: 'agent-up-agent2', branch: '159-align-docs-and-desk...', path: '/workspaces/project-a-2' },
+  'agent-3': { name: 'agent-up-agent3', branch: 'main', path: '/workspaces/shopcraft' },
 };
 
 // page path lookup for URL bar
@@ -802,11 +802,25 @@ function HeroMockup() {
       aria-label="Agent-Up workspace topology"
     >
       <div className={styles.windowChrome}>
-        <span /><span /><span />
-      </div>
-      <div className={styles.interactiveBadge}>
-        <span className={styles.badgePulse} aria-hidden="true" />
-        Live interactive demo
+        <div className={styles.windowLeftControls}>
+          <button
+            type="button"
+            className={styles.chromeIcon}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={() => setCollapsed(!collapsed)}
+          >☰</button>
+          <button type="button" className={styles.chromeIcon} aria-label="Refresh">↻</button>
+          <span className={styles.serverStatus}><span />Server online</span>
+        </div>
+        <div className={styles.windowTitle}>
+          <img src="/img/logo.svg" alt="" />
+          <span>Agent-Up</span>
+        </div>
+        <div className={styles.windowRightControls} aria-hidden="true">
+          <span className={styles.windowMinimize}>−</span>
+          <span className={styles.windowMaximize}>□</span>
+          <span className={styles.windowClose}>×</span>
+        </div>
       </div>
       <div className={`${styles.workspaceRail} ${collapsed ? styles.workspaceRailCollapsed : ''}`}>
         {!collapsed && <strong>Workspaces</strong>}
@@ -831,19 +845,14 @@ function HeroMockup() {
                     className={`${styles.agentEntry} ${activeAgent === agentId ? styles.agentActive : ''}`}
                     onClick={() => handleAgentChange(agentId)}
                   >
-                    <span>{agentId}</span>
+                    <span className={styles.agentName}><span />{agentMeta[agentId]?.name ?? agentId}</span>
                     <span className={styles.agentBranch}>{agentMeta[agentId]?.branch}</span>
-                    <span className={styles.agentPath}>{agentMeta[agentId]?.path}</span>
                   </button>
                 ))}
               </div>
             )
           )}
         </div>
-        <button type="button" className={styles.collapseToggle}
-          onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >{collapsed ? '›' : '‹'}</button>
       </div>
       <div className={styles.runtimePanel}>
         <div className={styles.serviceTabs}>
@@ -851,20 +860,25 @@ function HeroMockup() {
             <button key={service} type="button"
               className={`${styles.serviceTab} ${activeService === service ? styles.serviceTabActive : ''}`}
               onClick={() => handleServiceChange(service)}
-            >{service}</button>
+            >
+              <span className={styles.appStatusDot} />
+              <span className={styles.serviceTabLabel}>{service}</span>
+            </button>
           ))}
         </div>
         <div className={styles.secondaryBar}>
           {secondaryTabs.map((tab) => (
             <button key={tab} type="button"
-              className={`${styles.secondaryTab} ${activeTab === tab ? styles.secondaryTabActive : ''}`}
+              className={`${styles.secondaryTab} ${tab.startsWith('Port') ? styles.portTab : ''} ${activeTab === tab ? styles.secondaryTabActive : ''}`}
               onClick={() => handleTabChange(tab)}
             >{tab}</button>
           ))}
         </div>
         {showUrlBar && (
           <div className={styles.urlBar}>
-            <span className={styles.urlLock}>🔒</span>
+            <button type="button" className={styles.browserNavButton} aria-label="Back">‹</button>
+            <button type="button" className={styles.browserNavButton} aria-label="Forward">›</button>
+            <button type="button" className={styles.browserNavButton} aria-label="Reload">↻</button>
             <span className={styles.urlText}>{currentUrl}</span>
           </div>
         )}
