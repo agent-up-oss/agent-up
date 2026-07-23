@@ -4,7 +4,7 @@ using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 
@@ -242,12 +242,4 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
     private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
 
-    private enum GitSmokeCommand
-    {
-        Init,
-        Email,
-        Name,
-        Add,
-        Commit
-    }
 }

@@ -33,7 +33,7 @@ public sealed class AgentUpMcpToolsTests
             new NullWorkspaceProcessManager(),
             _configuration,
             new FakeWorkspaceIdentityProvider());
-        var contextController = new McpContextController(new AgentUpContextProvider());
+        var contextController = new McpContextController(new McpContextService(new AgentUpContextProvider()));
         _tools = new AgentUpMcpTools(workspaceController, contextController);
     }
 
@@ -85,7 +85,7 @@ public sealed class AgentUpMcpToolsTests
             new NullWorkspaceProcessManager(),
             new ThrowingConfigurationProvider(),
             new FakeWorkspaceIdentityProvider());
-        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new AgentUpContextProvider()));
+        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new McpContextService(new AgentUpContextProvider())));
 
         var result = await tools.StartWorkspace("/repos/bad-config", CancellationToken.None);
 
@@ -125,7 +125,7 @@ public sealed class AgentUpMcpToolsTests
             new FailingWorkspaceProcessManager(),
             _configuration,
             new FakeWorkspaceIdentityProvider());
-        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new AgentUpContextProvider()));
+        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new McpContextService(new AgentUpContextProvider())));
 
         var result = await tools.StopWorkspace(workspace.Id);
 

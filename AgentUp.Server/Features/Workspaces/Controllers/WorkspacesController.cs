@@ -27,18 +27,11 @@ public sealed class WorkspacesController(WorkspaceRegistry registry, WorkspaceLi
 
     [HttpPost("{id}/start")]
     public async Task<IActionResult> Start(string id)
-    {
-        var result = await lifecycle.StartAsync(id);
-        if (!result.Found) return NotFound();
-        return result.Succeeded ? NoContent() : Problem(detail: result.Error, statusCode: 500);
-    }
+        => LifecycleResult(this, await lifecycle.StartAsync(id));
 
     [HttpPost("{id}/stop")]
     public async Task<IActionResult> Stop(string id)
-    {
-        var result = await lifecycle.StopAsync(id);
-        return result.Found ? NoContent() : NotFound();
-    }
+        => FoundResult(this, await lifecycle.StopAsync(id));
 
     [HttpPost("tutorial/cleanup")]
     public async Task<IActionResult> CleanupTutorialWorkspaces()
@@ -49,15 +42,23 @@ public sealed class WorkspacesController(WorkspaceRegistry registry, WorkspaceLi
 
     [HttpPatch("{id}/state")]
     public async Task<IActionResult> UpdateState(string id, UpdateWorkspaceStateRequest request)
-    {
-        var updated = await registry.UpdateStateAsync(id, request.State);
-        return updated ? NoContent() : NotFound();
-    }
+        => BoolResult(this, await registry.UpdateStateAsync(id, request.State));
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
+        => BoolResult(this, await registry.RemoveAsync(id));
+
+    private static IActionResult LifecycleResult(ControllerBase controller, WorkspaceLifecycleResult result)
     {
-        var removed = await registry.RemoveAsync(id);
-        return removed ? NoContent() : NotFound();
+        if (!result.Found)
+            return controller.NotFound();
+
+        return result.Succeeded ? controller.NoContent() : controller.Problem(detail: result.Error, statusCode: 500);
     }
+
+    private static IActionResult FoundResult(ControllerBase controller, WorkspaceLifecycleResult result)
+        => result.Found ? controller.NoContent() : controller.NotFound();
+
+    private static IActionResult BoolResult(ControllerBase controller, bool found)
+        => found ? controller.NoContent() : controller.NotFound();
 }

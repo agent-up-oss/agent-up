@@ -26,8 +26,6 @@ public static class PackageSmokeServiceRegistry
         var validation = new SmokeValidationProvider(packageValidation, installerFlow, installedService, workDirectory);
 
         return new SmokeCommandController(
-            new SmokeCommandParser(),
-            workDirectory,
-            new SmokeCommandService(validation));
+            new SmokeCommandService(validation, workDirectory, new SmokeCommandParser()));
     }
 }

@@ -94,6 +94,7 @@ builder.Services.AddSingleton<ApplicationLifecycleService>();
 builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
 builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
 builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
+builder.Services.AddSingleton<McpContextService>();
 builder.Services.AddSingleton<McpWorkspaceService>();
 builder.Services.AddSingleton<McpWorkspaceController>();
 builder.Services.AddSingleton<McpContextController>();

@@ -10,7 +10,7 @@ using AgentUp.PackageSmoke.Features.RuntimeSecurity;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
 using AgentUp.PackageSmoke.Features.PackageValidation;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Providers;
 using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
 
 namespace AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Provider;

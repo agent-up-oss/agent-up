@@ -1,3 +1,4 @@
+using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using System.Diagnostics;
 
@@ -652,12 +653,6 @@ public sealed class ProcessCommandRunner : ICommandRunner
             _ => throw new ArgumentOutOfRangeException(nameof(executable), executable, "Unsupported smoke executable.")
         };
 
-    private readonly record struct SafeCommandSpec(
-        SmokeExecutable Executable,
-        string DisplayName,
-        IReadOnlyList<string> Arguments,
-        IReadOnlyDictionary<string, string>? Environment);
-
     private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
 
     private static string? SelectUnixWorkingDirectoryCommand(string command)
@@ -685,23 +680,4 @@ public sealed class ProcessCommandRunner : ICommandRunner
             "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
             _ => null
         };
-
-    private enum SmokeExecutable
-    {
-        Unknown,
-        AgentUp,
-        AgentUpCmd,
-        Bash,
-        Cmd,
-        DpkgDeb,
-        Git,
-        Lsof,
-        Msiexec,
-        Pkgutil,
-        PowerShell,
-        Ps,
-        Sc,
-        Ss,
-        Sudo
-    }
 }

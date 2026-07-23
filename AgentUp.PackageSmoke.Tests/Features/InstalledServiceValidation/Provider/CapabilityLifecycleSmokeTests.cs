@@ -3,7 +3,7 @@ using System.Text.Json;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Provider;
 

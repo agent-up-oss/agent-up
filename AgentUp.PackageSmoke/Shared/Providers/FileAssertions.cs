@@ -1,7 +1,7 @@
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
+namespace AgentUp.PackageSmoke.Shared.Providers;
 
 public sealed class FileAssertions : IRuntimeSecurityFindingSink
 {

@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Installation.Services;
+using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;

@@ -116,9 +116,10 @@ public class PackageCommandControllerTests
         environment ??= _ => null;
 
         var environmentProvider = new DelegateEnvironmentVariableProvider(environment);
+        var parser = new PackageCommandParser(environmentProvider);
         return new PackageCommandController(
-            new PackageCommandParser(environmentProvider),
             new PackageCommandService(
+                parser,
                 new FixedRepositoryPathProvider(),
                 environmentProvider,
                 new RecordingUbuntuController(calls),

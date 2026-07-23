@@ -28,7 +28,7 @@ public sealed class AgentUpMcpResourcesTests
             new NullWorkspaceProcessManager(),
             new FakeConfigurationProvider(),
             new FakeWorkspaceIdentityProvider());
-        var contextController = new McpContextController(new AgentUpContextProvider());
+        var contextController = new McpContextController(new McpContextService(new AgentUpContextProvider()));
         _resources = new AgentUpMcpResources(workspaceController, contextController);
     }
 

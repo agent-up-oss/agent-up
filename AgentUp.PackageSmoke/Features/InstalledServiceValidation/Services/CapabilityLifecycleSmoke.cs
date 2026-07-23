@@ -1,8 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
+using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 
@@ -300,8 +301,6 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
 
     private static string Endpoint(string serverUrl, string path)
         => serverUrl.TrimEnd('/') + path;
-
-    private readonly record struct WorkspaceSnapshot(string Id, JsonElement Json);
 
     public void Dispose()
     {

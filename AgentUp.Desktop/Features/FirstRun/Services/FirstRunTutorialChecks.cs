@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using AgentUp.Desktop.Features.FirstRun.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 
@@ -543,8 +544,6 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         var delayTask = Task.Delay(timeout, cancellationToken);
         return await Task.WhenAny(exitTask, delayTask) == exitTask;
     }
-
-    private sealed record AgentUpCommand(string FileName, string ArgumentsPrefix, bool IsFallback);
 
     private const string AgentUpJson = """
         {

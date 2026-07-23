@@ -107,6 +107,4 @@ public sealed class CapabilityReconciliationService(IEnumerable<ICapabilityAdapt
             ? "\"" + value.Replace("\"", "\\\"", StringComparison.Ordinal) + "\""
             : value;
     }
-
-    private sealed record ResolvedCapability(CapabilityLaunchPlan Plan, CapabilityStatusDto Status);
 }

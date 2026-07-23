@@ -18,13 +18,14 @@ public static class CliRunnerFactory
             new WorkspaceIdentityProvider(),
             resolver,
             workingDirectory);
+        var commandOutput = new WorkspaceCommandOutputService(writer);
 
         return new WorkspacesController(
             serverUrl,
             writer,
-            new StartCommand(service, writer),
+            new StartCommand(service, commandOutput),
             new StopCommand(service, writer),
-            new ListCommand(service, writer),
-            new StatusCommand(service, writer));
+            new ListCommand(service, commandOutput),
+            new StatusCommand(service, commandOutput));
     }
 }

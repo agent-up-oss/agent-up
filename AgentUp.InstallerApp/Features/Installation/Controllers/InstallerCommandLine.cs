@@ -1,12 +1,10 @@
-using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Factories;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Services;
 
-namespace AgentUp.InstallerApp.Features.Installation.Services;
+namespace AgentUp.InstallerApp.Features.Installation.Controllers;
 
 public static class InstallerCommandLine
 {
@@ -31,17 +29,6 @@ public static class InstallerCommandLine
 
     public static bool ShouldRunCommandLine(string[] args)
         => args.Any(arg => CommandArguments.Contains(arg, StringComparer.OrdinalIgnoreCase));
-
-    public static async Task<int> RunAsync(
-        string[] args,
-        TextWriter output,
-        TextWriter error,
-        CancellationToken cancellationToken = default)
-    {
-        InstallerLog.Write($"CLI: args=[{string.Join(", ", args)}]");
-        var adapter = InstallerPlatformAdapterFactory.Create();
-        return await RunAsync(adapter, args, output, error, cancellationToken);
-    }
 
     public static Task<int> RunAsync(
         IInstallerPlatformAdapter adapter,

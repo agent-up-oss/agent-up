@@ -36,14 +36,15 @@ public sealed class PackagingServiceRegistry
         var macOs = new MacOsPackageController(new MacOsPackager(macOsWriter, macOsStaging, new MacOsPackageTool(commands)));
 
         var environment = new EnvironmentVariableProvider();
+        var parser = new PackageCommandParser(environment);
 
         PackageCommands = new PackageCommandController(
-            new PackageCommandParser(environment),
             new PackageCommandService(
-            new RepositoryPathProvider(),
-            environment,
-            ubuntu,
-            windows,
-            macOs));
+                parser,
+                new RepositoryPathProvider(),
+                environment,
+                ubuntu,
+                windows,
+                macOs));
     }
 }
