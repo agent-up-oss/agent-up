@@ -81,9 +81,9 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         switch (target)
         {
             case InstallerComponentTarget.Server:
-                await _commands.RunAsync("systemctl", $"disable --now {_options.Manifest.ServiceUnitName}", cancellationToken);
+                await _commands.RunAsync("systemctl", ["disable", "--now", _options.Manifest.ServiceUnitName], cancellationToken);
                 _files.DeleteFile(_options.Paths.ServicePath);
-                await _commands.RunAsync("systemctl", "daemon-reload", cancellationToken);
+                await _commands.RunAsync("systemctl", ["daemon-reload"], cancellationToken);
                 _files.DeleteDirectory(_options.Paths.ServerDirectory);
                 break;
             case InstallerComponentTarget.Cli:
@@ -92,7 +92,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
                 break;
             case InstallerComponentTarget.Desktop:
                 _files.DeleteFile(_options.Paths.DesktopEntryPath);
-                await _commands.RunAsync("update-desktop-database", "/usr/share/applications", cancellationToken);
+                await _commands.RunAsync("update-desktop-database", ["/usr/share/applications"], cancellationToken);
                 _files.DeleteFile(_options.Paths.IconPath);
                 _files.DeleteDirectory(_options.Paths.DesktopDirectory);
                 break;
@@ -165,8 +165,8 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
 
         if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
         {
-            await _requiredCommands.RunAsync("systemctl", "daemon-reload", cancellationToken);
-            await _requiredCommands.RunAsync("systemctl", $"enable --now {_options.Manifest.ServiceUnitName}", cancellationToken);
+            await _requiredCommands.RunAsync("systemctl", ["daemon-reload"], cancellationToken);
+            await _requiredCommands.RunAsync("systemctl", ["enable", "--now", _options.Manifest.ServiceUnitName], cancellationToken);
             yield return progress.Complete(InstallOperationKind.RegisterService);
         }
 
@@ -179,11 +179,11 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         if (summary.Includes(InstallerComponent.Desktop))
         {
             _files.WriteText(_options.Paths.DesktopEntryPath, _options.Manifest.DesktopEntryText(_options.Paths.DesktopExecutable, session.Version.ToString()));
-            await _commands.RunAsync("update-desktop-database", "/usr/share/applications", cancellationToken);
+            await _commands.RunAsync("update-desktop-database", ["/usr/share/applications"], cancellationToken);
             yield return progress.Complete(InstallOperationKind.RegisterDesktop);
         }
 
-        await _commands.RunAsync("dpkg-query", $"-W {_options.Manifest.PackageName}", cancellationToken);
+        await _commands.RunAsync("dpkg-query", ["-W", _options.Manifest.PackageName], cancellationToken);
         yield return progress.Complete(InstallOperationKind.RegisterUninstall);
 
         yield return progress.Complete(InstallOperationKind.ValidateInstallation);
@@ -198,9 +198,9 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         InstallerSession session,
         CancellationToken cancellationToken = default)
     {
-        var service = await _commands.RunAsync("systemctl", $"is-enabled {_options.Manifest.ServiceUnitName}", cancellationToken);
-        var running = await _commands.RunAsync("systemctl", $"is-active {_options.Manifest.ServiceUnitName}", cancellationToken);
-        var cli = await _commands.RunAsync("bash", $"-lc \"command -v {_options.Manifest.CliCommandName}\"", cancellationToken);
+        var service = await _commands.RunAsync("systemctl", ["is-enabled", _options.Manifest.ServiceUnitName], cancellationToken);
+        var running = await _commands.RunAsync("systemctl", ["is-active", _options.Manifest.ServiceUnitName], cancellationToken);
+        var cli = await _commands.RunAsync("bash", ["-lc", "command -v \"$1\"", "--", _options.Manifest.CliCommandName], cancellationToken);
 
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,

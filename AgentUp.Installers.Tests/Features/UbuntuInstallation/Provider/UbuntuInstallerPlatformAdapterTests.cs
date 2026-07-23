@@ -72,7 +72,7 @@ public class UbuntuInstallerPlatformAdapterTests
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("systemctl", "is-enabled agent-up-server.service")));
         Assert.That(commands.Commands, Does.Contain(("systemctl", "is-active agent-up-server.service")));
-        Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v agent-up\"")));
+        Assert.That(commands.Commands, Does.Contain(("bash", "-lc command -v \"$1\" -- agent-up")));
     }
 
     [Test]
@@ -147,8 +147,8 @@ public class UbuntuInstallerPlatformAdapterTests
 
         await adapter.ValidateInstalledStateAsync(CustomSession());
 
-        Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v acme-studio\"")));
-        Assert.That(commands.Commands.Select(c => c.Arguments), Does.Not.Contain("-lc \"command -v agent-up\""));
+        Assert.That(commands.Commands, Does.Contain(("bash", "-lc command -v \"$1\" -- acme-studio")));
+        Assert.That(commands.Commands.Select(c => c.Arguments), Does.Not.Contain("-lc command -v \"$1\" -- agent-up"));
     }
 
     // ── Test 3: payload installed under the product's own install root ────────
@@ -301,9 +301,9 @@ public class UbuntuInstallerPlatformAdapterTests
     {
         public List<(string FileName, string Arguments)> Commands { get; } = [];
 
-        public Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
+        public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
         {
-            Commands.Add((fileName, arguments));
+            Commands.Add((fileName, string.Join(" ", arguments)));
             return Task.FromResult(new ProcessResult(0, "", ""));
         }
     }

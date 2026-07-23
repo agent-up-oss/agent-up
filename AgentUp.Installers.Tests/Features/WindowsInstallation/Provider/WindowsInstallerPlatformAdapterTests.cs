@@ -508,9 +508,9 @@ public class WindowsInstallerPlatformAdapterTests
         public List<(string FileName, string Arguments)> Commands { get; } = [];
         public Queue<ProcessResult> Results { get; } = [];
 
-        public Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
+        public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
         {
-            Commands.Add((fileName, arguments));
+            Commands.Add((fileName, string.Join(" ", arguments)));
             return Task.FromResult(Results.Count > 0 ? Results.Dequeue() : new ProcessResult(0, "", ""));
         }
     }

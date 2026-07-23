@@ -155,7 +155,7 @@ public class MacOsInstallerPlatformAdapterTests
 
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("launchctl", "print system/dev.agent-up.server")));
-        Assert.That(commands.Commands, Does.Contain(("bash", "-lc \"command -v \\\"$1\\\"\" -- agent-up")));
+        Assert.That(commands.Commands, Does.Contain(("bash", "-lc command -v \"$1\" -- agent-up")));
     }
 
     [Test]
@@ -230,7 +230,7 @@ public class MacOsInstallerPlatformAdapterTests
         Assert.Multiple(() =>
         {
             Assert.That(script, Does.Contain("'/usr/local/bin/acme-studio'"), "CLI symlink must use the product's slug");
-            Assert.That(commands.PlainCommands, Does.Contain(("bash", "-lc \"command -v \\\"$1\\\"\" -- acme-studio")),
+            Assert.That(commands.PlainCommands, Does.Contain(("bash", "-lc command -v \"$1\" -- acme-studio")),
                 "Shell validation must check the product's CLI name");
             Assert.That(script, Does.Not.Contain("'/usr/local/bin/agent-up'"), "Agent-Up CLI symlink must not be created");
         });
@@ -367,9 +367,9 @@ public class MacOsInstallerPlatformAdapterTests
         public List<(string FileName, string Arguments)> PlainCommands { get; } = [];
         public string? CapturedScript { get; private set; }
 
-        public Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
+        public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
         {
-            PlainCommands.Add((fileName, arguments));
+            PlainCommands.Add((fileName, string.Join(" ", arguments)));
 
             if (fileName is "osascript" or "bash")
             {
@@ -382,14 +382,14 @@ public class MacOsInstallerPlatformAdapterTests
             return Task.FromResult(new ProcessResult(0, "", ""));
         }
 
-        private static string? ExtractBashScriptPath(string fileName, string arguments)
+        private static string? ExtractBashScriptPath(string fileName, IReadOnlyList<string> arguments)
         {
-            if (fileName == "bash" && !arguments.StartsWith("-", StringComparison.Ordinal))
+            if (fileName == "bash" && arguments.Count == 1 && !arguments[0].StartsWith("-", StringComparison.Ordinal))
             {
                 // bash: /tmp/xxx  (path passed unquoted — Process.Start doesn't process shell quotes)
-                return arguments;
+                return arguments[0];
             }
-            var safeArguments = SafeScriptPath(arguments);
+            var safeArguments = arguments.Count == 1 ? SafeScriptPath(arguments[0]) : null;
             if (fileName == "osascript" && safeArguments is not null && File.Exists(safeArguments))
             {
                 // osascript: /tmp/xxx.scpt  (AppleScript file containing the bash script path)
@@ -423,9 +423,9 @@ public class MacOsInstallerPlatformAdapterTests
     {
         public List<(string FileName, string Arguments)> Commands { get; } = [];
 
-        public Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
+        public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
         {
-            Commands.Add((fileName, arguments));
+            Commands.Add((fileName, string.Join(" ", arguments)));
             return Task.FromResult(new ProcessResult(0, "", ""));
         }
     }

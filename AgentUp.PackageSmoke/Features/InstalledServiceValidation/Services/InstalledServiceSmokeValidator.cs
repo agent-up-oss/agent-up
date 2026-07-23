@@ -2,6 +2,7 @@ using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Shared.Providers;
@@ -49,7 +50,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             await SmokeCliWorkspaceAsync(request, context.CliCommand, context.CliEnvironment, readyUrl, assert, request.Product.CliShimName, cancellationToken);
             if (Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL") != "1")
             {
-                using var capabilitySmoke = new CapabilityLifecycleSmoke(_commands);
+                using var capabilitySmoke = new CapabilityLifecycleSmoke(_commands, new CapabilityWorkspaceProvider());
                 await capabilitySmoke.RunAsync(request.WorkDirectory, context, readyUrl, assert, cancellationToken);
             }
 

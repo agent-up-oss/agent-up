@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Shared.Providers;
@@ -20,7 +21,7 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
                 "http://localhost:5000",
@@ -51,7 +52,7 @@ public sealed class CapabilityLifecycleSmokeTests
         try
         {
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", "example/smoke:windows");
-            await new CapabilityLifecycleSmoke(commands, http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
                 "http://localhost:5000",

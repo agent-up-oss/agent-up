@@ -1,4 +1,6 @@
 using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.FirstRun.DTOs;
+using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
@@ -39,7 +41,7 @@ public class FirstRunTutorialChecksTests
             var stdout = fileName == "docker" && arguments == "--version"
                 ? "Docker version 27.0.0"
                 : "";
-            return Task.FromResult((0, stdout, ""));
+            return Task.FromResult(new FirstRunProcessResult(0, stdout, ""));
         });
 
         var result = await checks.CheckDockerAsync();
@@ -62,8 +64,8 @@ public class FirstRunTutorialChecksTests
         {
             calls.Add($"{fileName} {arguments}");
             return Task.FromResult(arguments == "info"
-                ? (1, "", "Cannot connect to the Docker daemon")
-                : (0, "Docker version 27.0.0", ""));
+                ? new FirstRunProcessResult(1, "", "Cannot connect to the Docker daemon")
+                : new FirstRunProcessResult(0, "Docker version 27.0.0", ""));
         });
 
         var result = await checks.CheckDockerAsync();
@@ -247,16 +249,32 @@ public class FirstRunTutorialChecksTests
     {
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        return new FirstRunTutorialChecks(new WorkspacesController(new WorkspaceListService(new WorkspaceApiClient(http))));
+        return new FirstRunTutorialChecks(
+            new WorkspacesController(new WorkspaceListService(new WorkspaceApiClient(http))),
+            new FakeFirstRunProcessProvider((_, _, _, _, _) => Task.FromResult(new FirstRunProcessResult(0, "", ""))));
     }
 
     private static FirstRunTutorialChecks CreateChecks(
         List<WorkspaceDto> workspaces,
-        ProcessRunner processRunner)
+        Func<string, string, TimeSpan, CancellationToken, string?, Task<FirstRunProcessResult>> processRunner)
     {
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        return new FirstRunTutorialChecks(new WorkspacesController(new WorkspaceListService(new WorkspaceApiClient(http))), processRunner);
+        return new FirstRunTutorialChecks(
+            new WorkspacesController(new WorkspaceListService(new WorkspaceApiClient(http))),
+            new FakeFirstRunProcessProvider(processRunner));
+    }
+
+    private sealed class FakeFirstRunProcessProvider(
+        Func<string, string, TimeSpan, CancellationToken, string?, Task<FirstRunProcessResult>> run) : IFirstRunProcessProvider
+    {
+        public Task<FirstRunProcessResult> RunAsync(
+            string fileName,
+            string arguments,
+            TimeSpan timeout,
+            CancellationToken cancellationToken,
+            string? workingDirectory = null)
+            => run(fileName, arguments, timeout, cancellationToken, workingDirectory);
     }
 
     private static WorkspaceDto SampleWorkspace(string path, int webPort, int apiPort, int postgresPort)

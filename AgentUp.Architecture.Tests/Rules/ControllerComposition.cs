@@ -7,6 +7,8 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class ControllerComposition
 {
+    private const string CrossSliceDependencyDebtBaseline = "AgentUp.Architecture.Tests/Baselines/cross-slice-dependency-debt.txt";
+
     private static readonly string[] InternalTypeFolders =
     [
         "Services",
@@ -121,12 +123,13 @@ public sealed class ControllerComposition
     public void Feature_slices_do_not_import_sibling_slice_internals()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var baseline = LoadCrossSliceDependencyDebtBaseline(root);
         var violations = ArchitectureFixture.ProductionSourceFiles(root)
             .Select(path => (Path: path, Parts: ArchitectureFixture.Parts(root, path)))
             .Where(item => TryFeatureLocation(item.Parts, out _, out _, out _)
                            || IsApprovedEntrypoint(item.Parts))
             .SelectMany(item => FindCrossSliceInternalUsings(root, item.Path, item.Parts))
-            .Where(violation => !IsKnownCrossSliceDependencyDebt(violation))
+            .Where(violation => !baseline.Contains(violation))
             .ToArray();
 
         Assert.That(violations, Is.Empty,
@@ -278,14 +281,17 @@ public sealed class ControllerComposition
     private static bool IsApprovedCrossSliceFolder(string folder)
         => folder is "Controllers" or "DTOs";
 
-    private static bool IsKnownCrossSliceDependencyDebt(string violation)
-        => violation.StartsWith("AgentUp.Server/Program.cs:", StringComparison.Ordinal)
-           || violation.StartsWith("AgentUp.Desktop/App.axaml.cs:", StringComparison.Ordinal)
-           || violation.StartsWith("AgentUp.Desktop/Features/Workspaces/", StringComparison.Ordinal)
-           || violation.StartsWith("AgentUp.CLI/Program.cs:", StringComparison.Ordinal)
-           || violation.StartsWith("AgentUp.Installers/Features/", StringComparison.Ordinal)
-           || violation.StartsWith("AgentUp.InstallerApp/", StringComparison.Ordinal)
-           || violation.StartsWith("AgentUp.PackageSmoke/Features/", StringComparison.Ordinal);
+    private static HashSet<string> LoadCrossSliceDependencyDebtBaseline(string root)
+    {
+        var path = Path.Join(root, CrossSliceDependencyDebtBaseline);
+        if (!File.Exists(path))
+            return [];
+
+        return File.ReadAllLines(path)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#'))
+            .ToHashSet(StringComparer.Ordinal);
+    }
 
     private static bool TypeEndsWith(TypeSyntax type, IReadOnlyCollection<string> suffixes)
         => suffixes.Any(suffix => ArchitectureFixture.FinalTypeSegment(type).EndsWith(suffix, StringComparison.Ordinal));

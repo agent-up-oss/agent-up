@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Shared.Providers;
 
@@ -15,12 +16,14 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
     private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
 
     private readonly ICommandRunner _commands;
+    private readonly CapabilityWorkspaceProvider _workspace;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
 
-    public CapabilityLifecycleSmoke(ICommandRunner commands, HttpClient? http = null)
+    public CapabilityLifecycleSmoke(ICommandRunner commands, CapabilityWorkspaceProvider workspace, HttpClient? http = null)
     {
         _commands = commands;
+        _workspace = workspace;
         _http = http ?? new HttpClient();
         _ownsHttp = http is null;
     }
@@ -33,8 +36,7 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         CancellationToken cancellationToken)
     {
         var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
-        var repo = SafeSmokePaths.Child(safeWorkDirectory, "capability-workspace");
-        PrepareWorkspace(repo);
+        var repo = _workspace.Prepare(safeWorkDirectory);
         await GitCommitConfigAsync(repo, assert, cancellationToken);
 
         var environment = MergeEnvironment(context.CliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
@@ -71,57 +73,6 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         await StopWorkspaceAsync(serverUrl, workspace.Value.Id, assert, cancellationToken);
         await AssertStateAsync(serverUrl, workspace.Value.Id, DotnetAppName, "Stopped", assert, cancellationToken);
         await AssertStateAsync(serverUrl, workspace.Value.Id, DockerAppName, "Stopped", assert, cancellationToken);
-    }
-
-    private static void PrepareWorkspace(string repo)
-    {
-        Directory.CreateDirectory(SafeSmokePaths.Child(repo, "SmokeDotnet"));
-        File.WriteAllText(SafeSmokePaths.Child(repo, "SmokeDotnet", "SmokeDotnet.csproj"), """
-            <Project Sdk="Microsoft.NET.Sdk.Web">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <Nullable>enable</Nullable>
-              </PropertyGroup>
-            </Project>
-            """);
-        File.WriteAllText(SafeSmokePaths.Child(repo, "SmokeDotnet", "Program.cs"), """
-            var builder = WebApplication.CreateBuilder(args);
-            var app = builder.Build();
-            app.MapGet("/", () => "dotnet capability smoke");
-            var port = Environment.GetEnvironmentVariable("WEB_PORT") ?? "5000";
-            app.Run($"http://127.0.0.1:{port}");
-            """);
-        File.WriteAllText(SafeSmokePaths.Child(repo, "agent-up.json"), $$"""
-            {
-              "name": "Capability Lifecycle Smoke Workspace",
-              "dotnet": [
-                {
-                  "name": "SmokeDotnet",
-                  "sdk": "10.0.x",
-                  "run": {
-                    "project": "SmokeDotnet/SmokeDotnet.csproj"
-                  },
-                  "ports": [{ "variable": "WEB_PORT", "defaultPort": 5000, "protocol": "http" }]
-                }
-              ],
-              "docker": [
-                {
-                  "name": "SmokeDocker",
-                  "image": "{{DockerSmokeImage()}}",
-                  "ports": [{ "variable": "DOCKER_WEB_PORT", "defaultPort": 80, "protocol": "http" }]
-                }
-              ]
-            }
-            """);
-    }
-
-    private static string DockerSmokeImage()
-    {
-        var image = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
-        if (!string.IsNullOrWhiteSpace(image))
-            return image;
-
-        return "nginx:alpine";
     }
 
     private async Task GitCommitConfigAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)

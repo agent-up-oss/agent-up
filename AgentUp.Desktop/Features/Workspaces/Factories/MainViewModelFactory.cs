@@ -5,6 +5,7 @@ using AgentUp.Desktop.Features.Console.Controllers;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Console.Services;
 using AgentUp.Desktop.Features.Console.ViewModels;
+using AgentUp.Desktop.Features.FirstRun.Providers;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
@@ -34,7 +35,7 @@ public static class MainViewModelFactory
             new ConsoleViewModel(console),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
-                new FirstRunTutorialChecks(workspaces)),
+                new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
             ports);
     }
 

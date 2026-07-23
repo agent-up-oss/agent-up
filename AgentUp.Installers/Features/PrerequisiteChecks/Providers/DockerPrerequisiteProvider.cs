@@ -24,7 +24,7 @@ public sealed class DockerPrerequisiteProvider : IDockerPrerequisiteProvider
         ProcessResult version;
         try
         {
-            version = await _commands.RunAsync("docker", "version --format {{.Client.Version}}", cancellationToken);
+            version = await _commands.RunAsync("docker", ["version", "--format", "{{.Client.Version}}"], cancellationToken);
         }
         catch (FileNotFoundException)
         {
@@ -57,7 +57,7 @@ public sealed class DockerPrerequisiteProvider : IDockerPrerequisiteProvider
         ProcessResult info;
         try
         {
-            info = await _commands.RunAsync("docker", "info", infoTimeout.Token);
+            info = await _commands.RunAsync("docker", ["info"], infoTimeout.Token);
         }
         catch (OperationCanceledException) when (infoTimeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {

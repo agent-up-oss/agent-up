@@ -4,11 +4,21 @@ namespace AgentUp.Installers.Features.WindowsInstallation.Services;
 
 public static class WindowsInstallerCommands
 {
-    public static string ServiceCreateArguments(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
-        => $"create {manifest.ServiceName} binPath= \"\\\"{paths.ServerExecutable}\\\" --urls {manifest.ServerUrl}\" start= auto DisplayName= \"{ScArg(manifest.ServiceDisplayName)}\"";
+    public static IReadOnlyList<string> ServiceCreateArguments(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
+        =>
+        [
+            "create",
+            manifest.ServiceName,
+            "binPath=",
+            $"\"{paths.ServerExecutable}\" --urls {manifest.ServerUrl}",
+            "start=",
+            "auto",
+            "DisplayName=",
+            manifest.ServiceDisplayName
+        ];
 
-    public static string ServiceFailureArguments(WindowsInstallerManifest manifest)
-        => $"failure {manifest.ServiceName} reset= 60 actions= restart/5000/restart/5000/\"\"/5000";
+    public static IReadOnlyList<string> ServiceFailureArguments(WindowsInstallerManifest manifest)
+        => ["failure", manifest.ServiceName, "reset=", "60", "actions=", "restart/5000/restart/5000/\"\"/5000"];
 
     public static string PrepareExistingServicePowerShell(WindowsInstallerManifest manifest)
         => $$"""
@@ -108,5 +118,4 @@ public static class WindowsInstallerCommands
         => $"Get-Command {cliCommandName} -ErrorAction Stop | Out-Null";
 
     private static string Ps(string value) => value.Replace("'", "''");
-    private static string ScArg(string value) => value.Replace("\"", "\\\"");
 }

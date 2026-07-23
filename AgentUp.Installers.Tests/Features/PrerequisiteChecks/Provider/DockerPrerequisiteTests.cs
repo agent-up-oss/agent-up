@@ -120,9 +120,9 @@ public class DockerPrerequisiteTests
         public ProcessResult VersionResult { get; init; } = new(0, "27.0.0", "");
         public ProcessResult InfoResult { get; init; } = new(0, "", "");
 
-        public Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
+        public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
         {
-            if (fileName == "docker" && arguments.StartsWith("version", StringComparison.Ordinal))
+            if (fileName == "docker" && arguments.Count > 0 && arguments[0] == "version")
             {
                 if (ThrowOnDockerVersion)
                     throw new FileNotFoundException("docker");
@@ -130,7 +130,7 @@ public class DockerPrerequisiteTests
                 return Task.FromResult(VersionResult);
             }
 
-            if (fileName == "docker" && arguments == "info")
+            if (fileName == "docker" && arguments.SequenceEqual(["info"]))
             {
                 if (DelayInfoUntilCancellation)
                     return Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken)
@@ -139,7 +139,7 @@ public class DockerPrerequisiteTests
                 return Task.FromResult(InfoResult);
             }
 
-            throw new InvalidOperationException($"{fileName} {arguments}");
+            throw new InvalidOperationException($"{fileName} {string.Join(" ", arguments)}");
         }
     }
 }

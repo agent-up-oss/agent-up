@@ -4,5 +4,5 @@ namespace AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 
 public interface ICommandRunner
 {
-    Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default);
+    Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default);
 }

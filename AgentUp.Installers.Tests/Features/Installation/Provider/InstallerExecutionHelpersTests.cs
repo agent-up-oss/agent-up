@@ -45,7 +45,7 @@ public class InstallerExecutionHelpersTests
         var runner = new RequiredCommandRunner(commands);
 
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await runner.RunAsync("systemctl", "start agent-up-server.service", CancellationToken.None));
+            await runner.RunAsync("systemctl", ["start", "agent-up-server.service"], CancellationToken.None));
 
         Assert.That(ex!.Message, Is.EqualTo("systemctl start agent-up-server.service failed: stderrstdout"));
     }
@@ -59,8 +59,8 @@ public class InstallerExecutionHelpersTests
         await runner.RunPowerShellAsync("Write-Output \"C:\\Program Files\\Agent-Up\\uninstall-agent-up.ps1\"", CancellationToken.None);
 
         Assert.That(commands.FileName, Is.EqualTo("powershell.exe"));
-        Assert.That(commands.Arguments, Does.Contain("-EncodedCommand "));
-        var encoded = commands.Arguments!.Split("-EncodedCommand ", StringSplitOptions.None)[1];
+        Assert.That(commands.Arguments, Does.Contain("-EncodedCommand"));
+        var encoded = commands.Arguments![^1];
         var decoded = Encoding.Unicode.GetString(Convert.FromBase64String(encoded));
         Assert.That(decoded, Is.EqualTo("Write-Output \"C:\\Program Files\\Agent-Up\\uninstall-agent-up.ps1\""));
     }
@@ -83,14 +83,14 @@ public class InstallerExecutionHelpersTests
         private readonly ProcessResult _result;
 
         public string? FileName { get; private set; }
-        public string? Arguments { get; private set; }
+        public IReadOnlyList<string>? Arguments { get; private set; }
 
         public RecordingCommandRunner(ProcessResult result)
         {
             _result = result;
         }
 
-        public Task<ProcessResult> RunAsync(string fileName, string arguments, CancellationToken cancellationToken = default)
+        public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
         {
             FileName = fileName;
             Arguments = arguments;

@@ -21,7 +21,10 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
 
     internal static ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
     {
-        var workingDirectory = ResolveWorkspacePath(workspace.WorktreePath, app.Path);
+        var workingDirectory = WorkspacePathProvider.ResolveWorkspacePath(
+            workspace.WorktreePath,
+            app.Path,
+            "Application path");
         var fileEnvironment = LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles);
         var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
         foreach (var (key, value) in fileEnvironment)
@@ -41,8 +44,8 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         var environment = new Dictionary<string, string>();
         foreach (var environmentFile in environmentFiles ?? [])
         {
-            var fullPath = EnvironmentFilePathProvider.ResolveExistingWorkspaceFile(worktreePath, environmentFile);
-            foreach (var (key, value) in ParseEnvironmentFile(File.ReadLines(fullPath), environmentFile))
+            var lines = EnvironmentFilePathProvider.ReadExistingWorkspaceFileLines(worktreePath, environmentFile);
+            foreach (var (key, value) in ParseEnvironmentFile(lines, environmentFile))
                 environment[key] = value;
         }
 
@@ -96,19 +99,22 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             CreateNoWindow = true
         };
 
+        startInfo.Environment["AGENTUP_COMMAND_SCRIPT"] = scriptPath;
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             startInfo.FileName = "cmd.exe";
             startInfo.ArgumentList.Add("/D");
             startInfo.ArgumentList.Add("/Q");
             startInfo.ArgumentList.Add("/C");
-            startInfo.ArgumentList.Add(scriptPath);
+            startInfo.ArgumentList.Add("\"%AGENTUP_COMMAND_SCRIPT%\"");
         }
         else
         {
             startInfo.FileName = "/usr/bin/env";
             startInfo.ArgumentList.Add("bash");
-            startInfo.ArgumentList.Add(scriptPath);
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add("exec \"$AGENTUP_COMMAND_SCRIPT\"");
         }
 
         return startInfo;
@@ -119,36 +125,25 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         if (string.IsNullOrWhiteSpace(command))
             throw new InvalidOperationException("Application command must not be empty.");
 
-        var runtimeDirectory = ResolveWorkspacePath(workingDirectory, Path.Join(".agent-up", "runtime", "commands"));
+        var runtimeDirectory = WorkspacePathProvider.ResolveWorkspacePath(
+            workingDirectory,
+            Path.Join(".agent-up", "runtime", "commands"),
+            "Application runtime path");
         Directory.CreateDirectory(runtimeDirectory);
         var scriptName = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(command)))[..16]
                          + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".cmd" : ".sh");
-        var scriptPath = ResolveWorkspacePath(runtimeDirectory, scriptName);
-        File.WriteAllText(scriptPath, command);
+        var scriptPath = WorkspacePathProvider.ResolveWorkspacePath(runtimeDirectory, scriptName, "Application command script path");
+        if (!File.Exists(scriptPath))
+        {
+            var tempPath = scriptPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            File.WriteAllText(tempPath, command);
+            File.Move(tempPath, scriptPath);
+        }
+
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
         return scriptPath;
-    }
-
-    private static string ResolveWorkspacePath(string root, string? relativePath)
-    {
-        if (string.IsNullOrWhiteSpace(root))
-            throw new InvalidOperationException("Workspace path must not be empty.");
-
-        var rootFullPath = Path.GetFullPath(root);
-        if (string.IsNullOrWhiteSpace(relativePath))
-            return rootFullPath;
-
-        if (Path.IsPathRooted(relativePath))
-            throw new InvalidOperationException("Application path must be relative to the workspace root.");
-
-        var fullPath = Path.GetFullPath(Path.Join(rootFullPath, relativePath));
-        var relative = Path.GetRelativePath(rootFullPath, fullPath);
-        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
-            throw new InvalidOperationException("Application path must stay under the workspace root.");
-
-        return fullPath;
     }
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]
