@@ -988,7 +988,7 @@ export default function Home() {
         <section className={styles.hero}>
           <div className={styles.heroText}>
             <p className={styles.eyebrow}>AI-assisted development workspaces</p>
-            <h1>See what your AI built. Instantly.</h1>
+            <h1>See what your <br/><span className={styles.heroAccent}>AI built</span>. Instantly.</h1>
             <p className={styles.lede}>
               Every AI hosts its own workspace.<br/>
               No manual setup. Just review.

@@ -1,22 +1,33 @@
 .page {
+  --agentup-black: #000000;
+  --agentup-forest: #0f7a45;
+  --agentup-forest-2: #00b850;
+  --agentup-forest-3: #287038;
+  --agentup-forest-accent: #00d66b;
+  --agentup-forest-accent-2: #2bf27a;
+  --agentup-mist: #07120a;
+  --agentup-line: rgba(40, 112, 56, 0.55);
+  --agentup-ink: #f5fbf7;
+  --agentup-muted: #aebcb3;
+  --agentup-surface: #050505;
+  --agentup-surface-soft: #080808;
+  --agentup-teal: #00b850;
+  --agentup-teal-soft: #287038;
+  --agentup-accent: #00d66b;
+  --agentup-accent-soft: #2bf27a;
+  --agentup-paper: #000000;
   color: var(--agentup-ink);
   background:
-    linear-gradient(color-mix(in srgb, var(--agentup-forest-2) 3%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--agentup-forest-2) 3%, transparent) 1px, transparent 1px),
-    radial-gradient(circle at 82% 7%, color-mix(in srgb, var(--agentup-forest-3) 6%, transparent), transparent 32rem),
-    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-forest-3) 5%, transparent), transparent 36rem),
-    linear-gradient(180deg, #f9fbf8 0%, var(--agentup-paper) 45%, var(--agentup-paper) 100%);
-  background-size: 72px 72px, 72px 72px, auto, auto, auto;
+    radial-gradient(circle at 78% 12%, rgba(0, 184, 80, 0.16), transparent 26rem),
+    radial-gradient(circle at 18% 34rem, rgba(43, 242, 122, 0.08), transparent 32rem),
+    #000000;
 }
 
 :global([data-theme='dark']) .page {
   background:
-    linear-gradient(color-mix(in srgb, var(--agentup-teal-soft) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--agentup-teal-soft) 4%, transparent) 1px, transparent 1px),
-    radial-gradient(circle at 82% 7%, color-mix(in srgb, var(--agentup-teal) 7%, transparent), transparent 32rem),
-    radial-gradient(circle at 10% 28rem, color-mix(in srgb, var(--agentup-teal) 5%, transparent), transparent 36rem),
-    linear-gradient(180deg, #08100f 0%, var(--agentup-paper) 45%, var(--agentup-paper) 100%);
-  background-size: 72px 72px, 72px 72px, auto, auto, auto;
+    radial-gradient(circle at 78% 12%, rgba(0, 184, 80, 0.16), transparent 26rem),
+    radial-gradient(circle at 18% 34rem, rgba(43, 242, 122, 0.08), transparent 32rem),
+    #000000;
 }
 
 .hero {
@@ -39,6 +50,11 @@
   letter-spacing: 0;
 }
 
+.heroAccent {
+  color: var(--agentup-accent);
+  text-shadow: 0 0 34px rgba(0, 214, 107, 0.24);
+}
+
 .lede {
   max-width: 680px;
   margin: 1.5rem 0 0;
@@ -49,7 +65,7 @@
 
 .eyebrow {
   margin: 0 0 1rem;
-  color: var(--agentup-forest-accent);
+  color: var(--agentup-accent-soft);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -76,26 +92,27 @@
 }
 
 .primaryAction {
-  color: #ffffff;
-  background: var(--agentup-forest);
-  box-shadow: 0 16px 34px color-mix(in srgb, var(--agentup-forest) 24%, transparent);
+  color: #000000;
+  background: #00d66b;
+  box-shadow: 0 0 32px rgba(0, 214, 107, 0.28);
 }
 
 .primaryAction:hover {
-  color: #ffffff;
-  background: var(--agentup-black);
+  color: #000000;
+  background: var(--agentup-accent-soft);
   text-decoration: none;
 }
 
 .secondaryAction {
-  color: var(--agentup-ink);
-  border: 1px solid var(--agentup-line);
-  background: color-mix(in srgb, var(--agentup-surface) 82%, transparent);
+  color: #f5fbf7;
+  border: 1px solid #287038;
+  background: rgba(5, 5, 5, 0.88);
+  box-shadow: 0 0 24px rgba(0, 184, 80, 0.14);
 }
 
 .secondaryAction:hover {
-  color: var(--agentup-accent);
-  border-color: var(--agentup-accent);
+  color: #2bf27a;
+  border-color: #00b850;
   text-decoration: none;
 }
 
@@ -111,27 +128,30 @@
 
 :global([data-theme='dark']) .secondaryAction {
   color: var(--agentup-ink);
-  background: color-mix(in srgb, var(--agentup-surface) 74%, transparent);
+  background: rgba(5, 5, 5, 0.88);
 }
 
 .heroVisual {
-  --agentup-accent: #17614f;
-  --agentup-accent-soft: #2f8a70;
-  --agentup-forest-accent: #17614f;
-  --agentup-forest-accent-2: #2f8a70;
+  --agentup-accent: #00d66b;
+  --agentup-accent-soft: #2bf27a;
+  --agentup-forest-accent: #00b850;
+  --agentup-forest-accent-2: #287038;
   position: relative;
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
   min-width: 520px;
   min-height: 560px;
   overflow: hidden;
-  border: 1px solid var(--agentup-line);
+  border: 1px solid #287038;
   border-radius: 18px;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--agentup-surface) 92%, transparent), color-mix(in srgb, var(--agentup-mist) 80%, transparent)),
-    url('/img/workspace-grid.svg');
+    radial-gradient(circle at 72% 16%, rgba(0, 184, 80, 0.12), transparent 18rem),
+    #000000;
   background-size: cover;
-  box-shadow: 0 30px 80px color-mix(in srgb, var(--agentup-black) 18%, transparent);
+  box-shadow:
+    0 0 0 1px rgba(0, 184, 80, 0.12),
+    0 0 52px rgba(0, 184, 80, 0.22),
+    0 30px 80px rgba(0, 0, 0, 0.72);
   transition: grid-template-columns 0.22s ease;
 }
 
@@ -153,7 +173,7 @@
   border: 1px solid color-mix(in srgb, var(--agentup-forest-accent-2) 48%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--agentup-black) 84%, transparent);
-  color: #ffffff;
+  color: #f5fbf7;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -178,7 +198,7 @@
   pointer-events: none;
   display: flex;
   align-items: center;
-  color: #ffffff;
+  color: #f5fbf7;
   font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0.01em;
@@ -306,7 +326,7 @@
   padding-right: 1rem;
   padding-bottom: 4.4rem;
   background: color-mix(in srgb, var(--agentup-black) 92%, transparent);
-  color: #ffffff;
+  color: #f5fbf7;
   transition: padding 0.22s ease;
 }
 
@@ -365,14 +385,14 @@
 
 .agentEntry:hover {
   background: color-mix(in srgb, #ffffff 10%, transparent);
-  color: #ffffff;
+  color: #f5fbf7;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--agentup-accent-soft) 32%, transparent);
   transform: translateX(2px);
 }
 
 .agentEntry.agentActive {
-  color: #ffffff;
-  background: var(--agentup-forest-2);
+  color: #f5fbf7;
+  background: #0f7a45;
   box-shadow: inset 3px 0 0 var(--agentup-teal-soft);
 }
 
@@ -422,15 +442,15 @@
 
 .agentAvatar:hover {
   background: color-mix(in srgb, #ffffff 16%, transparent);
-  color: #ffffff;
+  color: #f5fbf7;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--agentup-accent-soft) 28%, transparent);
   transform: translateX(2px);
 }
 
 .agentAvatarActive {
-  background: var(--agentup-forest-2);
+  background: #0f7a45;
   border-color: var(--agentup-teal-soft);
-  color: #ffffff;
+  color: #f5fbf7;
 }
 
 .collapseToggle {
@@ -457,7 +477,7 @@
 
 .collapseToggle:hover {
   background: color-mix(in srgb, #ffffff 14%, transparent);
-  color: #ffffff;
+  color: #f5fbf7;
 }
 
 .workspaceRailCollapsed .agentList {
@@ -517,7 +537,7 @@
 .runtimeTabs span {
   padding: 0.62rem 0.78rem;
   border-radius: 8px;
-  background: var(--agentup-surface);
+  background: #050505;
   color: var(--agentup-muted);
   font-size: 0.82rem;
   font-weight: 800;
@@ -531,7 +551,7 @@
   gap: 0;
   padding: 0 0.75rem;
   border-bottom: 1px solid var(--agentup-line);
-  background: color-mix(in srgb, var(--agentup-surface-soft) 80%, transparent);
+  background: rgba(8, 8, 8, 0.94);
   flex-shrink: 0;
 }
 
@@ -555,10 +575,10 @@
 }
 
 .serviceTabActive {
-  color: #ffffff;
+  color: #f5fbf7;
   font-weight: 800;
   border-bottom-color: var(--agentup-teal-soft);
-  background: #12382f;
+  background: #07120a;
   box-shadow: inset 0 -2px 0 var(--agentup-teal-soft);
 }
 
@@ -567,7 +587,7 @@
   gap: 0.3rem;
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--agentup-line);
-  background: color-mix(in srgb, var(--agentup-surface) 70%, transparent);
+  background: rgba(0, 0, 0, 0.78);
   flex-shrink: 0;
 }
 
@@ -585,13 +605,13 @@
 
 .secondaryTab:hover {
   color: var(--agentup-ink);
-  background: color-mix(in srgb, var(--agentup-surface-soft) 80%, transparent);
+  background: rgba(8, 8, 8, 0.94);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--agentup-forest-accent) 14%, transparent);
 }
 
 .secondaryTabActive {
-  color: #ffffff;
-  background: #1a7460;
+  color: #f5fbf7;
+  background: #0f7a45;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--agentup-teal-soft) 55%, transparent);
 }
 
@@ -617,14 +637,14 @@
   display: grid;
   grid-template-columns: 106px minmax(0, 1fr);
   overflow: hidden;
-  background: var(--agentup-surface);
+  background: #050505;
 }
 
 .dashboardSidebar {
   display: flex;
   flex-direction: column;
   padding: 0.5rem 0.4rem;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border-right: 1px solid var(--agentup-line);
   gap: 0.15rem;
 }
@@ -639,7 +659,7 @@
 
 .dashboardNavActive {
   color: var(--agentup-ink);
-  background: var(--agentup-surface);
+  background: #050505;
   font-weight: 800;
   box-shadow: inset 2px 0 0 var(--agentup-accent);
 }
@@ -665,7 +685,7 @@
   gap: 0.14rem;
   padding: 0.5rem 0.55rem;
   border-radius: 8px;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border: 1px solid var(--agentup-line);
 }
 
@@ -694,7 +714,7 @@
   display: grid;
   grid-template-columns: 1fr 68px 58px;
   padding: 0.33rem 0.6rem;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border-bottom: 1px solid var(--agentup-line);
   font-size: 0.67rem;
   font-weight: 800;
@@ -721,7 +741,7 @@
 .statusActive {
   font-size: 0.67rem;
   font-weight: 700;
-  color: #16a34a;
+  color: #2bf27a;
   background: color-mix(in srgb, #22c55e 12%, transparent);
   padding: 0.1rem 0.38rem;
   border-radius: 999px;
@@ -744,7 +764,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--agentup-surface);
+  background: #050505;
   overflow: hidden;
 }
 
@@ -753,14 +773,14 @@
   align-items: center;
   gap: 1.5rem;
   padding: 0.6rem 1rem;
-  background: var(--agentup-black);
+  background: #000000;
   flex-shrink: 0;
 }
 
 .mockupBrand {
   font-weight: 900;
   font-size: 0.88rem;
-  color: #ffffff;
+  color: #f5fbf7;
 }
 
 .mockupNavLinks {
@@ -774,15 +794,15 @@
   margin-left: auto;
   padding: 0.28rem 0.7rem;
   border-radius: 6px;
-  background: var(--agentup-forest-2);
-  color: #ffffff;
+  background: #0f7a45;
+  color: #f5fbf7;
   font-size: 0.74rem;
   font-weight: 800;
 }
 
 .mockupHeroSection {
   padding: 1.6rem 1.2rem 0.8rem;
-  background: linear-gradient(135deg, var(--agentup-mist), var(--agentup-paper));
+  background: linear-gradient(135deg, #050505, #000000);
   flex: 1;
 }
 
@@ -808,8 +828,8 @@
 .mockupPrimaryBtn {
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
-  background: var(--agentup-forest);
-  color: #ffffff;
+  background: #00d66b;
+  color: #000000;
   font-size: 0.76rem;
   font-weight: 800;
 }
@@ -828,14 +848,14 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   padding: 0.7rem 1rem;
-  background: var(--agentup-paper);
+  background: #000000;
   flex-shrink: 0;
 }
 
 .mockupCard {
   height: 48px;
   border-radius: 8px;
-  background: var(--agentup-surface);
+  background: #050505;
   border: 1px solid var(--agentup-line);
 }
 
@@ -848,7 +868,7 @@
 }
 
 .mockupHeroV2 .mockupHeadline {
-  color: #ffffff;
+  color: #f5fbf7;
 }
 
 .mockupHeroV2 .mockupSubline {
@@ -865,7 +885,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--agentup-surface);
+  background: #050505;
   overflow: hidden;
 }
 
@@ -875,7 +895,7 @@
   gap: 1.2rem;
   padding: 0.55rem 0.9rem;
   border-bottom: 1px solid var(--agentup-line);
-  background: var(--agentup-surface);
+  background: #050505;
   flex-shrink: 0;
 }
 
@@ -897,7 +917,7 @@
   margin-left: auto;
   font-size: 0.74rem;
   font-weight: 700;
-  color: var(--agentup-forest);
+  color: #00d66b;
   background: color-mix(in srgb, var(--agentup-forest-3) 10%, transparent);
   padding: 0.28rem 0.65rem;
   border-radius: 999px;
@@ -922,7 +942,7 @@
   position: relative;
   height: 90px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--agentup-mist), var(--agentup-surface-soft));
+  background: linear-gradient(135deg, #07120a, #050505);
   border: 1px solid var(--agentup-line);
 }
 
@@ -935,7 +955,7 @@
   padding: 0.1rem 0.38rem;
   border-radius: 4px;
   background: var(--agentup-accent);
-  color: #ffffff;
+  color: #f5fbf7;
 }
 
 .storeProductName {
@@ -947,7 +967,7 @@
 .storeProductPrice {
   font-size: 0.76rem;
   font-weight: 900;
-  color: var(--agentup-forest);
+  color: #00d66b;
 }
 
 /* ── Admin panel mockup ── */
@@ -956,7 +976,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--agentup-surface);
+  background: #050505;
   overflow: hidden;
 }
 
@@ -979,7 +999,7 @@
   font-size: 0.68rem;
   font-weight: 700;
   color: var(--agentup-muted);
-  background: var(--agentup-surface-soft);
+  background: #080808;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
   border: 1px solid var(--agentup-line);
@@ -996,7 +1016,7 @@
   display: grid;
   grid-template-columns: 62px 1fr 80px 72px;
   padding: 0.32rem 0.8rem;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border-bottom: 1px solid var(--agentup-line);
   font-size: 0.67rem;
   font-weight: 800;
@@ -1030,7 +1050,7 @@
 .orderShipped {
   font-size: 0.67rem;
   font-weight: 700;
-  color: #2563eb;
+  color: #8bb7ff;
   background: color-mix(in srgb, #3b82f6 12%, transparent);
   padding: 0.1rem 0.38rem;
   border-radius: 999px;
@@ -1040,7 +1060,7 @@
 .orderDelivered {
   font-size: 0.67rem;
   font-weight: 700;
-  color: #16a34a;
+  color: #2bf27a;
   background: color-mix(in srgb, #22c55e 12%, transparent);
   padding: 0.1rem 0.38rem;
   border-radius: 999px;
@@ -1063,7 +1083,7 @@
   padding: 0.7rem 0.75rem;
   height: 100%;
   overflow-y: auto;
-  background: var(--agentup-surface);
+  background: #050505;
   box-sizing: border-box;
 }
 
@@ -1089,7 +1109,7 @@
   padding: 0.5rem 0.5rem;
   border-radius: 6px;
   margin-bottom: 0.22rem;
-  background: color-mix(in srgb, var(--agentup-surface-soft) 60%, transparent);
+  background: rgba(8, 8, 8, 0.86);
   border: 1px solid var(--agentup-line);
 }
 
@@ -1106,12 +1126,12 @@
 
 .methodGET {
   background: color-mix(in srgb, #22c55e 14%, transparent);
-  color: #16a34a;
+  color: #2bf27a;
 }
 
 .methodPOST {
   background: color-mix(in srgb, #3b82f6 14%, transparent);
-  color: #2563eb;
+  color: #8bb7ff;
 }
 
 .methodPUT {
@@ -1121,7 +1141,7 @@
 
 .methodDELETE {
   background: color-mix(in srgb, #ef4444 14%, transparent);
-  color: #dc2626;
+  color: #ff8a8a;
 }
 
 .apiPath {
@@ -1149,7 +1169,7 @@
   grid-template-columns: 110px minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
-  background: var(--agentup-surface);
+  background: #050505;
 }
 
 .dbTableList {
@@ -1157,7 +1177,7 @@
   flex-direction: column;
   gap: 0.15rem;
   padding: 0.55rem 0.45rem;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border-right: 1px solid var(--agentup-line);
   overflow-y: auto;
 }
@@ -1185,7 +1205,7 @@
   border-radius: 5px;
   font-size: 0.74rem;
   font-weight: 700;
-  color: var(--agentup-forest);
+  color: #00d66b;
   background: color-mix(in srgb, var(--agentup-forest-3) 10%, transparent);
   font-family: var(--ifm-font-family-monospace);
 }
@@ -1198,7 +1218,7 @@
 
 .dbQueryBar {
   padding: 0.42rem 0.7rem;
-  background: var(--agentup-black);
+  background: #000000;
   color: var(--agentup-teal-soft);
   font-size: 0.71rem;
   font-family: var(--ifm-font-family-monospace);
@@ -1221,7 +1241,7 @@
   font-size: 0.69rem;
   color: var(--agentup-muted);
   border-bottom: 1px solid var(--agentup-line);
-  background: var(--agentup-surface-soft);
+  background: #080808;
 }
 
 .dbTable td {
@@ -1242,7 +1262,7 @@
   padding: 0.7rem 0.9rem;
   height: 100%;
   box-sizing: border-box;
-  background: var(--agentup-black);
+  background: #000000;
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.77rem;
   overflow-y: auto;
@@ -1254,7 +1274,7 @@
 .consoleCmd {
   display: flex;
   gap: 0.55rem;
-  color: #ffffff;
+  color: #f5fbf7;
 }
 
 .consoleLine {
@@ -1284,7 +1304,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  background: var(--agentup-surface);
+  background: #050505;
 }
 
 .metricGrid {
@@ -1300,7 +1320,7 @@
   gap: 0.18rem;
   padding: 0.55rem 0.5rem;
   border-radius: 8px;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border: 1px solid var(--agentup-line);
 }
 
@@ -1325,7 +1345,7 @@
   min-height: 60px;
   padding: 0.5rem;
   border-radius: 8px;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border: 1px solid var(--agentup-line);
 }
 
@@ -1343,9 +1363,11 @@
 .browserFrame {
   min-height: 300px;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--agentup-surface) 88%, transparent);
+  background: #050505;
   border: 1px solid var(--agentup-line);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--agentup-surface) 42%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgba(40, 112, 56, 0.22),
+    0 0 28px rgba(0, 184, 80, 0.08);
 }
 
 .browserBar {
@@ -1353,7 +1375,7 @@
   padding: 0.75rem 1rem;
   border-radius: 8px;
   color: var(--agentup-ink);
-  background: var(--agentup-surface-soft);
+  background: #080808;
   font-weight: 800;
 }
 
@@ -1370,7 +1392,8 @@
   place-items: center;
   border-radius: 10px;
   color: var(--agentup-ink);
-  background: linear-gradient(135deg, var(--agentup-mist), color-mix(in srgb, var(--agentup-forest-accent) 12%, var(--agentup-surface)));
+  background: linear-gradient(135deg, #07120a, rgba(0, 184, 80, 0.12));
+  border: 1px solid rgba(40, 112, 56, 0.42);
   font-weight: 900;
 }
 
@@ -1505,7 +1528,7 @@
 
 :global([data-theme='dark']) .operatingModel li {
   border-color: var(--agentup-line);
-  background: var(--agentup-surface);
+  background: #050505;
 }
 
 .serviceVisual {
@@ -1516,15 +1539,15 @@
 .serviceVisual div {
   padding: 1.1rem 1.25rem;
   border-radius: 8px;
-  background: var(--agentup-black);
-  color: #ffffff;
+  background: #000000;
+  color: #f5fbf7;
   font-weight: 900;
   box-shadow: 12px 12px 0 color-mix(in srgb, var(--agentup-forest-3) 24%, transparent);
 }
 
 .serviceVisual div:nth-child(even) {
   margin-left: 3rem;
-  background: var(--agentup-forest-2);
+  background: #0f7a45;
   box-shadow: 12px 12px 0 color-mix(in srgb, var(--agentup-forest-accent) 24%, transparent);
 }
 
@@ -1533,25 +1556,56 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--agentup-black), var(--agentup-forest));
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(40, 112, 56, 0.62);
+  background:
+    linear-gradient(90deg, transparent 0 11%, rgba(0, 214, 107, 0.18) 11% 11.4%, transparent 11.4% 88.6%, rgba(0, 214, 107, 0.18) 88.6% 89%, transparent 89%),
+    #000000;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 184, 80, 0.08),
+    0 0 42px rgba(0, 184, 80, 0.12);
+}
+
+.dockerVisual::before {
+  content: '';
+  position: absolute;
+  left: 2rem;
+  right: 2rem;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 214, 107, 0.48), transparent);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .dockerVisual div {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
   padding: 1rem;
   border-radius: 8px;
-  background: color-mix(in srgb, #ffffff 12%, transparent);
-  color: #ffffff;
+  border: 1px solid rgba(43, 242, 122, 0.5);
+  background: rgba(0, 0, 0, 0.88);
+  color: #f5fbf7;
+  box-shadow:
+    0 0 0 1px rgba(0, 184, 80, 0.08),
+    0 0 24px rgba(0, 184, 80, 0.13);
 }
 
 .dockerVisual span {
   font-weight: 900;
+  color: #2bf27a;
 }
 
 .dockerVisual strong {
-  color: var(--agentup-teal-soft);
+  color: #f5fbf7;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.98rem;
+  letter-spacing: 0;
 }
 
 .tabsVisual {
@@ -1582,7 +1636,7 @@
   gap: 0.5rem;
   padding: 1rem;
   border-radius: 14px;
-  background: var(--agentup-black);
+  background: #000000;
 }
 
 .singleBrowser span {
@@ -1590,7 +1644,7 @@
   min-width: 0;
   padding: 0.8rem 0.5rem;
   border-radius: 8px;
-  background: var(--agentup-surface);
+  background: #050505;
   color: var(--agentup-ink);
   font-weight: 900;
   text-align: center;
@@ -1614,11 +1668,11 @@
 
 .authVisual div {
   color: var(--agentup-ink);
-  background: var(--agentup-mist);
+  background: #07120a;
 }
 
 .authVisual strong {
-  color: #ffffff;
+  color: #000000;
   background: var(--agentup-accent);
   box-shadow: 0 18px 40px color-mix(in srgb, var(--agentup-forest-accent) 28%, transparent);
 }
@@ -1629,19 +1683,16 @@
   gap: 0.8rem;
   padding: 1rem;
   border-radius: 14px;
-  background: linear-gradient(
-          135deg,
-          color-mix(in srgb, var(--agentup-surface) 82%, transparent),
-          color-mix(in srgb, var(--agentup-mist) 72%, transparent)
-  );
+  background: linear-gradient(135deg, #050505, #07120a);
+  border: 1px solid rgba(40, 112, 56, 0.42);
 }
 
 .stateVisual strong {
   grid-column: 1 / -1;
   padding: 1rem;
   border-radius: 8px;
-  background: var(--agentup-black);
-  color: #ffffff;
+  background: #000000;
+  color: #f5fbf7;
   text-align: center;
 }
 
@@ -1650,7 +1701,7 @@
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: var(--agentup-surface);
+  background: #050505;
   color: var(--agentup-ink);
   font-weight: 900;
 }
@@ -1665,15 +1716,15 @@
   min-height: 118px;
   border: 0;
   border-radius: 8px;
-  background: var(--agentup-black);
-  color: #ffffff;
+  background: #000000;
+  color: #f5fbf7;
   font: inherit;
   font-weight: 900;
 }
 
 .processVisual button:nth-child(2),
 .processVisual button:nth-child(3) {
-  background: var(--agentup-forest-2);
+  background: #0f7a45;
 }
 
 .validationVisual {
@@ -1686,7 +1737,7 @@
   position: relative;
   padding: 1rem 1rem 1rem 3.2rem;
   border-radius: 8px;
-  background: var(--agentup-surface);
+  background: #050505;
   color: var(--agentup-ink);
   font-weight: 900;
   box-shadow: 0 1px 0 var(--agentup-line);
@@ -1726,7 +1777,7 @@
   padding: 0.9rem 1rem;
   border-left: 4px solid var(--agentup-accent);
   border-radius: 8px;
-  background: var(--agentup-surface);
+  background: #050505;
   color: var(--agentup-ink);
   font-weight: 800;
   box-shadow: 0 12px 30px color-mix(in srgb, var(--agentup-black) 6%, transparent);
@@ -1749,8 +1800,8 @@
   place-items: center;
   padding: 0.85rem;
   border-radius: 8px;
-  background: var(--agentup-black);
-  color: #ffffff;
+  background: #000000;
+  color: #f5fbf7;
   font-weight: 800;
   text-align: center;
 }
@@ -1775,7 +1826,7 @@
   padding: 0.8rem 1rem;
   border: 1px solid color-mix(in srgb, var(--agentup-forest-accent) 24%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--agentup-surface) 88%, transparent);
+  background: rgba(5, 5, 5, 0.92);
   box-shadow: 0 14px 34px color-mix(in srgb, var(--agentup-black) 8%, transparent);
   color: var(--agentup-muted);
   font-size: 0.85rem;
@@ -1811,7 +1862,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.28rem 0.75rem;
-  background: color-mix(in srgb, var(--agentup-surface) 90%, transparent);
+  background: rgba(0, 0, 0, 0.88);
   border-bottom: 1px solid var(--agentup-line);
   flex-shrink: 0;
 }
@@ -1848,14 +1899,14 @@
 }
 
 .mockupNavLink:hover {
-  color: #ffffff;
+  color: #f5fbf7;
 }
 
 .mockupNavLinkActive {
   all: unset;
   cursor: pointer;
   font-size: 0.76rem;
-  color: #ffffff;
+  color: #f5fbf7;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1870,7 +1921,7 @@
   align-items: center;
   padding: 0.9rem 0.75rem 0.7rem;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--agentup-mist), var(--agentup-paper));
+  background: linear-gradient(135deg, #050505, #000000);
 }
 
 .pricingHeadline {
@@ -1895,12 +1946,12 @@
   padding: 0.6rem 0.55rem;
   border-radius: 8px;
   border: 1px solid var(--agentup-line);
-  background: var(--agentup-surface);
+  background: #050505;
 }
 
 .pricingFeatured {
   border-color: var(--agentup-forest-2);
-  background: color-mix(in srgb, var(--agentup-forest-2) 8%, var(--agentup-surface));
+  background: linear-gradient(180deg, rgba(0, 184, 80, 0.12), #050505);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--agentup-forest-2) 18%, transparent);
 }
 
@@ -1945,7 +1996,7 @@
   content: '✓';
   position: absolute;
   left: 0;
-  color: var(--agentup-forest);
+  color: #00d66b;
   font-weight: 700;
 }
 
@@ -1954,7 +2005,7 @@
 .docsPage {
   flex: 1;
   padding: 0.75rem 0.9rem;
-  background: var(--agentup-surface);
+  background: #050505;
   overflow: hidden;
 }
 
@@ -1983,7 +2034,7 @@
 }
 
 .docsItem:hover {
-  background: var(--agentup-surface-soft);
+  background: #080808;
 }
 
 .docsArrow {
@@ -2005,7 +2056,7 @@
   display: grid;
   grid-template-columns: 1fr 64px 88px 68px;
   padding: 0.33rem 0.6rem;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border-bottom: 1px solid var(--agentup-line);
   font-size: 0.67rem;
   font-weight: 800;
@@ -2044,7 +2095,7 @@
   padding: 0.6rem 0.65rem;
   border: 1px solid var(--agentup-line);
   border-radius: 8px;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   overflow: hidden;
 }
 
@@ -2113,7 +2164,7 @@
   padding: 0.35rem 0.55rem;
   border-radius: 6px;
   border: 1px solid var(--agentup-line);
-  background: var(--agentup-surface-soft);
+  background: #080808;
   color: var(--agentup-ink);
   font-size: 0.76rem;
   font-family: var(--ifm-font-family-monospace);
@@ -2130,7 +2181,7 @@
 .storeBannerTitle {
   font-size: 1.08rem;
   font-weight: 900;
-  color: #ffffff;
+  color: #f5fbf7;
   line-height: 1.1;
   margin-bottom: 0.2rem;
 }
@@ -2145,8 +2196,8 @@
   display: inline-block;
   padding: 0.35rem 0.85rem;
   border-radius: 6px;
-  background: #ffffff;
-  color: var(--agentup-forest);
+  background: #00d66b;
+  color: #000000;
   font-size: 0.76rem;
   font-weight: 800;
   cursor: pointer;
@@ -2180,7 +2231,7 @@
 .storeAbout {
   flex: 1;
   padding: 1rem 1rem;
-  background: var(--agentup-surface);
+  background: #050505;
   overflow: hidden;
 }
 
@@ -2212,7 +2263,7 @@
 .storeAboutStats strong {
   font-size: 1.2rem;
   font-weight: 900;
-  color: var(--agentup-forest);
+  color: #00d66b;
   line-height: 1;
 }
 
@@ -2243,7 +2294,7 @@
 
 .adminTab:hover {
   color: var(--agentup-ink);
-  background: var(--agentup-surface-soft);
+  background: #080808;
 }
 
 .adminTabActive {
@@ -2255,7 +2306,7 @@
   color: var(--agentup-ink);
   padding: 0.22rem 0.6rem;
   border-radius: 6px;
-  background: var(--agentup-surface);
+  background: #050505;
   box-shadow: inset 0 0 0 1px var(--agentup-line);
 }
 
@@ -2265,7 +2316,7 @@
   display: grid;
   grid-template-columns: 62px 1fr 80px 72px;
   padding: 0.32rem 0.8rem;
-  background: var(--agentup-surface-soft);
+  background: #080808;
   border-bottom: 1px solid var(--agentup-line);
   font-size: 0.67rem;
   font-weight: 800;
