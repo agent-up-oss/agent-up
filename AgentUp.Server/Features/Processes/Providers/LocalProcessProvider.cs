@@ -179,8 +179,9 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         {
             Directory.CreateSymbolicLink(aliasPath, workingDirectory);
         }
-        catch (IOException) when (Directory.Exists(aliasPath))
+        catch (IOException) when (Directory.Exists(aliasPath) || new DirectoryInfo(aliasPath).LinkTarget is not null)
         {
+            // Either a real directory (race) or a dangling symlink (target doesn't exist yet).
             return aliasPath;
         }
 

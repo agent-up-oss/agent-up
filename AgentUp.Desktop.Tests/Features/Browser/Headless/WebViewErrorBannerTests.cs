@@ -36,7 +36,7 @@ public sealed class WebViewErrorBannerTests
             new Uri("http://localhost:3000/a?b=<c>"));
 
         Assert.That(html, Does.Contain("&lt;Not Found&gt;"));
-        Assert.That(html, Does.Not.Contain("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;"));
+        Assert.That(html, Does.Contain("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;"));
         Assert.That(html, Does.Contain("http://localhost:3000/a?b=&lt;c&gt;"));
         Assert.That(html, Does.Not.Contain("<script>alert"));
     }

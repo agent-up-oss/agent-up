@@ -43,6 +43,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
+    // Overrideable in tests to bypass HTTP probing (e.g. in cookie isolation tests that share the probe's target server).
+    internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
     internal bool HasBrowserResourcesForTests =>
         _addressPollTimer.IsEnabled
         || _webViews.Count > 0
@@ -363,7 +365,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Uri destination,
         int navigationVersion)
     {
-        var errorHtml = await ProbeBrowserDestinationAsync(destination);
+        var errorHtml = await BrowserProbe(destination);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (!CanTouchWebView(workspaceId, webView)) return;
@@ -389,7 +391,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 request,
                 HttpCompletionOption.ResponseHeadersRead);
 
-            if ((int)response.StatusCode < 400)
+            if ((int)response.StatusCode < 500)
                 return null;
 
             return BuildBrowserErrorHtml(
@@ -671,6 +673,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static string BuildBrowserErrorHtml(string title, string detail, Uri destination)
     {
         var safeTitle = WebUtility.HtmlEncode(title);
+        var safeDetail = WebUtility.HtmlEncode(detail);
         var safeUrl = WebUtility.HtmlEncode(destination.ToString());
 
         return $$"""
@@ -702,10 +705,16 @@ body {
   padding: 28px;
 }
 h1 {
-  margin: 0 0 18px;
+  margin: 0 0 10px;
   color: #f5fbf7;
   font-size: 30px;
   line-height: 1.1;
+}
+.detail {
+  display: block;
+  margin: 0 0 18px;
+  color: #b0c8b8;
+  font-size: 14px;
 }
 code {
   display: block;
@@ -723,6 +732,7 @@ code {
 <body>
   <main class="panel">
     <h1>{{safeTitle}}</h1>
+    <span class="detail">{{safeDetail}}</span>
     <code>{{safeUrl}}</code>
   </main>
 </body>
