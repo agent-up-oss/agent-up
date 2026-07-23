@@ -1,7 +1,69 @@
 // @ts-check
 
-const lightCodeTheme = require('prism-react-renderer').themes.github;
-const darkCodeTheme = require('prism-react-renderer').themes.dracula;
+const agentUpCodeTheme = {
+  plain: {
+    color: '#d8e7dc',
+    backgroundColor: '#020402',
+  },
+  styles: [
+    {
+      types: ['comment', 'prolog', 'doctype', 'cdata'],
+      style: {
+        color: '#6f8d78',
+        fontStyle: 'italic',
+      },
+    },
+    {
+      types: ['punctuation'],
+      style: {
+        color: '#8db89a',
+      },
+    },
+    {
+      types: ['property', 'tag', 'constant', 'symbol', 'deleted'],
+      style: {
+        color: '#2bf27a',
+      },
+    },
+    {
+      types: ['boolean', 'number'],
+      style: {
+        color: '#7dffac',
+      },
+    },
+    {
+      types: ['selector', 'attr-name', 'string', 'char', 'builtin', 'inserted'],
+      style: {
+        color: '#00d66b',
+      },
+    },
+    {
+      types: ['operator', 'entity', 'url', 'variable'],
+      style: {
+        color: '#9df8bc',
+      },
+    },
+    {
+      types: ['atrule', 'attr-value', 'function', 'class-name'],
+      style: {
+        color: '#c9ffd8',
+      },
+    },
+    {
+      types: ['keyword'],
+      style: {
+        color: '#08ef75',
+        fontWeight: '700',
+      },
+    },
+    {
+      types: ['regex', 'important'],
+      style: {
+        color: '#b4ffca',
+      },
+    },
+  ],
+};
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -58,11 +120,14 @@ const config = {
     ],
   ],
 
+  clientModules: [require.resolve('./src/forceDarkMode.js')],
+
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       colorMode: {
         defaultMode: 'dark',
+        disableSwitch: true,
         respectPrefersColorScheme: false,
       },
       image: 'img/social-card.png',
@@ -141,8 +206,8 @@ const config = {
         copyright: `Copyright ${new Date().getFullYear()} Agent-Up. Licensed under Apache-2.0.`,
       },
       prism: {
-        theme: lightCodeTheme,
-        darkTheme: darkCodeTheme,
+        theme: agentUpCodeTheme,
+        darkTheme: agentUpCodeTheme,
       },
     }),
 };

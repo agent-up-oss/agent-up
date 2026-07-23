@@ -21,7 +21,7 @@ public class WorkspaceItemViewModelTests
     }
 
     [Test]
-    [TestCase("Running", "#4cbe78")]
+    [TestCase("Running", "#00d66b")]
     [TestCase("Failed", "#b85a5a")]
     [TestCase("Stopped", "#5a5a72")]
     [TestCase("Starting", "#5a5a72")]

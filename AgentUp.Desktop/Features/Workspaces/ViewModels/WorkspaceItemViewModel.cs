@@ -42,7 +42,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
 
     private static string ResolveStateColor(string state) => state switch
     {
-        "Running" => "#4cbe78",
+        "Running" => "#00d66b",
         "Failed" => "#b85a5a",
         _ => "#5a5a72"
     };

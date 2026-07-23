@@ -171,6 +171,7 @@ public sealed class BrowserCookieIsolationTests
             var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), new ConsoleApiClient(http));
             TestContext.Progress.WriteLine("MainViewModel created.");
             var window = new MainWindow { DataContext = vm };
+            window.BrowserProbe = _ => Task.FromResult<string?>(null);
             TestContext.Progress.WriteLine("MainWindow constructed.");
             window.Show();
             TestContext.Progress.WriteLine("MainWindow shown.");

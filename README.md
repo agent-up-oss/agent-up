@@ -1,5 +1,5 @@
 <p align="center" style="margin-bottom: 0; padding: 0">
-  <a href="https://github.com/themassiveone/agent-up/">
+  <a href="https://github.com/agent-up-oss/agent-up/">
     <img width="180" height="180" src="media/logo.png" alt="Agent-Up logo">
   </a>
 </p>
@@ -7,6 +7,11 @@
 <p align="center">
   <a href="https://github.com/themassiveone/agent-up/actions/workflows/ci.yml">
     <img src="https://github.com/themassiveone/agent-up/actions/workflows/ci.yml/badge.svg" alt="CI status">
+  </a>
+</p>
+<p align="center">
+  <a href="https://github.com/agent-up-oss/agent-up/">
+    <img width="80%" src="media/screenshot.png" alt="screenshot">
   </a>
 </p>
 
