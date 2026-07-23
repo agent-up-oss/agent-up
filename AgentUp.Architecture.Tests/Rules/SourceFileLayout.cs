@@ -29,6 +29,6 @@ public sealed class SourceFileLayout
     private static bool HasAllowedSourceRoot(string root, string path)
     {
         var parts = ArchitectureFixture.Parts(root, path);
-        return parts.Length >= 3 && parts[1] is "Features" or "Shared";
+        return parts.Length >= 3 && parts[1] is "Features" or "Shared" or "Composition";
     }
 }

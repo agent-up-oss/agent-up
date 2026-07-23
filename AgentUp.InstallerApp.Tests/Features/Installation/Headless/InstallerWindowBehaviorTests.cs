@@ -1,7 +1,7 @@
 using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Factories;
-using AgentUp.InstallerApp.Features.Installation.Factories;
+using AgentUp.InstallerApp.Composition;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
 using AgentUp.InstallerApp.Tests.Support;
@@ -11,7 +11,7 @@ using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
 using AgentUp.Installers.Features.NixOsInstallation.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Services;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 

@@ -2,8 +2,8 @@ using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 using AgentUp.Installers.Features.MacOsInstallation.DTOs;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
 using AgentUp.Installers.Features.MacOsInstallation.Providers;
@@ -15,7 +15,7 @@ using AgentUp.Installers.Features.WindowsInstallation.DTOs;
 using AgentUp.Installers.Features.WindowsInstallation.Models;
 using AgentUp.Installers.Features.WindowsInstallation.Providers;
 
-namespace AgentUp.Installers.Features.Installation.Factories;
+namespace AgentUp.Installers.Composition;
 
 public static class InstallerPlatformAdapterFactory
 {

@@ -2,10 +2,8 @@ using System.Runtime.CompilerServices;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 
 namespace AgentUp.Installers.Features.NixOsInstallation.Providers;
 

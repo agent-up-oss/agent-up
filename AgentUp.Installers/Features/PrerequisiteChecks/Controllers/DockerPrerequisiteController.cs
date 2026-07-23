@@ -1,5 +1,4 @@
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Services;
 
 namespace AgentUp.Installers.Features.PrerequisiteChecks.Controllers;
 

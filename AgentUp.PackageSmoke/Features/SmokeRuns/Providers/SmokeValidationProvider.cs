@@ -1,4 +1,4 @@
-using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Composition;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Controllers;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Controllers;

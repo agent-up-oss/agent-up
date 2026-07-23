@@ -2,7 +2,7 @@ using AgentUp.CLI.Features.Workspaces.Controllers;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
 
-namespace AgentUp.CLI.Features.Workspaces.Factories;
+namespace AgentUp.CLI.Composition;
 
 public static class CliRunnerFactory
 {

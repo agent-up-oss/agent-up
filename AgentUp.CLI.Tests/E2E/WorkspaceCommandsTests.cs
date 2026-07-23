@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AgentUp.CLI.Features.Workspaces.Factories;
+using AgentUp.CLI.Composition;
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Tests.Fake;
 using AgentUp.Server.Features.Applications.Services;

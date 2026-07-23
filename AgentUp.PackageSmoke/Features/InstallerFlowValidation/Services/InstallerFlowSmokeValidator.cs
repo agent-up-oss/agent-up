@@ -1,5 +1,5 @@
 using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
 using AgentUp.Installers.Features.Installation.Services;

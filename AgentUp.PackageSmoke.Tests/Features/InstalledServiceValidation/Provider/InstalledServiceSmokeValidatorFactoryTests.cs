@@ -1,4 +1,5 @@
 using AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Fake;
+using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
@@ -15,7 +16,8 @@ public sealed class InstalledServiceSmokeValidatorFactoryTests
         var validator = InstalledServiceSmokeValidatorFactory.Create(
             "macos",
             new RecordingCommandRunner((_, _) => new CommandResult(0, "", "")),
-            new FakeServerProbe("http://127.0.0.1:5000"));
+            new FakeServerProbe("http://127.0.0.1:5000"),
+            new NullRuntimeSecurityChecks());
 
         Assert.That(validator, Is.TypeOf<SkippedInstalledServiceSmokeValidator>());
     }
@@ -26,7 +28,8 @@ public sealed class InstalledServiceSmokeValidatorFactoryTests
         var validator = InstalledServiceSmokeValidatorFactory.Create(
             "windows",
             new RecordingCommandRunner((_, _) => new CommandResult(0, "", "")),
-            new FakeServerProbe("http://127.0.0.1:5000"));
+            new FakeServerProbe("http://127.0.0.1:5000"),
+            new NullRuntimeSecurityChecks());
 
         Assert.That(validator, Is.TypeOf<WindowsInstalledServiceSmokeValidator>());
     }

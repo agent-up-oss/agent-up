@@ -1,4 +1,4 @@
-using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
 
 namespace AgentUp.Installers.Features.WindowsInstallation.Providers;

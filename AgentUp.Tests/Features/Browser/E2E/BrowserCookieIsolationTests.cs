@@ -4,7 +4,7 @@ using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
-using AgentUp.Desktop.Features.Workspaces.Factories;
+using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Features.Workspaces.Repositories;

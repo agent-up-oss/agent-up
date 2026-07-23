@@ -2,11 +2,11 @@ using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Factories;
+using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Features.Installation.Factories;
+namespace AgentUp.InstallerApp.Composition;
 
 public static class InstallerViewModelFactory
 {
@@ -14,7 +14,7 @@ public static class InstallerViewModelFactory
     {
         var version = InstallerVersion();
         var manifest = ProductManifest.AgentUp();
-        IInstallerPlatformAdapter adapter = InstallerAdapterFactory.Create();
+        IInstallerPlatformAdapter adapter = InstallerPlatformAdapterFactory.Create();
         var model = new InstallerViewModel(
             InstallerSession.CreateDefault(manifest, version, manifest.DefaultInstallRoot(), PayloadSelection.Bundled(version)),
             adapter,
