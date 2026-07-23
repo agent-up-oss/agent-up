@@ -62,7 +62,7 @@ public class UbuntuPackageValidatorTests
             "ExecStart=/opt/agent-up/server/AgentUp.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up\nCacheDirectory=agent-up\nRestartSec=5\n");
         WriteText(Path.Join(root, "opt", "agent-up", "installer", "payload", "icon", "Agent-Up.png"), "png");
         WriteText(Path.Join(root, "usr", "share", "applications", "agent-up-installer.desktop"), "[Desktop Entry]\nName=Agent-Up Installer\n");
-        WriteText(Path.Join(root, "usr", "share", "metainfo", "agent-up.metainfo.xml"), "<component><id>agent-up-installer.desktop</id><provides><pkgname>agent-up</pkgname></provides><releases><release version=\"1.0.0\" date=\"2026-01-01\"/></releases></component>\n");
+        WriteText(Path.Join(root, "usr", "share", "metainfo", "agent-up-installer.desktop.metainfo.xml"), "<component><id>agent-up-installer.desktop</id><provides><pkgname>agent-up</pkgname></provides><releases><release version=\"1.0.0\" date=\"2026-01-01\"/></releases></component>\n");
         WriteText(Path.Join(root, "usr", "share", "pixmaps", "agent-up.png"), "png");
     }
 
