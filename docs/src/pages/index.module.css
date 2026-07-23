@@ -31,6 +31,7 @@
 }
 
 .hero {
+  box-sizing: border-box;
   min-height: calc(100vh - var(--ifm-navbar-height));
   display: grid;
   grid-template-columns: minmax(320px, 0.72fr) minmax(720px, 1.28fr);
@@ -38,7 +39,7 @@
   align-items: center;
   max-width: min(1560px, calc(100vw - 2rem));
   margin: 0 auto;
-  padding: 5rem 1rem 4rem;
+  padding: 1.5rem 1rem 1rem;
 }
 
 .heroText h1 {
