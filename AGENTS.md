@@ -410,7 +410,7 @@ Every managed repository is described declaratively with `agent-up.json`.
 
 Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration.
 
-Legacy local application commands and legacy Docker `services` remain supported. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
+Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
 User docs:
 
@@ -591,7 +591,7 @@ Read: `docs/user-docs/workspace.md`.
 
 Agent-Up uses declarative repository configuration through `agent-up.json`. Applications declare launch commands, port environment variables, browser paths, and Docker setup without source-code integration.
 
-Capability sections such as `dotnet` and `docker` are the preferred shape for ecosystem-aware requirements. Capability adapters discover system and Agent-Up-managed versions, reconcile declared requirements, return structured mismatch status, and produce Server-owned launch plans. The legacy `applications` list remains supported for opaque shell commands, and legacy Docker `services` remain supported for compatibility.
+Capability sections such as `dotnet` and `docker` are the preferred shape for ecosystem-aware requirements. Capability adapters discover system and Agent-Up-managed versions, reconcile declared requirements, return structured mismatch status, and produce Server-owned launch plans. The legacy `applications` list remains supported for executable-plus-arguments commands, and legacy Docker `services` remain supported for compatibility.
 
 Read: `docs/user-docs/configuration.md` and `docs/user-docs/agent-up-json.md`.
 

@@ -51,7 +51,7 @@ If a feature starts, stops, restarts, navigates, records, allocates, diagnoses, 
 
 When the Server launches a local application process, it injects the workspace's full allocated port map into the process environment. This lets sibling applications discover each other through declared variables such as `WEB_PORT`, `API_PORT`, and `POSTGRES_PORT` without coupling application source code to Agent-Up APIs.
 
-Local application commands are executed through the host platform shell: `cmd.exe /C` on Windows and Bash on Unix-like systems. Command strings in `agent-up.json` should therefore use syntax that is valid for the operating systems where that workspace is expected to run.
+Local application commands are parsed as an executable plus arguments and launched with `ProcessStartInfo.ArgumentList`. The Server rejects shell expressions such as pipes, redirects, variable expansion, command chaining, and subshells before process start.
 
 Process output storage must not use workspace IDs or application names as raw path segments. Repositories that persist process logs must encode or canonicalize those identifiers and verify the resolved path stays under the Server-owned output root before reading, writing, or deleting files.
 

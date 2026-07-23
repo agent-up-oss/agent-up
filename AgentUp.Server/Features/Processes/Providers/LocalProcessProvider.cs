@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
@@ -26,7 +25,7 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             app.Path,
             "Application path");
         var fileEnvironment = LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles);
-        var startInfo = CreateShellStartInfo(app.Command!, workingDirectory);
+        var startInfo = CreateProcessStartInfo(app.Command!, workingDirectory);
         foreach (var (key, value) in fileEnvironment)
             startInfo.Environment[key] = value;
 
@@ -87,64 +86,84 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         return environment;
     }
 
-    private static ProcessStartInfo CreateShellStartInfo(string command, string workingDirectory)
+    private static ProcessStartInfo CreateProcessStartInfo(string command, string workingDirectory)
     {
-        var scriptPath = WriteCommandScript(command, workingDirectory);
+        var parsed = ParseApplicationCommand(command);
         var startInfo = new ProcessStartInfo
         {
+            FileName = parsed.FileName,
             WorkingDirectory = workingDirectory,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-
-        startInfo.Environment["AGENTUP_COMMAND_SCRIPT"] = scriptPath;
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            startInfo.FileName = "cmd.exe";
-            startInfo.ArgumentList.Add("/D");
-            startInfo.ArgumentList.Add("/Q");
-            startInfo.ArgumentList.Add("/C");
-            startInfo.ArgumentList.Add("\"%AGENTUP_COMMAND_SCRIPT%\"");
-        }
-        else
-        {
-            startInfo.FileName = "/usr/bin/env";
-            startInfo.ArgumentList.Add("bash");
-            startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add("exec \"$AGENTUP_COMMAND_SCRIPT\"");
-        }
+        foreach (var argument in parsed.Arguments)
+            startInfo.ArgumentList.Add(argument);
 
         return startInfo;
     }
 
-    private static string WriteCommandScript(string command, string workingDirectory)
+    private static (string FileName, IReadOnlyList<string> Arguments) ParseApplicationCommand(string command)
     {
         if (string.IsNullOrWhiteSpace(command))
             throw new InvalidOperationException("Application command must not be empty.");
 
-        var runtimeDirectory = WorkspacePathProvider.ResolveWorkspacePath(
-            workingDirectory,
-            Path.Join(".agent-up", "runtime", "commands"),
-            "Application runtime path");
-        Directory.CreateDirectory(runtimeDirectory);
-        var scriptName = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(command)))[..16]
-                         + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".cmd" : ".sh");
-        var scriptPath = WorkspacePathProvider.ResolveWorkspacePath(runtimeDirectory, scriptName, "Application command script path");
-        if (!File.Exists(scriptPath))
-        {
-            var tempPath = scriptPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            File.WriteAllText(tempPath, command);
-            File.Move(tempPath, scriptPath);
-        }
+        if (ShellMetacharacters().IsMatch(command))
+            throw new InvalidOperationException("Application command must be an executable plus arguments, not a shell expression.");
 
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        var tokens = CommandToken().Matches(command)
+            .Select(match => match.Groups["doubleQuoted"].Success
+                ? match.Groups["doubleQuoted"].Value
+                : match.Groups["singleQuoted"].Success
+                    ? match.Groups["singleQuoted"].Value
+                    : match.Groups["bare"].Value)
+            .ToArray();
+        if (tokens.Length == 0)
+            throw new InvalidOperationException("Application command must not be empty.");
+        if (tokens.Any(token => token.Contains('"') || token.Contains('\'')))
+            throw new InvalidOperationException("Application command contains invalid quoting.");
 
-        return scriptPath;
+        return ValidateParsedApplicationCommand(tokens);
     }
+
+    private static (string FileName, IReadOnlyList<string> Arguments) ValidateParsedApplicationCommand(IReadOnlyList<string> tokens)
+    {
+        var fileName = ResolveAllowedApplicationExecutable(tokens[0]);
+
+        if (tokens.Skip(1).Any(argument => argument.Any(char.IsControl)))
+            throw new InvalidOperationException("Application command arguments must not contain control characters.");
+
+        return (fileName, tokens.Skip(1).ToArray());
+    }
+
+    private static string ResolveAllowedApplicationExecutable(string fileName)
+        => fileName switch
+        {
+            "bun" => "bun",
+            "cargo" => "cargo",
+            "dotnet" => "dotnet",
+            "go" => "go",
+            "gradle" => "gradle",
+            "java" => "java",
+            "make" => "make",
+            "mvn" => "mvn",
+            "node" => "node",
+            "npm" => "npm",
+            "npx" => "npx",
+            "pnpm" => "pnpm",
+            "printenv" => "printenv",
+            "python" => "python",
+            "python3" => "python3",
+            "yarn" => "yarn",
+            _ => throw new InvalidOperationException($"Application command executable '{fileName}' is not allowed.")
+        };
+
+    [GeneratedRegex(@"""(?<doubleQuoted>[^""]*)""|'(?<singleQuoted>[^']*)'|(?<bare>\S+)")]
+    private static partial Regex CommandToken();
+
+    [GeneratedRegex(@"[|&;<>()`$]|[\r\n]")]
+    private static partial Regex ShellMetacharacters();
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]
     private static partial Regex EnvironmentVariableName();

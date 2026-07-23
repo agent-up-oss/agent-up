@@ -142,6 +142,40 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task CreateLocalProcessStartInfo_UsesValidatedExecutableAndArgumentList()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition("Web", "npm run \"dev server\"", null)
+            ]
+        });
+
+        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo.FileName, Is.EqualTo("npm"));
+        Assert.That(startInfo.ArgumentList, Is.EqualTo(new[] { "run", "dev server" }));
+    }
+
+    [Test]
+    public async Task CreateLocalProcessStartInfo_RejectsShellExpressions()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition("Web", "npm run dev; rm -rf /", null)
+            ]
+        });
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single()));
+
+        Assert.That(ex!.Message, Does.Contain("not a shell expression"));
+    }
+
+    [Test]
     public async Task CreateLocalProcessStartInfo_RejectsEnvironmentFilesOutsideWorkspaceRoot()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
