@@ -50,6 +50,7 @@ public sealed record PackageRequest
     public string? DesktopPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "desktop");
     public string? ServerPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "server");
     public string? CliPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "cli");
+    public string? TrayPayloadDirectory => PayloadRootDirectory is null ? null : Path.Join(PayloadRootDirectory, "tray");
 
     private string PlatformRuntimeDirectory =>
         $"{PackagePathValidator.RequireSafePathComponent(Platform, nameof(Platform))}-{PackagePathValidator.RequireSafePathComponent(RuntimeId, nameof(RuntimeId))}";

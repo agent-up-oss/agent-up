@@ -118,6 +118,7 @@ public sealed record WindowsInstallerLayout(
     string DesktopPublishDirectory,
     string ServerPublishDirectory,
     string CliPublishDirectory,
+    string TrayPublishDirectory,
     string LicenseRtfPath,
     string ProductMsiPath);
 
@@ -157,6 +158,7 @@ public sealed class WindowsWixSourceGenerator
                 new XElement(Wix + "Directory", new XAttribute("Id", "DesktopDir"), new XAttribute("Name", "desktop")),
                 new XElement(Wix + "Directory", new XAttribute("Id", "ServerDir"), new XAttribute("Name", "server")),
                 new XElement(Wix + "Directory", new XAttribute("Id", "CliDir"), new XAttribute("Name", "cli")),
+                new XElement(Wix + "Directory", new XAttribute("Id", "TrayDir"), new XAttribute("Name", "tray")),
                 new XElement(Wix + "Directory",
                     new XAttribute("Id", "InstallerDir"),
                     new XAttribute("Name", "installer"),
@@ -165,7 +167,8 @@ public sealed class WindowsWixSourceGenerator
                         new XAttribute("Name", "payload"),
                         new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadDesktopDir"), new XAttribute("Name", "desktop")),
                         new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadServerDir"), new XAttribute("Name", "server")),
-                        new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadCliDir"), new XAttribute("Name", "cli")))),
+                        new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadCliDir"), new XAttribute("Name", "cli")),
+                        new XElement(Wix + "Directory", new XAttribute("Id", "InstallerPayloadTrayDir"), new XAttribute("Name", "tray")))),
                 new XElement(Wix + "Directory", new XAttribute("Id", "BinDir"), new XAttribute("Name", "bin")))));
 
         package.Add(new XElement(Wix + "StandardDirectory",
@@ -259,6 +262,15 @@ public sealed class WindowsWixSourceGenerator
         {
             yield return FileComponent("Cli", "CliDir", layout.CliPublishDirectory, file);
             yield return FileComponent("InstallerPayloadCli", "InstallerPayloadCliDir", layout.CliPublishDirectory, file);
+        }
+
+        if (Directory.Exists(layout.TrayPublishDirectory))
+        {
+            foreach (var file in Directory.EnumerateFiles(layout.TrayPublishDirectory, "*", SearchOption.AllDirectories))
+            {
+                yield return FileComponent("Tray", "TrayDir", layout.TrayPublishDirectory, file);
+                yield return FileComponent("InstallerPayloadTray", "InstallerPayloadTrayDir", layout.TrayPublishDirectory, file);
+            }
         }
 
         var cliShim = new XElement(Wix + "Component",

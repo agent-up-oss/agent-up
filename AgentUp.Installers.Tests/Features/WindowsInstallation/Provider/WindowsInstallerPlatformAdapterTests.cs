@@ -160,6 +160,7 @@ public class WindowsInstallerPlatformAdapterTests
                 DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
                 ServerPublishDirectory: System.IO.Path.Join(root, "server"),
                 CliPublishDirectory: System.IO.Path.Join(root, "cli"),
+                TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
             WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
@@ -169,6 +170,7 @@ public class WindowsInstallerPlatformAdapterTests
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Shared.dll");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.Shared.dll");
+            WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
@@ -224,12 +226,14 @@ public class WindowsInstallerPlatformAdapterTests
                 DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
                 ServerPublishDirectory: System.IO.Path.Join(root, "server"),
                 CliPublishDirectory: System.IO.Path.Join(root, "cli"),
+                TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
             WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+            WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "acme-studio.cmd"), "");
             var manifest = WindowsInstallerManifest.From(AcmeStudio(), "1.2.3", "http://127.0.0.1:5001");

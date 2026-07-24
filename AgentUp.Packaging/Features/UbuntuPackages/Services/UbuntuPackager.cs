@@ -31,7 +31,8 @@ public sealed class UbuntuPackager
             layout.InstallerPublishDirectory,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
-            layout.CliPublishDirectory),
+            layout.CliPublishDirectory,
+            layout.TrayPublishDirectory),
             cancellationToken);
 
         new UbuntuPackageStager(_writer).Stage(request, layout, manifest);
