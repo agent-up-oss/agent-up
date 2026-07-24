@@ -8,7 +8,8 @@ public enum InstallerComponent
     Cli = 2,
     Desktop = 4,
     NativeService = 8,
-    RuntimeDependencies = 16
+    RuntimeDependencies = 16,
+    Tray = 32
 }
 
 public sealed record InstallLocation(string RootDirectory);
@@ -32,7 +33,7 @@ public static class ComponentSelection
             InstallerComponent.Server
             | InstallerComponent.Cli
             | InstallerComponent.Desktop
-            | InstallerComponent.NativeService
+            | InstallerComponent.Tray
             | InstallerComponent.RuntimeDependencies,
             new InstallLocation(rootDirectory));
 }

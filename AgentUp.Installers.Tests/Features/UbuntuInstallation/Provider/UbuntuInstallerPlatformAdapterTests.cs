@@ -44,6 +44,7 @@ public class UbuntuInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
@@ -111,6 +112,7 @@ public class UbuntuInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall
         }));
     }
@@ -284,6 +286,7 @@ public class UbuntuInstallerPlatformAdapterTests
                 "/payload/desktop",
                 "/payload/server",
                 "/payload/cli",
+                "/payload/tray",
                 "/payload/agent-up-server.service",
                 "/payload/logo.png"),
             UbuntuInstallerPaths.SystemDefault(),
@@ -298,6 +301,7 @@ public class UbuntuInstallerPlatformAdapterTests
                 "/payload/desktop",
                 "/payload/server",
                 "/payload/cli",
+                "/payload/tray",
                 "/payload/acme-studio-server.service",
                 "/payload/logo.png"),
             paths,

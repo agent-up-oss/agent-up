@@ -40,6 +40,7 @@ public class WindowsInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
@@ -431,12 +432,13 @@ public class WindowsInstallerPlatformAdapterTests
 
     private static WindowsInstallerOptions AcmeStudioOptions()
         => new(
-            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli"),
+            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/tray"),
             new WindowsInstallerPaths(
                 RootDirectory: @"C:\Program Files\Acme Studio",
                 DesktopDirectory: @"C:\Program Files\Acme Studio\desktop",
                 ServerDirectory: @"C:\Program Files\Acme Studio\server",
                 CliDirectory: @"C:\Program Files\Acme Studio\cli",
+                TrayDirectory: @"C:\Program Files\Acme Studio\tray",
                 BinDirectory: @"C:\Program Files\Acme Studio\bin",
                 StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Acme Studio\Acme Studio.lnk")
             { UninstallScriptName = "uninstall-acme-studio.ps1" });
@@ -456,12 +458,13 @@ public class WindowsInstallerPlatformAdapterTests
 
     private static WindowsInstallerOptions Options()
         => new(
-            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli"),
+            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/tray"),
             new WindowsInstallerPaths(
                 RootDirectory: @"C:\Program Files\Agent-Up",
                 DesktopDirectory: @"C:\Program Files\Agent-Up\desktop",
                 ServerDirectory: @"C:\Program Files\Agent-Up\server",
                 CliDirectory: @"C:\Program Files\Agent-Up\cli",
+                TrayDirectory: @"C:\Program Files\Agent-Up\tray",
                 BinDirectory: @"C:\Program Files\Agent-Up\bin",
                 StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk"));
 

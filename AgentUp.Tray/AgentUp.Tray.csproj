@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AgentUp.Tray</RootNamespace>
+    <ApplicationIcon>..\media\logo.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="../media/logo.png" Link="Assets/logo.png" />
+    <Content Include="../media/logo.png" Link="Assets/logo.png" CopyToOutputDirectory="PreserveNewest" />
+    <AvaloniaResource Include="../media/logo.ico" Link="Assets/logo.ico" />
+    <Content Include="../media/logo.ico" Link="Assets/logo.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
