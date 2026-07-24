@@ -86,6 +86,8 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, $"Register {paths.CliSymlinkPath}", true));
         if (summary.Includes(InstallerComponent.Desktop))
             operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, $"Register {manifest.DesktopApplicationName} desktop launcher", true));
+        if (summary.Includes(InstallerComponent.Tray))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, $"Register {manifest.DesktopApplicationName} tray for XDG autostart", true));
 
         operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register Ubuntu package-manager uninstall metadata", true));
         operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate Ubuntu installed state", false));
@@ -135,6 +137,8 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             yield return progress.Complete(InstallOperationKind.RegisterCli);
         if (summary.Includes(InstallerComponent.Desktop))
             yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+        if (summary.Includes(InstallerComponent.Tray))
+            yield return progress.Complete(InstallOperationKind.RegisterAutoStart);
 
         await _commands.RunAsync("dpkg-query", ["-W", _options.Manifest.PackageName], cancellationToken);
         yield return progress.Complete(InstallOperationKind.RegisterUninstall);
@@ -185,6 +189,25 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine($"systemctl enable --now {Q(_options.Manifest.ServiceUnitName)}");
         }
 
+        if (summary.Includes(InstallerComponent.Tray))
+        {
+            sb.AppendLine($"rm -rf {Q(_options.Paths.TrayDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(_options.Paths.TrayDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.TrayDirectory)}/. {Q(_options.Paths.TrayDirectory)}");
+            sb.AppendLine($"chmod +x {Q(_options.Paths.TrayExecutable)}");
+            // System-wide XDG autostart so any user session launches the tray on login
+            sb.AppendLine($"mkdir -p /etc/xdg/autostart");
+            sb.AppendLine($"cat > {Q(_options.Paths.XdgAutostartPath)} << 'DESKTOP_ENTRY'");
+            sb.AppendLine("[Desktop Entry]");
+            sb.AppendLine("Type=Application");
+            sb.AppendLine($"Name={_options.Manifest.DesktopApplicationName} Tray");
+            sb.AppendLine($"Exec={_options.Paths.TrayExecutable}");
+            sb.AppendLine("Terminal=false");
+            sb.AppendLine("Hidden=false");
+            sb.AppendLine("X-GNOME-Autostart-enabled=true");
+            sb.AppendLine("DESKTOP_ENTRY");
+        }
+
         if (summary.Includes(InstallerComponent.Cli))
         {
             sb.AppendLine($"rm -rf {Q(_options.Paths.CliDirectory)}");
@@ -220,6 +243,10 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
                 sb.AppendLine("update-desktop-database /usr/share/applications 2>/dev/null || true");
                 sb.AppendLine($"rm -f {Q(_options.Paths.IconPath)}");
                 sb.AppendLine($"rm -rf {Q(_options.Paths.DesktopDirectory)}");
+                break;
+            case InstallerComponentTarget.Tray:
+                sb.AppendLine($"rm -f {Q(_options.Paths.XdgAutostartPath)}");
+                sb.AppendLine($"rm -rf {Q(_options.Paths.TrayDirectory)}");
                 break;
         }
 
@@ -272,6 +299,11 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             InstallerVersion: session.Version,
             CliVersion: session.Version,
             ServerVersion: session.Version,
-            DesktopVersion: session.Version), session.Version);
+            DesktopVersion: session.Version)
+        {
+            TrayInstalled = _files.FileExists(_options.Paths.TrayExecutable),
+            TrayAutoStartRegistered = _files.FileExists(_options.Paths.XdgAutostartPath),
+            TrayVersion = _files.FileExists(_options.Paths.TrayExecutable) ? session.Version : null,
+        }, session.Version);
     }
 }

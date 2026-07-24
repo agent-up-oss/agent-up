@@ -85,6 +85,8 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, $"Register /usr/local/bin {session.ProductName} commands", true));
         if (summary.Includes(InstallerComponent.Desktop))
             operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, $"Register {session.ProductName}.app in /Applications", true));
+        if (summary.Includes(InstallerComponent.Tray))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, $"Register {session.ProductName} tray for login auto-start", false));
 
         operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true));
         operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate macOS installed state", false));
@@ -123,7 +125,26 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 tempFiles[paths.LaunchDaemonPath] = tmpDaemon;
             }
 
+            string? tmpLaunchAgent = null;
+            if (summary.Includes(InstallerComponent.Tray))
+            {
+                // LaunchAgent goes in the user's ~/Library/LaunchAgents — no elevation needed for the write
+                var launchAgentsDir = Path.Join(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    "Library", "LaunchAgents");
+                var launchAgentPath = Path.Join(launchAgentsDir, $"{manifest.TrayLaunchAgentLabel}.plist");
+                Directory.CreateDirectory(launchAgentsDir);
+                await File.WriteAllTextAsync(launchAgentPath,
+                    plists.TrayLaunchAgentPlist(paths.TrayExecutable), cancellationToken);
+                tmpLaunchAgent = launchAgentPath;
+            }
+
             await RunElevatedAsync(BuildInstallScript(session, summary, tempFiles, manifest, paths), cancellationToken);
+
+            if (tmpLaunchAgent is not null)
+            {
+                await _commands.RunAsync("launchctl", ["load", tmpLaunchAgent], cancellationToken);
+            }
         }
         finally
         {
@@ -145,6 +166,9 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
 
         if (summary.Includes(InstallerComponent.Desktop))
             yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+
+        if (summary.Includes(InstallerComponent.Tray))
+            yield return progress.Complete(InstallOperationKind.RegisterAutoStart);
 
         yield return progress.Complete(InstallOperationKind.RegisterUninstall);
         yield return progress.Complete(InstallOperationKind.ValidateInstallation);
@@ -174,6 +198,11 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         var service = await _commands.RunAsync("launchctl", ["print", $"system/{launchDaemonLabel}"], cancellationToken);
         var cli = await _commands.RunAsync("bash", ["-lc", "command -v \"$1\"", "--", session.Manifest.CliCommandName], cancellationToken);
 
+        var manifest = MacOsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
+        var launchAgentPath = Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Library", "LaunchAgents", $"{manifest.TrayLaunchAgentLabel}.plist");
+
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,
             ServiceRunning: service.ExitCode == 0,
@@ -182,7 +211,12 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             InstallerVersion: session.Version,
             CliVersion: session.Version,
             ServerVersion: session.Version,
-            DesktopVersion: session.Version), session.Version);
+            DesktopVersion: session.Version)
+        {
+            TrayInstalled = _files.FileExists(paths.TrayExecutable),
+            TrayAutoStartRegistered = _files.FileExists(launchAgentPath),
+            TrayVersion = _files.FileExists(paths.TrayExecutable) ? session.Version : null,
+        }, session.Version);
     }
 
     private string BuildInstallScript(
@@ -227,6 +261,14 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine($"ln -sf {Q(paths.ServerExecutable)} {Q(paths.ServerSymlinkPath)}");
         }
 
+        if (summary.Includes(InstallerComponent.Tray))
+        {
+            sb.AppendLine($"rm -rf {Q(paths.TrayDirectory)}");
+            sb.AppendLine($"mkdir -p {Q(paths.TrayDirectory)}");
+            sb.AppendLine($"cp -r {Q(_options.Payload.TrayDirectory)}/. {Q(paths.TrayDirectory)}");
+            sb.AppendLine($"chmod +x {Q(paths.TrayExecutable)}");
+        }
+
         if (summary.Includes(InstallerComponent.Cli))
         {
             sb.AppendLine($"rm -rf {Q(paths.CliDirectory)}");
@@ -261,6 +303,10 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         {
             sb.AppendLine($"rm -rf {Q(paths.AppBundleDirectory)}");
             sb.AppendLine($"rm -f {Q(paths.DesktopSymlinkPath)}");
+        }
+        else if (target == InstallerComponentTarget.Tray)
+        {
+            sb.AppendLine($"rm -rf {Q(paths.TrayDirectory)}");
         }
 
         return sb.ToString();

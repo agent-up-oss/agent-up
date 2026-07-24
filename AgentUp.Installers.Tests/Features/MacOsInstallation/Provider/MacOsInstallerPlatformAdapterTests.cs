@@ -38,6 +38,7 @@ public class MacOsInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
@@ -349,7 +350,7 @@ public class MacOsInstallerPlatformAdapterTests
         => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/Applications/Agent-Up.app", PayloadSelection.Bundled(new Version(1, 2, 3)));
 
     private static MacOsInstallerOptions Options()
-        => new(new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/icon/Agent-Up.png"));
+        => new(new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/tray", "/payload/icon/Agent-Up.png"));
 
     private static MacOsInstallerPlatformAdapter Adapter(
         ICommandRunner commands,

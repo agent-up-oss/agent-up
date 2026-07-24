@@ -12,6 +12,7 @@ public sealed record WindowsPackageLayout(
     string DesktopPublishDirectory,
     string ServerPublishDirectory,
     string CliPublishDirectory,
+    string TrayPublishDirectory,
     string ProductWxsPath,
     string BundleWxsPath,
     string LicenseRtfPath,
@@ -30,6 +31,7 @@ public sealed record WindowsPackageLayout(
             DesktopPublishDirectory: Path.Join(stage, "desktop"),
             ServerPublishDirectory: Path.Join(stage, "server"),
             CliPublishDirectory: Path.Join(stage, "cli"),
+            TrayPublishDirectory: Path.Join(stage, "tray"),
             ProductWxsPath: Path.Join(installerSource, "Product.wxs"),
             BundleWxsPath: Path.Join(installerSource, "Bundle.wxs"),
             LicenseRtfPath: Path.Join(installerSource, "License.rtf"),
@@ -45,6 +47,7 @@ public sealed record WindowsPackageLayout(
             DesktopPublishDirectory,
             ServerPublishDirectory,
             CliPublishDirectory,
+            TrayPublishDirectory,
             LicenseRtfPath,
             ProductMsiPath);
 }

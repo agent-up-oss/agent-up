@@ -13,10 +13,18 @@ public static class PostInstallValidation
         Require(state.CliAvailableFromFreshShell, "cli.path", "CLI is not available from a new shell.", findings);
         Require(state.DesktopInstalled, "desktop.missing", "Desktop application is not installed in the expected location.", findings);
 
+        if (state.TrayInstalled || state.TrayAutoStartRegistered || state.TrayVersion is not null)
+        {
+            Require(state.TrayInstalled, "tray.missing", "Tray application is not installed in the expected location.", findings);
+            Require(state.TrayAutoStartRegistered, "tray.autostart", "Tray auto-start is not registered for the current user.", findings);
+        }
+
         ValidateVersion("installer.version", "Installer", state.InstallerVersion, expectedVersion, findings);
         ValidateVersion("cli.version", "CLI", state.CliVersion, expectedVersion, findings);
         ValidateVersion("server.version", "Server", state.ServerVersion, expectedVersion, findings);
         ValidateVersion("desktop.version", "Desktop", state.DesktopVersion, expectedVersion, findings);
+        if (state.TrayVersion is not null)
+            ValidateVersion("tray.version", "Tray", state.TrayVersion, expectedVersion, findings);
 
         return new ValidationReport(findings);
     }

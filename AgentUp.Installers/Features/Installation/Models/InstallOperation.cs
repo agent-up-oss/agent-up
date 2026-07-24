@@ -8,6 +8,7 @@ public enum InstallOperationKind
     RegisterService,
     RegisterCli,
     RegisterDesktop,
+    RegisterAutoStart,
     RegisterUninstall,
     ValidateInstallation,
     Rollback

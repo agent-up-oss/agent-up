@@ -27,7 +27,13 @@ public sealed record UbuntuInstallerPaths(
     public string DesktopDirectory => System.IO.Path.Join(RootDirectory, "desktop");
     public string ServerDirectory => System.IO.Path.Join(RootDirectory, "server");
     public string CliDirectory => System.IO.Path.Join(RootDirectory, "cli");
+    public string TrayDirectory => System.IO.Path.Join(RootDirectory, "tray");
     public string DesktopExecutable => System.IO.Path.Join(DesktopDirectory, "AgentUp.Desktop");
     public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");
     public string CliExecutable => System.IO.Path.Join(CliDirectory, "AgentUp.CLI");
+    public string TrayExecutable => System.IO.Path.Join(TrayDirectory, "AgentUp.Tray");
+    public string XdgAutostartPath => System.IO.Path.Join("/etc/xdg/autostart", $"{PackageName(DesktopEntryPath)}-tray.desktop");
+
+    private static string PackageName(string desktopEntryPath)
+        => System.IO.Path.GetFileNameWithoutExtension(desktopEntryPath);
 }

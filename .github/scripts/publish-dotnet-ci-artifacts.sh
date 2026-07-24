@@ -49,6 +49,7 @@ for rid in "${rids[@]}"; do
   publish_project "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" "$rid" "$output_dir/payloads/$rid/desktop"
   publish_project "$root/AgentUp.Server/AgentUp.Server.csproj" "$rid" "$output_dir/payloads/$rid/server"
   publish_project "$root/AgentUp.CLI/AgentUp.CLI.csproj" "$rid" "$output_dir/payloads/$rid/cli"
+  publish_project "$root/AgentUp.Tray/AgentUp.Tray.csproj" "$rid" "$output_dir/payloads/$rid/tray"
 done
 
 (
@@ -61,7 +62,7 @@ cat > "$output_dir/manifest.json" <<JSON
   "version": "$version",
   "commit": "${GITHUB_SHA:-local}",
   "runtimes": ["linux-x64", "win-x64", "osx-arm64", "osx-x64"],
-  "payloadLayout": "payloads/{rid}/{installer,desktop,server,cli}",
+  "payloadLayout": "payloads/{rid}/{installer,desktop,server,cli,tray}",
   "toolLayout": "tools/{rid}/{packaging,package-smoke}",
   "checksums": "checksums.sha256"
 }

@@ -97,6 +97,11 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 _files.DeleteFile(_options.Paths.StartMenuShortcutPath);
                 _files.DeleteDirectory(_options.Paths.DesktopDirectory);
                 break;
+            case InstallerComponentTarget.Tray:
+                await _requiredCommands.RunPowerShellAsync(
+                    WindowsInstallerCommands.TrayAutoStartRemovePowerShell(), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.TrayDirectory);
+                break;
         }
 
         yield return progress.Complete(operations[0].Kind);
@@ -130,6 +135,8 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, "Register Agent-Up CLI on machine PATH", true));
         if (summary.Includes(InstallerComponent.Desktop))
             operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, "Register Agent-Up Start Menu shortcut", true));
+        if (summary.Includes(InstallerComponent.Tray))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, "Register Agent-Up Tray for login auto-start", false));
 
         operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true));
         operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate Windows installed state", false));
@@ -169,6 +176,12 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             _files.CreateDirectory(_options.Paths.BinDirectory);
             _files.WriteText(_options.Paths.CliShimPathFor(manifest.CliShimName), WindowsWixSourceGenerator.CliShimText());
         }
+
+        if (summary.Includes(InstallerComponent.Tray))
+        {
+            _files.ResetDirectory(_options.Paths.TrayDirectory);
+            _files.CopyDirectory(_options.Payload.TrayDirectory, _options.Paths.TrayDirectory);
+        }
         yield return progress.Complete(InstallOperationKind.InstallFiles);
 
         if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
@@ -191,6 +204,13 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             yield return progress.Complete(InstallOperationKind.RegisterDesktop);
         }
 
+        if (summary.Includes(InstallerComponent.Tray))
+        {
+            await _requiredCommands.RunPowerShellAsync(
+                WindowsInstallerCommands.TrayAutoStartPowerShell(_options.Paths), cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterAutoStart);
+        }
+
         _files.WriteText(_options.Paths.UninstallScriptPath, WindowsInstallerCommands.UninstallScript(manifest, _options.Paths));
         await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.UninstallRegistryPowerShell(manifest, _options.Paths), cancellationToken);
         yield return progress.Complete(InstallOperationKind.RegisterUninstall);
@@ -198,7 +218,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
     }
 
     private static InstallerComponentTarget TargetFor(ProductComponent component)
-        => Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
+        => Enum.TryParse<InstallerComponentTarget>(component.Id, ignoreCase: true, out var t)
             ? t
             : throw new NotSupportedException($"Component '{component.Id}' is not supported by the Windows adapter.");
 
@@ -221,7 +241,12 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             InstallerVersion: session.Version,
             CliVersion: session.Version,
             ServerVersion: session.Version,
-            DesktopVersion: session.Version), session.Version);
+            DesktopVersion: session.Version)
+        {
+            TrayInstalled = _files.FileExists(_options.Paths.TrayExecutable),
+            TrayAutoStartRegistered = _files.FileExists(_options.Paths.TrayExecutable), // set on first tray launch
+            TrayVersion = _files.FileExists(_options.Paths.TrayExecutable) ? session.Version : null,
+        }, session.Version);
     }
 
 }
