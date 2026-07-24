@@ -12,6 +12,7 @@ public sealed class ProcessInstallerCommandRunner : ICommandRunner
         "dpkg-query",
         "launchctl",
         "osascript",
+        "pkexec",
         "powershell.exe",
         "sc.exe",
         "systemctl",
