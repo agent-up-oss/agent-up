@@ -81,6 +81,7 @@ public class TrayHeartbeatMonitorTests
     {
         public int Code { get; private set; }
         public void Set(int code) => Code = code;
+        public void Exit(int code) { }
     }
 
     private sealed class FakeHostApplicationLifetime : IHostApplicationLifetime

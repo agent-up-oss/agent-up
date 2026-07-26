@@ -9,7 +9,7 @@ namespace AgentUp.Server.Tests.Features.ServiceControl.Unit;
 public class ServiceControlControllerTests
 {
     [Test]
-    public async Task Restart_returnsAccepted_andSetsNonZeroExitCode()
+    public async Task Restart_returnsAccepted_andExitsWithNonZeroCode()
     {
         var lifetime = new FakeHostApplicationLifetime();
         var exitCode = new FakeProcessExitCode();
@@ -18,14 +18,14 @@ public class ServiceControlControllerTests
         var result = controller.Restart();
 
         Assert.That(result, Is.InstanceOf<AcceptedResult>());
-        Assert.That(exitCode.Code, Is.EqualTo(1));
 
         await Task.Delay(1000);
-        Assert.That(lifetime.StopRequested, Is.True);
+        Assert.That(exitCode.ExitedCode, Is.EqualTo(1));
+        Assert.That(lifetime.StopRequested, Is.False, "Restart must not call StopApplication — SCM/systemd must see an unexpected exit to trigger recovery.");
     }
 
     [Test]
-    public async Task Shutdown_returnsAccepted_andSetsZeroExitCode()
+    public async Task Shutdown_returnsAccepted_andStopsGracefully()
     {
         var lifetime = new FakeHostApplicationLifetime();
         var exitCode = new FakeProcessExitCode();
@@ -38,29 +38,15 @@ public class ServiceControlControllerTests
 
         await Task.Delay(1000);
         Assert.That(lifetime.StopRequested, Is.True);
-    }
-
-    [Test]
-    public async Task Shutdown_afterRestart_resetsExitCodeToZero()
-    {
-        var lifetime = new FakeHostApplicationLifetime();
-        var exitCode = new FakeProcessExitCode();
-        var controller = new ServiceControlController(lifetime, exitCode);
-
-        controller.Restart();
-        Assert.That(exitCode.Code, Is.EqualTo(1));
-
-        controller.Shutdown();
-        Assert.That(exitCode.Code, Is.EqualTo(0));
-
-        await Task.Delay(1000);
-        Assert.That(lifetime.StopRequested, Is.True);
+        Assert.That(exitCode.ExitedCode, Is.Null, "Shutdown must not force-exit — graceful stop only.");
     }
 
     private sealed class FakeProcessExitCode : IProcessExitCode
     {
         public int Code { get; private set; }
+        public int? ExitedCode { get; private set; }
         public void Set(int code) => Code = code;
+        public void Exit(int code) => ExitedCode = code;
     }
 
     private sealed class FakeHostApplicationLifetime : IHostApplicationLifetime

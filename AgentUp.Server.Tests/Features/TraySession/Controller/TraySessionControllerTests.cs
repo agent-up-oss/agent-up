@@ -78,5 +78,6 @@ public class TraySessionHttpTests
     private sealed class FakeProcessExitCode : IProcessExitCode
     {
         public void Set(int code) { }
+        public void Exit(int code) { }
     }
 }
