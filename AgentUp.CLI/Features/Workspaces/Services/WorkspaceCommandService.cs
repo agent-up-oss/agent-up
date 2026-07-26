@@ -69,7 +69,9 @@ public sealed class WorkspaceCommandService
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
-            return WorkspaceCommandResult<StartedWorkspace>.Failed($"Error: {ex.Message}");
+            var lastError = (await _client.GetByIdAsync(workspace.Id))?.LastError;
+            return WorkspaceCommandResult<StartedWorkspace>.Failed(
+                lastError is not null ? $"Error: {lastError}" : $"Error: {ex.Message}");
         }
 
         return WorkspaceCommandResult<StartedWorkspace>.Success(new StartedWorkspace(

@@ -32,6 +32,7 @@ public sealed class WorkspaceRegistry : IHostedService
         foreach (var workspace in persisted)
         {
             workspace.State = WorkspaceState.Stopped;
+            workspace.LastError = null;
             foreach (var app in workspace.Applications)
                 app.State = ApplicationState.Stopped;
             _workspaces[workspace.Id] = workspace;
@@ -122,6 +123,15 @@ public sealed class WorkspaceRegistry : IHostedService
         workspace.State = state;
         await _repository.SaveAllAsync(GetAll());
         return true;
+    }
+
+    public async Task UpdateLastErrorAsync(string id, string? error)
+    {
+        if (!_workspaces.TryGetValue(id, out var workspace))
+            return;
+
+        workspace.LastError = error;
+        await _repository.SaveAllAsync(GetAll());
     }
 
     public async Task<bool> UpdateApplicationStateAsync(string workspaceId, string appName, ApplicationState state)
