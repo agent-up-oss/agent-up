@@ -87,6 +87,8 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             case InstallerComponentTarget.Server:
                 await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
                 _files.DeleteDirectory(_options.Paths.ServerDirectory);
+                await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.TrayAutoStartRemovePowerShell(), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.TrayDirectory);
                 break;
             case InstallerComponentTarget.Cli:
                 await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PathRemovePowerShell(_options.Paths.BinDirectory), cancellationToken);

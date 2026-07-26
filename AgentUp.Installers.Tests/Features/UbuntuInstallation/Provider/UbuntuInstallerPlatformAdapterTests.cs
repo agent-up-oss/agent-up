@@ -221,6 +221,8 @@ public class UbuntuInstallerPlatformAdapterTests
             Assert.That(serverScript, Does.Contain("acme-studio-server.service"));
             Assert.That(serverScript, Does.Contain("'/etc/systemd/system/acme-studio-server.service'"));
             Assert.That(serverScript, Does.Contain("'/opt/acme-studio/server'"));
+            Assert.That(serverScript, Does.Contain("'/etc/xdg/autostart/acme-studio-tray.desktop'"));
+            Assert.That(serverScript, Does.Contain("'/opt/acme-studio/tray'"));
 
             Assert.That(cliScript, Does.Contain("'/usr/bin/acme-studio'"));
             Assert.That(cliScript, Does.Contain("'/opt/acme-studio/cli'"));

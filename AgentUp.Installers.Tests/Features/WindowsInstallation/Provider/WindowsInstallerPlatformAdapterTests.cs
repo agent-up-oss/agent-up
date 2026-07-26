@@ -93,6 +93,8 @@ public class WindowsInstallerPlatformAdapterTests
 
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("sc.exe delete $serviceName", StringComparison.Ordinal)), Is.True);
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\server"));
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Remove-ItemProperty", StringComparison.Ordinal) && script.Contains("HKCU:", StringComparison.Ordinal)), Is.True);
+        Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\tray"));
     }
 
     [Test]
@@ -149,6 +151,8 @@ public class WindowsInstallerPlatformAdapterTests
             script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal) &&
             script.Contains("exit 0", StringComparison.Ordinal)), Is.True);
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/server", @"C:\Program Files\Agent-Up\server")));
+        Assert.That(files.CopiedDirectories, Does.Contain(("/payload/tray", @"C:\Program Files\Agent-Up\tray")));
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("CurrentVersion\\Run", StringComparison.Ordinal)), Is.True);
     }
 
     [Test]

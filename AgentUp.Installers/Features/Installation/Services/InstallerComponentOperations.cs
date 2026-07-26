@@ -11,7 +11,7 @@ public static class InstallerComponentOperations
             Components = InstallerComponent.RuntimeDependencies | (target switch
             {
                 InstallerComponentTarget.Desktop => InstallerComponent.Desktop,
-                InstallerComponentTarget.Server => InstallerComponent.Server,
+                InstallerComponentTarget.Server => InstallerComponent.Server | InstallerComponent.Tray,
                 InstallerComponentTarget.Cli => InstallerComponent.Cli,
                 InstallerComponentTarget.Tray => InstallerComponent.Tray,
                 _ => InstallerComponent.None
@@ -109,7 +109,8 @@ public static class InstallerComponentOperations
     private static bool IsRelevant(InstallOperationKind kind, InstallerComponentTarget target) =>
         kind is InstallOperationKind.ValidatePrerequisites or InstallOperationKind.StagePayload or InstallOperationKind.InstallFiles or InstallOperationKind.ValidateInstallation
         || kind == TargetOperationKind(target)
-        || target == InstallerComponentTarget.Desktop && kind == InstallOperationKind.RegisterUninstall;
+        || target == InstallerComponentTarget.Desktop && kind == InstallOperationKind.RegisterUninstall
+        || target == InstallerComponentTarget.Server && kind == InstallOperationKind.RegisterAutoStart;
 
     public static InstallOperationKind TargetOperationKind(InstallerComponentTarget target) =>
         target switch

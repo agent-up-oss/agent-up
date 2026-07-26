@@ -233,6 +233,8 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
                 sb.AppendLine($"rm -f {Q(_options.Paths.ServicePath)}");
                 sb.AppendLine("systemctl daemon-reload");
                 sb.AppendLine($"rm -rf {Q(_options.Paths.ServerDirectory)}");
+                sb.AppendLine($"rm -f {Q(_options.Paths.XdgAutostartPath)}");
+                sb.AppendLine($"rm -rf {Q(_options.Paths.TrayDirectory)}");
                 break;
             case InstallerComponentTarget.Cli:
                 sb.AppendLine($"rm -f {Q(_options.Paths.CliSymlinkPath)}");
