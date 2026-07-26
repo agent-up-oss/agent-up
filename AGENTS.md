@@ -201,6 +201,13 @@ AgentUp.CLI/
       Models/
       Providers/
       Services/
+    Commits/          (local vertical-slice commit staging queue, no Server dependency)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
 
 AgentUp.Installers/
   Features/
