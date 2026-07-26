@@ -69,7 +69,10 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(commands.Commands.Any(command =>
                     command.FileName == "powershell.exe" &&
                     command.Arguments.Last().Contains("HKCU:", StringComparison.Ordinal) &&
-                    command.Arguments.Last().Contains("Agent-Up tray autostart", StringComparison.Ordinal)),
+                    command.Arguments.Last().Contains("AGENTUP_TRAY_AUTOSTART_NAME", StringComparison.Ordinal) &&
+                    command.Environment is not null &&
+                    command.Environment.TryGetValue("AGENTUP_TRAY_AUTOSTART_NAME", out var trayName) &&
+                    trayName == "Agent-Up"),
                 Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(2)); // initial ready check + post-restart ready check
         }

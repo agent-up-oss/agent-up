@@ -381,7 +381,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (IsArguments(command, "-NoProfile", "-Command", "$val = Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'Agent-Up' -ErrorAction SilentlyContinue; if (-not $val) { throw 'Agent-Up tray autostart registry entry missing' }"))
+        if (IsArguments(command, "-NoProfile", "-Command", "$name = $env:AGENTUP_TRAY_AUTOSTART_NAME; $val = Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name $name -ErrorAction SilentlyContinue; if (-not $val) { throw \"$name tray autostart registry entry missing\" }"))
         {
             startInfo.ArgumentList.Add("-NoProfile");
             startInfo.ArgumentList.Add("-Command");

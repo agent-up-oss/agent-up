@@ -40,10 +40,11 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         assert.FileExists(cli, "installed.windows.cli");
         assert.FileExists(Path.Join(installDir, "tray", "AgentUp.Tray.exe"), "installed.windows.tray");
 
-        const string trayAutoStartCheck = "$val = Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'Agent-Up' -ErrorAction SilentlyContinue; if (-not $val) { throw 'Agent-Up tray autostart registry entry missing' }";
+        const string trayAutoStartCheck = "$name = $env:AGENTUP_TRAY_AUTOSTART_NAME; $val = Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name $name -ErrorAction SilentlyContinue; if (-not $val) { throw \"$name tray autostart registry entry missing\" }";
         await RunRequiredAsync(
             assert,
-            new CommandSpec("powershell.exe", ["-NoProfile", "-Command", trayAutoStartCheck]),
+            new CommandSpec("powershell.exe", ["-NoProfile", "-Command", trayAutoStartCheck],
+                Environment: new Dictionary<string, string> { ["AGENTUP_TRAY_AUTOSTART_NAME"] = product.DisplayName }),
             "installed.windows.tray.autostart",
             cancellationToken);
 
