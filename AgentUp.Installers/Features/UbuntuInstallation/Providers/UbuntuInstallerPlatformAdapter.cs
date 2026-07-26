@@ -202,6 +202,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine("Type=Application");
             sb.AppendLine($"Name={_options.Manifest.DesktopApplicationName} Tray");
             sb.AppendLine($"Exec={_options.Paths.TrayExecutable}");
+            sb.AppendLine($"Icon={_options.Manifest.PackageName}");
             sb.AppendLine("Terminal=false");
             sb.AppendLine("Hidden=false");
             sb.AppendLine("X-GNOME-Autostart-enabled=true");
