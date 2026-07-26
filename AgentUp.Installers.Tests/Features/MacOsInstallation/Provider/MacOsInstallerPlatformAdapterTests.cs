@@ -108,6 +108,7 @@ public class MacOsInstallerPlatformAdapterTests
         Assert.That(script, Does.Contain("rm -f '/Library/LaunchDaemons/dev.agent-up.server.plist'"));
         Assert.That(script, Does.Contain("rm -rf '/Library/Application Support/Agent-Up/server'"));
         Assert.That(script, Does.Contain("rm -f '/usr/local/bin/agent-up-server'"));
+        Assert.That(script, Does.Contain("rm -rf '/Library/Application Support/Agent-Up/tray'"));
 
         Assert.That(progress.Select(p => p.Kind), Is.EqualTo(new[]
         {
@@ -266,6 +267,7 @@ public class MacOsInstallerPlatformAdapterTests
             Assert.That(serverScript, Does.Contain("'/Library/LaunchDaemons/dev.acme-studio.server.plist'"));
             Assert.That(serverScript, Does.Contain("'/Library/Application Support/Acme Studio/server'"));
             Assert.That(serverScript, Does.Contain("'/usr/local/bin/acme-studio-server'"));
+            Assert.That(serverScript, Does.Contain("'/Library/Application Support/Acme Studio/tray'"));
             Assert.That(cliScript, Does.Contain("'/usr/local/acme-studio/cli'"));
             Assert.That(cliScript, Does.Contain("'/usr/local/bin/acme-studio'"));
             Assert.That(desktopScript, Does.Contain("'/Applications/Acme Studio.app'"));

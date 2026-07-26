@@ -30,6 +30,11 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
         assert.ExecutableExists($"/usr/local/bin/{product.CliShimName}", "installed.macos.cli");
         assert.ExecutableExists($"/usr/local/bin/{product.ServiceName}", "installed.macos.server");
         assert.ExecutableExists($"/usr/local/bin/{product.CliShimName}-desktop", "installed.macos.desktop");
+        assert.ExecutableExists($"/Library/Application Support/{product.InstallDirName}/tray/AgentUp.Tray", "installed.macos.tray");
+        var launchAgentPath = Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Library", "LaunchAgents", $"dev.{product.CliShimName}.tray.plist");
+        assert.FileExists(launchAgentPath, "installed.macos.tray.autostart");
 
         // AMFI on macOS 15 may block launchd from starting unsigned daemons; fall back to direct start.
         var launchctlPrint = await RunAsync(

@@ -66,6 +66,11 @@ public class WindowsInstalledServiceSmokeValidatorTests
                     command.Environment.TryGetValue("AGENTUP_PRODUCT_DISPLAY_NAME", out var displayName) &&
                     displayName == "Agent-Up"),
                 Is.True);
+            Assert.That(commands.Commands.Any(command =>
+                    command.FileName == "powershell.exe" &&
+                    command.Arguments.Last().Contains("HKCU:", StringComparison.Ordinal) &&
+                    command.Arguments.Last().Contains("Agent-Up tray autostart", StringComparison.Ordinal)),
+                Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(2)); // initial ready check + post-restart ready check
         }
         finally
@@ -164,6 +169,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
     {
         WriteText(Path.Join(installDir, "bin", "agent-up.cmd"), "");
         WriteText(Path.Join(installDir, "cli", "AgentUp.CLI.exe"), "");
+        WriteText(Path.Join(installDir, "tray", "AgentUp.Tray.exe"), "");
     }
 
     private static void WriteText(string path, string text)

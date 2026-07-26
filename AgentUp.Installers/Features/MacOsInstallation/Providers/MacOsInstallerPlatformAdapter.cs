@@ -179,7 +179,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         var paths = MacOsInstallerPaths.From(session.Manifest);
         var manifest = MacOsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
 
-        if (target == InstallerComponentTarget.Tray)
+        if (target is InstallerComponentTarget.Tray or InstallerComponentTarget.Server)
             await UnregisterTrayLaunchAgentAsync(manifest, cancellationToken);
 
         await RunElevatedAsync(BuildUninstallScript(target, paths), cancellationToken);
@@ -294,6 +294,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine($"rm -f {Q(paths.LaunchDaemonPath)}");
             sb.AppendLine($"rm -rf {Q(paths.ServerDirectory)}");
             sb.AppendLine($"rm -f {Q(paths.ServerSymlinkPath)}");
+            sb.AppendLine($"rm -rf {Q(paths.TrayDirectory)}");
         }
         else if (target == InstallerComponentTarget.Cli)
         {
