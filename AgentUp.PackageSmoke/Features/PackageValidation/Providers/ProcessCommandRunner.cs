@@ -158,6 +158,29 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
+        if (command.Executable == SmokeExecutable.Sc &&
+            command.Arguments.Count == 6 &&
+            command.Arguments[0] == "failure" &&
+            command.Arguments[2] == "reset=" &&
+            command.Arguments[3] == "86400" &&
+            command.Arguments[4] == "actions=" &&
+            command.Arguments[5] == "restart/5000/restart/5000/restart/5000")
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Sc &&
+            command.Arguments.Count == 3 &&
+            command.Arguments[0] == "failureflag" &&
+            command.Arguments[2] == "1")
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
         if (command.Executable == SmokeExecutable.Bash && IsArguments(command, "-lc", "command -v agent-up"))
         {
             startInfo.ArgumentList.Add("-lc");

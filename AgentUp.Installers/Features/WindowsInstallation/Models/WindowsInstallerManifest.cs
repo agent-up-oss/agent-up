@@ -189,6 +189,33 @@ public sealed class WindowsWixSourceGenerator
             feature.Add(new XElement(Wix + "ComponentRef", new XAttribute("Id", component.Id)));
         }
 
+        package.Add(
+            new XElement(Wix + "CustomAction",
+                new XAttribute("Id", "ConfigureServiceRecoveryActions"),
+                new XAttribute("Directory", "System64Folder"),
+                new XAttribute("ExeCommand", $"sc.exe failure {_manifest.ServiceName} reset= 86400 actions= restart/5000/restart/5000/restart/5000"),
+                new XAttribute("Execute", "deferred"),
+                new XAttribute("Return", "ignore"),
+                new XAttribute("Impersonate", "no")),
+            new XElement(Wix + "CustomAction",
+                new XAttribute("Id", "ConfigureServiceRecoveryFlag"),
+                new XAttribute("Directory", "System64Folder"),
+                new XAttribute("ExeCommand", $"sc.exe failureflag {_manifest.ServiceName} 1"),
+                new XAttribute("Execute", "deferred"),
+                new XAttribute("Return", "ignore"),
+                new XAttribute("Impersonate", "no")));
+
+        package.Add(
+            new XElement(Wix + "InstallExecuteSequence",
+                new XElement(Wix + "Custom",
+                    new XAttribute("Action", "ConfigureServiceRecoveryActions"),
+                    new XAttribute("After", "InstallServices"),
+                    "NOT REMOVE"),
+                new XElement(Wix + "Custom",
+                    new XAttribute("Action", "ConfigureServiceRecoveryFlag"),
+                    new XAttribute("After", "ConfigureServiceRecoveryActions"),
+                    "NOT REMOVE")));
+
         return new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement(Wix + "Wix", package)).ToString();
     }
 

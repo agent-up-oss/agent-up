@@ -54,6 +54,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Contains("/l*vx!", StringComparer.OrdinalIgnoreCase)), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failure", "agent-up-server", "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"])), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failureflag", "agent-up-server", "1"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
             Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, "start")), Is.True);
             Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, "status")), Is.True);
