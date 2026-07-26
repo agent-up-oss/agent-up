@@ -46,9 +46,9 @@ public class WindowsInstalledServiceSmokeValidatorTests
         try
         {
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
-            var result = await new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
-                    new HttpClient(new FakeTraySessionHttpHandler()))
-                .ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
+            using var validator = new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
+                new HttpClient(new FakeTraySessionHttpHandler()));
+            var result = await validator.ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));

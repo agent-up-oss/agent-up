@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Hosting;
+using AgentUp.Server.Features.ServiceControl.Interfaces;
 
 namespace AgentUp.Server.Features.TraySession.Services;
 
@@ -7,6 +8,7 @@ namespace AgentUp.Server.Features.TraySession.Services;
 public sealed class TrayHeartbeatMonitor : IHostedService
 {
     private readonly IHostApplicationLifetime _lifetime;
+    private readonly IProcessExitCode _exitCode;
     private readonly TimeSpan _timeout;
     private readonly TimeSpan _checkInterval;
     private DateTimeOffset? _lastHeartbeat;
@@ -16,12 +18,13 @@ public sealed class TrayHeartbeatMonitor : IHostedService
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan DefaultCheckInterval = TimeSpan.FromSeconds(5);
 
-    public TrayHeartbeatMonitor(IHostApplicationLifetime lifetime)
-        : this(lifetime, DefaultTimeout, DefaultCheckInterval) { }
+    public TrayHeartbeatMonitor(IHostApplicationLifetime lifetime, IProcessExitCode exitCode)
+        : this(lifetime, exitCode, DefaultTimeout, DefaultCheckInterval) { }
 
-    internal TrayHeartbeatMonitor(IHostApplicationLifetime lifetime, TimeSpan timeout, TimeSpan checkInterval)
+    internal TrayHeartbeatMonitor(IHostApplicationLifetime lifetime, IProcessExitCode exitCode, TimeSpan timeout, TimeSpan checkInterval)
     {
         _lifetime = lifetime;
+        _exitCode = exitCode;
         _timeout = timeout;
         _checkInterval = checkInterval;
     }
@@ -59,6 +62,8 @@ public sealed class TrayHeartbeatMonitor : IHostedService
 
             if (DateTimeOffset.UtcNow - lastHeartbeat.Value > _timeout)
             {
+                // Exit with non-zero so systemd/launchd restarts the server after a stale tray disconnect.
+                _exitCode.Set(1);
                 _lifetime.StopApplication();
                 return;
             }

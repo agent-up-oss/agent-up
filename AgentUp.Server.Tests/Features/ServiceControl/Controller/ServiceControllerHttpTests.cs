@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.ServiceControl.Controllers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ public class ServiceControlHttpTests
             Args = [$"--urls=http://localhost:{port}"]
         });
         builder.Services.AddControllers().AddApplicationPart(typeof(ServiceControlController).Assembly);
+        builder.Services.AddSingleton<IProcessExitCode>(new FakeProcessExitCode());
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         _app = builder.Build();
@@ -36,7 +38,6 @@ public class ServiceControlHttpTests
     public async Task TearDown()
     {
         _client.Dispose();
-        Environment.ExitCode = 0;
         await _app.StopAsync();
         await _app.DisposeAsync();
     }
@@ -44,7 +45,7 @@ public class ServiceControlHttpTests
     [Test]
     public async Task PostRestart_returnsAccepted()
     {
-        var response = await _client.PostAsync("/api/service/restart", null);
+        using var response = await _client.PostAsync("/api/service/restart", null);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Accepted));
     }
@@ -52,7 +53,7 @@ public class ServiceControlHttpTests
     [Test]
     public async Task PostShutdown_returnsAccepted()
     {
-        var response = await _client.PostAsync("/api/service/shutdown", null);
+        using var response = await _client.PostAsync("/api/service/shutdown", null);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Accepted));
     }
@@ -62,5 +63,10 @@ public class ServiceControlHttpTests
         using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
         return ((System.Net.IPEndPoint)socket.LocalEndPoint!).Port;
+    }
+
+    private sealed class FakeProcessExitCode : IProcessExitCode
+    {
+        public void Set(int code) { }
     }
 }

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Controllers;
 using AgentUp.Server.Features.TraySession.Services;
 using Microsoft.AspNetCore.Builder;
@@ -25,9 +26,11 @@ public class TraySessionHttpTests
             Args = [$"--urls=http://localhost:{port}"]
         });
         builder.Services.AddControllers().AddApplicationPart(typeof(TraySessionController).Assembly);
+        builder.Services.AddSingleton<IProcessExitCode>(new FakeProcessExitCode());
         builder.Services.AddSingleton(sp =>
             new TrayHeartbeatMonitor(
                 sp.GetRequiredService<IHostApplicationLifetime>(),
+                sp.GetRequiredService<IProcessExitCode>(),
                 TimeSpan.FromSeconds(60),
                 TimeSpan.FromSeconds(5)));
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -50,7 +53,7 @@ public class TraySessionHttpTests
     [Test]
     public async Task PostHeartbeat_returnsOk()
     {
-        var response = await _client.PostAsync("/api/tray/heartbeat", null);
+        using var response = await _client.PostAsync("/api/tray/heartbeat", null);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
@@ -60,7 +63,7 @@ public class TraySessionHttpTests
     {
         for (var i = 0; i < 3; i++)
         {
-            var response = await _client.PostAsync("/api/tray/heartbeat", null);
+            using var response = await _client.PostAsync("/api/tray/heartbeat", null);
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         }
     }
@@ -70,5 +73,10 @@ public class TraySessionHttpTests
         using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
         return ((System.Net.IPEndPoint)socket.LocalEndPoint!).Port;
+    }
+
+    private sealed class FakeProcessExitCode : IProcessExitCode
+    {
+        public void Set(int code) { }
     }
 }

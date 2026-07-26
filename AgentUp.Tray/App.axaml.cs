@@ -22,7 +22,14 @@ public class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            desktop.Exit += (_, _) =>
+            {
+                _menu?.Dispose();
+                _connection?.Dispose();
+            };
+        }
 
         var icon = LoadTrayIcon();
         _connection = new ServerConnectionManager();

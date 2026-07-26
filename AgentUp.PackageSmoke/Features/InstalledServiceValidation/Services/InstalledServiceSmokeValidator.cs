@@ -95,7 +95,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     {
         try
         {
-            var heartbeat = await _http.PostAsync($"{readyUrl.TrimEnd('/')}/api/tray/heartbeat", null, cancellationToken);
+            using var heartbeat = await _http.PostAsync($"{readyUrl.TrimEnd('/')}/api/tray/heartbeat", null, cancellationToken);
             if (heartbeat.StatusCode != HttpStatusCode.OK)
                 assert.Error("installed.tray.heartbeat", $"POST /api/tray/heartbeat returned {(int)heartbeat.StatusCode}; expected 200.");
         }
@@ -113,7 +113,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     {
         try
         {
-            var restart = await _http.PostAsync($"{readyUrl.TrimEnd('/')}/api/service/restart", null, cancellationToken);
+            using var restart = await _http.PostAsync($"{readyUrl.TrimEnd('/')}/api/service/restart", null, cancellationToken);
             if (restart.StatusCode != HttpStatusCode.Accepted)
             {
                 assert.Error("installed.service.restart", $"POST /api/service/restart returned {(int)restart.StatusCode}; expected 202.");

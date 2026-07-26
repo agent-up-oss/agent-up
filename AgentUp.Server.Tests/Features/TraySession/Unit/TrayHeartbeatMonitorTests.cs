@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Services;
 using Microsoft.Extensions.Hosting;
 
@@ -23,7 +24,8 @@ public class TrayHeartbeatMonitorTests
     public async Task RegisterHeartbeat_thenTimeout_stopsApplication()
     {
         var lifetime = new FakeHostApplicationLifetime();
-        var monitor = Monitor(lifetime);
+        var exitCode = new FakeProcessExitCode();
+        var monitor = Monitor(lifetime, exitCode);
 
         await monitor.StartAsync(CancellationToken.None);
         monitor.RegisterHeartbeat();
@@ -31,6 +33,7 @@ public class TrayHeartbeatMonitorTests
         await Task.Delay(500);
 
         Assert.That(lifetime.StopRequested, Is.True);
+        Assert.That(exitCode.Code, Is.EqualTo(1), "Heartbeat timeout must exit with non-zero so daemon restarts the server.");
     }
 
     [Test]
@@ -66,11 +69,19 @@ public class TrayHeartbeatMonitorTests
 
     private static TrayHeartbeatMonitor Monitor(
         IHostApplicationLifetime lifetime,
+        IProcessExitCode? exitCode = null,
         TimeSpan? timeout = null,
         TimeSpan? check = null)
         => new(lifetime,
+            exitCode ?? new FakeProcessExitCode(),
             timeout ?? TimeSpan.FromMilliseconds(50),
             check ?? TimeSpan.FromMilliseconds(10));
+
+    private sealed class FakeProcessExitCode : IProcessExitCode
+    {
+        public int Code { get; private set; }
+        public void Set(int code) => Code = code;
+    }
 
     private sealed class FakeHostApplicationLifetime : IHostApplicationLifetime
     {

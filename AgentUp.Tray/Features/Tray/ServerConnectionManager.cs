@@ -6,12 +6,12 @@ public sealed class ServerConnectionManager : IDisposable
 {
     private static readonly Uri DefaultServerUri = new("http://127.0.0.1:5000");
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
-    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan HttpTimeout = TimeSpan.FromSeconds(5);
 
     private readonly HttpClient _http;
     private readonly BehaviorSubject<ServiceState> _state = new(ServiceState.Connecting);
-    private CancellationTokenSource _cts = new();
+    private readonly CancellationTokenSource _cts = new();
 
     public IObservable<ServiceState> State => _state;
     public ServiceState CurrentState => _state.Value;
@@ -25,7 +25,9 @@ public sealed class ServerConnectionManager : IDisposable
 
     public Task StartAsync(CancellationToken ct = default)
     {
-        var token = _cts.Token;
+        var token = ct.CanBeCanceled
+            ? CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct).Token
+            : _cts.Token;
         _ = PollLoopAsync(token);
         _ = HeartbeatLoopAsync(token);
         return Task.CompletedTask;
@@ -77,9 +79,10 @@ public sealed class ServerConnectionManager : IDisposable
                 return;
             }
 
-            if (success)
+            var current = _state.Value;
+            if (success && current != ServiceState.Restarting)
                 _state.OnNext(ServiceState.Connected);
-            else if (_state.Value == ServiceState.Connected)
+            else if (!success && current is ServiceState.Connected or ServiceState.Restarting)
                 _state.OnNext(ServiceState.Disconnected);
 
             try { await Task.Delay(PollInterval, ct); }

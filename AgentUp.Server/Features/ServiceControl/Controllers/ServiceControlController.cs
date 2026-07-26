@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.ServiceControl.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 
@@ -8,14 +9,19 @@ namespace AgentUp.Server.Features.ServiceControl.Controllers;
 public sealed class ServiceControlController : ControllerBase
 {
     private readonly IHostApplicationLifetime _lifetime;
+    private readonly IProcessExitCode _exitCode;
 
-    public ServiceControlController(IHostApplicationLifetime lifetime) => _lifetime = lifetime;
+    public ServiceControlController(IHostApplicationLifetime lifetime, IProcessExitCode exitCode)
+    {
+        _lifetime = lifetime;
+        _exitCode = exitCode;
+    }
 
     // Asks the daemon manager to restart the server (exits with non-zero so systemd/launchd restarts).
     [HttpPost("restart")]
     public IActionResult Restart()
     {
-        Environment.ExitCode = 1;
+        _exitCode.Set(1);
         ScheduleStop();
         return Accepted();
     }
@@ -24,6 +30,7 @@ public sealed class ServiceControlController : ControllerBase
     [HttpPost("shutdown")]
     public IActionResult Shutdown()
     {
+        _exitCode.Set(0);
         ScheduleStop();
         return Accepted();
     }
