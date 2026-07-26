@@ -37,6 +37,7 @@ public sealed class WorkspaceLifecycleService
             await _registry.ReallocatePortsAsync(id);
             await _processes.LaunchWorkspaceAsync(workspace);
             await _registry.UpdateStateAsync(id, WorkspaceState.Running);
+            await _registry.UpdateLastErrorAsync(id, null);
             foreach (var app in workspace.Applications)
                 await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
 
@@ -45,6 +46,7 @@ public sealed class WorkspaceLifecycleService
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             _logger.LogError(ex, "Workspace failed to start");
+            await _registry.UpdateLastErrorAsync(id, ex.Message);
             await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
             return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
         }

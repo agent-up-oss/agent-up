@@ -339,6 +339,7 @@ public class WorkspacesHttpTests
 
         var workspace = await client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}", JsonOptions);
         Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Failed));
+        Assert.That(workspace.LastError, Is.EqualTo("No such file or directory"));
 
         await app.StopAsync();
         await app.DisposeAsync();

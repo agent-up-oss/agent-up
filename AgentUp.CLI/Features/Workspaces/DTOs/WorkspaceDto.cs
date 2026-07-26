@@ -12,4 +12,5 @@ public record WorkspaceDto(
     string State)
 {
     public IReadOnlyList<ApplicationDefinition> Applications { get; init; } = [];
+    public string? LastError { get; init; }
 }

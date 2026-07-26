@@ -25,6 +25,18 @@ public sealed class WorkspaceApiClient
         return result ?? [];
     }
 
+    public async Task<WorkspaceDto?> GetByIdAsync(string id)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<WorkspaceDto>($"/api/workspaces/{id}", Options);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            return null;
+        }
+    }
+
     public async Task StartWorkspaceAsync(string id)
     {
         var response = await _http.PostAsync($"/api/workspaces/{id}/start", null);
