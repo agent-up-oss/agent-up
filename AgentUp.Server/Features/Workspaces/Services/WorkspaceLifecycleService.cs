@@ -39,7 +39,7 @@ public sealed class WorkspaceLifecycleService
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
+            return WorkspaceLifecycleResult.Failed(ex.Message);
         }
     }
 
