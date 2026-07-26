@@ -658,6 +658,22 @@ The target AI workflow is: modify code, restart workspace, wait until healthy, i
 
 Read: `docs/developer-guide/workflows.md`.
 
+## Commit Workflow
+
+Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use `agentup commits enqueue` to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
+
+Agent responsibility: `enqueue` only. Never `commits next`, never `git add`, never `git commit`.
+
+```bash
+dotnet run --project AgentUp.CLI -- commits enqueue \
+  --slice <SliceName> \
+  --message "<conventional commit message>" \
+  --files <file1> [file2 ...] \
+  [--tests "<test command>"]
+```
+
+One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Enqueue entries in the order they should be committed.
+
 ## Packaging And Installers
 
 Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `AgentUp.Installers`, with matching tests in `AgentUp.Installers.Tests`. The shared InstallerApp UX is a dashboard for managing Desktop, Server, CLI, and capability modules, with Avalonia headless tests in `AgentUp.InstallerApp.Tests` and native-display flow tests in `AgentUp.Tests`; the installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `AgentUp.Packaging`, with matching tests in `AgentUp.Packaging.Tests`; packaging code must consume shared installer contracts instead of redefining platform behavior. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Packaging, and PackageSmoke artifacts from the Ubuntu build job so native release runners do not restore, build, or test product .NET projects. Shared package and installed-service smoke validation belongs in `AgentUp.PackageSmoke`, with matching tests in `AgentUp.PackageSmoke.Tests`; CI smoke scripts should launch the packaged InstallerApp when `AGENTUP_INSTALLER_APP_COMMAND` is set and delegate native artifact, install, service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
