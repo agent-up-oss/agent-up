@@ -135,6 +135,9 @@ public sealed class CommitsNextCommandTests
             _stored = null;
             return Task.CompletedTask;
         }
+
+        public Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeCommitsGitProvider : ICommitsGitProvider
@@ -147,10 +150,16 @@ public sealed class CommitsNextCommandTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
 
+        public Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
             StagedFiles.AddRange(files);
             return Task.CompletedTask;
         }
+
+        public Task ResetStagingAsync(CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 }

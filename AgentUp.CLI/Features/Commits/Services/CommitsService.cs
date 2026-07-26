@@ -12,6 +12,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var entry = new CommitEntry(request.Slice, request.Message, request.Files, request.Tests);
         var updated = current with { Commits = [.. current.Commits, entry] };
         await queue.WriteAsync(updated, cancellationToken);
+
+        var patch = await git.GetDiffAsync(request.Files, cancellationToken);
+        await queue.SavePatchAsync(request.Slice, patch, cancellationToken);
     }
 
     public async Task<CommitsStatusResult> GetStatusAsync(CancellationToken cancellationToken = default)
@@ -32,6 +35,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             return null;
 
         var head = current.Commits[0];
+        await git.ResetStagingAsync(cancellationToken);
         await git.StageFilesAsync(head.Files, cancellationToken);
 
         var remaining = current.Commits.Skip(1).ToList();

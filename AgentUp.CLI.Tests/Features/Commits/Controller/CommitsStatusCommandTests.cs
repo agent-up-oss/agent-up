@@ -114,6 +114,9 @@ public sealed class CommitsStatusCommandTests
 
         public Task DeleteAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
+
+        public Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeCommitsGitProvider(params string[] modifiedFiles) : ICommitsGitProvider
@@ -124,7 +127,13 @@ public sealed class CommitsStatusCommandTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>(modifiedFiles);
 
+        public Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task ResetStagingAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
     }
 }

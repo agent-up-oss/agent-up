@@ -121,6 +121,31 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task StageNextAsync_resetsStagingBeforeStaging()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
+        var git = new FakeCommitsGitProvider();
+        var service = new CommitsService(queue, git);
+
+        await service.StageNextAsync();
+
+        Assert.That(git.StagingReset, Is.True);
+    }
+
+    [Test]
+    public async Task EnqueueAsync_savesPatchForEntry()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var git = new FakeCommitsGitProvider();
+        var service = new CommitsService(queue, git);
+
+        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat: add thing", ["a.cs"], []));
+
+        Assert.That(git.DiffRequested, Is.True);
+    }
+
+    [Test]
     public async Task ClearAsync_deletesQueue()
     {
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
@@ -156,11 +181,15 @@ public sealed class CommitsServiceTests
             Stored = null;
             return Task.CompletedTask;
         }
+
+        public Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeCommitsGitProvider(params string[] modifiedFiles) : ICommitsGitProvider
     {
         public List<string> StagedFiles { get; } = [];
+        public bool StagingReset { get; private set; }
 
         public Task<string> GetRepoRootAsync(CancellationToken cancellationToken = default)
             => Task.FromResult("/repo");
@@ -168,9 +197,23 @@ public sealed class CommitsServiceTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>(modifiedFiles);
 
+        public bool DiffRequested { get; private set; }
+
+        public Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+        {
+            DiffRequested = true;
+            return Task.FromResult(string.Empty);
+        }
+
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
             StagedFiles.AddRange(files);
+            return Task.CompletedTask;
+        }
+
+        public Task ResetStagingAsync(CancellationToken cancellationToken = default)
+        {
+            StagingReset = true;
             return Task.CompletedTask;
         }
     }

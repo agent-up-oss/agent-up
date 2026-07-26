@@ -42,6 +42,20 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
             File.Delete(path);
     }
 
+    public async Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
+    {
+        if (patch.Length == 0)
+            return;
+
+        var queuePath = await QueuePathAsync(cancellationToken);
+        var patchDir = Path.Join(Path.GetDirectoryName(queuePath)!, "patches");
+        Directory.CreateDirectory(patchDir);
+        var safeSlice = string.Concat(slice.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'));
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmss");
+        var patchPath = Path.Join(patchDir, $"{safeSlice}-{timestamp}.patch");
+        await File.WriteAllTextAsync(patchPath, patch, cancellationToken);
+    }
+
     private async Task<string> QueuePathAsync(CancellationToken cancellationToken)
     {
         var root = await git.GetRepoRootAsync(cancellationToken);

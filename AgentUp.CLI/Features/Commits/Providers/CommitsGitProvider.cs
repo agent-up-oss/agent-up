@@ -17,12 +17,44 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Length > 3 ? line[3..].Trim() : "")
                 .Where(path => path.Length > 0)
+                .SelectMany(path => path.EndsWith('/') ? ExpandDirectory(path.TrimEnd('/')) : [path])
                 .ToList();
         }
         catch (InvalidOperationException)
         {
             return [];
         }
+    }
+
+    public async Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+    {
+        var trackedArgs = new List<string> { "diff", "HEAD", "--" };
+        trackedArgs.AddRange(files);
+        var trackedDiff = await RunGitAsync(trackedArgs, cancellationToken);
+
+        var lsArgs = new List<string> { "ls-files", "--" };
+        lsArgs.AddRange(files);
+        var tracked = (await RunGitAsync(lsArgs, cancellationToken))
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var parts = new List<string>();
+        if (trackedDiff.Length > 0)
+            parts.Add(trackedDiff);
+
+        foreach (var file in files.Where(f => !tracked.Contains(f)))
+        {
+            var fullPath = Path.Join(workingDirectory, file);
+            if (!File.Exists(fullPath))
+                continue;
+
+            var args = new List<string> { "diff", "--no-index", "--", "/dev/null", file };
+            var untrackedDiff = await RunGitAsync(args, cancellationToken, allowedExitCodes: [0, 1]);
+            if (untrackedDiff.Length > 0)
+                parts.Add(untrackedDiff);
+        }
+
+        return string.Join('\n', parts);
     }
 
     public async Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
@@ -32,7 +64,22 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         await RunGitAsync(args, cancellationToken);
     }
 
-    private async Task<string> RunGitAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    public Task ResetStagingAsync(CancellationToken cancellationToken = default)
+        => RunGitAsync(["restore", "--staged", "."], cancellationToken, allowedExitCodes: [0, 1]);
+
+    private IEnumerable<string> ExpandDirectory(string relativePath)
+    {
+        var fullPath = Path.Join(workingDirectory, relativePath);
+        return Directory.Exists(fullPath)
+            ? Directory.EnumerateFiles(fullPath, "*", SearchOption.AllDirectories)
+                .Select(f => Path.GetRelativePath(workingDirectory, f).Replace('\\', '/'))
+            : [];
+    }
+
+    private async Task<string> RunGitAsync(
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken,
+        int[]? allowedExitCodes = null)
     {
         var psi = new ProcessStartInfo("git")
         {
@@ -51,7 +98,8 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
         await process.WaitForExitAsync(cancellationToken);
 
-        if (process.ExitCode != 0)
+        var allowed = allowedExitCodes ?? [0];
+        if (!allowed.Contains(process.ExitCode))
             throw new InvalidOperationException($"git {string.Join(" ", arguments)} failed: {stderr.Trim()}");
 
         return stdout.TrimEnd();
