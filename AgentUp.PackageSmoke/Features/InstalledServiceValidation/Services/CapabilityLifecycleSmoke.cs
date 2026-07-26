@@ -14,6 +14,8 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
     private const string DotnetAppName = "SmokeDotnet";
     private const string DockerAppName = "SmokeDocker";
     private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
+    private static readonly TimeSpan StateWaitTimeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan StatePollDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly ICommandRunner _commands;
     private readonly CapabilityWorkspaceProvider _workspace;
@@ -129,10 +131,23 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         FileAssertions assert,
         CancellationToken cancellationToken)
     {
-        var app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
-        var actual = app is null ? "<missing>" : ReadState(app.Value);
-        if (actual != expected)
-            assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected {expected}, got {actual}.");
+        var deadline = DateTimeOffset.UtcNow + StateWaitTimeout;
+        var actual = "<missing>";
+
+        while (true)
+        {
+            var app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            actual = app is null ? "<missing>" : ReadState(app.Value);
+            if (actual == expected)
+                return;
+
+            if (DateTimeOffset.UtcNow >= deadline)
+                break;
+
+            await Task.Delay(StatePollDelay, cancellationToken);
+        }
+
+        assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected {expected}, got {actual}.");
     }
 
     private async Task StartApplicationAsync(string serverUrl, string workspaceId, string appName, FileAssertions assert, CancellationToken cancellationToken)
