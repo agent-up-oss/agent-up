@@ -44,7 +44,7 @@ public sealed class WorkspaceLifecycleService
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
-            _logger.LogError(ex, "Workspace {WorkspaceId} failed to start", id);
+            _logger.LogError(ex, "Workspace failed to start");
             await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
             return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
         }
