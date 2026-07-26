@@ -28,7 +28,7 @@ public sealed class MacOsAutoStartRegistrar : IAutoStartRegistrar
 
         // Load into launchd for the current session (ignore errors if launchctl unavailable)
         try { System.Diagnostics.Process.Start("launchctl", ["load", _plistPath])?.WaitForExit(3000); }
-        catch { /* launchctl not available or already loaded */ }
+        catch (Exception) { /* launchctl not available or already loaded */ }
     }
 
     public void Unregister()
@@ -36,7 +36,7 @@ public sealed class MacOsAutoStartRegistrar : IAutoStartRegistrar
         if (File.Exists(_plistPath))
         {
             try { System.Diagnostics.Process.Start("launchctl", ["unload", _plistPath])?.WaitForExit(3000); }
-            catch { /* ignore */ }
+            catch (Exception) { /* launchctl not available or already unloaded */ }
             File.Delete(_plistPath);
         }
     }

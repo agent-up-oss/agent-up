@@ -230,7 +230,7 @@ public class WorkspacesHttpTests
             "main",
             ""));
         var processes = ServerTestComposition.CreateProcessesController(new KillFailingWorkspaceProcessManager());
-        var lifecycle = new WorkspaceLifecycleService(registry, processes);
+        var lifecycle = new WorkspaceLifecycleService(registry, processes, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkspaceLifecycleService>.Instance);
         var controller = new WorkspacesController(registry, lifecycle);
 
         await controller.CleanupTutorialWorkspaces();
@@ -334,7 +334,8 @@ public class WorkspacesHttpTests
         Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
 
         var body = await startResponse.Content.ReadAsStringAsync();
-        Assert.That(body, Does.Contain("No such file or directory"));
+        Assert.That(body, Does.Contain("Workspace could not be started."));
+        Assert.That(body, Does.Not.Contain("No such file or directory"));
 
         var workspace = await client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}", JsonOptions);
         Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Failed));

@@ -103,7 +103,7 @@ public sealed class ServiceLifecycleManager : IDisposable
             }
             _state.OnNext(ServiceState.Running);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
             Trace.TraceError($"Failed to start AgentUp.Server: {ex.Message}");
             _state.OnNext(ServiceState.Failed);
