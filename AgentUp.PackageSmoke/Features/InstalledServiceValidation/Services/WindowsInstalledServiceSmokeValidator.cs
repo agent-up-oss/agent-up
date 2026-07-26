@@ -3,6 +3,7 @@ using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
@@ -14,6 +15,8 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
     internal WindowsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
         : base(commands, serverProbe, securityChecks, http) { }
+
+    private readonly WindowsTrayAutoStartSmokeProvider _trayAutoStart = new();
 
     protected override async Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,
@@ -38,13 +41,11 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Join(installDir, "bin", $"{product.CliShimName}.cmd"), "installed.windows.path.shim");
         assert.FileExists(cli, "installed.windows.cli");
-        assert.FileExists(Path.Join(installDir, "tray", "AgentUp.Tray.exe"), "installed.windows.tray");
-
-        const string trayAutoStartCheck = "$name = $env:AGENTUP_TRAY_AUTOSTART_NAME; $val = Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name $name -ErrorAction SilentlyContinue; if (-not $val) { throw \"$name tray autostart registry entry missing\" }";
+        var trayExecutable = Path.Join(installDir, "tray", "AgentUp.Tray.exe");
+        assert.FileExists(trayExecutable, "installed.windows.tray");
         await RunRequiredAsync(
             assert,
-            new CommandSpec("powershell.exe", ["-NoProfile", "-Command", trayAutoStartCheck],
-                Environment: new Dictionary<string, string> { ["AGENTUP_TRAY_AUTOSTART_NAME"] = product.DisplayName }),
+            _trayAutoStart.ValidationCommand(product, trayExecutable),
             "installed.windows.tray.autostart",
             cancellationToken);
 

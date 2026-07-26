@@ -75,7 +75,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         commands.Results.Enqueue(new ProcessResult(0, "STATE              : 4  RUNNING", ""));
         commands.Results.Enqueue(new ProcessResult(0, "", ""));
-        commands.Results.Enqueue(new ProcessResult(0, "", ""));  // TrayAutoStartCheckPowerShell
+        commands.Results.Enqueue(new ProcessResult(0, "", ""));  // tray autostart check
         var adapter = Adapter(commands, files);
 
         var report = await adapter.ValidateInstalledStateAsync(Session());
@@ -157,6 +157,22 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/server", @"C:\Program Files\Agent-Up\server")));
         Assert.That(files.CopiedDirectories, Does.Contain(("/payload/tray", @"C:\Program Files\Agent-Up\tray")));
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("CurrentVersion\\Run", StringComparison.Ordinal)), Is.True);
+    }
+
+    [Test]
+    public async Task ExecuteComponentActionAsync_uninstallTrayStopsTrayBeforeDeletingDirectory()
+    {
+        var files = new RecordingWindowsFileSystem();
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, files);
+
+        await adapter.ExecuteComponentActionAsync(new ProductComponent("tray", "Tray"), InstallerComponentAction.Uninstall, Session()).DrainAsync();
+
+        var scripts = PowerShellScripts(commands).ToArray();
+        Assert.That(scripts.Any(script =>
+            script.Contains("Get-CimInstance Win32_Process", StringComparison.Ordinal) &&
+            script.Contains(@"C:\Program Files\Agent-Up\tray\AgentUp.Tray.exe", StringComparison.Ordinal)), Is.True);
+        Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\tray"));
     }
 
     [Test]
@@ -268,8 +284,7 @@ public class WindowsInstallerPlatformAdapterTests
                 Assert.That(product, Does.Contain("Local Acme Studio runtime authority"));
                 Assert.That(product, Does.Contain("Acme Studio Installer"));
                 Assert.That(product, Does.Contain("Software\\Acme Studio"));
-                Assert.That(product, Does.Contain(@"Name=""Acme Studio"""));
-                Assert.That(product, Does.Contain(@"Key=""Software\Microsoft\Windows\CurrentVersion\Run"""));
+                Assert.That(RunRegistryValueName(product), Is.EqualTo("Acme Studio"));
                 Assert.That(product, Does.Contain("acme-studio.cmd"));
                 Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Acme Studio\installer\AgentUp.InstallerApp.exe"""));
                 Assert.That(bundle, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Acme Studio\installer"""));
@@ -515,6 +530,16 @@ public class WindowsInstallerPlatformAdapterTests
             .Descendants(wix + "Component")
             .Select(component => (string?)component.Attribute("Guid"))
             .Where(guid => !string.IsNullOrWhiteSpace(guid))!;
+    }
+
+    private static string? RunRegistryValueName(string productWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return XDocument.Parse(productWxs)
+            .Descendants(wix + "RegistryValue")
+            .Where(value => (string?)value.Attribute("Key") == @"Software\Microsoft\Windows\CurrentVersion\Run")
+            .Select(value => (string?)value.Attribute("Name"))
+            .SingleOrDefault();
     }
 
     private static IEnumerable<string> PowerShellScripts(RecordingCommandRunner commands)

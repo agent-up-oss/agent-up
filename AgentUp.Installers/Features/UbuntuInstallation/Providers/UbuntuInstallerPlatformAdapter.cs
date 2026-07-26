@@ -172,11 +172,13 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine($"rm -rf {Q(_options.Paths.DesktopDirectory)}");
             sb.AppendLine($"mkdir -p {Q(_options.Paths.DesktopDirectory)}");
             sb.AppendLine($"cp -r {Q(_options.Payload.DesktopDirectory)}/. {Q(_options.Paths.DesktopDirectory)}");
-            sb.AppendLine($"cp {Q(_options.Payload.IconPath)} {Q(_options.Paths.IconPath)}");
             sb.AppendLine($"chmod +x {Q(_options.Paths.DesktopExecutable)}");
             sb.AppendLine($"cp {Q(tempFiles[_options.Paths.DesktopEntryPath])} {Q(_options.Paths.DesktopEntryPath)}");
             sb.AppendLine("update-desktop-database /usr/share/applications 2>/dev/null || true");
         }
+
+        if (summary.Includes(InstallerComponent.Desktop) || summary.Includes(InstallerComponent.Tray))
+            sb.AppendLine($"cp {Q(_options.Payload.IconPath)} {Q(_options.Paths.IconPath)}");
 
         if (summary.Includes(InstallerComponent.Server))
         {

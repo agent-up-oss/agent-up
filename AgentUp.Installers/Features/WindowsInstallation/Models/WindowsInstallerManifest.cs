@@ -301,7 +301,7 @@ public sealed class WindowsWixSourceGenerator
 
             var trayAutoStart = new XElement(Wix + "Component",
                 new XAttribute("Id", "TrayAutoStartComponent"),
-                new XAttribute("Directory", "TrayDir"),
+                new XAttribute("Directory", "ApplicationProgramsFolder"),
                 new XAttribute("Guid", StableGuid("tray-autostart")),
                 new XElement(Wix + "RegistryValue",
                     new XAttribute("Root", "HKCU"),

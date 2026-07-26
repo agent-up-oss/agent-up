@@ -139,6 +139,7 @@ public class UbuntuInstallerPlatformAdapterTests
             // Tray payload is bundled with server
             Assert.That(script, Does.Contain("cp -r '/payload/tray'/."));
             Assert.That(script, Does.Contain("chmod +x '/opt/agent-up/tray/AgentUp.Tray'"));
+            Assert.That(script, Does.Contain("cp '/payload/logo.png' '/usr/share/pixmaps/agent-up.png'"));
             Assert.That(script, Does.Contain("/etc/xdg/autostart/agent-up-tray.desktop"));
             Assert.That(script, Does.Contain("Icon=agent-up"));
             Assert.That(script, Does.Contain("X-GNOME-Autostart-enabled=true"));

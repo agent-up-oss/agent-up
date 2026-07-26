@@ -118,28 +118,6 @@ public static class WindowsInstallerCommands
              New-ItemProperty -Force -Path $key -Name QuietUninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{Ps(paths.UninstallScriptPath)}}"' | Out-Null
              """;
 
-    public static string TrayAutoStartPowerShell(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
-        => $$"""
-             $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-             if (-not (Test-Path $regPath)) { New-Item -Force -Path $regPath | Out-Null }
-             New-ItemProperty -Force -Path $regPath -Name '{{Ps(manifest.ProductName)}}' -Value '"{{Ps(paths.TrayExecutable)}}"' | Out-Null
-             """;
-
-    public static string TrayAutoStartCheckPowerShell(WindowsInstallerManifest manifest)
-        => $$"""
-           $val = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
-           if (-not $val) { exit 1 }
-           exit 0
-           """;
-
-    public static string TrayAutoStartRemovePowerShell(WindowsInstallerManifest manifest)
-        => $$"""
-           $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-           if (Test-Path $regPath) {
-             Remove-ItemProperty -Path $regPath -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
-           }
-           """;
-
     public static string FreshShellCliLookupPowerShell(string cliCommandName)
         => $"Get-Command {cliCommandName} -ErrorAction Stop | Out-Null";
 
