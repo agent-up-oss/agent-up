@@ -21,15 +21,17 @@ public sealed class WindowsAutoStartRegistrar : IAutoStartRegistrar
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: false);
         return key?.GetValue(ValueName) is string registered
-            && string.Equals(registered, _exePath, StringComparison.OrdinalIgnoreCase);
+            && string.Equals(registered, QuotedExePath, StringComparison.OrdinalIgnoreCase);
     }
 
     public void Register()
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true)
             ?? throw new InvalidOperationException($"Cannot open registry key {RunKey}.");
-        key.SetValue(ValueName, _exePath);
+        key.SetValue(ValueName, QuotedExePath);
     }
+
+    private string QuotedExePath => $"\"{_exePath}\"";
 
     public void Unregister()
     {

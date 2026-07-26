@@ -291,6 +291,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
         var running = await _commands.RunAsync("systemctl", ["is-active", _options.Manifest.ServiceUnitName], cancellationToken);
         var cli = await _commands.RunAsync("bash", ["-lc", "command -v \"$1\"", "--", _options.Manifest.CliCommandName], cancellationToken);
 
+        var summary = session.Summary();
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,
             ServiceRunning: running.ExitCode == 0,
@@ -301,6 +302,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             ServerVersion: session.Version,
             DesktopVersion: session.Version)
         {
+            TrayExpected = summary.Includes(InstallerComponent.Tray),
             TrayInstalled = _files.FileExists(_options.Paths.TrayExecutable),
             TrayAutoStartRegistered = _files.FileExists(_options.Paths.XdgAutostartPath),
             TrayVersion = _files.FileExists(_options.Paths.TrayExecutable) ? session.Version : null,

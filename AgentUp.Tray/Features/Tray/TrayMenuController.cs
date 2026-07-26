@@ -14,6 +14,7 @@ public sealed class TrayMenuController : IDisposable
     private readonly NativeMenuItem _pauseItem;
     private readonly NativeMenuItem _resumeItem;
     private readonly NativeMenuItem _restartItem;
+    private TrayIcon? _trayIcon;
     private IDisposable? _subscription;
 
     public TrayMenuController(ServiceLifecycleManager lifecycle, WindowIcon icon, Action quit)
@@ -49,18 +50,18 @@ public sealed class TrayMenuController : IDisposable
 
     public void Attach(Application app)
     {
-        var trayIcon = new TrayIcon
+        _trayIcon = new TrayIcon
         {
             ToolTipText = "Agent-Up",
             Icon = _icon,
             Menu = BuildMenu()
         };
 
-        TrayIcon.SetIcons(app, [trayIcon]);
+        TrayIcon.SetIcons(app, [_trayIcon]);
 
         _subscription = _lifecycle.State
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(state => ApplyState(state, trayIcon));
+            .Subscribe(state => ApplyState(state, _trayIcon));
     }
 
     private NativeMenu BuildMenu()
@@ -117,5 +118,9 @@ public sealed class TrayMenuController : IDisposable
         _ => "Stopped"
     };
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        _trayIcon?.Dispose();
+    }
 }

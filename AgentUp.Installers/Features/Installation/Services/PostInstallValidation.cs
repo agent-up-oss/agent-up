@@ -13,7 +13,7 @@ public static class PostInstallValidation
         Require(state.CliAvailableFromFreshShell, "cli.path", "CLI is not available from a new shell.", findings);
         Require(state.DesktopInstalled, "desktop.missing", "Desktop application is not installed in the expected location.", findings);
 
-        if (state.TrayInstalled || state.TrayAutoStartRegistered || state.TrayVersion is not null)
+        if (state.TrayExpected || state.TrayInstalled || state.TrayAutoStartRegistered || state.TrayVersion is not null)
         {
             Require(state.TrayInstalled, "tray.missing", "Tray application is not installed in the expected location.", findings);
             Require(state.TrayAutoStartRegistered, "tray.autostart", "Tray auto-start is not registered for the current user.", findings);

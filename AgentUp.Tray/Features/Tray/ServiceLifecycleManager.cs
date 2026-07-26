@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
@@ -12,6 +13,7 @@ public sealed class ServiceLifecycleManager : IDisposable
     private Process? _serverProcess;
     private bool _intentionallyStopped;
     private int _crashCount;
+    private CancellationTokenSource _restartCts = new();
 
     public IObservable<ServiceState> State => _state;
     public ServiceState CurrentState => _state.Value;
@@ -30,8 +32,15 @@ public sealed class ServiceLifecycleManager : IDisposable
 
     public async Task PauseAsync()
     {
+        CancellationTokenSource oldCts;
         lock (_lock)
+        {
             _intentionallyStopped = true;
+            oldCts = _restartCts;
+            _restartCts = new CancellationTokenSource();
+        }
+        oldCts.Cancel();
+        oldCts.Dispose();
         _state.OnNext(ServiceState.Paused);
         await StopServerAsync();
     }
@@ -54,13 +63,25 @@ public sealed class ServiceLifecycleManager : IDisposable
 
     public async Task QuitAsync()
     {
+        CancellationTokenSource oldCts;
         lock (_lock)
+        {
             _intentionallyStopped = true;
+            oldCts = _restartCts;
+            _restartCts = new CancellationTokenSource();
+        }
+        oldCts.Cancel();
+        oldCts.Dispose();
         await StopServerAsync();
     }
 
     private async Task SpawnAsync(CancellationToken ct = default)
     {
+        lock (_lock)
+        {
+            if (_intentionallyStopped) return;
+        }
+
         _state.OnNext(ServiceState.Starting);
         try
         {
@@ -79,7 +100,6 @@ public sealed class ServiceLifecycleManager : IDisposable
             lock (_lock)
             {
                 _serverProcess = process;
-                _crashCount = 0;
             }
             _state.OnNext(ServiceState.Running);
         }
@@ -93,10 +113,12 @@ public sealed class ServiceLifecycleManager : IDisposable
     private void OnServerExited(object? sender, EventArgs e)
     {
         bool intentional;
+        CancellationToken restartToken;
         lock (_lock)
         {
             intentional = _intentionallyStopped;
             if (!intentional) _crashCount++;
+            restartToken = intentional ? CancellationToken.None : _restartCts.Token;
         }
 
         if (intentional) return;
@@ -104,7 +126,8 @@ public sealed class ServiceLifecycleManager : IDisposable
         var backoff = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _crashCount - 1), 30));
         _state.OnNext(ServiceState.Restarting);
 
-        _ = Task.Delay(backoff).ContinueWith(_ => SpawnAsync(), TaskScheduler.Default);
+        _ = Task.Delay(backoff, restartToken)
+            .ContinueWith(t => { if (!t.IsCanceled) _ = SpawnAsync(); }, TaskScheduler.Default);
     }
 
     private async Task StopServerAsync()
@@ -125,17 +148,20 @@ public sealed class ServiceLifecycleManager : IDisposable
 
         process.Exited -= OnServerExited;
 
-        try
+        using (process)
         {
-            await SendGracefulStopAsync(process);
-        }
-        catch
-        {
-            // process already exited or we lack permission — that's fine
-        }
-        finally
-        {
-            process.Dispose();
+            try
+            {
+                await SendGracefulStopAsync(process);
+            }
+            catch (InvalidOperationException)
+            {
+                // Process already exited between the HasExited check and SendGracefulStopAsync
+            }
+            catch (Win32Exception ex)
+            {
+                Trace.TraceError($"Failed to stop server process {process.Id}: {ex.Message}");
+            }
         }
 
         _state.OnNext(ServiceState.Stopped);
@@ -176,6 +202,7 @@ public sealed class ServiceLifecycleManager : IDisposable
     public void Dispose()
     {
         _state.Dispose();
+        _restartCts.Dispose();
         _serverProcess?.Dispose();
     }
 

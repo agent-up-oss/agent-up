@@ -227,10 +227,15 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         CancellationToken cancellationToken = default)
     {
         var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
+        var summary = session.Summary();
         var service = await _commands.RunAsync("sc.exe", ["query", manifest.ServiceName], cancellationToken);
         var cli = await _commands.RunAsync(
             "powershell.exe",
             ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", WindowsInstallerCommands.FreshShellCliLookupPowerShell(manifest.CliCommandName)],
+            cancellationToken);
+        var trayAutoStart = await _commands.RunAsync(
+            "powershell.exe",
+            ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", WindowsInstallerCommands.TrayAutoStartCheckPowerShell()],
             cancellationToken);
 
         return PostInstallValidation.Validate(new InstalledState(
@@ -243,8 +248,9 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             ServerVersion: session.Version,
             DesktopVersion: session.Version)
         {
+            TrayExpected = summary.Includes(InstallerComponent.Tray),
             TrayInstalled = _files.FileExists(_options.Paths.TrayExecutable),
-            TrayAutoStartRegistered = _files.FileExists(_options.Paths.TrayExecutable), // set on first tray launch
+            TrayAutoStartRegistered = trayAutoStart.ExitCode == 0,
             TrayVersion = _files.FileExists(_options.Paths.TrayExecutable) ? session.Version : null,
         }, session.Version);
     }

@@ -149,6 +149,10 @@ public class MacOsInstallerPlatformAdapterTests
     {
         var files = new RecordingMacOsFileSystem();
         files.ExistingFiles.Add("/Applications/Agent-Up.app/Contents/Info.plist");
+        files.ExistingFiles.Add("/Library/Application Support/Agent-Up/tray/AgentUp.Tray");
+        files.ExistingFiles.Add(Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Library", "LaunchAgents", "dev.agent-up.tray.plist"));
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 

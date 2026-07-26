@@ -67,9 +67,11 @@ public class WindowsInstallerPlatformAdapterTests
     {
         var files = new RecordingWindowsFileSystem();
         files.ExistingFiles.Add(@"C:\Program Files\Agent-Up\desktop\AgentUp.Desktop.exe");
+        files.ExistingFiles.Add(@"C:\Program Files\Agent-Up\tray\AgentUp.Tray.exe");
         var commands = new RecordingCommandRunner();
         commands.Results.Enqueue(new ProcessResult(0, "STATE              : 4  RUNNING", ""));
         commands.Results.Enqueue(new ProcessResult(0, "", ""));
+        commands.Results.Enqueue(new ProcessResult(0, "", ""));  // TrayAutoStartCheckPowerShell
         var adapter = Adapter(commands, files);
 
         var report = await adapter.ValidateInstalledStateAsync(Session());
@@ -77,6 +79,7 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("sc.exe", "query agent-up-server")));
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-Command agent-up", StringComparison.Ordinal)), Is.True);
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-ItemPropertyValue", StringComparison.Ordinal)), Is.True);
     }
 
     [Test]

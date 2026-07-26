@@ -88,6 +88,8 @@ public class UbuntuInstallerPlatformAdapterTests
     {
         var files = new RecordingUbuntuFileSystem();
         files.ExistingFiles.Add("/usr/share/applications/agent-up.desktop");
+        files.ExistingFiles.Add("/opt/agent-up/tray/AgentUp.Tray");
+        files.ExistingFiles.Add("/etc/xdg/autostart/agent-up-tray.desktop");
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 

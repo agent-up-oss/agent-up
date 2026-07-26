@@ -125,10 +125,11 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 tempFiles[paths.LaunchDaemonPath] = tmpDaemon;
             }
 
-            string? tmpLaunchAgent = null;
+            await RunElevatedAsync(BuildInstallScript(session, summary, tempFiles, manifest, paths), cancellationToken);
+
             if (summary.Includes(InstallerComponent.Tray))
             {
-                // LaunchAgent goes in the user's ~/Library/LaunchAgents — no elevation needed for the write
+                // LaunchAgent goes in the user's ~/Library/LaunchAgents — write only after payload install succeeds
                 var launchAgentsDir = Path.Join(
                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                     "Library", "LaunchAgents");
@@ -136,14 +137,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 Directory.CreateDirectory(launchAgentsDir);
                 await File.WriteAllTextAsync(launchAgentPath,
                     plists.TrayLaunchAgentPlist(paths.TrayExecutable), cancellationToken);
-                tmpLaunchAgent = launchAgentPath;
-            }
-
-            await RunElevatedAsync(BuildInstallScript(session, summary, tempFiles, manifest, paths), cancellationToken);
-
-            if (tmpLaunchAgent is not null)
-            {
-                await _commands.RunAsync("launchctl", ["load", tmpLaunchAgent], cancellationToken);
+                await _commands.RunAsync("launchctl", ["load", launchAgentPath], cancellationToken);
             }
         }
         finally
@@ -183,6 +177,11 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         var progress = new InstallProgressTracker(operations);
 
         var paths = MacOsInstallerPaths.From(session.Manifest);
+        var manifest = MacOsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
+
+        if (target == InstallerComponentTarget.Tray)
+            await UnregisterTrayLaunchAgentAsync(manifest, cancellationToken);
+
         await RunElevatedAsync(BuildUninstallScript(target, paths), cancellationToken);
 
         yield return progress.Complete(InstallerComponentOperations.TargetOperationKind(target));
@@ -203,6 +202,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             "Library", "LaunchAgents", $"{manifest.TrayLaunchAgentLabel}.plist");
 
+        var summary = session.Summary();
         return PostInstallValidation.Validate(new InstalledState(
             ServiceRegistered: service.ExitCode == 0,
             ServiceRunning: service.ExitCode == 0,
@@ -213,6 +213,7 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
             ServerVersion: session.Version,
             DesktopVersion: session.Version)
         {
+            TrayExpected = summary.Includes(InstallerComponent.Tray),
             TrayInstalled = _files.FileExists(paths.TrayExecutable),
             TrayAutoStartRegistered = _files.FileExists(launchAgentPath),
             TrayVersion = _files.FileExists(paths.TrayExecutable) ? session.Version : null,
@@ -310,6 +311,23 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
         }
 
         return sb.ToString();
+    }
+
+    private async Task UnregisterTrayLaunchAgentAsync(
+        MacOsInstallerManifest manifest,
+        CancellationToken cancellationToken)
+    {
+        var launchAgentPath = Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Library", "LaunchAgents", $"{manifest.TrayLaunchAgentLabel}.plist");
+
+        if (File.Exists(launchAgentPath))
+        {
+            await _commands.RunAsync("launchctl", ["unload", launchAgentPath], cancellationToken);
+            try { File.Delete(launchAgentPath); }
+            catch (IOException ex) { Trace.TraceWarning(ex.Message); }
+            catch (UnauthorizedAccessException ex) { Trace.TraceWarning(ex.Message); }
+        }
     }
 
     private async Task RunElevatedAsync(string script, CancellationToken cancellationToken)

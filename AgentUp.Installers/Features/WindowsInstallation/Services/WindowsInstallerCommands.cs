@@ -118,8 +118,15 @@ public static class WindowsInstallerCommands
         => $$"""
              $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
              if (-not (Test-Path $regPath)) { New-Item -Force -Path $regPath | Out-Null }
-             New-ItemProperty -Force -Path $regPath -Name 'Agent-Up' -Value '{{Ps(paths.TrayExecutable)}}' | Out-Null
+             New-ItemProperty -Force -Path $regPath -Name 'Agent-Up' -Value '"{{Ps(paths.TrayExecutable)}}"' | Out-Null
              """;
+
+    public static string TrayAutoStartCheckPowerShell()
+        => """
+           $val = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Agent-Up' -ErrorAction SilentlyContinue
+           if (-not $val) { exit 1 }
+           exit 0
+           """;
 
     public static string TrayAutoStartRemovePowerShell()
         => """

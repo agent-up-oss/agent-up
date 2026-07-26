@@ -40,6 +40,7 @@ public class App : Application
     private static WindowIcon LoadTrayIcon()
     {
         using var stream = AssetLoader.Open(new Uri("avares://AgentUp.Tray/Assets/logo.png"));
-        return new WindowIcon(new Bitmap(stream));
+        using var bitmap = new Bitmap(stream);
+        return new WindowIcon(bitmap);
     }
 }
