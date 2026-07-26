@@ -1,8 +1,9 @@
 using AgentUp.CLI.Features.Commits.DTOs;
+using AgentUp.CLI.Features.Commits.Interfaces;
 
 namespace AgentUp.CLI.Features.Commits.Providers;
 
-public sealed class CommitsArgParser
+public sealed class CommitsArgParser : ICommitsArgParser
 {
     public (EnqueueRequest? Request, string? Error) Parse(string[] args)
     {

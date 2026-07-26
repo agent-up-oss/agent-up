@@ -23,7 +23,7 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
             return CommitsQueue.Empty();
 
         var json = await File.ReadAllTextAsync(path, cancellationToken);
-        return JsonSerializer.Deserialize<QueueJson>(json, JsonOptions)?.ToModel()
+        return JsonSerializer.Deserialize<CommitsQueueJson>(json, JsonOptions)?.ToModel()
                ?? CommitsQueue.Empty();
     }
 
@@ -31,7 +31,7 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
     {
         var path = await QueuePathAsync(cancellationToken);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var json = JsonSerializer.Serialize(QueueJson.FromModel(queue), JsonOptions);
+        var json = JsonSerializer.Serialize(CommitsQueueJson.FromModel(queue), JsonOptions);
         await File.WriteAllTextAsync(path, json, cancellationToken);
     }
 
@@ -55,18 +55,5 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         var normalized = Path.GetFullPath(repoRoot).ToLowerInvariant();
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
         return Convert.ToHexString(bytes)[..16].ToLowerInvariant();
-    }
-
-    // JSON serialization shapes — separate from domain models
-    private sealed record QueueJson(int Version, List<EntryJson> Commits)
-    {
-        public CommitsQueue ToModel() => new(Version, Commits.Select(e => e.ToModel()).ToList());
-        public static QueueJson FromModel(CommitsQueue q) => new(q.Version, q.Commits.Select(EntryJson.FromModel).ToList());
-    }
-
-    private sealed record EntryJson(string Slice, string Message, List<string> Files, List<string> Tests)
-    {
-        public CommitEntry ToModel() => new(Slice, Message, Files, Tests);
-        public static EntryJson FromModel(CommitEntry e) => new(e.Slice, e.Message, [.. e.Files], [.. e.Tests]);
     }
 }

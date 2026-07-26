@@ -19,16 +19,8 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var current = await queue.ReadAsync(cancellationToken);
         var assignedFiles = current.Commits.SelectMany(e => e.Files).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        IReadOnlyList<string> unassigned = [];
-        try
-        {
-            var modified = await git.GetModifiedFilesAsync(cancellationToken);
-            unassigned = modified.Where(f => !assignedFiles.Contains(f)).ToList();
-        }
-        catch (InvalidOperationException)
-        {
-            // not in a git repo or git unavailable — skip unassigned check
-        }
+        var modified = await git.GetModifiedFilesAsync(cancellationToken);
+        var unassigned = modified.Where(f => !assignedFiles.Contains(f)).ToList();
 
         return new CommitsStatusResult(current.Commits, unassigned);
     }

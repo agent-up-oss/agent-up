@@ -9,18 +9,26 @@ public sealed class CommitsController(
     CommitsClearCommand clear,
     CommitsOutputService output)
 {
-    public async Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
+    public Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
+        => ResolveCommand(args, enqueue, status, next, clear, output)(cancellationToken);
+
+    private static Func<CancellationToken, Task<int>> ResolveCommand(
+        string[] args,
+        CommitsEnqueueCommand enqueue,
+        CommitsStatusCommand status,
+        CommitsNextCommand next,
+        CommitsClearCommand clear,
+        CommitsOutputService output)
     {
         var subcommand = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal)) ?? "";
         var remaining = args.SkipWhile(a => a != subcommand).Skip(1).ToArray();
-
         return subcommand switch
         {
-            "enqueue" => await enqueue.RunAsync(remaining, cancellationToken),
-            "status" => await status.RunAsync(cancellationToken),
-            "next" => await next.RunAsync(cancellationToken),
-            "clear" => await clear.RunAsync(cancellationToken),
-            _ => output.WriteHelp()
+            "enqueue" => ct => enqueue.RunAsync(remaining, ct),
+            "status" => status.RunAsync,
+            "next" => next.RunAsync,
+            "clear" => clear.RunAsync,
+            _ => _ => Task.FromResult(output.WriteHelp())
         };
     }
 }

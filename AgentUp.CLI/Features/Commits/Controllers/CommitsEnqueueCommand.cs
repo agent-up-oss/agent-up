@@ -1,11 +1,11 @@
-using AgentUp.CLI.Features.Commits.Providers;
+using AgentUp.CLI.Features.Commits.Interfaces;
 using AgentUp.CLI.Features.Commits.Services;
 
 namespace AgentUp.CLI.Features.Commits.Controllers;
 
 public sealed class CommitsEnqueueCommand(
     CommitsService service,
-    CommitsArgParser parser,
+    ICommitsArgParser parser,
     CommitsOutputService output)
 {
     public async Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
