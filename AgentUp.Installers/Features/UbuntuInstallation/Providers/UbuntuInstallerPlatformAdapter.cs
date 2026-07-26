@@ -172,11 +172,13 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine($"rm -rf {Q(_options.Paths.DesktopDirectory)}");
             sb.AppendLine($"mkdir -p {Q(_options.Paths.DesktopDirectory)}");
             sb.AppendLine($"cp -r {Q(_options.Payload.DesktopDirectory)}/. {Q(_options.Paths.DesktopDirectory)}");
-            sb.AppendLine($"cp {Q(_options.Payload.IconPath)} {Q(_options.Paths.IconPath)}");
             sb.AppendLine($"chmod +x {Q(_options.Paths.DesktopExecutable)}");
             sb.AppendLine($"cp {Q(tempFiles[_options.Paths.DesktopEntryPath])} {Q(_options.Paths.DesktopEntryPath)}");
             sb.AppendLine("update-desktop-database /usr/share/applications 2>/dev/null || true");
         }
+
+        if (summary.Includes(InstallerComponent.Desktop) || summary.Includes(InstallerComponent.Tray))
+            sb.AppendLine($"cp {Q(_options.Payload.IconPath)} {Q(_options.Paths.IconPath)}");
 
         if (summary.Includes(InstallerComponent.Server))
         {
@@ -202,6 +204,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine("Type=Application");
             sb.AppendLine($"Name={_options.Manifest.DesktopApplicationName} Tray");
             sb.AppendLine($"Exec={_options.Paths.TrayExecutable}");
+            sb.AppendLine($"Icon={_options.Manifest.PackageName}");
             sb.AppendLine("Terminal=false");
             sb.AppendLine("Hidden=false");
             sb.AppendLine("X-GNOME-Autostart-enabled=true");
@@ -233,6 +236,8 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
                 sb.AppendLine($"rm -f {Q(_options.Paths.ServicePath)}");
                 sb.AppendLine("systemctl daemon-reload");
                 sb.AppendLine($"rm -rf {Q(_options.Paths.ServerDirectory)}");
+                sb.AppendLine($"rm -f {Q(_options.Paths.XdgAutostartPath)}");
+                sb.AppendLine($"rm -rf {Q(_options.Paths.TrayDirectory)}");
                 break;
             case InstallerComponentTarget.Cli:
                 sb.AppendLine($"rm -f {Q(_options.Paths.CliSymlinkPath)}");

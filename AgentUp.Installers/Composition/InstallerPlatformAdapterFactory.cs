@@ -69,7 +69,7 @@ public static class InstallerPlatformAdapterFactory
                 return bundledPayloadRoot;
         }
 
-        throw new InvalidOperationException($"{manifest.PayloadRootVariable} must point at a payload root containing desktop, server, and cli directories, or the installer app must include a bundled payload directory next to the executable.");
+        throw new InvalidOperationException($"{manifest.PayloadRootVariable} must point at a payload root containing desktop, server, cli, and tray directories, or the installer app must include a bundled payload directory next to the executable.");
     }
 
     public static IReadOnlyList<string> PayloadCandidateDirectories(string appBaseDirectory)
@@ -87,7 +87,8 @@ public static class InstallerPlatformAdapterFactory
     private static bool IsPayloadRoot(string payloadRoot)
         => Directory.Exists(System.IO.Path.Join(payloadRoot, "desktop")) &&
            Directory.Exists(System.IO.Path.Join(payloadRoot, "server")) &&
-           Directory.Exists(System.IO.Path.Join(payloadRoot, "cli"));
+           Directory.Exists(System.IO.Path.Join(payloadRoot, "cli")) &&
+           Directory.Exists(System.IO.Path.Join(payloadRoot, "tray"));
 
     private static void AddCandidate(List<string> candidates, string? candidate)
     {

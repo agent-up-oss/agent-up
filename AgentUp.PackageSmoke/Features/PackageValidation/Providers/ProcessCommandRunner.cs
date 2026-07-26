@@ -381,6 +381,14 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
+        if (IsArguments(command, "-NoProfile", "-Command", "$name = $env:AGENTUP_TRAY_AUTOSTART_NAME; $expected = $env:AGENTUP_TRAY_AUTOSTART_VALUE; $val = Get-ItemPropertyValue -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name $name -ErrorAction SilentlyContinue; if (-not [string]::Equals($val, $expected, [System.StringComparison]::OrdinalIgnoreCase)) { throw \"$name tray autostart registry entry missing or incorrect\" }"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
         error = "PowerShell arguments are not allowed.";
         return false;
     }

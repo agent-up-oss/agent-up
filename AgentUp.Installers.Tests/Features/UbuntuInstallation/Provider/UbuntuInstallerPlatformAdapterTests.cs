@@ -119,6 +119,36 @@ public class UbuntuInstallerPlatformAdapterTests
         }));
     }
 
+    // ── Test 0: Server component install copies tray payload and registers autostart ──
+
+    [Test]
+    public async Task ExecuteComponentActionAsync_installServer_copiesTrayPayloadAndRegistersAutoStart()
+    {
+        var commands = new ScriptCapturingCommandRunner();
+        var adapter = Adapter(commands, new RecordingUbuntuFileSystem());
+
+        await adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Install, Session()).DrainAsync();
+
+        var script = commands.CapturedScript;
+        Assert.That(script, Is.Not.Null.And.Not.Empty);
+        Assert.Multiple(() =>
+        {
+            // Server payload is installed
+            Assert.That(script, Does.Contain("cp -r '/payload/server'/."));
+            Assert.That(script, Does.Contain("systemctl enable --now 'agent-up-server.service'"));
+            // Tray payload is bundled with server
+            Assert.That(script, Does.Contain("cp -r '/payload/tray'/."));
+            Assert.That(script, Does.Contain("chmod +x '/opt/agent-up/tray/AgentUp.Tray'"));
+            Assert.That(script, Does.Contain("cp '/payload/logo.png' '/usr/share/pixmaps/agent-up.png'"));
+            Assert.That(script, Does.Contain("/etc/xdg/autostart/agent-up-tray.desktop"));
+            Assert.That(script, Does.Contain("Icon=agent-up"));
+            Assert.That(script, Does.Contain("X-GNOME-Autostart-enabled=true"));
+            // Desktop and CLI are not included in a server-only install
+            Assert.That(script, Does.Not.Contain("cp -r '/payload/desktop'/."));
+            Assert.That(script, Does.Not.Contain("cp -r '/payload/cli'/."));
+        });
+    }
+
     // ── Test 1: non-Agent-Up install registers the product's systemd unit ────
 
     [Test]
@@ -221,6 +251,8 @@ public class UbuntuInstallerPlatformAdapterTests
             Assert.That(serverScript, Does.Contain("acme-studio-server.service"));
             Assert.That(serverScript, Does.Contain("'/etc/systemd/system/acme-studio-server.service'"));
             Assert.That(serverScript, Does.Contain("'/opt/acme-studio/server'"));
+            Assert.That(serverScript, Does.Contain("'/etc/xdg/autostart/acme-studio-tray.desktop'"));
+            Assert.That(serverScript, Does.Contain("'/opt/acme-studio/tray'"));
 
             Assert.That(cliScript, Does.Contain("'/usr/bin/acme-studio'"));
             Assert.That(cliScript, Does.Contain("'/opt/acme-studio/cli'"));

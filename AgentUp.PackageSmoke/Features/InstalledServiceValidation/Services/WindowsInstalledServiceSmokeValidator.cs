@@ -3,6 +3,7 @@ using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
@@ -14,6 +15,8 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
     internal WindowsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
         : base(commands, serverProbe, securityChecks, http) { }
+
+    private readonly WindowsTrayAutoStartSmokeProvider _trayAutoStart = new();
 
     protected override async Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,
@@ -38,6 +41,13 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Join(installDir, "bin", $"{product.CliShimName}.cmd"), "installed.windows.path.shim");
         assert.FileExists(cli, "installed.windows.cli");
+        var trayExecutable = Path.Join(installDir, "tray", "AgentUp.Tray.exe");
+        assert.FileExists(trayExecutable, "installed.windows.tray");
+        await RunRequiredAsync(
+            assert,
+            _trayAutoStart.ValidationCommand(product, trayExecutable),
+            "installed.windows.tray.autostart",
+            cancellationToken);
 
         const string pathCheck = "$displayName = $env:AGENTUP_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }";
 

@@ -228,10 +228,16 @@ public sealed class InstalledServiceSmokeValidatorProductTests
     {
         var appsDir = Path.Join(systemRoot, "usr", "share", "applications");
         var pixmapsDir = Path.Join(systemRoot, "usr", "share", "pixmaps");
+        var trayDir = Path.Join(systemRoot, "opt", shimName, "tray");
+        var xdgDir = Path.Join(systemRoot, "etc", "xdg", "autostart");
         Directory.CreateDirectory(appsDir);
         Directory.CreateDirectory(pixmapsDir);
+        Directory.CreateDirectory(trayDir);
+        Directory.CreateDirectory(xdgDir);
         File.WriteAllText(Path.Join(appsDir, $"{shimName}.desktop"), "");
         File.WriteAllText(Path.Join(pixmapsDir, $"{shimName}.png"), "");
+        File.WriteAllText(Path.Join(trayDir, "AgentUp.Tray"), "");
+        File.WriteAllText(Path.Join(xdgDir, $"{shimName}-tray.desktop"), "");
     }
 
     private static bool IsUnixCliCommand(CommandSpec command, string shimName, string argument)

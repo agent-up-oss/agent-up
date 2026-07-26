@@ -32,6 +32,8 @@ public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmoke
         await RunRequiredAsync(assert, new CommandSpec("bash", ["-lc", $"command -v {product.CliShimName}"]), "installed.ubuntu.path", cancellationToken);
         assert.FileExists(Path.Join(request.SystemRoot, "usr", "share", "applications", $"{product.CliShimName}.desktop"), "installed.ubuntu.desktop.entry");
         assert.FileExists(Path.Join(request.SystemRoot, "usr", "share", "pixmaps", $"{product.CliShimName}.png"), "installed.ubuntu.icon");
+        assert.FileExists(Path.Join(request.SystemRoot, "opt", product.ArtifactBaseName, "tray", "AgentUp.Tray"), "installed.ubuntu.tray");
+        assert.FileExists(Path.Join(request.SystemRoot, "etc", "xdg", "autostart", $"{product.ArtifactBaseName}-tray.desktop"), "installed.ubuntu.tray.autostart");
 
         return new InstalledServiceContext(
             product.CliShimName,

@@ -14,7 +14,7 @@ Use the Windows installer:
 
 Run the installer normally. It opens the Agent-Up Installer dashboard, where Desktop, Server, and CLI can each be installed, updated, repaired, or uninstalled from their own cards.
 
-The installer registers Agent-Up under Windows Apps, adds a Start Menu entry, adds `agent-up` to PATH, installs the Server as the `agent-up-server` Windows Service, and removes all of those components on uninstall. CLI commands connect to the local Server at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points somewhere else.
+The installer registers Agent-Up under Windows Apps, adds a Start Menu entry, and adds `agent-up` to PATH. When Server is selected, it installs the Server as the `agent-up-server` Windows Service, registers the tray app for login auto-start, and removes those components on uninstall. CLI commands connect to the local Server at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points somewhere else.
 
 ## macOS
 

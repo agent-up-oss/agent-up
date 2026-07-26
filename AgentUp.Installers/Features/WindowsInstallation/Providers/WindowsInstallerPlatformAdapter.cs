@@ -87,6 +87,9 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             case InstallerComponentTarget.Server:
                 await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
                 _files.DeleteDirectory(_options.Paths.ServerDirectory);
+                await _requiredCommands.RunPowerShellAsync(WindowsTrayAutoStartProvider.StopPowerShell(_options.Paths), cancellationToken);
+                await _requiredCommands.RunPowerShellAsync(WindowsTrayAutoStartProvider.RemovePowerShell(manifest), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.TrayDirectory);
                 break;
             case InstallerComponentTarget.Cli:
                 await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PathRemovePowerShell(_options.Paths.BinDirectory), cancellationToken);
@@ -99,7 +102,9 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
                 break;
             case InstallerComponentTarget.Tray:
                 await _requiredCommands.RunPowerShellAsync(
-                    WindowsInstallerCommands.TrayAutoStartRemovePowerShell(), cancellationToken);
+                    WindowsTrayAutoStartProvider.StopPowerShell(_options.Paths), cancellationToken);
+                await _requiredCommands.RunPowerShellAsync(
+                    WindowsTrayAutoStartProvider.RemovePowerShell(manifest), cancellationToken);
                 _files.DeleteDirectory(_options.Paths.TrayDirectory);
                 break;
         }
@@ -207,7 +212,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         if (summary.Includes(InstallerComponent.Tray))
         {
             await _requiredCommands.RunPowerShellAsync(
-                WindowsInstallerCommands.TrayAutoStartPowerShell(_options.Paths), cancellationToken);
+                WindowsTrayAutoStartProvider.RegisterPowerShell(manifest, _options.Paths), cancellationToken);
             yield return progress.Complete(InstallOperationKind.RegisterAutoStart);
         }
 
@@ -235,7 +240,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
             cancellationToken);
         var trayAutoStart = await _commands.RunAsync(
             "powershell.exe",
-            ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", WindowsInstallerCommands.TrayAutoStartCheckPowerShell()],
+            ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", WindowsTrayAutoStartProvider.CheckPowerShell(manifest, _options.Paths)],
             cancellationToken);
 
         return PostInstallValidation.Validate(new InstalledState(

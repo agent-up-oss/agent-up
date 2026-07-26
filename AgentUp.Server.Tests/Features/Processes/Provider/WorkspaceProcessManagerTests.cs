@@ -206,6 +206,40 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task KillApplicationAsync_marksIntentionalLocalProcessExitAsStopped()
+    {
+        if (!OperatingSystem.IsLinux())
+            Assert.Ignore("Local process stop race coverage uses Linux process tools.");
+
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition("Web", "python3 -m http.server 0 --bind 127.0.0.1", null)
+                ]
+            });
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+            await _registry.UpdateApplicationStateAsync(workspace.Id, "Web", ApplicationState.Running);
+
+            await _manager.KillApplicationAsync(workspace.Id, "Web");
+
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
+            Assert.That(state, Is.EqualTo(ApplicationState.Stopped));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task CreateDockerRunArguments_AddsEnvironmentFilesAndInlineEnvironment()
     {
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
@@ -235,5 +269,21 @@ public class WorkspaceProcessManagerTests
             if (Directory.Exists(worktreePath))
                 Directory.Delete(worktreePath, recursive: true);
         }
+    }
+
+    private async Task<ApplicationState> WaitForApplicationStateAsync(
+        string workspaceId,
+        string appName,
+        ApplicationState expected)
+    {
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+        var state = _registry.GetById(workspaceId)!.Applications.Single(app => app.Name == appName).State;
+        while (state != expected && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(100);
+            state = _registry.GetById(workspaceId)!.Applications.Single(app => app.Name == appName).State;
+        }
+
+        return state;
     }
 }

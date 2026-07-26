@@ -121,6 +121,7 @@ public sealed class NixOsInstallerPlatformAdapter(
             InstallerComponentTarget.Desktop => "agent-up-desktop",
             InstallerComponentTarget.Server => "agent-up-server",
             InstallerComponentTarget.Cli => "agent-up",
+            InstallerComponentTarget.Tray => "agent-up-tray",
             _ => throw new ArgumentOutOfRangeException(nameof(target), target, null)
         };
 }
