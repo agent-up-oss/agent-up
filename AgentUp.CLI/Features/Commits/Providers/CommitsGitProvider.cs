@@ -57,10 +57,29 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         return string.Join('\n', parts);
     }
 
+    public async Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var output = await RunGitAsync(["diff", "--cached", "--name-only"], cancellationToken);
+        return output.Length > 0;
+    }
+
     public async Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
+        var lsArgs = new List<string> { "ls-files", "--" };
+        lsArgs.AddRange(files);
+        var tracked = (await RunGitAsync(lsArgs, cancellationToken))
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var toStage = files
+            .Where(f => File.Exists(Path.Join(workingDirectory, f)) || tracked.Contains(f))
+            .ToList();
+
+        if (toStage.Count == 0)
+            return;
+
         var args = new List<string> { "add", "--" };
-        args.AddRange(files);
+        args.AddRange(toStage);
         await RunGitAsync(args, cancellationToken);
     }
 

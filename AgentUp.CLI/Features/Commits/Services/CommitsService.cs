@@ -28,6 +28,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         return new CommitsStatusResult(current.Commits, unassigned);
     }
 
+    public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
+        => git.HasStagedChangesAsync(cancellationToken);
+
     public async Task<CommitsStagingResult?> StageNextAsync(CancellationToken cancellationToken = default)
     {
         var current = await queue.ReadAsync(cancellationToken);

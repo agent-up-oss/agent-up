@@ -105,6 +105,20 @@ public sealed class CommitsNextCommandTests
         Assert.That(output.ToString(), Does.Contain("empty"));
     }
 
+    [Test]
+    public async Task RunAsync_whenStagedChangesExist_returnsOneWithError()
+    {
+        using var output = new StringWriter();
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var git = new FakeCommitsGitProvider(hasStagedChanges: true);
+        var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
+
+        var code = await command.RunAsync();
+
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(output.ToString(), Does.Contain("not yet committed"));
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static CommitsNextCommand BuildCommand(
@@ -140,7 +154,7 @@ public sealed class CommitsNextCommandTests
             => Task.CompletedTask;
     }
 
-    private sealed class FakeCommitsGitProvider : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(bool hasStagedChanges = false) : ICommitsGitProvider
     {
         public List<string> StagedFiles { get; } = [];
 
@@ -152,6 +166,9 @@ public sealed class CommitsNextCommandTests
 
         public Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.FromResult(string.Empty);
+
+        public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(hasStagedChanges);
 
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {

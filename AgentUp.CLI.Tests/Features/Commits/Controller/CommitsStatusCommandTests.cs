@@ -130,6 +130,9 @@ public sealed class CommitsStatusCommandTests
         public Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.FromResult(string.Empty);
 
+        public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
+
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
