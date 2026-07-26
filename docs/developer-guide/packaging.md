@@ -35,13 +35,13 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - Adapter-driven elevation only when privileged native operations are required.
 - Noninteractive installer operations through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` for smoke tests and CI workflows that must exercise the shipped installer executable without driving pointer clicks. This smoke command installs, repairs, updates, and uninstalls `desktop`, `server`, and `cli` individually before running the bundled core install and validation. Focused commands are also available for `--install-core`, `--validate-installed`, and `--install-component`, `--update-component`, `--repair-component`, or `--uninstall-component` with a component target.
 
-Ubuntu, macOS, and Windows have real installer adapters behind the guided app. The app uses the real adapter by default and requires a payload root containing `desktop`, `server`, and `cli` directories; macOS payload roots also carry `icon/Agent-Up.png` for Desktop app bundle registration. The payload root may come from `AGENTUP_INSTALLER_PAYLOAD_ROOT`, from a bundled offline payload in the installer app, or from a future online payload download. Tests and local non-privileged flow checks opt into the fake adapter with `AGENTUP_INSTALLER_FAKE=1`.
+Ubuntu, macOS, and Windows have real installer adapters behind the guided app. The app uses the real adapter by default and requires a payload root containing `desktop`, `server`, `cli`, and `tray` directories; macOS payload roots also carry `icon/Agent-Up.png` for Desktop app bundle registration. The payload root may come from `AGENTUP_INSTALLER_PAYLOAD_ROOT`, from a bundled offline payload in the installer app, or from a future online payload download. Tests and local non-privileged flow checks opt into the fake adapter with `AGENTUP_INSTALLER_FAKE=1`.
 
 On Ubuntu, the default adapter installs the staged Desktop, Server, and CLI payload into `/opt/agent-up`, registers `agent-up-server.service`, creates `/usr/bin/agent-up`, writes the desktop launcher, and validates the installed state through systemd and a fresh-shell CLI lookup.
 
 On macOS, the default adapter installs the staged Desktop bundle into `/Applications/Agent-Up.app`, installs Server and CLI payloads into native system locations, registers the `dev.agent-up.server` launchd service, creates `/usr/local/bin` symlinks, and validates the installed state through `launchctl` and a fresh-shell CLI lookup.
 
-On Windows, the default adapter installs the staged Desktop, Server, and CLI payload under `Program Files\Agent-Up`, removes any previous `agent-up-server` Windows Service before registering the new one with restart policy, writes the CLI shim, adds the installer-managed `bin` directory to machine `PATH` without duplicating it, creates the Start Menu shortcut, registers uninstall metadata for Apps & Features, and validates the installed state through `sc.exe` and a fresh-shell CLI lookup.
+On Windows, the default adapter installs the staged Desktop, Server, CLI, and tray payload under `Program Files\Agent-Up`, removes any previous `agent-up-server` Windows Service before registering the new one with restart policy, writes the CLI shim, adds the installer-managed `bin` directory to machine `PATH` without duplicating it, creates the Start Menu shortcut, registers the tray app under the current user's login Run key, registers uninstall metadata for Apps & Features, and validates the installed state through `sc.exe`, tray auto-start lookup, and a fresh-shell CLI lookup.
 
 `AgentUp.Packaging` owns release artifact build orchestration:
 
@@ -123,7 +123,7 @@ Platform packaging owns native registration:
 
 | Platform | Native package | Service | CLI target | Desktop target |
 |---|---|---|---|---|
-| Windows | `agent-up-windows-<rid>.exe` plus `agent-up-windows-<rid>.msi` | Windows Service | application `bin` directory on PATH | Start Menu and Apps & Features |
+| Windows | `agent-up-windows-<rid>.exe` plus `agent-up-windows-<rid>.msi` | Windows Service | application `bin` directory on PATH | Start Menu, Apps & Features, and tray login auto-start |
 | macOS | InstallerApp-only `Product.pkg` | InstallerApp macOS adapter registers `launchd` | InstallerApp macOS adapter creates `/usr/local/bin/agent-up` | InstallerApp macOS adapter installs `/Applications/Agent-Up.app` |
 | Ubuntu | `agent-up.deb` | `systemd` | `/usr/bin/agent-up` | `.desktop` launcher |
 

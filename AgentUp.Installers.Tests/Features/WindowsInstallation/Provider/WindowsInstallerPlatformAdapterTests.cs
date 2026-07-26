@@ -54,6 +54,10 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(scripts.Any(script => script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal)), Is.True);
         Assert.That(scripts.Any(script => script.Contains("SetEnvironmentVariable('Path'", StringComparison.Ordinal)), Is.True);
         Assert.That(scripts.Any(script => script.Contains("CreateShortcut", StringComparison.Ordinal)), Is.True);
+        Assert.That(scripts.Any(script =>
+            script.Contains(@"CurrentVersion\Run", StringComparison.Ordinal) &&
+            script.Contains("Name 'Agent-Up'", StringComparison.Ordinal) &&
+            script.Contains(@"C:\Program Files\Agent-Up\tray\AgentUp.Tray.exe", StringComparison.Ordinal)), Is.True);
         Assert.That(files.Writes[@"C:\Program Files\Agent-Up\uninstall-agent-up.ps1"], Does.Contain("Remove-Item -Recurse -Force"));
         Assert.That(scripts.Any(script =>
             script.Contains(@"CurrentVersion\Uninstall\Agent-Up", StringComparison.Ordinal) &&
@@ -195,11 +199,16 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(product, Does.Contain("Stop=\"uninstall\""));
             Assert.That(product, Does.Contain("Name=\"PATH\""));
             Assert.That(product, Does.Contain("Shortcut"));
+            Assert.That(product, Does.Contain("TrayAutoStartComponent"));
+            Assert.That(product, Does.Contain(@"Key=""Software\Microsoft\Windows\CurrentVersion\Run"""));
+            Assert.That(product, Does.Contain(@"Name=""Agent-Up"""));
+            Assert.That(product, Does.Contain(@"Value=""&quot;[TrayDir]AgentUp.Tray.exe&quot;"""));
             Assert.That(product, Does.Contain("Agent-Up Installer"));
             Assert.That(product, Does.Contain("AgentUp.InstallerApp.exe"));
             Assert.That(product, Does.Contain("InstallerPayloadDesktop"));
             Assert.That(product, Does.Contain("InstallerPayloadServer"));
             Assert.That(product, Does.Contain("InstallerPayloadCli"));
+            Assert.That(product, Does.Contain("InstallerPayloadTray"));
             Assert.That(ComponentGuids(product), Is.Unique);
             Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));
             Assert.That(bundle, Does.Contain("Theme=\"rtfLicense\""));
@@ -259,6 +268,8 @@ public class WindowsInstallerPlatformAdapterTests
                 Assert.That(product, Does.Contain("Local Acme Studio runtime authority"));
                 Assert.That(product, Does.Contain("Acme Studio Installer"));
                 Assert.That(product, Does.Contain("Software\\Acme Studio"));
+                Assert.That(product, Does.Contain(@"Name=""Acme Studio"""));
+                Assert.That(product, Does.Contain(@"Key=""Software\Microsoft\Windows\CurrentVersion\Run"""));
                 Assert.That(product, Does.Contain("acme-studio.cmd"));
                 Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Acme Studio\installer\AgentUp.InstallerApp.exe"""));
                 Assert.That(bundle, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Acme Studio\installer"""));
@@ -377,6 +388,8 @@ public class WindowsInstallerPlatformAdapterTests
         {
             Assert.That(uninstallScript, Does.Contain("acme-studio-server"), "Uninstall should stop/delete Acme Studio service");
             Assert.That(uninstallScript, Does.Contain(@"Uninstall\Acme Studio"), "Uninstall should remove Acme Studio registry key");
+            Assert.That(uninstallScript, Does.Contain("Remove-ItemProperty"), "Uninstall should remove Acme Studio tray autostart");
+            Assert.That(uninstallScript, Does.Contain("Name 'Acme Studio'"), "Uninstall should remove Acme Studio tray autostart by product name");
             Assert.That(uninstallScript, Does.Not.Contain("agent-up-server"), "Uninstall must not reference Agent-Up service");
             Assert.That(uninstallScript, Does.Not.Contain("Agent-Up"), "Uninstall must not reference Agent-Up");
         });

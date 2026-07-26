@@ -95,6 +95,10 @@ public static class WindowsInstallerCommands
                [Environment]::SetEnvironmentVariable('Path', ($entries -join ';'), 'Machine')
              }
              Remove-Item -Force '{{Ps(paths.StartMenuShortcutPath)}}' -ErrorAction SilentlyContinue
+             $trayRunPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+             if (Test-Path $trayRunPath) {
+               Remove-ItemProperty -Path $trayRunPath -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
+             }
              Remove-Item -Recurse -Force '{{Ps(paths.RootDirectory)}}' -ErrorAction SilentlyContinue
              Remove-Item -Recurse -Force 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{Ps(manifest.RegistryKeyName)}}' -ErrorAction SilentlyContinue
              """;
@@ -114,25 +118,25 @@ public static class WindowsInstallerCommands
              New-ItemProperty -Force -Path $key -Name QuietUninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{Ps(paths.UninstallScriptPath)}}"' | Out-Null
              """;
 
-    public static string TrayAutoStartPowerShell(WindowsInstallerPaths paths)
+    public static string TrayAutoStartPowerShell(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
         => $$"""
              $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
              if (-not (Test-Path $regPath)) { New-Item -Force -Path $regPath | Out-Null }
-             New-ItemProperty -Force -Path $regPath -Name 'Agent-Up' -Value '"{{Ps(paths.TrayExecutable)}}"' | Out-Null
+             New-ItemProperty -Force -Path $regPath -Name '{{Ps(manifest.ProductName)}}' -Value '"{{Ps(paths.TrayExecutable)}}"' | Out-Null
              """;
 
-    public static string TrayAutoStartCheckPowerShell()
-        => """
-           $val = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Agent-Up' -ErrorAction SilentlyContinue
+    public static string TrayAutoStartCheckPowerShell(WindowsInstallerManifest manifest)
+        => $$"""
+           $val = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
            if (-not $val) { exit 1 }
            exit 0
            """;
 
-    public static string TrayAutoStartRemovePowerShell()
-        => """
+    public static string TrayAutoStartRemovePowerShell(WindowsInstallerManifest manifest)
+        => $$"""
            $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
            if (Test-Path $regPath) {
-             Remove-ItemProperty -Path $regPath -Name 'Agent-Up' -ErrorAction SilentlyContinue
+             Remove-ItemProperty -Path $regPath -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
            }
            """;
 

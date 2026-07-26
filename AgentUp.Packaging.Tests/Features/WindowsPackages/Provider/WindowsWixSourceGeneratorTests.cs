@@ -33,6 +33,7 @@ public class WindowsWixSourceGeneratorTests
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
         Directory.CreateDirectory(layout.InstallerSourceDirectory);
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
@@ -55,10 +56,15 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Contain("AgentUp.Desktop.exe"));
         Assert.That(xml, Does.Contain("AgentUp.Server.exe"));
         Assert.That(xml, Does.Contain("AgentUp.CLI.exe"));
+        Assert.That(xml, Does.Contain("AgentUp.Tray.exe"));
         Assert.That(xml, Does.Contain("AgentUp.InstallerApp.exe"));
         Assert.That(xml, Does.Contain("InstallerPayloadDesktop"));
         Assert.That(xml, Does.Contain("InstallerPayloadServer"));
         Assert.That(xml, Does.Contain("InstallerPayloadCli"));
+        Assert.That(xml, Does.Contain("InstallerPayloadTray"));
+        Assert.That(xml, Does.Contain("TrayAutoStartComponent"));
+        Assert.That(xml, Does.Contain(@"Key=""Software\Microsoft\Windows\CurrentVersion\Run"""));
+        Assert.That(xml, Does.Contain(@"Value=""&quot;[TrayDir]AgentUp.Tray.exe&quot;"""));
     }
 
     [Test]
