@@ -210,11 +210,11 @@ public sealed class WindowsWixSourceGenerator
                 new XElement(Wix + "Custom",
                     new XAttribute("Action", "ConfigureServiceRecoveryActions"),
                     new XAttribute("After", "InstallServices"),
-                    "NOT REMOVE"),
+                    new XAttribute("Condition", "NOT REMOVE")),
                 new XElement(Wix + "Custom",
                     new XAttribute("Action", "ConfigureServiceRecoveryFlag"),
                     new XAttribute("After", "ConfigureServiceRecoveryActions"),
-                    "NOT REMOVE")));
+                    new XAttribute("Condition", "NOT REMOVE"))));
 
         return new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement(Wix + "Wix", package)).ToString();
     }
