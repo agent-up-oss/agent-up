@@ -15,13 +15,22 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     private readonly ICommandRunner _commands;
     private readonly IServerProbe _serverProbe;
     private readonly IRuntimeSecurityChecks _securityChecks;
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private readonly HttpClient _http;
 
     protected InstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
     {
         _commands = commands;
         _serverProbe = serverProbe;
         _securityChecks = securityChecks;
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+    }
+
+    internal InstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
+    {
+        _commands = commands;
+        _serverProbe = serverProbe;
+        _securityChecks = securityChecks;
+        _http = http;
     }
 
     public async Task<InstalledServiceSmokeResult> ValidateAsync(InstalledServiceSmokeRequest request, CancellationToken cancellationToken = default)

@@ -10,9 +10,10 @@ namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
 {
     public WindowsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
-        : base(commands, serverProbe, securityChecks)
-    {
-    }
+        : base(commands, serverProbe, securityChecks) { }
+
+    internal WindowsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
+        : base(commands, serverProbe, securityChecks, http) { }
 
     protected override async Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,

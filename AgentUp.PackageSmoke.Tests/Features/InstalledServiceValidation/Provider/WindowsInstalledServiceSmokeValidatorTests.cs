@@ -46,7 +46,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
         try
         {
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
-            var result = await new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks())
+            var result = await new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
+                    new HttpClient(new FakeTraySessionHttpHandler()))
                 .ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
@@ -63,7 +64,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
                     command.Environment.TryGetValue("AGENTUP_PRODUCT_DISPLAY_NAME", out var displayName) &&
                     displayName == "Agent-Up"),
                 Is.True);
-            Assert.That(probe.Calls, Has.Count.EqualTo(1));
+            Assert.That(probe.Calls, Has.Count.EqualTo(2)); // initial ready check + post-restart ready check
         }
         finally
         {
