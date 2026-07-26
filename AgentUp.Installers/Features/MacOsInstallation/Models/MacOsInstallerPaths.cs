@@ -6,6 +6,7 @@ public sealed record MacOsInstallerPaths(
     string AppBundleDirectory,
     string ApplicationSupportDirectory,
     string ServerDirectory,
+    string TrayDirectory,
     string CliDirectory,
     string LaunchDaemonPath,
     string LogsDirectory,
@@ -19,6 +20,7 @@ public sealed record MacOsInstallerPaths(
             AppBundleDirectory: "/Applications/Agent-Up.app",
             ApplicationSupportDirectory: "/Library/Application Support/Agent-Up",
             ServerDirectory: "/Library/Application Support/Agent-Up/server",
+            TrayDirectory: "/Library/Application Support/Agent-Up/tray",
             CliDirectory: "/usr/local/agent-up/cli",
             LaunchDaemonPath: "/Library/LaunchDaemons/dev.agent-up.server.plist",
             LogsDirectory: "/Library/Logs/Agent-Up",
@@ -33,6 +35,7 @@ public sealed record MacOsInstallerPaths(
         var appBundleDirectory = Under("/Applications", $"{identity.ProductName}.app");
         var applicationSupportDirectory = Under("/Library/Application Support", identity.ProductName);
         var serverDirectory = Under(applicationSupportDirectory, "server");
+        var trayDirectory = Under(applicationSupportDirectory, "tray");
         var cliDirectory = Under("/usr/local", identity.Slug, "cli");
         var launchDaemonPath = Under("/Library/LaunchDaemons", $"dev.{identity.Slug}.server.plist");
         var logsDirectory = Under("/Library/Logs", identity.ProductName);
@@ -44,6 +47,7 @@ public sealed record MacOsInstallerPaths(
             AppBundleDirectory: appBundleDirectory,
             ApplicationSupportDirectory: applicationSupportDirectory,
             ServerDirectory: serverDirectory,
+            TrayDirectory: trayDirectory,
             CliDirectory: cliDirectory,
             LaunchDaemonPath: launchDaemonPath,
             LogsDirectory: logsDirectory,
@@ -68,6 +72,7 @@ public sealed record MacOsInstallerPaths(
 
     public string DesktopExecutable => System.IO.Path.Join(AppBundleDirectory, "Contents", "MacOS", "AgentUp.Desktop");
     public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");
+    public string TrayExecutable => System.IO.Path.Join(TrayDirectory, "AgentUp.Tray");
     public string CliExecutable => System.IO.Path.Join(CliDirectory, "AgentUp.CLI");
     public string DesktopInfoPlistPath => System.IO.Path.Join(AppBundleDirectory, "Contents", "Info.plist");
     public string DesktopResourcesDirectory => System.IO.Path.Join(AppBundleDirectory, "Contents", "Resources");

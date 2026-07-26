@@ -279,6 +279,7 @@ jobs:
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/desktop/AgentUp.Desktop" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/server/AgentUp.Server" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/cli/AgentUp.CLI" || true
+            chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/tray/AgentUp.Tray" || true
           fi
 
       - name: Sign macOS payload binaries

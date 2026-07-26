@@ -2,6 +2,7 @@ using System.Diagnostics;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
 
@@ -9,11 +10,16 @@ public sealed class WorkspaceLifecycleService
 {
     private readonly WorkspaceRegistry _registry;
     private readonly ProcessesController _processes;
+    private readonly ILogger<WorkspaceLifecycleService> _logger;
 
-    public WorkspaceLifecycleService(WorkspaceRegistry registry, ProcessesController processes)
+    public WorkspaceLifecycleService(
+        WorkspaceRegistry registry,
+        ProcessesController processes,
+        ILogger<WorkspaceLifecycleService> logger)
     {
         _registry = registry;
         _processes = processes;
+        _logger = logger;
     }
 
     public async Task<WorkspaceLifecycleResult> StartAsync(string id)
@@ -38,6 +44,7 @@ public sealed class WorkspaceLifecycleService
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
+            _logger.LogError(ex, "Workspace failed to start");
             await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
             return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
         }

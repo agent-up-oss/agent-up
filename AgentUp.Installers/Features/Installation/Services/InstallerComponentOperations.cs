@@ -11,8 +11,9 @@ public static class InstallerComponentOperations
             Components = InstallerComponent.RuntimeDependencies | (target switch
             {
                 InstallerComponentTarget.Desktop => InstallerComponent.Desktop,
-                InstallerComponentTarget.Server => InstallerComponent.Server | InstallerComponent.NativeService,
+                InstallerComponentTarget.Server => InstallerComponent.Server,
                 InstallerComponentTarget.Cli => InstallerComponent.Cli,
+                InstallerComponentTarget.Tray => InstallerComponent.Tray,
                 _ => InstallerComponent.None
             })
         };
@@ -100,6 +101,7 @@ public static class InstallerComponentOperations
             InstallerComponentTarget.Desktop => ["desktop."],
             InstallerComponentTarget.Server => ["service.", "server."],
             InstallerComponentTarget.Cli => ["cli."],
+            InstallerComponentTarget.Tray => ["tray."],
             _ => []
         };
     }
@@ -115,6 +117,7 @@ public static class InstallerComponentOperations
             InstallerComponentTarget.Server => InstallOperationKind.RegisterService,
             InstallerComponentTarget.Cli => InstallOperationKind.RegisterCli,
             InstallerComponentTarget.Desktop => InstallOperationKind.RegisterDesktop,
+            InstallerComponentTarget.Tray => InstallOperationKind.RegisterAutoStart,
             _ => InstallOperationKind.InstallFiles
         };
 

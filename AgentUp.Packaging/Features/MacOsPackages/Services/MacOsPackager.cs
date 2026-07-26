@@ -27,7 +27,8 @@ public sealed class MacOsPackager
             layout.InstallerPublishDirectory,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
-            layout.CliPublishDirectory),
+            layout.CliPublishDirectory,
+            layout.TrayPublishDirectory),
             cancellationToken);
 
         new MacOsPackageStager(_writer).Stage(layout, MacOsPackageManifest.From(request));

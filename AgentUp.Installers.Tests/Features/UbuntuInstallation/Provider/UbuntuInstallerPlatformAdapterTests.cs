@@ -44,6 +44,7 @@ public class UbuntuInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
@@ -87,6 +88,8 @@ public class UbuntuInstallerPlatformAdapterTests
     {
         var files = new RecordingUbuntuFileSystem();
         files.ExistingFiles.Add("/usr/share/applications/agent-up.desktop");
+        files.ExistingFiles.Add("/opt/agent-up/tray/AgentUp.Tray");
+        files.ExistingFiles.Add("/etc/xdg/autostart/agent-up-tray.desktop");
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 
@@ -111,6 +114,7 @@ public class UbuntuInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall
         }));
     }
@@ -284,6 +288,7 @@ public class UbuntuInstallerPlatformAdapterTests
                 "/payload/desktop",
                 "/payload/server",
                 "/payload/cli",
+                "/payload/tray",
                 "/payload/agent-up-server.service",
                 "/payload/logo.png"),
             UbuntuInstallerPaths.SystemDefault(),
@@ -298,6 +303,7 @@ public class UbuntuInstallerPlatformAdapterTests
                 "/payload/desktop",
                 "/payload/server",
                 "/payload/cli",
+                "/payload/tray",
                 "/payload/acme-studio-server.service",
                 "/payload/logo.png"),
             paths,

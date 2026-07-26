@@ -10,7 +10,8 @@ public sealed record UbuntuPackageLayout(
     string InstallerPublishDirectory,
     string DesktopPublishDirectory,
     string ServerPublishDirectory,
-    string CliPublishDirectory)
+    string CliPublishDirectory,
+    string TrayPublishDirectory)
 {
     public static UbuntuPackageLayout From(PackageRequest request)
         => From(request, request.ProductManifest);
@@ -26,6 +27,7 @@ public sealed record UbuntuPackageLayout(
             InstallerPublishDirectory: Path.Join(stage, "installer"),
             DesktopPublishDirectory: Path.Join(stage, "desktop"),
             ServerPublishDirectory: Path.Join(stage, "server"),
-            CliPublishDirectory: Path.Join(stage, "cli"));
+            CliPublishDirectory: Path.Join(stage, "cli"),
+            TrayPublishDirectory: Path.Join(stage, "tray"));
     }
 }

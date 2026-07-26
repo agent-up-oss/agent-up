@@ -31,7 +31,7 @@ public class WindowsPackagerTests
                 Directory.Delete(root, recursive: true);
         }
 
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(4));
+        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(5));
         Assert.That(packagingTool.Calls.Select(call => call.Name), Is.EqualTo(new[] { "accept", "product", "bundle" }));
         Assert.That(packagingTool.Calls[^1].Request, Is.EqualTo(request));
         Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Join(root, "out", "agent-up-windows-win-x64.msi"))));
@@ -56,6 +56,7 @@ public class WindowsPackagerTests
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server.exe");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI.exe");
             WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp.exe");
+            WritePayloadFile(payloadRoot, "tray", "AgentUp.Tray.exe");
 
             await new WindowsPackager(writer, CreatePayloads(commands, writer), packagingTool).PackageAsync(request);
 
@@ -64,6 +65,7 @@ public class WindowsPackagerTests
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "tray", "AgentUp.Tray.exe")), Is.True);
             Assert.That(packagingTool.Calls.Select(call => call.Name), Is.EqualTo(new[] { "accept", "product", "bundle" }));
             Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(root, "artifacts", "stage", "windows-win-x64", "Product.msi"), Path.Join(root, "out", "agent-up-windows-win-x64.msi"))));
             Assert.That(writer.WrittenText.Keys.Any(path => path.EndsWith("Product.wxs", StringComparison.Ordinal)), Is.True);
@@ -147,8 +149,10 @@ public class WindowsPackagerTests
                         : project.Contains("Desktop", StringComparison.Ordinal)
                         ? "AgentUp.Desktop.exe"
                         : project.Contains("Server", StringComparison.Ordinal)
-                            ? "AgentUp.Server.exe"
-                            : "AgentUp.CLI.exe";
+                        ? "AgentUp.Server.exe"
+                        : project.Contains("Tray", StringComparison.Ordinal)
+                        ? "AgentUp.Tray.exe"
+                        : "AgentUp.CLI.exe";
                     File.WriteAllText(Path.Join(output, fileName), "");
                 }
             }

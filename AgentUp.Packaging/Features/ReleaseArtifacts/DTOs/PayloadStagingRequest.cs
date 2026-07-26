@@ -5,4 +5,5 @@ public sealed record PayloadStagingRequest(
     string? InstallerPublishDirectory,
     string DesktopPublishDirectory,
     string ServerPublishDirectory,
-    string CliPublishDirectory);
+    string CliPublishDirectory,
+    string TrayPublishDirectory);

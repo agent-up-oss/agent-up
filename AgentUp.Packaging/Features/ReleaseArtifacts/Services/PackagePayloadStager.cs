@@ -56,6 +56,13 @@ public sealed class PackagePayloadStager
                 request.Version,
                 staging.CliPublishDirectory,
                 cancellationToken);
+            await _publisher.PublishDotNetProjectAsync(
+                Path.Join(request.RepositoryRoot, "AgentUp.Tray", "AgentUp.Tray.csproj"),
+                request.RuntimeId,
+                request.Configuration,
+                request.Version,
+                staging.TrayPublishDirectory,
+                cancellationToken);
             return;
         }
 
@@ -65,5 +72,6 @@ public sealed class PackagePayloadStager
         _publisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, staging.DesktopPublishDirectory);
         _publisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, staging.ServerPublishDirectory);
         _publisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, staging.CliPublishDirectory);
+        _publisher.CopyPrebuiltPayload(request.TrayPayloadDirectory!, staging.TrayPublishDirectory);
     }
 }

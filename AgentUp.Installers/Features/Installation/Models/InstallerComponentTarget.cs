@@ -4,5 +4,6 @@ public enum InstallerComponentTarget
 {
     Desktop,
     Server,
-    Cli
+    Cli,
+    Tray
 }

@@ -5,6 +5,7 @@ public sealed record WindowsInstallerPaths(
     string DesktopDirectory,
     string ServerDirectory,
     string CliDirectory,
+    string TrayDirectory,
     string BinDirectory,
     string StartMenuShortcutPath)
 {
@@ -24,6 +25,7 @@ public sealed record WindowsInstallerPaths(
             DesktopDirectory: WindowsCombine(root, "desktop"),
             ServerDirectory: WindowsCombine(root, "server"),
             CliDirectory: WindowsCombine(root, "cli"),
+            TrayDirectory: WindowsCombine(root, "tray"),
             BinDirectory: WindowsCombine(root, "bin"),
             StartMenuShortcutPath: WindowsCombine(commonStartMenu, "Programs", "Agent-Up", "Agent-Up.lnk"));
     }
@@ -32,6 +34,7 @@ public sealed record WindowsInstallerPaths(
 
     public string DesktopExecutable => WindowsCombine(DesktopDirectory, "AgentUp.Desktop.exe");
     public string ServerExecutable => WindowsCombine(ServerDirectory, "AgentUp.Server.exe");
+    public string TrayExecutable => WindowsCombine(TrayDirectory, "AgentUp.Tray.exe");
     public string CliExecutable => WindowsCombine(CliDirectory, "AgentUp.CLI.exe");
     public string CliShimPath => CliShimPathFor(WindowsInstallerManifest.DefaultCliShimName);
     public string CliShimPathFor(string cliShimName)

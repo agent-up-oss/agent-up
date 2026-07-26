@@ -9,6 +9,7 @@ public sealed record MacOsInstallerManifest(
     string DesktopBundleIdentifier,
     string InstallerBundleIdentifier,
     string ServerLaunchDaemonLabel,
+    string TrayLaunchAgentLabel,
     string BundleIconFile,
     string Version,
     string ServerUrl)
@@ -19,6 +20,7 @@ public sealed record MacOsInstallerManifest(
             DesktopBundleIdentifier: "dev.agent-up.desktop",
             InstallerBundleIdentifier: "dev.agent-up.installer",
             ServerLaunchDaemonLabel: "dev.agent-up.server",
+            TrayLaunchAgentLabel: "dev.agent-up.tray",
             BundleIconFile: "Agent-Up.png",
             Version: version,
             ServerUrl: "http://127.0.0.1:5000");
@@ -38,6 +40,7 @@ public sealed record MacOsInstallerManifest(
             DesktopBundleIdentifier: $"dev.{identity.Slug}.desktop",
             InstallerBundleIdentifier: $"dev.{identity.Slug}.installer",
             ServerLaunchDaemonLabel: $"dev.{identity.Slug}.server",
+            TrayLaunchAgentLabel: $"dev.{identity.Slug}.tray",
             BundleIconFile: identity.BundleIconFile,
             Version: version,
             ServerUrl: serverUrl);
@@ -90,6 +93,18 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("CFBundleVersion", _manifest.Version),
             KeyString("CFBundleShortVersionString", _manifest.Version),
             KeyString("CFBundlePackageType", "APPL")));
+
+    public string TrayLaunchAgentPlist(string trayExecutable)
+        => Plist(Dict(
+            KeyString("Label", _manifest.TrayLaunchAgentLabel),
+            new XElement("key", "ProgramArguments"),
+            new XElement("array", new XElement("string", trayExecutable)),
+            new XElement("key", "RunAtLoad"),
+            new XElement("true"),
+            new XElement("key", "KeepAlive"),
+            new XElement("true"),
+            new XElement("key", "ThrottleInterval"),
+            new XElement("integer", "5")));
 
     public string LaunchDaemonPlist()
         => Plist(Dict(

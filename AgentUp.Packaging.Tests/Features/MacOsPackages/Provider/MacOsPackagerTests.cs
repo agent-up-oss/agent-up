@@ -31,7 +31,7 @@ public class MacOsPackagerTests
                 Directory.Delete(root, recursive: true);
         }
 
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(4));
+        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(5));
         Assert.That(packageTool.ComponentBuilds.Single().Request, Is.EqualTo(request));
         Assert.That(packageTool.ProductBuilds.Single().ProductPackagePath, Is.EqualTo(Path.Join(root, "out", "agent-up-macos-osx-arm64.pkg")));
     }
@@ -52,6 +52,7 @@ public class MacOsPackagerTests
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
+            WritePayloadFile(payloadRoot, "tray", "AgentUp.Tray");
 
             await new MacOsPackager(writer, CreatePayloads(commands, writer), packageTool).PackageAsync(request);
 
@@ -60,6 +61,7 @@ public class MacOsPackagerTests
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "cli", "AgentUp.CLI")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "tray", "AgentUp.Tray")), Is.True);
             Assert.That(packageTool.ComponentBuilds, Has.Count.EqualTo(1));
             Assert.That(packageTool.ProductBuilds, Has.Count.EqualTo(1));
         }

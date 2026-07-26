@@ -38,6 +38,7 @@ public class MacOsInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
@@ -148,6 +149,10 @@ public class MacOsInstallerPlatformAdapterTests
     {
         var files = new RecordingMacOsFileSystem();
         files.ExistingFiles.Add("/Applications/Agent-Up.app/Contents/Info.plist");
+        files.ExistingFiles.Add("/Library/Application Support/Agent-Up/tray/AgentUp.Tray");
+        files.ExistingFiles.Add(Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Library", "LaunchAgents", "dev.agent-up.tray.plist"));
         var commands = new RecordingCommandRunner();
         var adapter = Adapter(commands, files);
 
@@ -349,7 +354,7 @@ public class MacOsInstallerPlatformAdapterTests
         => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/Applications/Agent-Up.app", PayloadSelection.Bundled(new Version(1, 2, 3)));
 
     private static MacOsInstallerOptions Options()
-        => new(new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/icon/Agent-Up.png"));
+        => new(new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/tray", "/payload/icon/Agent-Up.png"));
 
     private static MacOsInstallerPlatformAdapter Adapter(
         ICommandRunner commands,

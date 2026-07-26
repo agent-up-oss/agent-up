@@ -262,6 +262,7 @@ public class WindowsWixSourceGeneratorTests
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
         Directory.CreateDirectory(layout.InstallerSourceDirectory);
         return layout;
     }

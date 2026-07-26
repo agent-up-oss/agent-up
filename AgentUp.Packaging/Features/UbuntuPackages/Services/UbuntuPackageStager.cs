@@ -31,6 +31,7 @@ public sealed class UbuntuPackageStager
         _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(payloadDir, "desktop"));
         _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(payloadDir, "server"));
         _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(payloadDir, "cli"));
+        _writer.CopyDirectory(layout.TrayPublishDirectory, Path.Join(payloadDir, "tray"));
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "packaging", "linux", manifest.ServiceName),
             Path.Join(payloadDir, "service", manifest.ServiceName));

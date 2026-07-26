@@ -40,6 +40,7 @@ public class WindowsInstallerPlatformAdapterTests
             InstallOperationKind.RegisterService,
             InstallOperationKind.RegisterCli,
             InstallOperationKind.RegisterDesktop,
+            InstallOperationKind.RegisterAutoStart,
             InstallOperationKind.RegisterUninstall,
             InstallOperationKind.ValidateInstallation
         }));
@@ -66,9 +67,11 @@ public class WindowsInstallerPlatformAdapterTests
     {
         var files = new RecordingWindowsFileSystem();
         files.ExistingFiles.Add(@"C:\Program Files\Agent-Up\desktop\AgentUp.Desktop.exe");
+        files.ExistingFiles.Add(@"C:\Program Files\Agent-Up\tray\AgentUp.Tray.exe");
         var commands = new RecordingCommandRunner();
         commands.Results.Enqueue(new ProcessResult(0, "STATE              : 4  RUNNING", ""));
         commands.Results.Enqueue(new ProcessResult(0, "", ""));
+        commands.Results.Enqueue(new ProcessResult(0, "", ""));  // TrayAutoStartCheckPowerShell
         var adapter = Adapter(commands, files);
 
         var report = await adapter.ValidateInstalledStateAsync(Session());
@@ -76,6 +79,7 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(report.Succeeded, Is.True);
         Assert.That(commands.Commands, Does.Contain(("sc.exe", "query agent-up-server")));
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-Command agent-up", StringComparison.Ordinal)), Is.True);
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-ItemPropertyValue", StringComparison.Ordinal)), Is.True);
     }
 
     [Test]
@@ -159,6 +163,7 @@ public class WindowsInstallerPlatformAdapterTests
                 DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
                 ServerPublishDirectory: System.IO.Path.Join(root, "server"),
                 CliPublishDirectory: System.IO.Path.Join(root, "cli"),
+                TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
             WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
@@ -168,6 +173,7 @@ public class WindowsInstallerPlatformAdapterTests
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Shared.dll");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.Shared.dll");
+            WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
@@ -223,12 +229,14 @@ public class WindowsInstallerPlatformAdapterTests
                 DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
                 ServerPublishDirectory: System.IO.Path.Join(root, "server"),
                 CliPublishDirectory: System.IO.Path.Join(root, "cli"),
+                TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
             WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+            WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "acme-studio.cmd"), "");
             var manifest = WindowsInstallerManifest.From(AcmeStudio(), "1.2.3", "http://127.0.0.1:5001");
@@ -431,12 +439,13 @@ public class WindowsInstallerPlatformAdapterTests
 
     private static WindowsInstallerOptions AcmeStudioOptions()
         => new(
-            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli"),
+            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/tray"),
             new WindowsInstallerPaths(
                 RootDirectory: @"C:\Program Files\Acme Studio",
                 DesktopDirectory: @"C:\Program Files\Acme Studio\desktop",
                 ServerDirectory: @"C:\Program Files\Acme Studio\server",
                 CliDirectory: @"C:\Program Files\Acme Studio\cli",
+                TrayDirectory: @"C:\Program Files\Acme Studio\tray",
                 BinDirectory: @"C:\Program Files\Acme Studio\bin",
                 StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Acme Studio\Acme Studio.lnk")
             { UninstallScriptName = "uninstall-acme-studio.ps1" });
@@ -456,12 +465,13 @@ public class WindowsInstallerPlatformAdapterTests
 
     private static WindowsInstallerOptions Options()
         => new(
-            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli"),
+            new WindowsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/tray"),
             new WindowsInstallerPaths(
                 RootDirectory: @"C:\Program Files\Agent-Up",
                 DesktopDirectory: @"C:\Program Files\Agent-Up\desktop",
                 ServerDirectory: @"C:\Program Files\Agent-Up\server",
                 CliDirectory: @"C:\Program Files\Agent-Up\cli",
+                TrayDirectory: @"C:\Program Files\Agent-Up\tray",
                 BinDirectory: @"C:\Program Files\Agent-Up\bin",
                 StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk"));
 

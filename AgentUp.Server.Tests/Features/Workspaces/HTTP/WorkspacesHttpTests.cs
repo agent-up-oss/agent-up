@@ -230,7 +230,7 @@ public class WorkspacesHttpTests
             "main",
             ""));
         var processes = ServerTestComposition.CreateProcessesController(new KillFailingWorkspaceProcessManager());
-        var lifecycle = new WorkspaceLifecycleService(registry, processes);
+        var lifecycle = new WorkspaceLifecycleService(registry, processes, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkspaceLifecycleService>.Instance);
         var controller = new WorkspacesController(registry, lifecycle);
 
         await controller.CleanupTutorialWorkspaces();

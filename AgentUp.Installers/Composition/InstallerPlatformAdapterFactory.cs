@@ -108,6 +108,7 @@ public static class InstallerPlatformAdapterFactory
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
+            TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
             ServiceFilePath: System.IO.Path.Join(payloadRoot, "service", manifest.ServiceUnitName),
             IconPath: System.IO.Path.Join(payloadRoot, "icon", "Agent-Up.png"));
 
@@ -132,6 +133,7 @@ public static class InstallerPlatformAdapterFactory
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
+            TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
             IconPath: System.IO.Path.Join(payloadRoot, "icon", "Agent-Up.png"));
 
         return new MacOsInstallerPlatformAdapter(
@@ -148,7 +150,8 @@ public static class InstallerPlatformAdapterFactory
         var payload = new WindowsInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
-            CliDirectory: System.IO.Path.Join(payloadRoot, "cli"));
+            CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
+            TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"));
 
         return new WindowsInstallerPlatformAdapter(
             composition.Commands,

@@ -31,6 +31,7 @@ public sealed class MacOsPackageStager
         _writer.CopyDirectory(layout.DesktopPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "desktop"));
         _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "server"));
         _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "cli"));
+        _writer.CopyDirectory(layout.TrayPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "tray"));
 
         var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
         var installerPostInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "postinstall");

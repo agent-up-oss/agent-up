@@ -17,7 +17,13 @@ public sealed record InstalledState(
     Version? InstallerVersion,
     Version? CliVersion,
     Version? ServerVersion,
-    Version? DesktopVersion);
+    Version? DesktopVersion)
+{
+    public bool TrayExpected { get; init; } = false;
+    public bool TrayInstalled { get; init; } = false;
+    public bool TrayAutoStartRegistered { get; init; } = false;
+    public Version? TrayVersion { get; init; } = null;
+}
 
 public sealed record ValidationReport(IReadOnlyList<ValidationFinding> Findings)
 {

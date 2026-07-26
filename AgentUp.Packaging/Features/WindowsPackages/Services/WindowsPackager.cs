@@ -26,7 +26,8 @@ public sealed class WindowsPackager
             layout.InstallerPublishDirectory,
             layout.DesktopPublishDirectory,
             layout.ServerPublishDirectory,
-            layout.CliPublishDirectory),
+            layout.CliPublishDirectory,
+            layout.TrayPublishDirectory),
             cancellationToken);
         _writer.CreateDirectory(layout.InstallerSourceDirectory);
 

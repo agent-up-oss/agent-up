@@ -91,9 +91,18 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             exited?.Dispose();
         };
 
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        try
+        {
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            process.Dispose();
+            await _output.AppendAsync(workspaceId, appName, "[err] " + ex.Message);
+            throw new InvalidOperationException($"Failed to start '{appName}': {ex.Message}", ex);
+        }
 
         _processes[(workspaceId, appName)] = process;
         _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);

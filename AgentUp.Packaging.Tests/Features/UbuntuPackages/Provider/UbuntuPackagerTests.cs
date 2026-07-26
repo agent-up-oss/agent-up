@@ -26,7 +26,7 @@ public class UbuntuPackagerTests
             .Where(command => command.FileName == "dotnet" && command.Arguments.Contains("publish"))
             .ToList();
 
-        Assert.That(publishCommands, Has.Count.EqualTo(4));
+        Assert.That(publishCommands, Has.Count.EqualTo(5));
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:PublishSingleFile=true")));
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeNativeLibrariesForSelfExtract=true")));
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeAllContentForSelfExtract=true")));
@@ -50,6 +50,7 @@ public class UbuntuPackagerTests
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
+            WritePayloadFile(payloadRoot, "tray", "AgentUp.Tray");
 
             await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool).PackageAsync(request);
 
@@ -58,6 +59,7 @@ public class UbuntuPackagerTests
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "cli", "AgentUp.CLI")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "tray", "AgentUp.Tray")), Is.True);
             Assert.That(packageTool.Layouts, Has.Count.EqualTo(1));
         }
         finally
