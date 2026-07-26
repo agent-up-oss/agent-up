@@ -8,7 +8,8 @@ using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
-using AgentUp.Server.Features.TrayWatchdog.Services;
+using AgentUp.Server.Features.ServiceControl.Interfaces;
+using AgentUp.Server.Features.TraySession.Services;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Mcp.Controllers;
 using AgentUp.Server.Features.Mcp.Interfaces;
@@ -93,6 +94,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<McpWorkspaceService>();
         builder.Services.AddSingleton<McpWorkspaceController>();
         builder.Services.AddSingleton<McpContextController>();
-        builder.Services.AddHostedService<TrayOwnerWatchdog>();
+        builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
+        builder.Services.AddSingleton<TrayHeartbeatMonitor>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }
 }

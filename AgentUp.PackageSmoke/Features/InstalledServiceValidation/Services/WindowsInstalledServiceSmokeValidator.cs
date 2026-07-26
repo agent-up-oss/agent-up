@@ -10,9 +10,10 @@ namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
 {
     public WindowsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
-        : base(commands, serverProbe, securityChecks)
-    {
-    }
+        : base(commands, serverProbe, securityChecks) { }
+
+    internal WindowsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
+        : base(commands, serverProbe, securityChecks, http) { }
 
     protected override async Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,
@@ -31,6 +32,8 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         var installLog = Path.Join(request.WorkDirectory, "windows-msi-install.log");
         await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/l*vx!", installLog], installLog, "installed.windows.install", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", product.ServiceName]), "installed.windows.service.start", cancellationToken);
+        await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failure", product.ServiceName, "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"]), "installed.windows.service.recovery", cancellationToken);
+        await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failureflag", product.ServiceName, "1"]), "installed.windows.service.recovery", cancellationToken);
 
         var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
         assert.FileExists(Path.Join(installDir, "bin", $"{product.CliShimName}.cmd"), "installed.windows.path.shim");

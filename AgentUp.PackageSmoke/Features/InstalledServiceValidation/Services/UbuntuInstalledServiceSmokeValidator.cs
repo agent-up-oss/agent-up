@@ -10,9 +10,10 @@ namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
 public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
 {
     public UbuntuInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
-        : base(commands, serverProbe, securityChecks)
-    {
-    }
+        : base(commands, serverProbe, securityChecks) { }
+
+    internal UbuntuInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
+        : base(commands, serverProbe, securityChecks, http) { }
 
     protected override async Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,

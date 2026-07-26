@@ -2,10 +2,8 @@ namespace AgentUp.Tray.Features.Tray;
 
 public enum ServiceState
 {
-    Stopped,
-    Starting,
-    Running,
-    Paused,
+    Connecting,
+    Connected,
     Restarting,
-    Failed
+    Disconnected
 }

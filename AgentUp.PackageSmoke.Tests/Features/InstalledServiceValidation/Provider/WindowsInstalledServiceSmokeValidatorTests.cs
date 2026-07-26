@@ -46,13 +46,16 @@ public class WindowsInstalledServiceSmokeValidatorTests
         try
         {
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
-            var result = await new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks())
-                .ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
+            using var validator = new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
+                new HttpClient(new FakeTraySessionHttpHandler()));
+            var result = await validator.ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir));
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Contains("/l*vx!", StringComparer.OrdinalIgnoreCase)), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failure", "agent-up-server", "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"])), Is.True);
+            Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failureflag", "agent-up-server", "1"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
             Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, "start")), Is.True);
             Assert.That(commands.Commands.Any(command => IsInstalledCliCommand(command, "status")), Is.True);
@@ -63,7 +66,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
                     command.Environment.TryGetValue("AGENTUP_PRODUCT_DISPLAY_NAME", out var displayName) &&
                     displayName == "Agent-Up"),
                 Is.True);
-            Assert.That(probe.Calls, Has.Count.EqualTo(1));
+            Assert.That(probe.Calls, Has.Count.EqualTo(2)); // initial ready check + post-restart ready check
         }
         finally
         {

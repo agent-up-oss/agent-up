@@ -1,0 +1,83 @@
+using System.Net;
+using System.Net.Sockets;
+using AgentUp.Server.Features.ServiceControl.Interfaces;
+using AgentUp.Server.Features.TraySession.Controllers;
+using AgentUp.Server.Features.TraySession.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace AgentUp.Server.Tests.Features.TraySession.HTTP;
+
+[TestFixture]
+public class TraySessionHttpTests
+{
+    private WebApplication _app = null!;
+    private HttpClient _client = null!;
+
+    [SetUp]
+    public async Task SetUp()
+    {
+        var port = FindFreePort();
+
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            Args = [$"--urls=http://localhost:{port}"]
+        });
+        builder.Services.AddControllers().AddApplicationPart(typeof(TraySessionController).Assembly);
+        builder.Services.AddSingleton<IProcessExitCode>(new FakeProcessExitCode());
+        builder.Services.AddSingleton(sp =>
+            new TrayHeartbeatMonitor(
+                sp.GetRequiredService<IHostApplicationLifetime>(),
+                sp.GetRequiredService<IProcessExitCode>(),
+                TimeSpan.FromSeconds(60),
+                TimeSpan.FromSeconds(5)));
+        builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
+        _app = builder.Build();
+        _app.MapControllers();
+        await _app.StartAsync();
+
+        _client = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        _client.Dispose();
+        await _app.StopAsync();
+        await _app.DisposeAsync();
+    }
+
+    [Test]
+    public async Task PostHeartbeat_returnsOk()
+    {
+        using var response = await _client.PostAsync("/api/tray/heartbeat", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task PostHeartbeat_multipleCallsReturnOk()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            using var response = await _client.PostAsync("/api/tray/heartbeat", null);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        }
+    }
+
+    private static int FindFreePort()
+    {
+        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+        return ((System.Net.IPEndPoint)socket.LocalEndPoint!).Port;
+    }
+
+    private sealed class FakeProcessExitCode : IProcessExitCode
+    {
+        public void Set(int code) { }
+        public void Exit(int code) { }
+    }
+}

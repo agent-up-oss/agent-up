@@ -48,8 +48,9 @@ public sealed class InstalledServiceSmokeValidatorProductTests
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
             var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
                 ProductConfig: AcmeProduct, SystemRoot: systemRoot);
-            var result = await new UbuntuInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks())
-                .ValidateAsync(request);
+            using var validator = new UbuntuInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
+                new HttpClient(new FakeTraySessionHttpHandler()));
+            var result = await validator.ValidateAsync(request);
 
             Assert.That(result.Succeeded, Is.True, string.Join("; ", result.Findings.Select(f => f.Message)));
 
@@ -166,8 +167,9 @@ public sealed class InstalledServiceSmokeValidatorProductTests
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
             var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
                 SystemRoot: systemRoot);
-            var result = await new UbuntuInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks())
-                .ValidateAsync(request);
+            using var validator = new UbuntuInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
+                new HttpClient(new FakeTraySessionHttpHandler()));
+            var result = await validator.ValidateAsync(request);
 
             Assert.That(result.Succeeded, Is.True, string.Join("; ", result.Findings.Select(f => f.Message)));
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));

@@ -11,7 +11,7 @@ namespace AgentUp.Tray;
 
 public class App : Application
 {
-    private ServiceLifecycleManager? _lifecycle;
+    private ServerConnectionManager? _connection;
     private TrayMenuController? _menu;
 
     public override void Initialize()
@@ -22,15 +22,22 @@ public class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            desktop.Exit += (_, _) =>
+            {
+                _menu?.Dispose();
+                _connection?.Dispose();
+            };
+        }
 
         var icon = LoadTrayIcon();
-        _lifecycle = new ServiceLifecycleManager();
-        _menu = new TrayMenuController(_lifecycle, icon,
+        _connection = new ServerConnectionManager();
+        _menu = new TrayMenuController(_connection, icon,
             () => (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown(0));
         _menu.Attach(this);
 
-        _ = _lifecycle.StartAsync();
+        _ = _connection.StartAsync();
 
         AutoStartRegistrarFactory.Create()?.EnsureRegistered();
 

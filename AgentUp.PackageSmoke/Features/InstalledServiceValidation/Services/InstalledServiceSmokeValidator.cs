@@ -1,3 +1,4 @@
+using System.Net;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
@@ -14,12 +15,22 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     private readonly ICommandRunner _commands;
     private readonly IServerProbe _serverProbe;
     private readonly IRuntimeSecurityChecks _securityChecks;
+    private readonly HttpClient _http;
 
     protected InstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
     {
         _commands = commands;
         _serverProbe = serverProbe;
         _securityChecks = securityChecks;
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+    }
+
+    internal InstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
+    {
+        _commands = commands;
+        _serverProbe = serverProbe;
+        _securityChecks = securityChecks;
+        _http = http;
     }
 
     public async Task<InstalledServiceSmokeResult> ValidateAsync(InstalledServiceSmokeRequest request, CancellationToken cancellationToken = default)
@@ -47,6 +58,8 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             }
 
             await _securityChecks.RunAsync(readyUrl, assert, cancellationToken);
+            await SmokeTraySessionAsync(readyUrl, assert, cancellationToken);
+            readyUrl = await SmokeServiceRestartAsync(request, readyUrl, assert, cancellationToken) ?? readyUrl;
             await SmokeCliWorkspaceAsync(request, context.CliCommand, context.CliEnvironment, readyUrl, assert, request.Product.CliShimName, cancellationToken);
             if (Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL") != "1")
             {
@@ -76,6 +89,55 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         var result = await _commands.RunAsync(command, cancellationToken);
         if (result.ExitCode != 0)
             assert.Error(code, $"{command.FileName} failed: {result.Stderr}{result.Stdout}");
+    }
+
+    private async Task SmokeTraySessionAsync(string readyUrl, FileAssertions assert, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var heartbeat = await _http.PostAsync($"{readyUrl.TrimEnd('/')}/api/tray/heartbeat", null, cancellationToken);
+            if (heartbeat.StatusCode != HttpStatusCode.OK)
+                assert.Error("installed.tray.heartbeat", $"POST /api/tray/heartbeat returned {(int)heartbeat.StatusCode}; expected 200.");
+        }
+        catch (HttpRequestException ex)
+        {
+            assert.Error("installed.tray.heartbeat", $"POST /api/tray/heartbeat failed: {ex.Message}");
+        }
+    }
+
+    private async Task<string?> SmokeServiceRestartAsync(
+        InstalledServiceSmokeRequest request,
+        string readyUrl,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var restart = await _http.PostAsync($"{readyUrl.TrimEnd('/')}/api/service/restart", null, cancellationToken);
+            if (restart.StatusCode != HttpStatusCode.Accepted)
+            {
+                assert.Error("installed.service.restart", $"POST /api/service/restart returned {(int)restart.StatusCode}; expected 202.");
+                return null;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            assert.Error("installed.service.restart", $"POST /api/service/restart failed: {ex.Message}");
+            return null;
+        }
+
+        // Wait for server to go offline then come back up after the daemon restarts it.
+        await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+        var afterRestart = await _serverProbe.WaitForReadyAsync(
+            request.PrimaryServerUrl,
+            request.FallbackServerUrl,
+            Path.Join(request.WorkDirectory, "service-workspaces-after-restart.json"),
+            cancellationToken);
+
+        if (afterRestart is null)
+            assert.Error("installed.service.restart.recovery", $"{request.Product.ServiceName} did not recover after restart.");
+
+        return afterRestart;
     }
 
     private async Task SmokeCliWorkspaceAsync(
@@ -253,6 +315,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
     public virtual void Dispose()
     {
+        _http.Dispose();
         if (_securityChecks is IDisposable disposable)
             disposable.Dispose();
     }
