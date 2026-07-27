@@ -9,7 +9,7 @@ public final class CliJsonParser {
     public QueueStatusResponse parseStatus(String stdout) {
         Integer count = intField(stdout, "count");
         if (count == null) {
-            throw new CliExecutionException("Agent-Up returned status JSON without a count field.");
+            throw new CliJsonParseException("Agent-Up returned status JSON without a count field.");
         }
 
         return new QueueStatusResponse(count, stringFields(stdout, "message"));
@@ -18,7 +18,7 @@ public final class CliJsonParser {
     public NextCommitResponse parseNext(String stdout) {
         Boolean staged = boolField(stdout, "staged");
         if (staged == null) {
-            throw new CliExecutionException("Agent-Up returned next JSON without a staged field.");
+            throw new CliJsonParseException("Agent-Up returned next JSON without a staged field.");
         }
 
         int remainingCount = intField(stdout, "remainingCount", 0);
@@ -87,6 +87,12 @@ public final class CliJsonParser {
             }
 
             char escaped = value.charAt(++index);
+            if (escaped == 'u') {
+                result.append(unicodeEscape(value, index));
+                index += 4;
+                continue;
+            }
+
             result.append(switch (escaped) {
                 case '"' -> '"';
                 case '\\' -> '\\';
@@ -101,5 +107,22 @@ public final class CliJsonParser {
         }
 
         return result.toString();
+    }
+
+    private static char unicodeEscape(String value, int escapeIndex) {
+        if (escapeIndex + 4 >= value.length()) {
+            throw new CliJsonParseException("Agent-Up returned JSON with an incomplete unicode escape.");
+        }
+
+        int codePoint = 0;
+        for (int offset = 1; offset <= 4; offset++) {
+            int digit = Character.digit(value.charAt(escapeIndex + offset), 16);
+            if (digit < 0) {
+                throw new CliJsonParseException("Agent-Up returned JSON with an invalid unicode escape.");
+            }
+            codePoint = (codePoint << 4) + digit;
+        }
+
+        return (char)codePoint;
     }
 }

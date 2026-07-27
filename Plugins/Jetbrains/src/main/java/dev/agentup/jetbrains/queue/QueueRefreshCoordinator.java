@@ -54,13 +54,7 @@ public final class QueueRefreshCoordinator implements Disposable {
         }
 
         refresh();
-        int interval = Math.max(2, ApplicationManager.getApplication().getService(AgentUpSettings.class).getState().pollIntervalSeconds);
-        poller = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(
-            this::refresh,
-            interval,
-            interval,
-            TimeUnit.SECONDS
-        );
+        scheduleNextPoll();
     }
 
     public void refresh() {
@@ -86,8 +80,21 @@ public final class QueueRefreshCoordinator implements Disposable {
         ApplicationManager.getApplication().invokeLater(() -> ActivityTracker.getInstance().inc());
     }
 
+    private void scheduleNextPoll() {
+        int interval = Math.max(2, ApplicationManager.getApplication().getService(AgentUpSettings.class).getState().pollIntervalSeconds);
+        poller = AppExecutorUtil.getAppScheduledExecutorService().schedule(() -> {
+            if (project.isDisposed() || !pollingStarted.get()) {
+                return;
+            }
+
+            refresh();
+            scheduleNextPoll();
+        }, interval, TimeUnit.SECONDS);
+    }
+
     @Override
     public void dispose() {
+        pollingStarted.set(false);
         if (poller != null) {
             poller.cancel(true);
             poller = null;

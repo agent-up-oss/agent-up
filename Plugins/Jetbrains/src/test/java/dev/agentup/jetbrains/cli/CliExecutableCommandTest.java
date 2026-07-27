@@ -16,7 +16,7 @@ final class CliExecutableCommandTest {
     @Test
     void parseSplitsDotnetRunCommand() {
         CliExecutableCommand command = CliExecutableCommand.parse(
-            "dotnet run --project /home/themassiveone/github/Agent-Up-Workspace/agent-up-agent1/AgentUp.CLI/AgentUp.CLI.csproj"
+            "dotnet run --project /workspace/agent-up/AgentUp.CLI/AgentUp.CLI.csproj"
         );
 
         assertEquals("dotnet", command.executable());
@@ -24,7 +24,7 @@ final class CliExecutableCommandTest {
             java.util.List.of(
                 "run",
                 "--project",
-                "/home/themassiveone/github/Agent-Up-Workspace/agent-up-agent1/AgentUp.CLI/AgentUp.CLI.csproj"
+                "/workspace/agent-up/AgentUp.CLI/AgentUp.CLI.csproj"
             ),
             command.arguments()
         );

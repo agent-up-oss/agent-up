@@ -31,7 +31,7 @@ public final class CliExecutionService {
             int timeoutMillis = (int)Math.max(1, command.timeout().toMillis());
             ProcessOutput output = handler.runProcess(timeoutMillis);
             return new CliExecutionResult(output.getExitCode(), trimOutput(output.getStdout()), trimOutput(output.getStderr()));
-        } catch (Throwable ex) {
+        } catch (Exception ex) {
             LOG.warn("Agent-Up CLI command failed for " + project.getName(), ex);
             throw new CliExecutionException("Agent-Up CLI could not be executed.", ex);
         }

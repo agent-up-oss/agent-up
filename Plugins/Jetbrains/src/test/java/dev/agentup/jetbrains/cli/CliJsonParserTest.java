@@ -57,7 +57,16 @@ final class CliJsonParserTest {
 
     @Test
     void parseStatusRejectsMissingCount() {
-        assertThrows(CliExecutionException.class, () -> parser.parseStatus("{\"entries\":[]}"));
+        assertThrows(CliJsonParseException.class, () -> parser.parseStatus("{\"entries\":[]}"));
+    }
+
+    @Test
+    void parseStatusDecodesUnicodeEscapedMessages() {
+        QueueStatusResponse result = parser.parseStatus(
+            "{\"count\":1,\"entries\":[{\"slice\":\"One\",\"message\":\"feat(queue): caf\\u00e9\"}]}"
+        );
+
+        assertEquals("feat(queue): caf" + (char)0x00e9, result.messages().get(0));
     }
 
     @Test

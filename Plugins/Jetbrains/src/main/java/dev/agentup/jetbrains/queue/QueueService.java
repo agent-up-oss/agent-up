@@ -8,6 +8,7 @@ import dev.agentup.jetbrains.cli.CliExecutionException;
 import dev.agentup.jetbrains.cli.CliExecutionResult;
 import dev.agentup.jetbrains.cli.CliExecutionService;
 import dev.agentup.jetbrains.cli.CliJsonParser;
+import dev.agentup.jetbrains.cli.CliJsonParseException;
 import dev.agentup.jetbrains.cli.NextCommitResponse;
 import dev.agentup.jetbrains.settings.AgentUpSettings;
 
@@ -52,8 +53,12 @@ public final class QueueService {
                 : QueueState.failed(parser.parseError(result.stdout(), result.stderr()));
         }
 
-        var status = parser.parseStatus(result.stdout());
-        return QueueState.available(status.count(), status.messages());
+        try {
+            var status = parser.parseStatus(result.stdout());
+            return QueueState.available(status.count(), status.messages());
+        } catch (CliJsonParseException ex) {
+            return QueueState.failed(ex.getMessage());
+        }
     }
 
     public NextCommitResponse runNext() {
@@ -77,7 +82,11 @@ public final class QueueService {
             throw new CliExecutionException(parser.parseError(result.stdout(), result.stderr()));
         }
 
-        return parser.parseNext(result.stdout());
+        try {
+            return parser.parseNext(result.stdout());
+        } catch (CliJsonParseException ex) {
+            throw new CliExecutionException(ex.getMessage(), ex);
+        }
     }
 
     private Path repositoryPath() {

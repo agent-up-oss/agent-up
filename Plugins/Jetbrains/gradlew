@@ -72,10 +72,11 @@
 ##############################################################################
 
 if [ -z "$AGENTUP_JETBRAINS_GRADLEW_FHS" ] && [ -f /etc/NIXOS ] && command -v nix >/dev/null 2>&1; then
-    agentup_gradlew_dir=${0%/*}
-    if [ "$agentup_gradlew_dir" = "$0" ]; then
-        agentup_gradlew_dir=.
+    agentup_gradlew_path=$0
+    if command -v realpath >/dev/null 2>&1; then
+        agentup_gradlew_path=$(realpath "$0")
     fi
+    agentup_gradlew_dir=$(dirname "$agentup_gradlew_path")
 
     for agentup_gradle_arg
     do
