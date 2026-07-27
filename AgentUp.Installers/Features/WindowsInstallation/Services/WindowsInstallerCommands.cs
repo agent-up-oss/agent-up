@@ -95,7 +95,7 @@ public static class WindowsInstallerCommands
                [Environment]::SetEnvironmentVariable('Path', ($entries -join ';'), 'Machine')
              }
              Remove-Item -Force '{{Ps(paths.StartMenuShortcutPath)}}' -ErrorAction SilentlyContinue
-             $trayRunPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+             $trayRunPath = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'
              if (Test-Path $trayRunPath) {
                Remove-ItemProperty -Path $trayRunPath -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
              }

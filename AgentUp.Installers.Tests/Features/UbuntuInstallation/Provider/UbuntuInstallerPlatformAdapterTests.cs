@@ -141,6 +141,7 @@ public class UbuntuInstallerPlatformAdapterTests
             Assert.That(script, Does.Contain("chmod +x '/opt/agent-up/tray/AgentUp.Tray'"));
             Assert.That(script, Does.Contain("cp '/payload/logo.png' '/usr/share/pixmaps/agent-up.png'"));
             Assert.That(script, Does.Contain("/etc/xdg/autostart/agent-up-tray.desktop"));
+            Assert.That(script, Does.Contain("Name=Agent-Up"));
             Assert.That(script, Does.Contain("Icon=agent-up"));
             Assert.That(script, Does.Contain("X-GNOME-Autostart-enabled=true"));
             // Desktop and CLI are not included in a server-only install

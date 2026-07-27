@@ -56,6 +56,7 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(scripts.Any(script => script.Contains("CreateShortcut", StringComparison.Ordinal)), Is.True);
         Assert.That(scripts.Any(script =>
             script.Contains(@"CurrentVersion\Run", StringComparison.Ordinal) &&
+            script.Contains("HKLM:", StringComparison.Ordinal) &&
             script.Contains("Name 'Agent-Up'", StringComparison.Ordinal) &&
             script.Contains(@"C:\Program Files\Agent-Up\tray\AgentUp.Tray.exe", StringComparison.Ordinal)), Is.True);
         Assert.That(files.Writes[@"C:\Program Files\Agent-Up\uninstall-agent-up.ps1"], Does.Contain("Remove-Item -Recurse -Force"));
@@ -87,6 +88,16 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public void PlanInstall_marksMachineTrayAutoStartAsElevationRequired()
+    {
+        var adapter = Adapter(new RecordingCommandRunner(), new RecordingWindowsFileSystem());
+
+        var plan = adapter.PlanInstall(Session());
+
+        Assert.That(plan.Single(operation => operation.Kind == InstallOperationKind.RegisterAutoStart).RequiresElevation, Is.True);
+    }
+
+    [Test]
     public async Task ExecuteComponentActionAsync_uninstallServerStopsServiceAndDeletesDirectory()
     {
         var files = new RecordingWindowsFileSystem();
@@ -97,7 +108,7 @@ public class WindowsInstallerPlatformAdapterTests
 
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("sc.exe delete $serviceName", StringComparison.Ordinal)), Is.True);
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\server"));
-        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Remove-ItemProperty", StringComparison.Ordinal) && script.Contains("HKCU:", StringComparison.Ordinal)), Is.True);
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Remove-ItemProperty", StringComparison.Ordinal) && script.Contains("HKLM:", StringComparison.Ordinal)), Is.True);
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\tray"));
     }
 
@@ -216,6 +227,7 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(product, Does.Contain("Name=\"PATH\""));
             Assert.That(product, Does.Contain("Shortcut"));
             Assert.That(product, Does.Contain("TrayAutoStartComponent"));
+            Assert.That(product, Does.Contain(@"Root=""HKLM"""));
             Assert.That(product, Does.Contain(@"Key=""Software\Microsoft\Windows\CurrentVersion\Run"""));
             Assert.That(product, Does.Contain(@"Name=""Agent-Up"""));
             Assert.That(product, Does.Contain(@"Value=""&quot;[TrayDir]AgentUp.Tray.exe&quot;"""));

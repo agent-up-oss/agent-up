@@ -52,9 +52,6 @@ public sealed record UbuntuPackageManifest(
            if command -v update-desktop-database >/dev/null 2>&1; then
              update-desktop-database /usr/share/applications 2>/dev/null || true
            fi
-           if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
-             su "$SUDO_USER" -c "/opt/{PackageName}/installer/AgentUp.InstallerApp &" 2>/dev/null || true
-           fi
            """ + Environment.NewLine;
 
     public string InstallerDesktopEntryText()
@@ -66,6 +63,8 @@ public sealed record UbuntuPackageManifest(
            Icon={PackageName}
            Type=Application
            Categories=System;
+           StartupNotify=true
+           StartupWMClass=AgentUp.InstallerApp
            """ + Environment.NewLine;
 
     public string PreRemoveScript()

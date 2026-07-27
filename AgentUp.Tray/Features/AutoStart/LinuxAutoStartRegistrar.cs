@@ -34,9 +34,10 @@ public sealed class LinuxAutoStartRegistrar : IAutoStartRegistrar
         $"""
         [Desktop Entry]
         Type=Application
-        Name=Agent-Up Tray
+        Name=Agent-Up
         Comment=Agent-Up tray manager
         Exec={_trayBinary}
+        Icon=agent-up
         Terminal=false
         Hidden=false
         X-GNOME-Autostart-enabled=true

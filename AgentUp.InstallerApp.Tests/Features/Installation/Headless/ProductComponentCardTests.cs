@@ -52,7 +52,7 @@ public class ProductComponentCardTests
 
         var allDescriptions = string.Join("|", model.ComponentCards.Select(c => c.Description));
         Assert.That(allDescriptions, Does.Not.Contain("Human UI for Agent-Up workspaces."));
-        Assert.That(allDescriptions, Does.Not.Contain("Local runtime authority and API service."));
+        Assert.That(allDescriptions, Does.Not.Contain("Local runtime authority, API service, and tray app."));
         Assert.That(allDescriptions, Does.Not.Contain("Terminal command wrapper for the local Server."));
     }
 

@@ -202,7 +202,7 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
             sb.AppendLine($"cat > {Q(_options.Paths.XdgAutostartPath)} << 'DESKTOP_ENTRY'");
             sb.AppendLine("[Desktop Entry]");
             sb.AppendLine("Type=Application");
-            sb.AppendLine($"Name={_options.Manifest.DesktopApplicationName} Tray");
+            sb.AppendLine($"Name={_options.Manifest.DesktopApplicationName}");
             sb.AppendLine($"Exec={_options.Paths.TrayExecutable}");
             sb.AppendLine($"Icon={_options.Manifest.PackageName}");
             sb.AppendLine("Terminal=false");
