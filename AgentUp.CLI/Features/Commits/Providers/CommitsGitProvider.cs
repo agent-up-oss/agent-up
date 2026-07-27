@@ -31,7 +31,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
     {
         var trackedArgs = new List<string> { "diff", "HEAD", "--" };
         trackedArgs.AddRange(files);
-        var trackedDiff = await RunGitAsync(trackedArgs, cancellationToken);
+        var trackedDiff = await RunGitAsync(trackedArgs, cancellationToken, trimOutput: false);
 
         var lsArgs = new List<string> { "ls-files", "--" };
         lsArgs.AddRange(files);
@@ -47,7 +47,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         foreach (var file in files.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
         {
             var args = new List<string> { "diff", "--no-index", "--", "/dev/null", file };
-            var untrackedDiff = await RunGitAsync(args, cancellationToken, allowedExitCodes: [0, 1]);
+            var untrackedDiff = await RunGitAsync(args, cancellationToken, allowedExitCodes: [0, 1], trimOutput: false);
             if (untrackedDiff.Length > 0)
                 parts.Add(untrackedDiff);
         }
@@ -136,7 +136,8 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
     private async Task<string> RunGitAsync(
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken,
-        int[]? allowedExitCodes = null)
+        int[]? allowedExitCodes = null,
+        bool trimOutput = true)
     {
         var psi = new ProcessStartInfo("git")
         {
@@ -159,6 +160,6 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         if (!allowed.Contains(process.ExitCode))
             throw new InvalidOperationException($"git {string.Join(" ", arguments)} failed: {stderr.Trim()}");
 
-        return stdout.TrimEnd();
+        return trimOutput ? stdout.TrimEnd() : stdout;
     }
 }
