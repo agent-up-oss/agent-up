@@ -95,6 +95,10 @@ public static class WindowsInstallerCommands
                [Environment]::SetEnvironmentVariable('Path', ($entries -join ';'), 'Machine')
              }
              Remove-Item -Force '{{Ps(paths.StartMenuShortcutPath)}}' -ErrorAction SilentlyContinue
+             $trayRunPath = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'
+             if (Test-Path $trayRunPath) {
+               Remove-ItemProperty -Path $trayRunPath -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
+             }
              Remove-Item -Recurse -Force '{{Ps(paths.RootDirectory)}}' -ErrorAction SilentlyContinue
              Remove-Item -Recurse -Force 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{{Ps(manifest.RegistryKeyName)}}' -ErrorAction SilentlyContinue
              """;
@@ -113,28 +117,6 @@ public static class WindowsInstallerCommands
              New-ItemProperty -Force -Path $key -Name UninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{Ps(paths.UninstallScriptPath)}}"' | Out-Null
              New-ItemProperty -Force -Path $key -Name QuietUninstallString -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{{Ps(paths.UninstallScriptPath)}}"' | Out-Null
              """;
-
-    public static string TrayAutoStartPowerShell(WindowsInstallerPaths paths)
-        => $$"""
-             $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-             if (-not (Test-Path $regPath)) { New-Item -Force -Path $regPath | Out-Null }
-             New-ItemProperty -Force -Path $regPath -Name 'Agent-Up' -Value '"{{Ps(paths.TrayExecutable)}}"' | Out-Null
-             """;
-
-    public static string TrayAutoStartCheckPowerShell()
-        => """
-           $val = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Agent-Up' -ErrorAction SilentlyContinue
-           if (-not $val) { exit 1 }
-           exit 0
-           """;
-
-    public static string TrayAutoStartRemovePowerShell()
-        => """
-           $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-           if (Test-Path $regPath) {
-             Remove-ItemProperty -Path $regPath -Name 'Agent-Up' -ErrorAction SilentlyContinue
-           }
-           """;
 
     public static string FreshShellCliLookupPowerShell(string cliCommandName)
         => $"Get-Command {cliCommandName} -ErrorAction Stop | Out-Null";

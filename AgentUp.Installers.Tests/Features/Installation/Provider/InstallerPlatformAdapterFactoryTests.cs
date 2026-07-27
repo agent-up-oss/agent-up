@@ -74,10 +74,34 @@ public class InstallerPlatformAdapterFactoryTests
             Directory.CreateDirectory(Path.Join(root, "payload", "desktop"));
             Directory.CreateDirectory(Path.Join(root, "payload", "server"));
             Directory.CreateDirectory(Path.Join(root, "payload", "cli"));
+            Directory.CreateDirectory(Path.Join(root, "payload", "tray"));
 
             var payloadRoot = InstallerPlatformAdapterFactory.ResolvePayloadRoot(root);
 
             Assert.That(payloadRoot, Is.EqualTo(Path.Join(root, "payload")));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void ResolvePayloadRoot_rejectsBundledPayloadWithoutTrayDirectory()
+    {
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-InstallerPlatformAdapterFactoryTests", Guid.NewGuid().ToString());
+
+        try
+        {
+            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+            Directory.CreateDirectory(Path.Join(root, "payload", "desktop"));
+            Directory.CreateDirectory(Path.Join(root, "payload", "server"));
+            Directory.CreateDirectory(Path.Join(root, "payload", "cli"));
+
+            Assert.That(
+                () => InstallerPlatformAdapterFactory.ResolvePayloadRoot(root),
+                Throws.InvalidOperationException.With.Message.Contains("desktop, server, cli, and tray directories"));
         }
         finally
         {

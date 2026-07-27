@@ -54,6 +54,11 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(scripts.Any(script => script.Contains("Get-Service -Name $serviceName", StringComparison.Ordinal)), Is.True);
         Assert.That(scripts.Any(script => script.Contains("SetEnvironmentVariable('Path'", StringComparison.Ordinal)), Is.True);
         Assert.That(scripts.Any(script => script.Contains("CreateShortcut", StringComparison.Ordinal)), Is.True);
+        Assert.That(scripts.Any(script =>
+            script.Contains(@"CurrentVersion\Run", StringComparison.Ordinal) &&
+            script.Contains("HKLM:", StringComparison.Ordinal) &&
+            script.Contains("Name 'Agent-Up'", StringComparison.Ordinal) &&
+            script.Contains(@"C:\Program Files\Agent-Up\tray\AgentUp.Tray.exe", StringComparison.Ordinal)), Is.True);
         Assert.That(files.Writes[@"C:\Program Files\Agent-Up\uninstall-agent-up.ps1"], Does.Contain("Remove-Item -Recurse -Force"));
         Assert.That(scripts.Any(script =>
             script.Contains(@"CurrentVersion\Uninstall\Agent-Up", StringComparison.Ordinal) &&
@@ -71,7 +76,7 @@ public class WindowsInstallerPlatformAdapterTests
         var commands = new RecordingCommandRunner();
         commands.Results.Enqueue(new ProcessResult(0, "STATE              : 4  RUNNING", ""));
         commands.Results.Enqueue(new ProcessResult(0, "", ""));
-        commands.Results.Enqueue(new ProcessResult(0, "", ""));  // TrayAutoStartCheckPowerShell
+        commands.Results.Enqueue(new ProcessResult(0, "", ""));  // tray autostart check
         var adapter = Adapter(commands, files);
 
         var report = await adapter.ValidateInstalledStateAsync(Session());
@@ -80,6 +85,16 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(commands.Commands, Does.Contain(("sc.exe", "query agent-up-server")));
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-Command agent-up", StringComparison.Ordinal)), Is.True);
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Get-ItemPropertyValue", StringComparison.Ordinal)), Is.True);
+    }
+
+    [Test]
+    public void PlanInstall_marksMachineTrayAutoStartAsElevationRequired()
+    {
+        var adapter = Adapter(new RecordingCommandRunner(), new RecordingWindowsFileSystem());
+
+        var plan = adapter.PlanInstall(Session());
+
+        Assert.That(plan.Single(operation => operation.Kind == InstallOperationKind.RegisterAutoStart).RequiresElevation, Is.True);
     }
 
     [Test]
@@ -93,7 +108,7 @@ public class WindowsInstallerPlatformAdapterTests
 
         Assert.That(PowerShellScripts(commands).Any(script => script.Contains("sc.exe delete $serviceName", StringComparison.Ordinal)), Is.True);
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\server"));
-        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Remove-ItemProperty", StringComparison.Ordinal) && script.Contains("HKCU:", StringComparison.Ordinal)), Is.True);
+        Assert.That(PowerShellScripts(commands).Any(script => script.Contains("Remove-ItemProperty", StringComparison.Ordinal) && script.Contains("HKLM:", StringComparison.Ordinal)), Is.True);
         Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\tray"));
     }
 
@@ -156,6 +171,22 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public async Task ExecuteComponentActionAsync_uninstallTrayStopsTrayBeforeDeletingDirectory()
+    {
+        var files = new RecordingWindowsFileSystem();
+        var commands = new RecordingCommandRunner();
+        var adapter = Adapter(commands, files);
+
+        await adapter.ExecuteComponentActionAsync(new ProductComponent("tray", "Tray"), InstallerComponentAction.Uninstall, Session()).DrainAsync();
+
+        var scripts = PowerShellScripts(commands).ToArray();
+        Assert.That(scripts.Any(script =>
+            script.Contains("Get-CimInstance Win32_Process", StringComparison.Ordinal) &&
+            script.Contains(@"C:\Program Files\Agent-Up\tray\AgentUp.Tray.exe", StringComparison.Ordinal)), Is.True);
+        Assert.That(files.DeletedDirectories, Does.Contain(@"C:\Program Files\Agent-Up\tray"));
+    }
+
+    [Test]
     public void WindowsWixSourceGenerator_containsServicePathShortcutAndBundleContract()
     {
         var root = System.IO.Path.Join(System.IO.Path.GetTempPath(), "AgentUp-WindowsInstallerTests", Guid.NewGuid().ToString());
@@ -195,11 +226,17 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(product, Does.Contain("Stop=\"uninstall\""));
             Assert.That(product, Does.Contain("Name=\"PATH\""));
             Assert.That(product, Does.Contain("Shortcut"));
+            Assert.That(product, Does.Contain("TrayAutoStartComponent"));
+            Assert.That(product, Does.Contain(@"Root=""HKLM"""));
+            Assert.That(product, Does.Contain(@"Key=""Software\Microsoft\Windows\CurrentVersion\Run"""));
+            Assert.That(product, Does.Contain(@"Name=""Agent-Up"""));
+            Assert.That(product, Does.Contain(@"Value=""&quot;[TrayDir]AgentUp.Tray.exe&quot;"""));
             Assert.That(product, Does.Contain("Agent-Up Installer"));
             Assert.That(product, Does.Contain("AgentUp.InstallerApp.exe"));
             Assert.That(product, Does.Contain("InstallerPayloadDesktop"));
             Assert.That(product, Does.Contain("InstallerPayloadServer"));
             Assert.That(product, Does.Contain("InstallerPayloadCli"));
+            Assert.That(product, Does.Contain("InstallerPayloadTray"));
             Assert.That(ComponentGuids(product), Is.Unique);
             Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));
             Assert.That(bundle, Does.Contain("Theme=\"rtfLicense\""));
@@ -259,6 +296,7 @@ public class WindowsInstallerPlatformAdapterTests
                 Assert.That(product, Does.Contain("Local Acme Studio runtime authority"));
                 Assert.That(product, Does.Contain("Acme Studio Installer"));
                 Assert.That(product, Does.Contain("Software\\Acme Studio"));
+                Assert.That(RunRegistryValueName(product), Is.EqualTo("Acme Studio"));
                 Assert.That(product, Does.Contain("acme-studio.cmd"));
                 Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Acme Studio\installer\AgentUp.InstallerApp.exe"""));
                 Assert.That(bundle, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Acme Studio\installer"""));
@@ -377,6 +415,8 @@ public class WindowsInstallerPlatformAdapterTests
         {
             Assert.That(uninstallScript, Does.Contain("acme-studio-server"), "Uninstall should stop/delete Acme Studio service");
             Assert.That(uninstallScript, Does.Contain(@"Uninstall\Acme Studio"), "Uninstall should remove Acme Studio registry key");
+            Assert.That(uninstallScript, Does.Contain("Remove-ItemProperty"), "Uninstall should remove Acme Studio tray autostart");
+            Assert.That(uninstallScript, Does.Contain("Name 'Acme Studio'"), "Uninstall should remove Acme Studio tray autostart by product name");
             Assert.That(uninstallScript, Does.Not.Contain("agent-up-server"), "Uninstall must not reference Agent-Up service");
             Assert.That(uninstallScript, Does.Not.Contain("Agent-Up"), "Uninstall must not reference Agent-Up");
         });
@@ -502,6 +542,16 @@ public class WindowsInstallerPlatformAdapterTests
             .Descendants(wix + "Component")
             .Select(component => (string?)component.Attribute("Guid"))
             .Where(guid => !string.IsNullOrWhiteSpace(guid))!;
+    }
+
+    private static string? RunRegistryValueName(string productWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return XDocument.Parse(productWxs)
+            .Descendants(wix + "RegistryValue")
+            .Where(value => (string?)value.Attribute("Key") == @"Software\Microsoft\Windows\CurrentVersion\Run")
+            .Select(value => (string?)value.Attribute("Name"))
+            .SingleOrDefault();
     }
 
     private static IEnumerable<string> PowerShellScripts(RecordingCommandRunner commands)

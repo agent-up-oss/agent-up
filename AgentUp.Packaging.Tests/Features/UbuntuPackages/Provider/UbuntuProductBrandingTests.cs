@@ -36,8 +36,8 @@ public class UbuntuProductBrandingTests
                 $"staged path '{path}' must not contain 'agent-up'");
     }
 
-    // Test 2: generated post-install script invokes the installer under the product's install root
-    // with --install-core, with no reference to /opt/agent-up.
+    // Test 2: generated post-install script prepares the installer under the product's install root
+    // without launching the GUI or running a headless core install.
     [Test]
     public void PostInstallScript_forNonAgentUpProduct_usesProductInstallRootAndUnitName()
     {
@@ -48,8 +48,8 @@ public class UbuntuProductBrandingTests
 
         Assert.That(script, Does.Contain("/opt/acme-studio"),
             "post-install script must reference the product's install root");
-        Assert.That(script, Does.Contain("SUDO_USER"),
-            "post-install script must attempt to launch the installer GUI for the invoking user");
+        Assert.That(script, Does.Not.Contain("SUDO_USER"),
+            "post-install script must not attempt to launch the installer GUI for the invoking user");
         Assert.That(script, Does.Not.Contain("--install-core"),
             "post-install script must not run a headless install");
         Assert.That(script, Does.Not.Contain("/opt/agent-up"),

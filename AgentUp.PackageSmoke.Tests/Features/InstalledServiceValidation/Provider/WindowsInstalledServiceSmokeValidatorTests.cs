@@ -68,11 +68,14 @@ public class WindowsInstalledServiceSmokeValidatorTests
                 Is.True);
             Assert.That(commands.Commands.Any(command =>
                     command.FileName == "powershell.exe" &&
-                    command.Arguments.Last().Contains("HKCU:", StringComparison.Ordinal) &&
+                    command.Arguments.Last().Contains("HKLM:", StringComparison.Ordinal) &&
                     command.Arguments.Last().Contains("AGENTUP_TRAY_AUTOSTART_NAME", StringComparison.Ordinal) &&
+                    command.Arguments.Last().Contains("AGENTUP_TRAY_AUTOSTART_VALUE", StringComparison.Ordinal) &&
                     command.Environment is not null &&
                     command.Environment.TryGetValue("AGENTUP_TRAY_AUTOSTART_NAME", out var trayName) &&
-                    trayName == "Agent-Up"),
+                    trayName == "Agent-Up" &&
+                    command.Environment.TryGetValue("AGENTUP_TRAY_AUTOSTART_VALUE", out var trayValue) &&
+                    trayValue == $"\"{Path.Join(DefaultInstallDirectory(), "tray", "AgentUp.Tray.exe")}\""),
                 Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(2)); // initial ready check + post-restart ready check
         }

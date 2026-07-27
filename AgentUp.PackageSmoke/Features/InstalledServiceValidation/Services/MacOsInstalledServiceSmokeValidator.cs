@@ -3,6 +3,7 @@ using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
@@ -14,6 +15,8 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
 
     internal MacOsInstalledServiceSmokeValidator(ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks, HttpClient http)
         : base(commands, serverProbe, securityChecks, http) { }
+
+    private readonly MacOsTrayAutoStartProvider _trayAutoStart = new();
 
     protected override async Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,
@@ -31,10 +34,7 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
         assert.ExecutableExists($"/usr/local/bin/{product.ServiceName}", "installed.macos.server");
         assert.ExecutableExists($"/usr/local/bin/{product.CliShimName}-desktop", "installed.macos.desktop");
         assert.ExecutableExists($"/Library/Application Support/{product.InstallDirName}/tray/AgentUp.Tray", "installed.macos.tray");
-        var launchAgentPath = Path.Join(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "Library", "LaunchAgents", $"dev.{product.CliShimName}.tray.plist");
-        assert.FileExists(launchAgentPath, "installed.macos.tray.autostart");
+        assert.FileExists(_trayAutoStart.LaunchAgentPath(product), "installed.macos.tray.autostart");
 
         // AMFI on macOS 15 may block launchd from starting unsigned daemons; fall back to direct start.
         var launchctlPrint = await RunAsync(

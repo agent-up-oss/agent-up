@@ -78,7 +78,8 @@ public static class InstallerComponentOperations
             .ToList();
 
         if (errors.Any(finding => finding.Code.EndsWith(".missing", StringComparison.OrdinalIgnoreCase)
-                                  || finding.Code.EndsWith(".path", StringComparison.OrdinalIgnoreCase)))
+                                  || finding.Code.EndsWith(".path", StringComparison.OrdinalIgnoreCase)
+                                  || finding.Code.EndsWith(".autostart", StringComparison.OrdinalIgnoreCase)))
         {
             return new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled);
         }
@@ -99,7 +100,7 @@ public static class InstallerComponentOperations
         return target switch
         {
             InstallerComponentTarget.Desktop => ["desktop."],
-            InstallerComponentTarget.Server => ["service.", "server."],
+            InstallerComponentTarget.Server => ["service.", "server.", "tray."],
             InstallerComponentTarget.Cli => ["cli."],
             InstallerComponentTarget.Tray => ["tray."],
             _ => []

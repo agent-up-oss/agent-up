@@ -301,14 +301,14 @@ public sealed class WindowsWixSourceGenerator
 
             var trayAutoStart = new XElement(Wix + "Component",
                 new XAttribute("Id", "TrayAutoStartComponent"),
-                new XAttribute("Directory", "TrayDir"),
+                new XAttribute("Directory", "ApplicationProgramsFolder"),
                 new XAttribute("Guid", StableGuid("tray-autostart")),
                 new XElement(Wix + "RegistryValue",
-                    new XAttribute("Root", "HKCU"),
+                    new XAttribute("Root", "HKLM"),
                     new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Run"),
                     new XAttribute("Name", _manifest.ProductName),
-                    new XAttribute("Value", @"""[TrayDir]AgentUp.Tray.exe"""),
                     new XAttribute("Type", "string"),
+                    new XAttribute("Value", "\"[TrayDir]AgentUp.Tray.exe\""),
                     new XAttribute("KeyPath", "yes")));
             yield return ("TrayAutoStartComponent", trayAutoStart);
         }

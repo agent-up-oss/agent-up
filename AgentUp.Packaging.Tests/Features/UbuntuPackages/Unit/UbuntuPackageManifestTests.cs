@@ -51,4 +51,27 @@ public class UbuntuPackageManifestTests
         Assert.That(text, Does.Contain("Architecture: amd64"));
         Assert.That(text, Does.EndWith(Environment.NewLine));
     }
+
+    [Test]
+    public void PostInstallScript_updatesLauncherMetadataWithoutLaunchingInstallerDashboard()
+    {
+        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+
+        var text = manifest.PostInstallScript();
+
+        Assert.That(text, Does.Contain("update-desktop-database"));
+        Assert.That(text, Does.Not.Contain("su \"$SUDO_USER\""));
+        Assert.That(text, Does.Not.Contain("AgentUp.InstallerApp &"));
+    }
+
+    [Test]
+    public void InstallerDesktopEntryText_declaresStartupWmClassForUbuntuTaskbarIcon()
+    {
+        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+
+        var text = manifest.InstallerDesktopEntryText();
+
+        Assert.That(text, Does.Contain("Icon=agent-up"));
+        Assert.That(text, Does.Contain("StartupWMClass=AgentUp.InstallerApp"));
+    }
 }

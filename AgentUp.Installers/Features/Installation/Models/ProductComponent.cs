@@ -6,7 +6,7 @@ public sealed record ProductComponent(string Id, string DisplayName, string Desc
         => new("desktop", "Desktop", "Human UI for Agent-Up workspaces.");
 
     public static ProductComponent Server
-        => new("server", "Server", "Local runtime authority and API service.");
+        => new("server", "Server", "Local runtime authority, API service, and tray app.");
 
     public static ProductComponent Cli
         => new("cli", "CLI", "Terminal command wrapper for the local Server.");
