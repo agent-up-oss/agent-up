@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager;
 import com.intellij.openapi.vcs.ui.Refreshable;
@@ -19,7 +20,19 @@ import dev.agentup.jetbrains.queue.QueueService;
 import dev.agentup.jetbrains.queue.QueueState;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.Icon;
+import java.util.List;
+
 public final class QueueAction extends DumbAwareAction {
+    private static final String ACTION_TEXT = "Agent-Up Queue";
+    private static final Icon ACTION_ICON = IconLoader.getIcon("/icons/agent-up.svg", QueueAction.class);
+    private static final Icon EMPTY_ICON = IconLoader.getIcon("/icons/agent-up-grey.svg", QueueAction.class);
+    private static final Icon OFFLINE_ICON = IconLoader.getIcon("/icons/agent-up-red.svg", QueueAction.class);
+
+    public QueueAction() {
+        getTemplatePresentation().setIcon(EMPTY_ICON);
+    }
+
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
         return ActionUpdateThread.BGT;
@@ -30,14 +43,20 @@ public final class QueueAction extends DumbAwareAction {
         Project project = event.getProject();
         if (project == null || project.isDisposed()) {
             event.getPresentation().setEnabled(false);
-            event.getPresentation().setText("Queue: Offline");
+            event.getPresentation().setText(ACTION_TEXT);
+            event.getPresentation().setIcon(OFFLINE_ICON);
+            event.getPresentation().setDisabledIcon(OFFLINE_ICON);
+            event.getPresentation().setDescription("agent-up cli not installed");
             return;
         }
 
         QueueRefreshCoordinator coordinator = project.getService(QueueRefreshCoordinator.class);
         coordinator.startPollingIfNeeded();
         QueueState state = coordinator.getState();
-        event.getPresentation().setText(labelFor(state));
+        event.getPresentation().setText(ACTION_TEXT);
+        event.getPresentation().setIcon(iconFor(state));
+        event.getPresentation().setDisabledIcon(iconFor(state));
+        event.getPresentation().setDescription(descriptionFor(state));
         event.getPresentation().setEnabled(state.getKind() == QueueState.Kind.AVAILABLE && state.getCount() > 0);
     }
 
@@ -54,7 +73,7 @@ public final class QueueAction extends DumbAwareAction {
         new Task.Backgroundable(project, "Agent-Up Commit Queue", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                indicator.setText("Running agentup commits next");
+                indicator.setText("Running agent-up commits next");
                 try {
                     NextCommitResponse result = project.getService(QueueService.class).runNext();
                     ApplicationManager.getApplication().invokeLater(() -> handleResult(project, panel, result));
@@ -91,12 +110,44 @@ public final class QueueAction extends DumbAwareAction {
         project.getService(QueueRefreshCoordinator.class).refresh();
     }
 
-    private static String labelFor(QueueState state) {
+    private static String descriptionFor(QueueState state) {
         return switch (state.getKind()) {
-            case LOADING -> "Queue: ...";
-            case OFFLINE -> "Queue: Offline";
-            case AVAILABLE -> "Queue: " + state.getCount();
-            case FAILED -> "Queue: Error";
+            case LOADING -> "Agent-Up commit queue is loading";
+            case OFFLINE -> "agent-up cli not installed";
+            case AVAILABLE -> state.getCount() > 0
+                ? queueTooltip(state.getMessages())
+                : "Agent-Up commits queue empty";
+            case FAILED -> "Agent-Up commit queue failed to load";
         };
+    }
+
+    private static Icon iconFor(QueueState state) {
+        return switch (state.getKind()) {
+            case OFFLINE -> OFFLINE_ICON;
+            case AVAILABLE -> state.getCount() > 0 ? ACTION_ICON : EMPTY_ICON;
+            case LOADING, FAILED -> EMPTY_ICON;
+        };
+    }
+
+    private static String queueTooltip(List<String> messages) {
+        if (messages.isEmpty()) {
+            return "Agent-Up commit queue has queued entries";
+        }
+
+        StringBuilder tooltip = new StringBuilder("<html>Agent-Up commit queue:");
+        for (String message : messages) {
+            tooltip.append("<br>- ").append(escapeHtml(message));
+        }
+
+        tooltip.append("</html>");
+        return tooltip.toString();
+    }
+
+    private static String escapeHtml(String value) {
+        return value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;");
     }
 }

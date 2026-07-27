@@ -94,7 +94,7 @@ public sealed class CommitsStatusCommandTests
     }
 
     [Test]
-    public async Task RunAsync_jsonFormat_writesQueueCount()
+    public async Task RunAsync_jsonFormat_writesQueueCountAndEntries()
     {
         using var output = new StringWriter();
         var queue = new CommitsQueue(1, [
@@ -106,9 +106,14 @@ public sealed class CommitsStatusCommandTests
         var code = await command.RunAsync(["--format", "json"]);
 
         using var json = JsonDocument.Parse(output.ToString());
+        var entries = json.RootElement.GetProperty("entries");
         Assert.That(code, Is.EqualTo(0));
         Assert.That(json.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(2));
-        Assert.That(json.RootElement.TryGetProperty("entries", out _), Is.False);
+        Assert.That(entries.GetArrayLength(), Is.EqualTo(2));
+        Assert.That(entries[0].GetProperty("slice").GetString(), Is.EqualTo("First"));
+        Assert.That(entries[0].GetProperty("message").GetString(), Is.EqualTo("fix: first"));
+        Assert.That(entries[1].GetProperty("slice").GetString(), Is.EqualTo("Second"));
+        Assert.That(entries[1].GetProperty("message").GetString(), Is.EqualTo("fix: second"));
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

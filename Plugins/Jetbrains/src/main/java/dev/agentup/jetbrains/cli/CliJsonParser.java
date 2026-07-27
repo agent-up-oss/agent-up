@@ -1,5 +1,7 @@
 package dev.agentup.jetbrains.cli;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,7 +12,7 @@ public final class CliJsonParser {
             throw new CliExecutionException("Agent-Up returned status JSON without a count field.");
         }
 
-        return new QueueStatusResponse(count);
+        return new QueueStatusResponse(count, stringFields(stdout, "message"));
     }
 
     public NextCommitResponse parseNext(String stdout) {
@@ -63,6 +65,16 @@ public final class CliJsonParser {
 
         Matcher matcher = Pattern.compile("\"" + Pattern.quote(name) + "\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"").matcher(json);
         return matcher.find() ? unescape(matcher.group(1)) : null;
+    }
+
+    private static List<String> stringFields(String json, String name) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(name) + "\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"").matcher(json);
+        List<String> values = new ArrayList<>();
+        while (matcher.find()) {
+            values.add(unescape(matcher.group(1)));
+        }
+
+        return values;
     }
 
     private static String unescape(String value) {

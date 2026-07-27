@@ -1,4 +1,5 @@
 import org.gradle.jvm.toolchain.JavaToolchainService
+import org.gradle.api.tasks.bundling.Zip
 
 plugins {
     java
@@ -61,5 +62,14 @@ tasks {
 
     named("buildSearchableOptions") {
         enabled = false
+    }
+
+    named<Zip>("buildPlugin") {
+        from("src/main/resources/META-INF/pluginIcon.svg") {
+            into("META-INF")
+        }
+        from("src/main/resources/META-INF/pluginIcon_dark.svg") {
+            into("META-INF")
+        }
     }
 }

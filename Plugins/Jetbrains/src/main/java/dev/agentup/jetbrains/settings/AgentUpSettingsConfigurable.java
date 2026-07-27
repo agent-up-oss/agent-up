@@ -86,7 +86,7 @@ public final class AgentUpSettingsConfigurable implements Configurable {
 
         private String executablePath() {
             String value = executable.getText().trim();
-            return value.isEmpty() ? "agentup" : value;
+            return value.isEmpty() ? "agent-up" : value;
         }
 
         private int pollIntervalSeconds() {

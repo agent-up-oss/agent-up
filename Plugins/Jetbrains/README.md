@@ -5,8 +5,8 @@ Minimal JetBrains IDE integration for the Agent-Up local commit queue.
 ## MVP Behavior
 
 - Adds a `Queue: N` action to the commit-message action group and the Tools menu.
-- Polls `agentup commits status --format json` every few seconds while the action is visible.
-- Runs `agentup commits next --format json` when the action is clicked.
+- Polls `agent-up commits status --format json` every few seconds while the action is visible.
+- Runs `agent-up commits next --format json` when the action is clicked.
 - Inserts the returned commit message into the active Commit tool window when available.
 - Requests a VCS change-list refresh after `next` completes.
 

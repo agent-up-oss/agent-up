@@ -1,6 +1,12 @@
 namespace AgentUp.CLI.Features.Commits.DTOs;
 
-public sealed record CommitsStatusJson(int Count);
+public sealed record CommitsStatusJson(
+    int Count,
+    IReadOnlyList<CommitsStatusEntryJson> Entries);
+
+public sealed record CommitsStatusEntryJson(
+    string Slice,
+    string Message);
 
 public sealed record CommitsNextStagedJson(
     bool Staged,

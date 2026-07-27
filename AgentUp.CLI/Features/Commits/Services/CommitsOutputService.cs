@@ -49,7 +49,9 @@ public sealed class CommitsOutputService(TextWriter output)
 
     public int WriteStatusJson(CommitsStatusResult result)
     {
-        output.WriteLine(JsonSerializer.Serialize(new CommitsStatusJson(result.Entries.Count), JsonOptions));
+        output.WriteLine(JsonSerializer.Serialize(new CommitsStatusJson(
+            result.Entries.Count,
+            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Slice, entry.Message)).ToList()), JsonOptions));
         return 0;
     }
 

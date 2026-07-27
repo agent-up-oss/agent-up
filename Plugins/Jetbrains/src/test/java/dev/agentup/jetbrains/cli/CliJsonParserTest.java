@@ -16,6 +16,18 @@ final class CliJsonParserTest {
         QueueStatusResponse result = parser.parseStatus("{\"count\":3}");
 
         assertEquals(3, result.count());
+        assertTrue(result.messages().isEmpty());
+    }
+
+    @Test
+    void parseStatusReadsQueueMessages() {
+        QueueStatusResponse result = parser.parseStatus(
+            "{\"count\":2,\"entries\":[{\"slice\":\"One\",\"message\":\"feat(one): add thing\"},{\"slice\":\"Two\",\"message\":\"fix(two): repair thing\"}]}"
+        );
+
+        assertEquals(2, result.count());
+        assertEquals("feat(one): add thing", result.messages().get(0));
+        assertEquals("fix(two): repair thing", result.messages().get(1));
     }
 
     @Test

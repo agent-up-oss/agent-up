@@ -47,7 +47,8 @@ public final class QueueService {
                 : QueueState.failed(parser.parseError(result.stdout(), result.stderr()));
         }
 
-        return QueueState.available(parser.parseStatus(result.stdout()).count());
+        var status = parser.parseStatus(result.stdout());
+        return QueueState.available(status.count(), status.messages());
     }
 
     public NextCommitResponse runNext() {

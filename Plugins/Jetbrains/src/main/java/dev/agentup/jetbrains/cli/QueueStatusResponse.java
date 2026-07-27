@@ -1,4 +1,6 @@
 package dev.agentup.jetbrains.cli;
 
-public record QueueStatusResponse(int count) {
+import java.util.List;
+
+public record QueueStatusResponse(int count, List<String> messages) {
 }

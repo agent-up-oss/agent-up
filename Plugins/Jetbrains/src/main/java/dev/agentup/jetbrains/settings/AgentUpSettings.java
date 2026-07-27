@@ -22,7 +22,7 @@ public final class AgentUpSettings implements PersistentStateComponent<AgentUpSe
     }
 
     public static final class State {
-        public String executablePath = "agentup";
+        public String executablePath = "agent-up";
         public int pollIntervalSeconds = 5;
         public int statusTimeoutSeconds = 5;
         public int operationTimeoutSeconds = 60;
