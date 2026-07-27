@@ -1,7 +1,7 @@
 <idea-plugin>
-    <id>dev.agentup.jetbrains</id>
+    <id>net.themassiveone.agent-up.jetbrains</id>
     <name>Agent-Up Commit Queue</name>
-    <vendor email="support@agent-up.dev" url="https://github.com/agent-up-oss/agent-up">Agent-Up</vendor>
+    <vendor email="me@themassiveone.net" url="https://github.com/agent-up-oss/agent-up">Agent-Up</vendor>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
