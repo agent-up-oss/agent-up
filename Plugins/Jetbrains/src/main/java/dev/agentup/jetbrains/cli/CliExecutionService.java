@@ -15,10 +15,12 @@ public final class CliExecutionService {
     private static final int MAX_OUTPUT_LENGTH = 128 * 1024;
 
     public CliExecutionResult execute(Project project, CliCommand command) {
-        GeneralCommandLine commandLine = new GeneralCommandLine(command.executable())
+        CliExecutableCommand executableCommand = CliExecutableCommand.parse(command.executable());
+        GeneralCommandLine commandLine = new GeneralCommandLine(executableCommand.executable())
             .withCharset(StandardCharsets.UTF_8)
             .withRedirectErrorStream(false);
 
+        commandLine.addParameters(executableCommand.arguments());
         commandLine.addParameters(command.arguments());
         if (command.workingDirectory() != null) {
             commandLine.withWorkDirectory(command.workingDirectory().toFile());

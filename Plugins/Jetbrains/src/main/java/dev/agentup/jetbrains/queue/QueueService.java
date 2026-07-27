@@ -31,19 +31,24 @@ public final class QueueService {
         }
 
         AgentUpSettings.State settings = ApplicationManager.getApplication().getService(AgentUpSettings.class).getState();
-        CliExecutionResult result = project.getService(CliExecutionService.class).execute(
-            project,
-            new CliCommand(
-                settings.executablePath,
-                List.of("commits", "status", "--format", "json"),
-                repository,
-                Duration.ofSeconds(settings.statusTimeoutSeconds)
-            )
-        );
+        CliExecutionResult result;
+        try {
+            result = project.getService(CliExecutionService.class).execute(
+                project,
+                new CliCommand(
+                    settings.executablePath,
+                    List.of("commits", "status", "--format", "json"),
+                    repository,
+                    Duration.ofSeconds(settings.statusTimeoutSeconds)
+                )
+            );
+        } catch (CliExecutionException ex) {
+            return QueueState.offline(settings.executablePath);
+        }
 
         if (!result.succeeded()) {
             return result.exitCode() == -1
-                ? QueueState.offline()
+                ? QueueState.offline(settings.executablePath)
                 : QueueState.failed(parser.parseError(result.stdout(), result.stderr()));
         }
 

@@ -5,9 +5,12 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vcs.changes.ChangeList;
+import com.intellij.openapi.vcs.changes.ChangeListListener;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import dev.agentup.jetbrains.cli.CliExecutionException;
 import dev.agentup.jetbrains.settings.AgentUpSettings;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +26,22 @@ public final class QueueRefreshCoordinator implements Disposable {
 
     public QueueRefreshCoordinator(Project project) {
         this.project = project;
+        project.getMessageBus().connect(this).subscribe(ChangeListListener.TOPIC, new ChangeListListener() {
+            @Override
+            public void changeListUpdateDone() {
+                refresh();
+            }
+
+            @Override
+            public void changedFileStatusChanged() {
+                refresh();
+            }
+
+            @Override
+            public void changeListChanged(@NotNull ChangeList list) {
+                refresh();
+            }
+        });
     }
 
     public QueueState getState() {
@@ -53,7 +72,7 @@ public final class QueueRefreshCoordinator implements Disposable {
             try {
                 updateState(project.getService(QueueService.class).getQueueSize());
             } catch (CliExecutionException ex) {
-                updateState(QueueState.offline());
+                updateState(QueueState.offline(ApplicationManager.getApplication().getService(AgentUpSettings.class).getState().executablePath));
             } catch (Throwable ex) {
                 updateState(QueueState.failed(ex.getMessage() == null ? "Agent-Up queue refresh failed." : ex.getMessage()));
             } finally {
