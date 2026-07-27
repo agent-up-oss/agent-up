@@ -9,6 +9,23 @@ public sealed class CommitsUtilityCommandRunner(
     CommitsOutputService output,
     ICommitsFormatParser formatParser) : ICommitsUtilityCommandRunner
 {
+    public async Task<int> RunChangesAsync(string[] args, CancellationToken cancellationToken = default)
+    {
+        var (format, error) = formatParser.Parse(args);
+        if (error is not null)
+            return output.WriteError(error, format);
+
+        try
+        {
+            var result = await service.GetChangesAsync(cancellationToken);
+            return output.WriteChanges(result, format);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return output.WriteError(ex.Message, format);
+        }
+    }
+
     public async Task<int> RunInspectAsync(string[] args, CancellationToken cancellationToken = default)
     {
         var includePatch = args.Contains("--patch", StringComparer.Ordinal);

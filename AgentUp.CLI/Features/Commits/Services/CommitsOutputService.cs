@@ -208,6 +208,11 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
         output.WriteLine("  changes  Show working tree files and queue assignment");
         output.WriteLine("  inspect  Show one queued entry");
         output.WriteLine("  edit     Begin, save, abort, or inspect an edit session");
+        output.WriteLine("  message  Update a queued entry commit message");
+        output.WriteLine("  tests    Replace test commands for a queued entry");
+        output.WriteLine("  files    Add or remove files for a queued entry");
+        output.WriteLine("  remove   Archive one queued entry");
+        output.WriteLine("  restore  Restore one archived entry");
         output.WriteLine("  guard    Fail while queued or unsafe changes remain");
         output.WriteLine("  next     Stage the first queued entry and advance the queue");
         output.WriteLine("  clear    Remove all entries from the queue");

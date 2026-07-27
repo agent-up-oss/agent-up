@@ -7,8 +7,9 @@ using AgentUp.CLI.Features.Commits.Models;
 
 namespace AgentUp.CLI.Features.Commits.Providers;
 
-public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueueProvider
+public sealed class CommitsQueueProvider(ICommitsGitProvider git, string? baseDirectory = null) : ICommitsQueueProvider
 {
+    private static readonly TimeSpan LockRetryDelay = TimeSpan.FromMilliseconds(25);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -85,8 +86,24 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         Directory.CreateDirectory(Path.GetDirectoryName(queuePath)!);
         var lockPath = Path.Join(Path.GetDirectoryName(queuePath)!, "queue.lock");
 
-        await using var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        await using var stream = await OpenLockAsync(lockPath, cancellationToken);
         return await operation(cancellationToken);
+    }
+
+    private static async Task<FileStream> OpenLockAsync(string lockPath, CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException) when (!cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(LockRetryDelay, cancellationToken);
+            }
+        }
     }
 
     private static string SafePatchKey(string patchKey)
@@ -96,7 +113,7 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
     {
         var root = await git.GetRepoRootAsync(cancellationToken);
         var repoId = RepoId(root);
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var baseDir = baseDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         return Path.Join(baseDir, "agentup", "commits", repoId, "queue.json");
     }
 
