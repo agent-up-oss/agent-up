@@ -139,7 +139,7 @@ public sealed class CommitsStatusCommandTests
         var service = new CommitsService(
             new FakeCommitsQueueProvider(queue),
             new FakeCommitsGitProvider(modifiedFiles ?? []));
-        return new CommitsStatusCommand(service, new CommitsOutputService(output), new CommitsFormatParser());
+        return new CommitsStatusCommand(service, new CommitsOutputService(output, new CommitsJsonRenderer()), new CommitsFormatParser());
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

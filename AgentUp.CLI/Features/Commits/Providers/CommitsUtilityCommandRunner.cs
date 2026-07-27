@@ -128,15 +128,17 @@ public sealed class CommitsUtilityCommandRunner(
         var result = new List<string>();
         for (var i = 0; i < args.Length; i++)
         {
-            if (args[i] is "--format" or "--message" or "--set" or "--add" or "--remove")
+            if (args[i] == "--format")
+            {
+                i++;
+                continue;
+            }
+
+            if (args[i] is "--message" or "--set" or "--add" or "--remove")
             {
                 i++;
                 while (i < args.Length && !args[i].StartsWith("--", StringComparison.Ordinal))
-                {
-                    if (args[i - 1] == "--format")
-                        break;
                     i++;
-                }
                 i--;
                 continue;
             }

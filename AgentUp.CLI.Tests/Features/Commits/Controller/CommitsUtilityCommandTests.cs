@@ -56,6 +56,51 @@ public sealed class CommitsUtilityCommandTests
     }
 
     [Test]
+    public async Task Inspect_whenFormatPrecedesEntry_usesEntryReference()
+    {
+        using var output = new StringWriter();
+        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var command = BuildController(output, new CommitsQueue(2, [entry]));
+
+        var code = await command.RunAsync(["inspect", "--format", "json", "1"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(0));
+        Assert.That(json.RootElement.GetProperty("entry").GetProperty("id").GetString(), Is.EqualTo("entry-1"));
+    }
+
+    [Test]
+    public async Task EditBegin_whenFormatPrecedesVerb_usesVerbAndEntryReference()
+    {
+        using var output = new StringWriter();
+        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        queue.Patches["entry-1"] = "diff --git a/queued.cs b/queued.cs\n";
+        var command = BuildController(output, queueProvider: queue);
+
+        var code = await command.RunAsync(["edit", "--format", "json", "begin", "1"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(0));
+        Assert.That(json.RootElement.GetProperty("session").GetProperty("entryId").GetString(), Is.EqualTo("entry-1"));
+    }
+
+    [Test]
+    public async Task Message_whenFormatPrecedesEntry_usesEntryReference()
+    {
+        using var output = new StringWriter();
+        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        var command = BuildController(output, queueProvider: queue);
+
+        var code = await command.RunAsync(["message", "--format", "json", "1", "--message", "fix: updated"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(0));
+        Assert.That(json.RootElement.GetProperty("entry").GetProperty("message").GetString(), Is.EqualTo("fix: updated"));
+    }
+
+    [Test]
     public async Task Remove_archivesEntry()
     {
         using var output = new StringWriter();
@@ -80,7 +125,7 @@ public sealed class CommitsUtilityCommandTests
             queueProvider ?? new FakeCommitsQueueProvider(queue),
             new FakeCommitsGitProvider(modifiedFiles ?? []));
         var formatParser = new CommitsFormatParser();
-        var outputService = new CommitsOutputService(output);
+        var outputService = new CommitsOutputService(output, new CommitsJsonRenderer());
         var enqueueParser = new CommitsArgParser();
         var utilityRunner = new CommitsUtilityCommandRunner(service, outputService, formatParser);
         return new CommitsController(

@@ -43,7 +43,10 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var modified = await git.GetModifiedFilesAsync(cancellationToken);
         var unassigned = modified.Where(f => !assignedFiles.Contains(f)).ToList();
 
-        return new CommitsStatusResult(current.Commits, unassigned, current.ActiveSession);
+        var session = current.ActiveSession is null
+            ? null
+            : new CommitsStatusSession(current.ActiveSession.EntryId, current.ActiveSession.Files);
+        return new CommitsStatusResult(current.Commits, unassigned, session);
     }
 
     public async Task<CommitsStagingResult?> StageNextAsync(CancellationToken cancellationToken = default)
@@ -80,7 +83,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             var current = await queue.ReadAsync(ct);
             EnsureNoActiveSession(current);
             var archived = Archive(current, current.Commits);
-            await queue.WriteAsync(current with { Commits = [], Archive = archived });
+            await queue.WriteAsync(current with { Commits = [], Archive = archived }, ct);
             return true;
         }, cancellationToken);
     }
@@ -104,6 +107,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         {
             var current = await queue.ReadAsync(ct);
             var entry = ResolveEntry(current, entryRef);
+            EnsureNotEditingEntry(current, entry);
             EnsureFilesAreUnassigned(current, files, entry.Id);
             var updatedFiles = entry.Files.Concat(files).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             var updatedEntry = entry with { Files = updatedFiles };
@@ -153,9 +157,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             var entry = ResolveEntry(current, entryRef);
             var patch = await queue.ReadPatchAsync(entry.PatchKey, ct);
             var session = new CommitEditSession(entry.Id, entry.PatchKey, entry.Files);
-            await queue.WriteAsync(current with { ActiveSession = session }, ct);
             if (patch is not null)
                 await git.ApplyPatchAsync(patch, ct);
+            await queue.WriteAsync(current with { ActiveSession = session }, ct);
 
             return CommitEditResult.Completed("Edit session started.", entry, session);
         }, cancellationToken);
@@ -214,6 +218,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         {
             var current = await queue.ReadAsync(ct);
             var entry = ResolveEntry(current, entryRef);
+            EnsureNotEditingEntry(current, entry);
             var updatedEntry = update(entry);
             await queue.WriteAsync(ReplaceEntry(current, updatedEntry), ct);
             return CommitEditResult.Completed("Entry updated.", updatedEntry, current.ActiveSession);
@@ -238,6 +243,12 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
     {
         if (current.ActiveSession is not null)
             throw new InvalidOperationException("A commit queue edit session is active. Save or abort it first.");
+    }
+
+    private static void EnsureNotEditingEntry(CommitsQueue current, CommitEntry entry)
+    {
+        if (current.ActiveSession?.EntryId == entry.Id)
+            throw new InvalidOperationException("Cannot mutate files or metadata for the entry currently under edit. Save or abort the edit session first.");
     }
 
     private static void EnsureFilesAreUnassigned(CommitsQueue current, IReadOnlyList<string> files, string? allowedEntryId = null)

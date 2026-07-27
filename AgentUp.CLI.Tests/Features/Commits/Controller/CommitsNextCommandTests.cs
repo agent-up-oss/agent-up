@@ -192,7 +192,7 @@ public sealed class CommitsNextCommandTests
     {
         var gitProvider = git ?? new FakeCommitsGitProvider();
         var service = new CommitsService(new FakeCommitsQueueProvider(queue), gitProvider);
-        return new CommitsNextCommand(service, new CommitsOutputService(output), new CommitsFormatParser());
+        return new CommitsNextCommand(service, new CommitsOutputService(output, new CommitsJsonRenderer()), new CommitsFormatParser());
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

@@ -235,6 +235,29 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public void BeginEditAsync_whenPatchApplyFails_doesNotStoreActiveSession()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(throwOnApply: true));
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await service.BeginEditAsync("1"));
+        Assert.That(queue.Stored!.ActiveSession, Is.Null);
+    }
+
+    [Test]
+    public void AddFilesAsync_rejectsEntryCurrentlyUnderEdit()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.AddFilesAsync("1", ["b.cs"]));
+    }
+
+    [Test]
     public async Task SaveEditAsync_rejectsChangesOutsideEntryFiles()
     {
         var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
@@ -330,7 +353,7 @@ public sealed class CommitsServiceTests
             => operation(cancellationToken);
     }
 
-    private sealed class FakeCommitsGitProvider(bool hasStagedChanges = false, string[]? modifiedFiles = null) : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(bool hasStagedChanges = false, string[]? modifiedFiles = null, bool throwOnApply = false) : ICommitsGitProvider
     {
         public List<string> StagedFiles { get; } = [];
         public List<string> AppliedPatches { get; } = [];
@@ -364,6 +387,9 @@ public sealed class CommitsServiceTests
 
         public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
         {
+            if (throwOnApply)
+                throw new InvalidOperationException("patch failed");
+
             AppliedPatches.Add(patch);
             Invocations.Add("apply");
             return Task.CompletedTask;

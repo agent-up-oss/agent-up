@@ -155,6 +155,8 @@ agentup commits guard --format json
 
 #### commits next
 
+`commits next` is developer-only. Agents should stop after `commits status` or `commits guard`; they must not stage or pop queued entries.
+
 Stages the files for the first queued entry using `git add`, pops that entry from the queue, and prints the suggested `git commit` command. Run after reviewing the staged changes.
 
 ```bash

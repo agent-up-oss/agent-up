@@ -114,7 +114,7 @@ public sealed class CommitsEnqueueCommandTests
     {
         var provider = queue ?? new FakeCommitsQueueProvider();
         var service = new CommitsService(provider, new FakeCommitsGitProvider());
-        return new CommitsEnqueueCommand(service, new CommitsArgParser(), new CommitsOutputService(output));
+        return new CommitsEnqueueCommand(service, new CommitsArgParser(), new CommitsOutputService(output, new CommitsJsonRenderer()));
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

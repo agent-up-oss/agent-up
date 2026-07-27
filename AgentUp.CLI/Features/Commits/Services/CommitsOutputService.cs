@@ -1,16 +1,10 @@
-using System.Text.Json;
 using AgentUp.CLI.Features.Commits.DTOs;
-using AgentUp.CLI.Features.Commits.Models;
+using AgentUp.CLI.Features.Commits.Interfaces;
 
 namespace AgentUp.CLI.Features.Commits.Services;
 
-public sealed class CommitsOutputService(TextWriter output)
+public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer json)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     public int WriteEnqueueResult(string slice, int totalCount)
     {
         output.WriteLine($"Queued: {slice} ({totalCount} {(totalCount == 1 ? "entry" : "entries")} total)");
@@ -55,11 +49,11 @@ public sealed class CommitsOutputService(TextWriter output)
 
     public int WriteStatusJson(CommitsStatusResult result)
     {
-        output.WriteLine(JsonSerializer.Serialize(new CommitsStatusJson(
+        output.WriteLine(json.Serialize(new CommitsStatusJson(
             result.Entries.Count,
             result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Id, entry.Slice, entry.Message, entry.Files, entry.Tests)).ToList(),
             result.UnassignedFiles,
-            result.ActiveSession is null ? null : new CommitsStatusSessionJson(result.ActiveSession.EntryId, result.ActiveSession.Files)), JsonOptions));
+            result.ActiveSession is null ? null : new CommitsStatusSessionJson(result.ActiveSession.EntryId, result.ActiveSession.Files))));
         return 0;
     }
 
@@ -67,7 +61,7 @@ public sealed class CommitsOutputService(TextWriter output)
     {
         if (format == CommitsOutputFormat.Json)
         {
-            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            output.WriteLine(json.Serialize(result));
             return 0;
         }
 
@@ -84,7 +78,7 @@ public sealed class CommitsOutputService(TextWriter output)
     {
         if (format == CommitsOutputFormat.Json)
         {
-            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            output.WriteLine(json.Serialize(result));
             return 0;
         }
 
@@ -104,7 +98,7 @@ public sealed class CommitsOutputService(TextWriter output)
 
         if (format == CommitsOutputFormat.Json)
         {
-            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            output.WriteLine(json.Serialize(result));
             return 0;
         }
 
@@ -118,7 +112,7 @@ public sealed class CommitsOutputService(TextWriter output)
     {
         if (format == CommitsOutputFormat.Json)
         {
-            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            output.WriteLine(json.Serialize(result));
             return result.Success ? 0 : 1;
         }
 
@@ -164,17 +158,17 @@ public sealed class CommitsOutputService(TextWriter output)
         if (result.IsBlocked)
             return WriteErrorJson(result.BlockedReason!);
 
-        output.WriteLine(JsonSerializer.Serialize(new CommitsNextStagedJson(
+        output.WriteLine(json.Serialize(new CommitsNextStagedJson(
             true,
             result.Slice,
             result.Message,
-            result.RemainingCount), JsonOptions));
+            result.RemainingCount)));
         return 0;
     }
 
     public int WriteEmptyQueueJson()
     {
-        output.WriteLine(JsonSerializer.Serialize(new CommitsNextEmptyJson(false, true, null, 0), JsonOptions));
+        output.WriteLine(json.Serialize(new CommitsNextEmptyJson(false, true, null, 0)));
         return 0;
     }
 
@@ -201,7 +195,7 @@ public sealed class CommitsOutputService(TextWriter output)
 
     public int WriteErrorJson(string message)
     {
-        output.WriteLine(JsonSerializer.Serialize(new CommitsErrorJson(message), JsonOptions));
+        output.WriteLine(json.Serialize(new CommitsErrorJson(message)));
         return 1;
     }
 

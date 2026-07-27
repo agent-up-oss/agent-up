@@ -33,8 +33,16 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var json = JsonSerializer.Serialize(CommitsQueueJson.FromModel(queue), JsonOptions);
         var tempPath = Path.Join(Path.GetDirectoryName(path)!, $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
-        await File.WriteAllTextAsync(tempPath, json, cancellationToken);
-        File.Move(tempPath, path, true);
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, json, cancellationToken);
+            File.Move(tempPath, path, true);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
+        }
     }
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
