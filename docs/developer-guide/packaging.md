@@ -58,7 +58,7 @@ The packaging command entrypoint builds the project composition root and delegat
 
 Packaging services must not construct native tool commands such as `dpkg-deb`, `wix`, `pkgbuild`, `productbuild`, `dotnet publish`, package archive expansion, or raw CLI argument parsing. Use capability-named providers such as `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageTool`, `PackagePublisher`, and `PackageCommandParser`; test exact command shapes at the provider level.
 
-CI uses prebuilt payload mode: the Ubuntu build job restores once per release runtime, then publishes single-file self-contained InstallerApp, Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for that runtime with restore disabled.
+CI uses prebuilt payload mode: the Ubuntu build job restores once per release runtime, then publishes single-file self-contained InstallerApp, Desktop, Server, CLI, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` artifacts for that runtime with restore disabled. CI also builds the JetBrains plugin from `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset.
 
 The Ubuntu build uploads one short-lived GitHub Actions artifact per platform job, and native package jobs download only their own runtime slice before passing `--payload-root` to package those exact payloads. Native package jobs should delete the consumed CI-transfer artifact after download. Native package jobs should not restore, build, or broadly test product .NET projects; they should only run native packaging tools and package/installer smoke validation.
 

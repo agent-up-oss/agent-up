@@ -7,7 +7,10 @@ plugins {
 }
 
 group = "dev.agentup"
-version = "0.1.0"
+val agentUpVersion = providers.gradleProperty("agentUpVersion")
+    .orElse(providers.environmentVariable("AGENTUP_VERSION"))
+    .orElse("0.1.0")
+version = agentUpVersion.get()
 
 java {
     toolchain {
@@ -29,6 +32,7 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         name = "Agent-Up Commit Queue"
+        version.set(agentUpVersion)
         description = """
             Integrates the Agent-Up local commit queue with the JetBrains commit workflow.
         """.trimIndent()
