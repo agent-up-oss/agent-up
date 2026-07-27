@@ -32,7 +32,9 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         var path = await QueuePathAsync(cancellationToken);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var json = JsonSerializer.Serialize(CommitsQueueJson.FromModel(queue), JsonOptions);
-        await File.WriteAllTextAsync(path, json, cancellationToken);
+        var tempPath = Path.Join(Path.GetDirectoryName(path)!, $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+        await File.WriteAllTextAsync(tempPath, json, cancellationToken);
+        File.Move(tempPath, path, true);
     }
 
     public async Task DeleteAsync(CancellationToken cancellationToken = default)
@@ -51,6 +53,9 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         var patchDir = Path.Join(Path.GetDirectoryName(queuePath)!, "patches");
         Directory.CreateDirectory(patchDir);
         var patchPath = Path.Join(patchDir, $"{SafePatchKey(patchKey)}.patch");
+        if (File.Exists(patchPath))
+            throw new InvalidOperationException($"Commit queue patch '{patchKey}' already exists.");
+
         var content = patch.EndsWith('\n') ? patch : patch + "\n";
         await File.WriteAllTextAsync(patchPath, content, cancellationToken);
     }
@@ -64,6 +69,16 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
 
         var patchPath = Path.Join(patchDir, $"{SafePatchKey(patchKey)}.patch");
         return File.Exists(patchPath) ? await File.ReadAllTextAsync(patchPath, cancellationToken) : null;
+    }
+
+    public async Task<T> WithLockAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+    {
+        var queuePath = await QueuePathAsync(cancellationToken);
+        Directory.CreateDirectory(Path.GetDirectoryName(queuePath)!);
+        var lockPath = Path.Join(Path.GetDirectoryName(queuePath)!, "queue.lock");
+
+        await using var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        return await operation(cancellationToken);
     }
 
     private static string SafePatchKey(string patchKey)

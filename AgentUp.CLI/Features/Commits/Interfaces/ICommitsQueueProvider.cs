@@ -9,4 +9,5 @@ public interface ICommitsQueueProvider
     Task DeleteAsync(CancellationToken cancellationToken = default);
     Task SavePatchAsync(string patchKey, string patch, CancellationToken cancellationToken = default);
     Task<string?> ReadPatchAsync(string patchKey, CancellationToken cancellationToken = default);
+    Task<T> WithLockAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default);
 }

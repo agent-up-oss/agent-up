@@ -662,7 +662,7 @@ Read: `docs/developer-guide/workflows.md`.
 
 Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use `agentup commits enqueue` to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
 
-Agent responsibility: `enqueue` only. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue calls, run `agentup commits status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
+Agent responsibility: manage queue entries only. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `agentup commits status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
 
 ```bash
 dotnet run --project AgentUp.CLI -- commits enqueue \
@@ -673,6 +673,38 @@ dotnet run --project AgentUp.CLI -- commits enqueue \
 ```
 
 One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Enqueue entries in the order they should be committed.
+
+Use `agentup commits changes` to inspect the working tree and queue assignment instead of composing raw `git ls-files`, `find`, `grep`, `tr`, or similar shell pipelines.
+
+Queued entries must be manipulated through the commit queue commands:
+
+```bash
+agentup commits inspect <entry>
+agentup commits message <entry> --message "<conventional commit message>"
+agentup commits tests <entry> --set "<test command>"
+agentup commits files <entry> --add <file1> [file2 ...]
+agentup commits files <entry> --remove <file1> [file2 ...]
+agentup commits remove <entry>
+agentup commits restore <entry-id>
+```
+
+To change an existing queued patch, use an explicit edit session:
+
+```bash
+agentup commits edit begin <entry>
+# modify only files owned by that entry
+agentup commits edit save
+```
+
+The working tree must be clean before starting an edit session. `edit save` rejects cross-cutting changes outside the entry's file list; add same-slice files with `agentup commits files <entry> --add ...` before saving. Use `agentup commits edit abort` to discard the working-tree edit and keep the original queued patch.
+
+Before any operation that would publish work outside the local workspace, run:
+
+```bash
+agentup commits guard
+```
+
+If the guard reports queued entries, an active edit session, staged changes, or unassigned changes, stop and ask the developer to commit or resolve the queued work first.
 
 ### Conventional Commit Prefixes
 

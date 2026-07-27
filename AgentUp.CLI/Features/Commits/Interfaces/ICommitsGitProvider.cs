@@ -4,6 +4,8 @@ public interface ICommitsGitProvider
 {
     Task<string> GetRepoRootAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetStagedFilesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetUntrackedFilesAsync(CancellationToken cancellationToken = default);
     Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default);
     Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default);
     Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default);

@@ -1,6 +1,12 @@
 namespace AgentUp.CLI.Features.Commits.Models;
 
-public sealed record CommitsQueue(int Version, IReadOnlyList<CommitEntry> Commits)
+public sealed record CommitsQueue(
+    int Version,
+    IReadOnlyList<CommitEntry> Commits,
+    CommitEditSession? ActiveSession = null,
+    IReadOnlyList<ArchivedCommitEntry>? Archive = null)
 {
-    public static CommitsQueue Empty() => new(1, []);
+    public IReadOnlyList<ArchivedCommitEntry> Archived => Archive ?? [];
+
+    public static CommitsQueue Empty() => new(2, []);
 }

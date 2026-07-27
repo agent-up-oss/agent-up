@@ -33,6 +33,12 @@ public sealed class CommitsOutputService(TextWriter output)
             output.WriteLine($"    {entry.Files.Count} file(s){(entry.Tests.Count > 0 ? $", {entry.Tests.Count} test command(s)" : "")}");
         }
 
+        if (result.ActiveSession is not null)
+        {
+            output.WriteLine();
+            output.WriteLine($"Active edit session: {result.ActiveSession.EntryId}");
+        }
+
         if (result.UnassignedFiles.Count > 0)
         {
             output.WriteLine();
@@ -51,8 +57,80 @@ public sealed class CommitsOutputService(TextWriter output)
     {
         output.WriteLine(JsonSerializer.Serialize(new CommitsStatusJson(
             result.Entries.Count,
-            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Slice, entry.Message)).ToList()), JsonOptions));
+            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Id, entry.Slice, entry.Message, entry.Files, entry.Tests)).ToList(),
+            result.UnassignedFiles,
+            result.ActiveSession is null ? null : new CommitsStatusSessionJson(result.ActiveSession.EntryId, result.ActiveSession.Files)), JsonOptions));
         return 0;
+    }
+
+    public int WriteChanges(CommitChangesResult result, CommitsOutputFormat format)
+    {
+        if (format == CommitsOutputFormat.Json)
+        {
+            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            return 0;
+        }
+
+        output.WriteLine("Working tree changes:");
+        WriteFiles("Modified", result.ModifiedFiles);
+        WriteFiles("Staged", result.StagedFiles);
+        WriteFiles("Untracked", result.UntrackedFiles);
+        WriteFiles("Queued", result.QueuedFiles);
+        WriteFiles("Unassigned", result.UnassignedFiles);
+        return 0;
+    }
+
+    public int WriteInspect(CommitInspectResult result, CommitsOutputFormat format)
+    {
+        if (format == CommitsOutputFormat.Json)
+        {
+            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            return 0;
+        }
+
+        output.WriteLine($"[{result.Entry.Id}] {result.Entry.Slice}");
+        output.WriteLine($"  {result.Entry.Message}");
+        WriteFiles("Files", result.Entry.Files);
+        WriteFiles("Tests", result.Entry.Tests);
+        if (result.Patch is not null)
+            output.WriteLine(result.Patch);
+        return 0;
+    }
+
+    public int WriteEdit(CommitEditResult result, CommitsOutputFormat format)
+    {
+        if (!result.Success)
+            return WriteError(result.Message, format);
+
+        if (format == CommitsOutputFormat.Json)
+        {
+            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            return 0;
+        }
+
+        output.WriteLine(result.Message);
+        if (result.Entry is not null)
+            output.WriteLine($"{result.Entry.Id} {result.Entry.Message}");
+        return 0;
+    }
+
+    public int WriteGuard(CommitGuardResult result, CommitsOutputFormat format)
+    {
+        if (format == CommitsOutputFormat.Json)
+        {
+            output.WriteLine(JsonSerializer.Serialize(result, JsonOptions));
+            return result.Success ? 0 : 1;
+        }
+
+        if (result.Success)
+        {
+            output.WriteLine("Commit queue guard passed.");
+            return 0;
+        }
+
+        foreach (var blocker in result.Blockers)
+            output.WriteLine($"Error: {blocker}");
+        return 1;
     }
 
     public int WriteStagingResult(CommitsStagingResult result)
@@ -133,9 +211,19 @@ public sealed class CommitsOutputService(TextWriter output)
         output.WriteLine("Commands:");
         output.WriteLine("  enqueue  Add a proposed commit entry to the queue");
         output.WriteLine("  status   Show the current commit queue");
+        output.WriteLine("  changes  Show working tree files and queue assignment");
+        output.WriteLine("  inspect  Show one queued entry");
+        output.WriteLine("  edit     Begin, save, abort, or inspect an edit session");
+        output.WriteLine("  guard    Fail while queued or unsafe changes remain");
         output.WriteLine("  next     Stage the first queued entry and advance the queue");
         output.WriteLine("  clear    Remove all entries from the queue");
         return 0;
     }
 
+    private void WriteFiles(string label, IReadOnlyList<string> files)
+    {
+        output.WriteLine($"{label}: {(files.Count == 0 ? "(none)" : "")}");
+        foreach (var file in files)
+            output.WriteLine($"  {file}");
+    }
 }

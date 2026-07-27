@@ -85,7 +85,7 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
-    public async Task StageNextAsync_stagesHeadEntryAndDeletesQueueWhenNowEmpty()
+    public async Task StageNextAsync_stagesHeadEntryAndStoresEmptyQueueWhenNowEmpty()
     {
         var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
@@ -99,7 +99,7 @@ public sealed class CommitsServiceTests
         Assert.That(result.StagedFiles, Is.EqualTo(new[] { "a.cs" }));
         Assert.That(result.RemainingCount, Is.EqualTo(0));
         Assert.That(git.StagedFiles, Is.EqualTo(new[] { "a.cs" }));
-        Assert.That(queue.Deleted, Is.True);
+        Assert.That(queue.Stored!.Commits, Is.Empty);
     }
 
     [Test]
@@ -193,7 +193,93 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
-    public async Task ClearAsync_deletesQueue()
+    public void EnqueueAsync_rejectsFilesAlreadyAssignedToAnotherEntry()
+    {
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
+            new CommitEntry("First", "fix: first", ["a.cs"], [], "entry-1")
+        ]));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.EnqueueAsync(new EnqueueRequest("Second", "fix: second", ["a.cs"], [])));
+    }
+
+    [Test]
+    public async Task StageNextAsync_whenEditSessionIsActive_returnsBlockedResult()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.StageNextAsync();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.IsBlocked, Is.True);
+        Assert.That(result.BlockedReason, Does.Contain("edit session"));
+    }
+
+    [Test]
+    public async Task BeginEditAsync_appliesPatchAndStoresActiveSession()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
+        var git = new FakeCommitsGitProvider();
+        var service = new CommitsService(queue, git);
+
+        var result = await service.BeginEditAsync("1");
+
+        Assert.That(result.Success, Is.True);
+        Assert.That(queue.Stored!.ActiveSession!.EntryId, Is.EqualTo("entry-1"));
+        Assert.That(git.AppliedPatches, Is.EqualTo(new[] { "diff --git a/a.cs b/a.cs\n" }));
+    }
+
+    [Test]
+    public async Task SaveEditAsync_rejectsChangesOutsideEntryFiles()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
+        var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs", "other.cs"]);
+        var service = new CommitsService(queue, git);
+
+        var result = await service.SaveEditAsync();
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.Message, Does.Contain("outside queued files"));
+    }
+
+    [Test]
+    public async Task SaveEditAsync_capturesNewPatchAndClearsSession()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1", "patch-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "patch-1", ["a.cs"])));
+        var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs"]);
+        var service = new CommitsService(queue, git);
+
+        var result = await service.SaveEditAsync();
+
+        Assert.That(result.Success, Is.True);
+        Assert.That(queue.Stored!.ActiveSession, Is.Null);
+        Assert.That(queue.Stored.Commits[0].PatchKey, Is.Not.EqualTo("patch-1"));
+        Assert.That(queue.Patches, Has.Count.EqualTo(1));
+        Assert.That(git.FilesRestored, Is.True);
+    }
+
+    [Test]
+    public async Task GuardAsync_failsWhenQueueHasEntries()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.GuardAsync();
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.Blockers.Single(), Does.Contain("still queued"));
+    }
+
+    [Test]
+    public async Task ClearAsync_archivesEntriesAndStoresEmptyQueue()
     {
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("S", "m", ["f.cs"], [])
@@ -202,7 +288,8 @@ public sealed class CommitsServiceTests
 
         await service.ClearAsync();
 
-        Assert.That(queue.Deleted, Is.True);
+        Assert.That(queue.Stored!.Commits, Is.Empty);
+        Assert.That(queue.Stored.Archived, Has.Count.EqualTo(1));
     }
 
     // ── fakes ─────────────────────────────────────────────────────────────────
@@ -238,6 +325,9 @@ public sealed class CommitsServiceTests
 
         public Task<string?> ReadPatchAsync(string patchKey, CancellationToken cancellationToken = default)
             => Task.FromResult(Patches.GetValueOrDefault(patchKey));
+
+        public Task<T> WithLockAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
     }
 
     private sealed class FakeCommitsGitProvider(bool hasStagedChanges = false, string[]? modifiedFiles = null) : ICommitsGitProvider
@@ -253,6 +343,12 @@ public sealed class CommitsServiceTests
 
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>(modifiedFiles ?? []);
+
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
 
         public bool DiffRequested { get; private set; }
 

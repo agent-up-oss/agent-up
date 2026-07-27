@@ -27,6 +27,22 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         }
     }
 
+    public async Task<IReadOnlyList<string>> GetStagedFilesAsync(CancellationToken cancellationToken = default)
+    {
+        var output = await RunGitAsync(["diff", "--cached", "--name-only"], cancellationToken);
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
+
+    public async Task<IReadOnlyList<string>> GetUntrackedFilesAsync(CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await GetRepoRootAsync(cancellationToken);
+        var output = await RunGitAsync(["ls-files", "--others", "--exclude-standard"], cancellationToken);
+        return output
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(path => NormalizeRepoRelativePath(repoRoot, path))
+            .ToList();
+    }
+
     public async Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
         var repoRoot = await GetRepoRootAsync(cancellationToken);
@@ -57,10 +73,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
     }
 
     public async Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
-    {
-        var output = await RunGitAsync(["diff", "--cached", "--name-only"], cancellationToken);
-        return output.Length > 0;
-    }
+        => (await GetStagedFilesAsync(cancellationToken)).Count > 0;
 
     public async Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
     {
