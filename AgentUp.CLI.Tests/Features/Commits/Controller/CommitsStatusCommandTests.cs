@@ -1,6 +1,8 @@
+using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Interfaces;
 using AgentUp.CLI.Features.Commits.Models;
+using AgentUp.CLI.Features.Commits.Providers;
 using AgentUp.CLI.Features.Commits.Services;
 
 namespace AgentUp.CLI.Tests.Features.Commits.Controller;
@@ -91,6 +93,24 @@ public sealed class CommitsStatusCommandTests
         Assert.That(output.ToString(), Does.Contain("2 test command(s)"));
     }
 
+    [Test]
+    public async Task RunAsync_jsonFormat_writesQueueCount()
+    {
+        using var output = new StringWriter();
+        var queue = new CommitsQueue(1, [
+            new CommitEntry("First", "fix: first", ["a.cs"], []),
+            new CommitEntry("Second", "fix: second", ["b.cs"], [])
+        ]);
+        var command = BuildCommand(output, queue: queue);
+
+        var code = await command.RunAsync(["--format", "json"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(0));
+        Assert.That(json.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(2));
+        Assert.That(json.RootElement.TryGetProperty("entries", out _), Is.False);
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static CommitsStatusCommand BuildCommand(
@@ -101,7 +121,7 @@ public sealed class CommitsStatusCommandTests
         var service = new CommitsService(
             new FakeCommitsQueueProvider(queue),
             new FakeCommitsGitProvider(modifiedFiles ?? []));
-        return new CommitsStatusCommand(service, new CommitsOutputService(output));
+        return new CommitsStatusCommand(service, new CommitsOutputService(output), new CommitsFormatParser());
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

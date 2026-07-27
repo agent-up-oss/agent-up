@@ -25,8 +25,8 @@ public sealed class CommitsController(
         return subcommand switch
         {
             "enqueue" => ct => enqueue.RunAsync(remaining, ct),
-            "status" => status.RunAsync,
-            "next" => next.RunAsync,
+            "status" => ct => status.RunAsync(remaining, ct),
+            "next" => ct => next.RunAsync(remaining, ct),
             "clear" => clear.RunAsync,
             _ => _ => Task.FromResult(output.WriteHelp())
         };

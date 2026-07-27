@@ -85,6 +85,8 @@ Shows the current queue. Warns about modified files in the working tree that are
 agentup commits status
 ```
 
+Use `agentup commits status --format json` for integrations that only need the queued entry count.
+
 #### commits next
 
 Stages the files for the first queued entry using `git add`, pops that entry from the queue, and prints the suggested `git commit` command. Run after reviewing the staged changes.
@@ -93,6 +95,8 @@ Stages the files for the first queued entry using `git add`, pops that entry fro
 agentup commits next
 # then: git commit -m "<message from output>"
 ```
+
+Use `agentup commits next --format json` for integrations that need the staged entry's commit message.
 
 #### commits clear
 
