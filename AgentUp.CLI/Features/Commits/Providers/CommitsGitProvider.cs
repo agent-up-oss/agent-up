@@ -31,7 +31,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
     {
         var repoRoot = await GetRepoRootAsync(cancellationToken);
         var safeFiles = files.Select(f => NormalizeRepoRelativePath(repoRoot, f)).ToList();
-        var trackedArgs = new List<string> { "diff", "HEAD", "--" };
+        var trackedArgs = new List<string> { "diff", "--binary", "--full-index", "HEAD", "--" };
         trackedArgs.AddRange(safeFiles);
         var trackedDiff = await RunGitAsync(trackedArgs, cancellationToken, trimOutput: false);
 
@@ -47,7 +47,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
 
         foreach (var file in safeFiles.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
         {
-            var args = new List<string> { "diff", "--no-index", "--", "/dev/null", file };
+            var args = new List<string> { "diff", "--binary", "--full-index", "--no-index", "--", "/dev/null", file };
             var untrackedDiff = await RunGitAsync(args, cancellationToken, allowedExitCodes: [0, 1], trimOutput: false);
             if (untrackedDiff.Length > 0)
                 parts.Add(untrackedDiff);
