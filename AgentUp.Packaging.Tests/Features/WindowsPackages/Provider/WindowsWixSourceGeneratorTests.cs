@@ -62,6 +62,39 @@ public class WindowsWixSourceGeneratorTests
     }
 
     [Test]
+    public void ProductWxs_whenTrayDirectoryExists_includesTrayAutoStartRegistryComponent()
+    {
+        var layout = CreateLayoutWithPublishedFiles();
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+
+        var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(
+            new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release"))).ProductWxs(layout);
+
+        Assert.That(xml, Does.Contain(@"CurrentVersion\Run"));
+        Assert.That(xml, Does.Contain("Name=\"Agent-Up\""));
+        Assert.That(xml, Does.Contain("AgentUp.Tray.exe"));
+        Assert.That(xml, Does.Contain("Type=\"string\""));
+        Assert.That(xml, Does.Contain("Root=\"HKCU\""));
+    }
+
+    [Test]
+    public void ProductWxs_whenTrayDirectoryAbsent_doesNotIncludeTrayAutoStartComponent()
+    {
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release");
+        var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+        WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        Directory.CreateDirectory(layout.InstallerSourceDirectory);
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+
+        var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).ProductWxs(layout);
+
+        Assert.That(xml, Does.Not.Contain("TrayAutoStartComponent"));
+    }
+
+    [Test]
     public void BundleWxs_chainsProductMsiWithoutLaunchingInstallerApp()
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
