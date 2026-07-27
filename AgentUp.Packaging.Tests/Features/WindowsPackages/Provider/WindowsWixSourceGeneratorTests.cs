@@ -76,11 +76,14 @@ public class WindowsWixSourceGeneratorTests
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(
             new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release"))).ProductWxs(layout);
 
-        Assert.That(xml, Does.Contain(@"CurrentVersion\Run"));
-        Assert.That(xml, Does.Contain("Name=\"Agent-Up\""));
-        Assert.That(xml, Does.Contain("AgentUp.Tray.exe"));
-        Assert.That(xml, Does.Contain("Type=\"string\""));
-        Assert.That(xml, Does.Contain("Root=\"HKLM\""));
+        var registryValue = TrayAutoStartRegistryValue(xml);
+        Assert.That(registryValue, Is.Not.Null);
+        Assert.That(registryValue!.Attribute("Root")?.Value, Is.EqualTo("HKLM"));
+        Assert.That(registryValue.Attribute("Key")?.Value, Is.EqualTo(@"Software\Microsoft\Windows\CurrentVersion\Run"));
+        Assert.That(registryValue.Attribute("Name")?.Value, Is.EqualTo("Agent-Up"));
+        Assert.That(registryValue.Attribute("Value")?.Value, Is.EqualTo("\"[TrayDir]AgentUp.Tray.exe\""));
+        Assert.That(registryValue.Attribute("Type")?.Value, Is.EqualTo("string"));
+        Assert.That(registryValue.Attribute("KeyPath")?.Value, Is.EqualTo("yes"));
     }
 
     [Test]
@@ -92,6 +95,24 @@ public class WindowsWixSourceGeneratorTests
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        Directory.CreateDirectory(layout.InstallerSourceDirectory);
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+
+        var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(request)).ProductWxs(layout);
+
+        Assert.That(xml, Does.Not.Contain("TrayAutoStartComponent"));
+    }
+
+    [Test]
+    public void ProductWxs_whenTrayDirectoryExistsWithoutTrayExecutable_doesNotIncludeTrayAutoStartComponent()
+    {
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release");
+        var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+        WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        WritePublishedFile(layout.TrayPublishDirectory, "support.dll");
         Directory.CreateDirectory(layout.InstallerSourceDirectory);
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
@@ -344,6 +365,15 @@ public class WindowsWixSourceGeneratorTests
             .Where(guid => !string.IsNullOrWhiteSpace(guid))
             .Cast<string>()
             .ToArray();
+    }
+
+    private static XElement? TrayAutoStartRegistryValue(string productWxs)
+    {
+        XNamespace wix = "http://wixtoolset.org/schemas/v4/wxs";
+        return XDocument.Parse(productWxs)
+            .Descendants(wix + "RegistryValue")
+            .SingleOrDefault(element =>
+                element.Attribute("Key")?.Value == @"Software\Microsoft\Windows\CurrentVersion\Run");
     }
 
     private static void WritePublishedFile(string directory, string name)

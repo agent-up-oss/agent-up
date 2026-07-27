@@ -299,18 +299,21 @@ public sealed class WindowsWixSourceGenerator
                 yield return FileComponent("InstallerPayloadTray", "InstallerPayloadTrayDir", layout.TrayPublishDirectory, file);
             }
 
-            var trayAutoStart = new XElement(Wix + "Component",
-                new XAttribute("Id", "TrayAutoStartComponent"),
-                new XAttribute("Directory", "ApplicationProgramsFolder"),
-                new XAttribute("Guid", StableGuid("tray-autostart")),
-                new XElement(Wix + "RegistryValue",
-                    new XAttribute("Root", "HKLM"),
-                    new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Run"),
-                    new XAttribute("Name", _manifest.ProductName),
-                    new XAttribute("Type", "string"),
-                    new XAttribute("Value", "\"[TrayDir]AgentUp.Tray.exe\""),
-                    new XAttribute("KeyPath", "yes")));
-            yield return ("TrayAutoStartComponent", trayAutoStart);
+            if (File.Exists(System.IO.Path.Join(layout.TrayPublishDirectory, "AgentUp.Tray.exe")))
+            {
+                var trayAutoStart = new XElement(Wix + "Component",
+                    new XAttribute("Id", "TrayAutoStartComponent"),
+                    new XAttribute("Directory", "ApplicationProgramsFolder"),
+                    new XAttribute("Guid", StableGuid("tray-autostart")),
+                    new XElement(Wix + "RegistryValue",
+                        new XAttribute("Root", "HKLM"),
+                        new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Run"),
+                        new XAttribute("Name", _manifest.ProductName),
+                        new XAttribute("Type", "string"),
+                        new XAttribute("Value", "\"[TrayDir]AgentUp.Tray.exe\""),
+                        new XAttribute("KeyPath", "yes")));
+                yield return ("TrayAutoStartComponent", trayAutoStart);
+            }
         }
 
         var cliShim = new XElement(Wix + "Component",
