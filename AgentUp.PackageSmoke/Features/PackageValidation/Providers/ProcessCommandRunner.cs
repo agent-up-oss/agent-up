@@ -13,8 +13,6 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return new CommandResult(126, "", validationError);
 
         var startInfo = CreateStartInfo(safeCommand.Executable);
-        if (safeCommand.WorkingDirectory is not null)
-            startInfo.WorkingDirectory = safeCommand.WorkingDirectory;
 
         if (!TryAddAllowedArguments(startInfo, safeCommand, out validationError))
             return new CommandResult(126, "", validationError);
@@ -300,23 +298,35 @@ public sealed class ProcessCommandRunner : ICommandRunner
     private static bool TryAddDotnetArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
     {
         error = "";
-        if (IsArguments(command, "restore", "SmokeDotnet/SmokeDotnet.csproj"))
+        if (command.Arguments.Count == 2 &&
+            command.Arguments[0] == "restore" &&
+            IsSmokeDotnetProject(command.Arguments[1]))
         {
             startInfo.ArgumentList.Add("restore");
-            startInfo.ArgumentList.Add("SmokeDotnet/SmokeDotnet.csproj");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             return true;
         }
 
-        if (IsArguments(command, "build", "SmokeDotnet/SmokeDotnet.csproj", "--no-restore"))
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "build" &&
+            IsSmokeDotnetProject(command.Arguments[1]) &&
+            command.Arguments[2] == "--no-restore")
         {
             startInfo.ArgumentList.Add("build");
-            startInfo.ArgumentList.Add("SmokeDotnet/SmokeDotnet.csproj");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             startInfo.ArgumentList.Add("--no-restore");
             return true;
         }
 
         error = "dotnet arguments are not allowed.";
         return false;
+    }
+
+    private static bool IsSmokeDotnetProject(string value)
+    {
+        var fullPath = Path.GetFullPath(value);
+        return Path.IsPathFullyQualified(value)
+               && fullPath.EndsWith(Path.Join("SmokeDotnet", "SmokeDotnet.csproj"), StringComparison.Ordinal);
     }
 
     private static bool TryAddDpkgDebArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
@@ -607,7 +617,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             environment.Add(WorkingDirectoryEnvironmentKey, workingDirectory);
         }
 
-        safeCommand = new SafeCommandSpec(executable, DisplayName(executable), arguments, workingDirectory, environment);
+        safeCommand = new SafeCommandSpec(executable, DisplayName(executable), arguments, environment);
         error = "";
         return true;
     }

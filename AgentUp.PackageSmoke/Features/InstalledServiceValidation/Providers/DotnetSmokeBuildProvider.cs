@@ -20,9 +20,12 @@ public sealed class DotnetSmokeBuildProvider(ICommandRunner commands)
     }
 
     private static IReadOnlyList<(CommandSpec Spec, string Code)> Commands(string repo)
-        =>
+    {
+        var project = Path.Join(repo, "SmokeDotnet", "SmokeDotnet.csproj");
+        return
         [
-            (new CommandSpec("dotnet", ["restore", "SmokeDotnet/SmokeDotnet.csproj"], WorkingDirectory: repo), "capability.smokedotnet.restore"),
-            (new CommandSpec("dotnet", ["build", "SmokeDotnet/SmokeDotnet.csproj", "--no-restore"], WorkingDirectory: repo), "capability.smokedotnet.build")
+            (new CommandSpec("dotnet", ["restore", project]), "capability.smokedotnet.restore"),
+            (new CommandSpec("dotnet", ["build", project, "--no-restore"]), "capability.smokedotnet.build")
         ];
+    }
 }

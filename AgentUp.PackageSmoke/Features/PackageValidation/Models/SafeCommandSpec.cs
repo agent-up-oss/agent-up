@@ -4,5 +4,4 @@ internal readonly record struct SafeCommandSpec(
     SmokeExecutable Executable,
     string DisplayName,
     IReadOnlyList<string> Arguments,
-    string? WorkingDirectory,
     IReadOnlyDictionary<string, string>? Environment);

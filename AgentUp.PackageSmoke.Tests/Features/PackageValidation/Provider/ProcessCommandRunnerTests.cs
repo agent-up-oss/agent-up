@@ -65,9 +65,10 @@ public class ProcessCommandRunnerTests
                 """);
 
             var runner = new ProcessCommandRunner();
+            var project = Path.Join(projectDir, "SmokeDotnet.csproj");
 
-            var restore = await runner.RunAsync(new CommandSpec("dotnet", ["restore", "SmokeDotnet/SmokeDotnet.csproj"], workDir));
-            var build = await runner.RunAsync(new CommandSpec("dotnet", ["build", "SmokeDotnet/SmokeDotnet.csproj", "--no-restore"], workDir));
+            var restore = await runner.RunAsync(new CommandSpec("dotnet", ["restore", project]));
+            var build = await runner.RunAsync(new CommandSpec("dotnet", ["build", project, "--no-restore"]));
 
             Assert.That(restore.ExitCode, Is.EqualTo(0), restore.Stderr + restore.Stdout);
             Assert.That(build.ExitCode, Is.EqualTo(0), build.Stderr + build.Stdout);
