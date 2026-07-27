@@ -32,6 +32,8 @@ public sealed class CapabilityLifecycleSmokeTests
             var config = await File.ReadAllTextAsync(Path.Join(workDir, "capability-workspace", "agent-up.json"));
             Assert.That(config, Does.Contain(ExpectedDockerImageForCurrentPlatform()));
             Assert.That(commands.Commands.Any(command => command.Arguments.Any(argument => argument.Contains("agent-up start", StringComparison.Ordinal))), Is.True);
+            Assert.That(CommandIndex(commands, "dotnet restore SmokeDotnet/SmokeDotnet.csproj"), Is.LessThan(CommandIndex(commands, "agent-up start")));
+            Assert.That(CommandIndex(commands, "dotnet build SmokeDotnet/SmokeDotnet.csproj --no-restore"), Is.LessThan(CommandIndex(commands, "agent-up start")));
         }
         finally
         {
@@ -133,6 +135,9 @@ public sealed class CapabilityLifecycleSmokeTests
             : "windowsservercore-ltsc2022";
         return $"mcr.microsoft.com/windows/servercore/iis:{tag}";
     }
+
+    private static int CommandIndex(RecordingCommandRunner commands, string fragment)
+        => commands.Commands.FindIndex(command => command.Arguments.Any(argument => argument.Contains(fragment, StringComparison.Ordinal)));
 
     private sealed class RecordingCommandRunner : ICommandRunner
     {
