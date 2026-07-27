@@ -4,4 +4,5 @@ namespace AgentUp.CLI.Features.Commits.DTOs;
 
 public sealed record CommitsStatusResult(
     IReadOnlyList<CommitEntry> Entries,
-    IReadOnlyList<string> UnassignedFiles);
+    IReadOnlyList<string> UnassignedFiles,
+    CommitsStatusSession? ActiveSession = null);

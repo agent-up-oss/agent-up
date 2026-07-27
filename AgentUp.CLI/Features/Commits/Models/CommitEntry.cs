@@ -5,7 +5,10 @@ public sealed record CommitEntry(
     string Message,
     IReadOnlyList<string> Files,
     IReadOnlyList<string> Tests,
-    string Id = "")
+    string Id = "",
+    string PatchId = "")
 {
-    public string PatchKey => string.IsNullOrWhiteSpace(Id) ? Slice : Id;
+    public string PatchKey => !string.IsNullOrWhiteSpace(PatchId)
+        ? PatchId
+        : string.IsNullOrWhiteSpace(Id) ? Slice : Id;
 }

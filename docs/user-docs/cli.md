@@ -87,7 +87,75 @@ agentup commits status
 
 Use `agentup commits status --format json` for integrations that only need the queued entry count.
 
+#### commits changes
+
+Shows working-tree files with queue assignment information. Use this instead of scripting around `git status`, `git ls-files`, or `find`.
+
+```bash
+agentup commits changes
+agentup commits changes --format json
+```
+
+#### commits inspect
+
+Shows one queued entry by index or ID.
+
+```bash
+agentup commits inspect 1
+agentup commits inspect 1 --patch
+```
+
+#### commits edit
+
+Temporarily applies one queued entry back into the working tree so it can be changed safely.
+
+```bash
+agentup commits edit begin 1
+# modify files
+agentup commits edit save
+```
+
+The working tree must be clean before `edit begin`. `edit save` rejects changes outside that entry's file list. Add same-slice files explicitly before saving:
+
+```bash
+agentup commits files 1 --add path/to/new-file.cs
+```
+
+Use `agentup commits edit abort` to restore the working tree and keep the original queued patch.
+
+#### commits message, tests, files
+
+Updates queued entry metadata without editing the queue file directly.
+
+```bash
+agentup commits message 1 --message "fix(cli): harden commit queue editing"
+agentup commits tests 1 --set "dotnet test AgentUp.CLI.Tests"
+agentup commits files 1 --remove old-file.cs
+```
+
+Files can only belong to one queued entry at a time.
+
+#### commits remove and restore
+
+Archives a queued entry without staging it. Archived entries can be restored by ID.
+
+```bash
+agentup commits remove 1
+agentup commits restore <entry-id>
+```
+
+#### commits guard
+
+Fails while queued entries, active edit sessions, staged changes, or unassigned working-tree changes remain.
+
+```bash
+agentup commits guard
+agentup commits guard --format json
+```
+
 #### commits next
+
+`commits next` is developer-only. Agents should stop after `commits status` or `commits guard`; they must not stage or pop queued entries.
 
 Stages the files for the first queued entry using `git add`, pops that entry from the queue, and prints the suggested `git commit` command. Run after reviewing the staged changes.
 
@@ -100,7 +168,7 @@ Use `agentup commits next --format json` for integrations that need the staged e
 
 #### commits clear
 
-Removes all entries from the queue without staging anything.
+Archives all entries from the queue without staging anything.
 
 ```bash
 agentup commits clear

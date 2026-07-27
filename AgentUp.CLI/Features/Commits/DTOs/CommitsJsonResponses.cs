@@ -2,11 +2,20 @@ namespace AgentUp.CLI.Features.Commits.DTOs;
 
 public sealed record CommitsStatusJson(
     int Count,
-    IReadOnlyList<CommitsStatusEntryJson> Entries);
+    IReadOnlyList<CommitsStatusEntryJson> Entries,
+    IReadOnlyList<string> UnassignedFiles,
+    CommitsStatusSessionJson? ActiveSession);
 
 public sealed record CommitsStatusEntryJson(
+    string Id,
     string Slice,
-    string Message);
+    string Message,
+    IReadOnlyList<string> Files,
+    IReadOnlyList<string> Tests);
+
+public sealed record CommitsStatusSessionJson(
+    string EntryId,
+    IReadOnlyList<string> Files);
 
 public sealed record CommitsNextStagedJson(
     bool Staged,

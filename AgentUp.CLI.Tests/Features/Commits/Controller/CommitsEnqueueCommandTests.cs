@@ -114,7 +114,7 @@ public sealed class CommitsEnqueueCommandTests
     {
         var provider = queue ?? new FakeCommitsQueueProvider();
         var service = new CommitsService(provider, new FakeCommitsGitProvider());
-        return new CommitsEnqueueCommand(service, new CommitsArgParser(), new CommitsOutputService(output));
+        return new CommitsEnqueueCommand(service, new CommitsArgParser(), new CommitsOutputService(output, new CommitsJsonRenderer()));
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider
@@ -141,6 +141,9 @@ public sealed class CommitsEnqueueCommandTests
 
         public Task<string?> ReadPatchAsync(string slice, CancellationToken cancellationToken = default)
             => Task.FromResult<string?>(null);
+
+        public Task<T> WithLockAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
     }
 
     private sealed class FakeCommitsGitProvider : ICommitsGitProvider
@@ -149,6 +152,12 @@ public sealed class CommitsEnqueueCommandTests
             => Task.FromResult("/repo");
 
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
 
         public Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)

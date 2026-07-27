@@ -27,12 +27,18 @@ public static class CliRunnerFactory
         var commitsGit = new CommitsGitProvider(workingDirectory);
         var commitsQueue = new CommitsQueueProvider(commitsGit);
         var commitsService = new CommitsService(commitsQueue, commitsGit);
-        var commitsOutput = new CommitsOutputService(writer);
+        var commitsOutput = new CommitsOutputService(writer, new CommitsJsonRenderer());
         var commitsParser = new CommitsArgParser();
         var commitsFormatParser = new CommitsFormatParser();
+        var commitsUtilityRunner = new CommitsUtilityCommandRunner(commitsService, commitsOutput, commitsFormatParser);
         var commits = new CommitsController(
             new CommitsEnqueueCommand(commitsService, commitsParser, commitsOutput),
             new CommitsStatusCommand(commitsService, commitsOutput, commitsFormatParser),
+            new CommitsChangesCommand(commitsService, commitsOutput, commitsFormatParser),
+            new CommitsInspectCommand(commitsUtilityRunner),
+            new CommitsEditCommand(commitsUtilityRunner),
+            new CommitsEntryCommand(commitsUtilityRunner),
+            new CommitsGuardCommand(commitsService, commitsOutput, commitsFormatParser),
             new CommitsNextCommand(commitsService, commitsOutput, commitsFormatParser),
             new CommitsClearCommand(commitsService, commitsOutput),
             commitsOutput);
