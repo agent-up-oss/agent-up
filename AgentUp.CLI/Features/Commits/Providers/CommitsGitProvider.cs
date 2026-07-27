@@ -69,7 +69,8 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         var tempPath = Path.GetTempFileName();
         try
         {
-            await File.WriteAllTextAsync(tempPath, patch, cancellationToken);
+            var content = patch.EndsWith('\n') ? patch : patch + "\n";
+        await File.WriteAllTextAsync(tempPath, content, cancellationToken);
             await RunGitAsync(["apply", tempPath], cancellationToken);
         }
         finally

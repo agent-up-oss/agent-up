@@ -53,7 +53,8 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         var safeSlice = string.Concat(slice.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'));
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmss");
         var patchPath = Path.Join(patchDir, $"{safeSlice}-{timestamp}.patch");
-        await File.WriteAllTextAsync(patchPath, patch, cancellationToken);
+        var content = patch.EndsWith('\n') ? patch : patch + "\n";
+        await File.WriteAllTextAsync(patchPath, content, cancellationToken);
     }
 
     public async Task<string?> ReadPatchAsync(string slice, CancellationToken cancellationToken = default)
