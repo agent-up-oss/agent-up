@@ -21,7 +21,7 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
                 "http://localhost:5000",
@@ -32,6 +32,7 @@ public sealed class CapabilityLifecycleSmokeTests
             var config = await File.ReadAllTextAsync(Path.Join(workDir, "capability-workspace", "agent-up.json"));
             Assert.That(config, Does.Contain(ExpectedDockerImageForCurrentPlatform()));
             Assert.That(commands.Commands.Any(command => command.Arguments.Any(argument => argument.Contains("agent-up start", StringComparison.Ordinal))), Is.True);
+            AssertWarmupBeforeStart(commands);
         }
         finally
         {
@@ -52,7 +53,7 @@ public sealed class CapabilityLifecycleSmokeTests
         try
         {
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", "example/smoke:windows");
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
                 "http://localhost:5000",
@@ -81,7 +82,7 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
                 "http://localhost:5000",
@@ -107,7 +108,7 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
                 "http://localhost:5000",
@@ -132,6 +133,22 @@ public sealed class CapabilityLifecycleSmokeTests
             ? "windowsservercore-ltsc2025"
             : "windowsservercore-ltsc2022";
         return $"mcr.microsoft.com/windows/servercore/iis:{tag}";
+    }
+
+    private static int CommandIndex(RecordingCommandRunner commands, string fragment)
+        => commands.Commands.FindIndex(command => command.Arguments.Any(argument => argument.Contains(fragment, StringComparison.Ordinal)));
+
+    private static void AssertWarmupBeforeStart(RecordingCommandRunner commands)
+    {
+        var restoreIndex = CommandIndex(commands, "restore");
+        var buildIndex = CommandIndex(commands, "build");
+        var startIndex = CommandIndex(commands, "agent-up start");
+
+        Assert.That(restoreIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(buildIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(startIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(restoreIndex, Is.LessThan(buildIndex));
+        Assert.That(buildIndex, Is.LessThan(startIndex));
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner

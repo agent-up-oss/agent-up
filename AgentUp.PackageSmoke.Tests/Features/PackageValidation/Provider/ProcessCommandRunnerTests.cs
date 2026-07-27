@@ -46,4 +46,46 @@ public class ProcessCommandRunnerTests
         Assert.That(result.ExitCode, Is.EqualTo(126));
         Assert.That(result.Stderr, Does.Contain("working directory"));
     }
+
+    [Test]
+    public async Task RunAsync_allowsDotnetSmokeRestoreAndBuildInWorkingDirectory()
+    {
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-ProcessCommandRunner", Guid.NewGuid().ToString());
+        var projectDir = Path.Join(workDir, "SmokeDotnet");
+
+        try
+        {
+            Directory.CreateDirectory(projectDir);
+            await File.WriteAllTextAsync(Path.Join(projectDir, "SmokeDotnet.csproj"), """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                </Project>
+                """);
+
+            var runner = new ProcessCommandRunner();
+            var project = Path.Join(projectDir, "SmokeDotnet.csproj");
+
+            var restore = await runner.RunAsync(new CommandSpec("dotnet", ["restore", project]));
+            var build = await runner.RunAsync(new CommandSpec("dotnet", ["build", project, "--no-restore"]));
+
+            Assert.That(restore.ExitCode, Is.EqualTo(0), restore.Stderr + restore.Stdout);
+            Assert.That(build.ExitCode, Is.EqualTo(0), build.Stderr + build.Stdout);
+        }
+        finally
+        {
+            if (Directory.Exists(workDir))
+                Directory.Delete(workDir, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task RunAsync_rejectsOtherDotnetArguments()
+    {
+        var result = await new ProcessCommandRunner().RunAsync(new CommandSpec("dotnet", ["--info"]));
+
+        Assert.That(result.ExitCode, Is.EqualTo(126));
+        Assert.That(result.Stderr, Does.Contain("dotnet arguments are not allowed"));
+    }
 }

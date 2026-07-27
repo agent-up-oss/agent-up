@@ -14,6 +14,9 @@ public sealed class CommitsGitProviderTests
         _repoRoot = Path.Join(Path.GetTempPath(), "AgentUp-CommitsGitProviderTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_repoRoot);
         await RunGitAsync("init");
+        await File.WriteAllTextAsync(Path.Join(_repoRoot, "README.md"), "test");
+        await RunGitAsync("add", "README.md");
+        await RunGitAsync("-c", "user.name=Agent Up", "-c", "user.email=agent-up@example.test", "commit", "-m", "test: initialize");
     }
 
     [TearDown]
@@ -43,6 +46,32 @@ public sealed class CommitsGitProviderTests
             await provider.StageFilesAsync([":(glob)**"]));
 
         Assert.That(ex!.Message, Does.Contain("literal path under the repository root"));
+    }
+
+    [Test]
+    public async Task GetDiffAsync_includesBinaryPatchForUntrackedBinaryFile()
+    {
+        await File.WriteAllBytesAsync(Path.Join(_repoRoot, "wrapper.jar"), [0, 1, 2, 3, 255]);
+        var provider = new CommitsGitProvider(_repoRoot);
+
+        var patch = await provider.GetDiffAsync(["wrapper.jar"]);
+
+        Assert.That(patch, Does.Contain("GIT binary patch"));
+        Assert.That(patch, Does.Contain("wrapper.jar"));
+    }
+
+    [Test]
+    public async Task GetDiffAsync_binaryPatchCanBeApplied()
+    {
+        var expected = new byte[] { 0, 1, 2, 3, 255 };
+        await File.WriteAllBytesAsync(Path.Join(_repoRoot, "wrapper.jar"), expected);
+        var provider = new CommitsGitProvider(_repoRoot);
+        var patch = await provider.GetDiffAsync(["wrapper.jar"]);
+        File.Delete(Path.Join(_repoRoot, "wrapper.jar"));
+
+        await provider.ApplyPatchAsync(patch);
+
+        Assert.That(await File.ReadAllBytesAsync(Path.Join(_repoRoot, "wrapper.jar")), Is.EqualTo(expected));
     }
 
     private async Task RunGitAsync(params string[] arguments)

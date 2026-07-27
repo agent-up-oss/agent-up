@@ -19,13 +19,19 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
 
     private readonly ICommandRunner _commands;
     private readonly CapabilityWorkspaceProvider _workspace;
+    private readonly DotnetSmokeBuildProvider _dotnetBuild;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
 
-    public CapabilityLifecycleSmoke(ICommandRunner commands, CapabilityWorkspaceProvider workspace, HttpClient? http = null)
+    public CapabilityLifecycleSmoke(
+        ICommandRunner commands,
+        CapabilityWorkspaceProvider workspace,
+        DotnetSmokeBuildProvider dotnetBuild,
+        HttpClient? http = null)
     {
         _commands = commands;
         _workspace = workspace;
+        _dotnetBuild = dotnetBuild;
         _http = http ?? new HttpClient();
         _ownsHttp = http is null;
     }
@@ -39,6 +45,7 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
     {
         var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
         var repo = _workspace.Prepare(safeWorkDirectory);
+        await BuildDotnetSmokeAppAsync(repo, assert, cancellationToken);
         await GitCommitConfigAsync(repo, assert, cancellationToken);
 
         var environment = MergeEnvironment(context.CliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
@@ -85,6 +92,12 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
             if (result.ExitCode != 0)
                 assert.Error(command.Code, $"{command.Spec.FileName} failed: {result.Stderr}{result.Stdout}");
         }
+    }
+
+    private async Task BuildDotnetSmokeAppAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
+    {
+        foreach (var finding in await _dotnetBuild.BuildAsync(repo, cancellationToken))
+            assert.Error(finding.Code, finding.Message);
     }
 
     private async Task<WorkspaceSnapshot?> FindWorkspaceAsync(string serverUrl, CancellationToken cancellationToken)

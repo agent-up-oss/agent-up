@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentUp.CLI.Features.Commits.DTOs;
 using AgentUp.CLI.Features.Commits.Models;
 
@@ -5,6 +6,11 @@ namespace AgentUp.CLI.Features.Commits.Services;
 
 public sealed class CommitsOutputService(TextWriter output)
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public int WriteEnqueueResult(string slice, int totalCount)
     {
         output.WriteLine($"Queued: {slice} ({totalCount} {(totalCount == 1 ? "entry" : "entries")} total)");
@@ -38,6 +44,17 @@ public sealed class CommitsOutputService(TextWriter output)
         return 0;
     }
 
+    public int WriteStatus(CommitsStatusResult result, CommitsOutputFormat format)
+        => format == CommitsOutputFormat.Json ? WriteStatusJson(result) : WriteStatus(result);
+
+    public int WriteStatusJson(CommitsStatusResult result)
+    {
+        output.WriteLine(JsonSerializer.Serialize(new CommitsStatusJson(
+            result.Entries.Count,
+            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Slice, entry.Message)).ToList()), JsonOptions));
+        return 0;
+    }
+
     public int WriteStagingResult(CommitsStagingResult result)
     {
         if (result.IsBlocked)
@@ -53,6 +70,33 @@ public sealed class CommitsOutputService(TextWriter output)
             output.WriteLine($"  ({result.RemainingCount} {(result.RemainingCount == 1 ? "entry" : "entries")} remaining — run 'agentup commits next' after committing)");
         else
             output.WriteLine("  (queue is now empty)");
+        return 0;
+    }
+
+    public int WriteStagingResult(CommitsStagingResult? result, CommitsOutputFormat format)
+    {
+        if (format == CommitsOutputFormat.Json)
+            return result is null ? WriteEmptyQueueJson() : WriteStagingResultJson(result);
+
+        return result is null ? WriteEmptyQueue("next") : WriteStagingResult(result);
+    }
+
+    public int WriteStagingResultJson(CommitsStagingResult result)
+    {
+        if (result.IsBlocked)
+            return WriteErrorJson(result.BlockedReason!);
+
+        output.WriteLine(JsonSerializer.Serialize(new CommitsNextStagedJson(
+            true,
+            result.Slice,
+            result.Message,
+            result.RemainingCount), JsonOptions));
+        return 0;
+    }
+
+    public int WriteEmptyQueueJson()
+    {
+        output.WriteLine(JsonSerializer.Serialize(new CommitsNextEmptyJson(false, true, null, 0), JsonOptions));
         return 0;
     }
 
@@ -74,6 +118,15 @@ public sealed class CommitsOutputService(TextWriter output)
         return 1;
     }
 
+    public int WriteError(string message, CommitsOutputFormat format)
+        => format == CommitsOutputFormat.Json ? WriteErrorJson(message) : WriteError(message);
+
+    public int WriteErrorJson(string message)
+    {
+        output.WriteLine(JsonSerializer.Serialize(new CommitsErrorJson(message), JsonOptions));
+        return 1;
+    }
+
     public int WriteHelp()
     {
         output.WriteLine("Usage: agentup commits <command>");
@@ -84,4 +137,5 @@ public sealed class CommitsOutputService(TextWriter output)
         output.WriteLine("  clear    Remove all entries from the queue");
         return 0;
     }
+
 }

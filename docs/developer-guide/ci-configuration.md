@@ -82,6 +82,19 @@ The release job uses `GITHUB_TOKEN`, which GitHub provides automatically. No set
 
 Releases only run on `main` when semantic-release determines a new version is warranted based on [Conventional Commits](https://www.conventionalcommits.org/).
 
+## JetBrains Marketplace
+
+JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry in JetBrains Marketplace once, then add a Marketplace token from the vendor profile. The release job publishes `Plugins/Jetbrains` through Gradle after the GitHub release succeeds, using the same planned release version that was injected into the release ZIP.
+
+| Secret | Value |
+|---|---|
+| `JETBRAINS_MARKETPLACE_TOKEN` | JetBrains Marketplace publishing token |
+| `JETBRAINS_PLUGIN_CERTIFICATE_CHAIN` | Optional Base64-encoded plugin signing certificate chain |
+| `JETBRAINS_PLUGIN_PRIVATE_KEY` | Optional Base64-encoded plugin signing private key |
+| `JETBRAINS_PLUGIN_PRIVATE_KEY_PASSWORD` | Optional private-key password |
+
+If `JETBRAINS_MARKETPLACE_TOKEN` is not configured, CI still builds the plugin ZIP and attaches it to the GitHub release, but skips Marketplace publishing.
+
 ## Repository Variables
 
 Variables control which signing steps run. They are not secrets and can be read freely in workflow `if:` conditions.

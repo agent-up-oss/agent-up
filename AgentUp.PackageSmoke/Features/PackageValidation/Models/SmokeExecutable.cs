@@ -8,6 +8,7 @@ internal enum SmokeExecutable
     Bash,
     Cmd,
     DpkgDeb,
+    Dotnet,
     Git,
     Lsof,
     Msiexec,

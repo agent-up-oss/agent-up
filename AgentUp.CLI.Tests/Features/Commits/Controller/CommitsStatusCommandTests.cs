@@ -1,6 +1,8 @@
+using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Interfaces;
 using AgentUp.CLI.Features.Commits.Models;
+using AgentUp.CLI.Features.Commits.Providers;
 using AgentUp.CLI.Features.Commits.Services;
 
 namespace AgentUp.CLI.Tests.Features.Commits.Controller;
@@ -91,6 +93,42 @@ public sealed class CommitsStatusCommandTests
         Assert.That(output.ToString(), Does.Contain("2 test command(s)"));
     }
 
+    [Test]
+    public async Task RunAsync_jsonFormat_writesQueueCountAndEntries()
+    {
+        using var output = new StringWriter();
+        var queue = new CommitsQueue(1, [
+            new CommitEntry("First", "fix: first", ["a.cs"], []),
+            new CommitEntry("Second", "fix: second", ["b.cs"], [])
+        ]);
+        var command = BuildCommand(output, queue: queue);
+
+        var code = await command.RunAsync(["--format", "json"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        var entries = json.RootElement.GetProperty("entries");
+        Assert.That(code, Is.EqualTo(0));
+        Assert.That(json.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(2));
+        Assert.That(entries.GetArrayLength(), Is.EqualTo(2));
+        Assert.That(entries[0].GetProperty("slice").GetString(), Is.EqualTo("First"));
+        Assert.That(entries[0].GetProperty("message").GetString(), Is.EqualTo("fix: first"));
+        Assert.That(entries[1].GetProperty("slice").GetString(), Is.EqualTo("Second"));
+        Assert.That(entries[1].GetProperty("message").GetString(), Is.EqualTo("fix: second"));
+    }
+
+    [Test]
+    public async Task RunAsync_jsonFormatWithUnknownArgument_writesStructuredError()
+    {
+        using var output = new StringWriter();
+        var command = BuildCommand(output);
+
+        var code = await command.RunAsync(["--format", "json", "--unknown"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(json.RootElement.GetProperty("error").GetString(), Is.EqualTo("Unknown argument: --unknown"));
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static CommitsStatusCommand BuildCommand(
@@ -101,7 +139,7 @@ public sealed class CommitsStatusCommandTests
         var service = new CommitsService(
             new FakeCommitsQueueProvider(queue),
             new FakeCommitsGitProvider(modifiedFiles ?? []));
-        return new CommitsStatusCommand(service, new CommitsOutputService(output));
+        return new CommitsStatusCommand(service, new CommitsOutputService(output), new CommitsFormatParser());
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

@@ -1,6 +1,8 @@
+using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Interfaces;
 using AgentUp.CLI.Features.Commits.Models;
+using AgentUp.CLI.Features.Commits.Providers;
 using AgentUp.CLI.Features.Commits.Services;
 
 namespace AgentUp.CLI.Tests.Features.Commits.Controller;
@@ -119,6 +121,68 @@ public sealed class CommitsNextCommandTests
         Assert.That(output.ToString(), Does.Contain("not yet committed"));
     }
 
+    [Test]
+    public async Task RunAsync_jsonFormat_singleEntry_writesCommitMessageAndRemainingCount()
+    {
+        using var output = new StringWriter();
+        var entry = new CommitEntry("Slice", "fix: msg", ["a.cs"], []);
+        var command = BuildCommand(output, new CommitsQueue(1, [entry]));
+
+        var code = await command.RunAsync(["--format", "json"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(0));
+        Assert.That(json.RootElement.GetProperty("staged").GetBoolean(), Is.True);
+        Assert.That(json.RootElement.GetProperty("slice").GetString(), Is.EqualTo("Slice"));
+        Assert.That(json.RootElement.GetProperty("message").GetString(), Is.EqualTo("fix: msg"));
+        Assert.That(json.RootElement.GetProperty("remainingCount").GetInt32(), Is.EqualTo(0));
+        Assert.That(json.RootElement.TryGetProperty("empty", out _), Is.False);
+    }
+
+    [Test]
+    public async Task RunAsync_jsonFormat_emptyQueue_writesEmptyResult()
+    {
+        using var output = new StringWriter();
+        var command = BuildCommand(output);
+
+        var code = await command.RunAsync(["--format", "json"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(0));
+        Assert.That(json.RootElement.GetProperty("staged").GetBoolean(), Is.False);
+        Assert.That(json.RootElement.GetProperty("empty").GetBoolean(), Is.True);
+        Assert.That(json.RootElement.GetProperty("message").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        Assert.That(json.RootElement.GetProperty("remainingCount").GetInt32(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task RunAsync_jsonFormat_whenStagedChangesExist_returnsStructuredError()
+    {
+        using var output = new StringWriter();
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var git = new FakeCommitsGitProvider(hasStagedChanges: true);
+        var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
+
+        var code = await command.RunAsync(["--format", "json"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(json.RootElement.GetProperty("error").GetString(), Does.Contain("not yet committed"));
+    }
+
+    [Test]
+    public async Task RunAsync_jsonFormatWithUnknownArgument_writesStructuredError()
+    {
+        using var output = new StringWriter();
+        var command = BuildCommand(output);
+
+        var code = await command.RunAsync(["--format", "json", "--unknown"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(json.RootElement.GetProperty("error").GetString(), Is.EqualTo("Unknown argument: --unknown"));
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static CommitsNextCommand BuildCommand(
@@ -128,7 +192,7 @@ public sealed class CommitsNextCommandTests
     {
         var gitProvider = git ?? new FakeCommitsGitProvider();
         var service = new CommitsService(new FakeCommitsQueueProvider(queue), gitProvider);
-        return new CommitsNextCommand(service, new CommitsOutputService(output));
+        return new CommitsNextCommand(service, new CommitsOutputService(output), new CommitsFormatParser());
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

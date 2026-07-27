@@ -54,6 +54,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             SmokeExecutable.Bash => new ProcessStartInfo("bash"),
             SmokeExecutable.Cmd => new ProcessStartInfo("cmd.exe"),
             SmokeExecutable.DpkgDeb => new ProcessStartInfo("dpkg-deb"),
+            SmokeExecutable.Dotnet => new ProcessStartInfo("dotnet"),
             SmokeExecutable.Git => new ProcessStartInfo("git"),
             SmokeExecutable.Lsof => new ProcessStartInfo("lsof"),
             SmokeExecutable.Msiexec => new ProcessStartInfo("msiexec.exe"),
@@ -138,6 +139,9 @@ public sealed class ProcessCommandRunner : ICommandRunner
 
         if (command.Executable == SmokeExecutable.Git)
             return TryAddGitArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Dotnet)
+            return TryAddDotnetArguments(startInfo, command, out error);
 
         if (command.Executable == SmokeExecutable.DpkgDeb)
             return TryAddDpkgDebArguments(startInfo, command, out error);
@@ -289,6 +293,40 @@ public sealed class ProcessCommandRunner : ICommandRunner
 
         error = "Git arguments are not allowed.";
         return false;
+    }
+
+    private static bool TryAddDotnetArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 2 &&
+            command.Arguments[0] == "restore" &&
+            IsSmokeDotnetProject(command.Arguments[1]))
+        {
+            startInfo.ArgumentList.Add("restore");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "build" &&
+            IsSmokeDotnetProject(command.Arguments[1]) &&
+            command.Arguments[2] == "--no-restore")
+        {
+            startInfo.ArgumentList.Add("build");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add("--no-restore");
+            return true;
+        }
+
+        error = "dotnet arguments are not allowed.";
+        return false;
+    }
+
+    private static bool IsSmokeDotnetProject(string value)
+    {
+        var fullPath = Path.GetFullPath(value);
+        return Path.IsPathFullyQualified(value)
+               && fullPath.EndsWith(Path.Join("SmokeDotnet", "SmokeDotnet.csproj"), StringComparison.Ordinal);
     }
 
     private static bool TryAddDpkgDebArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
@@ -643,6 +681,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             "bash" => SmokeExecutable.Bash,
             "cmd.exe" => SmokeExecutable.Cmd,
             "dpkg-deb" => SmokeExecutable.DpkgDeb,
+            "dotnet" => SmokeExecutable.Dotnet,
             "git" => SmokeExecutable.Git,
             "lsof" => SmokeExecutable.Lsof,
             "msiexec.exe" => SmokeExecutable.Msiexec,
@@ -673,6 +712,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             SmokeExecutable.Bash => "bash",
             SmokeExecutable.Cmd => "cmd.exe",
             SmokeExecutable.DpkgDeb => "dpkg-deb",
+            SmokeExecutable.Dotnet => "dotnet",
             SmokeExecutable.Git => "git",
             SmokeExecutable.Lsof => "lsof",
             SmokeExecutable.Msiexec => "msiexec.exe",
