@@ -4,4 +4,8 @@ public sealed record CommitEntry(
     string Slice,
     string Message,
     IReadOnlyList<string> Files,
-    IReadOnlyList<string> Tests);
+    IReadOnlyList<string> Tests,
+    string Id = "")
+{
+    public string PatchKey => string.IsNullOrWhiteSpace(Id) ? Slice : Id;
+}

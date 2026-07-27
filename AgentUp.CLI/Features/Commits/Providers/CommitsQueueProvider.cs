@@ -42,7 +42,7 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
             File.Delete(path);
     }
 
-    public async Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
+    public async Task SavePatchAsync(string patchKey, string patch, CancellationToken cancellationToken = default)
     {
         if (patch.Length == 0)
             return;
@@ -50,24 +50,24 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         var queuePath = await QueuePathAsync(cancellationToken);
         var patchDir = Path.Join(Path.GetDirectoryName(queuePath)!, "patches");
         Directory.CreateDirectory(patchDir);
-        var safeSlice = string.Concat(slice.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'));
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmss");
-        var patchPath = Path.Join(patchDir, $"{safeSlice}-{timestamp}.patch");
+        var patchPath = Path.Join(patchDir, $"{SafePatchKey(patchKey)}.patch");
         var content = patch.EndsWith('\n') ? patch : patch + "\n";
         await File.WriteAllTextAsync(patchPath, content, cancellationToken);
     }
 
-    public async Task<string?> ReadPatchAsync(string slice, CancellationToken cancellationToken = default)
+    public async Task<string?> ReadPatchAsync(string patchKey, CancellationToken cancellationToken = default)
     {
         var queuePath = await QueuePathAsync(cancellationToken);
         var patchDir = Path.Join(Path.GetDirectoryName(queuePath)!, "patches");
         if (!Directory.Exists(patchDir))
             return null;
 
-        var safeSlice = string.Concat(slice.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'));
-        var files = Directory.GetFiles(patchDir, $"{safeSlice}-*.patch").Order().ToList();
-        return files.Count == 0 ? null : await File.ReadAllTextAsync(files[^1], cancellationToken);
+        var patchPath = Path.Join(patchDir, $"{SafePatchKey(patchKey)}.patch");
+        return File.Exists(patchPath) ? await File.ReadAllTextAsync(patchPath, cancellationToken) : null;
     }
+
+    private static string SafePatchKey(string patchKey)
+        => string.Concat(patchKey.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_'));
 
     private async Task<string> QueuePathAsync(CancellationToken cancellationToken)
     {

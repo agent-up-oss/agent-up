@@ -123,14 +123,15 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_resetsStagingBeforeStaging()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git);
 
         await service.StageNextAsync();
 
-        Assert.That(git.StagingReset, Is.True);
+        Assert.That(git.Invocations, Does.Contain("reset"));
+        Assert.That(git.Invocations.IndexOf("reset"), Is.LessThan(git.Invocations.IndexOf("stage:a.cs")));
     }
 
     [Test]
@@ -143,6 +144,9 @@ public sealed class CommitsServiceTests
         await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat: add thing", ["a.cs"], []));
 
         Assert.That(git.DiffRequested, Is.True);
+        var entry = queue.Stored!.Commits.Single();
+        Assert.That(entry.Id, Is.Not.Empty);
+        Assert.That(queue.Patches[entry.Id], Is.EqualTo("diff --git a/a.cs b/a.cs\n"));
     }
 
     [Test]
@@ -155,6 +159,22 @@ public sealed class CommitsServiceTests
         await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat: add thing", ["a.cs"], []));
 
         Assert.That(git.FilesRestored, Is.True);
+        Assert.That(git.Invocations.IndexOf("diff:a.cs"), Is.LessThan(git.Invocations.IndexOf("restore:a.cs")));
+    }
+
+    [Test]
+    public async Task StageNextAsync_appliesSavedPatchBeforeStaging()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
+        queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
+        var git = new FakeCommitsGitProvider();
+        var service = new CommitsService(queue, git);
+
+        await service.StageNextAsync();
+
+        Assert.That(git.AppliedPatches, Is.EqualTo(new[] { "diff --git a/a.cs b/a.cs\n" }));
+        Assert.That(git.Invocations.IndexOf("apply"), Is.LessThan(git.Invocations.IndexOf("stage:a.cs")));
     }
 
     [Test]
@@ -191,6 +211,7 @@ public sealed class CommitsServiceTests
     {
         public CommitsQueue? Stored { get; private set; } = initial;
         public bool Deleted { get; private set; }
+        public Dictionary<string, string> Patches { get; } = [];
 
         public Task<CommitsQueue> ReadAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(Stored ?? CommitsQueue.Empty());
@@ -209,16 +230,21 @@ public sealed class CommitsServiceTests
             return Task.CompletedTask;
         }
 
-        public Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
+        public Task SavePatchAsync(string patchKey, string patch, CancellationToken cancellationToken = default)
+        {
+            Patches[patchKey] = patch;
+            return Task.CompletedTask;
+        }
 
-        public Task<string?> ReadPatchAsync(string slice, CancellationToken cancellationToken = default)
-            => Task.FromResult<string?>(null);
+        public Task<string?> ReadPatchAsync(string patchKey, CancellationToken cancellationToken = default)
+            => Task.FromResult(Patches.GetValueOrDefault(patchKey));
     }
 
     private sealed class FakeCommitsGitProvider(bool hasStagedChanges = false, string[]? modifiedFiles = null) : ICommitsGitProvider
     {
         public List<string> StagedFiles { get; } = [];
+        public List<string> AppliedPatches { get; } = [];
+        public List<string> Invocations { get; } = [];
         public bool StagingReset { get; private set; }
         public bool FilesRestored { get; private set; }
 
@@ -233,30 +259,38 @@ public sealed class CommitsServiceTests
         public Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
             DiffRequested = true;
-            return Task.FromResult(string.Empty);
+            Invocations.Add($"diff:{string.Join(",", files)}");
+            return Task.FromResult("diff --git a/a.cs b/a.cs\n");
         }
 
         public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(hasStagedChanges);
 
         public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
+        {
+            AppliedPatches.Add(patch);
+            Invocations.Add("apply");
+            return Task.CompletedTask;
+        }
 
         public Task RestoreFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
             FilesRestored = true;
+            Invocations.Add($"restore:{string.Join(",", files)}");
             return Task.CompletedTask;
         }
 
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
             StagedFiles.AddRange(files);
+            Invocations.Add($"stage:{string.Join(",", files)}");
             return Task.CompletedTask;
         }
 
         public Task ResetStagingAsync(CancellationToken cancellationToken = default)
         {
             StagingReset = true;
+            Invocations.Add("reset");
             return Task.CompletedTask;
         }
     }

@@ -9,12 +9,12 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
     public async Task EnqueueAsync(EnqueueRequest request, CancellationToken cancellationToken = default)
     {
         var current = await queue.ReadAsync(cancellationToken);
-        var entry = new CommitEntry(request.Slice, request.Message, request.Files, request.Tests);
+        var entry = new CommitEntry(request.Slice, request.Message, request.Files, request.Tests, Guid.NewGuid().ToString("N"));
         var updated = current with { Commits = [.. current.Commits, entry] };
         await queue.WriteAsync(updated, cancellationToken);
 
         var patch = await git.GetDiffAsync(request.Files, cancellationToken);
-        await queue.SavePatchAsync(request.Slice, patch, cancellationToken);
+        await queue.SavePatchAsync(entry.PatchKey, patch, cancellationToken);
         await git.RestoreFilesAsync(request.Files, cancellationToken);
     }
 
@@ -41,7 +41,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var head = current.Commits[0];
         await git.ResetStagingAsync(cancellationToken);
 
-        var patch = await queue.ReadPatchAsync(head.Slice, cancellationToken);
+        var patch = await queue.ReadPatchAsync(head.PatchKey, cancellationToken);
         if (patch is not null)
             await git.ApplyPatchAsync(patch, cancellationToken);
 

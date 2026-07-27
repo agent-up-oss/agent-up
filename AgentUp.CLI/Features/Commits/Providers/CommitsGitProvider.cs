@@ -29,12 +29,14 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
 
     public async Task<string> GetDiffAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
+        var repoRoot = await GetRepoRootAsync(cancellationToken);
+        var safeFiles = files.Select(f => NormalizeRepoRelativePath(repoRoot, f)).ToList();
         var trackedArgs = new List<string> { "diff", "HEAD", "--" };
-        trackedArgs.AddRange(files);
+        trackedArgs.AddRange(safeFiles);
         var trackedDiff = await RunGitAsync(trackedArgs, cancellationToken, trimOutput: false);
 
         var lsArgs = new List<string> { "ls-files", "--" };
-        lsArgs.AddRange(files);
+        lsArgs.AddRange(safeFiles);
         var tracked = (await RunGitAsync(lsArgs, cancellationToken))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -43,8 +45,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         if (trackedDiff.Length > 0)
             parts.Add(trackedDiff);
 
-        var repoRoot = await GetRepoRootAsync(cancellationToken);
-        foreach (var file in files.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
+        foreach (var file in safeFiles.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
         {
             var args = new List<string> { "diff", "--no-index", "--", "/dev/null", file };
             var untrackedDiff = await RunGitAsync(args, cancellationToken, allowedExitCodes: [0, 1], trimOutput: false);
@@ -70,7 +71,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         try
         {
             var content = patch.EndsWith('\n') ? patch : patch + "\n";
-        await File.WriteAllTextAsync(tempPath, content, cancellationToken);
+            await File.WriteAllTextAsync(tempPath, content, cancellationToken);
             await RunGitAsync(["apply", tempPath], cancellationToken);
         }
         finally
@@ -82,13 +83,14 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
     public async Task RestoreFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
         var repoRoot = await GetRepoRootAsync(cancellationToken);
+        var safeFiles = files.Select(f => NormalizeRepoRelativePath(repoRoot, f)).ToList();
         var lsArgs = new List<string> { "ls-files", "--" };
-        lsArgs.AddRange(files);
+        lsArgs.AddRange(safeFiles);
         var tracked = (await RunGitAsync(lsArgs, cancellationToken))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var toRestore = files.Where(f => tracked.Contains(f)).ToList();
+        var toRestore = safeFiles.Where(f => tracked.Contains(f)).ToList();
         if (toRestore.Count > 0)
         {
             var args = new List<string> { "restore", "--" };
@@ -96,20 +98,21 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
             await RunGitAsync(args, cancellationToken);
         }
 
-        foreach (var file in files.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
+        foreach (var file in safeFiles.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
             File.Delete(Path.Join(repoRoot, file));
     }
 
     public async Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
         var repoRoot = await GetRepoRootAsync(cancellationToken);
+        var safeFiles = files.Select(f => NormalizeRepoRelativePath(repoRoot, f)).ToList();
         var lsArgs = new List<string> { "ls-files", "--" };
-        lsArgs.AddRange(files);
+        lsArgs.AddRange(safeFiles);
         var tracked = (await RunGitAsync(lsArgs, cancellationToken))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var toStage = files
+        var toStage = safeFiles
             .Where(f => File.Exists(Path.Join(repoRoot, f)) || tracked.Contains(f))
             .ToList();
 
@@ -131,6 +134,20 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
             ? Directory.EnumerateFiles(fullPath, "*", SearchOption.AllDirectories)
                 .Select(f => Path.GetRelativePath(repoRoot, f).Replace('\\', '/'))
             : [];
+    }
+
+    private static string NormalizeRepoRelativePath(string repoRoot, string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path) || path.StartsWith(":(", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Commit queue file path '{path}' must be a literal path under the repository root.");
+
+        var normalizedRoot = Path.GetFullPath(repoRoot);
+        var fullPath = Path.GetFullPath(Path.Join(normalizedRoot, path));
+        var relative = Path.GetRelativePath(normalizedRoot, fullPath);
+        if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
+            throw new InvalidOperationException($"Commit queue file path '{path}' must stay under the repository root.");
+
+        return relative.Replace('\\', '/');
     }
 
     private async Task<string> RunGitAsync(
