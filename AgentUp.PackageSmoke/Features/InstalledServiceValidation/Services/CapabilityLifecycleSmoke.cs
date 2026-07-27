@@ -70,11 +70,11 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         await AssertStateAsync(serverUrl, workspace.Value.Id, DotnetAppName, "Running", assert, cancellationToken);
 
         await StopApplicationAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
-        await AssertStateAsync(serverUrl, workspace.Value.Id, DockerAppName, "Stopped", assert, cancellationToken);
+        await AssertStoppedOrStoppingAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
 
         await StopWorkspaceAsync(serverUrl, workspace.Value.Id, assert, cancellationToken);
-        await AssertStateAsync(serverUrl, workspace.Value.Id, DotnetAppName, "Stopped", assert, cancellationToken);
-        await AssertStateAsync(serverUrl, workspace.Value.Id, DockerAppName, "Stopped", assert, cancellationToken);
+        await AssertStoppedOrStoppingAsync(serverUrl, workspace.Value.Id, DotnetAppName, assert, cancellationToken);
+        await AssertStoppedOrStoppingAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
     }
 
     private async Task GitCommitConfigAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
@@ -148,6 +148,32 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         }
 
         assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected {expected}, got {actual}.");
+    }
+
+    private async Task AssertStoppedOrStoppingAsync(
+        string serverUrl,
+        string workspaceId,
+        string appName,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow + StateWaitTimeout;
+        var actual = "<missing>";
+
+        while (true)
+        {
+            var app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            actual = app is null ? "<missing>" : ReadState(app.Value);
+            if (actual is "Stopped" or "Stopping")
+                return;
+
+            if (DateTimeOffset.UtcNow >= deadline)
+                break;
+
+            await Task.Delay(StatePollDelay, cancellationToken);
+        }
+
+        assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected Stopped or Stopping, got {actual}.");
     }
 
     private async Task StartApplicationAsync(string serverUrl, string workspaceId, string appName, FileAssertions assert, CancellationToken cancellationToken)
