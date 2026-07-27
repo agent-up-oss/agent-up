@@ -118,6 +118,9 @@ public sealed class CommitsOutputService(TextWriter output)
         return 1;
     }
 
+    public int WriteError(string message, CommitsOutputFormat format)
+        => format == CommitsOutputFormat.Json ? WriteErrorJson(message) : WriteError(message);
+
     public int WriteErrorJson(string message)
     {
         output.WriteLine(JsonSerializer.Serialize(new CommitsErrorJson(message), JsonOptions));

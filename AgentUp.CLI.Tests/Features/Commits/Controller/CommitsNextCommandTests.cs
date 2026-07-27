@@ -170,6 +170,19 @@ public sealed class CommitsNextCommandTests
         Assert.That(json.RootElement.GetProperty("error").GetString(), Does.Contain("not yet committed"));
     }
 
+    [Test]
+    public async Task RunAsync_jsonFormatWithUnknownArgument_writesStructuredError()
+    {
+        using var output = new StringWriter();
+        var command = BuildCommand(output);
+
+        var code = await command.RunAsync(["--format", "json", "--unknown"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(json.RootElement.GetProperty("error").GetString(), Is.EqualTo("Unknown argument: --unknown"));
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static CommitsNextCommand BuildCommand(

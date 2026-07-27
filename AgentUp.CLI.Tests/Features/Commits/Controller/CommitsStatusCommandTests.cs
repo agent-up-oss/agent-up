@@ -116,6 +116,19 @@ public sealed class CommitsStatusCommandTests
         Assert.That(entries[1].GetProperty("message").GetString(), Is.EqualTo("fix: second"));
     }
 
+    [Test]
+    public async Task RunAsync_jsonFormatWithUnknownArgument_writesStructuredError()
+    {
+        using var output = new StringWriter();
+        var command = BuildCommand(output);
+
+        var code = await command.RunAsync(["--format", "json", "--unknown"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(json.RootElement.GetProperty("error").GetString(), Is.EqualTo("Unknown argument: --unknown"));
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static CommitsStatusCommand BuildCommand(

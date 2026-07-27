@@ -15,7 +15,7 @@ public sealed class CommitsStatusCommand(
     {
         var (format, error) = formatParser.Parse(args);
         if (error is not null)
-            return output.WriteError(error);
+            return output.WriteError(error, format);
 
         return output.WriteStatus(await service.GetStatusAsync(cancellationToken), format);
     }

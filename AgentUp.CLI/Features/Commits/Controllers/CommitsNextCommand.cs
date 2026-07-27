@@ -15,7 +15,7 @@ public sealed class CommitsNextCommand(
     {
         var (format, error) = formatParser.Parse(args);
         if (error is not null)
-            return output.WriteError(error);
+            return output.WriteError(error, format);
 
         return output.WriteStagingResult(await service.StageNextAsync(cancellationToken), format);
     }
