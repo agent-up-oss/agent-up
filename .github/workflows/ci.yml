@@ -216,6 +216,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@v5
         with:
@@ -516,7 +518,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select(.name | startswith("package-") or .name == "sbom" or .name == "jetbrains-plugin") | .id' |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select((.name | startswith("package-")) or .name == "sbom" or .name == "jetbrains-plugin") | .id' |
             while IFS= read -r artifact_id; do
               if [ -n "$artifact_id" ]; then
                 gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
