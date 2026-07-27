@@ -12,12 +12,13 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
     {
         try
         {
+            var repoRoot = await GetRepoRootAsync(cancellationToken);
             var output = await RunGitAsync(["status", "--porcelain"], cancellationToken);
             return output
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Length > 3 ? line[3..].Trim() : "")
                 .Where(path => path.Length > 0)
-                .SelectMany(path => path.EndsWith('/') ? ExpandDirectory(path.TrimEnd('/')) : [path])
+                .SelectMany(path => path.EndsWith('/') ? ExpandDirectory(path.TrimEnd('/'), repoRoot) : [path])
                 .ToList();
         }
         catch (InvalidOperationException)
@@ -42,12 +43,9 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         if (trackedDiff.Length > 0)
             parts.Add(trackedDiff);
 
-        foreach (var file in files.Where(f => !tracked.Contains(f)))
+        var repoRoot = await GetRepoRootAsync(cancellationToken);
+        foreach (var file in files.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
         {
-            var fullPath = Path.Join(workingDirectory, file);
-            if (!File.Exists(fullPath))
-                continue;
-
             var args = new List<string> { "diff", "--no-index", "--", "/dev/null", file };
             var untrackedDiff = await RunGitAsync(args, cancellationToken, allowedExitCodes: [0, 1]);
             if (untrackedDiff.Length > 0)
@@ -63,8 +61,47 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         return output.Length > 0;
     }
 
+    public async Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
+    {
+        if (patch.Length == 0)
+            return;
+
+        var tempPath = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, patch, cancellationToken);
+            await RunGitAsync(["apply", tempPath], cancellationToken);
+        }
+        finally
+        {
+            File.Delete(tempPath);
+        }
+    }
+
+    public async Task RestoreFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await GetRepoRootAsync(cancellationToken);
+        var lsArgs = new List<string> { "ls-files", "--" };
+        lsArgs.AddRange(files);
+        var tracked = (await RunGitAsync(lsArgs, cancellationToken))
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var toRestore = files.Where(f => tracked.Contains(f)).ToList();
+        if (toRestore.Count > 0)
+        {
+            var args = new List<string> { "restore", "--" };
+            args.AddRange(toRestore);
+            await RunGitAsync(args, cancellationToken);
+        }
+
+        foreach (var file in files.Where(f => !tracked.Contains(f) && File.Exists(Path.Join(repoRoot, f))))
+            File.Delete(Path.Join(repoRoot, file));
+    }
+
     public async Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
+        var repoRoot = await GetRepoRootAsync(cancellationToken);
         var lsArgs = new List<string> { "ls-files", "--" };
         lsArgs.AddRange(files);
         var tracked = (await RunGitAsync(lsArgs, cancellationToken))
@@ -72,7 +109,7 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var toStage = files
-            .Where(f => File.Exists(Path.Join(workingDirectory, f)) || tracked.Contains(f))
+            .Where(f => File.Exists(Path.Join(repoRoot, f)) || tracked.Contains(f))
             .ToList();
 
         if (toStage.Count == 0)
@@ -86,12 +123,12 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
     public Task ResetStagingAsync(CancellationToken cancellationToken = default)
         => RunGitAsync(["restore", "--staged", "."], cancellationToken, allowedExitCodes: [0, 1]);
 
-    private IEnumerable<string> ExpandDirectory(string relativePath)
+    private static IEnumerable<string> ExpandDirectory(string relativePath, string repoRoot)
     {
-        var fullPath = Path.Join(workingDirectory, relativePath);
+        var fullPath = Path.Join(repoRoot, relativePath);
         return Directory.Exists(fullPath)
             ? Directory.EnumerateFiles(fullPath, "*", SearchOption.AllDirectories)
-                .Select(f => Path.GetRelativePath(workingDirectory, f).Replace('\\', '/'))
+                .Select(f => Path.GetRelativePath(repoRoot, f).Replace('\\', '/'))
             : [];
     }
 

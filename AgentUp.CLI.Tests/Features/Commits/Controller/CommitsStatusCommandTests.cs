@@ -117,6 +117,9 @@ public sealed class CommitsStatusCommandTests
 
         public Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
+
+        public Task<string?> ReadPatchAsync(string slice, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
     }
 
     private sealed class FakeCommitsGitProvider(params string[] modifiedFiles) : ICommitsGitProvider
@@ -132,6 +135,12 @@ public sealed class CommitsStatusCommandTests
 
         public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task RestoreFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.CompletedTask;

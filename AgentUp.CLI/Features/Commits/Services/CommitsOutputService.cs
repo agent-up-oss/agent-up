@@ -40,6 +40,9 @@ public sealed class CommitsOutputService(TextWriter output)
 
     public int WriteStagingResult(CommitsStagingResult result)
     {
+        if (result.IsBlocked)
+            return WriteError(result.BlockedReason!);
+
         output.WriteLine($"Staged: {result.Slice}");
         foreach (var file in result.StagedFiles)
             output.WriteLine($"  {file}");

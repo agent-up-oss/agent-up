@@ -52,7 +52,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("Slice", "msg", ["owned.cs"], [])
         ]));
-        var git = new FakeCommitsGitProvider(["owned.cs", "unassigned.cs"]);
+        var git = new FakeCommitsGitProvider(modifiedFiles: ["owned.cs", "unassigned.cs"]);
         var service = new CommitsService(queue, git);
 
         var result = await service.GetStatusAsync();
@@ -66,7 +66,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("Slice", "msg", ["a.cs", "b.cs"], [])
         ]));
-        var git = new FakeCommitsGitProvider(["a.cs", "b.cs"]);
+        var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs", "b.cs"]);
         var service = new CommitsService(queue, git);
 
         var result = await service.GetStatusAsync();
@@ -146,6 +146,33 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task EnqueueAsync_restoresWorkingTreeAfterSavingPatch()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var git = new FakeCommitsGitProvider();
+        var service = new CommitsService(queue, git);
+
+        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat: add thing", ["a.cs"], []));
+
+        Assert.That(git.FilesRestored, Is.True);
+    }
+
+    [Test]
+    public async Task StageNextAsync_whenStagedChangesExist_returnsBlockedResult()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
+        var git = new FakeCommitsGitProvider(hasStagedChanges: true);
+        var service = new CommitsService(queue, git);
+
+        var result = await service.StageNextAsync();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.IsBlocked, Is.True);
+        Assert.That(result.BlockedReason, Does.Contain("not yet committed"));
+    }
+
+    [Test]
     public async Task ClearAsync_deletesQueue()
     {
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
@@ -184,18 +211,22 @@ public sealed class CommitsServiceTests
 
         public Task SavePatchAsync(string slice, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
+
+        public Task<string?> ReadPatchAsync(string slice, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
     }
 
-    private sealed class FakeCommitsGitProvider(params string[] modifiedFiles) : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(bool hasStagedChanges = false, string[]? modifiedFiles = null) : ICommitsGitProvider
     {
         public List<string> StagedFiles { get; } = [];
         public bool StagingReset { get; private set; }
+        public bool FilesRestored { get; private set; }
 
         public Task<string> GetRepoRootAsync(CancellationToken cancellationToken = default)
             => Task.FromResult("/repo");
 
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<string>>(modifiedFiles);
+            => Task.FromResult<IReadOnlyList<string>>(modifiedFiles ?? []);
 
         public bool DiffRequested { get; private set; }
 
@@ -206,7 +237,16 @@ public sealed class CommitsServiceTests
         }
 
         public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(false);
+            => Task.FromResult(hasStagedChanges);
+
+        public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task RestoreFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+        {
+            FilesRestored = true;
+            return Task.CompletedTask;
+        }
 
         public Task StageFilesAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {

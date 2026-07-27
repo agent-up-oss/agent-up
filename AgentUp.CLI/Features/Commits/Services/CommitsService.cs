@@ -15,6 +15,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
 
         var patch = await git.GetDiffAsync(request.Files, cancellationToken);
         await queue.SavePatchAsync(request.Slice, patch, cancellationToken);
+        await git.RestoreFilesAsync(request.Files, cancellationToken);
     }
 
     public async Task<CommitsStatusResult> GetStatusAsync(CancellationToken cancellationToken = default)
@@ -28,17 +29,22 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         return new CommitsStatusResult(current.Commits, unassigned);
     }
 
-    public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
-        => git.HasStagedChangesAsync(cancellationToken);
-
     public async Task<CommitsStagingResult?> StageNextAsync(CancellationToken cancellationToken = default)
     {
         var current = await queue.ReadAsync(cancellationToken);
         if (current.Commits.Count == 0)
             return null;
 
+        if (await git.HasStagedChangesAsync(cancellationToken))
+            return CommitsStagingResult.Blocked("Staged changes are not yet committed. Commit them first, then run 'agentup commits next'.");
+
         var head = current.Commits[0];
         await git.ResetStagingAsync(cancellationToken);
+
+        var patch = await queue.ReadPatchAsync(head.Slice, cancellationToken);
+        if (patch is not null)
+            await git.ApplyPatchAsync(patch, cancellationToken);
+
         await git.StageFilesAsync(head.Files, cancellationToken);
 
         var remaining = current.Commits.Skip(1).ToList();
