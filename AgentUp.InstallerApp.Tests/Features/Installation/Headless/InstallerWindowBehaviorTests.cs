@@ -27,6 +27,7 @@ public class InstallerWindowBehaviorTests
 
         Assert.That(window.Find<TextBlock>("PageTitle").Text, Is.EqualTo("Dashboard"));
         Assert.That(window.Find<ItemsControl>("ComponentCards").ItemCount, Is.EqualTo(3));
+        Assert.That(window.Find<Button>("RefreshButton").IsVisible, Is.True);
         Assert.That(window.Find<Button>("AddModuleCard").IsVisible, Is.True);
     }
 
@@ -206,6 +207,8 @@ public class InstallerWindowBehaviorTests
         Assert.That(xaml, Does.Contain("IsVisible=\"{Binding SupportsInstallActions}\""));
         Assert.That(xaml, Does.Not.Contain(">Repair<"));
         Assert.That(xaml, Does.Contain("IsVisible=\"{Binding IsCapabilityEditPageVisible}\""));
+        Assert.That(xaml, Does.Contain("Name=\"RefreshButton\""));
+        Assert.That(xaml, Does.Contain("ColumnDefinitions=\"*,Auto,*\""));
     }
 
     private static async Task<InstallerWindow> LaunchAsync()

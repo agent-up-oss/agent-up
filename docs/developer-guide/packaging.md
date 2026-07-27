@@ -28,6 +28,7 @@ Installer and packaging behavior is product behavior and must be testable. Share
 
 - Independent Desktop, Server, and CLI management cards.
 - Install, update, uninstall, repair, status, and per-card progress UI.
+- A dashboard refresh action that explicitly rechecks installed component and capability-module state so update buttons reflect newly available versions.
 - Installed capability-module grid with add-module and standardized version-management pages.
 - Official capability catalog loading from the bundled catalog, with `AGENTUP_CAPABILITY_CATALOG_URL` available for tests and alternate release channels.
 - Offline install from bundled payload by default.

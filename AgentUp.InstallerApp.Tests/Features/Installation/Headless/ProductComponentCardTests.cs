@@ -4,8 +4,10 @@ using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Installers.Features.Installation.DTOs;
+using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Providers;
+using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 namespace AgentUp.InstallerApp.Tests.Features.Installation.Headless;
 
@@ -109,6 +111,31 @@ public class ProductComponentCardTests
     }
 
     [Test]
+    public async Task RefreshCommand_rechecksComponentStatusAndUpdatesPrimaryButton()
+    {
+        var session = InstallerSession.CreateDefault(
+            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
+            PayloadSelection.Bundled(new Version(1, 0, 0)));
+        var adapter = new RefreshStatusAdapter();
+        var model = new InstallerViewModel(
+            session,
+            adapter,
+            new CapabilitiesController(CapabilityDashboardServiceFactory.CreateEmpty()));
+        var desktop = model.ComponentCards.Single(c => c.Target.Id == "desktop");
+
+        await model.RefreshAsync();
+        Assert.That(desktop.PrimaryButtonText, Is.EqualTo("Installed"));
+
+        adapter.HasUpdate = true;
+        model.RefreshCommand.Execute(null);
+        await WaitUntilAsync(() => desktop.PrimaryButtonText == "Update");
+
+        Assert.That(desktop.StatusText, Is.EqualTo("Update available"));
+        Assert.That(desktop.InstallCommand.CanExecute(null), Is.True);
+        Assert.That(desktop.UpdateCommand.CanExecute(null), Is.True);
+    }
+
+    [Test]
     public void CapabilityCard_withoutMatchingActiveVersion_doesNotShowActiveVersionDetail()
     {
         var session = InstallerSession.CreateDefault(
@@ -190,5 +217,72 @@ public class ProductComponentCardTests
 
         Assert.That(catalogEntry.ButtonText, Is.EqualTo("Managed by NixOS"));
         Assert.That(catalogEntry.InstallCommand.CanExecute(null), Is.False);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            if (condition())
+                return;
+
+            await Task.Delay(10);
+        }
+
+        Assert.Fail("Condition was not met.");
+    }
+
+    private sealed class RefreshStatusAdapter : IInstallerPlatformAdapter
+    {
+        public bool HasUpdate { get; set; }
+
+        public string PlatformName => "Test";
+
+        public bool SupportsInstallActions => true;
+
+        public Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new DockerStatus(DockerStatusKind.Operational, "Docker is operational", "Test Docker."));
+
+        public Task<InstallerComponentStatus> GetComponentStatusAsync(
+            ProductComponent component,
+            InstallerSession session,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(new InstallerComponentStatus(
+                component,
+                HasUpdate ? InstallerComponentStatusKind.UpdateAvailable : InstallerComponentStatusKind.Installed,
+                session.Version,
+                HasUpdate ? new Version(1, 1, 0) : session.Version));
+
+        public IReadOnlyList<InstallOperation> PlanComponentAction(
+            ProductComponent component,
+            InstallerComponentAction action,
+            InstallerSession session)
+            => [];
+
+        public async IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
+            ProductComponent component,
+            InstallerComponentAction action,
+            InstallerSession session,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
+            => [];
+
+        public async IAsyncEnumerable<InstallProgress> ExecuteInstallAsync(
+            InstallerSession session,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public Task<ValidationReport> ValidateInstalledStateAsync(
+            InstallerSession session,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(new ValidationReport([]));
     }
 }

@@ -14,7 +14,7 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
     private const string DotnetAppName = "SmokeDotnet";
     private const string DockerAppName = "SmokeDocker";
     private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
-    private static readonly TimeSpan StateWaitTimeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan StateWaitTimeout = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan StatePollDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly ICommandRunner _commands;

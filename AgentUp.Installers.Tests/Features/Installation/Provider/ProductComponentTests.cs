@@ -178,12 +178,13 @@ public class ProductComponentTests
     }
 
     [Test]
-    public void StatusFromValidation_reportsServerNotInstalledWhenTrayPayloadOrAutoStartIsMissing()
+    [TestCase("tray.missing")]
+    [TestCase("tray.autostart")]
+    public void StatusFromValidation_reportsServerNotInstalledWhenTrayPayloadOrAutoStartIsMissing(string code)
     {
         var report = new ValidationReport(
         [
-            new ValidationFinding("tray.missing", "Tray application is not installed.", ValidationSeverity.Error),
-            new ValidationFinding("tray.autostart", "Tray auto-start is not registered.", ValidationSeverity.Error)
+            new ValidationFinding(code, "Tray dependency is missing.", ValidationSeverity.Error)
         ]);
 
         var status = InstallerComponentOperations.StatusFromValidation(
