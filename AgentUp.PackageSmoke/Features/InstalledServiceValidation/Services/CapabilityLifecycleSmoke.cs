@@ -19,13 +19,19 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
 
     private readonly ICommandRunner _commands;
     private readonly CapabilityWorkspaceProvider _workspace;
+    private readonly DotnetSmokeBuildProvider _dotnetBuild;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
 
-    public CapabilityLifecycleSmoke(ICommandRunner commands, CapabilityWorkspaceProvider workspace, HttpClient? http = null)
+    public CapabilityLifecycleSmoke(
+        ICommandRunner commands,
+        CapabilityWorkspaceProvider workspace,
+        DotnetSmokeBuildProvider dotnetBuild,
+        HttpClient? http = null)
     {
         _commands = commands;
         _workspace = workspace;
+        _dotnetBuild = dotnetBuild;
         _http = http ?? new HttpClient();
         _ownsHttp = http is null;
     }
@@ -90,12 +96,8 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
 
     private async Task BuildDotnetSmokeAppAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
     {
-        foreach (var command in DotnetWarmupCommands(repo))
-        {
-            var result = await _commands.RunAsync(command.Spec, cancellationToken);
-            if (result.ExitCode != 0)
-                assert.Error(command.Code, $"{command.Spec.FileName} failed: {result.Stderr}{result.Stdout}");
-        }
+        foreach (var finding in await _dotnetBuild.BuildAsync(repo, cancellationToken))
+            assert.Error(finding.Code, finding.Message);
     }
 
     private async Task<WorkspaceSnapshot?> FindWorkspaceAsync(string serverUrl, CancellationToken cancellationToken)
@@ -276,26 +278,6 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json"], Environment: environment), "capability.git.add"),
                 (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
-            ];
-    }
-
-    private static IReadOnlyList<(CommandSpec Spec, string Code)> DotnetWarmupCommands(string repo)
-    {
-        var environment = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [WorkingDirectoryEnvironmentKey] = repo
-        };
-
-        return OperatingSystem.IsWindows()
-            ?
-            [
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; dotnet restore SmokeDotnet/SmokeDotnet.csproj"], Environment: environment), "capability.smokedotnet.restore"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; dotnet build SmokeDotnet/SmokeDotnet.csproj --no-restore"], Environment: environment), "capability.smokedotnet.build")
-            ]
-            :
-            [
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && dotnet restore SmokeDotnet/SmokeDotnet.csproj"], Environment: environment), "capability.smokedotnet.restore"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && dotnet build SmokeDotnet/SmokeDotnet.csproj --no-restore"], Environment: environment), "capability.smokedotnet.build")
             ];
     }
 
