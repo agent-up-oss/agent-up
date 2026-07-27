@@ -15,7 +15,6 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     // key: (workspaceId, appName)
     private readonly ConcurrentDictionary<(string, string), Process> _processes = new();
     private readonly ConcurrentDictionary<(string, string), string> _containerNames = new();
-    private readonly ConcurrentDictionary<(string, string), int> _intentionalLocalStops = new();
 
     private readonly WorkspaceStateController _registry;
     private readonly IOutputRepository _output;
@@ -85,18 +84,17 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         process.Exited += (sender, args) =>
         {
             var key = (workspaceId, appName);
-            _processes.TryRemove(key, out var exited);
+            if (!_processes.TryRemove(key, out var exited))
+                return; // KillApplicationAsync already removed this process; it manages the final state
             var exitCode = (sender as Process)?.ExitCode ?? -1;
-            var exitState = _intentionalLocalStops.TryGetValue(key, out var stoppedProcessId)
-                            && sender is Process stoppedProcess
-                            && stoppedProcess.Id == stoppedProcessId
-                            && _intentionalLocalStops.TryRemove(key, out _)
-                ? ApplicationState.Stopped
-                : exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
+            var exitState = exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
             _ = _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
             _logger.LogInformation("Workspace application process exited with code {Code}", exitCode);
-            exited?.Dispose();
+            exited.Dispose();
         };
+
+        var key = (workspaceId, appName);
+        _processes[key] = process;
 
         try
         {
@@ -106,12 +104,12 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
+            _processes.TryRemove(key, out _);
             process.Dispose();
             await _output.AppendAsync(workspaceId, appName, "[err] " + ex.Message);
             throw new InvalidOperationException($"Failed to start '{appName}': {ex.Message}", ex);
         }
 
-        _processes[(workspaceId, appName)] = process;
         _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);
     }
 
@@ -216,18 +214,18 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     public async Task KillApplicationAsync(string workspaceId, string appName)
     {
         var key = (workspaceId, appName);
-        // Remove container tracking before killing so the Exited handler knows it was intentional
         _containerNames.TryRemove(key, out var containerName);
 
         if (_processes.TryRemove(key, out var process))
         {
-            var markedIntentionalStop = false;
             try
             {
-                if (!process.HasExited)
+                if (process.HasExited)
                 {
-                    _intentionalLocalStops[key] = process.Id;
-                    markedIntentionalStop = true;
+                    await _registry.UpdateApplicationStateAsync(workspaceId, appName, StateFromExitCode(process.ExitCode));
+                }
+                else
+                {
                     _localProcesses.Kill(process);
                     _logger.LogInformation("Killed workspace application process with pid {Pid}", process.Id);
                     await Task.WhenAny(process.WaitForExitAsync(), Task.Delay(TimeSpan.FromSeconds(5)));
@@ -236,8 +234,9 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             }
             catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
             {
-                if (markedIntentionalStop)
-                    _intentionalLocalStops.TryRemove(key, out _);
+                if (process.HasExited)
+                    await _registry.UpdateApplicationStateAsync(workspaceId, appName, StateFromExitCode(process.ExitCode));
+
                 _logger.LogWarning(ex, "Failed to kill workspace application process");
             }
 
@@ -250,6 +249,9 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             await _docker.RunAsync("rm", "-f", containerName);
         }
     }
+
+    private static ApplicationState StateFromExitCode(int exitCode)
+        => exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
 
     Task IHostedService.StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

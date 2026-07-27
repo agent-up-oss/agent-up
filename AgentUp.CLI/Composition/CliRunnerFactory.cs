@@ -1,3 +1,6 @@
+using AgentUp.CLI.Features.Commits.Controllers;
+using AgentUp.CLI.Features.Commits.Providers;
+using AgentUp.CLI.Features.Commits.Services;
 using AgentUp.CLI.Features.Workspaces.Controllers;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
@@ -9,23 +12,37 @@ public static class CliRunnerFactory
     public static WorkspacesController Create(string serverUrl, string workingDirectory, TextWriter? output = null)
     {
         var writer = output ?? Console.Out;
+
         var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
         var client = new WorkspaceApiClient(http);
         var resolver = new CurrentWorkspaceResolver(client, workingDirectory);
-        var service = new WorkspaceCommandService(
+        var workspaceService = new WorkspaceCommandService(
             client,
             new WorkspaceConfigurationProvider(),
             new WorkspaceIdentityProvider(),
             resolver,
             workingDirectory);
-        var commandOutput = new WorkspaceCommandOutputService(writer);
+        var workspaceOutput = new WorkspaceCommandOutputService(writer);
+
+        var commitsGit = new CommitsGitProvider(workingDirectory);
+        var commitsQueue = new CommitsQueueProvider(commitsGit);
+        var commitsService = new CommitsService(commitsQueue, commitsGit);
+        var commitsOutput = new CommitsOutputService(writer);
+        var commitsParser = new CommitsArgParser();
+        var commits = new CommitsController(
+            new CommitsEnqueueCommand(commitsService, commitsParser, commitsOutput),
+            new CommitsStatusCommand(commitsService, commitsOutput),
+            new CommitsNextCommand(commitsService, commitsOutput),
+            new CommitsClearCommand(commitsService, commitsOutput),
+            commitsOutput);
 
         return new WorkspacesController(
             serverUrl,
             writer,
-            new StartCommand(service, commandOutput),
-            new StopCommand(service, writer),
-            new ListCommand(service, commandOutput),
-            new StatusCommand(service, commandOutput));
+            new StartCommand(workspaceService, workspaceOutput),
+            new StopCommand(workspaceService, writer),
+            new ListCommand(workspaceService, workspaceOutput),
+            new StatusCommand(workspaceService, workspaceOutput),
+            commits);
     }
 }

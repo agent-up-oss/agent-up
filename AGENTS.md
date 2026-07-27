@@ -201,6 +201,13 @@ AgentUp.CLI/
       Models/
       Providers/
       Services/
+    Commits/          (local vertical-slice commit staging queue, no Server dependency)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
 
 AgentUp.Installers/
   Features/
@@ -650,6 +657,37 @@ Read: `docs/developer-guide/diagnostics.md`.
 The target AI workflow is: modify code, restart workspace, wait until healthy, inspect page, interact, validate, screenshot, generate Playwright, commit.
 
 Read: `docs/developer-guide/workflows.md`.
+
+## Commit Workflow
+
+Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use `agentup commits enqueue` to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
+
+Agent responsibility: `enqueue` only. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue calls, run `agentup commits status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
+
+```bash
+dotnet run --project AgentUp.CLI -- commits enqueue \
+  --slice <SliceName> \
+  --message "<conventional commit message>" \
+  --files <file1> [file2 ...] \
+  [--tests "<test command>"]
+```
+
+One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Enqueue entries in the order they should be committed.
+
+### Conventional Commit Prefixes
+
+Use the correct prefix — the choice signals intent to reviewers and changelog tooling:
+
+| Prefix | When to use |
+|--------|-------------|
+| `feat` | A **user-facing capability** that did not exist before (new command, new flag, new output) |
+| `fix` | Corrects incorrect behaviour: crashes, wrong output, broken guards, architecture violations |
+| `test` | Test-only changes with no production code change |
+| `refactor` | Internal restructuring that changes no observable behaviour and adds no new capability |
+| `docs` | Documentation, comments, `AGENTS.md`, `cli.md` only |
+| `chore` | Build, CI, tooling, dependency bumps — nothing a user or reviewer of product code cares about |
+
+**Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type — if a user cannot observe the addition as new capability, it is a `fix` or `refactor`. When in doubt: would a user reading the changelog care that this was added, or only that a bug was corrected? Use that answer to pick the prefix.
 
 ## Packaging And Installers
 

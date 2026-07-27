@@ -259,6 +259,40 @@ public class WindowsInstallerPlatformAdapterTests
     }
 
     [Test]
+    public void WindowsWixSourceGenerator_whenTrayDirectoryLacksTrayExecutable_omitsTrayAutoStart()
+    {
+        var root = System.IO.Path.Join(System.IO.Path.GetTempPath(), "AgentUp-WindowsInstallerTests", Guid.NewGuid().ToString());
+        try
+        {
+            var layout = new WindowsInstallerLayout(
+                InstallerSourceDirectory: System.IO.Path.Join(root, "wix"),
+                InstallerPublishDirectory: System.IO.Path.Join(root, "installer"),
+                DesktopPublishDirectory: System.IO.Path.Join(root, "desktop"),
+                ServerPublishDirectory: System.IO.Path.Join(root, "server"),
+                CliPublishDirectory: System.IO.Path.Join(root, "cli"),
+                TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
+                LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
+                ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
+            WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+            WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+            WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+            WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+            WritePublishedFile(layout.TrayPublishDirectory, "support.dll");
+            Directory.CreateDirectory(layout.InstallerSourceDirectory);
+            File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+
+            var product = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3")).ProductWxs(layout);
+
+            Assert.That(product, Does.Not.Contain("TrayAutoStartComponent"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public void WindowsWixSourceGenerator_forNonAgentUpManifest_containsProductIdentityAndNoAgentUpBranding()
     {
         var root = System.IO.Path.Join(System.IO.Path.GetTempPath(), "AgentUp-WindowsInstallerTests", Guid.NewGuid().ToString());

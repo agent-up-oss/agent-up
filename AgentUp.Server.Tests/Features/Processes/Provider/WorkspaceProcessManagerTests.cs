@@ -240,6 +240,34 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task LaunchApplicationAsync_recordsFastNonZeroExitAsFailed()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition("Web", "python3 -c \"raise Exception\"", null)
+                ]
+            });
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
+            Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task CreateDockerRunArguments_AddsEnvironmentFilesAndInlineEnvironment()
     {
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
