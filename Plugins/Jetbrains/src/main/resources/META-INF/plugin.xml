@@ -1,0 +1,30 @@
+<idea-plugin>
+    <id>dev.agentup.jetbrains</id>
+    <name>Agent-Up Commit Queue</name>
+    <vendor email="support@agent-up.dev" url="https://github.com/agent-up-oss/agent-up">Agent-Up</vendor>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.vcs</depends>
+    <depends>Git4Idea</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable
+            parentId="tools"
+            instance="dev.agentup.jetbrains.settings.AgentUpSettingsConfigurable"
+            id="dev.agentup.jetbrains.settings"
+            displayName="Agent-Up"/>
+        <checkinHandlerFactory implementation="dev.agentup.jetbrains.commit.AgentUpCheckinHandlerFactory"/>
+        <notificationGroup id="Agent-Up" displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <action
+            id="AgentUp.CommitQueue.Next"
+            class="dev.agentup.jetbrains.actions.QueueAction"
+            text="Queue: ..."
+            description="Stage the next Agent-Up queued commit">
+            <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
