@@ -18,6 +18,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     private string _page = "Dashboard";
     private CapabilityCardViewModel? _selectedCapability;
     private bool _isCapabilityEditVisible;
+    private bool _isRefreshing;
 
     public InstallerViewModel(
         InstallerSession session,
@@ -32,6 +33,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
                 new ComponentCardViewModel(c, c.DisplayName, c.Description, this, adapter.SupportsInstallActions)));
         AddModuleCommand = new DelegateCommand(async _ => await ShowAddModuleAsync());
         BackToDashboardCommand = new DelegateCommand(_ => ShowDashboard());
+        RefreshCommand = new DelegateCommand(async _ => await RefreshFromCommandAsync(), _ => !IsRefreshing);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -45,6 +47,8 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     public ICommand AddModuleCommand { get; }
 
     public ICommand BackToDashboardCommand { get; }
+
+    public ICommand RefreshCommand { get; }
 
     internal bool SupportsCapabilityInstallActions => _capabilities.SupportsInstallActions;
 
@@ -65,6 +69,22 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
     }
 
     public bool IsDashboardVisible => Page == "Dashboard";
+
+    public bool IsRefreshing
+    {
+        get => _isRefreshing;
+        private set
+        {
+            if (_isRefreshing == value)
+                return;
+            _isRefreshing = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(RefreshButtonText));
+            (RefreshCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+        }
+    }
+
+    public string RefreshButtonText => IsRefreshing ? "Checking" : "Refresh";
 
     public bool IsAddModuleVisible => Page == "AddModule";
 
@@ -109,6 +129,28 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         CapabilityCards.Clear();
         foreach (var module in await _capabilities.GetInstalledAsync())
             CapabilityCards.Add(new CapabilityCardViewModel(module, this));
+    }
+
+    private async Task RefreshFromCommandAsync()
+    {
+        if (IsRefreshing)
+            return;
+
+        IsRefreshing = true;
+        InstallerLog.Write("Manual refresh starting");
+        try
+        {
+            await RefreshAsync();
+            InstallerLog.Write("Manual refresh completed");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            InstallerLog.WriteException("manual refresh", ex);
+        }
+        finally
+        {
+            IsRefreshing = false;
+        }
     }
 
     internal async Task RunComponentActionAsync(ComponentCardViewModel card, InstallerComponentAction action)

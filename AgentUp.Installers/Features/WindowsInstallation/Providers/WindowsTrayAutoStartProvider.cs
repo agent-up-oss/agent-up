@@ -6,7 +6,7 @@ public static class WindowsTrayAutoStartProvider
 {
     public static string RegisterPowerShell(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
         => $$"""
-             $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+             $regPath = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'
              if (-not (Test-Path $regPath)) { New-Item -Force -Path $regPath | Out-Null }
              New-ItemProperty -Force -Path $regPath -Name '{{Ps(manifest.ProductName)}}' -Value '"{{Ps(paths.TrayExecutable)}}"' | Out-Null
              """;
@@ -14,7 +14,7 @@ public static class WindowsTrayAutoStartProvider
     public static string CheckPowerShell(WindowsInstallerManifest manifest, WindowsInstallerPaths paths)
         => $$"""
            $expected = '"{{Ps(paths.TrayExecutable)}}"'
-           $val = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
+           $val = Get-ItemPropertyValue -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run' -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
            if (-not [string]::Equals($val, $expected, [System.StringComparison]::OrdinalIgnoreCase)) { exit 1 }
            exit 0
            """;
@@ -29,7 +29,7 @@ public static class WindowsTrayAutoStartProvider
 
     public static string RemovePowerShell(WindowsInstallerManifest manifest)
         => $$"""
-           $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+           $regPath = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'
            if (Test-Path $regPath) {
              Remove-ItemProperty -Path $regPath -Name '{{Ps(manifest.ProductName)}}' -ErrorAction SilentlyContinue
            }

@@ -141,7 +141,7 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         if (summary.Includes(InstallerComponent.Desktop))
             operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, "Register Agent-Up Start Menu shortcut", true));
         if (summary.Includes(InstallerComponent.Tray))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, "Register Agent-Up Tray for login auto-start", false));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, "Register Agent-Up Tray for login auto-start", true));
 
         operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true));
         operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate Windows installed state", false));

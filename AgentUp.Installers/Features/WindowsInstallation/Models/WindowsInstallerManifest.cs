@@ -304,7 +304,7 @@ public sealed class WindowsWixSourceGenerator
                 new XAttribute("Directory", "ApplicationProgramsFolder"),
                 new XAttribute("Guid", StableGuid("tray-autostart")),
                 new XElement(Wix + "RegistryValue",
-                    new XAttribute("Root", "HKCU"),
+                    new XAttribute("Root", "HKLM"),
                     new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Run"),
                     new XAttribute("Name", _manifest.ProductName),
                     new XAttribute("Type", "string"),

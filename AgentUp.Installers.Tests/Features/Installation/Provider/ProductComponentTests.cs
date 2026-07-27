@@ -177,6 +177,24 @@ public class ProductComponentTests
         Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.UpdateAvailable));
     }
 
+    [Test]
+    [TestCase("tray.missing")]
+    [TestCase("tray.autostart")]
+    public void StatusFromValidation_reportsServerNotInstalledWhenTrayPayloadOrAutoStartIsMissing(string code)
+    {
+        var report = new ValidationReport(
+        [
+            new ValidationFinding(code, "Tray dependency is missing.", ValidationSeverity.Error)
+        ]);
+
+        var status = InstallerComponentOperations.StatusFromValidation(
+            ProductComponent.Server,
+            report,
+            new Version(1, 2, 3));
+
+        Assert.That(status.Kind, Is.EqualTo(InstallerComponentStatusKind.NotInstalled));
+    }
+
     private static IEnumerable<TestCaseData> ManifestCases()
     {
         yield return new TestCaseData(ProductManifest.AgentUp()).SetName("AgentUp_threeComponents");

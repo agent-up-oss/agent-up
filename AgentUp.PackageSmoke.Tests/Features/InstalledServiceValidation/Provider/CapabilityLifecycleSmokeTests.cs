@@ -76,7 +76,7 @@ public sealed class CapabilityLifecycleSmokeTests
     {
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
         var commands = new RecordingCommandRunner();
-        using var http = new HttpClient(new SmokeHttpHandler(transientDockerStop: true));
+        using var http = new HttpClient(new SmokeHttpHandler(transientDockerStopReads: 5));
         var assert = new FileAssertions();
 
         try
@@ -97,6 +97,31 @@ public sealed class CapabilityLifecycleSmokeTests
         }
     }
 
+    [Test]
+    public async Task RunAsync_acceptsStoppingAfterSuccessfulDockerStopRequest()
+    {
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
+        var commands = new RecordingCommandRunner();
+        using var http = new HttpClient(new SmokeHttpHandler(keepDockerStopping: true));
+        var assert = new FileAssertions();
+
+        try
+        {
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), http).RunAsync(
+                workDir,
+                new InstalledServiceContext("agent-up", null, [], []),
+                "http://localhost:5000",
+                assert,
+                CancellationToken.None);
+
+            Assert.That(assert.Findings, Is.Empty);
+        }
+        finally
+        {
+            if (Directory.Exists(workDir))
+                Directory.Delete(workDir, recursive: true);
+        }
+    }
 
     private static string ExpectedDockerImageForCurrentPlatform()
     {
@@ -125,7 +150,7 @@ public sealed class CapabilityLifecycleSmokeTests
         }
     }
 
-    private sealed class SmokeHttpHandler(bool transientDockerStop = false) : HttpMessageHandler
+    private sealed class SmokeHttpHandler(int transientDockerStopReads = 0, bool keepDockerStopping = false) : HttpMessageHandler
     {
         private readonly List<HttpResponseMessage> _responses = [];
         private readonly Dictionary<string, string> _states = new(StringComparer.Ordinal)
@@ -148,10 +173,16 @@ public sealed class CapabilityLifecycleSmokeTests
                 return StateAsync("SmokeDotnet", "Running");
             if (request.Method == HttpMethod.Post && path.EndsWith("/applications/SmokeDocker/stop", StringComparison.Ordinal))
             {
-                if (transientDockerStop)
+                if (keepDockerStopping)
                 {
                     _states["SmokeDocker"] = "Stopping";
-                    _dockerStoppingReadsRemaining = 1;
+                    return ResponseAsync(HttpStatusCode.NoContent);
+                }
+
+                if (transientDockerStopReads > 0)
+                {
+                    _states["SmokeDocker"] = "Stopping";
+                    _dockerStoppingReadsRemaining = transientDockerStopReads;
                     return ResponseAsync(HttpStatusCode.NoContent);
                 }
 
@@ -160,7 +191,7 @@ public sealed class CapabilityLifecycleSmokeTests
             if (request.Method == HttpMethod.Post && path == "/api/workspaces/workspace-1/stop")
             {
                 _states["SmokeDotnet"] = "Stopped";
-                _states["SmokeDocker"] = "Stopped";
+                _states["SmokeDocker"] = keepDockerStopping ? "Stopping" : "Stopped";
                 return ResponseAsync(HttpStatusCode.NoContent);
             }
 

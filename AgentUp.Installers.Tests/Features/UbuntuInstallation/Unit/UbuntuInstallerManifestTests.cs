@@ -20,4 +20,14 @@ public class UbuntuInstallerManifestTests
 
         Assert.That(script, Does.Not.Contain("--install-core"));
     }
+
+    [Test]
+    public void DesktopEntryText_declaresStartupWmClassForUbuntuTaskbarIcon()
+    {
+        var text = UbuntuInstallerManifest.AgentUp()
+            .DesktopEntryText("/opt/agent-up/desktop/AgentUp.Desktop", "1.2.3");
+
+        Assert.That(text, Does.Contain("Icon=agent-up"));
+        Assert.That(text, Does.Contain("StartupWMClass=AgentUp.Desktop"));
+    }
 }

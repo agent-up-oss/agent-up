@@ -31,6 +31,7 @@ public sealed record UbuntuInstallerManifest(
                Terminal=false
                Categories=Development;
                StartupNotify=true
+               StartupWMClass=AgentUp.Desktop
                X-{versionKey}-Version={version}
                """ + Environment.NewLine;
     }
