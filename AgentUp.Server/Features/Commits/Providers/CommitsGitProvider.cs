@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.ComponentModel;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Commits.Interfaces;
 
@@ -95,13 +96,44 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
 
         using var process = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start git process.");
-        await process.StandardInput.WriteAsync(patch.AsMemory(), cancellationToken);
-        process.StandardInput.Close();
-        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        var stderr = await stderrTask;
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"Commit queue git operation 'apply' failed: {stderr.Trim()}");
+        try
+        {
+            await process.StandardInput.WriteAsync(patch.AsMemory(), cancellationToken);
+            process.StandardInput.Close();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            await stdoutTask;
+            var stderr = await stderrTask;
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"Commit queue git operation 'apply' failed: {stderr.Trim()}");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await KillProcessAfterCancellationAsync(process);
+            throw;
+        }
+    }
+
+    private static async Task KillProcessAfterCancellationAsync(Process process)
+    {
+        if (process.HasExited)
+            return;
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (Win32Exception)
+        {
+            return;
+        }
+
+        await process.WaitForExitAsync(CancellationToken.None);
     }
 
     public async Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)

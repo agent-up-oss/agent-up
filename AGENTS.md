@@ -331,6 +331,7 @@ AgentUp.Server.Tests/
       Automation/
     Orchestration/
       Controller/
+      Unit/
       Provider/
       HTTP/
 ```
@@ -559,6 +560,7 @@ AgentUp.Server.Tests/
       Unit/
     Orchestration/
       Controller/
+      Unit/
       Provider/
       HTTP/
 
@@ -667,15 +669,15 @@ Read: `docs/developer-guide/workflows.md`.
 
 ## Commit Workflow
 
-Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use `agentup commits enqueue` to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
+Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use the MCP `enqueue_commit` tool to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
 
-Agent responsibility: manage queue entries only. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `agentup commits status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
+Agent responsibility: manage queue entries only through structured MCP commit queue tools. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `get_commits_status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
 
 Before starting a new coding task, agents should run the structured MCP `guard_commits` tool for the current repository/worktree. If it fails, stop instead of making new changes unless the user explicitly asked to inspect, debug, or continue the existing queued or working-tree changes.
 
-Agents should use structured commit queue MCP tools for queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. `commits next` remains developer-only because it stages files and advances the review queue.
+Agents should use structured commit queue MCP tools for enqueue, queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. `commits next` remains developer-only because it stages files and advances the review queue.
 
-`agentup commits enqueue` and the MCP `enqueue_commit` tool intentionally restore tracked files to their pre-change state after saving the queued patch. Agents must treat that restoration as expected queue behavior and must not re-apply or modify those files after a successful enqueue; the queue owns them until the developer runs `agentup commits next`.
+The MCP `enqueue_commit` tool intentionally restores tracked files to their pre-change state after saving the queued patch. Agents must treat that restoration as expected queue behavior and must not re-apply or modify those files after a successful enqueue; the queue owns them until the developer runs `agentup commits next`.
 
 MCP servers cannot register server-side post-job lifecycle hooks. Claude Code users can wire a client-side `Stop` hook to run `agentup commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
 
@@ -702,6 +704,8 @@ dotnet run --project AgentUp.CLI -- commits enqueue \
   --files <file1> [file2 ...] \
   [--tests "<test command>"]
 ```
+
+The CLI example above is developer-only. Agents use `enqueue_commit`.
 
 One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Enqueue entries in the order they should be committed.
 

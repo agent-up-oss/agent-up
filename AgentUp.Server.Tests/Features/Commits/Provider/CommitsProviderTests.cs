@@ -110,6 +110,22 @@ public sealed class CommitsProviderTests
     }
 
     [Test]
+    public async Task ApplyPatchAsync_killsGitApplyAndPropagatesCancellation()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        var provider = new CommitsGitProvider();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        Assert.That(
+            Assert.CatchAsync(async () => await provider.ApplyPatchAsync(
+                repositoryPath,
+                "diff --git a/a.cs b/a.cs\n",
+                cancellation.Token)),
+            Is.AssignableTo<OperationCanceledException>());
+    }
+
+    [Test]
     public async Task CommitsQueueProvider_persistsQueueAndPatches()
     {
         var repositoryPath = await CreateRepositoryAsync();
