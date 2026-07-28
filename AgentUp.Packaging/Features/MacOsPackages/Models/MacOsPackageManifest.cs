@@ -1,7 +1,6 @@
 using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
 using AgentUp.Packaging.Shared.Interfaces;
 using AgentUp.Installers.Features.MacOsInstallation.Models;
-using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 
 namespace AgentUp.Packaging.Features.MacOsPackages.Models;
@@ -14,9 +13,7 @@ public sealed record MacOsPackageManifest(MacOsInstallerManifest InstallerManife
     public static MacOsPackageManifest From(PackageRequest request, PackageProductManifest product)
     {
         PackageProductManifest.Validate(product);
-        return new(MacOsInstallerManifest.From(
-            new ProductManifest(product.ProductName, product.Slug, product.EnvironmentPrefix),
-            request.NormalizedVersion));
+        return new(MacOsInstallerManifest.From(product.ProductName, product.Slug, request.NormalizedVersion));
     }
 
     public MacOsInstallerManifest ToInstallerManifest()
