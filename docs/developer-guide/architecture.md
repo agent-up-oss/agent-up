@@ -115,9 +115,10 @@ Inside a feature slice, use only these type folders:
 - `Providers/` for low-level actions behind domain-specific interfaces, such as HTTP clients, command runners, file-system adapters, platform adapters, and Git readers.
 - `Interfaces/` for justified slice-local interfaces.
 - `Factories/` for object-selection or adapter-selection factories.
-- `Tools/` and `Resources/` for MCP presentation adapters over Server-owned controllers and services.
 
 Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
+
+MCP is a protocol surface, not a feature slice. MCP tools and resources live in the owning feature slice's `Controllers/` folder as thin protocol adapters over that slice's controllers/services. Cross-capability workspace management and context tools belong to the `Orchestration` slice. Slice-specific tools, such as commit queue tools, belong to their owning slice.
 
 Tests must stay feature-sliced and use clear test-kind folders. Feature tests live under `Features/<Slice>/<TestKind>/` with `Unit/`, `Controller/`, `HTTP/`, `Repository/`, `Provider/`, `Headless/`, or `E2E/`. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind names such as `Controller/` must not appear at a test project root. Use `Controller/` for slice-external communication boundaries such as controllers, command parsers, CLI command surfaces, MCP tools, and MCP resources. `Unit/` tests must stay in memory and must not use real filesystem, process, socket, current-directory, or environment mutation APIs; use `Repository/` or `Provider/` for tests that verify real directory state, platform adapters, command providers, package writers/stagers, probes, or process-style command shapes.
 

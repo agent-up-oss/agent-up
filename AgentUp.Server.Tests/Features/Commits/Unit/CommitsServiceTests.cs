@@ -230,6 +230,12 @@ public sealed class CommitsServiceTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>(modifiedFiles ?? []);
 
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
         public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
             DiffRequested = true;
@@ -238,6 +244,9 @@ public sealed class CommitsServiceTests
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {

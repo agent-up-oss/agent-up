@@ -10,7 +10,7 @@ The CLI exists for human convenience. AI agents should use MCP directly.
 
 The Server sends MCP initialization instructions that tell clients to use Agent-Up tools whenever a user asks to use Agent-Up, agent up, the Agent-Up server, or the Agent-Up workspace manager. User wording such as "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up" means the agent should call `start_workspace` with the absolute repository/worktree path. Agent-Up starts and manages local development environments; it does not deploy to cloud infrastructure.
 
-The Server exposes Streamable HTTP at `/mcp` and legacy SSE compatibility at `/mcp/sse` plus `/mcp/message`. Tools and resources are thin adapters over shared Server-owned MCP domain services so future Server model changes do not fork agent behavior across transports.
+The Server exposes Streamable HTTP at `/mcp` and legacy SSE compatibility at `/mcp/sse` plus `/mcp/message`. MCP is a protocol surface, not a feature slice: tools and resources are thin controller-layer adapters owned by the feature slice whose capability they expose. Cross-capability workspace and context tools live in the `Orchestration` slice.
 
 ## Resources
 
@@ -37,14 +37,24 @@ Initial tools:
 - `get_agent_up_context`: returns concise Agent-Up operating rules for AI agents.
 - `enqueue_commit`: saves a vertical-slice patch in the commit queue and restores the tracked files to their pre-change state for `agentup commits next`.
 - `get_commits_status`: returns queued entries, unassigned modified files, and any active commit edit session.
+- `guard_commits`: blocks new work while queued entries, active edit sessions, staged changes, or unassigned modified files exist.
+- `get_commit_changes`: returns working-tree files with queue assignment information.
+- `inspect_commit`: returns one queued entry, optionally including the saved patch.
+- `update_commit_message`, `update_commit_tests`, `add_commit_files`, `remove_commit_files`: update queued entry metadata and file assignment.
+- `remove_commit`, `restore_commit`, `clear_commits`: archive, restore, or clear queued entries.
+- `begin_commit_edit`, `save_commit_edit`, `abort_commit_edit`: safely edit an existing queued patch.
 
 If `start_workspace` cannot find `agent-up.json`, it instructs the agent to read `docs/user-docs/agent-up-json.md`, search for an existing `agent-up.json`, or ask the user before creating one.
+
+`commits next` remains CLI-only because staging and popping a queued entry is developer-owned review work. Agents stop after `get_commits_status`.
 
 Future tools will add browser inspection, interaction, diagnostics, screenshots, and Playwright export without moving orchestration out of the Server.
 
 ## Commit Queue Reminders
 
 MCP has no server-side lifecycle callback for when an agent finishes a turn. The Server cannot push a post-job reminder; it can only respond to tool calls.
+
+Agents should call `guard_commits` before starting a new coding task. If it fails, they should stop instead of making new changes unless the user explicitly asked to inspect, debug, or continue the existing queued or working-tree changes.
 
 Claude Code installations can surface commit queue reminders with a client-side `Stop` hook. Configure the hook to run `agentup commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
 

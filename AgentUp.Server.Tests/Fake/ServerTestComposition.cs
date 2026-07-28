@@ -1,9 +1,9 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
-using AgentUp.Server.Features.Mcp.Controllers;
-using AgentUp.Server.Features.Mcp.Interfaces;
-using AgentUp.Server.Features.Mcp.Services;
+using AgentUp.Server.Features.Orchestration.Controllers;
+using AgentUp.Server.Features.Orchestration.Interfaces;
+using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -27,12 +27,12 @@ internal static class ServerTestComposition
         IOutputRepository? output = null)
         => new(processes, new ProcessOutputService(output ?? new InMemoryOutputRepository()));
 
-    public static McpWorkspaceController CreateMcpWorkspaceController(
+    public static OrchestrationWorkspaceController CreateOrchestrationWorkspaceController(
         WorkspaceRegistry registry,
         IWorkspaceProcessManager processes,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
-        => new(new McpWorkspaceService(
+        => new(new OrchestrationWorkspaceService(
             new WorkspaceQueryController(registry),
             new WorkspaceStateController(registry),
             CreateProcessesController(processes),

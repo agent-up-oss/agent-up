@@ -26,6 +26,18 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
         }
     }
 
+    public async Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+    {
+        var output = await RunGitAsync(worktreePath, ["diff", "--cached", "--name-only"], cancellationToken);
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
+
+    public async Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+    {
+        var output = await RunGitAsync(worktreePath, ["ls-files", "--others", "--exclude-standard"], cancellationToken);
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
+
     public async Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
         var repoRoot = await GetRepoRootAsync(worktreePath, cancellationToken);
@@ -59,6 +71,37 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
     {
         var output = await RunGitAsync(worktreePath, ["diff", "--cached", "--name-only"], cancellationToken);
         return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length > 0;
+    }
+
+    public async Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(patch))
+            return;
+
+        var safeWorktreePath = NormalizeWorktreePath(worktreePath);
+        var psi = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = AppContext.BaseDirectory,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        psi.ArgumentList.Add("-C");
+        psi.ArgumentList.Add(safeWorktreePath);
+        psi.ArgumentList.Add("apply");
+        psi.ArgumentList.Add("--index");
+        psi.ArgumentList.Add("--whitespace=nowarn");
+
+        using var process = Process.Start(psi)
+            ?? throw new InvalidOperationException("Failed to start git process.");
+        await process.StandardInput.WriteAsync(patch.AsMemory(), cancellationToken);
+        process.StandardInput.Close();
+        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+        var stderr = await stderrTask;
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException($"Commit queue git operation 'apply' failed: {stderr.Trim()}");
     }
 
     public async Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
@@ -214,7 +257,7 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
         }
     }
 
-    [GeneratedRegex("^(rev-parse|status|diff|ls-files|restore)$")]
+    [GeneratedRegex("^(rev-parse|status|diff|ls-files|restore|apply)$")]
     private static partial Regex AllowedGitOperation();
 
     [GeneratedRegex(@"^[^\u0000-\u001F\u007F]+$")]

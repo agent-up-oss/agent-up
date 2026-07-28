@@ -198,11 +198,20 @@ public sealed class CommitsProviderTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
 
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
         public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.FromResult(string.Empty);
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
@@ -216,11 +225,20 @@ public sealed class CommitsProviderTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
 
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
         public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.FromResult(string.Empty);
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
