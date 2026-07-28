@@ -24,7 +24,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 
         Before starting a new coding task, call guard_commits for the current repository/worktree. If it fails, stop instead of making new changes unless the user explicitly asked to inspect, debug, or continue the existing queued or working-tree changes.
 
-        At the end of every coding task, use enqueue_commit to declare each logical vertical-slice commit, then use get_commits_status so the developer can see the queue. Use commit queue MCP tools for queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. enqueue_commit intentionally restores tracked files to their pre-change state after saving the patch; do not re-apply or modify those files after a successful enqueue because the queue owns them until the developer runs agentup commits next.
+        At the end of every coding task, use enqueue_commit to declare each logical vertical-slice commit, then use get_commits_status so the developer can see the queue. Do not run git add, git commit, or git stash. Use commit queue MCP tools for enqueue, queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. enqueue_commit intentionally restores tracked files to their pre-change state after saving the patch; do not re-apply or modify those files after a successful enqueue because the queue owns them until the developer runs agentup commits next.
         """;
 
     public string GetAgentUpJsonFormat() =>
