@@ -108,6 +108,24 @@ public class MacOsProductBrandingTests
         }));
     }
 
+    // Test 4b: a non-Agent-Up manifest uses its own bundle identifier in the pkgbuild invocation.
+    [Test]
+    public async Task BuildComponentPackages_forNonAgentUpManifest_usesProductBundleIdentifier()
+    {
+        var commands = new RecordingCommandRunner();
+        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.0.0", "out", "Release",
+            productManifest: AcmeStudio);
+        var layout = MacOsPackageLayout.From(request);
+        var manifest = MacOsPackageManifest.From(request);
+
+        await new MacOsPackageTool(commands).BuildComponentPackagesAsync(request, layout, manifest);
+
+        Assert.That(commands.Commands.Single().Arguments, Does.Contain("dev.acme-studio.installer"),
+            "pkgbuild must use the product's bundle identifier");
+        Assert.That(commands.Commands.Single().Arguments, Does.Not.Contain("dev.agent-up.installer"),
+            "pkgbuild must not use Agent-Up's bundle identifier for a different product");
+    }
+
     // Test 5: theory — Agent-Up and a second product produce .pkg artifacts with disjoint sets of
     // product-identifying strings. No string from one product's output appears in the other's.
     [TestCase("agent-up", "acme-studio")]

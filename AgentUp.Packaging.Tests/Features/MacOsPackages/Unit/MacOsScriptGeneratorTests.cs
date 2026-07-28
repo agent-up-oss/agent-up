@@ -36,6 +36,26 @@ public class MacOsScriptGeneratorTests
         var script = MacOsScriptGenerator.InstallerPostInstallScript("Agent-Up Installer", "/Library/Logs/Agent-Up");
 
         Assert.That(script, Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
+        Assert.That(script, Does.Contain("installer-startup.err"));
         Assert.That(script, Does.Not.Contain("--install-core"));
+    }
+
+    [Test]
+    public void InstallerPreInstallScript_withNonDefaultBranding_usesProvidedAppName()
+    {
+        var script = MacOsScriptGenerator.InstallerPreInstallScript("Acme Studio Installer");
+
+        Assert.That(script, Does.Contain("rm -rf \"/Applications/Acme Studio Installer.app\""));
+        Assert.That(script, Does.Not.Contain("Agent-Up"));
+    }
+
+    [Test]
+    public void InstallerPostInstallScript_withNonDefaultBranding_opensProvidedAppAndWritesToProductLogDir()
+    {
+        var script = MacOsScriptGenerator.InstallerPostInstallScript("Acme Studio Installer", "/Library/Logs/Acme Studio");
+
+        Assert.That(script, Does.Contain("open -a \"/Applications/Acme Studio Installer.app\""));
+        Assert.That(script, Does.Contain("/Library/Logs/Acme Studio/installer-startup.err"));
+        Assert.That(script, Does.Not.Contain("Agent-Up"));
     }
 }

@@ -121,14 +121,14 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("Label", _manifest.ServerLaunchDaemonLabel),
             new XElement("key", "ProgramArguments"),
             new XElement("array",
-                new XElement("string", "/Library/Application Support/Agent-Up/server/AgentUp.Server"),
+                new XElement("string", $"/Library/Application Support/{_manifest.ProductName}/server/AgentUp.Server"),
                 new XElement("string", "--urls"),
                 new XElement("string", _manifest.ServerUrl)),
             new XElement("key", "EnvironmentVariables"),
             new XElement("dict",
                 KeyString("ASPNETCORE_URLS", _manifest.ServerUrl),
-                KeyString("Storage__DataDirectory", "/Library/Application Support/Agent-Up"),
-                KeyString("DOTNET_BUNDLE_EXTRACT_BASE_DIR", "/Library/Application Support/Agent-Up/bundle-cache")),
+                KeyString("Storage__DataDirectory", $"/Library/Application Support/{_manifest.ProductName}"),
+                KeyString("DOTNET_BUNDLE_EXTRACT_BASE_DIR", $"/Library/Application Support/{_manifest.ProductName}/bundle-cache")),
             new XElement("key", "RunAtLoad"),
             new XElement("true"),
             new XElement("key", "KeepAlive"),
@@ -137,8 +137,8 @@ public sealed class MacOsInstallerPlistGenerator
                 new XElement("false")),
             new XElement("key", "ThrottleInterval"),
             new XElement("integer", "5"),
-            KeyString("StandardOutPath", "/Library/Logs/Agent-Up/server.out.log"),
-            KeyString("StandardErrorPath", "/Library/Logs/Agent-Up/server.err.log")));
+            KeyString("StandardOutPath", $"/Library/Logs/{_manifest.ProductName}/server.out.log"),
+            KeyString("StandardErrorPath", $"/Library/Logs/{_manifest.ProductName}/server.err.log")));
 
     private static string Plist(XElement dict)
         => new XDocument(
