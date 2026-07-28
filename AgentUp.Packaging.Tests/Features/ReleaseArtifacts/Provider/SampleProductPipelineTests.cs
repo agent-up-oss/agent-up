@@ -170,7 +170,6 @@ public class SampleProductPipelineTests
     {
         var root = TempRoot("InvalidManifest");
         var writer = new RecordingUnixWriter();
-        var commands = new RecordingCommandRunner();
         var invalidManifest = new PackageProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
             with { WindowsUpgradeCode = "this-is-not-a-valid-guid" };
 
@@ -189,8 +188,6 @@ public class SampleProductPipelineTests
                 "rejection must name the invalid field");
             Assert.That(exception.Message, Does.Contain("GUID"),
                 "rejection message must describe the constraint that was violated");
-            Assert.That(commands.Commands, Is.Empty,
-                "no native tool command must be issued before manifest validation fails");
         }
         finally { DeleteTempRoot(root); }
     }
