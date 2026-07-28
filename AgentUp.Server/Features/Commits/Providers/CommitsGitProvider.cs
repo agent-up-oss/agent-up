@@ -146,11 +146,13 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
 
         var psi = new ProcessStartInfo("git")
         {
-            WorkingDirectory = safeWorktreePath,
+            WorkingDirectory = AppContext.BaseDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        psi.ArgumentList.Add("-C");
+        psi.ArgumentList.Add(safeWorktreePath);
         foreach (var arg in arguments)
             psi.ArgumentList.Add(arg);
 
@@ -165,7 +167,7 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
 
         var allowed = allowedExitCodes ?? [0];
         if (!allowed.Contains(process.ExitCode))
-            throw new InvalidOperationException($"git {string.Join(" ", arguments)} failed: {stderr.Trim()}");
+            throw new InvalidOperationException($"Commit queue git operation '{arguments[0]}' failed: {stderr.Trim()}");
 
         return trimOutput ? stdout.TrimEnd() : stdout;
     }
