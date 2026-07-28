@@ -16,5 +16,5 @@ public sealed class InstallerFlowSmokeController
         string platform,
         string workDirectory,
         CancellationToken cancellationToken = default)
-        => await _validator.ValidateAsync(platform, workDirectory, cancellationToken);
+        => await _validator.ValidateAsync(platform, workDirectory, null, cancellationToken);
 }

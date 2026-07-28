@@ -17,8 +17,9 @@ public sealed class WindowsPackageValidator : IPackageValidator
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        var installer = SafeSmokePaths.Child(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.exe");
-        var productMsi = SafeSmokePaths.Child(request.ArtifactDirectory, $"agent-up-windows-{request.RuntimeId}.msi");
+        var pkg = request.Product.ArtifactBaseName;
+        var installer = SafeSmokePaths.Child(request.ArtifactDirectory, $"{pkg}-windows-{request.RuntimeId}.exe");
+        var productMsi = SafeSmokePaths.Child(request.ArtifactDirectory, $"{pkg}-windows-{request.RuntimeId}.msi");
         assert.FileExists(installer, "windows.artifact");
         assert.FileExists(productMsi, "windows.product.msi");
         if (!File.Exists(installer) || !File.Exists(productMsi))

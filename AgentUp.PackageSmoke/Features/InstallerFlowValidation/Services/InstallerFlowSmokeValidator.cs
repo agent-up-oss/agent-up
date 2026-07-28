@@ -13,6 +13,7 @@ public sealed class InstallerFlowSmokeValidator
     public async Task<PackageValidationResult> ValidateAsync(
         string platform,
         string workDirectory,
+        ProductManifest? product = null,
         CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
@@ -20,12 +21,12 @@ public sealed class InstallerFlowSmokeValidator
         Directory.CreateDirectory(safeWorkDirectory);
 
         var version = new Version(0, 0, 0);
-        var manifest = ProductManifest.AgentUp();
+        var manifest = product ?? ProductManifest.AgentUp();
         var session = InstallerSession.CreateDefault(
             manifest,
             version,
-            DefaultInstallRoot(platform),
-            PayloadSelection.Bundled(version));
+            DefaultInstallRoot(manifest, platform),
+            PayloadSelection.Bundled(manifest.ProductName, version));
         var adapter = InstallerPlatformAdapterFactory.Create();
 
         session = InstallerWorkflow.GoNext(session);
@@ -70,11 +71,11 @@ public sealed class InstallerFlowSmokeValidator
         return new PackageValidationResult(null, null, assert.Findings);
     }
 
-    private static string DefaultInstallRoot(string platform)
+    private static string DefaultInstallRoot(ProductManifest manifest, string platform)
         => platform switch
         {
-            "windows" => @"C:\Program Files\Agent-Up",
-            "macos" => "/Applications/Agent-Up.app",
-            _ => "/opt/agent-up"
+            "windows" => $@"C:\Program Files\{manifest.ProductName}",
+            "macos" => $"/Applications/{manifest.ProductName}.app",
+            _ => $"/opt/{manifest.Slug}"
         };
 }
