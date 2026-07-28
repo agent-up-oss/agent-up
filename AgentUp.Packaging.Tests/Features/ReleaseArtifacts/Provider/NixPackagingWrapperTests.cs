@@ -112,6 +112,33 @@ public class NixPackagingWrapperTests
     }
 
     [Test]
+    public void PackageRelease_generatesNixTrayWithAutostart()
+    {
+        var script = Path.Join(Root, "scripts", "package-release.sh");
+
+        var text = File.ReadAllText(script);
+
+        Assert.That(text, Does.Contain("AgentUp.Tray/AgentUp.Tray.csproj"));
+        Assert.That(text, Does.Contain("cp -a \"$stage/tray\" \"$pkgs_root/package/opt/agent-up/tray\""));
+        Assert.That(text, Does.Contain("ln -s $out/opt/agent-up/tray/AgentUp.Tray $out/bin/agent-up-tray"));
+        Assert.That(text, Does.Contain("wrapProgram $out/opt/agent-up/tray/AgentUp.Tray"));
+        Assert.That(text, Does.Contain("xdg.configFile.\"autostart/agent-up-tray.desktop\""));
+        Assert.That(text, Does.Contain("Exec=${package}/bin/agent-up-tray"));
+    }
+
+    [Test]
+    public void CiPackageSmoke_validatesNixTrayBinaryAndAutostart()
+    {
+        var script = Path.Join(Root, ".github", "scripts", "smoke-package.sh");
+
+        var text = File.ReadAllText(script);
+
+        Assert.That(text, Does.Contain("agent-up/tray/AgentUp.Tray"));
+        Assert.That(text, Does.Contain("agent-up-tray"));
+        Assert.That(text, Does.Contain("autostart/agent-up-tray.desktop"));
+    }
+
+    [Test]
     public void InstallerApp_declaresNixOsLaunchProfile()
     {
         var launchSettings = Path.Join(Root, "AgentUp.InstallerApp", "Properties", "launchSettings.json");
