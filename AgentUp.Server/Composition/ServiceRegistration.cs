@@ -15,12 +15,10 @@ using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
 using AgentUp.Server.Features.Commits.Services;
-using AgentUp.Server.Features.Mcp.Controllers;
-using AgentUp.Server.Features.Mcp.Interfaces;
-using AgentUp.Server.Features.Mcp.Providers;
-using AgentUp.Server.Features.Mcp.Resources;
-using AgentUp.Server.Features.Mcp.Services;
-using AgentUp.Server.Features.Mcp.Tools;
+using AgentUp.Server.Features.Orchestration.Controllers;
+using AgentUp.Server.Features.Orchestration.Interfaces;
+using AgentUp.Server.Features.Orchestration.Providers;
+using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Ports.Interfaces;
 using AgentUp.Server.Features.Ports.Providers;
@@ -55,8 +53,9 @@ public static class ServiceRegistration
                 options.Stateless = false;
                 options.EnableLegacySse = true;
             })
-            .WithTools<AgentUpMcpTools>()
-            .WithResources<AgentUpMcpResources>();
+            .WithTools<OrchestrationMcpTools>()
+            .WithTools<CommitQueueMcpTools>()
+            .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
@@ -94,16 +93,15 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
-        builder.Services.AddSingleton<McpContextService>();
-        builder.Services.AddSingleton<McpWorkspaceService>();
-        builder.Services.AddSingleton<McpWorkspaceController>();
-        builder.Services.AddSingleton<McpContextController>();
+        builder.Services.AddSingleton<OrchestrationContextService>();
+        builder.Services.AddSingleton<OrchestrationWorkspaceService>();
+        builder.Services.AddSingleton<OrchestrationWorkspaceController>();
+        builder.Services.AddSingleton<OrchestrationContextController>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
-        builder.Services.AddSingleton<McpCommitsService>();
-        builder.Services.AddSingleton<McpCommitsController>();
+        builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());

@@ -168,9 +168,12 @@ AgentUp.Server/
       Models/
       Providers/
       Services/
-    Mcp/
-      Tools/
-      Resources/
+    Orchestration/    (cross-capability workspace and Agent-Up context operations)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Providers/
+      Services/
 
 AgentUp.Desktop/
   Features/
@@ -326,9 +329,11 @@ AgentUp.Server.Tests/
     Browser/
       Unit/
       Automation/
-    Mcp/
-      Tools/
-      Resources/
+    Orchestration/
+      Controller/
+      Unit/
+      Provider/
+      HTTP/
 ```
 
 Prefer working only in the slice directly involved in the task.
@@ -346,6 +351,8 @@ Feature separation happens at repository/service boundaries. Do not scatter migr
 A slice owns its writes.
 
 Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should call into a slice through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services.
+
+MCP is a protocol surface, not a feature slice. MCP tools and resources live in the owning feature slice's `Controllers/` folder as thin protocol adapters. Cross-capability workspace management and Agent-Up context tools belong to the `Orchestration` slice. Slice-specific tools, such as commit queue tools, belong to their owning slice.
 
 Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models, but they must stay domain-specific. Services must not contain low-level parsing, command construction, filesystem/archive operations, native tool invocation, environment lookup, HTTP/network mechanics, process execution, platform API calls, XML/manifest serialization mechanics, or string-scanning helpers for external tool output. Put that behavior behind same-slice `Providers/` with names that describe the user/operator capability where practical, such as `PackageCommandParser`, `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageArchiveProvider`, or `DockerPrerequisiteProvider`.
 
@@ -551,9 +558,11 @@ AgentUp.Server.Tests/
     Browser/
       Provider/
       Unit/
-    Mcp/
+    Orchestration/
       Controller/
+      Unit/
       Provider/
+      HTTP/
 
 AgentUp.Desktop.Tests/
   Features/
@@ -660,9 +669,33 @@ Read: `docs/developer-guide/workflows.md`.
 
 ## Commit Workflow
 
-Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use `agentup commits enqueue` to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
+Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use the MCP `enqueue_commit` tool to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
 
-Agent responsibility: manage queue entries only. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `agentup commits status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
+Agent responsibility: manage queue entries only through structured MCP commit queue tools. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `get_commits_status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
+
+Before starting a new coding task, agents should run the structured MCP `guard_commits` tool for the current repository/worktree. If it fails, stop instead of making new changes unless the user explicitly asked to inspect, debug, or continue the existing queued or working-tree changes.
+
+Agents should use structured commit queue MCP tools for enqueue, queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. `commits next` remains developer-only because it stages files and advances the review queue.
+
+The MCP `enqueue_commit` tool intentionally restores tracked files to their pre-change state after saving the queued patch. Agents must treat that restoration as expected queue behavior and must not re-apply or modify those files after a successful enqueue; the queue owns them until the developer runs `agentup commits next`.
+
+MCP servers cannot register server-side post-job lifecycle hooks. Claude Code users can wire a client-side `Stop` hook to run `agentup commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
+
+```json
+"hooks": {
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "agentup commits guard 2>/dev/null | grep -q 'modified file(s) are not assigned' && echo '[agent-up] Unqueued changes detected - run: agentup commits enqueue' || true"
+        }
+      ]
+    }
+  ]
+}
+```
 
 ```bash
 dotnet run --project AgentUp.CLI -- commits enqueue \
@@ -671,6 +704,8 @@ dotnet run --project AgentUp.CLI -- commits enqueue \
   --files <file1> [file2 ...] \
   [--tests "<test command>"]
 ```
+
+The CLI example above is developer-only. Agents use `enqueue_commit`.
 
 One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Enqueue entries in the order they should be committed.
 

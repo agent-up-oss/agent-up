@@ -110,6 +110,22 @@ public sealed class CommitsProviderTests
     }
 
     [Test]
+    public async Task ApplyPatchAsync_killsGitApplyAndPropagatesCancellation()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        var provider = new CommitsGitProvider();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        Assert.That(
+            Assert.CatchAsync(async () => await provider.ApplyPatchAsync(
+                repositoryPath,
+                "diff --git a/a.cs b/a.cs\n",
+                cancellation.Token)),
+            Is.AssignableTo<OperationCanceledException>());
+    }
+
+    [Test]
     public async Task CommitsQueueProvider_persistsQueueAndPatches()
     {
         var repositoryPath = await CreateRepositoryAsync();
@@ -198,11 +214,20 @@ public sealed class CommitsProviderTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
 
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
         public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.FromResult(string.Empty);
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
@@ -216,11 +241,20 @@ public sealed class CommitsProviderTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
 
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
         public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.FromResult(string.Empty);
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
             => Task.CompletedTask;

@@ -51,6 +51,20 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task EnqueueAsync_messageWarnsAgentThatTrackedFilesWereRestored()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+
+        Assert.That(result.Message, Does.Contain("Enqueued 'S'. Queue size: 1."));
+        Assert.That(result.Message, Does.Contain("The tracked files have been restored to their pre-change state"));
+        Assert.That(result.Message, Does.Contain("Do NOT re-apply or modify those files"));
+        Assert.That(result.Message, Does.Contain("the queue owns them now"));
+    }
+
+    [Test]
     public async Task EnqueueAsync_restoresFilesAfterCapturingPatch()
     {
         var queue = new FakeCommitsQueueProvider();
@@ -216,6 +230,12 @@ public sealed class CommitsServiceTests
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>(modifiedFiles ?? []);
 
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
         public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
             DiffRequested = true;
@@ -224,6 +244,9 @@ public sealed class CommitsServiceTests
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {

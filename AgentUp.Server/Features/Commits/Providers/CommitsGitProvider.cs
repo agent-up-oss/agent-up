@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.ComponentModel;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Commits.Interfaces;
 
@@ -24,6 +25,18 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
         {
             return [];
         }
+    }
+
+    public async Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+    {
+        var output = await RunGitAsync(worktreePath, ["diff", "--cached", "--name-only"], cancellationToken);
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
+
+    public async Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+    {
+        var output = await RunGitAsync(worktreePath, ["ls-files", "--others", "--exclude-standard"], cancellationToken);
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
     public async Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
@@ -59,6 +72,68 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
     {
         var output = await RunGitAsync(worktreePath, ["diff", "--cached", "--name-only"], cancellationToken);
         return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length > 0;
+    }
+
+    public async Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(patch))
+            return;
+
+        var safeWorktreePath = NormalizeWorktreePath(worktreePath);
+        var psi = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = AppContext.BaseDirectory,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        psi.ArgumentList.Add("-C");
+        psi.ArgumentList.Add(safeWorktreePath);
+        psi.ArgumentList.Add("apply");
+        psi.ArgumentList.Add("--index");
+        psi.ArgumentList.Add("--whitespace=nowarn");
+
+        using var process = Process.Start(psi)
+            ?? throw new InvalidOperationException("Failed to start git process.");
+        try
+        {
+            await process.StandardInput.WriteAsync(patch.AsMemory(), cancellationToken);
+            process.StandardInput.Close();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            await stdoutTask;
+            var stderr = await stderrTask;
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"Commit queue git operation 'apply' failed: {stderr.Trim()}");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await KillProcessAfterCancellationAsync(process);
+            throw;
+        }
+    }
+
+    private static async Task KillProcessAfterCancellationAsync(Process process)
+    {
+        if (process.HasExited)
+            return;
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (Win32Exception)
+        {
+            return;
+        }
+
+        await process.WaitForExitAsync(CancellationToken.None);
     }
 
     public async Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
@@ -214,7 +289,7 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
         }
     }
 
-    [GeneratedRegex("^(rev-parse|status|diff|ls-files|restore)$")]
+    [GeneratedRegex("^(rev-parse|status|diff|ls-files|restore|apply)$")]
     private static partial Regex AllowedGitOperation();
 
     [GeneratedRegex(@"^[^\u0000-\u001F\u007F]+$")]
