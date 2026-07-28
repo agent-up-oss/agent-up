@@ -120,7 +120,7 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git, string? baseDi
 
     private static string RepoId(string repoRoot)
     {
-        var normalized = Path.GetFullPath(repoRoot);
+        var normalized = Path.GetFullPath(repoRoot).ToLowerInvariant();
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
         return Convert.ToHexString(bytes)[..16].ToLowerInvariant();
     }
