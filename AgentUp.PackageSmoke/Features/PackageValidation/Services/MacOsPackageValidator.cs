@@ -17,7 +17,11 @@ public sealed class MacOsPackageValidator : IPackageValidator
     public async Task<PackageValidationResult> ValidateAsync(PackageValidationRequest request, CancellationToken cancellationToken = default)
     {
         var assert = new FileAssertions();
-        var archive = SafeSmokePaths.Child(request.ArtifactDirectory, $"agent-up-macos-{request.RuntimeId}.pkg");
+        var product = request.Product;
+        var pkg = product.ArtifactBaseName;
+        var appBundleName = $"{product.DisplayName} Installer.app";
+        var iconFileName = $"{product.DisplayName.Replace(" ", "-")}.png";
+        var archive = SafeSmokePaths.Child(request.ArtifactDirectory, $"{pkg}-macos-{request.RuntimeId}.pkg");
         var expanded = SafeSmokePaths.Child(request.WorkDirectory, "pkg-expanded");
         assert.FileExists(archive, "macos.artifact");
         if (!File.Exists(archive))
@@ -30,13 +34,14 @@ public sealed class MacOsPackageValidator : IPackageValidator
             return new PackageValidationResult(null, null, assert.Findings);
         }
 
-        var installerApp = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
-        var installerInfoPlist = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "Info.plist"));
-        var installerIcon = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "Resources", "Agent-Up.png"));
-        var installerPayloadDesktop = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
-        var installerPayloadServer = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
-        var installerPayloadCli = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
-        var installerPayloadIcon = _archive.FindFirst(expanded, Path.Join("Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "icon", "Agent-Up.png"));
+        var appBase = Path.Join("Applications", appBundleName);
+        var installerApp = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "AgentUp.InstallerApp"));
+        var installerInfoPlist = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "Info.plist"));
+        var installerIcon = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "Resources", iconFileName));
+        var installerPayloadDesktop = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
+        var installerPayloadServer = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
+        var installerPayloadCli = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
+        var installerPayloadIcon = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "icon", iconFileName));
         var distribution = _archive.FindDistribution(expanded);
         var postinstall = _archive.FindFirst(expanded, Path.Join("InstallerApp.pkg", "Scripts", "postinstall"));
 
@@ -47,9 +52,9 @@ public sealed class MacOsPackageValidator : IPackageValidator
         assert.ExecutableExists(installerPayloadServer, "macos.installer.payload.server");
         assert.ExecutableExists(installerPayloadCli, "macos.installer.payload.cli");
         assert.Contains(installerInfoPlist, "CFBundleIconFile", "macos.installer.info.icon.key");
-        assert.Contains(installerInfoPlist, "Agent-Up.png", "macos.installer.info.icon.file");
+        assert.Contains(installerInfoPlist, iconFileName, "macos.installer.info.icon.file");
         assert.Contains(distribution, "InstallerApp.pkg", "macos.distribution.installer");
-        assert.Contains(postinstall, "open -a \"/Applications/Agent-Up Installer.app\"", "macos.postinstall.installer");
+        assert.Contains(postinstall, $"open -a \"/Applications/{appBundleName}\"", "macos.postinstall.installer");
 
         return new PackageValidationResult(installerPayloadServer, installerPayloadCli, assert.Findings);
     }
