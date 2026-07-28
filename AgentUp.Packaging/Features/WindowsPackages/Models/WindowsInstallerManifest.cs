@@ -40,8 +40,8 @@ public sealed class WindowsWixSourceGenerator
     public string BundleWxs(WindowsPackageLayout layout)
         => Generator().BundleWxs(layout.ToInstallerLayout());
 
-    public static string LicenseRtf()
-        => Installers.Features.WindowsInstallation.Models.WindowsWixSourceGenerator.LicenseRtf();
+    public static string LicenseRtf(string productName = "Agent-Up")
+        => Installers.Features.WindowsInstallation.Models.WindowsWixSourceGenerator.LicenseRtf(productName);
 
     public static string CliShimText()
         => Installers.Features.WindowsInstallation.Models.WindowsWixSourceGenerator.CliShimText();
