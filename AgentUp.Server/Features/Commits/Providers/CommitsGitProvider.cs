@@ -1,9 +1,10 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Commits.Interfaces;
 
 namespace AgentUp.Server.Features.Commits.Providers;
 
-public sealed class CommitsGitProvider : ICommitsGitProvider
+public sealed partial class CommitsGitProvider : ICommitsGitProvider
 {
     public Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default)
         => RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
@@ -95,8 +96,15 @@ public sealed class CommitsGitProvider : ICommitsGitProvider
 
     private static string NormalizeRepoRelativePath(string repoRoot, string path)
     {
-        if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path) || path.StartsWith(":(", StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(path)
+            || Path.IsPathRooted(path)
+            || path.StartsWith(":(", StringComparison.Ordinal)
+            || path.Contains('\0')
+            || path.Contains('\r')
+            || path.Contains('\n'))
+        {
             throw new InvalidOperationException($"Commit queue file path '{path}' must be a literal path under the repository root.");
+        }
 
         var normalizedRoot = Path.GetFullPath(repoRoot);
         var fullPath = Path.GetFullPath(Path.Join(normalizedRoot, path));
@@ -104,7 +112,11 @@ public sealed class CommitsGitProvider : ICommitsGitProvider
         if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
             throw new InvalidOperationException($"Commit queue file path '{path}' must stay under the repository root.");
 
-        return relative.Replace('\\', '/');
+        var normalized = relative.Replace('\\', '/');
+        if (!GitPathArgument().IsMatch(normalized))
+            throw new InvalidOperationException($"Commit queue file path '{path}' must be a safe repository-relative path.");
+
+        return normalized;
     }
 
     private static async Task<string> RunGitAsync(
@@ -114,9 +126,12 @@ public sealed class CommitsGitProvider : ICommitsGitProvider
         int[]? allowedExitCodes = null,
         bool trimOutput = true)
     {
+        var safeWorktreePath = NormalizeWorktreePath(worktreePath);
+        ValidateGitArguments(arguments);
+
         var psi = new ProcessStartInfo("git")
         {
-            WorkingDirectory = worktreePath,
+            WorkingDirectory = safeWorktreePath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
@@ -137,4 +152,52 @@ public sealed class CommitsGitProvider : ICommitsGitProvider
 
         return trimOutput ? stdout.TrimEnd() : stdout;
     }
+
+    private static string NormalizeWorktreePath(string worktreePath)
+    {
+        if (string.IsNullOrWhiteSpace(worktreePath)
+            || worktreePath.Contains('\0')
+            || worktreePath.Contains('\r')
+            || worktreePath.Contains('\n')
+            || worktreePath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        {
+            throw new InvalidOperationException("Commit queue worktree path must be an existing local directory.");
+        }
+
+        var fullPath = Path.GetFullPath(worktreePath);
+        if (!Directory.Exists(fullPath))
+            throw new InvalidOperationException("Commit queue worktree path must be an existing local directory.");
+
+        return fullPath;
+    }
+
+    private static void ValidateGitArguments(IReadOnlyList<string> arguments)
+    {
+        if (arguments.Count == 0)
+            throw new InvalidOperationException("Commit queue git command must include an allowlisted operation.");
+
+        var operation = arguments[0];
+        if (!AllowedGitOperation().IsMatch(operation))
+            throw new InvalidOperationException($"Commit queue git operation '{operation}' is not allowed.");
+
+        foreach (var argument in arguments)
+        {
+            if (string.IsNullOrWhiteSpace(argument)
+                || argument.Contains('\0')
+                || argument.Contains('\r')
+                || argument.Contains('\n'))
+            {
+                throw new InvalidOperationException("Commit queue git arguments must be non-empty literal values.");
+            }
+
+            if (argument.StartsWith(":(", StringComparison.Ordinal))
+                throw new InvalidOperationException("Commit queue git pathspec magic is not allowed.");
+        }
+    }
+
+    [GeneratedRegex("^(rev-parse|status|diff|ls-files|restore)$")]
+    private static partial Regex AllowedGitOperation();
+
+    [GeneratedRegex(@"^[^\u0000-\u001F\u007F]+$")]
+    private static partial Regex GitPathArgument();
 }
