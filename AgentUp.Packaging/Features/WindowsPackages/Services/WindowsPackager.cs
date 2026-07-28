@@ -40,7 +40,7 @@ public sealed class WindowsPackager
             WindowsWixSourceGenerator.CliShimText());
         _writer.WriteText(layout.ProductWxsPath, generator.ProductWxs(layout));
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));
-        _writer.WriteText(layout.LicenseRtfPath, WindowsWixSourceGenerator.LicenseRtf());
+        _writer.WriteText(layout.LicenseRtfPath, WindowsWixSourceGenerator.LicenseRtf(manifest.InstallerManifest.ProductName));
 
         await _packagingTool.AcceptWixLicenseAsync(cancellationToken);
         await _packagingTool.BuildProductMsiAsync(layout, cancellationToken);

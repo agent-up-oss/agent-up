@@ -241,8 +241,8 @@ public sealed class WindowsWixSourceGenerator
         return new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement(Wix + "Wix", bundle)).ToString();
     }
 
-    public static string LicenseRtf()
-        => @"{\rtf1\ansi Agent-Up installer. See the repository LICENSE file for license terms.}" + Environment.NewLine;
+    public static string LicenseRtf(string productName = "Agent-Up")
+        => $@"{{\rtf1\ansi {productName} installer. See the repository LICENSE file for license terms.}}" + Environment.NewLine;
 
     public static string CliShimText()
         => "@echo off\r\n\"%~dp0..\\cli\\AgentUp.CLI.exe\" %*\r\n";
