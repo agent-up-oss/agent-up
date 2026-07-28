@@ -14,10 +14,8 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
         try
         {
             var repoRoot = await GetRepoRootAsync(worktreePath, cancellationToken);
-            var output = await RunGitAsync(worktreePath, ["status", "--porcelain"], cancellationToken);
-            return output
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Length > 3 ? line[3..].Trim() : "")
+            var output = await RunGitAsync(worktreePath, ["status", "--porcelain=v1", "-z"], cancellationToken);
+            return ParsePorcelainStatus(output)
                 .Where(path => path.Length > 0)
                 .SelectMany(path => path.EndsWith('/') ? ExpandDirectory(path.TrimEnd('/'), repoRoot) : [path])
                 .ToList();
@@ -94,6 +92,23 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
             : [];
     }
 
+    private static IEnumerable<string> ParsePorcelainStatus(string output)
+    {
+        var records = output.Split('\0', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < records.Length; i++)
+        {
+            var record = records[i];
+            if (record.Length < 4)
+                continue;
+
+            var status = record[..2];
+            yield return record[3..];
+
+            if ((status[0] == 'R' || status[0] == 'C' || status[1] == 'R' || status[1] == 'C') && i + 1 < records.Length)
+                i++;
+        }
+    }
+
     private static string NormalizeRepoRelativePath(string repoRoot, string path)
     {
         if (string.IsNullOrWhiteSpace(path)
@@ -109,7 +124,7 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
         var normalizedRoot = Path.GetFullPath(repoRoot);
         var fullPath = Path.GetFullPath(Path.Join(normalizedRoot, path));
         var relative = Path.GetRelativePath(normalizedRoot, fullPath);
-        if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
+        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative))
             throw new InvalidOperationException($"Commit queue file path '{path}' must stay under the repository root.");
 
         var normalized = relative.Replace('\\', '/');
@@ -142,9 +157,11 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
         using var process = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start git process.");
 
-        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
         await process.WaitForExitAsync(cancellationToken);
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
 
         var allowed = allowedExitCodes ?? [0];
         if (!allowed.Contains(process.ExitCode))

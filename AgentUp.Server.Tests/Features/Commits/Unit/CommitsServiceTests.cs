@@ -64,6 +64,20 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task EnqueueAsync_rollsBackQueueAndPatch_WhenRestoreFails()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var git = new FakeCommitsGitProvider(restoreException: new IOException("restore failed"));
+        var service = new CommitsService(queue, git);
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(queue.Stored!.Commits, Is.Empty);
+        Assert.That(queue.Patches, Is.Empty);
+    }
+
+    [Test]
     public async Task EnqueueAsync_failsWhenActiveSessionExists()
     {
         var queue = new FakeCommitsQueueProvider(
@@ -178,6 +192,12 @@ public sealed class CommitsServiceTests
             return Task.CompletedTask;
         }
 
+        public Task DeletePatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default)
+        {
+            Patches.Remove(patchKey);
+            return Task.CompletedTask;
+        }
+
         public Task<string?> ReadPatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default)
             => Task.FromResult(Patches.GetValueOrDefault(patchKey));
 
@@ -185,7 +205,7 @@ public sealed class CommitsServiceTests
             => operation(cancellationToken);
     }
 
-    private sealed class FakeCommitsGitProvider(string[]? modifiedFiles = null) : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(string[]? modifiedFiles = null, Exception? restoreException = null) : ICommitsGitProvider
     {
         public bool DiffRequested { get; private set; }
         public bool FilesRestored { get; private set; }
@@ -207,6 +227,9 @@ public sealed class CommitsServiceTests
 
         public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         {
+            if (restoreException is not null)
+                throw restoreException;
+
             FilesRestored = true;
             return Task.CompletedTask;
         }

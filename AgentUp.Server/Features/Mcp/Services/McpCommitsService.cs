@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Mcp.DTOs;
@@ -7,8 +6,6 @@ namespace AgentUp.Server.Features.Mcp.Services;
 
 public sealed class McpCommitsService(CommitsController commits)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
     public async Task<McpToolResult> EnqueueAsync(string worktreePath, EnqueueRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(worktreePath))
@@ -20,7 +17,23 @@ public sealed class McpCommitsService(CommitsController commits)
         if (request.Files.Count == 0)
             return new McpToolResult(false, "At least one file is required.");
 
-        var result = await commits.EnqueueAsync(worktreePath, request, cancellationToken);
+        CommitsEnqueueResult result;
+        try
+        {
+            result = await commits.EnqueueAsync(worktreePath, request, cancellationToken);
+        }
+        catch (IOException)
+        {
+            return new McpToolResult(false, "Commit queue operation failed.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new McpToolResult(false, "Commit queue operation failed.");
+        }
+
+        if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
+            return new McpToolResult(false, "Commit queue operation failed.");
+
         return new McpToolResult(result.Succeeded, result.Message);
     }
 
@@ -29,7 +42,24 @@ public sealed class McpCommitsService(CommitsController commits)
         if (string.IsNullOrWhiteSpace(worktreePath))
             return new McpToolResult(false, "worktreePath is required.");
 
-        var status = await commits.GetStatusAsync(worktreePath, cancellationToken);
+        CommitsStatusResult status;
+        try
+        {
+            status = await commits.GetStatusAsync(worktreePath, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return new McpToolResult(false, "Commit queue status is unavailable.");
+        }
+        catch (IOException)
+        {
+            return new McpToolResult(false, "Commit queue status is unavailable.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new McpToolResult(false, "Commit queue status is unavailable.");
+        }
+
         var message = status.Entries.Count == 0
             ? "No queued commit entries."
             : $"{status.Entries.Count} queued entr{(status.Entries.Count == 1 ? "y" : "ies")}.";

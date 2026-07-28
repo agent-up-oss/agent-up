@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Commits.Interfaces;
+using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Providers;
 
 namespace AgentUp.Server.Tests.Features.Commits.Provider;
@@ -67,6 +68,98 @@ public sealed class CommitsProviderTests
         Assert.That(exception!.Message, Does.Contain("repository root"));
     }
 
+    [Test]
+    public async Task GetDiffAsync_allowsRepositoryFileNamesBeginningWithDots()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        await RunGitAsync(repositoryPath, "-c", "user.name=Agent Up", "-c", "user.email=agent-up@example.invalid", "commit", "--allow-empty", "-m", "initial");
+        var filePath = Path.Join(repositoryPath, "..notes");
+        await File.WriteAllTextAsync(filePath, "notes");
+        var provider = new CommitsGitProvider();
+
+        var diff = await provider.GetDiffAsync(repositoryPath, ["..notes"]);
+
+        Assert.That(diff, Does.Contain("..notes"));
+    }
+
+    [Test]
+    public async Task GetModifiedFilesAsync_parsesNulDelimitedSpecialPaths()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        await File.WriteAllTextAsync(Path.Join(repositoryPath, "name with space.cs"), "content");
+        var provider = new CommitsGitProvider();
+
+        var files = await provider.GetModifiedFilesAsync(repositoryPath);
+
+        Assert.That(files, Is.EqualTo(new[] { "name with space.cs" }));
+    }
+
+    [Test]
+    public async Task GetModifiedFilesAsync_reportsRenameDestination()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        await File.WriteAllTextAsync(Path.Join(repositoryPath, "old name.cs"), "content");
+        await RunGitAsync(repositoryPath, "add", "old name.cs");
+        await RunGitAsync(repositoryPath, "-c", "user.name=Agent Up", "-c", "user.email=agent-up@example.invalid", "commit", "-m", "initial");
+        await RunGitAsync(repositoryPath, "mv", "old name.cs", "new name.cs");
+        var provider = new CommitsGitProvider();
+
+        var files = await provider.GetModifiedFilesAsync(repositoryPath);
+
+        Assert.That(files, Is.EqualTo(new[] { "new name.cs" }));
+    }
+
+    [Test]
+    public async Task CommitsQueueProvider_persistsQueueAndPatches()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        var provider = new CommitsQueueProvider(new FixedRootGitProvider(repositoryPath), _tempRoot);
+        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "feat: thing", ["a.cs"], ["dotnet test"], "entry-1", "patch-1")]);
+
+        await provider.WriteAsync(repositoryPath, queue);
+        await provider.SavePatchAsync(repositoryPath, "patch-1", "diff --git a/a.cs b/a.cs\n");
+
+        var read = await provider.ReadAsync(repositoryPath);
+        var patch = await provider.ReadPatchAsync(repositoryPath, "patch-1");
+
+        Assert.That(read.Commits, Has.Count.EqualTo(1));
+        Assert.That(read.Commits[0].Slice, Is.EqualTo("Slice"));
+        Assert.That(patch, Does.Contain("diff --git"));
+    }
+
+    [Test]
+    public async Task CommitsQueueProvider_deletePatchRemovesPersistedPatch()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        var provider = new CommitsQueueProvider(new FixedRootGitProvider(repositoryPath), _tempRoot);
+
+        await provider.SavePatchAsync(repositoryPath, "patch-1", "diff --git a/a.cs b/a.cs\n");
+        await provider.DeletePatchAsync(repositoryPath, "patch-1");
+
+        Assert.That(await provider.ReadPatchAsync(repositoryPath, "patch-1"), Is.Null);
+    }
+
+    [Test]
+    public async Task CommitsQueueProvider_preservesRepositoryPathCaseInQueueIdentity()
+    {
+        var upperRoot = Path.Join(TestContext.CurrentContext.WorkDirectory, Guid.NewGuid().ToString("N"), "App");
+        var lowerRoot = Path.Join(Path.GetDirectoryName(upperRoot)!, "app");
+        Directory.CreateDirectory(upperRoot);
+        Directory.CreateDirectory(lowerRoot);
+        _tempRoot = Path.GetDirectoryName(upperRoot);
+        var provider = new CommitsQueueProvider(new MappingRootGitProvider(new Dictionary<string, string>
+        {
+            [upperRoot] = upperRoot,
+            [lowerRoot] = lowerRoot
+        }), _tempRoot);
+
+        await provider.WriteAsync(upperRoot, new CommitsQueue(1, [new CommitEntry("Upper", "m", ["a.cs"], [])]));
+        await provider.WriteAsync(lowerRoot, new CommitsQueue(1, [new CommitEntry("Lower", "m", ["b.cs"], [])]));
+
+        Assert.That((await provider.ReadAsync(upperRoot)).Commits[0].Slice, Is.EqualTo("Upper"));
+        Assert.That((await provider.ReadAsync(lowerRoot)).Commits[0].Slice, Is.EqualTo("Lower"));
+    }
+
     private async Task<string> CreateRepositoryAsync()
     {
         _tempRoot = Path.Join(TestContext.CurrentContext.WorkDirectory, Guid.NewGuid().ToString("N"));
@@ -95,5 +188,41 @@ public sealed class CommitsProviderTests
         await process.WaitForExitAsync();
         if (process.ExitCode != 0)
             throw new InvalidOperationException($"git {string.Join(" ", arguments)} failed: {stderr.Trim()}");
+    }
+
+    private sealed class FixedRootGitProvider(string root) : ICommitsGitProvider
+    {
+        public Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(root);
+
+        public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
+        public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
+
+        public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+    }
+
+    private sealed class MappingRootGitProvider(IReadOnlyDictionary<string, string> roots) : ICommitsGitProvider
+    {
+        public Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(roots[worktreePath]);
+
+        public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
+        public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
+
+        public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 }

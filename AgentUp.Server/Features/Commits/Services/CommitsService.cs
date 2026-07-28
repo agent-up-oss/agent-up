@@ -31,7 +31,23 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 await queue.SavePatchAsync(worktreePath, entry.PatchKey, patch, ct);
                 var updated = current with { Commits = [.. current.Commits, entry] };
                 await queue.WriteAsync(worktreePath, updated, ct);
-                await git.RestoreFilesAsync(worktreePath, request.Files, ct);
+                try
+                {
+                    await git.RestoreFilesAsync(worktreePath, request.Files, ct);
+                }
+                catch (InvalidOperationException)
+                {
+                    await queue.WriteAsync(worktreePath, current, ct);
+                    await queue.DeletePatchAsync(worktreePath, entry.PatchKey, ct);
+                    throw;
+                }
+                catch (IOException)
+                {
+                    await queue.WriteAsync(worktreePath, current, ct);
+                    await queue.DeletePatchAsync(worktreePath, entry.PatchKey, ct);
+                    throw;
+                }
+
                 queueSize = updated.Commits.Count;
                 return true;
             }, cancellationToken);
@@ -57,6 +73,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var session = current.ActiveSession is null
             ? null
             : new CommitsStatusSession(current.ActiveSession.EntryId, current.ActiveSession.Files);
-        return new CommitsStatusResult(current.Commits, unassigned, session);
+        var entries = current.Commits
+            .Select(e => new CommitEntryDto(e.Slice, e.Message, e.Files, e.Tests, e.Id, e.PatchId))
+            .ToList();
+        return new CommitsStatusResult(entries, unassigned, session);
     }
 }

@@ -7,7 +7,7 @@ using AgentUp.Server.Features.Commits.Models;
 
 namespace AgentUp.Server.Features.Commits.Providers;
 
-public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueueProvider
+public sealed class CommitsQueueProvider(ICommitsGitProvider git, string? baseDirectory = null) : ICommitsQueueProvider
 {
     private static readonly TimeSpan LockRetryDelay = TimeSpan.FromMilliseconds(25);
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -73,6 +73,14 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
         return File.Exists(patchPath) ? await File.ReadAllTextAsync(patchPath, cancellationToken) : null;
     }
 
+    public async Task DeletePatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default)
+    {
+        var queuePath = await QueuePathAsync(worktreePath, cancellationToken);
+        var patchPath = Path.Join(Path.GetDirectoryName(queuePath)!, "patches", $"{SafePatchKey(patchKey)}.patch");
+        if (File.Exists(patchPath))
+            File.Delete(patchPath);
+    }
+
     public async Task<T> WithLockAsync<T>(string worktreePath, Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
     {
         var queuePath = await QueuePathAsync(worktreePath, cancellationToken);
@@ -106,13 +114,13 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git) : ICommitsQueu
     {
         var root = await git.GetRepoRootAsync(worktreePath, cancellationToken);
         var repoId = RepoId(root);
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var baseDir = baseDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         return Path.Join(baseDir, "agentup", "commits", repoId, "queue.json");
     }
 
     private static string RepoId(string repoRoot)
     {
-        var normalized = Path.GetFullPath(repoRoot).ToLowerInvariant();
+        var normalized = Path.GetFullPath(repoRoot);
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
         return Convert.ToHexString(bytes)[..16].ToLowerInvariant();
     }

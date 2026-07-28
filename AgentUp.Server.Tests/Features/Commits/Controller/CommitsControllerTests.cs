@@ -55,6 +55,9 @@ public sealed class CommitsControllerTests
         public Task SavePatchAsync(string worktreePath, string patchKey, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
+        public Task DeletePatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public Task<string?> ReadPatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default)
             => Task.FromResult<string?>(null);
 
