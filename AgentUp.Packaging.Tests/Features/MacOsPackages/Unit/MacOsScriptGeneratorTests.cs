@@ -8,7 +8,7 @@ public class MacOsScriptGeneratorTests
     [Test]
     public void InstallerPreInstallScript_removesPreviousInstallerBundle()
     {
-        var script = MacOsScriptGenerator.InstallerPreInstallScript();
+        var script = MacOsScriptGenerator.InstallerPreInstallScript("Agent-Up Installer");
 
         Assert.That(script, Does.Contain("rm -rf \"/Applications/Agent-Up Installer.app\""));
     }
@@ -16,7 +16,7 @@ public class MacOsScriptGeneratorTests
     [Test]
     public void InstallerPreInstallScript_cleansUpDotNetExtractionDirectory()
     {
-        var script = MacOsScriptGenerator.InstallerPreInstallScript();
+        var script = MacOsScriptGenerator.InstallerPreInstallScript("Agent-Up Installer");
 
         Assert.That(script, Does.Contain(".net/AgentUp.InstallerApp"));
         Assert.That(script, Does.Contain("CONSOLE_USER"));
@@ -25,7 +25,7 @@ public class MacOsScriptGeneratorTests
     [Test]
     public void InstallerPreInstallScript_validatesConsoleUserBeforeDeletion()
     {
-        var script = MacOsScriptGenerator.InstallerPreInstallScript();
+        var script = MacOsScriptGenerator.InstallerPreInstallScript("Agent-Up Installer");
 
         Assert.That(script, Does.Contain("[[ \"$CONSOLE_USER\" =~ ^[a-zA-Z0-9._-]+$ ]]"));
     }
@@ -33,7 +33,7 @@ public class MacOsScriptGeneratorTests
     [Test]
     public void InstallerPostInstallScript_onlyOpensGui()
     {
-        var script = MacOsScriptGenerator.InstallerPostInstallScript();
+        var script = MacOsScriptGenerator.InstallerPostInstallScript("Agent-Up Installer", "/Library/Logs/Agent-Up");
 
         Assert.That(script, Does.Contain("open -a \"/Applications/Agent-Up Installer.app\""));
         Assert.That(script, Does.Not.Contain("--install-core"));

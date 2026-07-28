@@ -14,9 +14,10 @@ public class MacOsPackageToolTests
         var commands = new RecordingCommandRunner();
         var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.2.3", "out", "Release");
         var layout = MacOsPackageLayout.From(request);
+        var manifest = MacOsPackageManifest.From(request);
         var tool = new MacOsPackageTool(commands);
 
-        await tool.BuildComponentPackagesAsync(request, layout);
+        await tool.BuildComponentPackagesAsync(request, layout, manifest);
         await tool.BuildProductPackageAsync(layout);
 
         Assert.That(commands.Commands.Count(command => command.FileName == "pkgbuild"), Is.EqualTo(1));

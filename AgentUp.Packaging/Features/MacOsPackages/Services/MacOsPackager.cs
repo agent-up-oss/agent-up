@@ -31,9 +31,10 @@ public sealed class MacOsPackager
             layout.TrayPublishDirectory),
             cancellationToken);
 
-        new MacOsPackageStager(_writer).Stage(layout, MacOsPackageManifest.From(request));
+        var manifest = MacOsPackageManifest.From(request);
+        new MacOsPackageStager(_writer).Stage(layout, manifest);
 
-        await _packageTool.BuildComponentPackagesAsync(request, layout, cancellationToken);
+        await _packageTool.BuildComponentPackagesAsync(request, layout, manifest, cancellationToken);
         await _packageTool.BuildProductPackageAsync(layout, cancellationToken);
     }
 }

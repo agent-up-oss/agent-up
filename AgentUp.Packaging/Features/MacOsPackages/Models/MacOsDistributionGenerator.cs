@@ -13,10 +13,10 @@ public static class MacOsDistributionGenerator
                 new XElement("options",
                     new XAttribute("customize", "never"),
                     new XAttribute("require-scripts", "false")),
-                PkgRef("dev.agent-up.installer", layout.InstallerPackagePath),
+                PkgRef(manifest.InstallerManifest.InstallerBundleIdentifier, layout.InstallerPackagePath),
                 new XElement("choices-outline",
                     new XElement("line", new XAttribute("choice", "installer"))),
-                Choice("installer", "Agent-Up Installer", "dev.agent-up.installer")))
+                Choice("installer", $"{manifest.InstallerManifest.ProductName} Installer", manifest.InstallerManifest.InstallerBundleIdentifier)))
             + Environment.NewLine;
 
     private static XElement PkgRef(string id, string path)
