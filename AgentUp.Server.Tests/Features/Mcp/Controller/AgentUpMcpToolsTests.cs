@@ -1,5 +1,10 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Commits.Controllers;
+using AgentUp.Server.Features.Commits.DTOs;
+using AgentUp.Server.Features.Commits.Interfaces;
+using AgentUp.Server.Features.Commits.Models;
+using AgentUp.Server.Features.Commits.Services;
 using AgentUp.Server.Features.Mcp.Controllers;
 using AgentUp.Server.Features.Mcp.DTOs;
 using AgentUp.Server.Features.Mcp.Interfaces;
@@ -20,6 +25,7 @@ public sealed class AgentUpMcpToolsTests
     private WorkspaceRegistry _registry = null!;
     private AgentUpMcpTools _tools = null!;
     private FakeConfigurationProvider _configuration = null!;
+    private FakeCommitsQueueProvider _commitsQueue = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -34,7 +40,17 @@ public sealed class AgentUpMcpToolsTests
             _configuration,
             new FakeWorkspaceIdentityProvider());
         var contextController = new McpContextController(new McpContextService(new AgentUpContextProvider()));
-        _tools = new AgentUpMcpTools(workspaceController, contextController);
+        _commitsQueue = new FakeCommitsQueueProvider();
+        _tools = new AgentUpMcpTools(workspaceController, contextController, CreateCommitsController(_commitsQueue));
+    }
+
+    private static McpCommitsController CreateCommitsController(FakeCommitsQueueProvider? queue = null)
+    {
+        var q = queue ?? new FakeCommitsQueueProvider();
+        var git = new FakeCommitsGitProvider();
+        var service = new CommitsService(q, git);
+        var controller = new CommitsController(service);
+        return new McpCommitsController(new McpCommitsService(controller));
     }
 
     [Test]
@@ -85,7 +101,7 @@ public sealed class AgentUpMcpToolsTests
             new NullWorkspaceProcessManager(),
             new ThrowingConfigurationProvider(),
             new FakeWorkspaceIdentityProvider());
-        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new McpContextService(new AgentUpContextProvider())));
+        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new McpContextService(new AgentUpContextProvider())), CreateCommitsController());
 
         var result = await tools.StartWorkspace("/repos/bad-config", CancellationToken.None);
 
@@ -125,7 +141,7 @@ public sealed class AgentUpMcpToolsTests
             new FailingWorkspaceProcessManager(),
             _configuration,
             new FakeWorkspaceIdentityProvider());
-        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new McpContextService(new AgentUpContextProvider())));
+        var tools = new AgentUpMcpTools(workspaceController, new McpContextController(new McpContextService(new AgentUpContextProvider())), CreateCommitsController());
 
         var result = await tools.StopWorkspace(workspace.Id);
 
@@ -194,6 +210,163 @@ public sealed class AgentUpMcpToolsTests
         Assert.That(description, Does.Contain("local development environments"));
     }
 
+    [Test]
+    public async Task EnqueueCommit_ReturnsSuccess_WhenCommitIsEnqueued()
+    {
+        var result = await _tools.EnqueueCommit(
+            "/repos/app",
+            "feat/new-thing",
+            "feat: add new thing",
+            ["src/Thing.cs"],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(_commitsQueue.Stored!.Commits, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task EnqueueCommit_ReturnsFailure_WhenWorktreePathIsEmpty()
+    {
+        var result = await _tools.EnqueueCommit(
+            "",
+            "feat/slice",
+            "feat: message",
+            ["a.cs"],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("worktreePath"));
+    }
+
+    [Test]
+    public async Task EnqueueCommit_ReturnsFailure_WhenNoFilesProvided()
+    {
+        var result = await _tools.EnqueueCommit(
+            "/repos/app",
+            "feat/slice",
+            "feat: message",
+            [],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+    }
+
+    [Test]
+    public async Task EnqueueCommit_ReturnsFailure_WhenSliceIsEmpty()
+    {
+        var result = await _tools.EnqueueCommit(
+            "/repos/app",
+            "",
+            "feat: message",
+            ["a.cs"],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("slice"));
+    }
+
+    [Test]
+    public async Task EnqueueCommit_ReturnsFailure_WhenMessageIsEmpty()
+    {
+        var result = await _tools.EnqueueCommit(
+            "/repos/app",
+            "feat/slice",
+            "",
+            ["a.cs"],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("message"));
+    }
+
+    [Test]
+    public async Task EnqueueCommit_ReturnsSafeFailure_WhenQueueProviderFails()
+    {
+        var tools = new AgentUpMcpTools(
+            ServerTestComposition.CreateMcpWorkspaceController(
+                _registry,
+                new NullWorkspaceProcessManager(),
+                _configuration,
+                new FakeWorkspaceIdentityProvider()),
+            new McpContextController(new McpContextService(new AgentUpContextProvider())),
+            CreateCommitsController(new FakeCommitsQueueProvider { WriteException = new IOException("disk path leaked") }));
+
+        var result = await tools.EnqueueCommit(
+            "/repos/app",
+            "feat/slice",
+            "feat: message",
+            ["a.cs"],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Is.EqualTo("Commit queue operation failed."));
+        Assert.That(result.Message, Does.Not.Contain("disk path leaked"));
+    }
+
+    [Test]
+    public async Task GetCommitsStatus_ReturnsQueuedEntries()
+    {
+        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat: m", ["a.cs"], null, CancellationToken.None);
+
+        var result = await _tools.GetCommitsStatus("/repos/app", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.Message, Does.Contain("1 queued entry"));
+        Assert.That(result.Data, Is.InstanceOf<CommitsStatusResult>());
+        var status = (CommitsStatusResult)result.Data!;
+        Assert.That(status.Entries, Has.Count.EqualTo(1));
+        Assert.That(status.Entries[0].Slice, Is.EqualTo("feat/s"));
+        Assert.That(status.Entries[0].Files, Is.EqualTo(new[] { "a.cs" }));
+    }
+
+    [Test]
+    public async Task GetCommitsStatus_ReturnsFailure_WhenWorktreePathIsEmpty()
+    {
+        var result = await _tools.GetCommitsStatus("", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+    }
+
+    [Test]
+    public async Task GetCommitsStatus_ReturnsSafeFailure_WhenProviderFails()
+    {
+        var tools = new AgentUpMcpTools(
+            ServerTestComposition.CreateMcpWorkspaceController(
+                _registry,
+                new NullWorkspaceProcessManager(),
+                _configuration,
+                new FakeWorkspaceIdentityProvider()),
+            new McpContextController(new McpContextService(new AgentUpContextProvider())),
+            CreateCommitsController(new FakeCommitsQueueProvider { ReadException = new IOException("storage path leaked") }));
+
+        var result = await tools.GetCommitsStatus("/repos/app", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Is.EqualTo("Commit queue status is unavailable."));
+        Assert.That(result.Message, Does.Not.Contain("storage path leaked"));
+    }
+
+    [Test]
+    public void EnqueueCommitDescription_TellsAgentsNotToUseGitDirectly()
+    {
+        var description = typeof(AgentUpMcpTools)
+            .GetMethod(nameof(AgentUpMcpTools.EnqueueCommit))!
+            .GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+            .Cast<System.ComponentModel.DescriptionAttribute>()
+            .Single()
+            .Description;
+
+        Assert.That(description, Does.Contain("Do NOT call git add"));
+        Assert.That(description, Does.Contain("git commit"));
+        Assert.That(description, Does.Contain("git stash"));
+    }
+
     private async Task<Workspace> RegisterRunningWorkspace(string worktreePath)
     {
         _configuration.Configuration = new AgentUpConfiguration(
@@ -231,5 +404,59 @@ public sealed class AgentUpMcpToolsTests
         public Task LaunchApplicationAsync(Workspace workspace, string appName) => Task.CompletedTask;
         public Task KillAsync(string workspaceId) => throw new InvalidOperationException("stop failed");
         public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
+    }
+
+    internal sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider
+    {
+        public CommitsQueue? Stored { get; private set; } = initial;
+        public Exception? ReadException { get; init; }
+        public Exception? WriteException { get; init; }
+
+        public Task<CommitsQueue> ReadAsync(string worktreePath, CancellationToken cancellationToken = default)
+        {
+            if (ReadException is not null)
+                throw ReadException;
+
+            return Task.FromResult(Stored ?? CommitsQueue.Empty());
+        }
+
+        public Task WriteAsync(string worktreePath, CommitsQueue queue, CancellationToken cancellationToken = default)
+        {
+            if (WriteException is not null)
+                throw WriteException;
+
+            Stored = queue;
+            return Task.CompletedTask;
+        }
+
+        public Task SavePatchAsync(string worktreePath, string patchKey, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task DeletePatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<string?> ReadPatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
+
+        public Task<T> WithLockAsync<T>(string worktreePath, Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
+    }
+
+    private sealed class FakeCommitsGitProvider : ICommitsGitProvider
+    {
+        public Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(worktreePath);
+
+        public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
+        public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
+
+        public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 }
