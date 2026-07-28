@@ -664,6 +664,26 @@ Coding agents must not run `git commit`, `git add`, or `git stash` directly. Ins
 
 Agent responsibility: manage queue entries only. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `agentup commits status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
 
+`agentup commits enqueue` and the MCP `enqueue_commit` tool intentionally restore tracked files to their pre-change state after saving the queued patch. Agents must treat that restoration as expected queue behavior and must not re-apply or modify those files after a successful enqueue; the queue owns them until the developer runs `agentup commits next`.
+
+MCP servers cannot register server-side post-job lifecycle hooks. Claude Code users can wire a client-side `Stop` hook to run `agentup commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
+
+```json
+"hooks": {
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "agentup commits guard 2>/dev/null | grep -q 'modified file(s) are not assigned' && echo '[agent-up] Unqueued changes detected - run: agentup commits enqueue' || true"
+        }
+      ]
+    }
+  ]
+}
+```
+
 ```bash
 dotnet run --project AgentUp.CLI -- commits enqueue \
   --slice <SliceName> \

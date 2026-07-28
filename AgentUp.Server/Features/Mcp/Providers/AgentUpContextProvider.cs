@@ -21,6 +21,8 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         When the user asks to "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up", use the registered Agent-Up MCP tools. For those requests, call start_workspace with the absolute repository/worktree path instead of curling the Server, shelling through the CLI, or starting application commands directly.
 
         Use list_workspaces and get_workspace_status to inspect existing Agent-Up-managed workspaces. Use stop_workspace when the user asks Agent-Up to stop, shut down, or halt a managed workspace.
+
+        At the end of every coding task, use enqueue_commit to declare each logical vertical-slice commit, then use get_commits_status so the developer can see the queue. enqueue_commit intentionally restores tracked files to their pre-change state after saving the patch; do not re-apply or modify those files after a successful enqueue because the queue owns them until the developer runs agentup commits next.
         """;
 
     public string GetAgentUpJsonFormat() =>

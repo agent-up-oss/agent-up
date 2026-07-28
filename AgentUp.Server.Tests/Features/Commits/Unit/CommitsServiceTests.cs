@@ -51,6 +51,20 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task EnqueueAsync_messageWarnsAgentThatTrackedFilesWereRestored()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+
+        Assert.That(result.Message, Does.Contain("Enqueued 'S'. Queue size: 1."));
+        Assert.That(result.Message, Does.Contain("The tracked files have been restored to their pre-change state"));
+        Assert.That(result.Message, Does.Contain("Do NOT re-apply or modify those files"));
+        Assert.That(result.Message, Does.Contain("the queue owns them now"));
+    }
+
+    [Test]
     public async Task EnqueueAsync_restoresFilesAfterCapturingPatch()
     {
         var queue = new FakeCommitsQueueProvider();

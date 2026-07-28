@@ -190,6 +190,7 @@ public sealed class AgentUpMcpToolsTests
         Assert.That(_tools.GetAgentUpContext(), Does.Contain("AgentUp.Server is the single source of truth"));
         Assert.That(_tools.GetAgentUpContext(), Does.Contain("deploy my app with Agent-Up"));
         Assert.That(_tools.GetAgentUpContext(), Does.Contain("call start_workspace"));
+        Assert.That(_tools.GetAgentUpContext(), Does.Contain("enqueue_commit intentionally restores tracked files"));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"services\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"ports\""));
     }
@@ -222,6 +223,8 @@ public sealed class AgentUpMcpToolsTests
             CancellationToken.None);
 
         Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.Message, Does.Contain("The tracked files have been restored to their pre-change state"));
+        Assert.That(result.Message, Does.Contain("Do NOT re-apply or modify those files"));
         Assert.That(_commitsQueue.Stored!.Commits, Has.Count.EqualTo(1));
     }
 

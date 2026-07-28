@@ -52,7 +52,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 return true;
             }, cancellationToken);
 
-            return new CommitsEnqueueResult(true, $"Enqueued '{request.Slice}'. Queue size: {queueSize}.", queueSize);
+            return new CommitsEnqueueResult(true, EnqueuedMessage(request.Slice, queueSize), queueSize);
         }
         catch (InvalidOperationException ex)
         {
@@ -63,6 +63,12 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             return new CommitsEnqueueResult(false, $"Queue operation failed: {ex.Message}");
         }
     }
+
+    private static string EnqueuedMessage(string slice, int queueSize) =>
+        $"""
+        Enqueued '{slice}'. Queue size: {queueSize}.
+        The tracked files have been restored to their pre-change state so the patch can be applied cleanly by 'agentup commits next'. Do NOT re-apply or modify those files - the queue owns them now.
+        """;
 
     public async Task<CommitsStatusResult> GetStatusAsync(string worktreePath, CancellationToken cancellationToken = default)
     {
