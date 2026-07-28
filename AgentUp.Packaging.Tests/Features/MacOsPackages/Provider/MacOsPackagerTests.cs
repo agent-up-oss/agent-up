@@ -124,7 +124,7 @@ public class MacOsPackagerTests
         public List<(PackageRequest Request, MacOsPackageLayout Layout)> ComponentBuilds { get; } = [];
         public List<MacOsPackageLayout> ProductBuilds { get; } = [];
 
-        public Task BuildComponentPackagesAsync(PackageRequest request, MacOsPackageLayout layout, CancellationToken cancellationToken = default)
+        public Task BuildComponentPackagesAsync(PackageRequest request, MacOsPackageLayout layout, MacOsPackageManifest manifest, CancellationToken cancellationToken = default)
         {
             ComponentBuilds.Add((request, layout));
             return Task.CompletedTask;

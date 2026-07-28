@@ -8,7 +8,13 @@ namespace AgentUp.Packaging.Features.MacOsPackages.Models;
 public sealed record MacOsPackageManifest(MacOsInstallerManifest InstallerManifest)
 {
     public static MacOsPackageManifest From(PackageRequest request)
-        => new(MacOsInstallerManifest.Create(request.NormalizedVersion));
+        => From(request, request.ProductManifest);
+
+    public static MacOsPackageManifest From(PackageRequest request, PackageProductManifest product)
+    {
+        PackageProductManifest.Validate(product);
+        return new(MacOsInstallerManifest.From(product.ProductName, product.Slug, request.NormalizedVersion));
+    }
 
     public MacOsInstallerManifest ToInstallerManifest()
         => InstallerManifest;

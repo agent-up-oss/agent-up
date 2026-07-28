@@ -14,11 +14,11 @@ public sealed class MacOsPackageTool : IMacOsPackageTool
         _commands = commands;
     }
 
-    public async Task BuildComponentPackagesAsync(PackageRequest request, MacOsPackageLayout layout, CancellationToken cancellationToken = default)
+    public async Task BuildComponentPackagesAsync(PackageRequest request, MacOsPackageLayout layout, MacOsPackageManifest manifest, CancellationToken cancellationToken = default)
     {
         await _commands.RunAsync(new CommandSpec("pkgbuild",
         [
-            "--identifier", "dev.agent-up.installer",
+            "--identifier", manifest.InstallerManifest.InstallerBundleIdentifier,
             "--version", request.NormalizedVersion,
             "--root", layout.InstallerComponentRoot,
             "--scripts", layout.InstallerScriptsDirectory,

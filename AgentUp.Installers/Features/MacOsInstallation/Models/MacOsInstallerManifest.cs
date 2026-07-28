@@ -32,8 +32,15 @@ public sealed record MacOsInstallerManifest(
         ProductManifest product,
         string version,
         string serverUrl = "http://127.0.0.1:5000")
+        => From(product.ProductName, product.Slug, version, serverUrl);
+
+    public static MacOsInstallerManifest From(
+        string productName,
+        string slug,
+        string version,
+        string serverUrl = "http://127.0.0.1:5000")
     {
-        var identity = ValidatedIdentityFrom(product);
+        var identity = ValidatedIdentityFrom(productName, slug);
 
         return new(
             ProductName: identity.ProductName,
@@ -47,17 +54,20 @@ public sealed record MacOsInstallerManifest(
     }
 
     internal static MacOsProductIdentity ValidatedIdentityFrom(ProductManifest product)
-    {
-        if (!SafeSlug.IsMatch(product.Slug))
-            throw new ArgumentException(
-                $"Slug '{product.Slug}' must contain only lowercase letters, digits, and hyphens.",
-                nameof(product));
-        if (!SafeName.IsMatch(product.ProductName))
-            throw new ArgumentException(
-                $"ProductName '{product.ProductName}' contains characters that are unsafe for macOS paths.",
-                nameof(product));
+        => ValidatedIdentityFrom(product.ProductName, product.Slug);
 
-        return new(product.ProductName, product.Slug, $"{product.ProductName.Replace(" ", "-")}.png");
+    internal static MacOsProductIdentity ValidatedIdentityFrom(string productName, string slug)
+    {
+        if (!SafeSlug.IsMatch(slug))
+            throw new ArgumentException(
+                $"Slug '{slug}' must contain only lowercase letters, digits, and hyphens.",
+                nameof(slug));
+        if (!SafeName.IsMatch(productName))
+            throw new ArgumentException(
+                $"ProductName '{productName}' contains characters that are unsafe for macOS paths.",
+                nameof(productName));
+
+        return new(productName, slug, $"{productName.Replace(" ", "-")}.png");
     }
 }
 
@@ -86,8 +96,8 @@ public sealed class MacOsInstallerPlistGenerator
     public string InstallerInfoPlist()
         => Plist(Dict(
             KeyString("CFBundleIdentifier", _manifest.InstallerBundleIdentifier),
-            KeyString("CFBundleName", "Agent-Up Installer"),
-            KeyString("CFBundleDisplayName", "Agent-Up Installer"),
+            KeyString("CFBundleName", $"{_manifest.ProductName} Installer"),
+            KeyString("CFBundleDisplayName", $"{_manifest.ProductName} Installer"),
             KeyString("CFBundleExecutable", "AgentUp.InstallerApp"),
             KeyString("CFBundleIconFile", _manifest.BundleIconFile),
             KeyString("CFBundleVersion", _manifest.Version),
@@ -111,14 +121,14 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("Label", _manifest.ServerLaunchDaemonLabel),
             new XElement("key", "ProgramArguments"),
             new XElement("array",
-                new XElement("string", "/Library/Application Support/Agent-Up/server/AgentUp.Server"),
+                new XElement("string", $"/Library/Application Support/{_manifest.ProductName}/server/AgentUp.Server"),
                 new XElement("string", "--urls"),
                 new XElement("string", _manifest.ServerUrl)),
             new XElement("key", "EnvironmentVariables"),
             new XElement("dict",
                 KeyString("ASPNETCORE_URLS", _manifest.ServerUrl),
-                KeyString("Storage__DataDirectory", "/Library/Application Support/Agent-Up"),
-                KeyString("DOTNET_BUNDLE_EXTRACT_BASE_DIR", "/Library/Application Support/Agent-Up/bundle-cache")),
+                KeyString("Storage__DataDirectory", $"/Library/Application Support/{_manifest.ProductName}"),
+                KeyString("DOTNET_BUNDLE_EXTRACT_BASE_DIR", $"/Library/Application Support/{_manifest.ProductName}/bundle-cache")),
             new XElement("key", "RunAtLoad"),
             new XElement("true"),
             new XElement("key", "KeepAlive"),
@@ -127,8 +137,8 @@ public sealed class MacOsInstallerPlistGenerator
                 new XElement("false")),
             new XElement("key", "ThrottleInterval"),
             new XElement("integer", "5"),
-            KeyString("StandardOutPath", "/Library/Logs/Agent-Up/server.out.log"),
-            KeyString("StandardErrorPath", "/Library/Logs/Agent-Up/server.err.log")));
+            KeyString("StandardOutPath", $"/Library/Logs/{_manifest.ProductName}/server.out.log"),
+            KeyString("StandardErrorPath", $"/Library/Logs/{_manifest.ProductName}/server.err.log")));
 
     private static string Plist(XElement dict)
         => new XDocument(

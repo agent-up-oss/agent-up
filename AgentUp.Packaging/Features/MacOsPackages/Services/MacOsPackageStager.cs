@@ -17,6 +17,8 @@ public sealed class MacOsPackageStager
     public void Stage(MacOsPackageLayout layout, MacOsPackageManifest manifest)
     {
         var plists = new MacOsPlistGenerator(manifest);
+        var installerAppName = $"{manifest.InstallerManifest.ProductName} Installer";
+        var logDirectory = $"/Library/Logs/{manifest.InstallerManifest.ProductName}";
 
         _writer.ResetDirectory(layout.PackageRootDirectory);
         _writer.CreateDirectory(layout.ComponentPackageDirectory);
@@ -35,8 +37,8 @@ public sealed class MacOsPackageStager
 
         var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
         var installerPostInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "postinstall");
-        _writer.WriteText(installerPreInstallScriptPath, MacOsScriptGenerator.InstallerPreInstallScript());
-        _writer.WriteText(installerPostInstallScriptPath, MacOsScriptGenerator.InstallerPostInstallScript());
+        _writer.WriteText(installerPreInstallScriptPath, MacOsScriptGenerator.InstallerPreInstallScript(installerAppName));
+        _writer.WriteText(installerPostInstallScriptPath, MacOsScriptGenerator.InstallerPostInstallScript(installerAppName, logDirectory));
         _writer.SetExecutable(installerPreInstallScriptPath);
         _writer.SetExecutable(installerPostInstallScriptPath);
         _writer.WriteText(layout.DistributionXmlPath, MacOsDistributionGenerator.DistributionXml(layout, manifest));

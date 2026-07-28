@@ -30,11 +30,17 @@ public sealed record MacOsPackageLayout(
     string InstallerPayloadIconPath)
 {
     public static MacOsPackageLayout From(PackageRequest request)
+        => From(request, request.ProductManifest);
+
+    public static MacOsPackageLayout From(PackageRequest request, PackageProductManifest product)
     {
+        PackageProductManifest.Validate(product);
         var stage = request.StageDirectory;
-        var installerApp = Path.Join(stage, "pkg-root", "installer", "Applications", "Agent-Up Installer.app");
+        var productName = product.ProductName;
+        var installerApp = Path.Join(stage, "pkg-root", "installer", "Applications", $"{productName} Installer.app");
         var installerResources = Path.Join(installerApp, "Contents", "Resources");
         var payloadIcon = Path.Join(installerApp, "Contents", "MacOS", "payload", "icon");
+        var iconFileName = $"{productName.Replace(" ", "-")}.png";
         return new MacOsPackageLayout(
             StageDirectory: stage,
             InstallerPublishDirectory: Path.Join(stage, "installer"),
@@ -53,11 +59,11 @@ public sealed record MacOsPackageLayout(
             InstallerComponentRoot: Path.Join(stage, "pkg-root", "installer"),
             InstallerScriptsDirectory: Path.Join(stage, "installer-pkg-scripts"),
             InstallerPackagePath: Path.Join(stage, "component-packages", "InstallerApp.pkg"),
-            ProductPackagePath: Path.Join(request.OutputRoot, $"agent-up-macos-{request.RuntimeId}.pkg"),
+            ProductPackagePath: Path.Join(request.OutputRoot, $"{product.Slug}-macos-{request.RuntimeId}.pkg"),
             DistributionXmlPath: Path.Join(stage, "Distribution.xml"),
             InstallerInfoPlistPath: Path.Join(installerApp, "Contents", "Info.plist"),
             InstallerIconSourcePath: Path.Join(request.RepositoryRoot, "media", "logo.png"),
-            InstallerIconPath: Path.Join(installerResources, "Agent-Up.png"),
-            InstallerPayloadIconPath: Path.Join(payloadIcon, "Agent-Up.png"));
+            InstallerIconPath: Path.Join(installerResources, iconFileName),
+            InstallerPayloadIconPath: Path.Join(payloadIcon, iconFileName));
     }
 }

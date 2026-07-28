@@ -5,6 +5,6 @@ namespace AgentUp.Packaging.Features.MacOsPackages.Interfaces;
 
 public interface IMacOsPackageTool
 {
-    Task BuildComponentPackagesAsync(PackageRequest request, MacOsPackageLayout layout, CancellationToken cancellationToken = default);
+    Task BuildComponentPackagesAsync(PackageRequest request, MacOsPackageLayout layout, MacOsPackageManifest manifest, CancellationToken cancellationToken = default);
     Task BuildProductPackageAsync(MacOsPackageLayout layout, CancellationToken cancellationToken = default);
 }
