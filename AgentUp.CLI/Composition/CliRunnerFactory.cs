@@ -34,7 +34,7 @@ public static class CliRunnerFactory
         var commits = new CommitsController(
             new CommitsEnqueueCommand(commitsService, commitsParser, commitsOutput),
             new CommitsStatusCommand(commitsService, commitsOutput, commitsFormatParser),
-            new CommitsChangesCommand(commitsService, commitsOutput, commitsFormatParser),
+            new CommitsChangesCommand(commitsUtilityRunner),
             new CommitsInspectCommand(commitsUtilityRunner),
             new CommitsEditCommand(commitsUtilityRunner),
             new CommitsEntryCommand(commitsUtilityRunner),

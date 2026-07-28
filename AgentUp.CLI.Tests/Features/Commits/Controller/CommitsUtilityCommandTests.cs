@@ -26,6 +26,35 @@ public sealed class CommitsUtilityCommandTests
     }
 
     [Test]
+    public async Task Changes_whenGitFails_writesStructuredError()
+    {
+        using var output = new StringWriter();
+        var command = BuildController(output, throwOnChanges: true);
+
+        var code = await command.RunAsync(["changes", "--format", "json"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(json.RootElement.GetProperty("error").GetString(), Does.Contain("git failed"));
+    }
+
+    [Test]
+    public async Task Help_listsEntryManagementCommands()
+    {
+        using var output = new StringWriter();
+        var command = BuildController(output);
+
+        await command.RunAsync([]);
+
+        var text = output.ToString();
+        Assert.That(text, Does.Contain("message"));
+        Assert.That(text, Does.Contain("tests"));
+        Assert.That(text, Does.Contain("files"));
+        Assert.That(text, Does.Contain("remove"));
+        Assert.That(text, Does.Contain("restore"));
+    }
+
+    [Test]
     public async Task Guard_whenQueueHasEntry_returnsNonZero()
     {
         using var output = new StringWriter();
@@ -119,11 +148,12 @@ public sealed class CommitsUtilityCommandTests
         StringWriter output,
         CommitsQueue? queue = null,
         FakeCommitsQueueProvider? queueProvider = null,
-        string[]? modifiedFiles = null)
+        string[]? modifiedFiles = null,
+        bool throwOnChanges = false)
     {
         var service = new CommitsService(
             queueProvider ?? new FakeCommitsQueueProvider(queue),
-            new FakeCommitsGitProvider(modifiedFiles ?? []));
+            new FakeCommitsGitProvider(modifiedFiles ?? [], throwOnChanges));
         var formatParser = new CommitsFormatParser();
         var outputService = new CommitsOutputService(output, new CommitsJsonRenderer());
         var enqueueParser = new CommitsArgParser();
@@ -131,7 +161,7 @@ public sealed class CommitsUtilityCommandTests
         return new CommitsController(
             new CommitsEnqueueCommand(service, enqueueParser, outputService),
             new CommitsStatusCommand(service, outputService, formatParser),
-            new CommitsChangesCommand(service, outputService, formatParser),
+            new CommitsChangesCommand(utilityRunner),
             new CommitsInspectCommand(utilityRunner),
             new CommitsEditCommand(utilityRunner),
             new CommitsEntryCommand(utilityRunner),
@@ -174,13 +204,18 @@ public sealed class CommitsUtilityCommandTests
             => operation(cancellationToken);
     }
 
-    private sealed class FakeCommitsGitProvider(string[] modifiedFiles) : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(string[] modifiedFiles, bool throwOnChanges = false) : ICommitsGitProvider
     {
         public Task<string> GetRepoRootAsync(CancellationToken cancellationToken = default)
             => Task.FromResult("/repo");
 
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<string>>(modifiedFiles);
+        {
+            if (throwOnChanges)
+                throw new InvalidOperationException("git failed");
+
+            return Task.FromResult<IReadOnlyList<string>>(modifiedFiles);
+        }
 
         public Task<IReadOnlyList<string>> GetStagedFilesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
