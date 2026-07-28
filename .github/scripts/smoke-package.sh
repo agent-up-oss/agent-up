@@ -213,6 +213,7 @@ case "$platform" in
     assert_executable "$work_dir/package/opt/agent-up/desktop/AgentUp.Desktop"
     assert_executable "$work_dir/package/opt/agent-up/server/AgentUp.Server"
     assert_executable "$work_dir/package/opt/agent-up/cli/AgentUp.CLI"
+    assert_executable "$work_dir/package/opt/agent-up/tray/AgentUp.Tray"
     assert_file "$work_dir/package/opt/agent-up/logo.png"
     assert_contains "$work_dir/flake.nix" "packageFor = pkgs: pkgs.stdenv.mkDerivation"
     assert_contains "$work_dir/flake.nix" "agent-up = packageFor pkgs"
@@ -230,6 +231,8 @@ case "$platform" in
     assert_contains "$work_dir/flake.nix" "systemd.user.services.agent-up-server"
     assert_contains "$work_dir/flake.nix" "cfg.server.enable"
     assert_contains "$work_dir/flake.nix" "xdg.desktopEntries.agent-up"
+    assert_contains "$work_dir/flake.nix" "agent-up-tray"
+    assert_contains "$work_dir/flake.nix" "autostart/agent-up-tray.desktop"
     assert_contains "$work_dir/flake.nix" "RestartSec = 5"
     nix flake show --extra-experimental-features "nix-command flakes" "path:$work_dir"
     nix build --extra-experimental-features "nix-command flakes" --no-link --print-out-paths "path:$work_dir#agent-up" > "$work_dir/nix-out-path.txt"
@@ -237,10 +240,11 @@ case "$platform" in
     assert_executable "$nix_out/bin/agent-up"
     assert_executable "$nix_out/bin/agent-up-server"
     assert_executable "$nix_out/bin/agent-up-desktop"
+    assert_executable "$nix_out/bin/agent-up-tray"
     assert_file "$nix_out/opt/agent-up/logo.png"
     smoke_cli_version "$nix_out/bin/agent-up"
     start_server_and_probe "$nix_out/bin/agent-up-server"
-    nix shell --extra-experimental-features "nix-command flakes" "path:$work_dir#agent-up" --command bash -lc 'command -v agent-up && command -v agent-up-server && command -v agent-up-desktop'
+    nix shell --extra-experimental-features "nix-command flakes" "path:$work_dir#agent-up" --command bash -lc 'command -v agent-up && command -v agent-up-server && command -v agent-up-desktop && command -v agent-up-tray'
     nix shell --extra-experimental-features "nix-command flakes" "path:$work_dir#agent-up" --command bash -lc "$(declare -f smoke_cli_workspace_from_path); work_dir='$work_dir'; port='$port'; smoke_cli_workspace_from_path agent-up"
     ;;
   *)

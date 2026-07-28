@@ -106,12 +106,13 @@ if [ "$platform" = "ubuntu" ] || [ "$platform" = "macos" ] || [ "$platform" = "w
 fi
 
 rm -rf "$stage"
-mkdir -p "$stage/desktop" "$stage/server" "$stage/cli" "$stage/installer" "$root/$output_dir"
+mkdir -p "$stage/desktop" "$stage/server" "$stage/cli" "$stage/installer" "$stage/tray" "$root/$output_dir"
 
 if [ -n "$payload_root" ]; then
   cp -a "$payload_root/desktop/." "$stage/desktop/"
   cp -a "$payload_root/server/." "$stage/server/"
   cp -a "$payload_root/cli/." "$stage/cli/"
+  cp -a "$payload_root/tray/." "$stage/tray/"
   if [ -d "$payload_root/installer" ]; then
     cp -a "$payload_root/installer/." "$stage/installer/"
   fi
@@ -151,6 +152,15 @@ else
     -p:PublishSingleFile=false \
     -p:Version="$version" \
     -o "$stage/cli"
+
+  dotnet restore "$root/AgentUp.Tray/AgentUp.Tray.csproj" --runtime "$rid"
+  dotnet publish "$root/AgentUp.Tray/AgentUp.Tray.csproj" \
+    --configuration "$configuration" \
+    --runtime "$rid" \
+    --self-contained true \
+    -p:PublishSingleFile=false \
+    -p:Version="$version" \
+    -o "$stage/tray"
 fi
 
 case "$platform" in
@@ -160,6 +170,7 @@ case "$platform" in
     cp -a "$stage/desktop" "$pkgs_root/package/opt/agent-up/desktop"
     cp -a "$stage/server" "$pkgs_root/package/opt/agent-up/server"
     cp -a "$stage/cli" "$pkgs_root/package/opt/agent-up/cli"
+    cp -a "$stage/tray" "$pkgs_root/package/opt/agent-up/tray"
     cp -a "$stage/installer" "$pkgs_root/package/opt/agent-up/installer"
     cp -a "$root/media/logo.png" "$pkgs_root/package/opt/agent-up/logo.png"
     cat > "$pkgs_root/flake.nix" <<'NIX'
@@ -208,11 +219,13 @@ case "$platform" in
           chmod +x $out/opt/agent-up/desktop/AgentUp.Desktop
           chmod +x $out/opt/agent-up/server/AgentUp.Server
           chmod +x $out/opt/agent-up/cli/AgentUp.CLI
+          chmod +x $out/opt/agent-up/tray/AgentUp.Tray
           chmod +x $out/opt/agent-up/installer/AgentUp.InstallerApp
           mkdir -p $out/bin
           ln -s $out/opt/agent-up/desktop/AgentUp.Desktop $out/bin/agent-up-desktop
           ln -s $out/opt/agent-up/server/AgentUp.Server $out/bin/agent-up-server
           ln -s $out/opt/agent-up/cli/AgentUp.CLI $out/bin/agent-up
+          ln -s $out/opt/agent-up/tray/AgentUp.Tray $out/bin/agent-up-tray
           ln -s $out/opt/agent-up/installer/AgentUp.InstallerApp $out/bin/agent-up-installer
           runHook postInstall
         '';
@@ -239,6 +252,8 @@ case "$platform" in
           wrapProgram $out/opt/agent-up/server/AgentUp.Server \
             --prefix LD_LIBRARY_PATH : "$runtime_libs"
           wrapProgram $out/opt/agent-up/cli/AgentUp.CLI \
+            --prefix LD_LIBRARY_PATH : "$runtime_libs"
+          wrapProgram $out/opt/agent-up/tray/AgentUp.Tray \
             --prefix LD_LIBRARY_PATH : "$runtime_libs"
           wrapProgram $out/opt/agent-up/installer/AgentUp.InstallerApp \
             --prefix LD_LIBRARY_PATH : "$runtime_libs" \
@@ -366,6 +381,15 @@ case "$platform" in
               terminal = false;
               categories = [ "Utility" ];
             };
+            xdg.configFile."autostart/agent-up-tray.desktop".text = ''
+              [Desktop Entry]
+              Type=Application
+              Name=Agent Up Tray
+              Exec=${package}/bin/agent-up-tray
+              Icon=agent-up
+              Terminal=false
+              X-GNOME-Autostart-enabled=true
+            '';
             systemd.user.services.agent-up-server = lib.mkIf cfg.server.enable {
               Unit = {
                 Description = "Agent-Up Server";
