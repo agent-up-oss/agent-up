@@ -1,5 +1,3 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Providers;
 using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 
@@ -9,7 +7,7 @@ public sealed class OfficialCapabilityCatalogProvider : ICapabilityCatalogProvid
 {
     public const string CatalogUrlVariable = "AGENTUP_CAPABILITY_CATALOG_URL";
 
-    private readonly CapabilityManifestParser _parser = new();
+    private readonly CapabilityCatalogParser _parser = new();
 
     public async Task<IReadOnlyList<CapabilityCatalogEntry>> GetCatalogAsync(CancellationToken cancellationToken = default)
     {
@@ -20,7 +18,7 @@ public sealed class OfficialCapabilityCatalogProvider : ICapabilityCatalogProvid
         return DefaultEntries();
     }
 
-    private async Task<CapabilityCatalog> LoadConfiguredCatalogAsync(string configured, CancellationToken cancellationToken)
+    private async Task<CapabilityModuleCatalog> LoadConfiguredCatalogAsync(string configured, CancellationToken cancellationToken)
     {
         if (Uri.TryCreate(configured, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
         {
@@ -36,7 +34,7 @@ public sealed class OfficialCapabilityCatalogProvider : ICapabilityCatalogProvid
         return _parser.ParseCatalog(await File.ReadAllTextAsync(path, cancellationToken));
     }
 
-    private static IReadOnlyList<CapabilityCatalogEntry> EntriesFromCatalog(CapabilityCatalog catalog) =>
+    private static IReadOnlyList<CapabilityCatalogEntry> EntriesFromCatalog(CapabilityModuleCatalog catalog) =>
         catalog.Artifacts
             .GroupBy(artifact => artifact.CapabilityId, StringComparer.OrdinalIgnoreCase)
             .Select(group => new CapabilityCatalogEntry(

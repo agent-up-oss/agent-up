@@ -21,8 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.InstallerApp\AgentUp.InstallerApp.csproj" />
-    <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
-    <ProjectReference Include="..\AgentUp.Capabilities.Common\AgentUp.Capabilities.Common.csproj" />
   </ItemGroup>
 
 </Project>

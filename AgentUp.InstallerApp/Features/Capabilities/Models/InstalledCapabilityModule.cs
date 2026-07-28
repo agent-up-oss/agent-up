@@ -1,5 +1,3 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
-
 namespace AgentUp.InstallerApp.Features.Capabilities.Models;
 
 public sealed record InstalledCapabilityModule(

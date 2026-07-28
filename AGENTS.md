@@ -127,7 +127,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.Installers` | Testable installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
-| `AgentUp.InstallerApp` | Shared Avalonia installer dashboard over platform installer adapters and capability catalog state |
+| `AgentUp.InstallerApp` | Shared Avalonia installer dashboard over platform installer adapters and installer-owned capability catalog state; no compile-time dependency on `AgentUp.Capabilities.*` |
 | `AgentUp.Packaging` | Testable release artifact staging, package metadata generation, and native packaging tool orchestration |
 | `AgentUp.PackageSmoke` | Testable package and installed-service smoke validation adapters used by CI smoke scripts |
 | MCP clients | Automation interface; no local orchestration |

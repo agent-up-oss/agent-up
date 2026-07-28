@@ -1,6 +1,3 @@
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Providers;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Services;
-using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
 using AgentUp.InstallerApp.Features.Capabilities.Providers;
 using AgentUp.InstallerApp.Features.Capabilities.Services;
 
@@ -14,7 +11,7 @@ public static class CapabilityDashboardServiceFactory
         return new CapabilityDashboardService(
             new OfficialCapabilityCatalogProvider(),
             new FileCapabilityModuleStore(Path.Join(root, "capabilities.json")),
-            new CapabilityInstallPlanner(new CapabilityToolCacheLayout(Path.Join(root, "tool-cache"))));
+            new CapabilityModuleInstallPlanner(new CapabilityModuleCacheLayout(Path.Join(root, "tool-cache"))));
     }
 
     public static CapabilityDashboardService CreateNixOs()
@@ -27,7 +24,7 @@ public static class CapabilityDashboardServiceFactory
         => new(
             new OfficialCapabilityCatalogProvider(),
             new NixOsCapabilityModuleStore(new CapabilityInventoryFileProvider()),
-            new CapabilityInstallPlanner(new CapabilityToolCacheLayout(cacheRoot)),
+            new CapabilityModuleInstallPlanner(new CapabilityModuleCacheLayout(cacheRoot)),
             false);
 
     public static CapabilityDashboardService CreateFake()
@@ -36,7 +33,7 @@ public static class CapabilityDashboardServiceFactory
         return new CapabilityDashboardService(
             new OfficialCapabilityCatalogProvider(),
             new InMemoryCapabilityModuleStore(),
-            new CapabilityInstallPlanner(new CapabilityToolCacheLayout(root)));
+            new CapabilityModuleInstallPlanner(new CapabilityModuleCacheLayout(root)));
     }
 
     public static CapabilityDashboardService CreateEmpty()
@@ -45,7 +42,7 @@ public static class CapabilityDashboardServiceFactory
         return new CapabilityDashboardService(
             new EmptyCapabilityCatalogProvider(),
             new InMemoryCapabilityModuleStore(),
-            new CapabilityInstallPlanner(new CapabilityToolCacheLayout(root)));
+            new CapabilityModuleInstallPlanner(new CapabilityModuleCacheLayout(root)));
     }
 
     private static string DefaultStateRoot()

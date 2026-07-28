@@ -1,14 +1,13 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
-using AgentUp.Capabilities.Common.Features.CapabilityDistribution.Services;
 using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
+using AgentUp.InstallerApp.Features.Capabilities.Providers;
 
 namespace AgentUp.InstallerApp.Features.Capabilities.Services;
 
 public sealed class CapabilityDashboardService(
     ICapabilityCatalogProvider catalog,
     ICapabilityModuleStore store,
-    CapabilityInstallPlanner installPlanner,
+    CapabilityModuleInstallPlanner installPlanner,
     bool supportsInstallActions = true)
 {
     public bool SupportsInstallActions { get; } = supportsInstallActions;

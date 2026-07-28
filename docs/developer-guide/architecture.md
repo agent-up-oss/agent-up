@@ -158,7 +158,7 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 `AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, and install planning. First-party adapters such as `AgentUp.Capabilities.Dotnet` and `AgentUp.Capabilities.Docker` own ecosystem discovery, version reconciliation, validation, and launch planning.
 
-`AgentUp.InstallerApp` is the Avalonia installer dashboard. It presents independent Desktop, Server, and CLI management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI.
+`AgentUp.InstallerApp` is the Avalonia installer dashboard. It presents independent Desktop, Server, and CLI management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI. InstallerApp owns its installer-facing catalog and installed-module contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects.
 
 `AgentUp.Server` performs orchestration:
 
