@@ -3,6 +3,7 @@ using System.Text.Json;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
+using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Shared.Providers;
 
@@ -150,6 +151,34 @@ public sealed class CapabilityLifecycleSmokeTests
         }
     }
 
+    [Test]
+    public async Task RunAsync_reportsPostStopPollFailureAsFinding()
+    {
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
+        var commands = new RecordingCommandRunner();
+        using var http = new HttpClient(new SmokeHttpHandler(invalidWorkspaceJsonAfterWorkspaceStop: true));
+        var assert = new FileAssertions();
+
+        try
+        {
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+                workDir,
+                new InstalledServiceContext("agent-up", null, [], []),
+                "http://localhost:5000",
+                assert,
+                CancellationToken.None);
+
+            Assert.That(assert.Findings, Has.Some.Matches<SmokeFinding>(finding =>
+                finding.Code == "capability.smokedotnet.state" &&
+                finding.Message.Contains("post-stop state poll failed", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            if (Directory.Exists(workDir))
+                Directory.Delete(workDir, recursive: true);
+        }
+    }
+
     private static string ExpectedDockerImageForCurrentPlatform()
     {
         if (!OperatingSystem.IsWindows())
@@ -196,7 +225,8 @@ public sealed class CapabilityLifecycleSmokeTests
     private sealed class SmokeHttpHandler(
         int transientDockerStopReads = 0,
         bool keepDockerStopping = false,
-        bool failDotnetAfterWorkspaceStop = false) : HttpMessageHandler
+        bool failDotnetAfterWorkspaceStop = false,
+        bool invalidWorkspaceJsonAfterWorkspaceStop = false) : HttpMessageHandler
     {
         private readonly List<HttpResponseMessage> _responses = [];
         private readonly Dictionary<string, string> _states = new(StringComparer.Ordinal)
@@ -205,6 +235,7 @@ public sealed class CapabilityLifecycleSmokeTests
             ["SmokeDocker"] = "Running"
         };
         private int _dockerStoppingReadsRemaining;
+        private bool _workspaceStopped;
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -212,7 +243,12 @@ public sealed class CapabilityLifecycleSmokeTests
             if (request.Method == HttpMethod.Get && path == "/api/workspaces")
                 return JsonAsync(new[] { Workspace() });
             if (request.Method == HttpMethod.Get && path == "/api/workspaces/workspace-1")
+            {
+                if (invalidWorkspaceJsonAfterWorkspaceStop && _workspaceStopped)
+                    return ResponseAsync(HttpStatusCode.OK, new StringContent("{ nope", System.Text.Encoding.UTF8, "application/json"));
+
                 return JsonAsync(Workspace());
+            }
             if (request.Method == HttpMethod.Post && path.EndsWith("/applications/SmokeDotnet/stop", StringComparison.Ordinal))
                 return StateAsync("SmokeDotnet", "Stopped");
             if (request.Method == HttpMethod.Post && path.EndsWith("/applications/SmokeDotnet/start", StringComparison.Ordinal))
@@ -236,6 +272,7 @@ public sealed class CapabilityLifecycleSmokeTests
             }
             if (request.Method == HttpMethod.Post && path == "/api/workspaces/workspace-1/stop")
             {
+                _workspaceStopped = true;
                 _states["SmokeDotnet"] = failDotnetAfterWorkspaceStop ? "Failed" : "Stopped";
                 _states["SmokeDocker"] = keepDockerStopping ? "Stopping" : "Stopped";
                 return ResponseAsync(HttpStatusCode.NoContent);

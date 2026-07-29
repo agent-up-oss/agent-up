@@ -201,7 +201,27 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
 
         while (true)
         {
-            var app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            JsonElement? app;
+            try
+            {
+                app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+            catch (JsonException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+            catch (NotSupportedException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+
             actual = app is null ? "<missing>" : ReadState(app.Value);
             if (actual is "Stopped" or "Stopping" or "Failed")
                 return;
