@@ -6,4 +6,5 @@ public sealed record CommitEntryDto(
     IReadOnlyList<string> Files,
     IReadOnlyList<string> Tests,
     string Id,
-    string PatchId);
+    string PatchId,
+    string? ReviewIssueId = null);

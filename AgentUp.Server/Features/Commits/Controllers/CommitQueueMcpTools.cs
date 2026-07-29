@@ -19,6 +19,18 @@ public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
         CancellationToken cancellationToken)
         => service.EnqueueCommit(worktreePath, slice, message, files, tests, cancellationToken);
 
+    [McpServerTool(Name = "enqueue_review_fix_commit", Title = "Enqueue Review Fix Commit")]
+    [Description("Use when fixing pull request review feedback. Enqueues exactly one review issue violation fix with a required stable reviewIssueId. Do not combine multiple review issues in one commit.")]
+    public Task<McpToolResult> EnqueueReviewFixCommit(
+        [Description("Absolute path to the repository worktree.")] string worktreePath,
+        [Description("Stable review issue or review-thread id represented by this single queued commit.")] string reviewIssueId,
+        [Description("Short slice label identifying the logical unit of change, e.g. 'Commits'.")] string slice,
+        [Description("Conventional commit message, e.g. 'fix(commits): reject queue use during merge'.")] string message,
+        [Description("Repo-relative file paths to include in this review-fix commit entry. At least one required.")] IReadOnlyList<string> files,
+        [Description("Optional test commands to attach to this entry, e.g. 'dotnet test'.")] IReadOnlyList<string>? tests,
+        CancellationToken cancellationToken)
+        => service.EnqueueReviewFixCommit(worktreePath, reviewIssueId, slice, message, files, tests, cancellationToken);
+
     [McpServerTool(Name = "get_commits_status", Title = "Get Commits Status")]
     [Description("Returns the current commit queue: queued entries with their files and messages, unassigned modified files, and any active edit session. Run this after enqueueing so the developer can see the queue before stopping.")]
     public Task<McpToolResult> GetCommitsStatus(

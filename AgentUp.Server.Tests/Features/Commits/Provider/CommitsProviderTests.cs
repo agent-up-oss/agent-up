@@ -110,6 +110,29 @@ public sealed class CommitsProviderTests
     }
 
     [Test]
+    public async Task GetOperationStateAsync_reportsActiveMerge()
+    {
+        var repositoryPath = await CreateRepositoryAsync();
+        await File.WriteAllTextAsync(Path.Join(repositoryPath, "file.txt"), "base\n");
+        await RunGitAsync(repositoryPath, "add", "file.txt");
+        await RunGitAsync(repositoryPath, "-c", "user.name=Agent Up", "-c", "user.email=agent-up@example.invalid", "commit", "-m", "initial");
+        await RunGitAsync(repositoryPath, "branch", "-M", "main");
+        await RunGitAsync(repositoryPath, "checkout", "-b", "feature");
+        await File.WriteAllTextAsync(Path.Join(repositoryPath, "file.txt"), "feature\n");
+        await RunGitAsync(repositoryPath, "-c", "user.name=Agent Up", "-c", "user.email=agent-up@example.invalid", "commit", "-am", "feature");
+        await RunGitAsync(repositoryPath, "checkout", "main");
+        await File.WriteAllTextAsync(Path.Join(repositoryPath, "file.txt"), "main\n");
+        await RunGitAsync(repositoryPath, "-c", "user.name=Agent Up", "-c", "user.email=agent-up@example.invalid", "commit", "-am", "main");
+
+        await RunGitAsync(repositoryPath, ["merge", "feature"], [1]);
+
+        var state = await new CommitsGitProvider().GetOperationStateAsync(repositoryPath);
+
+        Assert.That(state.Blocking, Is.True);
+        Assert.That(state.Kind, Is.EqualTo("merge"));
+    }
+
+    [Test]
     public async Task ApplyPatchAsync_killsGitApplyAndPropagatesCancellation()
     {
         var repositoryPath = await CreateRepositoryAsync();
@@ -185,7 +208,10 @@ public sealed class CommitsProviderTests
         return _tempRoot;
     }
 
-    private static async Task RunGitAsync(string workingDirectory, params string[] arguments)
+    private static Task RunGitAsync(string workingDirectory, params string[] arguments)
+        => RunGitAsync(workingDirectory, arguments, [0]);
+
+    private static async Task RunGitAsync(string workingDirectory, string[] arguments, int[] allowedExitCodes)
     {
         var psi = new System.Diagnostics.ProcessStartInfo("git")
         {
@@ -202,7 +228,7 @@ public sealed class CommitsProviderTests
 
         var stderr = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
-        if (process.ExitCode != 0)
+        if (!allowedExitCodes.Contains(process.ExitCode))
             throw new InvalidOperationException($"git {string.Join(" ", arguments)} failed: {stderr.Trim()}");
     }
 
@@ -225,6 +251,9 @@ public sealed class CommitsProviderTests
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(GitOperationState.None);
 
         public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
@@ -252,6 +281,9 @@ public sealed class CommitsProviderTests
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(GitOperationState.None);
 
         public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;

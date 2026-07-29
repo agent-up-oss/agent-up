@@ -53,6 +53,50 @@ public sealed class CommitQueueMcpToolsTests
     }
 
     [Test]
+    public async Task GuardCommits_BlocksNewWork_WhenGitOperationIsActive()
+    {
+        _git.OperationState = new GitOperationState("merge", true);
+
+        var result = await _tools.GuardCommits("/repos/app", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        var guard = (CommitGuardResult)result.Data!;
+        Assert.That(guard.Blockers.Single(), Does.Contain("Git merge"));
+    }
+
+    [Test]
+    public async Task EnqueueReviewFixCommit_StoresReviewIssueId()
+    {
+        var result = await _tools.EnqueueReviewFixCommit(
+            "/repos/app",
+            "review-42",
+            "Commits",
+            "fix(commits): block merge queue use",
+            ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(_queue.Stored!.Commits.Single().ReviewIssueId, Is.EqualTo("review-42"));
+    }
+
+    [Test]
+    public async Task EnqueueReviewFixCommit_RejectsMissingReviewIssueId()
+    {
+        var result = await _tools.EnqueueReviewFixCommit(
+            "/repos/app",
+            "",
+            "Commits",
+            "fix(commits): block merge queue use",
+            ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"],
+            null,
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("reviewIssueId"));
+    }
+
+    [Test]
     public async Task GetCommitChanges_ReturnsQueueAssignment()
     {
         _git.ModifiedFiles = ["queued.cs", "loose.cs"];
@@ -163,6 +207,7 @@ public sealed class CommitQueueMcpToolsTests
     private sealed class FakeCommitsGitProvider : ICommitsGitProvider
     {
         public string[] ModifiedFiles { get; set; } = [];
+        public GitOperationState OperationState { get; set; } = GitOperationState.None;
         public bool PatchApplied { get; private set; }
         public bool FilesRestored { get; private set; }
 
@@ -183,6 +228,9 @@ public sealed class CommitQueueMcpToolsTests
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(OperationState);
 
         public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
         {

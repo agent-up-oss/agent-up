@@ -85,6 +85,9 @@ public sealed class CommitsControllerTests
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
 
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(GitOperationState.None);
+
         public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 

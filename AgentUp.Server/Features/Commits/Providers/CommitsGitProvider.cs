@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Commits.Interfaces;
+using AgentUp.Server.Features.Commits.Models;
 
 namespace AgentUp.Server.Features.Commits.Providers;
 
@@ -72,6 +73,27 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
     {
         var output = await RunGitAsync(worktreePath, ["diff", "--cached", "--name-only"], cancellationToken);
         return output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length > 0;
+    }
+
+    public async Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var gitDir = await RunGitAsync(worktreePath, ["rev-parse", "--git-dir"], cancellationToken);
+            var root = await GetRepoRootAsync(worktreePath, cancellationToken);
+            var stateRoot = Path.IsPathRooted(gitDir) ? gitDir : Path.Join(root, gitDir);
+            foreach (var (kind, marker) in OperationMarkers)
+            {
+                if (File.Exists(Path.Join(stateRoot, marker)) || Directory.Exists(Path.Join(stateRoot, marker)))
+                    return new GitOperationState(kind, true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            return GitOperationState.None;
+        }
+
+        return GitOperationState.None;
     }
 
     public async Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
@@ -183,6 +205,16 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
                 i++;
         }
     }
+
+    private static readonly (string Kind, string Marker)[] OperationMarkers =
+    [
+        ("merge", "MERGE_HEAD"),
+        ("rebase", "rebase-merge"),
+        ("rebase", "rebase-apply"),
+        ("cherry-pick", "CHERRY_PICK_HEAD"),
+        ("revert", "REVERT_HEAD"),
+        ("bisect", "BISECT_LOG")
+    ];
 
     private static string NormalizeRepoRelativePath(string repoRoot, string path)
     {

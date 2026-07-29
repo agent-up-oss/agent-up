@@ -119,6 +119,71 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task EnqueueAsync_failsWhenGitOperationIsActive()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var git = new FakeCommitsGitProvider(operationState: new GitOperationState("merge", true));
+        var service = new CommitsService(queue, git);
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("Git merge"));
+        Assert.That(queue.Stored, Is.Null);
+    }
+
+    [Test]
+    public async Task EnqueueAsync_failsWhenFilesSpanMultipleFeatureSlices()
+    {
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
+            "Commits",
+            "fix: queue",
+            [
+                "AgentUp.Server/Features/Commits/Services/CommitsService.cs",
+                "AgentUp.Server/Features/Workspaces/Services/WorkspaceRegistry.cs"
+            ],
+            []));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("multiple feature slices"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_allowsSingleFeatureSliceWithMatchingTests()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
+            "fix/commits",
+            "fix(commits): guard queue",
+            [
+                "AgentUp.Server/Features/Commits/Services/CommitsService.cs",
+                "AgentUp.Server.Tests/Features/Commits/Unit/CommitsServiceTests.cs"
+            ],
+            []));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(queue.Stored!.Commits.Single().Slice, Is.EqualTo("fix/commits"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_rejectsDuplicateReviewIssueId()
+    {
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
+            new CommitEntry("Commits", "fix: first", ["a.cs"], [], "entry-1", "patch-1", "review-1")
+        ]));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix: second", ["b.cs"], [], "review-1"));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("review-1"));
+    }
+
+    [Test]
     public async Task GetStatusAsync_returnsEmptyEntriesWhenQueueIsEmpty()
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
@@ -219,7 +284,10 @@ public sealed class CommitsServiceTests
             => operation(cancellationToken);
     }
 
-    private sealed class FakeCommitsGitProvider(string[]? modifiedFiles = null, Exception? restoreException = null) : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(
+        string[]? modifiedFiles = null,
+        Exception? restoreException = null,
+        GitOperationState? operationState = null) : ICommitsGitProvider
     {
         public bool DiffRequested { get; private set; }
         public bool FilesRestored { get; private set; }
@@ -244,6 +312,9 @@ public sealed class CommitsServiceTests
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(operationState ?? GitOperationState.None);
 
         public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;

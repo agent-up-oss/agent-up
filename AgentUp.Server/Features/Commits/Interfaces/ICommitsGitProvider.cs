@@ -1,5 +1,7 @@
 namespace AgentUp.Server.Features.Commits.Interfaces;
 
+using AgentUp.Server.Features.Commits.Models;
+
 public interface ICommitsGitProvider
 {
     Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default);
@@ -8,6 +10,7 @@ public interface ICommitsGitProvider
     Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default);
     Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default);
     Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default);
+    Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default);
     Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default);
     Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default);
 }
