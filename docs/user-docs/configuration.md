@@ -74,7 +74,7 @@ Applications reference environment variables supplied by Agent-Up. Applications 
 
 The Server owns port allocation and injects the workspace's full allocated port map into each launched local process. Applications should read the relevant environment variables instead of assuming fixed localhost ports.
 
-Docker containers can call host-run applications in the same workspace through `host.agent-up`. Inline Docker environment values may reference allocated workspace ports with `${VARIABLE}`, such as `ROOMMATE_URL=http://host.agent-up:${SERVER_PORT}`.
+Docker containers can call host-run applications in the same workspace through `host.agent-up` when the host-run application listens on an address reachable from Docker's host gateway. A process bound only to `127.0.0.1` is not reachable from containers through this alias. Inline Docker environment values may reference allocated workspace ports with `${VARIABLE}`, such as `BACKEND_URL=http://host.agent-up:${API_PORT}`.
 
 ## No Framework Knowledge
 

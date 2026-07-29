@@ -33,7 +33,7 @@ For `docker[]` and `services[]`, Agent-Up passes:
 
 Docker applies its own precedence rules after Agent-Up constructs the command. Inline `environment` values are passed after `--env-file` arguments.
 
-Docker containers can reach host-run workspace applications through the `host.agent-up` hostname. For example, an inline value of `ROOMMATE_URL=http://host.agent-up:${SERVER_PORT}` resolves `${SERVER_PORT}` before the container starts.
+Docker containers can reach host-run workspace applications through the `host.agent-up` hostname when the host-run application listens on an address reachable from Docker's host gateway. A process bound only to `127.0.0.1` is not reachable from containers through this alias. For example, an inline value of `BACKEND_URL=http://host.agent-up:${API_PORT}` resolves `${API_PORT}` before the container starts.
 
 ## Environment File Paths
 
