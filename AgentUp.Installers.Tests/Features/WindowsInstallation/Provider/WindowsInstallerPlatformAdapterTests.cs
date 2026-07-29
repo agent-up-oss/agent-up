@@ -212,7 +212,7 @@ public class WindowsInstallerPlatformAdapterTests
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
-            var generator = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3"));
+            var generator = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100"));
             var product = generator.ProductWxs(layout);
             var bundle = generator.BundleWxs(layout);
 
@@ -281,7 +281,7 @@ public class WindowsInstallerPlatformAdapterTests
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
-            var product = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3")).ProductWxs(layout);
+            var product = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100")).ProductWxs(layout);
 
             Assert.That(product, Does.Not.Contain("TrayAutoStartComponent"));
         }
@@ -354,7 +354,7 @@ public class WindowsInstallerPlatformAdapterTests
     [TestCase("shim.cmd ")]
     public void WindowsWixSourceGenerator_rejectsUnsafeCliShimNameBeforeBuildingSourcePath(string cliShimName)
     {
-        var manifest = WindowsInstallerManifest.Create("1.2.3") with { CliShimName = cliShimName };
+        var manifest = WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100") with { CliShimName = cliShimName };
 
         var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
 
