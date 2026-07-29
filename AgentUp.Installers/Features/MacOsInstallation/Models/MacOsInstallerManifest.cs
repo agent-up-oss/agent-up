@@ -4,7 +4,7 @@ using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Installers.Features.MacOsInstallation.Models;
 
-public sealed record MacOsInstallerManifest(
+public sealed partial record MacOsInstallerManifest(
     string ProductName,
     string DesktopBundleIdentifier,
     string InstallerBundleIdentifier,
@@ -14,17 +14,6 @@ public sealed record MacOsInstallerManifest(
     string Version,
     string ServerUrl)
 {
-    public static MacOsInstallerManifest Create(string version)
-        => new(
-            ProductName: "Agent-Up",
-            DesktopBundleIdentifier: "dev.agent-up.desktop",
-            InstallerBundleIdentifier: "dev.agent-up.installer",
-            ServerLaunchDaemonLabel: "dev.agent-up.server",
-            TrayLaunchAgentLabel: "dev.agent-up.tray",
-            BundleIconFile: "Agent-Up.png",
-            Version: version,
-            ServerUrl: "http://127.0.0.1:5000");
-
     private static readonly Regex SafeSlug = new(@"^[a-z][a-z0-9-]+$", RegexOptions.Compiled);
     private static readonly Regex SafeName = new(@"^[A-Za-z][A-Za-z0-9 -]*$", RegexOptions.Compiled);
 
