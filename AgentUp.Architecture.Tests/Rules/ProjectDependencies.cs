@@ -1,6 +1,7 @@
 using AgentUp.Architecture.Tests.Fixtures;
 using ArchUnitNET.Fluent;
 using ArchUnitNET.NUnit;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace AgentUp.Architecture.Tests.Rules;
@@ -19,9 +20,21 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.Installers", Except("AgentUp.Installers"));
-        AssertDoesNotDependOn("AgentUp.InstallerApp", Except("AgentUp.InstallerApp", "AgentUp.Installers", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
+        AssertDoesNotDependOn("AgentUp.InstallerApp", Except("AgentUp.InstallerApp", "AgentUp.Installers"));
         AssertDoesNotDependOn("AgentUp.Packaging", Except("AgentUp.Packaging", "AgentUp.Installers"));
         AssertDoesNotDependOn("AgentUp.PackageSmoke", Except("AgentUp.PackageSmoke", "AgentUp.Installers"));
+    }
+
+    [Test]
+    public void InstallerApp_nonAgentUpTypes_do_not_reference_capabilities_namespace()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.InstallerApp")
+            .SelectMany(path => InstallerAppCapabilityReferences(root, path))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty,
+            "InstallerApp product-generic types must use InstallerApp-owned capability catalog contracts instead of compile-time references to AgentUp.Capabilities.");
     }
 
     private static void AssertDoesNotDependOn(string sourceAssembly, IReadOnlyCollection<string> allowedAssemblies)
@@ -39,4 +52,37 @@ public sealed class ProjectDependencies
     }
 
     private static string[] Except(params string[] allowed) => allowed;
+
+    private static IEnumerable<string> InstallerAppCapabilityReferences(string root, string path)
+    {
+        var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
+        var hasNonAgentUpType = rootNode.DescendantNodes()
+            .OfType<TypeDeclarationSyntax>()
+            .Any(IsNonAgentUpType);
+
+        foreach (var usingDirective in rootNode.DescendantNodes().OfType<UsingDirectiveSyntax>())
+        {
+            var name = usingDirective.Name?.ToFullString().Trim() ?? "";
+            if (hasNonAgentUpType && IsCapabilitiesNamespace(name))
+                yield return $"{ArchitectureFixture.Location(root, path, tree, usingDirective)}: using {name}";
+        }
+
+        foreach (var qualifiedName in rootNode.DescendantNodes().OfType<QualifiedNameSyntax>())
+        {
+            var name = qualifiedName.ToFullString().Trim();
+            if (IsInsideNonAgentUpType(qualifiedName) && IsCapabilitiesNamespace(name))
+                yield return $"{ArchitectureFixture.Location(root, path, tree, qualifiedName)}: {name}";
+        }
+    }
+
+    private static bool IsInsideNonAgentUpType(QualifiedNameSyntax qualifiedName)
+        => qualifiedName.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault() is { } type
+           && IsNonAgentUpType(type);
+
+    private static bool IsNonAgentUpType(TypeDeclarationSyntax type)
+        => !type.Identifier.Text.StartsWith("AgentUp", StringComparison.Ordinal);
+
+    private static bool IsCapabilitiesNamespace(string name) =>
+        name.Equals("AgentUp.Capabilities", StringComparison.Ordinal)
+        || name.StartsWith("AgentUp.Capabilities.", StringComparison.Ordinal);
 }

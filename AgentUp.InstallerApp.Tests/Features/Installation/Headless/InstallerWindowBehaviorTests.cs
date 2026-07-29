@@ -1,6 +1,6 @@
-using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Factories;
+using AgentUp.InstallerApp.Features.Capabilities.Providers;
 using AgentUp.InstallerApp.Composition;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
@@ -10,7 +10,6 @@ using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
 using AgentUp.Installers.Features.NixOsInstallation.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
@@ -159,6 +158,55 @@ public class InstallerWindowBehaviorTests
 
         Assert.That(window.Find<ItemsControl>("CatalogEntries").ItemCount, Is.EqualTo(0));
         Assert.That(window.Find<TextBlock>("EmptyCatalogMessage").IsVisible, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task NullCatalog_usesSameAddModulePageStructureAsAgentUpCatalog()
+    {
+        var catalogWindow = await LaunchAsync();
+        var nullWindow = await LaunchWithNoModulesAsync();
+
+        catalogWindow.Find<Button>("AddModuleCard").Command!.Execute(null);
+        nullWindow.Find<Button>("AddModuleCard").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(catalogWindow.Find<TextBlock>("PageTitle").Text, Is.EqualTo("AddModule"));
+        Assert.That(nullWindow.Find<TextBlock>("PageTitle").Text, Is.EqualTo("AddModule"));
+        Assert.That(catalogWindow.Find<ItemsControl>("CatalogEntries").IsVisible, Is.True);
+        Assert.That(nullWindow.Find<ItemsControl>("CatalogEntries").IsVisible, Is.True);
+        Assert.That(catalogWindow.Find<Button>("BackToDashboardButton").IsVisible, Is.True);
+        Assert.That(nullWindow.Find<Button>("BackToDashboardButton").IsVisible, Is.True);
+        Assert.That(catalogWindow.Find<Border>("CapabilityEditPanel").IsVisible, Is.False);
+        Assert.That(nullWindow.Find<Border>("CapabilityEditPanel").IsVisible, Is.False);
+        Assert.That(catalogWindow.Find<ItemsControl>("CatalogEntries").ItemCount, Is.GreaterThan(0));
+        Assert.That(nullWindow.Find<ItemsControl>("CatalogEntries").ItemCount, Is.EqualTo(0));
+    }
+
+    [AvaloniaTest]
+    public async Task NullCatalogAndAgentUpCatalogInstallerInstances_coexistWithoutSharedRenderingState()
+    {
+        var catalogWindow = await LaunchAsync();
+        var nullWindow = await LaunchWithNoModulesAsync();
+        var catalogModel = (InstallerViewModel)catalogWindow.DataContext!;
+        var nullModel = (InstallerViewModel)nullWindow.DataContext!;
+
+        catalogWindow.Find<Button>("AddModuleCard").Command!.Execute(null);
+        nullWindow.Find<Button>("AddModuleCard").Command!.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(catalogModel.CatalogEntries.Select(entry => entry.Entry.Id), Is.EqualTo(new[] { "dotnet", "docker" }));
+        Assert.That(nullModel.CatalogEntries, Is.Empty);
+        Assert.That(catalogWindow.Find<ItemsControl>("CatalogEntries").ItemCount, Is.EqualTo(2));
+        Assert.That(nullWindow.Find<ItemsControl>("CatalogEntries").ItemCount, Is.EqualTo(0));
+
+        var dotnet = catalogModel.CatalogEntries.Single(entry => entry.Entry.Id == "dotnet");
+        dotnet.InstallCommand.Execute(null);
+        await HeadlessExtensions.FlushAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(catalogModel.CapabilityCards.Select(card => card.Id), Does.Contain("dotnet"));
+        Assert.That(nullModel.CapabilityCards, Is.Empty);
+        Assert.That(nullWindow.Find<TextBlock>("PageTitle").Text, Is.EqualTo("AddModule"));
     }
 
     [AvaloniaTest]

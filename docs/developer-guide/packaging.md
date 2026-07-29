@@ -31,6 +31,7 @@ Installer and packaging behavior is product behavior and must be testable. Share
 - A dashboard refresh action that explicitly rechecks installed component and capability-module state so update buttons reflect newly available versions.
 - Installed capability-module grid with add-module and standardized version-management pages.
 - Official capability catalog loading from the bundled catalog, with `AGENTUP_CAPABILITY_CATALOG_URL` available for tests and alternate release channels.
+- CI verifies `AgentUp.InstallerApp` builds without `AgentUp.Capabilities.*` project references; the app owns installer-facing catalog contracts and can render the module section with either the Agent-Up catalog or the null catalog implementation.
 - Offline install from bundled payload by default.
 - Optional online update from release metadata when available.
 - Adapter-driven elevation only when privileged native operations are required.

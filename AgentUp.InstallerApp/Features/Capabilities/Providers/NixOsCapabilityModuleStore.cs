@@ -1,5 +1,3 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
-using AgentUp.Capabilities.Common.Features.CapabilityInventory.Providers;
 using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 
