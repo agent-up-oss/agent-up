@@ -224,6 +224,18 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public void EnqueueAsync_rejectsReviewIssueAlreadyAssignedWithDifferentWhitespace()
+    {
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
+            new CommitEntry("First", "fix: first", ["a.cs"], [], "entry-1", ReviewIssueId: " review-42 ")
+        ]));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.EnqueueAsync(new EnqueueRequest("Second", "fix: second", ["b.cs"], [], "review-42")));
+    }
+
+    [Test]
     public async Task StageNextAsync_whenEditSessionIsActive_returnsBlockedResult()
     {
         var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");

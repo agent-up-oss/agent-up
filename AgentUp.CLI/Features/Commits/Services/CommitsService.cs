@@ -293,7 +293,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         if (normalized is null)
             return;
 
-        if (current.Commits.Any(e => string.Equals(e.ReviewIssueId, normalized, StringComparison.OrdinalIgnoreCase)))
+        if (current.Commits.Any(e => string.Equals(NormalizeOptional(e.ReviewIssueId), normalized, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"Review issue '{normalized}' is already assigned to a queued commit.");
     }
 

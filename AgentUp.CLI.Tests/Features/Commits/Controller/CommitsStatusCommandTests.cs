@@ -98,22 +98,26 @@ public sealed class CommitsStatusCommandTests
     {
         using var output = new StringWriter();
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix: first", ["a.cs"], []),
+            new CommitEntry("First", "fix: first", ["a.cs"], [], "entry-1", ReviewIssueId: "review-42"),
             new CommitEntry("Second", "fix: second", ["b.cs"], [])
         ]);
-        var command = BuildCommand(output, queue: queue);
+        var command = BuildCommand(output, queue: queue, operationState: new GitOperationState("merge", true));
 
         var code = await command.RunAsync(["--format", "json"]);
 
         using var json = JsonDocument.Parse(output.ToString());
         var entries = json.RootElement.GetProperty("entries");
+        var operationState = json.RootElement.GetProperty("operationState");
         Assert.That(code, Is.EqualTo(0));
         Assert.That(json.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(2));
         Assert.That(entries.GetArrayLength(), Is.EqualTo(2));
         Assert.That(entries[0].GetProperty("slice").GetString(), Is.EqualTo("First"));
         Assert.That(entries[0].GetProperty("message").GetString(), Is.EqualTo("fix: first"));
+        Assert.That(entries[0].GetProperty("reviewIssueId").GetString(), Is.EqualTo("review-42"));
         Assert.That(entries[1].GetProperty("slice").GetString(), Is.EqualTo("Second"));
         Assert.That(entries[1].GetProperty("message").GetString(), Is.EqualTo("fix: second"));
+        Assert.That(operationState.GetProperty("kind").GetString(), Is.EqualTo("merge"));
+        Assert.That(operationState.GetProperty("blocking").GetBoolean(), Is.True);
     }
 
     [Test]
@@ -134,11 +138,12 @@ public sealed class CommitsStatusCommandTests
     private static CommitsStatusCommand BuildCommand(
         StringWriter output,
         CommitsQueue? queue = null,
-        string[]? modifiedFiles = null)
+        string[]? modifiedFiles = null,
+        GitOperationState? operationState = null)
     {
         var service = new CommitsService(
             new FakeCommitsQueueProvider(queue),
-            new FakeCommitsGitProvider(modifiedFiles ?? []));
+            new FakeCommitsGitProvider(modifiedFiles ?? [], operationState));
         return new CommitsStatusCommand(service, new CommitsOutputService(output, new CommitsJsonRenderer()), new CommitsFormatParser());
     }
 
@@ -163,7 +168,7 @@ public sealed class CommitsStatusCommandTests
             => operation(cancellationToken);
     }
 
-    private sealed class FakeCommitsGitProvider(params string[] modifiedFiles) : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(string[] modifiedFiles, GitOperationState? operationState = null) : ICommitsGitProvider
     {
         public Task<string> GetRepoRootAsync(CancellationToken cancellationToken = default)
             => Task.FromResult("/repo");
@@ -184,7 +189,7 @@ public sealed class CommitsStatusCommandTests
             => Task.FromResult(false);
 
         public Task<GitOperationState> GetOperationStateAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(GitOperationState.None);
+            => Task.FromResult(operationState ?? GitOperationState.None);
 
         public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
