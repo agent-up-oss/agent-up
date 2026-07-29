@@ -40,7 +40,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
         try
         {
-            if (context is null || assert.Findings.Any(finding => finding.Severity == FindingSeverity.Error))
+            if (context is null)
                 return new InstalledServiceSmokeResult(null, assert.Findings);
 
             await RunRequiredAsync(assert, CliCommand(context, request.Product.CliShimName, "--version"), "installed.cli.version", cancellationToken);
@@ -75,7 +75,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         finally
         {
             if (context is not null)
-                await UninstallAsync(context, cancellationToken);
+                await UninstallAsync(request, context, assert, cancellationToken);
         }
     }
 
@@ -310,10 +310,22 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             await _commands.RunAsync(command, cancellationToken);
     }
 
-    private async Task UninstallAsync(InstalledServiceContext context, CancellationToken cancellationToken)
+    protected virtual Task VerifyUninstalledAsync(
+        InstalledServiceSmokeRequest request,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+        => Task.CompletedTask;
+
+    private async Task UninstallAsync(
+        InstalledServiceSmokeRequest request,
+        InstalledServiceContext context,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
     {
         foreach (var command in context.UninstallCommands)
             await _commands.RunAsync(command, cancellationToken);
+
+        await VerifyUninstalledAsync(request, assert, cancellationToken);
     }
 
     public virtual void Dispose()
