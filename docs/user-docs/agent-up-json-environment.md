@@ -29,9 +29,11 @@ Later values override earlier values with the same key. Port variables win so ap
 For `docker[]` and `services[]`, Agent-Up passes:
 
 - each `environmentFiles` entry as a Docker `--env-file` argument.
-- each inline `environment` entry as a Docker `-e KEY=value` argument.
+- each inline `environment` entry as a Docker `-e KEY=value` argument after resolving `${VARIABLE}` references from the workspace-wide allocated port map.
 
 Docker applies its own precedence rules after Agent-Up constructs the command. Inline `environment` values are passed after `--env-file` arguments.
+
+Docker containers can reach host-run workspace applications through the `host.agent-up` hostname when the host-run application listens on an address reachable from Docker's host gateway. A process bound only to `127.0.0.1` is not reachable from containers through this alias. For example, an inline value of `BACKEND_URL=http://host.agent-up:${API_PORT}` resolves `${API_PORT}` before the container starts.
 
 ## Environment File Paths
 

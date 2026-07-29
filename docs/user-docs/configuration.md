@@ -74,6 +74,8 @@ Applications reference environment variables supplied by Agent-Up. Applications 
 
 The Server owns port allocation and injects the workspace's full allocated port map into each launched local process. Applications should read the relevant environment variables instead of assuming fixed localhost ports.
 
+Docker containers can call host-run applications in the same workspace through `host.agent-up` when the host-run application listens on an address reachable from Docker's host gateway. A process bound only to `127.0.0.1` is not reachable from containers through this alias. Inline Docker environment values may reference allocated workspace ports with `${VARIABLE}`, such as `BACKEND_URL=http://host.agent-up:${API_PORT}`.
+
 ## No Framework Knowledge
 
 Capability sections such as `dotnet` and `docker` are framework-aware at the ecosystem boundary: Agent-Up can discover installed versions, compare them with declared requirements, and report version mismatch errors before launch.
@@ -84,4 +86,4 @@ The legacy `applications` list remains available for executable-plus-arguments c
 
 Applications, capability-backed applications, Docker capabilities, and legacy Docker services can declare `environmentFiles` for `.env`-style secrets and `environment` for inline non-secret values. Environment file paths are relative to the workspace root. File values are loaded when the Server launches the process and are not copied into saved workspace state; inline `environment` values are part of the workspace definition.
 
-Agent-Up applies local process environment values in this order: environment files, inline `environment`, then Server-allocated port variables.
+Agent-Up applies local process environment values in this order: environment files, inline `environment`, then Server-allocated port variables. For Docker containers, Agent-Up passes environment files to Docker, interpolates `${VARIABLE}` references in inline `environment` values from the allocated workspace port map, and passes the resolved values as Docker `-e` arguments.

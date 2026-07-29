@@ -276,16 +276,19 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var app = new ApplicationInstance
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
             {
-                Name = "Database",
-                ServiceType = ServiceType.Docker,
-                Image = "postgres:17",
-                Environment = new Dictionary<string, string> { ["POSTGRES_USER"] = "user" },
-                EnvironmentFiles = [".env.database"]
-            };
+                Services =
+                [
+                    new DockerServiceDefinition(
+                        "Database",
+                        "postgres:17",
+                        Environment: new Dictionary<string, string> { ["POSTGRES_USER"] = "user" },
+                        EnvironmentFiles: [".env.database"])
+                ]
+            });
 
-            var args = new DockerProcessProvider().CreateRunArguments("agentup-test-db", app, worktreePath);
+            var args = new DockerProcessProvider().CreateRunArguments("agentup-test-db", workspace, workspace.Applications.Single());
 
             Assert.That(args, Does.Contain("--env-file"));
             Assert.That(args, Does.Contain(Path.Join(worktreePath, ".env.database")));
@@ -297,6 +300,48 @@ public class WorkspaceProcessManagerTests
             if (Directory.Exists(worktreePath))
                 Directory.Delete(worktreePath, recursive: true);
         }
+    }
+
+    [Test]
+    public async Task CreateDockerRunArguments_AddsHostGatewayAliasAndInterpolatesWorkspacePorts()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Roommate",
+                    "./gradlew bootRun",
+                    null,
+                    [new PortDeclaration("SERVER_PORT", 8080)])
+            ],
+            Services =
+            [
+                new DockerServiceDefinition(
+                    "Keymaster",
+                    "team-propra/keymaster:v1",
+                    [new PortDeclaration("KEYMASTER_PORT", 3000)],
+                    new Dictionary<string, string>
+                    {
+                        ["ROOMMATE_URL"] = "http://host.agent-up:${SERVER_PORT}",
+                        ["ROOMMATE_ENDPOINT"] = "/api/access",
+                        ["UNRESOLVED"] = "${MISSING_PORT}"
+                    })
+            ]
+        });
+        var keymaster = workspace.Applications.Single(app => app.Name == "Keymaster");
+        var roommatePort = workspace.Applications
+            .Single(app => app.Name == "Roommate")
+            .AllocatedPorts.Single()
+            .AllocatedPort;
+
+        var args = new DockerProcessProvider().CreateRunArguments("agentup-test-keymaster", workspace, keymaster);
+
+        Assert.That(args, Does.Contain("--add-host"));
+        Assert.That(args, Does.Contain("host.agent-up:host-gateway"));
+        Assert.That(args, Does.Contain($"ROOMMATE_URL=http://host.agent-up:{roommatePort}"));
+        Assert.That(args, Does.Contain("ROOMMATE_ENDPOINT=/api/access"));
+        Assert.That(args, Does.Contain("UNRESOLVED=${MISSING_PORT}"));
     }
 
     private async Task<ApplicationState> WaitForApplicationStateAsync(

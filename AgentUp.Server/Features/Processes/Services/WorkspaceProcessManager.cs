@@ -124,7 +124,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             // Remove any stale container with this name
             await _docker.RunAsync("rm", "-f", containerName);
 
-            var run = await _docker.RunAsync([.. _docker.CreateRunArguments(containerName, app, workspace.WorktreePath)]);
+            var run = await _docker.RunAsync([.. _docker.CreateRunArguments(containerName, workspace, app)]);
             if (run.ExitCode != 0)
             {
                 await AppendDockerErrorAsync(workspaceId, app.Name, run.Stderr);
