@@ -49,4 +49,26 @@ public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmoke
                 new CommandSpec("sudo", ["ls", "-la", $"/var/lib/{product.CliShimName}"])
             ]);
     }
+
+    protected override async Task VerifyUninstalledAsync(
+        InstalledServiceSmokeRequest request,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var product = request.Product;
+        var service = await RunAsync(
+            new CommandSpec("sudo", ["systemctl", "status", $"{product.ServiceName}.service", "--no-pager"]),
+            cancellationToken);
+        if (service.ExitCode == 0)
+            assert.Error("installed.ubuntu.uninstall.service", $"{product.ServiceName}.service still exists after uninstall.");
+
+        var cli = await RunAsync(new CommandSpec("bash", ["-lc", $"command -v {product.CliShimName}"]), cancellationToken);
+        if (cli.ExitCode == 0)
+            assert.Error("installed.ubuntu.uninstall.cli", $"{product.CliShimName} still exists on PATH after uninstall.");
+
+        assert.FileDoesNotExist(Path.Join(request.SystemRoot, "usr", "share", "applications", $"{product.CliShimName}.desktop"),
+            "installed.ubuntu.uninstall.desktop.entry");
+        assert.FileDoesNotExist(Path.Join(request.SystemRoot, "etc", "xdg", "autostart", $"{product.ArtifactBaseName}-tray.desktop"),
+            "installed.ubuntu.uninstall.tray.autostart");
+    }
 }

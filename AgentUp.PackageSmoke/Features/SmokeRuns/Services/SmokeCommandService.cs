@@ -27,6 +27,12 @@ public sealed class SmokeCommandService
         CancellationToken cancellationToken = default)
     {
         var parsed = _parser.Parse(args);
+        if (parsed.HelpRequested)
+        {
+            standardOutput.WriteLine(parsed.Usage);
+            return 0;
+        }
+
         if (!parsed.Succeeded)
         {
             standardError.WriteLine(parsed.Usage);
