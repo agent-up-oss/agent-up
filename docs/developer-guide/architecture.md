@@ -181,6 +181,8 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 `AgentUp.Installers` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 
+Generic installer code must stay product-neutral. Architecture tests scan `AgentUp.Installers` source and allow literal `agent-up`, `Agent-Up`, and `dev.agent-up` product identity strings only in explicitly `AgentUp*` configuration files. Generic component categories such as Desktop, Server, CLI, and Tray are permitted infrastructure concepts, but generic installer services/providers must derive product names, slugs, service names, package names, and module paths from the active product manifest.
+
 `AgentUp.InstallerApp` owns the shared Avalonia installer dashboard. It delegates platform-specific execution to installer adapters. On NixOS the adapter is lookup-only: Desktop, Server, CLI, and capability status can be inspected, but installs and version changes are made through NixOS or Home Manager configuration.
 
 `AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
