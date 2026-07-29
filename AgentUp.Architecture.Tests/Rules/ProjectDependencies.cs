@@ -56,24 +56,31 @@ public sealed class ProjectDependencies
     private static IEnumerable<string> InstallerAppCapabilityReferences(string root, string path)
     {
         var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
-        if (rootNode.DescendantNodes().OfType<TypeDeclarationSyntax>()
-            .Any(type => type.Identifier.Text.StartsWith("AgentUp", StringComparison.Ordinal)))
-            yield break;
+        var hasNonAgentUpType = rootNode.DescendantNodes()
+            .OfType<TypeDeclarationSyntax>()
+            .Any(IsNonAgentUpType);
 
         foreach (var usingDirective in rootNode.DescendantNodes().OfType<UsingDirectiveSyntax>())
         {
             var name = usingDirective.Name?.ToFullString().Trim() ?? "";
-            if (IsCapabilitiesNamespace(name))
+            if (hasNonAgentUpType && IsCapabilitiesNamespace(name))
                 yield return $"{ArchitectureFixture.Location(root, path, tree, usingDirective)}: using {name}";
         }
 
         foreach (var qualifiedName in rootNode.DescendantNodes().OfType<QualifiedNameSyntax>())
         {
             var name = qualifiedName.ToFullString().Trim();
-            if (IsCapabilitiesNamespace(name))
+            if (IsInsideNonAgentUpType(qualifiedName) && IsCapabilitiesNamespace(name))
                 yield return $"{ArchitectureFixture.Location(root, path, tree, qualifiedName)}: {name}";
         }
     }
+
+    private static bool IsInsideNonAgentUpType(QualifiedNameSyntax qualifiedName)
+        => qualifiedName.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault() is { } type
+           && IsNonAgentUpType(type);
+
+    private static bool IsNonAgentUpType(TypeDeclarationSyntax type)
+        => !type.Identifier.Text.StartsWith("AgentUp", StringComparison.Ordinal);
 
     private static bool IsCapabilitiesNamespace(string name) =>
         name.Equals("AgentUp.Capabilities", StringComparison.Ordinal)

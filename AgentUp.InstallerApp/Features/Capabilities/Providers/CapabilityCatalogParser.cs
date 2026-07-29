@@ -29,8 +29,14 @@ public sealed class CapabilityCatalogParser
         if (string.IsNullOrWhiteSpace(artifact.Version))
             throw new InvalidOperationException($"Capability artifact '{artifact.CapabilityId}' version is required.");
 
+        if (artifact.DownloadUrl is null)
+            throw new InvalidOperationException($"Capability artifact '{artifact.CapabilityId}' downloadUrl is required.");
+
         if (artifact.DownloadUrl.Scheme is not "https")
             throw new InvalidOperationException($"Capability artifact '{artifact.CapabilityId}' must use an HTTPS download URL.");
+
+        if (string.IsNullOrWhiteSpace(artifact.Sha256))
+            throw new InvalidOperationException($"Capability artifact '{artifact.CapabilityId}' SHA-256 value is required.");
 
         if (artifact.Sha256.Length != 64 || artifact.Sha256.Any(c => !Uri.IsHexDigit(c)))
             throw new InvalidOperationException($"Capability artifact '{artifact.CapabilityId}' has an invalid SHA-256 value.");
