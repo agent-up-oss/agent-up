@@ -55,7 +55,7 @@ public final class QueueService {
 
         try {
             var status = parser.parseStatus(result.stdout());
-            return QueueState.available(status.count(), status.messages());
+            return QueueState.available(status.count(), status.messages(), status.operationKind(), status.operationBlocking());
         } catch (CliJsonParseException ex) {
             return QueueState.failed(ex.getMessage());
         }

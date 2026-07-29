@@ -63,7 +63,7 @@ public final class QueueAction extends DumbAwareAction {
         String description = descriptionFor(state);
         event.getPresentation().setDescription(description);
         event.getPresentation().putClientProperty(ActionButton.CUSTOM_HELP_TOOLTIP, helpTooltipFor(state));
-        event.getPresentation().setEnabled(state.getKind() == QueueState.Kind.AVAILABLE && state.getCount() > 0);
+        event.getPresentation().setEnabled(state.getKind() == QueueState.Kind.AVAILABLE && state.getCount() > 0 && !state.isOperationBlocking());
     }
 
     @Override
@@ -74,7 +74,7 @@ public final class QueueAction extends DumbAwareAction {
         }
 
         QueueState state = project.getService(QueueRefreshCoordinator.class).getState();
-        if (state.getKind() != QueueState.Kind.AVAILABLE || state.getCount() == 0) {
+        if (state.getKind() != QueueState.Kind.AVAILABLE || state.getCount() == 0 || state.isOperationBlocking()) {
             return;
         }
 
@@ -107,6 +107,9 @@ public final class QueueAction extends DumbAwareAction {
 
         if (result.empty()) {
             project.getService(PluginNotificationService.class).info(project, "Agent-Up commit queue is empty.");
+        } else if (result.blocked()) {
+            project.getService(PluginNotificationService.class).warn(project, result.message());
+            VcsDirtyScopeManager.getInstance(project).markEverythingDirty();
         } else if (result.message() == null || result.message().isBlank()) {
             project.getService(PluginNotificationService.class).warn(project, "Agent-Up did not return a commit message.");
         } else {
@@ -126,8 +129,12 @@ public final class QueueAction extends DumbAwareAction {
             case LOADING -> "Agent-Up commit queue is loading";
             case OFFLINE -> executableUnavailable(state);
             case AVAILABLE -> state.getCount() > 0
-                ? queueTooltip(state.getMessages())
-                : "Agent-Up commits queue empty";
+                ? state.isOperationBlocking()
+                    ? "Agent-Up commit queue blocked by active Git " + state.getOperationKind()
+                    : queueTooltip(state.getMessages())
+                : state.isOperationBlocking()
+                    ? "Agent-Up commit queue blocked by active Git " + state.getOperationKind()
+                    : "Agent-Up commits queue empty";
             case FAILED -> "Agent-Up commit queue failed to load";
         };
     }
@@ -182,12 +189,19 @@ public final class QueueAction extends DumbAwareAction {
             case OFFLINE -> new HelpTooltip().setTitle(executableUnavailable(state));
             case FAILED -> new HelpTooltip().setTitle("Agent-Up commit queue failed to load");
             case AVAILABLE -> state.getCount() > 0
-                ? new HelpTooltip().setTitle("Agent-Up commit queue").setDescription(queueTooltipDescription(state.getMessages()))
-                : new HelpTooltip().setTitle("Agent-Up commits queue empty");
+                ? new HelpTooltip().setTitle("Agent-Up commit queue").setDescription(queueTooltipDescription(state))
+                : state.isOperationBlocking()
+                    ? new HelpTooltip().setTitle("Agent-Up commit queue blocked").setDescription("Finish or abort the active Git " + state.getOperationKind() + " first.")
+                    : new HelpTooltip().setTitle("Agent-Up commits queue empty");
         };
     }
 
-    private static String queueTooltipDescription(List<String> messages) {
+    private static String queueTooltipDescription(QueueState state) {
+        if (state.isOperationBlocking()) {
+            return "Finish or abort the active Git " + state.getOperationKind() + " first.";
+        }
+
+        List<String> messages = state.getMessages();
         if (messages.isEmpty()) {
             return "Queued entries are available.";
         }
