@@ -303,7 +303,7 @@ public class WindowsWixSourceGeneratorTests
 
     private static IEnumerable<TestCaseData> ProductIdentityCases()
     {
-        var agentUp = WindowsInstallerManifest.Create("1.2.3");
+        var agentUp = WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100");
         var orbit = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
 
         yield return new TestCaseData(
