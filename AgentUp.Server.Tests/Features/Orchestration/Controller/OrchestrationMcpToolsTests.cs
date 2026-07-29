@@ -86,6 +86,10 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("inspect, debug, or continue"));
         Assert.That(context, Does.Contain("enqueue_review_fix_commit"));
         Assert.That(context, Does.Contain("one pull request review issue violation"));
+        Assert.That(context, Does.Contain("feat means a user-facing addition"));
+        Assert.That(context, Does.Contain("fix means a user-facing fix"));
+        Assert.That(context, Does.Contain("style means CSS/HTML only"));
+        Assert.That(context, Does.Contain("docs means documentation only"));
         Assert.That(context, Does.Contain("separate guidance/docs entry"));
         Assert.That(context, Does.Contain("active merge, rebase, cherry-pick, revert, or bisect"));
         Assert.That(context, Does.Contain("enqueue_commit intentionally restores tracked files"));
