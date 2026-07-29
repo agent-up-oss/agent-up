@@ -5,7 +5,7 @@ using System.Xml.Linq;
 
 namespace AgentUp.Installers.Features.WindowsInstallation.Models;
 
-public sealed record WindowsInstallerManifest(
+public sealed partial record WindowsInstallerManifest(
     string ProductName,
     string Manufacturer,
     string Version,
@@ -15,8 +15,6 @@ public sealed record WindowsInstallerManifest(
     string BundleName,
     string ServerUrl)
 {
-    public const string DefaultCliShimName = "agent-up.cmd";
-    private const string AgentUpUpgradeCode = "5E8FB224-E5E3-4D48-8B62-2F50D521CBB0";
     private static readonly char[] WindowsInvalidFileNameChars = ['<', '>', '"', '|', '?', '*'];
     private static readonly string[] WindowsReservedDeviceNames =
     [
@@ -54,17 +52,7 @@ public sealed record WindowsInstallerManifest(
     public string ServiceDescription => $"Local {ProductName} runtime authority for workspaces, processes, ports, diagnostics, and automation.";
     public string RegistryKeyName => ProductName;
     public string CliCommandName => System.IO.Path.GetFileNameWithoutExtension(CliShimName);
-
-    public static WindowsInstallerManifest Create(string version)
-        => new(
-            ProductName: "Agent-Up",
-            Manufacturer: "Agent-Up",
-            Version: version,
-            UpgradeCode: AgentUpUpgradeCode,
-            ServiceName: "agent-up-server",
-            CliShimName: DefaultCliShimName,
-            BundleName: "Agent-Up",
-            ServerUrl: "http://127.0.0.1:5000");
+    public string GuidSeedScope { get; init; } = $"Windows Installer:{UpgradeCode}";
 
     public static WindowsInstallerManifest From(ProductManifest product, string version, string serverUrl)
         => new(
@@ -107,9 +95,7 @@ public sealed record WindowsInstallerManifest(
         return cliShimName;
     }
 
-    public bool UsesLegacyAgentUpGuidScope
-        => ProductName.Equals("Agent-Up", StringComparison.Ordinal)
-           && UpgradeCode.Equals(AgentUpUpgradeCode, StringComparison.OrdinalIgnoreCase);
+    public bool UsesLegacyGuidScope { get; init; }
 }
 
 public sealed record WindowsInstallerLayout(
@@ -241,7 +227,7 @@ public sealed class WindowsWixSourceGenerator
         return new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement(Wix + "Wix", bundle)).ToString();
     }
 
-    public static string LicenseRtf(string productName = "Agent-Up")
+    public static string LicenseRtf(string productName)
         => $@"{{\rtf1\ansi {productName} installer. See the repository LICENSE file for license terms.}}" + Environment.NewLine;
 
     public static string CliShimText()
@@ -400,9 +386,7 @@ public sealed class WindowsWixSourceGenerator
 
     private string StableGuid(string value)
     {
-        var seed = _manifest.UsesLegacyAgentUpGuidScope
-            ? $"Agent-Up Windows Installer:{value}"
-            : $"Agent-Up Windows Installer:{_manifest.UpgradeCode}:{value}";
+        var seed = $"{_manifest.GuidSeedScope}:{value}";
         var bytes = MD5.HashData(Encoding.UTF8.GetBytes(seed));
         return new Guid(bytes).ToString("D").ToUpperInvariant();
     }
