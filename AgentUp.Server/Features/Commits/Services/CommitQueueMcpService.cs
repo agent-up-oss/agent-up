@@ -41,6 +41,44 @@ public sealed class CommitQueueMcpService(CommitsController commits)
         }
     }
 
+    public async Task<McpToolResult> EnqueueReviewFixCommit(
+        string worktreePath,
+        string reviewIssueId,
+        string slice,
+        string message,
+        IReadOnlyList<string> files,
+        IReadOnlyList<string>? tests,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(worktreePath))
+            return new McpToolResult(false, "worktreePath is required.");
+        if (string.IsNullOrWhiteSpace(reviewIssueId))
+            return new McpToolResult(false, "reviewIssueId is required.");
+        if (string.IsNullOrWhiteSpace(slice))
+            return new McpToolResult(false, "slice is required.");
+        if (string.IsNullOrWhiteSpace(message))
+            return new McpToolResult(false, "message is required.");
+        if (files.Count == 0)
+            return new McpToolResult(false, "At least one file is required.");
+
+        try
+        {
+            var result = await commits.EnqueueAsync(worktreePath, new EnqueueRequest(slice, message, files, tests ?? [], reviewIssueId), cancellationToken);
+            if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
+                return new McpToolResult(false, "Commit queue operation failed.");
+
+            return new McpToolResult(result.Succeeded, result.Message);
+        }
+        catch (IOException)
+        {
+            return new McpToolResult(false, "Commit queue operation failed.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new McpToolResult(false, "Commit queue operation failed.");
+        }
+    }
+
     public async Task<McpToolResult> GetCommitsStatus(
         string worktreePath,
         CancellationToken cancellationToken)

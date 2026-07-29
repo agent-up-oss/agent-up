@@ -193,6 +193,25 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task StageNextAsync_whenGitOperationIsActive_returnsBlockedResultWithoutApplyingPatch()
+    {
+        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
+        queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
+        var git = new FakeCommitsGitProvider(operationState: new GitOperationState("merge", true));
+        var service = new CommitsService(queue, git);
+
+        var result = await service.StageNextAsync();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.IsBlocked, Is.True);
+        Assert.That(result.BlockedReason, Does.Contain("Git merge"));
+        Assert.That(git.AppliedPatches, Is.Empty);
+        Assert.That(git.StagedFiles, Is.Empty);
+        Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public void EnqueueAsync_rejectsFilesAlreadyAssignedToAnotherEntry()
     {
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
@@ -202,6 +221,18 @@ public sealed class CommitsServiceTests
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.EnqueueAsync(new EnqueueRequest("Second", "fix: second", ["a.cs"], [])));
+    }
+
+    [Test]
+    public void EnqueueAsync_rejectsReviewIssueAlreadyAssignedWithDifferentWhitespace()
+    {
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
+            new CommitEntry("First", "fix: first", ["a.cs"], [], "entry-1", ReviewIssueId: " review-42 ")
+        ]));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.EnqueueAsync(new EnqueueRequest("Second", "fix: second", ["b.cs"], [], "review-42")));
     }
 
     [Test]
@@ -353,7 +384,11 @@ public sealed class CommitsServiceTests
             => operation(cancellationToken);
     }
 
-    private sealed class FakeCommitsGitProvider(bool hasStagedChanges = false, string[]? modifiedFiles = null, bool throwOnApply = false) : ICommitsGitProvider
+    private sealed class FakeCommitsGitProvider(
+        bool hasStagedChanges = false,
+        string[]? modifiedFiles = null,
+        bool throwOnApply = false,
+        GitOperationState? operationState = null) : ICommitsGitProvider
     {
         public List<string> StagedFiles { get; } = [];
         public List<string> AppliedPatches { get; } = [];
@@ -384,6 +419,9 @@ public sealed class CommitsServiceTests
 
         public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(hasStagedChanges);
+
+        public Task<GitOperationState> GetOperationStateAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(operationState ?? GitOperationState.None);
 
         public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
         {

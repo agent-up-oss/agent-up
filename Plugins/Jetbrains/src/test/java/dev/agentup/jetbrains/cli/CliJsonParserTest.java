@@ -38,6 +38,7 @@ final class CliJsonParserTest {
 
         assertTrue(result.staged());
         assertFalse(result.empty());
+        assertFalse(result.blocked());
         assertEquals("Commits", result.slice());
         assertEquals("fix(Commits): add json", result.message());
         assertEquals(2, result.remainingCount());
@@ -51,8 +52,32 @@ final class CliJsonParserTest {
 
         assertFalse(result.staged());
         assertTrue(result.empty());
+        assertFalse(result.blocked());
         assertNull(result.message());
         assertEquals(0, result.remainingCount());
+    }
+
+    @Test
+    void parseNextReadsBlockedResponse() {
+        NextCommitResponse result = parser.parseNext(
+            "{\"staged\":false,\"blocked\":true,\"message\":\"A Git merge is in progress.\",\"remainingCount\":1}"
+        );
+
+        assertFalse(result.staged());
+        assertFalse(result.empty());
+        assertTrue(result.blocked());
+        assertEquals("A Git merge is in progress.", result.message());
+        assertEquals(1, result.remainingCount());
+    }
+
+    @Test
+    void parseStatusReadsOperationState() {
+        QueueStatusResponse result = parser.parseStatus(
+            "{\"count\":1,\"operationState\":{\"kind\":\"merge\",\"blocking\":true}}"
+        );
+
+        assertEquals("merge", result.operationKind());
+        assertTrue(result.operationBlocking());
     }
 
     @Test

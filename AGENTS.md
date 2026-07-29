@@ -669,7 +669,7 @@ Read: `docs/developer-guide/workflows.md`.
 
 ## Commit Workflow
 
-Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use the MCP `enqueue_commit` tool to declare each vertical-slice commit at the end of a task. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
+Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use the MCP `enqueue_commit` tool to declare each vertical-slice commit at the end of a task. Use `enqueue_review_fix_commit` when fixing a pull request review issue; each queued review-fix entry must represent exactly one review issue id. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
 
 Agent responsibility: manage queue entries only through structured MCP commit queue tools. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `get_commits_status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
 
@@ -707,7 +707,9 @@ dotnet run --project AgentUp.CLI -- commits enqueue \
 
 The CLI example above is developer-only. Agents use `enqueue_commit`.
 
-One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Enqueue entries in the order they should be committed.
+One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Cross-slice guidance or documentation updates must be queued in a separate guidance/docs entry instead of being bundled into an implementation slice. When feature-sliced paths under `Features/<Slice>/` are present, MCP enqueue tools reject cross-slice file groups and mismatched slice labels. Enqueue entries in the order they should be committed.
+
+Mutating commit queue operations are blocked while Git has an active merge, rebase, cherry-pick, revert, or bisect in progress. Finish or abort that Git operation before changing or advancing the queue.
 
 Use `agentup commits changes` to inspect the working tree and queue assignment instead of composing raw `git ls-files`, `find`, `grep`, `tr`, or similar shell pipelines.
 
@@ -747,14 +749,14 @@ Use the correct prefix — the choice signals intent to reviewers and changelog 
 
 | Prefix | When to use |
 |--------|-------------|
-| `feat` | A **user-facing capability** that did not exist before (new command, new flag, new output) |
-| `fix` | Corrects incorrect behaviour: crashes, wrong output, broken guards, architecture violations |
-| `test` | Test-only changes with no production code change |
-| `refactor` | Internal restructuring that changes no observable behaviour and adds no new capability |
-| `docs` | Documentation, comments, `AGENTS.md`, `cli.md` only |
-| `chore` | Build, CI, tooling, dependency bumps — nothing a user or reviewer of product code cares about |
+| `feat` | User-facing addition |
+| `fix` | User-facing fix |
+| `chore` | Internal change with no user effect, mostly non-runtime files |
+| `refactor` | Internal file change with no user effect unless it changes a public package |
+| `style` | CSS/HTML only |
+| `docs` | Documentation-only change, including README and similar docs |
 
-**Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type — if a user cannot observe the addition as new capability, it is a `fix` or `refactor`. When in doubt: would a user reading the changelog care that this was added, or only that a bug was corrected? Use that answer to pick the prefix.
+**Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type. Do not use `test` as an Agent-Up commit prefix; test-only changes are usually `chore` unless they accompany a user-facing `feat` or `fix` entry. When in doubt, choose the prefix by user-visible intent first and file type second.
 
 ## Packaging And Installers
 

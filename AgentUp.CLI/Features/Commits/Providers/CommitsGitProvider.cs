@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AgentUp.CLI.Features.Commits.Interfaces;
+using AgentUp.CLI.Features.Commits.Models;
 
 namespace AgentUp.CLI.Features.Commits.Providers;
 
@@ -74,6 +75,27 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
 
     public async Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
         => (await GetStagedFilesAsync(cancellationToken)).Count > 0;
+
+    public async Task<GitOperationState> GetOperationStateAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var gitDir = await RunGitAsync(["rev-parse", "--git-dir"], cancellationToken);
+            var root = await GetRepoRootAsync(cancellationToken);
+            var stateRoot = Path.IsPathRooted(gitDir) ? gitDir : Path.Join(root, gitDir);
+            foreach (var (kind, marker) in OperationMarkers)
+            {
+                if (File.Exists(Path.Join(stateRoot, marker)) || Directory.Exists(Path.Join(stateRoot, marker)))
+                    return new GitOperationState(kind, true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            return GitOperationState.None;
+        }
+
+        return GitOperationState.None;
+    }
 
     public async Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
     {
@@ -162,6 +184,16 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
 
         return relative.Replace('\\', '/');
     }
+
+    private static readonly (string Kind, string Marker)[] OperationMarkers =
+    [
+        ("merge", "MERGE_HEAD"),
+        ("rebase", "rebase-merge"),
+        ("rebase", "rebase-apply"),
+        ("cherry-pick", "CHERRY_PICK_HEAD"),
+        ("revert", "REVERT_HEAD"),
+        ("bisect", "BISECT_LOG")
+    ];
 
     private async Task<string> RunGitAsync(
         IReadOnlyList<string> arguments,

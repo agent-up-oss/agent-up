@@ -12,7 +12,9 @@ public final class CliJsonParser {
             throw new CliJsonParseException("Agent-Up returned status JSON without a count field.");
         }
 
-        return new QueueStatusResponse(count, stringFields(stdout, "message"));
+        String operationKind = nestedStringField(stdout, "operationState", "kind");
+        boolean operationBlocking = nestedBoolField(stdout, "operationState", "blocking", false);
+        return new QueueStatusResponse(count, stringFields(stdout, "message"), operationKind, operationBlocking);
     }
 
     public NextCommitResponse parseNext(String stdout) {
@@ -23,9 +25,10 @@ public final class CliJsonParser {
 
         int remainingCount = intField(stdout, "remainingCount", 0);
         boolean empty = boolField(stdout, "empty", false);
+        boolean blocked = boolField(stdout, "blocked", false);
         String slice = stringField(stdout, "slice");
         String message = stringField(stdout, "message");
-        return new NextCommitResponse(staged, empty, slice, message, remainingCount);
+        return new NextCommitResponse(staged, empty, blocked, slice, message, remainingCount);
     }
 
     public String parseError(String stdout, String stderr) {
@@ -65,6 +68,21 @@ public final class CliJsonParser {
 
         Matcher matcher = Pattern.compile("\"" + Pattern.quote(name) + "\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"").matcher(json);
         return matcher.find() ? unescape(matcher.group(1)) : null;
+    }
+
+    private static String nestedStringField(String json, String objectName, String name) {
+        String object = objectField(json, objectName);
+        return object == null ? null : stringField(object, name);
+    }
+
+    private static boolean nestedBoolField(String json, String objectName, String name, boolean defaultValue) {
+        String object = objectField(json, objectName);
+        return object == null ? defaultValue : boolField(object, name, defaultValue);
+    }
+
+    private static String objectField(String json, String name) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(name) + "\"\\s*:\\s*\\{([^}]*)}").matcher(json);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private static List<String> stringFields(String json, String name) {

@@ -156,7 +156,7 @@ public sealed class CommitsNextCommandTests
     }
 
     [Test]
-    public async Task RunAsync_jsonFormat_whenStagedChangesExist_returnsStructuredError()
+    public async Task RunAsync_jsonFormat_whenStagedChangesExist_returnsBlockedResult()
     {
         using var output = new StringWriter();
         var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
@@ -167,7 +167,9 @@ public sealed class CommitsNextCommandTests
 
         using var json = JsonDocument.Parse(output.ToString());
         Assert.That(code, Is.EqualTo(1));
-        Assert.That(json.RootElement.GetProperty("error").GetString(), Does.Contain("not yet committed"));
+        Assert.That(json.RootElement.GetProperty("staged").GetBoolean(), Is.False);
+        Assert.That(json.RootElement.GetProperty("blocked").GetBoolean(), Is.True);
+        Assert.That(json.RootElement.GetProperty("message").GetString(), Does.Contain("not yet committed"));
     }
 
     [Test]
@@ -245,6 +247,9 @@ public sealed class CommitsNextCommandTests
 
         public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(hasStagedChanges);
+
+        public Task<GitOperationState> GetOperationStateAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(GitOperationState.None);
 
         public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;

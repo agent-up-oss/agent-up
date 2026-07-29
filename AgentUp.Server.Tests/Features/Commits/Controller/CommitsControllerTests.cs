@@ -16,7 +16,7 @@ public sealed class CommitsControllerTests
     {
         var queue = new FakeCommitsQueueProvider();
         var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider()));
-        var request = new EnqueueRequest("S", "msg", ["a.cs"], []);
+        var request = new EnqueueRequest("S", "chore: update queue", ["a.cs"], []);
 
         var result = await controller.EnqueueAsync(WorktreePath, request);
 
@@ -84,6 +84,9 @@ public sealed class CommitsControllerTests
 
         public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
+
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(GitOperationState.None);
 
         public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;

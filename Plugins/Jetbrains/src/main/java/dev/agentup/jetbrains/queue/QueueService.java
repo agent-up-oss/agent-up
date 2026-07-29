@@ -55,7 +55,7 @@ public final class QueueService {
 
         try {
             var status = parser.parseStatus(result.stdout());
-            return QueueState.available(status.count(), status.messages());
+            return QueueState.available(status.count(), status.messages(), status.operationKind(), status.operationBlocking());
         } catch (CliJsonParseException ex) {
             return QueueState.failed(ex.getMessage());
         }
@@ -78,13 +78,18 @@ public final class QueueService {
             )
         );
 
-        if (!result.succeeded()) {
-            throw new CliExecutionException(parser.parseError(result.stdout(), result.stderr()));
-        }
-
         try {
-            return parser.parseNext(result.stdout());
+            NextCommitResponse response = parser.parseNext(result.stdout());
+            if (!result.succeeded() && !response.blocked()) {
+                throw new CliExecutionException(parser.parseError(result.stdout(), result.stderr()));
+            }
+
+            return response;
         } catch (CliJsonParseException ex) {
+            if (!result.succeeded()) {
+                throw new CliExecutionException(parser.parseError(result.stdout(), result.stderr()), ex);
+            }
+
             throw new CliExecutionException(ex.getMessage(), ex);
         }
     }
