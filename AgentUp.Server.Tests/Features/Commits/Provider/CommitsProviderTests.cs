@@ -205,6 +205,8 @@ public sealed class CommitsProviderTests
         Directory.CreateDirectory(_tempRoot);
 
         await RunGitAsync(_tempRoot, "init");
+        await RunGitAsync(_tempRoot, "config", "user.name", "Agent Up");
+        await RunGitAsync(_tempRoot, "config", "user.email", "agent-up@example.invalid");
         return _tempRoot;
     }
 
