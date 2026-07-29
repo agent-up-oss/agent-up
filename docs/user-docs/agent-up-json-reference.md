@@ -143,7 +143,7 @@ Used in `applications[].ports`, `dotnet[].ports`, `docker[].ports`, and `service
 | `defaultPort` | integer | Yes | none | Preferred or conventional port for the application/container. Agent-Up uses this as allocation intent and container target port for Docker mappings. |
 | `protocol` | string | No | `http` | Protocol label for the port, usually `http` or `tcp`. |
 
-For local processes, every application receives the full workspace port map. For Docker containers, Agent-Up publishes each declared port as `allocatedHostPort:defaultPort`.
+For local processes, every application receives the full workspace port map. For Docker containers, Agent-Up publishes each declared port as `allocatedHostPort:defaultPort` and adds the `host.agent-up` hostname for reaching host-run workspace applications from inside the container.
 
 ## Environment Object
 
@@ -156,6 +156,8 @@ Used as `environment` on all launchable entries.
 | Values | Strings. |
 | Storage | Stored in `agent-up.json` and Server workspace state. |
 | Intended use | Non-secret values, feature flags, and development mode switches. |
+
+Docker container environment values can reference workspace port variables with `${VARIABLE}`. Agent-Up resolves those references from the workspace-wide allocated port map before starting the container.
 
 Example:
 

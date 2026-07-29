@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
+using AgentUp.Server.Features.Workspaces.DTOs;
 
 namespace AgentUp.Server.Features.Processes.Providers;
 
@@ -14,12 +15,13 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         return $"agentup-{safeId}-{safeName}";
     }
 
-    public IReadOnlyList<string> CreateRunArguments(string containerName, ApplicationInstance app, string worktreePath)
+    public IReadOnlyList<string> CreateRunArguments(string containerName, Workspace workspace, ApplicationInstance app)
     {
         var runArgs = new List<string> { "run", "-d", "--name", containerName };
+        AddHostGatewayAlias(runArgs);
         AddDockerPortArgs(runArgs, app);
-        AddDockerEnvironmentFileArgs(runArgs, app, worktreePath);
-        AddDockerEnvironmentArgs(runArgs, app);
+        AddDockerEnvironmentFileArgs(runArgs, app, workspace.WorktreePath);
+        AddDockerEnvironmentArgs(runArgs, workspace, app);
         AddDockerVolumeArgs(runArgs, app);
         runArgs.Add(app.Image!);
         return runArgs;
@@ -87,14 +89,36 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         }
     }
 
-    private static void AddDockerEnvironmentArgs(List<string> runArgs, ApplicationInstance app)
+    private static void AddHostGatewayAlias(List<string> runArgs)
     {
+        runArgs.Add("--add-host");
+        runArgs.Add("host.agent-up:host-gateway");
+    }
+
+    private static void AddDockerEnvironmentArgs(List<string> runArgs, Workspace workspace, ApplicationInstance app)
+    {
+        var portVariables = CreateWorkspacePortVariableMap(workspace);
         foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
         {
             runArgs.Add("-e");
-            runArgs.Add($"{key}={value}");
+            runArgs.Add($"{key}={InterpolateWorkspacePorts(value, portVariables)}");
         }
     }
+
+    private static Dictionary<string, string> CreateWorkspacePortVariableMap(Workspace workspace)
+    {
+        var variables = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts).Where(mapping => mapping.Variable is not null))
+            variables[mapping.Variable!] = mapping.AllocatedPort.ToString();
+
+        return variables;
+    }
+
+    private static string InterpolateWorkspacePorts(string value, IReadOnlyDictionary<string, string> portVariables)
+        => PortVariableReference().Replace(value, match =>
+            portVariables.TryGetValue(match.Groups["name"].Value, out var port)
+                ? port
+                : match.Value);
 
     private static void AddDockerEnvironmentFileArgs(List<string> runArgs, ApplicationInstance app, string worktreePath)
     {
@@ -116,4 +140,7 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
 
     [GeneratedRegex(@"[^a-z0-9]+")]
     private static partial Regex ContainerNameSanitizer();
+
+    [GeneratedRegex(@"\$\{(?<name>[A-Za-z_][A-Za-z0-9_]*)\}")]
+    private static partial Regex PortVariableReference();
 }
