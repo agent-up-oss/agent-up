@@ -2,15 +2,12 @@ using AgentUp.Installers.Features.Installation.Models;
 
 namespace AgentUp.Installers.Features.UbuntuInstallation.Models;
 
-public sealed record UbuntuInstallerManifest(
+public sealed partial record UbuntuInstallerManifest(
     string PackageName,
     string ServiceUnitName,
     string CliCommandName,
     string DesktopApplicationName)
 {
-    public static UbuntuInstallerManifest AgentUp()
-        => new("agent-up", "agent-up-server.service", "agent-up", "Agent-Up");
-
     public static UbuntuInstallerManifest ForProduct(ProductManifest manifest)
         => new(
             PackageName: manifest.Slug,
@@ -36,25 +33,25 @@ public sealed record UbuntuInstallerManifest(
                """ + Environment.NewLine;
     }
 
-    public static string PostInstallScript()
-        => """
+    public string PostInstallScript()
+        => $"""
            #!/usr/bin/env bash
            set -e
-           mkdir -p /var/lib/agent-up
-           touch /var/log/agent-up-server.log /var/log/agent-up-server.err.log
-           chmod +x /opt/agent-up/desktop/AgentUp.Desktop /opt/agent-up/server/AgentUp.Server /opt/agent-up/cli/AgentUp.CLI
+           mkdir -p /var/lib/{PackageName}
+           touch /var/log/{PackageName}-server.log /var/log/{PackageName}-server.err.log
+           chmod +x /opt/{PackageName}/desktop/AgentUp.Desktop /opt/{PackageName}/server/AgentUp.Server /opt/{PackageName}/cli/AgentUp.CLI
            systemctl daemon-reload
-           systemctl enable --now agent-up-server.service
+           systemctl enable --now {ServiceUnitName}
            if command -v update-desktop-database >/dev/null 2>&1; then
              update-desktop-database /usr/share/applications || true
            fi
            """ + Environment.NewLine;
 
-    public static string PreRemoveScript()
-        => """
+    public string PreRemoveScript()
+        => $"""
            #!/usr/bin/env bash
            set -e
-           systemctl disable --now agent-up-server.service 2>/dev/null || true
+           systemctl disable --now {ServiceUnitName} 2>/dev/null || true
            """ + Environment.NewLine;
 
     public static string PostRemoveScript()
