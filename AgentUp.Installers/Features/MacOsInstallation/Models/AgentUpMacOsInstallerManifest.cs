@@ -2,7 +2,7 @@ namespace AgentUp.Installers.Features.MacOsInstallation.Models;
 
 public sealed partial record MacOsInstallerManifest
 {
-    public static MacOsInstallerManifest Create(string version)
+    public static MacOsInstallerManifest Create(string version, string serverUrl)
         => new(
             ProductName: "Agent-Up",
             DesktopBundleIdentifier: "dev.agent-up.desktop",
@@ -11,5 +11,5 @@ public sealed partial record MacOsInstallerManifest
             TrayLaunchAgentLabel: "dev.agent-up.tray",
             BundleIconFile: "Agent-Up.png",
             Version: version,
-            ServerUrl: "http://127.0.0.1:5000");
+            ServerUrl: serverUrl);
 }
