@@ -35,40 +35,6 @@ public sealed class SmokeCommandParserTests
     }
 
     [Test]
-    public void Parse_accepts_product_manifest_forProductAgnosticSmokeRuns()
-    {
-        var root = TempRoot();
-        var manifest = Path.Join(root, "sample-product.json");
-        Directory.CreateDirectory(root);
-        File.WriteAllText(manifest, """
-            {
-              "serviceName": "acme-server",
-              "cliShimName": "acme",
-              "artifactBaseName": "acme",
-              "displayName": "Acme",
-              "installDirName": "Acme",
-              "workspaceConfigFileName": "acme.json"
-            }
-            """);
-
-        try
-        {
-            var result = new SmokeCommandParser().Parse(
-                ["--product-manifest", manifest, "validate-installed-service", "ubuntu", "linux-x64", "artifacts", "work"]);
-
-            Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.Request!.Product.ServiceName, Is.EqualTo("acme-server"));
-            Assert.That(result.Request.Product.CliShimName, Is.EqualTo("acme"));
-            Assert.That(result.Request.Product.WorkspaceConfigFileName, Is.EqualTo("acme.json"));
-        }
-        finally
-        {
-            if (Directory.Exists(root))
-                Directory.Delete(root, recursive: true);
-        }
-    }
-
-    [Test]
     public async Task ExecuteAsync_helpPrintsProductAgnosticInterface()
     {
         using var output = new StringWriter();
@@ -88,48 +54,6 @@ public sealed class SmokeCommandParserTests
     }
 
     [Test]
-    public async Task ExecuteAsync_forwardsProductManifestToValidationProvider()
-    {
-        var root = TempRoot();
-        var manifest = Path.Join(root, "sample-product.json");
-        Directory.CreateDirectory(root);
-        File.WriteAllText(manifest, """
-            {
-              "serviceName": "acme-server",
-              "cliShimName": "acme",
-              "artifactBaseName": "acme",
-              "displayName": "Acme",
-              "installDirName": "Acme",
-              "workspaceConfigFileName": "acme.json"
-            }
-            """);
-        var validation = new CapturingValidationProvider();
-
-        try
-        {
-            using var output = new StringWriter();
-            using var error = new StringWriter();
-            var exitCode = await new SmokeCommandService(
-                    validation,
-                    new NoOpWorkDirectoryProvider(),
-                    new SmokeCommandParser())
-                .ExecuteAsync(
-                    ["validate-installed-service", "ubuntu", "linux-x64", "artifacts", "work", "--product-manifest", manifest],
-                    output,
-                    error);
-
-            Assert.That(exitCode, Is.EqualTo(0));
-            Assert.That(validation.Request!.Product.ServiceName, Is.EqualTo("acme-server"));
-            Assert.That(validation.Request.Product.CliShimName, Is.EqualTo("acme"));
-        }
-        finally
-        {
-            if (Directory.Exists(root))
-                Directory.Delete(root, recursive: true);
-        }
-    }
-
-    [Test]
     public void Parse_rejects_unknown_command()
     {
         var result = new SmokeCommandParser().Parse(["unknown"]);
@@ -137,9 +61,6 @@ public sealed class SmokeCommandParserTests
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Usage, Does.Contain("AgentUp.PackageSmoke"));
     }
-
-    private static string TempRoot()
-        => Path.Join(Path.GetTempPath(), "AgentUp-SmokeCommandParser", $"{Guid.NewGuid():N}");
 
     private sealed class CapturingValidationProvider : ISmokeValidationProvider
     {

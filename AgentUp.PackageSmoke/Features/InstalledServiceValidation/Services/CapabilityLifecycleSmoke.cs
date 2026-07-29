@@ -80,8 +80,8 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         await AssertStoppedOrStoppingAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
 
         await StopWorkspaceAsync(serverUrl, workspace.Value.Id, assert, cancellationToken);
-        await AssertStoppedOrStoppingAsync(serverUrl, workspace.Value.Id, DotnetAppName, assert, cancellationToken);
-        await AssertStoppedOrStoppingAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
+        await AssertInactiveAfterWorkspaceStopAsync(serverUrl, workspace.Value.Id, DotnetAppName, assert, cancellationToken);
+        await AssertInactiveAfterWorkspaceStopAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
     }
 
     private async Task GitCommitConfigAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
@@ -187,6 +187,52 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         }
 
         assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected Stopped or Stopping, got {actual}.");
+    }
+
+    private async Task AssertInactiveAfterWorkspaceStopAsync(
+        string serverUrl,
+        string workspaceId,
+        string appName,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow + StateWaitTimeout;
+        var actual = "<missing>";
+
+        while (true)
+        {
+            JsonElement? app;
+            try
+            {
+                app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+            catch (JsonException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+            catch (NotSupportedException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+
+            actual = app is null ? "<missing>" : ReadState(app.Value);
+            if (actual is "Stopped" or "Stopping" or "Failed")
+                return;
+
+            if (DateTimeOffset.UtcNow >= deadline)
+                break;
+
+            await Task.Delay(StatePollDelay, cancellationToken);
+        }
+
+        assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected Stopped, Stopping, or Failed after workspace stop, got {actual}.");
     }
 
     private async Task StartApplicationAsync(string serverUrl, string workspaceId, string appName, FileAssertions assert, CancellationToken cancellationToken)

@@ -12,7 +12,7 @@ public sealed record InstalledServiceSmokeRequest
         string WorkDirectory,
         string PrimaryServerUrl = "http://127.0.0.1:5000",
         string FallbackServerUrl = "http://localhost:5000",
-        SmokeProductConfig? ProductConfig = null,
+        InstalledServiceProductManifest? ProductConfig = null,
         string SystemRoot = "/")
     {
         this.Platform = SafeSmokePaths.Identifier(Platform, nameof(Platform));
@@ -37,9 +37,9 @@ public sealed record InstalledServiceSmokeRequest
 
     public string FallbackServerUrl { get; }
 
-    public SmokeProductConfig? ProductConfig { get; }
+    public InstalledServiceProductManifest? ProductConfig { get; }
 
     public string SystemRoot { get; }
 
-    public SmokeProductConfig Product => ProductConfig ?? SmokeProductConfig.AgentUp;
+    public SmokeProductConfig Product => ProductConfig?.ToConfig() ?? SmokeProductConfig.AgentUp;
 }

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
 using AgentUp.PackageSmoke.Features.SmokeRuns.Interfaces;
 
@@ -12,8 +11,6 @@ public sealed class SmokeCommandParser : ISmokeCommandParser
         + "   or: AgentUp.PackageSmoke [--product-manifest <path>] validate-installer-flow <platform> <work-dir> [payload-root]"
         + Environment.NewLine
         + "Product manifests use serviceName, cliShimName, artifactBaseName, displayName, installDirName, and optional workspaceConfigFileName.";
-
-    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
     public SmokeCommandParseResult Parse(string[] args)
     {
@@ -55,7 +52,7 @@ public sealed class SmokeCommandParser : ISmokeCommandParser
         string platform,
         string workDirectory,
         string? payloadRoot,
-        SmokeProductConfig? product)
+        SmokeProductManifest? product)
         => new(
             "validate-installer-flow",
             platform,
@@ -65,10 +62,10 @@ public sealed class SmokeCommandParser : ISmokeCommandParser
             payloadRoot,
             product);
 
-    private static (string[]? Args, SmokeProductConfig? ProductConfig) ParseOptions(string[] args)
+    private static (string[]? Args, SmokeProductManifest? ProductConfig) ParseOptions(string[] args)
     {
         var remaining = new List<string>();
-        SmokeProductConfig? product = null;
+        SmokeProductManifest? product = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -77,7 +74,8 @@ public sealed class SmokeCommandParser : ISmokeCommandParser
                 if (i + 1 >= args.Length || product is not null)
                     return (null, null);
 
-                product = LoadProductManifest(Path.GetFullPath(args[++i]));
+                if (!TryLoadProductManifest(Path.GetFullPath(args[++i]), out product))
+                    return (null, null);
             }
             else
             {
@@ -88,12 +86,21 @@ public sealed class SmokeCommandParser : ISmokeCommandParser
         return (remaining.ToArray(), product);
     }
 
-    private static SmokeProductConfig LoadProductManifest(string path)
+    private static bool TryLoadProductManifest(string path, out SmokeProductManifest? product)
     {
-        var manifest = JsonSerializer.Deserialize<SmokeProductConfig>(
-            File.ReadAllText(path),
-            Options);
-
-        return manifest ?? throw new InvalidOperationException("Smoke product manifest is empty.");
+        product = null;
+        try
+        {
+            product = JsonSerializer.Deserialize<SmokeProductManifest>(
+                File.ReadAllText(path),
+                JsonOptions);
+            return product is not null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
+        {
+            return false;
+        }
     }
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 }
