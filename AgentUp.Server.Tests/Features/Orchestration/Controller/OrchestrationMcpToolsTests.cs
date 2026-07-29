@@ -84,6 +84,10 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("Before starting a new coding task"));
         Assert.That(context, Does.Contain("guard_commits"));
         Assert.That(context, Does.Contain("inspect, debug, or continue"));
+        Assert.That(context, Does.Contain("enqueue_review_fix_commit"));
+        Assert.That(context, Does.Contain("one pull request review issue violation"));
+        Assert.That(context, Does.Contain("separate guidance/docs entry"));
+        Assert.That(context, Does.Contain("active merge, rebase, cherry-pick, revert, or bisect"));
         Assert.That(context, Does.Contain("enqueue_commit intentionally restores tracked files"));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"services\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"ports\""));

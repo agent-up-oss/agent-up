@@ -36,8 +36,9 @@ Initial tools:
 - `get_agent_up_json_format`: returns the current declarative configuration format.
 - `get_agent_up_context`: returns concise Agent-Up operating rules for AI agents.
 - `enqueue_commit`: saves a vertical-slice patch in the commit queue and restores the tracked files to their pre-change state for `agentup commits next`.
-- `get_commits_status`: returns queued entries, unassigned modified files, and any active commit edit session.
-- `guard_commits`: blocks new work while queued entries, active edit sessions, staged changes, or unassigned modified files exist.
+- `enqueue_review_fix_commit`: saves one review issue violation fix with a required `reviewIssueId`; do not combine multiple review issues in one entry.
+- `get_commits_status`: returns queued entries, unassigned modified files, any active commit edit session, and active Git operation state.
+- `guard_commits`: blocks new work while queued entries, active edit sessions, staged changes, unassigned modified files, or active Git merge/rebase/cherry-pick/revert/bisect operations exist.
 - `get_commit_changes`: returns working-tree files with queue assignment information.
 - `inspect_commit`: returns one queued entry, optionally including the saved patch.
 - `update_commit_message`, `update_commit_tests`, `add_commit_files`, `remove_commit_files`: update queued entry metadata and file assignment.
@@ -47,6 +48,10 @@ Initial tools:
 If `start_workspace` cannot find `agent-up.json`, it instructs the agent to read `docs/user-docs/agent-up-json.md`, search for an existing `agent-up.json`, or ask the user before creating one.
 
 `commits next` remains CLI-only because staging and popping a queued entry is developer-owned review work. Agents stop after `get_commits_status`.
+
+When the Server recognizes feature-sliced paths under `Features/<Slice>/`, MCP enqueue operations reject entries that span multiple slices or whose slice label does not match the recognized slice. Repositories without recognized vertical-slice paths fall back to unscoped queue entries.
+
+Cross-slice guidance or documentation updates should be queued in a separate guidance/docs entry instead of being bundled into an implementation slice.
 
 Future tools will add browser inspection, interaction, diagnostics, screenshots, and Playwright export without moving orchestration out of the Server.
 
@@ -75,6 +80,8 @@ Claude Code installations can surface commit queue reminders with a client-side 
 ```
 
 `enqueue_commit` intentionally restores tracked files after saving the patch. Its success message must tell agents not to re-apply or modify those files because the queue owns them until the developer runs `agentup commits next`.
+
+Mutating commit queue operations are blocked while Git reports an active merge, rebase, cherry-pick, revert, or bisect. Integrations should surface the returned operation state and ask the developer to finish or abort the Git operation first.
 
 ## Automation Flow
 
