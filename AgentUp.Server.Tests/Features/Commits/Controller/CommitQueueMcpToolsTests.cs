@@ -169,6 +169,9 @@ public sealed class CommitQueueMcpToolsTests
         Assert.That(description, Does.Contain("Do NOT call git add"));
         Assert.That(description, Does.Contain("git commit"));
         Assert.That(description, Does.Contain("git stash"));
+        Assert.That(description, Does.Contain("feat is a user-facing addition"));
+        Assert.That(description, Does.Contain("style is CSS/HTML only"));
+        Assert.That(description, Does.Contain("docs is documentation only"));
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

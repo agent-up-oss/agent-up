@@ -16,7 +16,7 @@ public sealed class CommitsControllerTests
     {
         var queue = new FakeCommitsQueueProvider();
         var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider()));
-        var request = new EnqueueRequest("S", "msg", ["a.cs"], []);
+        var request = new EnqueueRequest("S", "chore: update queue", ["a.cs"], []);
 
         var result = await controller.EnqueueAsync(WorktreePath, request);
 

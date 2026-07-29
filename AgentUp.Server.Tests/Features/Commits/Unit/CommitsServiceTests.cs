@@ -45,7 +45,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "chore: update queue", ["a.cs"], []));
 
         Assert.That(result.QueueSize, Is.EqualTo(1));
     }
@@ -56,7 +56,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "chore: update queue", ["a.cs"], []));
 
         Assert.That(result.Message, Does.Contain("Enqueued 'S'. Queue size: 1."));
         Assert.That(result.Message, Does.Contain("The tracked files have been restored to their pre-change state"));
@@ -71,7 +71,7 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git);
 
-        await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+        await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "chore: update queue", ["a.cs"], []));
 
         Assert.That(git.DiffRequested, Is.True);
         Assert.That(git.FilesRestored, Is.True);
@@ -84,7 +84,7 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider(restoreException: new IOException("restore failed"));
         var service = new CommitsService(queue, git);
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "chore: update queue", ["a.cs"], []));
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(queue.Stored!.Commits, Is.Empty);
@@ -98,7 +98,7 @@ public sealed class CommitsServiceTests
             new CommitsQueue(2, [], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["b.cs"], []));
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "chore: update queue", ["b.cs"], []));
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("edit session"));
@@ -125,11 +125,68 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider(operationState: new GitOperationState("merge", true));
         var service = new CommitsService(queue, git);
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "m", ["a.cs"], []));
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "chore: update queue", ["a.cs"], []));
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("Git merge"));
         Assert.That(queue.Stored, Is.Null);
+    }
+
+    [Test]
+    public async Task EnqueueAsync_rejectsUnsupportedConventionalCommitPrefix()
+    {
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "test(commits): cover queue", ["a.cs"], []));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("feat, fix, chore, refactor, style, docs"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_rejectsDocsCommitWithRuntimeFile()
+    {
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "docs(commits): explain queue", ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"], []));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("docs commits may only include documentation files"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_allowsDocsCommitWithDocumentationFiles()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("guidance", "docs(commits): explain queue", ["docs/developer-guide/mcp.md", "AGENTS.md"], []));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(queue.Stored!.Commits.Single().Message, Is.EqualTo("docs(commits): explain queue"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_rejectsStyleCommitWithNonStyleFile()
+    {
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "style(ui): tune layout", ["AgentUp.Desktop/Features/Workspaces/ViewModels/MainViewModel.cs"], []));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("style commits may only include CSS or HTML files"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_allowsStyleCommitWithCssAndHtmlFiles()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("docs-style", "style(docs): tune layout", ["docs/src/css/custom.css", "docs/static/index.html"], []));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(queue.Stored!.Commits.Single().Files, Is.EqualTo(new[] { "docs/src/css/custom.css", "docs/static/index.html" }));
     }
 
     [Test]
@@ -181,6 +238,35 @@ public sealed class CommitsServiceTests
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("review-1"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_rejectsDuplicateReviewIssueIdWithDifferentWhitespace()
+    {
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
+            new CommitEntry("Commits", "fix: first", ["a.cs"], [], "entry-1", "patch-1", " review-1 ")
+        ]));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix: second", ["b.cs"], [], "review-1"));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("review-1"));
+    }
+
+    [Test]
+    public async Task UpdateMessageAsync_rejectsDocsPrefixForRuntimeEntry()
+    {
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
+            new CommitEntry("Commits", "fix(commits): validate prefix", ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"], [], "entry-1")
+        ]));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        var result = await service.UpdateMessageAsync(WorktreePath, "1", "docs(commits): explain prefix");
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.Message, Does.Contain("docs commits may only include documentation files"));
+        Assert.That(queue.Stored!.Commits.Single().Message, Is.EqualTo("fix(commits): validate prefix"));
     }
 
     [Test]

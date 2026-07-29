@@ -18,6 +18,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 if (current.ActiveSession is not null)
                     throw new InvalidOperationException("A commit queue edit session is active. Save or abort it first.");
 
+                ValidateConventionalCommit(request.Message, request.Files);
                 ValidateSliceBoundary(request);
                 EnsureReviewIssueIsUnassigned(current, request.ReviewIssueId);
                 var owners = current.Commits
@@ -246,16 +247,30 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
     }
 
     private async Task<CommitEditResult> UpdateEntryAsync(string worktreePath, string entryRef, Func<CommitEntry, CommitEntry> update, CancellationToken cancellationToken)
-        => await queue.WithLockAsync(worktreePath, async ct =>
+    {
+        try
         {
-            var current = await queue.ReadAsync(worktreePath, ct);
-            await EnsureNoBlockingGitOperationAsync(worktreePath, ct);
-            var entry = ResolveEntry(current, entryRef);
-            EnsureNotEditingEntry(current, entry);
-            var updatedEntry = update(entry);
-            await queue.WriteAsync(worktreePath, ReplaceEntry(current, updatedEntry), ct);
-            return CommitEditResult.Completed("Entry updated.", updatedEntry, current.ActiveSession);
-        }, cancellationToken);
+            return await queue.WithLockAsync(worktreePath, async ct =>
+            {
+                var current = await queue.ReadAsync(worktreePath, ct);
+                await EnsureNoBlockingGitOperationAsync(worktreePath, ct);
+                var entry = ResolveEntry(current, entryRef);
+                EnsureNotEditingEntry(current, entry);
+                var updatedEntry = update(entry);
+                ValidateConventionalCommit(updatedEntry.Message, updatedEntry.Files);
+                await queue.WriteAsync(worktreePath, ReplaceEntry(current, updatedEntry), ct);
+                return CommitEditResult.Completed("Entry updated.", updatedEntry, current.ActiveSession);
+            }, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CommitEditResult.Blocked(ex.Message);
+        }
+        catch (IOException ex)
+        {
+            return CommitEditResult.Blocked($"Queue operation failed: {ex.Message}");
+        }
+    }
 
     private static CommitsQueue ReplaceEntry(CommitsQueue queueState, CommitEntry updatedEntry)
         => queueState with
@@ -308,8 +323,58 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         if (normalized is null)
             return;
 
-        if (current.Commits.Any(e => string.Equals(e.ReviewIssueId, normalized, StringComparison.OrdinalIgnoreCase)))
+        if (current.Commits.Any(e => string.Equals(NormalizeOptional(e.ReviewIssueId), normalized, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"Review issue '{normalized}' is already assigned to a queued commit.");
+    }
+
+    private static void ValidateConventionalCommit(string message, IReadOnlyList<string> files)
+    {
+        var prefix = ConventionalCommitPrefix(message);
+        if (prefix is null)
+            throw new InvalidOperationException("Commit message must start with one of: feat, fix, chore, refactor, style, docs.");
+
+        if (prefix == "docs" && files.Any(file => !IsDocumentationFile(file)))
+            throw new InvalidOperationException("docs commits may only include documentation files such as docs/*, README*, AGENTS.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, or CHANGELOG.md.");
+
+        if (prefix == "style" && files.Any(file => !IsStyleFile(file)))
+            throw new InvalidOperationException("style commits may only include CSS or HTML files.");
+    }
+
+    private static string? ConventionalCommitPrefix(string message)
+    {
+        var separator = message.IndexOf(':', StringComparison.Ordinal);
+        if (separator <= 0)
+            return null;
+
+        var type = message[..separator];
+        var scopeStart = type.IndexOf('(', StringComparison.Ordinal);
+        if (scopeStart >= 0)
+            type = type[..scopeStart];
+
+        return type is "feat" or "fix" or "chore" or "refactor" or "style" or "docs"
+            ? type
+            : null;
+    }
+
+    private static bool IsDocumentationFile(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        var fileName = Path.GetFileName(normalized);
+        return normalized.StartsWith("docs/", StringComparison.OrdinalIgnoreCase)
+            || fileName.StartsWith("README", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fileName, "AGENTS.md", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fileName, "CONTRIBUTING.md", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fileName, "SECURITY.md", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fileName, "CODE_OF_CONDUCT.md", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fileName, "CHANGELOG.md", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsStyleFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return string.Equals(extension, ".css", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ValidateSliceBoundary(EnqueueRequest request)
