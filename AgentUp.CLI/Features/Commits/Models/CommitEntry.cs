@@ -6,7 +6,8 @@ public sealed record CommitEntry(
     IReadOnlyList<string> Files,
     IReadOnlyList<string> Tests,
     string Id = "",
-    string PatchId = "")
+    string PatchId = "",
+    string? ReviewIssueId = null)
 {
     public string PatchKey => !string.IsNullOrWhiteSpace(PatchId)
         ? PatchId

@@ -229,6 +229,9 @@ public sealed class CommitsUtilityCommandTests
         public Task<bool> HasStagedChangesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(false);
 
+        public Task<GitOperationState> GetOperationStateAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(GitOperationState.None);
+
         public Task ApplyPatchAsync(string patch, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 

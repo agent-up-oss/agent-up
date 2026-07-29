@@ -56,6 +56,8 @@ dotnet run --project AgentUp.CLI -- status --server http://localhost:5000
 
 Manages a local vertical-slice commit staging queue. The `commits` subcommand has no Server dependency — it operates entirely on the local working tree and a queue file stored in the platform config directory, scoped to the current Git repository.
 
+Mutating queue commands are blocked while Git has an active merge, rebase, cherry-pick, revert, or bisect in progress. Finish or abort that Git operation before enqueueing, editing, clearing, or staging queued entries.
+
 The queue file is never edited directly. Agents and developers interact with it exclusively through the CLI.
 
 #### commits enqueue
@@ -85,7 +87,7 @@ Shows the current queue. Warns about modified files in the working tree that are
 agentup commits status
 ```
 
-Use `agentup commits status --format json` for integrations that only need the queued entry count.
+Use `agentup commits status --format json` for integrations that need the queued entry count or active Git operation state.
 
 #### commits changes
 
@@ -164,7 +166,7 @@ agentup commits next
 # then: git commit -m "<message from output>"
 ```
 
-Use `agentup commits next --format json` for integrations that need the staged entry's commit message.
+Use `agentup commits next --format json` for integrations that need the staged entry's commit message. Blocked results use structured JSON with `staged: false`, `blocked: true`, and a human-readable `message`.
 
 #### commits clear
 

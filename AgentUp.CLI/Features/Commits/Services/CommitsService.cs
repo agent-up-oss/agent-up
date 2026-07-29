@@ -11,11 +11,13 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             EnsureNoActiveSession(current);
             EnsureFilesAreUnassigned(current, request.Files);
+            EnsureReviewIssueIsUnassigned(current, request.ReviewIssueId);
 
             var id = Guid.NewGuid().ToString("N");
-            var entry = new CommitEntry(request.Slice, request.Message, request.Files, request.Tests, id, id);
+            var entry = new CommitEntry(request.Slice, request.Message, request.Files, request.Tests, id, id, NormalizeOptional(request.ReviewIssueId));
             var patch = await git.GetDiffAsync(request.Files, ct);
             await queue.SavePatchAsync(entry.PatchKey, patch, ct);
             await queue.WriteAsync(current with { Commits = [.. current.Commits, entry] }, ct);
@@ -46,7 +48,8 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var session = current.ActiveSession is null
             ? null
             : new CommitsStatusSession(current.ActiveSession.EntryId, current.ActiveSession.Files);
-        return new CommitsStatusResult(current.Commits, unassigned, session);
+        var operation = await git.GetOperationStateAsync(cancellationToken);
+        return new CommitsStatusResult(current.Commits, unassigned, session, operation);
     }
 
     public async Task<CommitsStagingResult?> StageNextAsync(CancellationToken cancellationToken = default)
@@ -57,6 +60,10 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
 
         if (current.ActiveSession is not null)
             return CommitsStagingResult.Blocked("A commit queue edit session is active. Save or abort it before running 'agentup commits next'.");
+
+        var operation = await git.GetOperationStateAsync(cancellationToken);
+        if (operation.Blocking)
+            return CommitsStagingResult.Blocked($"A Git {operation.Kind} is in progress. Finish or abort it before using the commit queue.");
 
         if (await git.HasStagedChangesAsync(cancellationToken))
             return CommitsStagingResult.Blocked("Staged changes are not yet committed. Commit them first, then run 'agentup commits next'.");
@@ -81,6 +88,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             EnsureNoActiveSession(current);
             var archived = Archive(current, current.Commits);
             await queue.WriteAsync(current with { Commits = [], Archive = archived }, ct);
@@ -106,6 +114,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         => await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             var entry = ResolveEntry(current, entryRef);
             EnsureNotEditingEntry(current, entry);
             EnsureFilesAreUnassigned(current, files, entry.Id);
@@ -125,6 +134,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         => await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             EnsureNoActiveSession(current);
             var entry = ResolveEntry(current, entryRef);
             var remaining = current.Commits.Where(e => e.Id != entry.Id).ToList();
@@ -136,6 +146,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         => await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             EnsureNoActiveSession(current);
             var archived = current.Archived.FirstOrDefault(a => a.Entry.Id == entryId)
                 ?? throw new InvalidOperationException($"No archived commit entry matches '{entryId}'.");
@@ -150,6 +161,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         => await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             EnsureNoActiveSession(current);
             if ((await git.GetModifiedFilesAsync(ct)).Count > 0 || await git.HasStagedChangesAsync(ct))
                 return CommitEditResult.Blocked("Working tree must be clean before starting a commit queue edit session.");
@@ -168,6 +180,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         => await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             var session = current.ActiveSession ?? throw new InvalidOperationException("No commit queue edit session is active.");
             var entry = ResolveEntry(current, session.EntryId);
             var modified = await git.GetModifiedFilesAsync(ct);
@@ -190,6 +203,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         => await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             var session = current.ActiveSession ?? throw new InvalidOperationException("No commit queue edit session is active.");
             await git.RestoreFilesAsync(session.Files, ct);
             await queue.WriteAsync(current with { ActiveSession = null }, ct);
@@ -206,6 +220,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             blockers.Add("A commit queue edit session is active.");
         if (await git.HasStagedChangesAsync(cancellationToken))
             blockers.Add("Staged changes are present.");
+        var operation = await git.GetOperationStateAsync(cancellationToken);
+        if (operation.Blocking)
+            blockers.Add($"A Git {operation.Kind} is in progress. Finish or abort it before using the commit queue.");
         var unassigned = (await GetStatusAsync(cancellationToken)).UnassignedFiles;
         if (unassigned.Count > 0)
             blockers.Add($"{unassigned.Count} modified file(s) are not assigned to a queue entry.");
@@ -217,6 +234,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         => await queue.WithLockAsync(async ct =>
         {
             var current = await queue.ReadAsync(ct);
+            await EnsureNoBlockingGitOperationAsync(ct);
             var entry = ResolveEntry(current, entryRef);
             EnsureNotEditingEntry(current, entry);
             var updatedEntry = update(entry);
@@ -261,6 +279,26 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         if (duplicate is not null)
             throw new InvalidOperationException($"File '{duplicate}' is already assigned to another queued entry.");
     }
+
+    private async Task EnsureNoBlockingGitOperationAsync(CancellationToken cancellationToken)
+    {
+        var operation = await git.GetOperationStateAsync(cancellationToken);
+        if (operation.Blocking)
+            throw new InvalidOperationException($"A Git {operation.Kind} is in progress. Finish or abort it before using the commit queue.");
+    }
+
+    private static void EnsureReviewIssueIsUnassigned(CommitsQueue current, string? reviewIssueId)
+    {
+        var normalized = NormalizeOptional(reviewIssueId);
+        if (normalized is null)
+            return;
+
+        if (current.Commits.Any(e => string.Equals(e.ReviewIssueId, normalized, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"Review issue '{normalized}' is already assigned to a queued commit.");
+    }
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static IReadOnlyList<ArchivedCommitEntry> Archive(CommitsQueue current, IReadOnlyList<CommitEntry> entries)
     {

@@ -51,9 +51,10 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
     {
         output.WriteLine(json.Serialize(new CommitsStatusJson(
             result.Entries.Count,
-            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Id, entry.Slice, entry.Message, entry.Files, entry.Tests)).ToList(),
+            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Id, entry.Slice, entry.Message, entry.Files, entry.Tests, entry.ReviewIssueId)).ToList(),
             result.UnassignedFiles,
-            result.ActiveSession is null ? null : new CommitsStatusSessionJson(result.ActiveSession.EntryId, result.ActiveSession.Files))));
+            result.ActiveSession is null ? null : new CommitsStatusSessionJson(result.ActiveSession.EntryId, result.ActiveSession.Files),
+            result.OperationState is null ? null : new GitOperationStateJson(result.OperationState.Kind, result.OperationState.Blocking))));
         return 0;
     }
 
@@ -156,7 +157,14 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
     public int WriteStagingResultJson(CommitsStagingResult result)
     {
         if (result.IsBlocked)
-            return WriteErrorJson(result.BlockedReason!);
+        {
+            output.WriteLine(json.Serialize(new CommitsNextBlockedJson(
+                false,
+                true,
+                result.BlockedReason!,
+                result.RemainingCount)));
+            return 1;
+        }
 
         output.WriteLine(json.Serialize(new CommitsNextStagedJson(
             true,
