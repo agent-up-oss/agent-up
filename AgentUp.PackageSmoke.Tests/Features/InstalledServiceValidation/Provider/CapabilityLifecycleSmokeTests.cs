@@ -14,7 +14,7 @@ public sealed class CapabilityLifecycleSmokeTests
     [Test]
     public async Task RunAsync_startsCapabilityWorkspaceAndManagesIndividualAppLifecycle()
     {
-        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
         var commands = new RecordingCommandRunner();
         using var http = new HttpClient(new SmokeHttpHandler());
         var assert = new FileAssertions();
@@ -45,7 +45,7 @@ public sealed class CapabilityLifecycleSmokeTests
     public async Task RunAsync_usesDockerImageOverrideWhenProvided()
     {
         var previous = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
-        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
         var commands = new RecordingCommandRunner();
         using var http = new HttpClient(new SmokeHttpHandler());
         var assert = new FileAssertions();
@@ -75,7 +75,7 @@ public sealed class CapabilityLifecycleSmokeTests
     [Test]
     public async Task RunAsync_waitsForTransientStoppingState()
     {
-        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
         var commands = new RecordingCommandRunner();
         using var http = new HttpClient(new SmokeHttpHandler(transientDockerStopReads: 5));
         var assert = new FileAssertions();
@@ -101,9 +101,35 @@ public sealed class CapabilityLifecycleSmokeTests
     [Test]
     public async Task RunAsync_acceptsStoppingAfterSuccessfulDockerStopRequest()
     {
-        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", Guid.NewGuid().ToString());
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
         var commands = new RecordingCommandRunner();
         using var http = new HttpClient(new SmokeHttpHandler(keepDockerStopping: true));
+        var assert = new FileAssertions();
+
+        try
+        {
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+                workDir,
+                new InstalledServiceContext("agent-up", null, [], []),
+                "http://localhost:5000",
+                assert,
+                CancellationToken.None);
+
+            Assert.That(assert.Findings, Is.Empty);
+        }
+        finally
+        {
+            if (Directory.Exists(workDir))
+                Directory.Delete(workDir, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task RunAsync_acceptsFailedDotnetStateAfterWorkspaceStop()
+    {
+        var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
+        var commands = new RecordingCommandRunner();
+        using var http = new HttpClient(new SmokeHttpHandler(failDotnetAfterWorkspaceStop: true));
         var assert = new FileAssertions();
 
         try
@@ -167,7 +193,10 @@ public sealed class CapabilityLifecycleSmokeTests
         }
     }
 
-    private sealed class SmokeHttpHandler(int transientDockerStopReads = 0, bool keepDockerStopping = false) : HttpMessageHandler
+    private sealed class SmokeHttpHandler(
+        int transientDockerStopReads = 0,
+        bool keepDockerStopping = false,
+        bool failDotnetAfterWorkspaceStop = false) : HttpMessageHandler
     {
         private readonly List<HttpResponseMessage> _responses = [];
         private readonly Dictionary<string, string> _states = new(StringComparer.Ordinal)
@@ -207,7 +236,7 @@ public sealed class CapabilityLifecycleSmokeTests
             }
             if (request.Method == HttpMethod.Post && path == "/api/workspaces/workspace-1/stop")
             {
-                _states["SmokeDotnet"] = "Stopped";
+                _states["SmokeDotnet"] = failDotnetAfterWorkspaceStop ? "Failed" : "Stopped";
                 _states["SmokeDocker"] = keepDockerStopping ? "Stopping" : "Stopped";
                 return ResponseAsync(HttpStatusCode.NoContent);
             }

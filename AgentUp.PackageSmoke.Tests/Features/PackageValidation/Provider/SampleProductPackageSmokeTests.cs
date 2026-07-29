@@ -1,4 +1,3 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
@@ -10,7 +9,7 @@ namespace AgentUp.PackageSmoke.Tests.Features.PackageValidation.Provider;
 [TestFixture]
 public class SampleProductPackageSmokeTests
 {
-    private static readonly SmokeProductConfig AcmeStudio = new(
+    private static readonly PackageProductManifest AcmeStudio = new(
         ServiceName: "acme-studio-server",
         CliShimName: "acme-studio",
         ArtifactBaseName: "acme-studio",
@@ -24,7 +23,7 @@ public class SampleProductPackageSmokeTests
         if (OperatingSystem.IsWindows())
             Assert.Ignore("The Ubuntu package adapter verifies Unix symlinks.");
 
-        var root = Path.Join(Path.GetTempPath(), "AcmeStudio-Smoke-Ubuntu", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "AcmeStudio-Smoke-Ubuntu", $"{Guid.NewGuid():N}");
         var artifactDir = Path.Join(root, "artifacts");
         var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);
@@ -57,7 +56,7 @@ public class SampleProductPackageSmokeTests
     [Test]
     public async Task MacOsValidator_forAcmeStudio_reportsExpectedPathsAndFindings()
     {
-        var root = Path.Join(Path.GetTempPath(), "AcmeStudio-Smoke-MacOs", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "AcmeStudio-Smoke-MacOs", $"{Guid.NewGuid():N}");
         var artifactDir = Path.Join(root, "artifacts");
         var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);
@@ -89,7 +88,7 @@ public class SampleProductPackageSmokeTests
     [Test]
     public async Task WindowsValidator_forAcmeStudio_reportsExpectedPathsAndFindings()
     {
-        var root = Path.Join(Path.GetTempPath(), "AcmeStudio-Smoke-Windows", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "AcmeStudio-Smoke-Windows", $"{Guid.NewGuid():N}");
         var artifactDir = Path.Join(root, "artifacts");
         var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);

@@ -1,5 +1,4 @@
 using AgentUp.PackageSmoke.Shared.Providers;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 
 namespace AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
 
@@ -12,7 +11,7 @@ public sealed record SmokeCommandRequest
         string ArtifactDirectory,
         string WorkDirectory,
         string? PayloadRoot,
-        SmokeProductConfig? ProductConfig = null)
+        SmokeProductManifest? ProductManifest = null)
     {
         this.Command = SafeSmokePaths.Identifier(Command, nameof(Command));
         this.Platform = SafeSmokePaths.Identifier(Platform, nameof(Platform));
@@ -24,7 +23,7 @@ public sealed record SmokeCommandRequest
             : SafeSmokePaths.Root(ArtifactDirectory, nameof(ArtifactDirectory));
         this.WorkDirectory = SafeSmokePaths.Root(WorkDirectory, nameof(WorkDirectory));
         this.PayloadRoot = PayloadRoot is null ? null : SafeSmokePaths.Root(PayloadRoot, nameof(PayloadRoot));
-        this.ProductConfig = ProductConfig;
+        this.ProductManifest = ProductManifest;
     }
 
     public string Command { get; }
@@ -39,7 +38,7 @@ public sealed record SmokeCommandRequest
 
     public string? PayloadRoot { get; }
 
-    public SmokeProductConfig? ProductConfig { get; }
+    public SmokeProductManifest? ProductManifest { get; }
 
-    public SmokeProductConfig Product => ProductConfig ?? SmokeProductConfig.AgentUp;
+    public SmokeProductManifest Product => ProductManifest ?? SmokeProductManifest.AgentUp;
 }

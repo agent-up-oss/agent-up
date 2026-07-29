@@ -1,4 +1,3 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
@@ -6,7 +5,7 @@ namespace AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
 public sealed record PackageValidationRequest
 {
     public PackageValidationRequest(string Platform, string RuntimeId, string ArtifactDirectory, string WorkDirectory,
-        SmokeProductConfig? ProductConfig = null)
+        PackageProductManifest? ProductConfig = null)
     {
         this.Platform = SafeSmokePaths.Identifier(Platform, nameof(Platform));
         this.RuntimeId = SafeSmokePaths.Identifier(RuntimeId, nameof(RuntimeId));
@@ -23,7 +22,14 @@ public sealed record PackageValidationRequest
 
     public string WorkDirectory { get; }
 
-    public SmokeProductConfig? ProductConfig { get; }
+    public PackageProductManifest? ProductConfig { get; }
 
-    public SmokeProductConfig Product => ProductConfig ?? SmokeProductConfig.AgentUp;
+    public PackageProductManifest Product => ProductConfig ?? AgentUpProduct;
+
+    private static readonly PackageProductManifest AgentUpProduct = new(
+        ServiceName: "agent-up-server",
+        CliShimName: "agent-up",
+        ArtifactBaseName: "agent-up",
+        DisplayName: "Agent-Up",
+        InstallDirName: "Agent-Up");
 }

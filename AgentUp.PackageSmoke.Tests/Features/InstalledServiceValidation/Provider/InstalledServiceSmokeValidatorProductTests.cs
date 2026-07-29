@@ -13,7 +13,7 @@ namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Provide
 [TestFixture]
 public sealed class InstalledServiceSmokeValidatorProductTests
 {
-    private static readonly SmokeProductConfig AcmeProduct = new(
+    private static readonly InstalledServiceProductManifest AcmeProduct = new(
         ServiceName: "acme-server",
         CliShimName: "acme",
         ArtifactBaseName: "acme",
@@ -462,5 +462,5 @@ public sealed class InstalledServiceSmokeValidatorProductTests
            && command.Environment.ContainsKey("AGENTUP_SMOKE_WORKING_DIRECTORY");
 
     private static string TempRoot(string tag)
-        => Path.Join(Path.GetTempPath(), $"AgentUp-SmokeProduct-{tag}", $"{Guid.NewGuid()}");
+        => Path.Join(Path.GetTempPath(), $"AgentUp-SmokeProduct-{tag}", $"{Guid.NewGuid():N}");
 }
