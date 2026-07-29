@@ -12,7 +12,20 @@ public sealed class ProductIdentityBoundaries
     [
         "agent-up",
         "Agent-Up",
-        "dev.agent-up"
+        "dev.agent-up",
+        "AGENTUP"
+    ];
+
+    private static readonly string[] InstallerProductIdentityAllowedFiles =
+    [
+        "AgentUp.Installers/Features/Installation/DTOs/AgentUpPayloadSelection.cs",
+        "AgentUp.Installers/Features/Installation/Models/AgentUpProductManifest.cs",
+        "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerManifest.cs",
+        "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerPaths.cs",
+        "AgentUp.Installers/Features/UbuntuInstallation/Models/AgentUpUbuntuInstallerManifest.cs",
+        "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerManifest.cs",
+        "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerPaths.cs",
+        "AgentUp.Installers/Composition/AgentUpInstallerEnvironment.cs"
     ];
 
     [Test]
@@ -30,22 +43,17 @@ public sealed class ProductIdentityBoundaries
     [Test]
     public void Generic_installer_source_scan_catches_deliberate_product_identity_violation()
     {
-        const string source = """
-                              namespace AgentUp.Installers.Features.Installation.Services;
-
-                              public sealed class GenericInstallerService
-                              {
-                                  public string ServiceName => "agent-up";
-                              }
-                              """;
-
-        var violations = InstallerProductIdentityViolationsInSource(
-                "AgentUp.Installers/Features/Installation/Services/GenericInstallerService.cs",
-                source)
+        var violations = InstallerProductIdentityViolationCases()
+            .SelectMany(testCase => InstallerProductIdentityViolationsInSource(testCase.RelativePath, testCase.Source))
             .ToArray();
 
-        Assert.That(violations, Has.Length.EqualTo(1));
-        Assert.That(violations[0], Does.Contain("agent-up"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(violations, Has.Length.EqualTo(3));
+            Assert.That(violations.Any(violation => violation.Contains("agent-up", StringComparison.Ordinal)), Is.True);
+            Assert.That(violations.Any(violation => violation.Contains("AGENTUP", StringComparison.Ordinal)), Is.True);
+            Assert.That(violations.Any(violation => violation.Contains("AgentUpGenericInstallerService.cs", StringComparison.Ordinal)), Is.True);
+        });
     }
 
     [Test]
@@ -60,12 +68,20 @@ public sealed class ProductIdentityBoundaries
                                              public const string ProductSlug = "agent-up";
                                          }
                                          """;
-        const string agentUpConfigurationSource = """
-                                                  namespace AgentUp.Installers.Features.Installation.Models;
+        const string agentUpProductManifestSource = """
+                                                     namespace AgentUp.Installers.Features.Installation.Models;
 
-                                                  public static class AgentUpInstallerConfiguration
+                                                     public static class ProductManifest
+                                                     {
+                                                         public const string ProductName = "Agent-Up";
+                                                         public const string EnvironmentPrefix = "AGENTUP";
+                                                     }
+                                                     """;
+        const string agentUpMacOsManifestSource = """
+                                                  namespace AgentUp.Installers.Features.MacOsInstallation.Models;
+
+                                                  public static class MacOsInstallerManifest
                                                   {
-                                                      public const string ProductName = "Agent-Up";
                                                       public const string Domain = "dev.agent-up";
                                                   }
                                                   """;
@@ -82,8 +98,11 @@ public sealed class ProductIdentityBoundaries
                 "AgentUp.Installers.Tests/Support/InstallerFixture.cs",
                 testSupportSource)
             .Concat(InstallerProductIdentityViolationsInSource(
-                "AgentUp.Installers/Features/Installation/Models/AgentUpInstallerConfiguration.cs",
-                agentUpConfigurationSource))
+                "AgentUp.Installers/Features/Installation/Models/AgentUpProductManifest.cs",
+                agentUpProductManifestSource))
+            .Concat(InstallerProductIdentityViolationsInSource(
+                "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerManifest.cs",
+                agentUpMacOsManifestSource))
             .Concat(InstallerProductIdentityViolationsInSource(
                 "AgentUp.Installers/Features/Installation/Services/InstallerComponentOperations.cs",
                 genericCategorySource))
@@ -191,8 +210,8 @@ public sealed class ProductIdentityBoundaries
             && !relativePath.StartsWith("AgentUp.Installers" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             return [];
 
-        var fileName = Path.GetFileNameWithoutExtension(relativePath);
-        if (fileName.StartsWith("AgentUp", StringComparison.Ordinal))
+        var normalizedPath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+        if (InstallerProductIdentityAllowedFiles.Contains(normalizedPath, StringComparer.Ordinal))
             return [];
 
         var tree = CSharpSyntaxTree.ParseText(source);
@@ -221,6 +240,40 @@ public sealed class ProductIdentityBoundaries
 
     private static int Line(SyntaxTree tree, SyntaxNode node)
         => tree.GetLineSpan(node.Span).StartLinePosition.Line + 1;
+
+    private static IEnumerable<(string RelativePath, string Source)> InstallerProductIdentityViolationCases()
+    {
+        yield return (
+            "AgentUp.Installers/Features/Installation/Services/GenericInstallerService.cs",
+            """
+            namespace AgentUp.Installers.Features.Installation.Services;
+
+            public sealed class GenericInstallerService
+            {
+                public string ServiceName => "agent-up";
+            }
+            """);
+        yield return (
+            "AgentUp.Installers/Features/Installation/Services/GenericEnvironmentService.cs",
+            """
+            namespace AgentUp.Installers.Features.Installation.Services;
+
+            public sealed class GenericEnvironmentService
+            {
+                public string PayloadRootVariable => "AGENTUP_INSTALLER_PAYLOAD_ROOT";
+            }
+            """);
+        yield return (
+            "AgentUp.Installers/Features/Installation/Services/AgentUpGenericInstallerService.cs",
+            """
+            namespace AgentUp.Installers.Features.Installation.Services;
+
+            public sealed class AgentUpGenericInstallerService
+            {
+                public string ServiceName => "agent-up";
+            }
+            """);
+    }
 
     private static IEnumerable<(ConstructorDeclarationSyntax Constructor, string Location)> Constructors(string root, string path)
     {

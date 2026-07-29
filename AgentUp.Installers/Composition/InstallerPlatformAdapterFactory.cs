@@ -19,9 +19,9 @@ namespace AgentUp.Installers.Composition;
 
 public static class InstallerPlatformAdapterFactory
 {
-    public const string FakeInstallerVariable = "AGENTUP_INSTALLER_FAKE";
-    public const string PayloadRootVariable = "AGENTUP_INSTALLER_PAYLOAD_ROOT";
-    public const string NixOsLookupOnlyVariable = "AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY";
+    public const string FakeInstallerVariable = AgentUpInstallerEnvironment.FakeInstallerVariable;
+    public const string PayloadRootVariable = AgentUpInstallerEnvironment.PayloadRootVariable;
+    public const string NixOsLookupOnlyVariable = AgentUpInstallerEnvironment.NixOsLookupOnlyVariable;
 
     public static IInstallerPlatformAdapter Create()
     {
