@@ -16,6 +16,13 @@ public sealed class FileAssertions : IFindingSink
             Error(code, $"Expected file missing: {path}");
     }
 
+    public void FileDoesNotExist(string path, string code)
+    {
+        var safePath = SafeObservedPath(path);
+        if (safePath is not null && (File.Exists(safePath) || Directory.Exists(safePath)))
+            Error(code, $"Expected file to be absent: {path}");
+    }
+
     public void ExecutableExists(string path, string code)
     {
         FileExists(path, code);

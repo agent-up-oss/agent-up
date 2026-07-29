@@ -1,6 +1,8 @@
 using AgentUp.Installers.Composition;
+using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Controllers;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
+using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Controllers;
 using AgentUp.PackageSmoke.Features.PackageValidation.Controllers;
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
@@ -36,7 +38,8 @@ public sealed class SmokeValidationProvider : ISmokeValidationProvider
             request.Platform,
             request.RuntimeId,
             request.ArtifactDirectory,
-            request.WorkDirectory);
+            request.WorkDirectory,
+            request.ProductConfig);
         var result = await _packageValidation.ValidateAsync(validationRequest, cancellationToken);
         await _workDirectory.WritePackageEnvironmentAsync(validationRequest.WorkDirectory, result, cancellationToken);
         return new SmokeCommandResult(result.Succeeded, result.Findings);
@@ -49,7 +52,11 @@ public sealed class SmokeValidationProvider : ISmokeValidationProvider
         if (request.PayloadRoot is not null)
             Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, request.PayloadRoot);
 
-        var result = await _installerFlow.ValidateAsync(request.Platform, request.WorkDirectory, cancellationToken);
+        var result = await _installerFlow.ValidateAsync(
+            request.Platform,
+            request.WorkDirectory,
+            request.ProductConfig is null ? null : ToProductManifest(request.ProductConfig),
+            cancellationToken);
         return new SmokeCommandResult(result.Succeeded, result.Findings);
     }
 
@@ -61,8 +68,18 @@ public sealed class SmokeValidationProvider : ISmokeValidationProvider
             request.Platform,
             request.RuntimeId,
             request.ArtifactDirectory,
-            request.WorkDirectory);
+            request.WorkDirectory,
+            ProductConfig: request.ProductConfig);
         var result = await _installedService.ValidateAsync(smokeRequest, cancellationToken);
         return new SmokeCommandResult(result.Succeeded, result.Findings);
     }
+
+    private static ProductManifest ToProductManifest(SmokeProductConfig product)
+        => new(product.DisplayName, product.ArtifactBaseName, EnvironmentPrefix(product))
+        {
+            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+        };
+
+    private static string EnvironmentPrefix(SmokeProductConfig product)
+        => product.ArtifactBaseName.Replace('-', '_').ToUpperInvariant();
 }

@@ -1,4 +1,5 @@
 using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Services;
 
 namespace AgentUp.PackageSmoke.Features.InstallerFlowValidation.Controllers;
@@ -15,6 +16,7 @@ public sealed class InstallerFlowSmokeController
     public async Task<PackageValidationResult> ValidateAsync(
         string platform,
         string workDirectory,
+        ProductManifest? product = null,
         CancellationToken cancellationToken = default)
-        => await _validator.ValidateAsync(platform, workDirectory, null, cancellationToken);
+        => await _validator.ValidateAsync(platform, workDirectory, product, cancellationToken);
 }

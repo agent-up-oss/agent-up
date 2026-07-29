@@ -38,6 +38,17 @@ public sealed class InstalledServiceSmokeValidatorProductTests
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
             if (IsUnixCliCommand(command, "acme", "status"))
                 return new CommandResult(0, "Name:       Installed Service Smoke Workspace\nState:      Running\n", "");
+            if (command.FileName == "sudo" && command.Arguments.SequenceEqual(["apt-get", "purge", "-y", "acme"]))
+            {
+                RemoveUbuntuSystemFiles(systemRoot, "acme");
+                return new CommandResult(0, "", "");
+            }
+            if (command.FileName == "sudo" && command.Arguments.SequenceEqual(["systemctl", "status", "acme-server.service", "--no-pager"]))
+                return new CommandResult(1, "", "Unit acme-server.service could not be found.");
+            if (command.FileName == "bash" && command.Arguments.Any(argument => argument.Contains("command -v acme", StringComparison.Ordinal)))
+                return File.Exists(Path.Join(systemRoot, "usr", "share", "applications", "acme.desktop"))
+                    ? new CommandResult(0, "/usr/bin/acme", "")
+                    : new CommandResult(1, "", "acme: not found");
             return new CommandResult(0, "", "");
         });
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
@@ -105,6 +116,191 @@ public sealed class InstalledServiceSmokeValidatorProductTests
     }
 
     [Test]
+    public async Task ValidateAsync_acmeProductAgainstAgentUpInstall_reportsAcmeServiceAndCliMissing()
+    {
+        var root = TempRoot("product-agentup-install-mismatch");
+        var artifactDir = Path.Join(root, "artifacts");
+        var workDir = Path.Join(root, "work");
+        var systemRoot = Path.Join(root, "system");
+        SetupUbuntuSystemFiles(systemRoot, "agent-up");
+        Directory.CreateDirectory(artifactDir);
+        File.WriteAllText(Path.Join(artifactDir, "acme-ubuntu-linux-x64.deb"), "");
+
+        var commands = new RecordingCommandRunner((command, _) =>
+        {
+            if (command.FileName == "bash" && command.Arguments.Any(argument => argument.Contains("command -v acme", StringComparison.Ordinal)))
+                return new CommandResult(1, "", "acme: not found");
+            if (command.FileName == "acme")
+                return new CommandResult(1, "", "acme: not found");
+            if (command.FileName == "sudo" && command.Arguments.SequenceEqual(["systemctl", "status", "acme-server.service", "--no-pager"]))
+                return new CommandResult(1, "", "Unit acme-server.service could not be found.");
+            return new CommandResult(0, "", "");
+        });
+        var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
+            ProductConfig: AcmeProduct, SystemRoot: systemRoot);
+
+        try
+        {
+            var result = await new UbuntuInstalledServiceSmokeValidator(
+                    commands,
+                    new FakeServerProbe(null),
+                    new NullRuntimeSecurityChecks())
+                .ValidateAsync(request);
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Findings.Any(finding =>
+                finding.Code == "installed.ubuntu.path" &&
+                finding.Message.Contains("acme: not found", StringComparison.Ordinal)), Is.True);
+            Assert.That(result.Findings.Any(finding =>
+                finding.Code == "installed.server.ready" &&
+                finding.Message.Contains("acme-server", StringComparison.Ordinal)), Is.True);
+            Assert.That(result.Findings.Where(finding => finding.Code is "installed.ubuntu.path" or "installed.server.ready")
+                .Select(finding => finding.Message), Has.None.Contain("agent-up"));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task ValidateAsync_acmeInstalledFileChecksIgnoreAgentUpInstallRoot()
+    {
+        var root = TempRoot("product-install-root-isolation");
+        var artifactDir = Path.Join(root, "artifacts");
+        var workDir = Path.Join(root, "work");
+        var systemRoot = Path.Join(root, "system");
+        SetupUbuntuSystemFiles(systemRoot, "agent-up");
+        Directory.CreateDirectory(artifactDir);
+        File.WriteAllText(Path.Join(artifactDir, "acme-ubuntu-linux-x64.deb"), "");
+
+        var commands = new RecordingCommandRunner((command, _) =>
+            command.FileName == "bash" && command.Arguments.Any(argument => argument.Contains("command -v acme", StringComparison.Ordinal))
+                ? new CommandResult(1, "", "acme: not found")
+                : new CommandResult(0, "", ""));
+        var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
+            ProductConfig: AcmeProduct, SystemRoot: systemRoot);
+
+        try
+        {
+            var result = await new UbuntuInstalledServiceSmokeValidator(
+                    commands,
+                    new FakeServerProbe(null),
+                    new NullRuntimeSecurityChecks())
+                .ValidateAsync(request);
+
+            var missingFiles = result.Findings
+                .Where(finding => finding.Message.StartsWith("Expected file missing:", StringComparison.Ordinal))
+                .Select(finding => finding.Message)
+                .ToArray();
+
+            Assert.That(missingFiles, Is.Not.Empty);
+            Assert.That(missingFiles, Has.Some.Contain(Path.Join(systemRoot, "opt", "acme")));
+            Assert.That(missingFiles, Has.None.Contain(Path.Join(systemRoot, "opt", "agent-up")));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task ValidateAsync_acmeUninstallChecksOnlyAcmeTargets()
+    {
+        var root = TempRoot("product-uninstall-isolation");
+        var artifactDir = Path.Join(root, "artifacts");
+        var workDir = Path.Join(root, "work");
+        var systemRoot = Path.Join(root, "system");
+        SetupUbuntuSystemFiles(systemRoot, "acme");
+        Directory.CreateDirectory(artifactDir);
+        File.WriteAllText(Path.Join(artifactDir, "acme-ubuntu-linux-x64.deb"), "");
+
+        var commands = new RecordingCommandRunner((command, _) =>
+        {
+            if (IsUnixCliCommand(command, "acme", "start"))
+                return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
+            if (IsUnixCliCommand(command, "acme", "status"))
+                return new CommandResult(0, "Name:       Installed Service Smoke Workspace\nState:      Running\n", "");
+            if (command.FileName == "sudo" && command.Arguments.SequenceEqual(["systemctl", "status", "acme-server.service", "--no-pager"]))
+                return new CommandResult(1, "", "Unit acme-server.service could not be found.");
+            if (command.FileName == "bash" && command.Arguments.Any(argument => argument.Contains("command -v acme", StringComparison.Ordinal)))
+                return new CommandResult(1, "", "acme: not found");
+            return new CommandResult(0, "", "");
+        });
+        var previousSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
+
+        try
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
+            var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
+                ProductConfig: AcmeProduct, SystemRoot: systemRoot);
+            using var validator = new UbuntuInstalledServiceSmokeValidator(commands, new FakeServerProbe("http://127.0.0.1:5000"),
+                new NullRuntimeSecurityChecks(), new HttpClient(new FakeTraySessionHttpHandler()));
+            await validator.ValidateAsync(request);
+
+            var allArguments = commands.Commands.SelectMany(command => command.Arguments.Prepend(command.FileName)).ToArray();
+            Assert.That(commands.Commands.Any(command =>
+                command.FileName == "sudo" && command.Arguments.SequenceEqual(["apt-get", "purge", "-y", "acme"])), Is.True);
+            Assert.That(commands.Commands.Any(command =>
+                command.FileName == "sudo" && command.Arguments.SequenceEqual(["systemctl", "status", "acme-server.service", "--no-pager"])), Is.True);
+            Assert.That(commands.Commands.Any(command =>
+                command.FileName == "bash" && command.Arguments.Any(argument => argument.Contains("command -v acme", StringComparison.Ordinal))), Is.True);
+            Assert.That(allArguments.Any(argument => argument.Contains("agent-up", StringComparison.Ordinal)), Is.False);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task ValidateAsync_agentUpAndAcmeRunsInSameProcessHaveIndependentFindings()
+    {
+        var root = TempRoot("product-finding-isolation");
+        var artifactDir = Path.Join(root, "artifacts");
+        var agentWorkDir = Path.Join(root, "agent-work");
+        var acmeWorkDir = Path.Join(root, "acme-work");
+        var agentSystemRoot = Path.Join(root, "agent-system");
+        var acmeSystemRoot = Path.Join(root, "acme-system");
+        SetupUbuntuSystemFiles(agentSystemRoot, "agent-up");
+        SetupUbuntuSystemFiles(acmeSystemRoot, "acme");
+        Directory.CreateDirectory(artifactDir);
+        File.WriteAllText(Path.Join(artifactDir, "agent-up-ubuntu-linux-x64.deb"), "");
+        File.WriteAllText(Path.Join(artifactDir, "acme-ubuntu-linux-x64.deb"), "");
+
+        var commands = new RecordingCommandRunner((command, _) =>
+        {
+            if (command.FileName == "agent-up" || command.FileName == "acme")
+                return new CommandResult(1, "", $"{command.FileName}: not found");
+            if (command.FileName == "bash" && command.Arguments.Any(argument => argument.Contains("command -v", StringComparison.Ordinal)))
+                return new CommandResult(1, "", "not found");
+            if (command.FileName == "sudo" && command.Arguments.Any(argument => argument.EndsWith(".service", StringComparison.Ordinal)))
+                return new CommandResult(1, "", "service not found");
+            return new CommandResult(0, "", "");
+        });
+
+        try
+        {
+            using var validator = new UbuntuInstalledServiceSmokeValidator(commands, new FakeServerProbe(null), new NullRuntimeSecurityChecks());
+            var agentResult = await validator.ValidateAsync(new InstalledServiceSmokeRequest(
+                "ubuntu", "linux-x64", artifactDir, agentWorkDir, SystemRoot: agentSystemRoot));
+            var acmeResult = await validator.ValidateAsync(new InstalledServiceSmokeRequest(
+                "ubuntu", "linux-x64", artifactDir, acmeWorkDir, ProductConfig: AcmeProduct, SystemRoot: acmeSystemRoot));
+
+            Assert.That(agentResult.Findings, Is.Not.SameAs(acmeResult.Findings));
+            Assert.That(agentResult.Findings.Select(finding => finding.Message), Has.Some.Contain("agent-up-server"));
+            Assert.That(agentResult.Findings.Select(finding => finding.Message), Has.None.Contain("acme-server"));
+            Assert.That(acmeResult.Findings.Select(finding => finding.Message), Has.Some.Contain("acme-server"));
+            Assert.That(acmeResult.Findings.Select(finding => finding.Message), Has.None.Contain("agent-up-server"));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task ValidateAsync_acmeProduct_cliReachabilityProbeUsesAcmeShimName()
     {
         var root = TempRoot("product-cli-probe");
@@ -124,7 +320,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
             await new UbuntuInstalledServiceSmokeValidator(commands, new FakeServerProbe(null), new NullRuntimeSecurityChecks())
                 .ValidateAsync(request);
 
-            var cliProbe = commands.Commands.SingleOrDefault(c =>
+            var cliProbe = commands.Commands.FirstOrDefault(c =>
                 c.FileName == "bash" && c.Arguments.Any(a => a.Contains("command -v", StringComparison.Ordinal)));
 
             Assert.That(cliProbe, Is.Not.Null, "A CLI reachability probe should have been issued");
@@ -157,6 +353,17 @@ public sealed class InstalledServiceSmokeValidatorProductTests
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
             if (IsUnixCliCommand(command, "agent-up", "status"))
                 return new CommandResult(0, "Name:       Installed Service Smoke Workspace\nState:      Running\n", "");
+            if (command.FileName == "sudo" && command.Arguments.SequenceEqual(["apt-get", "purge", "-y", "agent-up"]))
+            {
+                RemoveUbuntuSystemFiles(systemRoot, "agent-up");
+                return new CommandResult(0, "", "");
+            }
+            if (command.FileName == "sudo" && command.Arguments.SequenceEqual(["systemctl", "status", "agent-up-server.service", "--no-pager"]))
+                return new CommandResult(1, "", "Unit agent-up-server.service could not be found.");
+            if (command.FileName == "bash" && command.Arguments.Any(argument => argument.Contains("command -v agent-up", StringComparison.Ordinal)))
+                return File.Exists(Path.Join(systemRoot, "usr", "share", "applications", "agent-up.desktop"))
+                    ? new CommandResult(0, "/usr/bin/agent-up", "")
+                    : new CommandResult(1, "", "agent-up: not found");
             return new CommandResult(0, "", "");
         });
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
@@ -238,6 +445,14 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         File.WriteAllText(Path.Join(pixmapsDir, $"{shimName}.png"), "");
         File.WriteAllText(Path.Join(trayDir, "AgentUp.Tray"), "");
         File.WriteAllText(Path.Join(xdgDir, $"{shimName}-tray.desktop"), "");
+    }
+
+    private static void RemoveUbuntuSystemFiles(string systemRoot, string shimName)
+    {
+        File.Delete(Path.Join(systemRoot, "usr", "share", "applications", $"{shimName}.desktop"));
+        File.Delete(Path.Join(systemRoot, "usr", "share", "pixmaps", $"{shimName}.png"));
+        File.Delete(Path.Join(systemRoot, "opt", shimName, "tray", "AgentUp.Tray"));
+        File.Delete(Path.Join(systemRoot, "etc", "xdg", "autostart", $"{shimName}-tray.desktop"));
     }
 
     private static bool IsUnixCliCommand(CommandSpec command, string shimName, string argument)
