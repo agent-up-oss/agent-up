@@ -83,6 +83,8 @@ Claude Code installations can surface commit queue reminders with a client-side 
 
 Mutating commit queue operations are blocked while Git reports an active merge, rebase, cherry-pick, revert, or bisect. Integrations should surface the returned operation state and ask the developer to finish or abort the Git operation first.
 
+MCP commit tools enforce Agent-Up conventional commit prefixes. Use `feat` only for user-facing additions, `fix` only for user-facing fixes, `chore` for internal changes with no user effect and mostly non-runtime files, `refactor` for internal file changes with no user effect unless the change affects a public package, `style` for CSS/HTML-only changes, and `docs` for documentation-only changes including README and similar docs.
+
 ## Automation Flow
 
 AI agents interact with applications through MCP:

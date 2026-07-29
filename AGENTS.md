@@ -749,14 +749,14 @@ Use the correct prefix — the choice signals intent to reviewers and changelog 
 
 | Prefix | When to use |
 |--------|-------------|
-| `feat` | A **user-facing capability** that did not exist before (new command, new flag, new output) |
-| `fix` | Corrects incorrect behaviour: crashes, wrong output, broken guards, architecture violations |
-| `test` | Test-only changes with no production code change |
-| `refactor` | Internal restructuring that changes no observable behaviour and adds no new capability |
-| `docs` | Documentation, comments, `AGENTS.md`, `cli.md` only |
-| `chore` | Build, CI, tooling, dependency bumps — nothing a user or reviewer of product code cares about |
+| `feat` | User-facing addition |
+| `fix` | User-facing fix |
+| `chore` | Internal change with no user effect, mostly non-runtime files |
+| `refactor` | Internal file change with no user effect unless it changes a public package |
+| `style` | CSS/HTML only |
+| `docs` | Documentation-only change, including README and similar docs |
 
-**Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type — if a user cannot observe the addition as new capability, it is a `fix` or `refactor`. When in doubt: would a user reading the changelog care that this was added, or only that a bug was corrected? Use that answer to pick the prefix.
+**Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type. Do not use `test` as an Agent-Up commit prefix; test-only changes are usually `chore` unless they accompany a user-facing `feat` or `fix` entry. When in doubt, choose the prefix by user-visible intent first and file type second.
 
 ## Packaging And Installers
 

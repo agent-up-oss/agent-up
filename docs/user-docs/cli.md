@@ -67,7 +67,7 @@ Adds a proposed commit entry to the queue. Intended for coding agents that modif
 ```bash
 agentup commits enqueue \
   --slice UbuntuInstallation \
-  --message "test(UbuntuInstallation): cover tray autostart boundary" \
+  --message "chore(UbuntuInstallation): cover tray autostart boundary" \
   --files AgentUp.Installers.Tests/Features/UbuntuInstallation/Provider/UbuntuInstallerPlatformAdapterTests.cs \
   --tests "dotnet test AgentUp.Installers.Tests --filter UbuntuInstallerPlatformAdapterTests"
 ```
