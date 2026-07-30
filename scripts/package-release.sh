@@ -313,13 +313,18 @@ case "$platform" in
               after = [ "network.target" ];
               environment = {
                 ASPNETCORE_URLS = "http://127.0.0.1:${toString cfg.port}";
+                ASPNETCORE_CONTENTROOT = "${package}/opt/agent-up/server";
+                DOTNET_CONTENTROOT = "${package}/opt/agent-up/server";
+                DOTNET_BUNDLE_EXTRACT_BASE_DIR = "/var/cache/agent-up";
                 Storage__DataDirectory = cfg.dataDir;
                 AGENTUP_CAPABILITY_INVENTORY_PATH = "/etc/agent-up/capabilities.json";
               };
               serviceConfig = {
                 ExecStart = "${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}";
+                WorkingDirectory = "${package}/opt/agent-up/server";
                 Restart = "on-failure";
                 RestartSec = 5;
+                CacheDirectory = "agent-up";
                 StateDirectory = "agent-up";
               };
             };
@@ -397,10 +402,14 @@ case "$platform" in
               };
               Service = {
                 ExecStart = "${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.server.port}";
+                WorkingDirectory = "${package}/opt/agent-up/server";
                 Restart = "on-failure";
                 RestartSec = 5;
                 Environment = [
                   "ASPNETCORE_URLS=http://127.0.0.1:${toString cfg.server.port}"
+                  "ASPNETCORE_CONTENTROOT=${package}/opt/agent-up/server"
+                  "DOTNET_CONTENTROOT=${package}/opt/agent-up/server"
+                  "DOTNET_BUNDLE_EXTRACT_BASE_DIR=${config.xdg.cacheHome}/agent-up"
                   "Storage__DataDirectory=${cfg.server.dataDir}"
                   "AGENTUP_CAPABILITY_INVENTORY_PATH=${config.xdg.configHome}/agent-up/capabilities.json"
                 ];

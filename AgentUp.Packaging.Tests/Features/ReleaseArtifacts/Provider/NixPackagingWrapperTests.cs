@@ -80,6 +80,14 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Contain("default = \"${config.xdg.stateHome}/agent-up\""));
         Assert.That(text, Does.Contain("ExecStart = \"${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}\""));
         Assert.That(text, Does.Contain("ExecStart = \"${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.server.port}\""));
+        Assert.That(text, Does.Contain("WorkingDirectory = \"${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("ASPNETCORE_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("DOTNET_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("DOTNET_BUNDLE_EXTRACT_BASE_DIR = \"/var/cache/agent-up\""));
+        Assert.That(text, Does.Contain("CacheDirectory = \"agent-up\""));
+        Assert.That(text, Does.Contain("\"ASPNETCORE_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("\"DOTNET_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("\"DOTNET_BUNDLE_EXTRACT_BASE_DIR=${config.xdg.cacheHome}/agent-up\""));
     }
 
     [Test]
@@ -95,6 +103,27 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Contain("environment.etc.\"agent-up/capabilities.json\".text = capabilityInventory"));
         Assert.That(text, Does.Contain("home.file.\".config/agent-up/capabilities.json\".text = capabilityInventory"));
         Assert.That(text, Does.Contain("AGENTUP_CAPABILITY_INVENTORY_PATH"));
+    }
+
+    [Test]
+    public void PackageRelease_generatesNixServicesWithPinnedRuntimeRoots()
+    {
+        var script = Path.Join(Root, "scripts", "package-release.sh");
+
+        var text = File.ReadAllText(script);
+        var nixOsService = ExtractBetween(text, "systemd.services.agent-up-server = {", "homeManagerModules.default");
+        var homeManagerService = ExtractBetween(text, "systemd.user.services.agent-up-server = lib.mkIf cfg.server.enable {", "Install.WantedBy");
+
+        Assert.That(nixOsService, Does.Contain("WorkingDirectory = \"${package}/opt/agent-up/server\""));
+        Assert.That(nixOsService, Does.Contain("ASPNETCORE_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(nixOsService, Does.Contain("DOTNET_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(nixOsService, Does.Contain("DOTNET_BUNDLE_EXTRACT_BASE_DIR = \"/var/cache/agent-up\""));
+        Assert.That(nixOsService, Does.Contain("CacheDirectory = \"agent-up\""));
+
+        Assert.That(homeManagerService, Does.Contain("WorkingDirectory = \"${package}/opt/agent-up/server\""));
+        Assert.That(homeManagerService, Does.Contain("\"ASPNETCORE_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(homeManagerService, Does.Contain("\"DOTNET_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(homeManagerService, Does.Contain("\"DOTNET_BUNDLE_EXTRACT_BASE_DIR=${config.xdg.cacheHome}/agent-up\""));
     }
 
     [Test]
@@ -176,5 +205,16 @@ public class NixPackagingWrapperTests
         }
 
         throw new InvalidOperationException($"Could not find repository root from {startDirectory}.");
+    }
+
+    private static string ExtractBetween(string text, string start, string end)
+    {
+        var startIndex = text.IndexOf(start, StringComparison.Ordinal);
+        Assert.That(startIndex, Is.GreaterThanOrEqualTo(0), $"Missing start marker: {start}");
+
+        var endIndex = text.IndexOf(end, startIndex + start.Length, StringComparison.Ordinal);
+        Assert.That(endIndex, Is.GreaterThan(startIndex), $"Missing end marker: {end}");
+
+        return text[startIndex..endIndex];
     }
 }
