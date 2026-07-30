@@ -24,7 +24,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 
         Before starting a new coding task, call guard_commits for the current repository/worktree. If it fails, stop instead of making new changes unless the user explicitly asked to inspect, debug, or continue the existing queued or working-tree changes.
 
-        At the end of every coding task, use enqueue_commit to declare each logical vertical-slice commit, or enqueue_review_fix_commit when fixing one pull request review issue violation. Then use get_commits_status so the developer can see the queue. Do not run git add, git commit, or git stash. Use one enqueue call per logical slice, and one review-fix enqueue call per review issue id. Use the correct conventional commit prefix: feat means a user-facing addition, fix means a user-facing fix, chore means an internal change with no user effect and mostly non-runtime files, refactor means internal files changed with no user effect unless it is a public package, style means CSS/HTML only, and docs means documentation only including README and similar docs. Cross-slice guidance or documentation updates must be queued in a separate guidance/docs entry instead of being bundled into an implementation slice. When feature-sliced paths are recognized, MCP rejects cross-slice file groups and mismatched slice labels. Mutating queue operations are blocked while Git has an active merge, rebase, cherry-pick, revert, or bisect. Use commit queue MCP tools for enqueue, queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. enqueue_commit intentionally restores tracked files to their pre-change state after saving the patch; do not re-apply or modify those files after a successful enqueue because the queue owns them until the developer runs agentup commits next.
+        At the end of every coding task, use enqueue_commit to declare each logical vertical-slice commit, or enqueue_review_fix_commit when fixing one pull request review issue violation. Then use get_commits_status so the developer can see the queue. Do not run git add, git commit, or git stash. Use one enqueue call per logical slice, and one review-fix enqueue call per review issue id. Scope every conventional commit message to the queued slice, for example fix(Commits): validate queue metadata. Use the correct conventional commit prefix: feat means a user-facing addition, fix means a user-facing fix, test means test-only or smoke-validation changes, chore means maintenance/packaging/CI/tooling with no customer runtime effect, refactor means internal source changes with no behavior change, style means CSS/HTML only, and docs means documentation only including README and similar docs. If agent-up.json contains prompts.commitPolicy, follow that repository-specific policy when choosing prefixes and grouping commits. Cross-slice guidance or documentation updates must be queued in a separate guidance/docs entry instead of being bundled into an implementation slice. When feature-sliced paths are recognized, MCP rejects cross-slice file groups and mismatched slice labels. Mutating queue operations are blocked while Git has an active merge, rebase, cherry-pick, revert, or bisect. Use commit queue MCP tools for enqueue, queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. enqueue_commit intentionally restores tracked files to their pre-change state after saving the patch; do not re-apply or modify those files after a successful enqueue because the queue owns them until the developer runs agentup commits next.
         """;
 
     public string GetAgentUpJsonFormat() =>
@@ -67,7 +67,10 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
                 "pgdata:/var/lib/postgresql/data"
               ]
             }
-          ]
+          ],
+          "prompts": {
+            "commitPolicy": "Scope commit messages to the queued slice. Use fix for customer-facing production behavior changes, feat for customer-facing additions, test for test-only or smoke-validation changes, refactor for no-behavior source changes, and chore only for maintenance, packaging, CI, or tooling changes with no customer runtime effect."
+          }
         }
 
         Fields:
@@ -84,6 +87,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         services[].ports: Port declarations for the service.
         services[].environment: Optional environment variables for the service.
         services[].volumes: Optional Docker volume mappings for the service.
+        prompts.commitPolicy: Optional repository-specific commit guidance for AI agents. The default policy scopes commit messages to the queued slice; uses feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, refactor for no-behavior source changes, chore for maintenance, packaging, CI, or tooling with no customer runtime effect, style for CSS/HTML only, and docs for documentation-only changes.
         ports[].variable: Environment variable that receives the allocated port.
         ports[].defaultPort: Preferred/default port used to derive allocation intent.
         ports[].protocol: Protocol label, usually http or tcp.
