@@ -12,14 +12,8 @@ public sealed partial record PayloadSelection(
     string Description,
     string? DownloadUrl = null)
 {
-    public static PayloadSelection Bundled(Version version)
-        => Bundled(AgentUpProductName, version);
-
     public static PayloadSelection Bundled(string productName, Version version)
         => new(PayloadSourceKind.Bundled, version, $"Bundled {productName} {version}");
-
-    public static PayloadSelection Online(Version version, string downloadUrl)
-        => Online(AgentUpProductName, version, downloadUrl);
 
     public static PayloadSelection Online(string productName, Version version, string downloadUrl)
         => new(PayloadSourceKind.Online, version, $"Online {productName} {version}", downloadUrl);
