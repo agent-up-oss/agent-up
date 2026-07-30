@@ -26,13 +26,13 @@ public sealed class NixOsInstallerPlatformAdapter(
         cancellationToken.ThrowIfCancellationRequested();
 
         var target = TargetFor(component);
-        var executable = ExecutableName(target);
+        var executable = ExecutableName(session.Manifest, target);
         var path = executables.Find(executable);
         return Task.FromResult(path is null
             ? new InstallerComponentStatus(
                 component,
                 InstallerComponentStatusKind.NotInstalled,
-                Message: $"{executable} was not found on PATH. Add Agent-Up through the NixOS or Home Manager module.")
+                Message: $"{executable} was not found on PATH. Add {session.ProductName} through the NixOS or Home Manager module.")
             : new InstallerComponentStatus(
                 component,
                 InstallerComponentStatusKind.Installed,
@@ -61,7 +61,7 @@ public sealed class NixOsInstallerPlatformAdapter(
         await Task.Yield();
         yield return new InstallProgress(
             InstallOperationKind.ValidateInstallation,
-            $"{component.DisplayName} install actions are disabled on NixOS. Change services.agent-up or programs.agent-up instead.",
+            $"{component.DisplayName} install actions are disabled on NixOS. Change services.{session.Manifest.Slug} or programs.{session.Manifest.Slug} instead.",
             1,
             1);
     }
@@ -71,7 +71,7 @@ public sealed class NixOsInstallerPlatformAdapter(
         [
             new(
                 InstallOperationKind.ValidateInstallation,
-                "Agent-Up is managed declaratively by NixOS or Home Manager",
+                $"{session.ProductName} is managed declaratively by NixOS or Home Manager",
                 false)
         ];
 
@@ -83,7 +83,7 @@ public sealed class NixOsInstallerPlatformAdapter(
         await Task.Yield();
         yield return new InstallProgress(
             InstallOperationKind.ValidateInstallation,
-            "Install actions are disabled on NixOS. Change services.agent-up or programs.agent-up instead.",
+            $"Install actions are disabled on NixOS. Change services.{session.Manifest.Slug} or programs.{session.Manifest.Slug} instead.",
             1,
             1);
     }
@@ -98,7 +98,7 @@ public sealed class NixOsInstallerPlatformAdapter(
             .Select(component =>
             {
                 var target = TargetFor(component);
-                var executable = ExecutableName(target);
+                var executable = ExecutableName(session.Manifest, target);
                 var path = executables.Find(executable);
                 var findingCode = $"{target}".ToLowerInvariant() + ".path";
                 return path is null
@@ -115,13 +115,13 @@ public sealed class NixOsInstallerPlatformAdapter(
             ? t
             : throw new NotSupportedException($"Component '{component.Id}' is not supported by the NixOS adapter.");
 
-    private static string ExecutableName(InstallerComponentTarget target)
+    private static string ExecutableName(ProductManifest manifest, InstallerComponentTarget target)
         => target switch
         {
-            InstallerComponentTarget.Desktop => "agent-up-desktop",
-            InstallerComponentTarget.Server => "agent-up-server",
-            InstallerComponentTarget.Cli => "agent-up",
-            InstallerComponentTarget.Tray => "agent-up-tray",
+            InstallerComponentTarget.Desktop => $"{manifest.Slug}-desktop",
+            InstallerComponentTarget.Server => $"{manifest.Slug}-server",
+            InstallerComponentTarget.Cli => manifest.Slug,
+            InstallerComponentTarget.Tray => $"{manifest.Slug}-tray",
             _ => throw new ArgumentOutOfRangeException(nameof(target), target, null)
         };
 }

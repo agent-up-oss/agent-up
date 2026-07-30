@@ -131,17 +131,18 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
         {
             new(InstallOperationKind.ValidatePrerequisites, "Validate Docker and Windows prerequisites", false),
             new(InstallOperationKind.StagePayload, $"Use {session.Payload.Description}", false),
-            new(InstallOperationKind.InstallFiles, "Install selected Agent-Up files", true)
+            new(InstallOperationKind.InstallFiles, $"Install selected {session.ProductName} files", true)
         };
 
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
         if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterService, "Register and start agent-up-server Windows Service", true));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterService, $"Register and start {manifest.ServiceName} Windows Service", true));
         if (summary.Includes(InstallerComponent.Cli))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, "Register Agent-Up CLI on machine PATH", true));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, $"Register {manifest.CliCommandName} CLI on machine PATH", true));
         if (summary.Includes(InstallerComponent.Desktop))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, "Register Agent-Up Start Menu shortcut", true));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, $"Register {session.ProductName} Start Menu shortcut", true));
         if (summary.Includes(InstallerComponent.Tray))
-            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, "Register Agent-Up Tray for login auto-start", true));
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, $"Register {session.ProductName} Tray for login auto-start", true));
 
         operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true));
         operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate Windows installed state", false));

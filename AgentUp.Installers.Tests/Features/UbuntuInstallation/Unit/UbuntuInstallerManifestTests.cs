@@ -8,7 +8,7 @@ public class UbuntuInstallerManifestTests
     [Test]
     public void PostInstallScript_registersAndStartsService()
     {
-        var script = UbuntuInstallerManifest.PostInstallScript();
+        var script = UbuntuInstallerManifest.AgentUp().PostInstallScript();
 
         Assert.That(script, Does.Contain("systemctl enable --now agent-up-server.service"));
     }
@@ -16,7 +16,7 @@ public class UbuntuInstallerManifestTests
     [Test]
     public void PostInstallScript_doesNotRunInstallCore()
     {
-        var script = UbuntuInstallerManifest.PostInstallScript();
+        var script = UbuntuInstallerManifest.AgentUp().PostInstallScript();
 
         Assert.That(script, Does.Not.Contain("--install-core"));
     }

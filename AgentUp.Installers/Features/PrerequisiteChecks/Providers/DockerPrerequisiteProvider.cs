@@ -48,7 +48,7 @@ public sealed class DockerPrerequisiteProvider : IDockerPrerequisiteProvider
         if (parsedVersion < minimumVersion)
         {
             return new DockerStatus(DockerStatusKind.UnsupportedVersion, "Docker is too old",
-                $"Docker {parsedVersion} is installed, but Agent-Up requires Docker {minimumVersion} or newer.",
+                $"Docker {parsedVersion} is installed, but the installer requires Docker {minimumVersion} or newer.",
                 parsedVersion);
         }
 

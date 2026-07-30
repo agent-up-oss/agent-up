@@ -19,9 +19,9 @@ namespace AgentUp.Installers.Composition;
 
 public static class InstallerPlatformAdapterFactory
 {
-    public const string FakeInstallerVariable = "AGENTUP_INSTALLER_FAKE";
-    public const string PayloadRootVariable = "AGENTUP_INSTALLER_PAYLOAD_ROOT";
-    public const string NixOsLookupOnlyVariable = "AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY";
+    public const string FakeInstallerVariable = AgentUpInstallerEnvironment.FakeInstallerVariable;
+    public const string PayloadRootVariable = AgentUpInstallerEnvironment.PayloadRootVariable;
+    public const string NixOsLookupOnlyVariable = AgentUpInstallerEnvironment.NixOsLookupOnlyVariable;
 
     public static IInstallerPlatformAdapter Create()
     {
@@ -47,7 +47,7 @@ public static class InstallerPlatformAdapterFactory
             return CreateWindowsAdapter(payloadRoot);
         }
 
-        throw new PlatformNotSupportedException("Agent-Up installer does not support this operating system.");
+        throw new PlatformNotSupportedException($"{ProductManifest.AgentUp().ProductName} installer does not support this operating system.");
     }
 
     public static IInstallerPlatformAdapter CreateFake(string platformName)
@@ -111,7 +111,7 @@ public static class InstallerPlatformAdapterFactory
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
             TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
             ServiceFilePath: System.IO.Path.Join(payloadRoot, "service", manifest.ServiceUnitName),
-            IconPath: System.IO.Path.Join(payloadRoot, "icon", "Agent-Up.png"));
+            IconPath: System.IO.Path.Join(payloadRoot, "icon", ProductManifest.AgentUp().ProductName + ".png"));
 
         return new UbuntuInstallerPlatformAdapter(
             composition.Commands,
@@ -135,7 +135,7 @@ public static class InstallerPlatformAdapterFactory
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
             TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
-            IconPath: System.IO.Path.Join(payloadRoot, "icon", "Agent-Up.png"));
+            IconPath: System.IO.Path.Join(payloadRoot, "icon", ProductManifest.AgentUp().ProductName + ".png"));
 
         return new MacOsInstallerPlatformAdapter(
             composition.Commands,

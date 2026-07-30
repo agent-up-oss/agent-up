@@ -1,5 +1,6 @@
 using AgentUp.Architecture.Tests.Fixtures;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace AgentUp.Architecture.Tests.Rules;
@@ -7,6 +8,109 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class ProductIdentityBoundaries
 {
+    private static readonly string[] InstallerProductIdentityTokens =
+    [
+        "agent-up",
+        "Agent-Up",
+        "dev.agent-up",
+        "AGENTUP"
+    ];
+
+    private static readonly string[] InstallerProductIdentityAllowedFiles =
+    [
+        "AgentUp.Installers/Features/Installation/DTOs/AgentUpPayloadSelection.cs",
+        "AgentUp.Installers/Features/Installation/Models/AgentUpProductManifest.cs",
+        "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerManifest.cs",
+        "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerPaths.cs",
+        "AgentUp.Installers/Features/UbuntuInstallation/Models/AgentUpUbuntuInstallerManifest.cs",
+        "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerManifest.cs",
+        "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerPaths.cs",
+        "AgentUp.Installers/Composition/AgentUpInstallerEnvironment.cs"
+    ];
+
+    [Test]
+    public void Generic_installer_source_does_not_embed_agent_up_product_identity()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.Installers")
+            .SelectMany(path => InstallerProductIdentityViolations(root, path))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty,
+            "Agent-Up product identity strings in AgentUp.Installers must stay in explicitly AgentUp-named configuration files; generic installer code must use manifest-derived identity.");
+    }
+
+    [Test]
+    public void Generic_installer_source_scan_catches_deliberate_product_identity_violation()
+    {
+        var violations = InstallerProductIdentityViolationCases()
+            .SelectMany(testCase => InstallerProductIdentityViolationsInSource(testCase.RelativePath, testCase.Source))
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(violations, Has.Length.EqualTo(3));
+            Assert.That(violations.Any(violation => violation.Contains("agent-up", StringComparison.Ordinal)), Is.True);
+            Assert.That(violations.Any(violation => violation.Contains("AGENTUP", StringComparison.Ordinal)), Is.True);
+            Assert.That(violations.Any(violation => violation.Contains("AgentUpGenericInstallerService.cs", StringComparison.Ordinal)), Is.True);
+        });
+    }
+
+    [Test]
+    public void Generic_installer_source_scan_ignores_allowed_configuration_and_non_product_text()
+    {
+        const string testSupportSource = """
+                                         namespace AgentUp.Installers.Tests.Support;
+
+                                         public static class InstallerFixture
+                                         {
+                                             // helper comment mentions agent-up but is not generic library source
+                                             public const string ProductSlug = "agent-up";
+                                         }
+                                         """;
+        const string agentUpProductManifestSource = """
+                                                     namespace AgentUp.Installers.Features.Installation.Models;
+
+                                                     public static class ProductManifest
+                                                     {
+                                                         public const string ProductName = "Agent-Up";
+                                                         public const string EnvironmentPrefix = "AGENTUP";
+                                                     }
+                                                     """;
+        const string agentUpMacOsManifestSource = """
+                                                  namespace AgentUp.Installers.Features.MacOsInstallation.Models;
+
+                                                  public static class MacOsInstallerManifest
+                                                  {
+                                                      public const string Domain = "dev.agent-up";
+                                                  }
+                                                  """;
+        const string genericCategorySource = """
+                                             namespace AgentUp.Installers.Features.Installation.Services;
+
+                                             public sealed class InstallerComponentOperations
+                                             {
+                                                 public string[] Targets => ["Server", "Tray"];
+                                             }
+                                             """;
+
+        var violations = InstallerProductIdentityViolationsInSource(
+                "AgentUp.Installers.Tests/Support/InstallerFixture.cs",
+                testSupportSource)
+            .Concat(InstallerProductIdentityViolationsInSource(
+                "AgentUp.Installers/Features/Installation/Models/AgentUpProductManifest.cs",
+                agentUpProductManifestSource))
+            .Concat(InstallerProductIdentityViolationsInSource(
+                "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerManifest.cs",
+                agentUpMacOsManifestSource))
+            .Concat(InstallerProductIdentityViolationsInSource(
+                "AgentUp.Installers/Features/Installation/Services/InstallerComponentOperations.cs",
+                genericCategorySource))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty);
+    }
+
     [Test]
     public void Packaging_does_not_depend_on_installer_product_session_models()
     {
@@ -91,6 +195,84 @@ public sealed class ProductIdentityBoundaries
                 || name.StartsWith(forbiddenNamespace + ".", StringComparison.Ordinal))
                 yield return $"{ArchitectureFixture.Location(root, path, tree, memberAccess)}: {name}";
         }
+    }
+
+    private static IEnumerable<string> InstallerProductIdentityViolations(string root, string path)
+    {
+        var relativePath = ArchitectureFixture.Relative(root, path);
+        var source = File.ReadAllText(path);
+        return InstallerProductIdentityViolationsInSource(relativePath, source);
+    }
+
+    private static IEnumerable<string> InstallerProductIdentityViolationsInSource(string relativePath, string source)
+    {
+        if (!relativePath.StartsWith("AgentUp.Installers/", StringComparison.Ordinal)
+            && !relativePath.StartsWith("AgentUp.Installers" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            return [];
+
+        var normalizedPath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+        if (InstallerProductIdentityAllowedFiles.Contains(normalizedPath, StringComparer.Ordinal))
+            return [];
+
+        var tree = CSharpSyntaxTree.ParseText(source);
+        var rootNode = tree.GetCompilationUnitRoot();
+
+        var literalViolations = rootNode.DescendantNodes()
+            .OfType<LiteralExpressionSyntax>()
+            .Where(literal => literal.Token.Value is string value && ContainsProductIdentityToken(value))
+            .Select(literal => (Node: (SyntaxNode)literal, Value: (string)literal.Token.Value!, Kind: "string literal"));
+
+        var interpolatedTextViolations = rootNode.DescendantNodes()
+            .OfType<InterpolatedStringTextSyntax>()
+            .Select(text => (Node: (SyntaxNode)text, Value: text.TextToken.ValueText, Kind: "interpolated string text"))
+            .Where(item => ContainsProductIdentityToken(item.Value));
+
+        return literalViolations
+            .Concat(interpolatedTextViolations)
+            .Select(item => $"{relativePath}:{Line(tree, item.Node)}: {item.Kind} contains '{MatchingProductIdentityToken(item.Value!)}'");
+    }
+
+    private static bool ContainsProductIdentityToken(string value)
+        => InstallerProductIdentityTokens.Any(token => value.Contains(token, StringComparison.Ordinal));
+
+    private static string MatchingProductIdentityToken(string value)
+        => InstallerProductIdentityTokens.First(token => value.Contains(token, StringComparison.Ordinal));
+
+    private static int Line(SyntaxTree tree, SyntaxNode node)
+        => tree.GetLineSpan(node.Span).StartLinePosition.Line + 1;
+
+    private static IEnumerable<(string RelativePath, string Source)> InstallerProductIdentityViolationCases()
+    {
+        yield return (
+            "AgentUp.Installers/Features/Installation/Services/GenericInstallerService.cs",
+            """
+            namespace AgentUp.Installers.Features.Installation.Services;
+
+            public sealed class GenericInstallerService
+            {
+                public string ServiceName => "agent-up";
+            }
+            """);
+        yield return (
+            "AgentUp.Installers/Features/Installation/Services/GenericEnvironmentService.cs",
+            """
+            namespace AgentUp.Installers.Features.Installation.Services;
+
+            public sealed class GenericEnvironmentService
+            {
+                public string PayloadRootVariable => "AGENTUP_INSTALLER_PAYLOAD_ROOT";
+            }
+            """);
+        yield return (
+            "AgentUp.Installers/Features/Installation/Services/AgentUpGenericInstallerService.cs",
+            """
+            namespace AgentUp.Installers.Features.Installation.Services;
+
+            public sealed class AgentUpGenericInstallerService
+            {
+                public string ServiceName => "agent-up";
+            }
+            """);
     }
 
     private static IEnumerable<(ConstructorDeclarationSyntax Constructor, string Location)> Constructors(string root, string path)

@@ -30,11 +30,23 @@ public sealed class ProjectDependencies
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.InstallerApp")
-            .SelectMany(path => InstallerAppCapabilityReferences(root, path))
+            .SelectMany(path => CapabilityReferencesFromNonAgentUpTypes(root, path))
             .ToArray();
 
         Assert.That(violations, Is.Empty,
             "InstallerApp product-generic types must use InstallerApp-owned capability catalog contracts instead of compile-time references to AgentUp.Capabilities.");
+    }
+
+    [Test]
+    public void Generic_installer_types_do_not_reference_capabilities_namespace()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.Installers")
+            .SelectMany(path => CapabilityReferencesFromNonAgentUpTypes(root, path))
+            .ToArray();
+
+        Assert.That(violations, Is.Empty,
+            "Generic installer types must not take compile-time references to AgentUp.Capabilities.*; product-specific AgentUp configuration types are the only installer layer allowed to know Agent-Up identity.");
     }
 
     private static void AssertDoesNotDependOn(string sourceAssembly, IReadOnlyCollection<string> allowedAssemblies)
@@ -53,7 +65,7 @@ public sealed class ProjectDependencies
 
     private static string[] Except(params string[] allowed) => allowed;
 
-    private static IEnumerable<string> InstallerAppCapabilityReferences(string root, string path)
+    private static IEnumerable<string> CapabilityReferencesFromNonAgentUpTypes(string root, string path)
     {
         var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
         var hasNonAgentUpType = rootNode.DescendantNodes()
