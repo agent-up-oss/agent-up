@@ -8,8 +8,16 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(ExcludeAgentUpProductConfiguration)' == 'true'">
+    <DefineConstants>$(DefineConstants);EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.Installers\AgentUp.Installers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ExcludeAgentUpProductConfiguration)' == 'true'">
+    <Compile Remove="**/AgentUp*.cs" />
   </ItemGroup>
 
 </Project>

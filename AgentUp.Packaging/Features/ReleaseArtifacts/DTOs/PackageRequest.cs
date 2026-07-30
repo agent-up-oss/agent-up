@@ -2,7 +2,7 @@ using AgentUp.Packaging.Shared.Providers;
 
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 
-public sealed record PackageRequest
+public sealed partial record PackageRequest
 {
     public PackageRequest(
         string repositoryRoot,
@@ -11,8 +11,8 @@ public sealed record PackageRequest
         string version,
         string outputDirectory,
         string configuration,
-        string? payloadRoot = null,
-        PackageProductManifest? productManifest = null)
+        string? payloadRoot,
+        PackageProductManifest productManifest)
     {
         RepositoryRoot = PackagePathValidator.RequireFullyQualifiedPath(repositoryRoot, nameof(RepositoryRoot));
         Platform = platform;
@@ -27,7 +27,7 @@ public sealed record PackageRequest
         PayloadRoot = payloadRoot is null
             ? null
             : PackagePathValidator.ResolveRootOrRelativeUnderRoot(RepositoryRoot, payloadRoot!, nameof(PayloadRoot));
-        ProductManifest = productManifest ?? PackageProductManifest.AgentUp();
+        ProductManifest = productManifest;
         PackageProductManifest.Validate(ProductManifest);
         PackagePathValidator.RequireSafePathComponent(ProductManifest.Slug, nameof(ProductManifest.Slug));
     }

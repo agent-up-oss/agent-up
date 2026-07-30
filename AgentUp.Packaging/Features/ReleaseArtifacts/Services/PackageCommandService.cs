@@ -6,7 +6,7 @@ using AgentUp.Packaging.Features.WindowsPackages.Controllers;
 
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.Services;
 
-public sealed class PackageCommandService
+public sealed partial class PackageCommandService
 {
     private readonly IPackageCommandParser _parser;
     private readonly IRepositoryPathProvider _repositoryPaths;
@@ -14,6 +14,7 @@ public sealed class PackageCommandService
     private readonly IUbuntuPackageController _ubuntu;
     private readonly IWindowsPackageController _windows;
     private readonly IMacOsPackageController _macOs;
+    private readonly PackageProductManifest _productManifest;
 
     public PackageCommandService(
         IPackageCommandParser parser,
@@ -21,7 +22,8 @@ public sealed class PackageCommandService
         IEnvironmentVariableProvider environment,
         IUbuntuPackageController ubuntu,
         IWindowsPackageController windows,
-        IMacOsPackageController macOs)
+        IMacOsPackageController macOs,
+        PackageProductManifest productManifest)
     {
         _parser = parser;
         _repositoryPaths = repositoryPaths;
@@ -29,6 +31,8 @@ public sealed class PackageCommandService
         _ubuntu = ubuntu;
         _windows = windows;
         _macOs = macOs;
+        _productManifest = productManifest;
+        PackageProductManifest.Validate(_productManifest);
     }
 
     public async Task<int> ExecuteAsync(
@@ -62,7 +66,8 @@ public sealed class PackageCommandService
                 command.Version,
                 command.OutputDirectory,
                 _environment.Get("CONFIGURATION") ?? "Release",
-                command.PayloadRoot);
+                command.PayloadRoot,
+                _productManifest);
         }
         catch (ArgumentException exception)
         {
