@@ -106,6 +106,27 @@ public class NixPackagingWrapperTests
     }
 
     [Test]
+    public void PackageRelease_generatesNixServicesWithPinnedRuntimeRoots()
+    {
+        var script = Path.Join(Root, "scripts", "package-release.sh");
+
+        var text = File.ReadAllText(script);
+        var nixOsService = ExtractBetween(text, "systemd.services.agent-up-server = {", "homeManagerModules.default");
+        var homeManagerService = ExtractBetween(text, "systemd.user.services.agent-up-server = lib.mkIf cfg.server.enable {", "Install.WantedBy");
+
+        Assert.That(nixOsService, Does.Contain("WorkingDirectory = \"${package}/opt/agent-up/server\""));
+        Assert.That(nixOsService, Does.Contain("ASPNETCORE_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(nixOsService, Does.Contain("DOTNET_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(nixOsService, Does.Contain("DOTNET_BUNDLE_EXTRACT_BASE_DIR = \"/var/cache/agent-up\""));
+        Assert.That(nixOsService, Does.Contain("CacheDirectory = \"agent-up\""));
+
+        Assert.That(homeManagerService, Does.Contain("WorkingDirectory = \"${package}/opt/agent-up/server\""));
+        Assert.That(homeManagerService, Does.Contain("\"ASPNETCORE_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(homeManagerService, Does.Contain("\"DOTNET_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(homeManagerService, Does.Contain("\"DOTNET_BUNDLE_EXTRACT_BASE_DIR=${config.xdg.cacheHome}/agent-up\""));
+    }
+
+    [Test]
     public void PackageRelease_generatesNixInstallerAppLauncherInLookupOnlyMode()
     {
         var script = Path.Join(Root, "scripts", "package-release.sh");
@@ -184,5 +205,16 @@ public class NixPackagingWrapperTests
         }
 
         throw new InvalidOperationException($"Could not find repository root from {startDirectory}.");
+    }
+
+    private static string ExtractBetween(string text, string start, string end)
+    {
+        var startIndex = text.IndexOf(start, StringComparison.Ordinal);
+        Assert.That(startIndex, Is.GreaterThanOrEqualTo(0), $"Missing start marker: {start}");
+
+        var endIndex = text.IndexOf(end, startIndex + start.Length, StringComparison.Ordinal);
+        Assert.That(endIndex, Is.GreaterThan(startIndex), $"Missing end marker: {end}");
+
+        return text[startIndex..endIndex];
     }
 }
