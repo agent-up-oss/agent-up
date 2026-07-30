@@ -14,22 +14,22 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
-        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat: add thing", ["a.cs"], []));
+        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"], []));
 
         Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(1));
         Assert.That(queue.Stored.Commits[0].Slice, Is.EqualTo("MySlice"));
-        Assert.That(queue.Stored.Commits[0].Message, Is.EqualTo("feat: add thing"));
+        Assert.That(queue.Stored.Commits[0].Message, Is.EqualTo("feat(MySlice): add thing"));
         Assert.That(queue.Stored.Commits[0].Files, Is.EqualTo(new[] { "a.cs" }));
     }
 
     [Test]
     public async Task EnqueueAsync_appendsToExistingQueue()
     {
-        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix: first", ["x.cs"], [])]);
+        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"], [])]);
         var queue = new FakeCommitsQueueProvider(existing);
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
-        await service.EnqueueAsync(new EnqueueRequest("Second", "fix: second", ["y.cs"], []));
+        await service.EnqueueAsync(new EnqueueRequest("Second", "fix(Second): second", ["y.cs"], []));
 
         Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(2));
         Assert.That(queue.Stored.Commits[1].Slice, Is.EqualTo("Second"));
@@ -87,7 +87,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_stagesHeadEntryAndStoresEmptyQueueWhenNowEmpty()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git);
@@ -105,8 +105,8 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_popsHeadAndKeepsRemainingEntries()
     {
-        var first = new CommitEntry("First", "fix: first", ["a.cs"], []);
-        var second = new CommitEntry("Second", "fix: second", ["b.cs"], []);
+        var first = new CommitEntry("First", "fix(First): first", ["a.cs"], []);
+        var second = new CommitEntry("Second", "fix(Second): second", ["b.cs"], []);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [first, second]));
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git);
@@ -123,7 +123,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_resetsStagingBeforeStaging()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git);
@@ -141,7 +141,7 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git);
 
-        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat: add thing", ["a.cs"], []));
+        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"], []));
 
         Assert.That(git.DiffRequested, Is.True);
         var entry = queue.Stored!.Commits.Single();
@@ -156,7 +156,7 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git);
 
-        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat: add thing", ["a.cs"], []));
+        await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"], []));
 
         Assert.That(git.FilesRestored, Is.True);
         Assert.That(git.Invocations.IndexOf("diff:a.cs"), Is.LessThan(git.Invocations.IndexOf("restore:a.cs")));
@@ -165,7 +165,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_appliesSavedPatchBeforeStaging()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
         var git = new FakeCommitsGitProvider();
@@ -180,7 +180,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_whenStagedChangesExist_returnsBlockedResult()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
         var service = new CommitsService(queue, git);
@@ -195,7 +195,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_whenGitOperationIsActive_returnsBlockedResultWithoutApplyingPatch()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
         var git = new FakeCommitsGitProvider(operationState: new GitOperationState("merge", true));
@@ -215,30 +215,82 @@ public sealed class CommitsServiceTests
     public void EnqueueAsync_rejectsFilesAlreadyAssignedToAnotherEntry()
     {
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("First", "fix: first", ["a.cs"], [], "entry-1")
+            new CommitEntry("First", "fix(First): first", ["a.cs"], [], "entry-1")
         ]));
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await service.EnqueueAsync(new EnqueueRequest("Second", "fix: second", ["a.cs"], [])));
+            await service.EnqueueAsync(new EnqueueRequest("Second", "fix(Second): second", ["a.cs"], [])));
     }
 
     [Test]
     public void EnqueueAsync_rejectsReviewIssueAlreadyAssignedWithDifferentWhitespace()
     {
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("First", "fix: first", ["a.cs"], [], "entry-1", ReviewIssueId: " review-42 ")
+            new CommitEntry("First", "fix(First): first", ["a.cs"], [], "entry-1", ReviewIssueId: " review-42 ")
         ]));
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await service.EnqueueAsync(new EnqueueRequest("Second", "fix: second", ["b.cs"], [], "review-42")));
+            await service.EnqueueAsync(new EnqueueRequest("Second", "fix(Second): second", ["b.cs"], [], "review-42")));
+    }
+
+    [Test]
+    public void EnqueueAsync_rejectsCommitMessageWithoutSliceScope()
+    {
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.EnqueueAsync(new EnqueueRequest("Commits", "fix: validate queue", ["a.cs"], [])));
+
+        Assert.That(ex!.Message, Does.Contain("must include a scope"));
+    }
+
+    [Test]
+    public void EnqueueAsync_rejectsCommitMessageScopeThatDoesNotMatchQueuedSlice()
+    {
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.EnqueueAsync(new EnqueueRequest("Commits", "fix(Workspaces): validate queue", ["a.cs"], [])));
+
+        Assert.That(ex!.Message, Does.Contain("does not match queued slice"));
+    }
+
+    [Test]
+    public void EnqueueAsync_rejectsChoreCommitWithSourceFile()
+    {
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.EnqueueAsync(new EnqueueRequest(
+                "Commits",
+                "chore(Commits): tune queue internals",
+                ["AgentUp.CLI/Features/Commits/Services/CommitsService.cs"],
+                [])));
+
+        Assert.That(ex!.Message, Does.Contain("chore commits may only include maintenance"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_allowsTestCommitWithSmokeValidationFile()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+
+        await service.EnqueueAsync(new EnqueueRequest(
+            "SmokeRuns",
+            "test(SmokeRuns): cover package smoke validation",
+            ["AgentUp.PackageSmoke/Features/SmokeRuns/Services/SmokeRunService.cs"],
+            []));
+
+        Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(1));
     }
 
     [Test]
     public async Task StageNextAsync_whenEditSessionIsActive_returnsBlockedResult()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
@@ -252,7 +304,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task BeginEditAsync_appliesPatchAndStoresActiveSession()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
         var git = new FakeCommitsGitProvider();
@@ -268,7 +320,7 @@ public sealed class CommitsServiceTests
     [Test]
     public void BeginEditAsync_whenPatchApplyFails_doesNotStoreActiveSession()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
         var service = new CommitsService(queue, new FakeCommitsGitProvider(throwOnApply: true));
@@ -280,7 +332,7 @@ public sealed class CommitsServiceTests
     [Test]
     public void AddFilesAsync_rejectsEntryCurrentlyUnderEdit()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 
@@ -291,7 +343,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task SaveEditAsync_rejectsChangesOutsideEntryFiles()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs", "other.cs"]);
         var service = new CommitsService(queue, git);
@@ -305,7 +357,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task SaveEditAsync_capturesNewPatchAndClearsSession()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1", "patch-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1", "patch-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "patch-1", ["a.cs"])));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs"]);
         var service = new CommitsService(queue, git);
@@ -322,7 +374,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task GuardAsync_failsWhenQueueHasEntries()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         var service = new CommitsService(queue, new FakeCommitsGitProvider());
 

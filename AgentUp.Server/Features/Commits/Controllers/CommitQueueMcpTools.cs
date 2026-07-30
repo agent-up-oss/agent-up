@@ -9,23 +9,23 @@ namespace AgentUp.Server.Features.Commits.Controllers;
 public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
 {
     [McpServerTool(Name = "enqueue_commit", Title = "Enqueue Commit")]
-    [Description("Use at the end of a task to declare a vertical-slice commit for developer review. Enqueues files and a commit message into the commit queue; the files are saved as a patch and restored to their pre-change state. Conventional commit prefixes must be correct: feat is a user-facing addition, fix is a user-facing fix, chore is an internal non-runtime change, refactor is an internal no-behavior change, style is CSS/HTML only, and docs is documentation only. The developer then runs 'agentup commits next' to stage and commit each entry. Do NOT call git add, git commit, or git stash directly.")]
+    [Description("Use at the end of a task to declare a vertical-slice commit for developer review. Enqueues files and a commit message into the commit queue; the files are saved as a patch and restored to their pre-change state. Conventional commit messages must be scoped to the queued slice, such as fix(Commits): validate queue metadata. Prefixes must be correct: feat is a user-facing addition, fix is a user-facing fix, test is a test-only or smoke-validation change, chore is maintenance/packaging/CI/tooling with no customer runtime effect, refactor is an internal no-behavior source change, style is CSS/HTML only, and docs is documentation only. Follow any prompts.commitPolicy guidance in agent-up.json. The developer then runs 'agentup commits next' to stage each entry. Do NOT call git add, git commit, or git stash directly.")]
     public Task<McpToolResult> EnqueueCommit(
         [Description("Absolute path to the repository worktree.")] string worktreePath,
-        [Description("Short slice label identifying the logical unit of change, e.g. 'feat/auth-middleware'.")] string slice,
-        [Description("Conventional commit message using the correct prefix: feat for user-facing additions, fix for user-facing fixes, chore for internal non-runtime changes, refactor for internal no-behavior changes, style for CSS/HTML only, docs for documentation only.")] string message,
+        [Description("Short slice label identifying the logical unit of change, e.g. 'Commits' or 'UbuntuInstallation'.")] string slice,
+        [Description("Conventional commit message scoped to the queued slice, e.g. fix(Commits): validate queue metadata. Use feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, chore for maintenance/packaging/CI/tooling with no customer runtime effect, refactor for internal no-behavior source changes, style for CSS/HTML only, and docs for documentation only.")] string message,
         [Description("Repo-relative file paths to include in this commit entry. At least one required.")] IReadOnlyList<string> files,
         [Description("Optional test commands to attach to this entry, e.g. 'dotnet test'. The developer sees these as a checklist before committing.")] IReadOnlyList<string>? tests,
         CancellationToken cancellationToken)
         => service.EnqueueCommit(worktreePath, slice, message, files, tests, cancellationToken);
 
     [McpServerTool(Name = "enqueue_review_fix_commit", Title = "Enqueue Review Fix Commit")]
-    [Description("Use when fixing pull request review feedback. Enqueues exactly one review issue violation fix with a required stable reviewIssueId. Do not combine multiple review issues in one commit. Use the correct conventional commit prefix: fix for user-facing fixes, chore/refactor for internal no-behavior changes, style for CSS/HTML only, and docs for documentation only.")]
+    [Description("Use when fixing pull request review feedback. Enqueues exactly one review issue violation fix with a required stable reviewIssueId. Do not combine multiple review issues in one commit. Use a conventional commit message scoped to the queued slice. Use fix for user-facing fixes, test for test-only or smoke-validation changes, chore for maintenance/packaging/CI/tooling with no customer runtime effect, refactor for internal no-behavior source changes, style for CSS/HTML only, and docs for documentation only.")]
     public Task<McpToolResult> EnqueueReviewFixCommit(
         [Description("Absolute path to the repository worktree.")] string worktreePath,
         [Description("Stable review issue or review-thread id represented by this single queued commit.")] string reviewIssueId,
         [Description("Short slice label identifying the logical unit of change, e.g. 'Commits'.")] string slice,
-        [Description("Conventional commit message using the correct prefix: feat for user-facing additions, fix for user-facing fixes, chore for internal non-runtime changes, refactor for internal no-behavior changes, style for CSS/HTML only, docs for documentation only.")] string message,
+        [Description("Conventional commit message scoped to the queued slice, e.g. fix(Commits): validate queue metadata. Use feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, chore for maintenance/packaging/CI/tooling with no customer runtime effect, refactor for internal no-behavior source changes, style for CSS/HTML only, and docs for documentation only.")] string message,
         [Description("Repo-relative file paths to include in this review-fix commit entry. At least one required.")] IReadOnlyList<string> files,
         [Description("Optional test commands to attach to this entry, e.g. 'dotnet test'.")] IReadOnlyList<string>? tests,
         CancellationToken cancellationToken)
@@ -62,7 +62,7 @@ public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
         => service.InspectCommit(worktreePath, entryRef, includePatch, cancellationToken);
 
     [McpServerTool(Name = "update_commit_message", Title = "Update Commit Message")]
-    [Description("Updates the conventional commit message for a queued entry without editing the queue file directly. The prefix must follow Agent-Up rules: feat is a user-facing addition, fix is a user-facing fix, chore is an internal non-runtime change, refactor is an internal no-behavior change, style is CSS/HTML only, and docs is documentation only.")]
+    [Description("Updates the conventional commit message for a queued entry without editing the queue file directly. The message must remain scoped to the queued slice. Prefixes must follow Agent-Up rules: feat is a user-facing addition, fix is a user-facing fix, test is a test-only or smoke-validation change, chore is maintenance/packaging/CI/tooling with no customer runtime effect, refactor is an internal no-behavior source change, style is CSS/HTML only, and docs is documentation only.")]
     public Task<McpToolResult> UpdateCommitMessage(
         [Description("Absolute path to the repository worktree.")] string worktreePath,
         [Description("Queued entry index, starting at 1, or queued entry id.")] string entryRef,

@@ -14,7 +14,7 @@ public sealed class CommitsUtilityCommandTests
     public async Task Changes_jsonFormat_writesAssignedAndUnassignedFiles()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], [], "entry-1");
         var command = BuildController(output, new CommitsQueue(2, [entry]), modifiedFiles: ["queued.cs", "loose.cs"]);
 
         var code = await command.RunAsync(["changes", "--format", "json"]);
@@ -58,7 +58,7 @@ public sealed class CommitsUtilityCommandTests
     public async Task Guard_whenQueueHasEntry_returnsNonZero()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], [], "entry-1");
         var command = BuildController(output, new CommitsQueue(2, [entry]));
 
         var code = await command.RunAsync(["guard"]);
@@ -71,7 +71,7 @@ public sealed class CommitsUtilityCommandTests
     public async Task EditBegin_jsonFormat_returnsSession()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         queue.Patches["entry-1"] = "diff --git a/queued.cs b/queued.cs\n";
         var command = BuildController(output, queueProvider: queue);
@@ -88,7 +88,7 @@ public sealed class CommitsUtilityCommandTests
     public async Task Inspect_whenFormatPrecedesEntry_usesEntryReference()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], [], "entry-1");
         var command = BuildController(output, new CommitsQueue(2, [entry]));
 
         var code = await command.RunAsync(["inspect", "--format", "json", "1"]);
@@ -102,7 +102,7 @@ public sealed class CommitsUtilityCommandTests
     public async Task EditBegin_whenFormatPrecedesVerb_usesVerbAndEntryReference()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         queue.Patches["entry-1"] = "diff --git a/queued.cs b/queued.cs\n";
         var command = BuildController(output, queueProvider: queue);
@@ -118,22 +118,22 @@ public sealed class CommitsUtilityCommandTests
     public async Task Message_whenFormatPrecedesEntry_usesEntryReference()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         var command = BuildController(output, queueProvider: queue);
 
-        var code = await command.RunAsync(["message", "--format", "json", "1", "--message", "fix: updated"]);
+        var code = await command.RunAsync(["message", "--format", "json", "1", "--message", "fix(Slice): updated"]);
 
         using var json = JsonDocument.Parse(output.ToString());
         Assert.That(code, Is.EqualTo(0));
-        Assert.That(json.RootElement.GetProperty("entry").GetProperty("message").GetString(), Is.EqualTo("fix: updated"));
+        Assert.That(json.RootElement.GetProperty("entry").GetProperty("message").GetString(), Is.EqualTo("fix(Slice): updated"));
     }
 
     [Test]
     public async Task Remove_archivesEntry()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["queued.cs"], [], "entry-1");
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         var command = BuildController(output, queueProvider: queue);
 

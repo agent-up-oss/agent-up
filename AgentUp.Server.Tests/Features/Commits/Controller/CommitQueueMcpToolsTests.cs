@@ -28,7 +28,7 @@ public sealed class CommitQueueMcpToolsTests
         var result = await _tools.EnqueueCommit(
             "/repos/app",
             "feat/new-thing",
-            "feat: add new thing",
+            "feat(new-thing): add new thing",
             ["src/Thing.cs"],
             null,
             CancellationToken.None);
@@ -42,7 +42,7 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task GuardCommits_BlocksNewWork_WhenQueueHasEntry()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat: m", ["a.cs"], null, CancellationToken.None);
+        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], null, CancellationToken.None);
 
         var result = await _tools.GuardCommits("/repos/app", CancellationToken.None);
 
@@ -100,7 +100,7 @@ public sealed class CommitQueueMcpToolsTests
     public async Task GetCommitChanges_ReturnsQueueAssignment()
     {
         _git.ModifiedFiles = ["queued.cs", "loose.cs"];
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat: m", ["queued.cs"], null, CancellationToken.None);
+        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["queued.cs"], null, CancellationToken.None);
 
         var result = await _tools.GetCommitChanges("/repos/app", CancellationToken.None);
 
@@ -113,16 +113,16 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task CommitMetadataTools_UpdateQueuedEntry()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat: m", ["a.cs"], null, CancellationToken.None);
+        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], null, CancellationToken.None);
 
-        var message = await _tools.UpdateCommitMessage("/repos/app", "1", "fix: updated", CancellationToken.None);
+        var message = await _tools.UpdateCommitMessage("/repos/app", "1", "fix(s): updated", CancellationToken.None);
         var tests = await _tools.UpdateCommitTests("/repos/app", "1", ["dotnet test"], CancellationToken.None);
         var files = await _tools.AddCommitFiles("/repos/app", "1", ["b.cs"], CancellationToken.None);
 
         Assert.That(message.Succeeded, Is.True);
         Assert.That(tests.Succeeded, Is.True);
         Assert.That(files.Succeeded, Is.True);
-        Assert.That(_queue.Stored!.Commits[0].Message, Is.EqualTo("fix: updated"));
+        Assert.That(_queue.Stored!.Commits[0].Message, Is.EqualTo("fix(s): updated"));
         Assert.That(_queue.Stored.Commits[0].Tests, Is.EqualTo(new[] { "dotnet test" }));
         Assert.That(_queue.Stored.Commits[0].Files, Is.EqualTo(new[] { "a.cs", "b.cs" }));
     }
@@ -130,7 +130,7 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task CommitArchiveTools_RemoveAndRestoreEntry()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat: m", ["a.cs"], null, CancellationToken.None);
+        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], null, CancellationToken.None);
         var entryId = _queue.Stored!.Commits[0].Id;
 
         var removed = await _tools.RemoveCommit("/repos/app", "1", CancellationToken.None);
@@ -144,7 +144,7 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task CommitEditTools_BeginAndAbortSession()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat: m", ["a.cs"], null, CancellationToken.None);
+        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], null, CancellationToken.None);
 
         var begin = await _tools.BeginCommitEdit("/repos/app", "1", CancellationToken.None);
         var abort = await _tools.AbortCommitEdit("/repos/app", CancellationToken.None);
@@ -169,9 +169,13 @@ public sealed class CommitQueueMcpToolsTests
         Assert.That(description, Does.Contain("Do NOT call git add"));
         Assert.That(description, Does.Contain("git commit"));
         Assert.That(description, Does.Contain("git stash"));
+        Assert.That(description, Does.Contain("scoped to the queued slice"));
         Assert.That(description, Does.Contain("feat is a user-facing addition"));
+        Assert.That(description, Does.Contain("test is a test-only or smoke-validation change"));
+        Assert.That(description, Does.Contain("chore is maintenance/packaging/CI/tooling"));
         Assert.That(description, Does.Contain("style is CSS/HTML only"));
         Assert.That(description, Does.Contain("docs is documentation only"));
+        Assert.That(description, Does.Contain("prompts.commitPolicy"));
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider

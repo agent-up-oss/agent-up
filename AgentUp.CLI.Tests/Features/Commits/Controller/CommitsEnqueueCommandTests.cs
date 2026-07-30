@@ -64,7 +64,7 @@ public sealed class CommitsEnqueueCommandTests
         using var output = new StringWriter();
         var command = BuildCommand(output);
 
-        var code = await command.RunAsync(["--slice", "MySlice", "--message", "feat: thing", "--files", "a.cs"]);
+        var code = await command.RunAsync(["--slice", "MySlice", "--message", "feat(MySlice): thing", "--files", "a.cs"]);
 
         Assert.That(code, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("MySlice"));
@@ -77,7 +77,7 @@ public sealed class CommitsEnqueueCommandTests
         var queue = new FakeCommitsQueueProvider();
         var command = BuildCommand(output, queue);
 
-        await command.RunAsync(["--slice", "MySlice", "--message", "feat: thing", "--files", "a.cs", "b.cs"]);
+        await command.RunAsync(["--slice", "MySlice", "--message", "feat(MySlice): thing", "--files", "a.cs", "b.cs"]);
 
         Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(1));
         Assert.That(queue.Stored.Commits[0].Slice, Is.EqualTo("MySlice"));
@@ -88,10 +88,10 @@ public sealed class CommitsEnqueueCommandTests
     public async Task RunAsync_validArgs_outputIncludesTotalCount()
     {
         using var output = new StringWriter();
-        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix: first", ["x.cs"], [])]);
+        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"], [])]);
         var command = BuildCommand(output, new FakeCommitsQueueProvider(existing));
 
-        await command.RunAsync(["--slice", "Second", "--message", "feat: second", "--files", "y.cs"]);
+        await command.RunAsync(["--slice", "Second", "--message", "feat(Second): second", "--files", "y.cs"]);
 
         Assert.That(output.ToString(), Does.Contain("2"));
     }
@@ -103,7 +103,7 @@ public sealed class CommitsEnqueueCommandTests
         var queue = new FakeCommitsQueueProvider();
         var command = BuildCommand(output, queue);
 
-        await command.RunAsync(["--slice", "S", "--message", "msg", "--files", "a.cs", "--tests", "dotnet test Foo"]);
+        await command.RunAsync(["--slice", "S", "--message", "fix(S): update queue", "--files", "a.cs", "--tests", "dotnet test Foo"]);
 
         Assert.That(queue.Stored!.Commits[0].Tests, Is.EqualTo(new[] { "dotnet test Foo" }));
     }

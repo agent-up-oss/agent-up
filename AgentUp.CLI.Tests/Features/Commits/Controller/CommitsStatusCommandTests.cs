@@ -26,13 +26,13 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_singleEntry_writesSliceAndMessage()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [new CommitEntry("MySlice", "feat: thing", ["a.cs"], [])]);
+        var queue = new CommitsQueue(1, [new CommitEntry("MySlice", "feat(MySlice): thing", ["a.cs"], [])]);
         var command = BuildCommand(output, queue: queue);
 
         await command.RunAsync();
 
         Assert.That(output.ToString(), Does.Contain("MySlice"));
-        Assert.That(output.ToString(), Does.Contain("feat: thing"));
+        Assert.That(output.ToString(), Does.Contain("feat(MySlice): thing"));
     }
 
     [Test]
@@ -40,8 +40,8 @@ public sealed class CommitsStatusCommandTests
     {
         using var output = new StringWriter();
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix: first", ["a.cs"], []),
-            new CommitEntry("Second", "fix: second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"], []),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
         ]);
         var command = BuildCommand(output, queue: queue);
 
@@ -98,8 +98,8 @@ public sealed class CommitsStatusCommandTests
     {
         using var output = new StringWriter();
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix: first", ["a.cs"], [], "entry-1", ReviewIssueId: "review-42"),
-            new CommitEntry("Second", "fix: second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"], [], "entry-1", ReviewIssueId: "review-42"),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
         ]);
         var command = BuildCommand(output, queue: queue, operationState: new GitOperationState("merge", true));
 
@@ -112,10 +112,10 @@ public sealed class CommitsStatusCommandTests
         Assert.That(json.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(2));
         Assert.That(entries.GetArrayLength(), Is.EqualTo(2));
         Assert.That(entries[0].GetProperty("slice").GetString(), Is.EqualTo("First"));
-        Assert.That(entries[0].GetProperty("message").GetString(), Is.EqualTo("fix: first"));
+        Assert.That(entries[0].GetProperty("message").GetString(), Is.EqualTo("fix(First): first"));
         Assert.That(entries[0].GetProperty("reviewIssueId").GetString(), Is.EqualTo("review-42"));
         Assert.That(entries[1].GetProperty("slice").GetString(), Is.EqualTo("Second"));
-        Assert.That(entries[1].GetProperty("message").GetString(), Is.EqualTo("fix: second"));
+        Assert.That(entries[1].GetProperty("message").GetString(), Is.EqualTo("fix(Second): second"));
         Assert.That(operationState.GetProperty("kind").GetString(), Is.EqualTo("merge"));
         Assert.That(operationState.GetProperty("blocking").GetBoolean(), Is.True);
     }
