@@ -7,6 +7,9 @@ const MAX_TOKENS = 700;
 const PROMPT_FILE = ".github/prompts/issue-intake.prompt.yml";
 const PROMPT_STEM = "issue-intake";
 const REVIEW_LABEL = "request ai review";
+const FETCH_TIMEOUT_MS = 30_000;
+
+const VALID_ASSESSMENTS = new Set(["ready", "needs clarification", "unsure"]);
 
 const labels = {
   intake: {
@@ -76,7 +79,10 @@ function extractAssessmentLabel(aiResponse) {
   for (const line of aiResponse.split("\n")) {
     const match = line.match(assessmentRegex);
     if (match?.[1]?.trim()) {
-      assessment = match[1].trim().toLowerCase();
+      const extracted = match[1].trim().toLowerCase();
+      if (VALID_ASSESSMENTS.has(extracted)) {
+        assessment = extracted;
+      }
     }
   }
 
@@ -94,6 +100,7 @@ async function githubRequest(method, path, body = undefined) {
       "X-GitHub-Api-Version": API_VERSION,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (response.status === 204) {
@@ -101,12 +108,11 @@ async function githubRequest(method, path, body = undefined) {
   }
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : undefined;
   if (!response.ok) {
     throw new Error(`${method} ${path} failed with ${response.status}: ${text}`);
   }
 
-  return data;
+  return text ? JSON.parse(text) : undefined;
 }
 
 async function ensureLabel(owner, repo, label) {
@@ -117,6 +123,7 @@ async function ensureLabel(owner, repo, label) {
       Authorization: `Bearer ${requiredEnv("GITHUB_TOKEN")}`,
       "X-GitHub-Api-Version": API_VERSION,
     },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (existing.status === 200) {
@@ -128,7 +135,11 @@ async function ensureLabel(owner, repo, label) {
     throw new Error(`GET ${path} failed with ${existing.status}: ${text}`);
   }
 
-  await githubRequest("POST", `/repos/${owner}/${repo}/labels`, label);
+  try {
+    await githubRequest("POST", `/repos/${owner}/${repo}/labels`, label);
+  } catch (err) {
+    if (!/\b422\b/.test(err.message)) throw err;
+  }
 }
 
 async function callModel(systemPrompt, issueInput) {
@@ -148,6 +159,7 @@ async function callModel(systemPrompt, issueInput) {
         { role: "user", content: issueInput },
       ],
     }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   const text = await response.text();
@@ -190,27 +202,29 @@ async function main() {
     labels: [labels.intake.name, labels.review.name],
   });
 
-  const aiResponse = await callModel(systemPrompt, issueInput);
-  const assessmentLabel = extractAssessmentLabel(aiResponse);
-  await ensureLabel(owner, repo, {
-    name: assessmentLabel,
-    color: "ededed",
-    description: "AI issue intake assessment result",
-  });
-  await githubRequest("POST", `/repos/${owner}/${repo}/issues/${issueNumber}/labels`, {
-    labels: [assessmentLabel],
-  });
-
-  if (!/<!-- no-comment -->/i.test(aiResponse)) {
-    await githubRequest("POST", `/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
-      body: aiResponse,
+  try {
+    const aiResponse = await callModel(systemPrompt, issueInput);
+    const assessmentLabel = extractAssessmentLabel(aiResponse);
+    await ensureLabel(owner, repo, {
+      name: assessmentLabel,
+      color: "ededed",
+      description: "AI issue intake assessment result",
     });
-  }
+    await githubRequest("POST", `/repos/${owner}/${repo}/issues/${issueNumber}/labels`, {
+      labels: [assessmentLabel],
+    });
 
-  await githubRequest(
-    "DELETE",
-    `/repos/${owner}/${repo}/issues/${issueNumber}/labels/${encodeURIComponent(REVIEW_LABEL)}`,
-  );
+    if (!/<!-- no-comment -->/i.test(aiResponse)) {
+      await githubRequest("POST", `/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
+        body: aiResponse,
+      });
+    }
+  } finally {
+    await githubRequest(
+      "DELETE",
+      `/repos/${owner}/${repo}/issues/${issueNumber}/labels/${encodeURIComponent(REVIEW_LABEL)}`,
+    );
+  }
 }
 
 main().catch((error) => {

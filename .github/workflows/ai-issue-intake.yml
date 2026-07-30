@@ -20,6 +20,7 @@ jobs:
 
       - name: Run AI issue intake
         id: ai_assessment
+        timeout-minutes: 5
         env:
           GITHUB_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
