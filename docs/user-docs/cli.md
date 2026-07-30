@@ -67,7 +67,7 @@ Adds a proposed commit entry to the queue. Intended for coding agents that modif
 ```bash
 agentup commits enqueue \
   --slice UbuntuInstallation \
-  --message "chore(UbuntuInstallation): cover tray autostart boundary" \
+  --message "fix(UbuntuInstallation): cover tray autostart boundary" \
   --files AgentUp.Installers.Tests/Features/UbuntuInstallation/Provider/UbuntuInstallerPlatformAdapterTests.cs \
   --tests "dotnet test AgentUp.Installers.Tests --filter UbuntuInstallerPlatformAdapterTests"
 ```
@@ -75,7 +75,7 @@ agentup commits enqueue \
 | Flag | Required | Description |
 |---|---|---|
 | `--slice` | yes | Logical name for the vertical slice (e.g. `UbuntuInstallation`) |
-| `--message` | yes | Conventional commit message for this entry |
+| `--message` | yes | Conventional commit message scoped to this entry's slice |
 | `--files` | yes | One or more file paths to stage (space-separated, until next `--` flag) |
 | `--tests` | no | One or more test commands to run before committing (space-separated) |
 

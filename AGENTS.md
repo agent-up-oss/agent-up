@@ -707,7 +707,7 @@ dotnet run --project AgentUp.CLI -- commits enqueue \
 
 The CLI example above is developer-only. Agents use `enqueue_commit`.
 
-One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Cross-slice guidance or documentation updates must be queued in a separate guidance/docs entry instead of being bundled into an implementation slice. When feature-sliced paths under `Features/<Slice>/` are present, MCP enqueue tools reject cross-slice file groups and mismatched slice labels. Enqueue entries in the order they should be committed.
+One `enqueue` call per logical vertical slice. All files for a slice go in a single entry. Scope each conventional commit message to the queued slice, and follow any repository-specific `prompts.commitPolicy` guidance in `agent-up.json`. Cross-slice guidance or documentation updates must be queued in a separate guidance/docs entry instead of being bundled into an implementation slice. When feature-sliced paths under `Features/<Slice>/` are present, MCP enqueue tools reject cross-slice file groups and mismatched slice labels. Enqueue entries in the order they should be committed.
 
 Mutating commit queue operations are blocked while Git has an active merge, rebase, cherry-pick, revert, or bisect in progress. Finish or abort that Git operation before changing or advancing the queue.
 
@@ -751,12 +751,13 @@ Use the correct prefix — the choice signals intent to reviewers and changelog 
 |--------|-------------|
 | `feat` | User-facing addition |
 | `fix` | User-facing fix |
-| `chore` | Internal change with no user effect, mostly non-runtime files |
-| `refactor` | Internal file change with no user effect unless it changes a public package |
+| `test` | Test-only or smoke-validation change |
+| `chore` | Maintenance, packaging, CI, or tooling change with no customer runtime effect |
+| `refactor` | Internal source change with no behavior change |
 | `style` | CSS/HTML only |
 | `docs` | Documentation-only change, including README and similar docs |
 
-**Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type. Do not use `test` as an Agent-Up commit prefix; test-only changes are usually `chore` unless they accompany a user-facing `feat` or `fix` entry. When in doubt, choose the prefix by user-visible intent first and file type second.
+Scope commit messages to the queued slice, for example `fix(UbuntuInstallation): cover tray autostart boundary`. **Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type. Production changes in Server, CLI, Tray, InstallerApp, Installers, or Desktop are customer-facing and should be `fix` or `feat` unless they are true no-behavior source refactors. Test-only changes and PackageSmoke changes use `test` unless they accompany same-slice `feat` or `fix` production changes in the same queued entry. When in doubt, choose the prefix by user-visible intent first and file type second.
 
 ## Packaging And Installers
 

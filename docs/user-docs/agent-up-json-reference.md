@@ -17,6 +17,17 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 | `services` | array of [Docker Service](#docker-service-object) | No | `[]` | Legacy Docker service definitions. |
 | `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications launched through the Agent-Up .NET capability. |
 | `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers launched through the Agent-Up Docker capability. |
+| `prompts` | [Prompts](#prompts-object) | No | default Agent-Up guidance | Optional repository-specific guidance for AI agents. |
+
+## Prompts Object
+
+Used at the root to refine default AI-agent behavior for this repository.
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `commitPolicy` | string | No | Agent-Up default commit policy | Repository-specific commit guidance. Agents should use it when choosing commit prefixes, scopes, and queue grouping. |
+
+Default commit policy: scope commit messages to the queued slice; use `feat` for user-facing additions, `fix` for user-facing fixes, `test` for test-only or smoke-validation changes, `refactor` for no-behavior source changes, `chore` for maintenance, packaging, CI, or tooling with no customer runtime effect, `style` for CSS/HTML-only changes, and `docs` for documentation-only changes.
 
 ## Application Object
 

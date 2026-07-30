@@ -49,7 +49,9 @@ If `start_workspace` cannot find `agent-up.json`, it instructs the agent to read
 
 `commits next` remains CLI-only because staging and popping a queued entry is developer-owned review work. Agents stop after `get_commits_status`.
 
-When the Server recognizes feature-sliced paths under `Features/<Slice>/`, MCP enqueue operations reject entries that span multiple slices or whose slice label does not match the recognized slice. Repositories without recognized vertical-slice paths fall back to unscoped queue entries.
+MCP enqueue operations require conventional commit messages scoped to the queued slice, such as `fix(Commits): validate queue metadata`. When the Server recognizes feature-sliced paths under `Features/<Slice>/`, enqueue operations reject entries that span multiple slices or whose slice label does not match the recognized slice. Repositories without recognized vertical-slice paths still require a slice label and matching commit-message scope.
+
+Agents should follow the default prefix policy from `get_agent_up_context`: `feat` for user-facing additions, `fix` for user-facing fixes, `test` for test-only or smoke-validation changes, `refactor` for no-behavior source changes, `chore` for maintenance, packaging, CI, or tooling with no customer runtime effect, `style` for CSS/HTML-only changes, and `docs` for documentation-only changes. Repositories may refine those boundaries with `prompts.commitPolicy` in `agent-up.json`.
 
 Cross-slice guidance or documentation updates should be queued in a separate guidance/docs entry instead of being bundled into an implementation slice.
 

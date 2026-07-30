@@ -20,11 +20,14 @@ Place `agent-up.json` at the repository or worktree root. The CLI reads this fil
   "applications": [],
   "services": [],
   "dotnet": [],
-  "docker": []
+  "docker": [],
+  "prompts": {}
 }
 ```
 
 Only `name` is required. All application and service arrays are optional.
+
+Use optional `prompts` values, such as `prompts.commitPolicy`, to give AI agents repository-specific guidance without changing application runtime configuration.
 
 ## Preferred Sections
 
