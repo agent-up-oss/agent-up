@@ -1,6 +1,7 @@
 using AgentUp.Packaging.Features.MacOsPackages.Controllers;
 using AgentUp.Packaging.Features.MacOsPackages.Providers;
 using AgentUp.Packaging.Features.MacOsPackages.Services;
+using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
 using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
@@ -15,12 +16,13 @@ using AgentUp.Packaging.Shared.Providers;
 
 namespace AgentUp.Packaging.Shared.Factories;
 
-public sealed class PackagingServiceRegistry
+public sealed partial class PackagingServiceRegistry
 {
     public PackageCommandController PackageCommands { get; }
 
-    public PackagingServiceRegistry()
+    public PackagingServiceRegistry(PackageProductManifest product)
     {
+        PackageProductManifest.Validate(product);
         ICommandRunner commands = new ProcessCommandRunner();
 
         var ubuntuWriter = new FileSystemPackageWriter();
@@ -31,7 +33,7 @@ public sealed class PackagingServiceRegistry
         var windowsStaging = new PayloadStagingController(new PackagePayloadStager(new PackagePublisher(commands), windowsWriter));
         var macOsStaging = new PayloadStagingController(new PackagePayloadStager(new PackagePublisher(commands), macOsWriter));
 
-        var ubuntu = new UbuntuPackageController(new UbuntuPackager(ubuntuWriter, ubuntuStaging, new DpkgDebPackageTool(commands)));
+        var ubuntu = new UbuntuPackageController(new UbuntuPackager(ubuntuWriter, ubuntuStaging, new DpkgDebPackageTool(commands), product));
         var windows = new WindowsPackageController(new WindowsPackager(windowsWriter, windowsStaging, new WindowsWixPackagingTool(commands)));
         var macOs = new MacOsPackageController(new MacOsPackager(macOsWriter, macOsStaging, new MacOsPackageTool(commands)));
 
@@ -45,6 +47,7 @@ public sealed class PackagingServiceRegistry
                 environment,
                 ubuntu,
                 windows,
-                macOs));
+                macOs,
+                product));
     }
 }

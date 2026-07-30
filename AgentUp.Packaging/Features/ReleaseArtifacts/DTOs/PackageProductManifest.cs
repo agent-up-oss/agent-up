@@ -1,6 +1,6 @@
 namespace AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 
-public sealed record PackageProductManifest
+public sealed partial record PackageProductManifest
 {
     private static readonly char[] WindowsInvalidFileNameChars = ['<', '>', '"', '|', '?', '*'];
     private static readonly string[] WindowsReservedDeviceNames =
@@ -35,12 +35,6 @@ public sealed record PackageProductManifest
         "LPT³"
     ];
 
-    private static readonly PackageProductManifest AgentUpManifest = new("Agent-Up", "agent-up", "AGENTUP")
-    {
-        Manufacturer = "Agent-Up",
-        WindowsUpgradeCode = "5E8FB224-E5E3-4D48-8B62-2F50D521CBB0"
-    };
-
     public PackageProductManifest(
         string productName,
         string slug,
@@ -59,9 +53,6 @@ public sealed record PackageProductManifest
     public string? WindowsServiceName { get; init; }
     public string? WindowsCliShimName { get; init; }
     public string? WindowsServerUrl { get; init; }
-
-    public static PackageProductManifest AgentUp()
-        => AgentUpManifest;
 
     public bool IsValid()
         => IsValidWindowsPathComponent(ProductName)

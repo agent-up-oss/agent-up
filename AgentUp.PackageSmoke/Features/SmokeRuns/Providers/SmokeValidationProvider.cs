@@ -1,4 +1,3 @@
-using AgentUp.Installers.Composition;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Controllers;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
 using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Controllers;
@@ -48,13 +47,14 @@ public sealed class SmokeValidationProvider : ISmokeValidationProvider
         SmokeCommandRequest request,
         CancellationToken cancellationToken = default)
     {
+        var product = ToInstallerFlowProduct(request.Product);
         if (request.PayloadRoot is not null)
-            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, request.PayloadRoot);
+            Environment.SetEnvironmentVariable($"{request.Product.ArtifactBaseName.Replace("-", "", StringComparison.Ordinal).ToUpperInvariant()}_INSTALLER_PAYLOAD_ROOT", request.PayloadRoot);
 
         var result = await _installerFlow.ValidateAsync(
             request.Platform,
             request.WorkDirectory,
-            request.ProductManifest is null ? null : ToInstallerFlowProduct(request.ProductManifest),
+            product,
             cancellationToken);
         return new SmokeCommandResult(result.Succeeded, result.Findings);
     }

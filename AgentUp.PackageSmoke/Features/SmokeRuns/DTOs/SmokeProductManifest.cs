@@ -1,6 +1,6 @@
 namespace AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
 
-public sealed record SmokeProductManifest
+public sealed partial record SmokeProductManifest
 {
     public SmokeProductManifest(
         string ServiceName,
@@ -36,13 +36,6 @@ public sealed record SmokeProductManifest
     public string InstallDirName { get; }
 
     public string WorkspaceConfigFileName { get; }
-
-    public static readonly SmokeProductManifest AgentUp = new(
-        ServiceName: "agent-up-server",
-        CliShimName: "agent-up",
-        ArtifactBaseName: "agent-up",
-        DisplayName: "Agent-Up",
-        InstallDirName: "Agent-Up");
 
     private static void ValidateSafeIdentifier(string value, string parameterName)
     {

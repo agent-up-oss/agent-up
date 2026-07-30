@@ -17,44 +17,41 @@ using AgentUp.Installers.Features.WindowsInstallation.Providers;
 
 namespace AgentUp.Installers.Composition;
 
-public static class InstallerPlatformAdapterFactory
+public static partial class InstallerPlatformAdapterFactory
 {
-    public const string FakeInstallerVariable = AgentUpInstallerEnvironment.FakeInstallerVariable;
-    public const string PayloadRootVariable = AgentUpInstallerEnvironment.PayloadRootVariable;
-    public const string NixOsLookupOnlyVariable = AgentUpInstallerEnvironment.NixOsLookupOnlyVariable;
-
-    public static IInstallerPlatformAdapter Create()
+    public static IInstallerPlatformAdapter Create(
+        ProductManifest manifest,
+        string appBaseDirectory,
+        string? fakeInstaller,
+        bool useNixOsLookupOnlyMode)
     {
-        if (Environment.GetEnvironmentVariable(FakeInstallerVariable) == "1")
-            return new FakeInstallerPlatformAdapter(CurrentPlatformName() + " dry run");
+        if (fakeInstaller == "1")
+            return new FakeInstallerPlatformAdapter(CurrentPlatformName(useNixOsLookupOnlyMode) + " dry run");
 
         if (OperatingSystem.IsLinux())
         {
-            if (UseNixOsLookupOnlyMode())
+            if (useNixOsLookupOnlyMode)
                 return CreateNixOsAdapter();
 
-            var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
-            return CreateUbuntuAdapter(payloadRoot);
+            var payloadRoot = ResolvePayloadRoot(appBaseDirectory, manifest);
+            return CreateUbuntuAdapter(payloadRoot, manifest);
         }
         if (OperatingSystem.IsMacOS())
         {
-            var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
-            return CreateMacOsAdapter(payloadRoot);
+            var payloadRoot = ResolvePayloadRoot(appBaseDirectory, manifest);
+            return CreateMacOsAdapter(payloadRoot, manifest);
         }
         if (OperatingSystem.IsWindows())
         {
-            var payloadRoot = ResolvePayloadRoot(AppContext.BaseDirectory);
-            return CreateWindowsAdapter(payloadRoot);
+            var payloadRoot = ResolvePayloadRoot(appBaseDirectory, manifest);
+            return CreateWindowsAdapter(payloadRoot, manifest);
         }
 
-        throw new PlatformNotSupportedException($"{ProductManifest.AgentUp().ProductName} installer does not support this operating system.");
+        throw new PlatformNotSupportedException($"{manifest.ProductName} installer does not support this operating system.");
     }
 
     public static IInstallerPlatformAdapter CreateFake(string platformName)
         => new FakeInstallerPlatformAdapter(platformName);
-
-    public static string ResolvePayloadRoot(string appBaseDirectory)
-        => ResolvePayloadRoot(appBaseDirectory, ProductManifest.AgentUp());
 
     public static string ResolvePayloadRoot(string appBaseDirectory, ProductManifest manifest)
     {
@@ -100,10 +97,10 @@ public static class InstallerPlatformAdapterFactory
             candidates.Add(fullPath);
     }
 
-    private static IInstallerPlatformAdapter CreateUbuntuAdapter(string payloadRoot)
+    private static IInstallerPlatformAdapter CreateUbuntuAdapter(string payloadRoot, ProductManifest product)
     {
         var composition = Composition();
-        var manifest = UbuntuInstallerManifest.AgentUp();
+        var manifest = UbuntuInstallerManifest.ForProduct(product);
         var paths = UbuntuInstallerPaths.ForProduct(manifest);
         var payload = new UbuntuInstallPayload(
             DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
@@ -111,7 +108,7 @@ public static class InstallerPlatformAdapterFactory
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
             TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
             ServiceFilePath: System.IO.Path.Join(payloadRoot, "service", manifest.ServiceUnitName),
-            IconPath: System.IO.Path.Join(payloadRoot, "icon", ProductManifest.AgentUp().ProductName + ".png"));
+            IconPath: System.IO.Path.Join(payloadRoot, "icon", product.ProductName + ".png"));
 
         return new UbuntuInstallerPlatformAdapter(
             composition.Commands,
@@ -127,7 +124,7 @@ public static class InstallerPlatformAdapterFactory
         return new NixOsInstallerPlatformAdapter(new NixOsPathExecutableLookup(), composition.DockerPrerequisite);
     }
 
-    private static IInstallerPlatformAdapter CreateMacOsAdapter(string payloadRoot)
+    private static IInstallerPlatformAdapter CreateMacOsAdapter(string payloadRoot, ProductManifest product)
     {
         var composition = Composition();
         var payload = new MacOsInstallPayload(
@@ -135,7 +132,7 @@ public static class InstallerPlatformAdapterFactory
             ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
             CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
             TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
-            IconPath: System.IO.Path.Join(payloadRoot, "icon", ProductManifest.AgentUp().ProductName + ".png"));
+            IconPath: System.IO.Path.Join(payloadRoot, "icon", product.ProductName + ".png"));
 
         return new MacOsInstallerPlatformAdapter(
             composition.Commands,
@@ -145,7 +142,7 @@ public static class InstallerPlatformAdapterFactory
             composition.DockerPrerequisite);
     }
 
-    private static IInstallerPlatformAdapter CreateWindowsAdapter(string payloadRoot)
+    private static IInstallerPlatformAdapter CreateWindowsAdapter(string payloadRoot, ProductManifest product)
     {
         var composition = Composition();
         var payload = new WindowsInstallPayload(
@@ -157,14 +154,14 @@ public static class InstallerPlatformAdapterFactory
         return new WindowsInstallerPlatformAdapter(
             composition.Commands,
             new WindowsInstallerFileSystem(),
-            new WindowsInstallerOptions(payload, WindowsInstallerPaths.SystemDefault()),
+            new WindowsInstallerOptions(payload, WindowsInstallerPaths.ForProduct(product)),
             composition.RequiredCommands,
             composition.DockerPrerequisite);
     }
 
-    private static string CurrentPlatformName()
+    private static string CurrentPlatformName(bool useNixOsLookupOnlyMode)
     {
-        if (OperatingSystem.IsLinux() && UseNixOsLookupOnlyMode())
+        if (OperatingSystem.IsLinux() && useNixOsLookupOnlyMode)
             return "NixOS";
         if (OperatingSystem.IsWindows())
             return "Windows";
@@ -173,10 +170,7 @@ public static class InstallerPlatformAdapterFactory
         return "Linux";
     }
 
-    public static bool UseNixOsLookupOnlyMode()
-        => Environment.GetEnvironmentVariable(NixOsLookupOnlyVariable) == "1" || IsNixOsHost();
-
-    private static bool IsNixOsHost()
+    public static bool IsNixOsHost()
     {
         const string osReleasePath = "/etc/os-release";
         if (!File.Exists(osReleasePath))

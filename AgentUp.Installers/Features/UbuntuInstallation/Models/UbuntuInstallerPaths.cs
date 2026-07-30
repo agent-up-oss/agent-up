@@ -1,6 +1,6 @@
 namespace AgentUp.Installers.Features.UbuntuInstallation.Models;
 
-public sealed record UbuntuInstallerPaths(
+public sealed partial record UbuntuInstallerPaths(
     string RootDirectory,
     string ServicePath,
     string CliSymlinkPath,
@@ -10,9 +10,6 @@ public sealed record UbuntuInstallerPaths(
     string LogPath,
     string ErrorLogPath)
 {
-    public static UbuntuInstallerPaths SystemDefault()
-        => ForProduct(UbuntuInstallerManifest.AgentUp());
-
     public static UbuntuInstallerPaths ForProduct(UbuntuInstallerManifest manifest)
         => new(
             RootDirectory: $"/opt/{manifest.PackageName}",

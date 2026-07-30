@@ -6,19 +6,19 @@ using AgentUp.Packaging.Features.UbuntuPackages.Providers;
 
 namespace AgentUp.Packaging.Features.UbuntuPackages.Services;
 
-public sealed class UbuntuPackager
+public sealed partial class UbuntuPackager
 {
     private readonly IPackageWriter _writer;
     private readonly PayloadStagingController _payloads;
     private readonly IUbuntuPackageTool _packageTool;
     private readonly PackageProductManifest _product;
 
-    public UbuntuPackager(IPackageWriter writer, PayloadStagingController payloads, IUbuntuPackageTool packageTool, PackageProductManifest? product = null)
+    public UbuntuPackager(IPackageWriter writer, PayloadStagingController payloads, IUbuntuPackageTool packageTool, PackageProductManifest product)
     {
         _writer = writer;
         _payloads = payloads;
         _packageTool = packageTool;
-        _product = product ?? PackageProductManifest.AgentUp();
+        _product = product;
         PackageProductManifest.Validate(_product);
     }
 

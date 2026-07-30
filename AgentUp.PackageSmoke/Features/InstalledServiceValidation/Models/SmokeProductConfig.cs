@@ -1,6 +1,6 @@
 namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 
-public sealed record SmokeProductConfig
+public sealed partial record SmokeProductConfig
 {
     public SmokeProductConfig(
         string ServiceName,
@@ -36,13 +36,6 @@ public sealed record SmokeProductConfig
     public string InstallDirName { get; }
 
     public string WorkspaceConfigFileName { get; }
-
-    public static readonly SmokeProductConfig AgentUp = new(
-        ServiceName: "agent-up-server",
-        CliShimName: "agent-up",
-        ArtifactBaseName: "agent-up",
-        DisplayName: "Agent-Up",
-        InstallDirName: "Agent-Up");
 
     private static void ValidateSafeIdentifier(string value, string parameterName)
     {

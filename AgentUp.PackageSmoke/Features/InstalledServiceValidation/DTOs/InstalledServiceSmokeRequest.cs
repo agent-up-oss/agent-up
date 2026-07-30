@@ -41,5 +41,9 @@ public sealed record InstalledServiceSmokeRequest
 
     public string SystemRoot { get; }
 
+#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
+    public SmokeProductConfig Product => ProductConfig?.ToConfig() ?? throw new InvalidOperationException("Generic installed-service smoke requests require explicit product configuration.");
+#else
     public SmokeProductConfig Product => ProductConfig?.ToConfig() ?? SmokeProductConfig.AgentUp;
+#endif
 }

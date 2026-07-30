@@ -14,6 +14,11 @@ public class SampleProductWorkflowTests
         Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
     };
 
+    private static ProductManifest OrbitDesk => new("Orbit Desk", "orbit-desk", "ORBITDESK")
+    {
+        Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+    };
+
     private static readonly Version V1 = new(1, 0, 0);
 
     private static InstallerSession AcmeSession(string installRoot = "/opt/acme-studio")
@@ -97,7 +102,7 @@ public class SampleProductWorkflowTests
     {
         var session = AcmeSession();
         var adapter = new FakeInstallerPlatformAdapter();
-        var agentUpManifest = ProductManifest.AgentUp();
+        var orbitManifest = OrbitDesk;
 
         foreach (var component in session.Manifest.Components)
         {
@@ -138,11 +143,11 @@ public class SampleProductWorkflowTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(session.Location.RootDirectory, Does.Not.Contain(agentUpManifest.Slug),
-                "Acme Studio install root must not contain the Agent-Up slug");
-            Assert.That(session.Manifest.ServiceName, Is.Not.EqualTo(agentUpManifest.ServiceName),
+            Assert.That(session.Location.RootDirectory, Does.Not.Contain(orbitManifest.Slug),
+                "Acme Studio install root must not contain the comparison product slug");
+            Assert.That(session.Manifest.ServiceName, Is.Not.EqualTo(orbitManifest.ServiceName),
                 "Service names must not overlap");
-            Assert.That(session.Manifest.CliCommandName, Is.Not.EqualTo(agentUpManifest.CliCommandName),
+            Assert.That(session.Manifest.CliCommandName, Is.Not.EqualTo(orbitManifest.CliCommandName),
                 "CLI command names must not overlap");
         });
     }
@@ -232,27 +237,27 @@ public class SampleProductWorkflowTests
     }
 
     [Test]
-    public async Task AgentUpAndSampleProduct_concurrentInstallSessions_completeWithOwnIdentifiers_andNeitherCorruptsTheOther()
+    public async Task OtherProductAndSampleProduct_concurrentInstallSessions_completeWithOwnIdentifiers_andNeitherCorruptsTheOther()
     {
-        var agentUpSession = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(),
+        var orbitSession = InstallerSession.CreateDefault(
+            OrbitDesk,
             new Version(2, 0, 0),
-            "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(2, 0, 0)));
+            "/opt/orbit-desk",
+            PayloadSelection.Bundled(OrbitDesk.ProductName, new Version(2, 0, 0)));
 
         var acmeSession = AcmeSession();
 
-        var agentUpAdapter = new FakeInstallerPlatformAdapter("Agent-Up dry run");
+        var orbitAdapter = new FakeInstallerPlatformAdapter("Orbit dry run");
         var acmeAdapter = new FakeInstallerPlatformAdapter("Acme dry run");
 
-        var agentUpProgress = new List<InstallProgress>();
+        var orbitProgress = new List<InstallProgress>();
         var acmeProgress = new List<InstallProgress>();
 
         await Task.WhenAll(
-            CollectInstallProgressAsync(agentUpAdapter, agentUpSession, agentUpProgress),
+            CollectInstallProgressAsync(orbitAdapter, orbitSession, orbitProgress),
             CollectInstallProgressAsync(acmeAdapter, acmeSession, acmeProgress));
 
-        var agentUpText = string.Join(" ", agentUpProgress.Select(p => p.Message));
+        var orbitText = string.Join(" ", orbitProgress.Select(p => p.Message));
         var acmeText = string.Join(" ", acmeProgress.Select(p => p.Message));
 
         Assert.Multiple(() =>
@@ -261,18 +266,18 @@ public class SampleProductWorkflowTests
                 "Acme session progress must not reference 'Agent-Up'");
             Assert.That(acmeText, Does.Not.Contain("agent-up"),
                 "Acme session progress must not reference 'agent-up'");
-            Assert.That(agentUpText, Does.Not.Contain("Acme"),
-                "Agent-Up session progress must not reference 'Acme'");
+            Assert.That(orbitText, Does.Not.Contain("Acme"),
+                "Orbit Desk session progress must not reference 'Acme'");
             Assert.That(acmeText, Does.Contain("acme-studio").Or.Contain("Acme Studio"),
                 "Acme session progress must reference Acme Studio identifiers");
-            Assert.That(agentUpText, Does.Contain("agent-up").Or.Contain("Agent-Up"),
-                "Agent-Up session progress must reference Agent-Up identifiers");
+            Assert.That(orbitText, Does.Contain("orbit-desk").Or.Contain("Orbit Desk"),
+                "Orbit Desk session progress must reference Orbit Desk identifiers");
         });
 
-        var agentUpReport = await agentUpAdapter.ValidateInstalledStateAsync(agentUpSession);
+        var orbitReport = await orbitAdapter.ValidateInstalledStateAsync(orbitSession);
         var acmeReport = await acmeAdapter.ValidateInstalledStateAsync(acmeSession);
 
-        Assert.That(agentUpReport.Succeeded, Is.True, "Agent-Up concurrent install must validate successfully");
+        Assert.That(orbitReport.Succeeded, Is.True, "Orbit Desk concurrent install must validate successfully");
         Assert.That(acmeReport.Succeeded, Is.True, "Acme Studio concurrent install must validate successfully");
     }
 
