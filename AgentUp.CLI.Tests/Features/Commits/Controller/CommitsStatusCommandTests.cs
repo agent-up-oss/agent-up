@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Interfaces;
@@ -143,7 +144,8 @@ public sealed class CommitsStatusCommandTests
     {
         var service = new CommitsService(
             new FakeCommitsQueueProvider(queue),
-            new FakeCommitsGitProvider(modifiedFiles ?? [], operationState));
+            new FakeCommitsGitProvider(modifiedFiles ?? [], operationState),
+            new CommitPolicyProvider());
         return new CommitsStatusCommand(service, new CommitsOutputService(output, new CommitsJsonRenderer()), new CommitsFormatParser());
     }
 

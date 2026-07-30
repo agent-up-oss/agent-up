@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.CLI.Features.Commits.DTOs;
 using AgentUp.CLI.Features.Commits.Interfaces;
 using AgentUp.CLI.Features.Commits.Models;
@@ -12,7 +13,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_appendsEntryToEmptyQueue()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"], []));
 
@@ -27,7 +28,7 @@ public sealed class CommitsServiceTests
     {
         var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"], [])]);
         var queue = new FakeCommitsQueueProvider(existing);
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         await service.EnqueueAsync(new EnqueueRequest("Second", "fix(Second): second", ["y.cs"], []));
 
@@ -38,7 +39,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task GetStatusAsync_returnsEmptyEntriesWhenQueueIsEmpty()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync();
 
@@ -53,7 +54,7 @@ public sealed class CommitsServiceTests
             new CommitEntry("Slice", "msg", ["owned.cs"], [])
         ]));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["owned.cs", "unassigned.cs"]);
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync();
 
@@ -67,7 +68,7 @@ public sealed class CommitsServiceTests
             new CommitEntry("Slice", "msg", ["a.cs", "b.cs"], [])
         ]));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs", "b.cs"]);
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync();
 
@@ -77,7 +78,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task StageNextAsync_returnsNullWhenQueueIsEmpty()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.StageNextAsync();
 
@@ -90,7 +91,7 @@ public sealed class CommitsServiceTests
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.StageNextAsync();
 
@@ -109,7 +110,7 @@ public sealed class CommitsServiceTests
         var second = new CommitEntry("Second", "fix(Second): second", ["b.cs"], []);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [first, second]));
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.StageNextAsync();
 
@@ -126,7 +127,7 @@ public sealed class CommitsServiceTests
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         await service.StageNextAsync();
 
@@ -139,7 +140,7 @@ public sealed class CommitsServiceTests
     {
         var queue = new FakeCommitsQueueProvider();
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"], []));
 
@@ -154,7 +155,7 @@ public sealed class CommitsServiceTests
     {
         var queue = new FakeCommitsQueueProvider();
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         await service.EnqueueAsync(new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"], []));
 
@@ -169,7 +170,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         await service.StageNextAsync();
 
@@ -183,7 +184,7 @@ public sealed class CommitsServiceTests
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.StageNextAsync();
 
@@ -199,7 +200,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
         var git = new FakeCommitsGitProvider(operationState: new GitOperationState("merge", true));
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.StageNextAsync();
 
@@ -217,7 +218,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("First", "fix(First): first", ["a.cs"], [], "entry-1")
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.EnqueueAsync(new EnqueueRequest("Second", "fix(Second): second", ["a.cs"], [])));
@@ -229,7 +230,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("First", "fix(First): first", ["a.cs"], [], "entry-1", ReviewIssueId: " review-42 ")
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.EnqueueAsync(new EnqueueRequest("Second", "fix(Second): second", ["b.cs"], [], "review-42")));
@@ -238,7 +239,7 @@ public sealed class CommitsServiceTests
     [Test]
     public void EnqueueAsync_rejectsCommitMessageWithoutSliceScope()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.EnqueueAsync(new EnqueueRequest("Commits", "fix: validate queue", ["a.cs"], [])));
@@ -249,7 +250,7 @@ public sealed class CommitsServiceTests
     [Test]
     public void EnqueueAsync_rejectsCommitMessageScopeThatDoesNotMatchQueuedSlice()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.EnqueueAsync(new EnqueueRequest("Commits", "fix(Workspaces): validate queue", ["a.cs"], [])));
@@ -260,7 +261,7 @@ public sealed class CommitsServiceTests
     [Test]
     public void EnqueueAsync_rejectsChoreCommitWithSourceFile()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.EnqueueAsync(new EnqueueRequest(
@@ -276,7 +277,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_allowsTestCommitWithSmokeValidationFile()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         await service.EnqueueAsync(new EnqueueRequest(
             "SmokeRuns",
@@ -292,7 +293,7 @@ public sealed class CommitsServiceTests
     {
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.StageNextAsync();
 
@@ -308,7 +309,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.BeginEditAsync("1");
 
@@ -323,7 +324,7 @@ public sealed class CommitsServiceTests
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
         queue.Patches["entry-1"] = "diff --git a/a.cs b/a.cs\n";
-        var service = new CommitsService(queue, new FakeCommitsGitProvider(throwOnApply: true));
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(throwOnApply: true), new CommitPolicyProvider());
 
         Assert.ThrowsAsync<InvalidOperationException>(async () => await service.BeginEditAsync("1"));
         Assert.That(queue.Stored!.ActiveSession, Is.Null);
@@ -334,7 +335,7 @@ public sealed class CommitsServiceTests
     {
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.AddFilesAsync("1", ["b.cs"]));
@@ -346,7 +347,7 @@ public sealed class CommitsServiceTests
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs", "other.cs"]);
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.SaveEditAsync();
 
@@ -360,7 +361,7 @@ public sealed class CommitsServiceTests
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1", "patch-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry], new CommitEditSession("entry-1", "patch-1", ["a.cs"])));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs"]);
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.SaveEditAsync();
 
@@ -376,7 +377,7 @@ public sealed class CommitsServiceTests
     {
         var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], [], "entry-1");
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.GuardAsync();
 
@@ -390,7 +391,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("S", "m", ["f.cs"], [])
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         await service.ClearAsync();
 

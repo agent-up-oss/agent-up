@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
@@ -14,7 +15,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_appendsEntryToEmptyQueue()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"], []));
 
@@ -30,7 +31,7 @@ public sealed class CommitsServiceTests
     {
         var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"], [])]);
         var queue = new FakeCommitsQueueProvider(existing);
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Second", "fix(Second): second", ["y.cs"], []));
 
@@ -43,7 +44,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_returnsQueueSize()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"], []));
 
@@ -54,7 +55,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_messageWarnsAgentThatTrackedFilesWereRestored()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"], []));
 
@@ -69,7 +70,7 @@ public sealed class CommitsServiceTests
     {
         var queue = new FakeCommitsQueueProvider();
         var git = new FakeCommitsGitProvider();
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"], []));
 
@@ -82,7 +83,7 @@ public sealed class CommitsServiceTests
     {
         var queue = new FakeCommitsQueueProvider();
         var git = new FakeCommitsGitProvider(restoreException: new IOException("restore failed"));
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"], []));
 
@@ -96,7 +97,7 @@ public sealed class CommitsServiceTests
     {
         var queue = new FakeCommitsQueueProvider(
             new CommitsQueue(2, [], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["b.cs"], []));
 
@@ -110,7 +111,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("First", "fix(First): first", ["a.cs"], [], "entry-1")
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Second", "fix(Second): second", ["a.cs"], []));
 
@@ -123,7 +124,7 @@ public sealed class CommitsServiceTests
     {
         var queue = new FakeCommitsQueueProvider();
         var git = new FakeCommitsGitProvider(operationState: new GitOperationState("merge", true));
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"], []));
 
@@ -135,7 +136,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsUnsupportedConventionalCommitPrefix()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "build(commits): cover queue", ["a.cs"], []));
 
@@ -146,7 +147,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsCommitMessageWithoutSliceScope()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix: validate queue", ["a.cs"], []));
 
@@ -157,7 +158,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsCommitMessageScopeThatDoesNotMatchQueuedSlice()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix(Workspaces): validate queue", ["a.cs"], []));
 
@@ -169,7 +170,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_allowsTestCommitWithSmokeValidationFile()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
             "SmokeRuns",
@@ -185,7 +186,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsTestCommitWithProductionFile()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
             "Commits",
@@ -200,7 +201,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsChoreCommitWithSourceFile()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
             "Commits",
@@ -216,7 +217,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_allowsChoreCommitWithMaintenanceFiles()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
             "ci",
@@ -230,7 +231,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsDocsCommitWithRuntimeFile()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "docs(commits): explain queue", ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"], []));
 
@@ -242,7 +243,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_allowsDocsCommitWithDocumentationFiles()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("guidance", "docs(guidance): explain queue", ["docs/developer-guide/mcp.md", "AGENTS.md"], []));
 
@@ -253,7 +254,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsStyleCommitWithNonStyleFile()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("ui", "style(ui): tune layout", ["AgentUp.Desktop/Features/Workspaces/ViewModels/MainViewModel.cs"], []));
 
@@ -265,7 +266,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_allowsStyleCommitWithCssAndHtmlFiles()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("docs-style", "style(docs-style): tune layout", ["docs/src/css/custom.css", "docs/static/index.html"], []));
 
@@ -276,7 +277,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_failsWhenFilesSpanMultipleFeatureSlices()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
             "Commits",
@@ -295,7 +296,7 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_allowsSingleFeatureSliceWithMatchingTests()
     {
         var queue = new FakeCommitsQueueProvider();
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
             "fix/commits",
@@ -316,7 +317,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("Commits", "fix(Commits): first", ["a.cs"], [], "entry-1", "patch-1", "review-1")
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix(Commits): second", ["b.cs"], [], "review-1"));
 
@@ -330,7 +331,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("Commits", "fix(Commits): first", ["a.cs"], [], "entry-1", "patch-1", " review-1 ")
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix(Commits): second", ["b.cs"], [], "review-1"));
 
@@ -344,7 +345,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("Commits", "fix(commits): validate prefix", ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"], [], "entry-1")
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.UpdateMessageAsync(WorktreePath, "1", "docs(commits): explain prefix");
 
@@ -356,7 +357,7 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task GetStatusAsync_returnsEmptyEntriesWhenQueueIsEmpty()
     {
-        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider());
+        var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync(WorktreePath);
 
@@ -370,7 +371,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("Slice", "msg", ["a.cs"], [])
         ]));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync(WorktreePath);
 
@@ -385,7 +386,7 @@ public sealed class CommitsServiceTests
             new CommitEntry("Slice", "msg", ["owned.cs"], [])
         ]));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["owned.cs", "unassigned.cs"]);
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync(WorktreePath);
 
@@ -399,7 +400,7 @@ public sealed class CommitsServiceTests
             new CommitEntry("Slice", "msg", ["a.cs", "b.cs"], [])
         ]));
         var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs", "b.cs"]);
-        var service = new CommitsService(queue, git);
+        var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync(WorktreePath);
 
@@ -411,7 +412,7 @@ public sealed class CommitsServiceTests
     {
         var session = new CommitEditSession("entry-1", "entry-1", ["a.cs"]);
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [], session));
-        var service = new CommitsService(queue, new FakeCommitsGitProvider());
+        var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync(WorktreePath);
 

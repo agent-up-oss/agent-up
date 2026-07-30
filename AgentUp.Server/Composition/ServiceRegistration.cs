@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Capabilities.Docker.Features.DockerCapability.Interfaces;
 using AgentUp.Capabilities.Docker.Features.DockerCapability.Providers;
@@ -102,6 +103,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
+        builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();

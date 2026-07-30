@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Providers;
 using AgentUp.CLI.Features.Commits.Services;
@@ -26,7 +27,7 @@ public static class CliRunnerFactory
 
         var commitsGit = new CommitsGitProvider(workingDirectory);
         var commitsQueue = new CommitsQueueProvider(commitsGit);
-        var commitsService = new CommitsService(commitsQueue, commitsGit);
+        var commitsService = new CommitsService(commitsQueue, commitsGit, new CommitPolicyProvider());
         var commitsOutput = new CommitsOutputService(writer, new CommitsJsonRenderer());
         var commitsParser = new CommitsArgParser();
         var commitsFormatParser = new CommitsFormatParser();

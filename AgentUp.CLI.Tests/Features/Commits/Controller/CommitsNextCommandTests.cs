@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Interfaces;
@@ -193,7 +194,7 @@ public sealed class CommitsNextCommandTests
         FakeCommitsGitProvider? git = null)
     {
         var gitProvider = git ?? new FakeCommitsGitProvider();
-        var service = new CommitsService(new FakeCommitsQueueProvider(queue), gitProvider);
+        var service = new CommitsService(new FakeCommitsQueueProvider(queue), gitProvider, new CommitPolicyProvider());
         return new CommitsNextCommand(service, new CommitsOutputService(output, new CommitsJsonRenderer()), new CommitsFormatParser());
     }
 

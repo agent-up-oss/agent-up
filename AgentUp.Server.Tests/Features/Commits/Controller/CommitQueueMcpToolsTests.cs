@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
@@ -18,7 +19,7 @@ public sealed class CommitQueueMcpToolsTests
     {
         _queue = new FakeCommitsQueueProvider();
         _git = new FakeCommitsGitProvider();
-        var controller = new CommitsController(new CommitsService(_queue, _git));
+        var controller = new CommitsController(new CommitsService(_queue, _git, new CommitPolicyProvider()));
         _tools = new CommitQueueMcpTools(new CommitQueueMcpService(controller));
     }
 

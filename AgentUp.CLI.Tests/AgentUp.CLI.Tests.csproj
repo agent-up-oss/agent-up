@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.CLI\AgentUp.CLI.csproj" />
+    <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
   </ItemGroup>
 

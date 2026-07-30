@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.DTOs;
 using AgentUp.CLI.Features.Commits.Interfaces;
@@ -113,7 +114,7 @@ public sealed class CommitsEnqueueCommandTests
     private static CommitsEnqueueCommand BuildCommand(StringWriter output, FakeCommitsQueueProvider? queue = null)
     {
         var provider = queue ?? new FakeCommitsQueueProvider();
-        var service = new CommitsService(provider, new FakeCommitsGitProvider());
+        var service = new CommitsService(provider, new FakeCommitsGitProvider(), new CommitPolicyProvider());
         return new CommitsEnqueueCommand(service, new CommitsArgParser(), new CommitsOutputService(output, new CommitsJsonRenderer()));
     }
 
