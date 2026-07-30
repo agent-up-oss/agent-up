@@ -40,5 +40,9 @@ public sealed record SmokeCommandRequest
 
     public SmokeProductManifest? ProductManifest { get; }
 
+#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
+    public SmokeProductManifest Product => ProductManifest ?? throw new InvalidOperationException("Generic package smoke requests require an explicit product manifest.");
+#else
     public SmokeProductManifest Product => ProductManifest ?? SmokeProductManifest.AgentUp;
+#endif
 }
