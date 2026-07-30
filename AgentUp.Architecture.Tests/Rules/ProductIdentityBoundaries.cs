@@ -1,4 +1,5 @@
 using AgentUp.Architecture.Tests.Fixtures;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,6 +9,13 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class ProductIdentityBoundaries
 {
+    private static readonly string[] GenericInstallerProjects =
+    [
+        "AgentUp.Installers/AgentUp.Installers.csproj",
+        "AgentUp.Packaging/AgentUp.Packaging.csproj",
+        "AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj"
+    ];
+
     private static readonly string[] InstallerProductIdentityTokens =
     [
         "agent-up",
@@ -22,10 +30,12 @@ public sealed class ProductIdentityBoundaries
         "AgentUp.Installers/Features/Installation/Models/AgentUpProductManifest.cs",
         "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerManifest.cs",
         "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerPaths.cs",
+        "AgentUp.Installers/Features/UbuntuInstallation/Models/AgentUpUbuntuInstallerPaths.cs",
         "AgentUp.Installers/Features/UbuntuInstallation/Models/AgentUpUbuntuInstallerManifest.cs",
         "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerManifest.cs",
         "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerPaths.cs",
-        "AgentUp.Installers/Composition/AgentUpInstallerEnvironment.cs"
+        "AgentUp.Installers/Composition/AgentUpInstallerEnvironment.cs",
+        "AgentUp.Installers/Composition/AgentUpInstallerPlatformAdapterFactory.cs"
     ];
 
     [Test]
@@ -38,6 +48,38 @@ public sealed class ProductIdentityBoundaries
 
         Assert.That(violations, Is.Empty,
             "Agent-Up product identity strings in AgentUp.Installers must stay in explicitly AgentUp-named configuration files; generic installer code must use manifest-derived identity.");
+    }
+
+    [Test]
+    public void Generic_installer_projects_build_with_agent_up_product_configuration_excluded()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var failures = GenericInstallerProjects
+            .Select(project => BuildProjectWithoutAgentUpProductConfiguration(root, project))
+            .Where(result => result.ExitCode != 0)
+            .Select(result => $"{result.Project}:{Environment.NewLine}{result.Output}")
+            .ToArray();
+
+        Assert.That(failures, Is.Empty,
+            "Generic installer-related projects must compile when Agent-Up product configuration files are excluded.");
+    }
+
+    [Test]
+    public void Sample_product_workflow_tests_do_not_reference_agent_up_product_configuration()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var source = File.ReadAllText(Path.Join(
+            root,
+            "AgentUp.Installers.Tests",
+            "Features",
+            "Installation",
+            "Provider",
+            "SampleProductWorkflowTests.cs"));
+
+        Assert.That(source, Does.Not.Contain("ProductManifest.AgentUp"),
+            "SampleProduct workflow scenarios must not depend on Agent-Up product configuration.");
+        Assert.That(source, Does.Not.Contain("PayloadSelection.Bundled(new Version"),
+            "SampleProduct workflow scenarios must use explicit product names for payload descriptions.");
     }
 
     [Test]
@@ -195,6 +237,31 @@ public sealed class ProductIdentityBoundaries
                 || name.StartsWith(forbiddenNamespace + ".", StringComparison.Ordinal))
                 yield return $"{ArchitectureFixture.Location(root, path, tree, memberAccess)}: {name}";
         }
+    }
+
+    private static (string Project, int ExitCode, string Output) BuildProjectWithoutAgentUpProductConfiguration(
+        string root,
+        string project)
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            ArgumentList =
+            {
+                "build",
+                project,
+                "-p:ExcludeAgentUpProductConfiguration=true",
+                "--no-restore"
+            },
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        }) ?? throw new InvalidOperationException("Failed to start dotnet build.");
+
+        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        return (project, process.ExitCode, output);
     }
 
     private static IEnumerable<string> InstallerProductIdentityViolations(string root, string path)
