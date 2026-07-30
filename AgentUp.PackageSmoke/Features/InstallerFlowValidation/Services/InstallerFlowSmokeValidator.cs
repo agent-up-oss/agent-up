@@ -21,13 +21,17 @@ public sealed class InstallerFlowSmokeValidator
         Directory.CreateDirectory(safeWorkDirectory);
 
         var version = new Version(0, 0, 0);
-        var manifest = product ?? ProductManifest.AgentUp();
+        var manifest = product ?? DefaultProductManifest();
         var session = InstallerSession.CreateDefault(
             manifest,
             version,
             DefaultInstallRoot(manifest, platform),
             PayloadSelection.Bundled(manifest.ProductName, version));
+#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
+        var adapter = InstallerPlatformAdapterFactory.Create(manifest, AppContext.BaseDirectory, null, false);
+#else
         var adapter = InstallerPlatformAdapterFactory.Create();
+#endif
 
         session = InstallerWorkflow.GoNext(session);
         session = InstallerWorkflow.AcceptLicense(session, true);
@@ -78,4 +82,13 @@ public sealed class InstallerFlowSmokeValidator
             "macos" => $"/Applications/{manifest.ProductName}.app",
             _ => $"/opt/{manifest.Slug}"
         };
+
+    private static ProductManifest DefaultProductManifest()
+    {
+#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
+        throw new InvalidOperationException("Generic installer-flow smoke validation requires an explicit product manifest.");
+#else
+        return ProductManifest.AgentUp();
+#endif
+    }
 }
