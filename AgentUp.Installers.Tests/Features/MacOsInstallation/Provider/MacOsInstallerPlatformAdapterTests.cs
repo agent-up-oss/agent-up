@@ -15,7 +15,11 @@ using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 namespace AgentUp.Installers.Tests.Features.MacOsInstallation.Provider;
 
+// RunElevatedAsync writes scripts to /tmp (hardcoded to avoid the macOS PKG installer
+// sandbox that redirects TMPDIR to a path child processes cannot access). /tmp does not
+// exist as a real directory on Windows, so these tests are Unix-only.
 [TestFixture]
+[Platform(Include = "Unix")]
 public class MacOsInstallerPlatformAdapterTests
 {
     [Test]
@@ -411,9 +415,21 @@ public class MacOsInstallerPlatformAdapterTests
             if (string.IsNullOrWhiteSpace(path))
                 return null;
 
-            var tempRoot = Path.GetFullPath(Path.GetTempPath());
             var fullPath = Path.GetFullPath(path);
-            return fullPath.StartsWith(tempRoot, StringComparison.Ordinal) ? fullPath : null;
+
+            // Check user temp directory (Linux: /tmp/, macOS: /var/folders/.../T/).
+            var userTemp = Path.GetFullPath(Path.GetTempPath());
+            if (fullPath.StartsWith(userTemp, StringComparison.Ordinal))
+                return fullPath;
+
+            // On macOS, Path.GetTempPath() returns TMPDIR (/var/folders/.../T/) but the
+            // adapter hardcodes /tmp (= /private/tmp) to escape the PKG installer sandbox.
+            // Accept both canonical forms so script capture works in non-PKG contexts.
+            if (fullPath.StartsWith("/tmp/", StringComparison.Ordinal) ||
+                fullPath.StartsWith("/private/tmp/", StringComparison.Ordinal))
+                return fullPath;
+
+            return null;
         }
 
         private static string? ExtractDoShellScriptPath(string appleScript)
