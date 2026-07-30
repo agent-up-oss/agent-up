@@ -60,8 +60,9 @@ public sealed class WindowsInstallerPlanTests
                 CliDirectory: @"C:\Program Files\Acme Studio\cli",
                 TrayDirectory: @"C:\Program Files\Acme Studio\tray",
                 BinDirectory: @"C:\Program Files\Acme Studio\bin",
-                StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Acme Studio\Acme Studio.lnk")
-            { UninstallScriptName = "uninstall-acme-studio.ps1" });
+                StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Acme Studio\Acme Studio.lnk",
+                CliShimName: "acme-studio.cmd",
+                UninstallScriptName: "uninstall-acme-studio.ps1"));
 
     private sealed class RecordingCommandRunner : ICommandRunner
     {

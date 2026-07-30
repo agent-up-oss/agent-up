@@ -525,8 +525,9 @@ public class WindowsInstallerPlatformAdapterTests
                 CliDirectory: @"C:\Program Files\Acme Studio\cli",
                 TrayDirectory: @"C:\Program Files\Acme Studio\tray",
                 BinDirectory: @"C:\Program Files\Acme Studio\bin",
-                StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Acme Studio\Acme Studio.lnk")
-            { UninstallScriptName = "uninstall-acme-studio.ps1" });
+                StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Acme Studio\Acme Studio.lnk",
+                CliShimName: "acme-studio.cmd",
+                UninstallScriptName: "uninstall-acme-studio.ps1"));
 
     private static WindowsInstallerPlatformAdapter AcmeStudioAdapter(
         RecordingCommandRunner commands,
@@ -551,7 +552,9 @@ public class WindowsInstallerPlatformAdapterTests
                 CliDirectory: @"C:\Program Files\Agent-Up\cli",
                 TrayDirectory: @"C:\Program Files\Agent-Up\tray",
                 BinDirectory: @"C:\Program Files\Agent-Up\bin",
-                StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk"));
+                StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk",
+                CliShimName: "agent-up.cmd",
+                UninstallScriptName: "uninstall-agent-up.ps1"));
 
     private static WindowsInstallerPlatformAdapter Adapter(
         RecordingCommandRunner commands,

@@ -20,6 +20,8 @@ public sealed partial record WindowsInstallerPaths
             CliDirectory: WindowsCombine(root, "cli"),
             TrayDirectory: WindowsCombine(root, "tray"),
             BinDirectory: WindowsCombine(root, "bin"),
-            StartMenuShortcutPath: WindowsCombine(commonStartMenu, "Programs", "Agent-Up", "Agent-Up.lnk"));
+            StartMenuShortcutPath: WindowsCombine(commonStartMenu, "Programs", "Agent-Up", "Agent-Up.lnk"),
+            CliShimName: WindowsInstallerManifest.DefaultCliShimName,
+            UninstallScriptName: "uninstall-agent-up.ps1");
     }
 }
