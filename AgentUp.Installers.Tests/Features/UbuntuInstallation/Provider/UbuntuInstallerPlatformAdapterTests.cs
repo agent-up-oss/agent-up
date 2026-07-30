@@ -20,7 +20,10 @@ using AgentUp.Installers.Features.UbuntuInstallation.Providers;
 
 namespace AgentUp.Installers.Tests.Features.UbuntuInstallation.Provider;
 
+// RunElevatedAsync writes scripts to /tmp (hardcoded to avoid sandbox-constrained TMPDIR).
+// /tmp does not exist as a real directory on Windows, so these tests are Unix-only.
 [TestFixture]
+[Platform(Include = "Unix")]
 public class UbuntuInstallerPlatformAdapterTests
 {
     // ── existing tests (Agent-Up product) ────────────────────────────────────
@@ -393,9 +396,17 @@ public class UbuntuInstallerPlatformAdapterTests
 
         private static bool IsUnderTemp(string path)
         {
-            var tempRoot = Path.GetFullPath(Path.GetTempPath());
             var fullPath = Path.GetFullPath(path);
-            return fullPath.StartsWith(tempRoot, StringComparison.Ordinal);
+
+            var userTemp = Path.GetFullPath(Path.GetTempPath());
+            if (fullPath.StartsWith(userTemp, StringComparison.Ordinal))
+                return true;
+
+            // On macOS, Path.GetTempPath() returns TMPDIR (/var/folders/.../T/) but the
+            // adapter hardcodes /tmp (= /private/tmp) to escape the PKG/pkexec sandbox.
+            // Accept both canonical forms so script capture works in non-sandbox contexts.
+            return fullPath.StartsWith("/tmp/", StringComparison.Ordinal) ||
+                   fullPath.StartsWith("/private/tmp/", StringComparison.Ordinal);
         }
     }
 
