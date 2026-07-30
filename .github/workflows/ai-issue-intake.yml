@@ -18,77 +18,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Add AI intake labels
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const labels = [
-              {
-                name: "ai intake",
-                color: "5319e7",
-                description: "Issue should be assessed by AI"
-              },
-              {
-                name: "request ai review",
-                color: "ededed",
-                description: "Triggers the GitHub AI issue assessment"
-              }
-            ];
-
-            for (const label of labels) {
-              try {
-                await github.rest.issues.getLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: label.name
-                });
-              } catch (error) {
-                if (error.status !== 404) {
-                  throw error;
-                }
-
-                await github.rest.issues.createLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  ...label
-                });
-              }
-            }
-
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              labels: labels.map(label => label.name)
-            });
-
-      - name: AI Assessment Comment Labeler
-        id: assessment
-        uses: github/ai-assessment-comment-labeler@v1.0.1
-        with:
-          token: ${{ github.token }}
-
-          issue_number: ${{ github.event.issue.number }}
-
-          issue_body: |
-            Issue title:
-            ${{ github.event.issue.title }}
-
-            Labels applied when submitted:
-            ${{ join(github.event.issue.labels.*.name, ', ') }}
-
-            Issue description:
-            ${{ github.event.issue.body || '(No description provided)' }}
-
-          ai_review_label: "request ai review"
-
-          prompts_directory: ".github/prompts"
-
-          labels_to_prompts_mapping: >-
-            ai intake,issue-intake.prompt.yml
-
-          model: "openai/gpt-4o-mini"
-          max_tokens: 700
-
-          no_comment_regex_pattern: "<!-- no-comment -->"
-          no_comment_regex_flags: "i"
+      - name: Run AI issue intake
+        id: ai_assessment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, ', ') }}
+          ISSUE_BODY: ${{ github.event.issue.body || '(No description provided)' }}
+        run: |
+          node .github/scripts/issue-intake.mjs
