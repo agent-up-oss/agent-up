@@ -85,10 +85,19 @@ public class InstallerWorkflowTests
         Assert.That(session.Step, Is.EqualTo(InstallerStep.Components),
             $"[{manifest.ProductName}] operational Docker must advance to Components");
 
-        session = InstallerWorkflow.StartInstall(InstallerWorkflow.GoNext(
-            InstallerWorkflow.GoNext(
-                InstallerWorkflow.GoNext(
-                    InstallerWorkflow.GoNext(session)))));
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Location),
+            $"[{manifest.ProductName}] Components must advance to Location");
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.ServerConfiguration),
+            $"[{manifest.ProductName}] Location must advance to ServerConfiguration");
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Payload),
+            $"[{manifest.ProductName}] ServerConfiguration must advance to Payload");
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Summary),
+            $"[{manifest.ProductName}] Payload must advance to Summary");
+        session = InstallerWorkflow.StartInstall(session);
         Assert.That(session.Step, Is.EqualTo(InstallerStep.Progress),
             $"[{manifest.ProductName}] must reach Progress after Summary");
         Assert.That(InstallerWorkflow.CanGoBack(session), Is.False);

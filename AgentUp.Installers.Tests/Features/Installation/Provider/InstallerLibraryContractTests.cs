@@ -70,8 +70,9 @@ public class InstallerLibraryContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(progressEvents, Has.Count.EqualTo(plan.Count),
-                $"[{manifest.ProductName}] every planned operation must produce exactly one progress event");
+            Assert.That(progressEvents.Select(p => p.Kind),
+                Is.EqualTo(plan.Select(op => op.Kind)),
+                $"[{manifest.ProductName}] progress events must match planned operations in kind and order");
             Assert.That(plan.Any(op => op.Title.Contains(manifest.ServiceName, StringComparison.Ordinal)), Is.True,
                 $"[{manifest.ProductName}] install plan must reference the product's own service name");
             Assert.That(report.Succeeded, Is.True,
