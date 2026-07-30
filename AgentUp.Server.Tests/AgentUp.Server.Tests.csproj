@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
   </ItemGroup>
 

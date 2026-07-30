@@ -18,7 +18,8 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();
-app.MapMcp("/mcp");
+app.MapMcp("/mcp/commits");
+app.MapMcp("/mcp/orchestration");
 
 app.Run();
 

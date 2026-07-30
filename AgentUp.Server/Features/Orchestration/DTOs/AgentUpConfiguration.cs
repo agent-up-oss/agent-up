@@ -5,4 +5,8 @@ namespace AgentUp.Server.Features.Orchestration.DTOs;
 public sealed record AgentUpConfiguration(
     string Name,
     IReadOnlyList<ApplicationDefinition>? Applications = null,
-    IReadOnlyList<DockerServiceDefinition>? Services = null);
+    IReadOnlyList<DockerServiceDefinition>? Services = null,
+    AgentPromptConfiguration? Prompts = null);
+
+public sealed record AgentPromptConfiguration(
+    string? CommitPolicy = null);

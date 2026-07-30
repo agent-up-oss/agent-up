@@ -22,5 +22,8 @@
       },
       "volumes": ["pgdata:/var/lib/postgresql/data"]
     }
-  ]
+  ],
+  "prompts": {
+    "commitPolicy": "Scope every commit message to the queued slice. Production changes in Server, CLI, Tray, InstallerApp, Installers, or Desktop are customer-facing and should be fix or feat unless they are true no-behavior source refactors. Use test for test-only changes and PackageSmoke changes, unless they are queued with same-slice fix or feat production changes. Use refactor for internal no-behavior source changes. Use chore only for maintenance, packaging, CI, or tooling changes that do not affect customer runtime behavior."
+  }
 }

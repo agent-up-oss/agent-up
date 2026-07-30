@@ -86,8 +86,12 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("inspect, debug, or continue"));
         Assert.That(context, Does.Contain("enqueue_review_fix_commit"));
         Assert.That(context, Does.Contain("one pull request review issue violation"));
+        Assert.That(context, Does.Contain("Scope every conventional commit message"));
         Assert.That(context, Does.Contain("feat means a user-facing addition"));
         Assert.That(context, Does.Contain("fix means a user-facing fix"));
+        Assert.That(context, Does.Contain("test means test-only or smoke-validation changes"));
+        Assert.That(context, Does.Contain("chore means maintenance/packaging/CI/tooling"));
+        Assert.That(context, Does.Contain("prompts.commitPolicy"));
         Assert.That(context, Does.Contain("style means CSS/HTML only"));
         Assert.That(context, Does.Contain("docs means documentation only"));
         Assert.That(context, Does.Contain("separate guidance/docs entry"));
@@ -95,6 +99,8 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("enqueue_commit intentionally restores tracked files"));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"services\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"ports\""));
+        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"prompts\""));
+        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"commitPolicy\""));
     }
 
     [Test]

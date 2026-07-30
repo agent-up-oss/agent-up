@@ -153,7 +153,7 @@ public sealed class CommitsProviderTests
     {
         var repositoryPath = await CreateRepositoryAsync();
         var provider = new CommitsQueueProvider(new FixedRootGitProvider(repositoryPath), _tempRoot);
-        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "feat: thing", ["a.cs"], ["dotnet test"], "entry-1", "patch-1")]);
+        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "feat(Slice): thing", ["a.cs"], ["dotnet test"], "entry-1", "patch-1")]);
 
         await provider.WriteAsync(repositoryPath, queue);
         await provider.SavePatchAsync(repositoryPath, "patch-1", "diff --git a/a.cs b/a.cs\n");

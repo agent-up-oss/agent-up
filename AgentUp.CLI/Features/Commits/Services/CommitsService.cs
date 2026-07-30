@@ -1,10 +1,11 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.CLI.Features.Commits.DTOs;
 using AgentUp.CLI.Features.Commits.Interfaces;
 using AgentUp.CLI.Features.Commits.Models;
 
 namespace AgentUp.CLI.Features.Commits.Services;
 
-public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git)
+public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git, CommitPolicyProvider commitPolicy)
 {
     public async Task EnqueueAsync(EnqueueRequest request, CancellationToken cancellationToken = default)
     {
@@ -13,6 +14,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             var current = await queue.ReadAsync(ct);
             await EnsureNoBlockingGitOperationAsync(ct);
             EnsureNoActiveSession(current);
+            commitPolicy.Validate(request.Slice, request.Message, request.Files);
             EnsureFilesAreUnassigned(current, request.Files);
             EnsureReviewIssueIsUnassigned(current, request.ReviewIssueId);
 
@@ -120,6 +122,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             EnsureFilesAreUnassigned(current, files, entry.Id);
             var updatedFiles = entry.Files.Concat(files).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             var updatedEntry = entry with { Files = updatedFiles };
+            commitPolicy.Validate(updatedEntry.Slice, updatedEntry.Message, updatedEntry.Files);
             await queue.WriteAsync(ReplaceEntry(current, updatedEntry), ct);
             return CommitEditResult.Completed("Files added.", updatedEntry, current.ActiveSession);
         }, cancellationToken);
@@ -238,6 +241,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             var entry = ResolveEntry(current, entryRef);
             EnsureNotEditingEntry(current, entry);
             var updatedEntry = update(entry);
+            commitPolicy.Validate(updatedEntry.Slice, updatedEntry.Message, updatedEntry.Files);
             await queue.WriteAsync(ReplaceEntry(current, updatedEntry), ct);
             return CommitEditResult.Completed("Entry updated.", updatedEntry, current.ActiveSession);
         }, cancellationToken);

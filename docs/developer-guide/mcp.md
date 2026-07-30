@@ -4,17 +4,21 @@ title: MCP
 
 # MCP
 
-The Server exposes an MCP server at `/mcp`. MCP is the primary automation interface for AI agents.
+The Server exposes separate MCP servers at `/mcp/orchestration` and `/mcp/commits`. MCP is the primary automation interface for AI agents.
 
 The CLI exists for human convenience. AI agents should use MCP directly.
 
 The Server sends MCP initialization instructions that tell clients to use Agent-Up tools whenever a user asks to use Agent-Up, agent up, the Agent-Up server, or the Agent-Up workspace manager. User wording such as "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up" means the agent should call `start_workspace` with the absolute repository/worktree path. Agent-Up starts and manages local development environments; it does not deploy to cloud infrastructure.
 
-The Server exposes Streamable HTTP at `/mcp` and legacy SSE compatibility at `/mcp/sse` plus `/mcp/message`. MCP is a protocol surface, not a feature slice: tools and resources are thin controller-layer adapters owned by the feature slice whose capability they expose. Cross-capability workspace and context tools live in the `Orchestration` slice.
+The Orchestration MCP server exposes Streamable HTTP at `/mcp/orchestration` and legacy SSE compatibility at `/mcp/orchestration/sse` plus `/mcp/orchestration/message`. It owns workspace tools, workspace resources, and Agent-Up context resources.
+
+The Commits MCP server exposes Streamable HTTP at `/mcp/commits` and legacy SSE compatibility at `/mcp/commits/sse` plus `/mcp/commits/message`. It owns only commit queue tools and exposes no workspace resources.
+
+This is a breaking endpoint split. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint. MCP is a protocol surface, not a feature slice: tools and resources are thin controller-layer adapters owned by the feature slice whose capability they expose. Cross-capability workspace and context tools live in the `Orchestration` slice.
 
 ## Resources
 
-Initial resources:
+Initial `/mcp/orchestration` resources:
 
 ```text
 agent-up://context
@@ -27,7 +31,7 @@ Resources expose Agent-Up context, the declarative `agent-up.json` format, and c
 
 ## Tools
 
-Initial tools:
+Initial `/mcp/orchestration` tools:
 
 - `start_workspace`: registers or updates a workspace from its `agent-up.json`, then starts it. Use it for requests to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up.
 - `stop_workspace`: stops a registered workspace by workspace ID or worktree path.
@@ -35,6 +39,9 @@ Initial tools:
 - `list_workspaces`: lists registered workspaces.
 - `get_agent_up_json_format`: returns the current declarative configuration format.
 - `get_agent_up_context`: returns concise Agent-Up operating rules for AI agents.
+
+Initial `/mcp/commits` tools:
+
 - `enqueue_commit`: saves a vertical-slice patch in the commit queue and restores the tracked files to their pre-change state for `agentup commits next`.
 - `enqueue_review_fix_commit`: saves one review issue violation fix with a required `reviewIssueId`; do not combine multiple review issues in one entry.
 - `get_commits_status`: returns queued entries, unassigned modified files, any active commit edit session, and active Git operation state.
@@ -49,7 +56,9 @@ If `start_workspace` cannot find `agent-up.json`, it instructs the agent to read
 
 `commits next` remains CLI-only because staging and popping a queued entry is developer-owned review work. Agents stop after `get_commits_status`.
 
-When the Server recognizes feature-sliced paths under `Features/<Slice>/`, MCP enqueue operations reject entries that span multiple slices or whose slice label does not match the recognized slice. Repositories without recognized vertical-slice paths fall back to unscoped queue entries.
+MCP enqueue operations require conventional commit messages scoped to the queued slice, such as `fix(Commits): validate queue metadata`. When the Server recognizes feature-sliced paths under `Features/<Slice>/`, enqueue operations reject entries that span multiple slices or whose slice label does not match the recognized slice. Repositories without recognized vertical-slice paths still require a slice label and matching commit-message scope.
+
+Agents should follow the default prefix policy from `get_agent_up_context`: `feat` for user-facing additions, `fix` for user-facing fixes, `test` for test-only or smoke-validation changes, `refactor` for no-behavior source changes, `chore` for maintenance, packaging, CI, or tooling with no customer runtime effect, `style` for CSS/HTML-only changes, and `docs` for documentation-only changes. Repositories may refine those boundaries with `prompts.commitPolicy` in `agent-up.json`.
 
 Cross-slice guidance or documentation updates should be queued in a separate guidance/docs entry instead of being bundled into an implementation slice.
 

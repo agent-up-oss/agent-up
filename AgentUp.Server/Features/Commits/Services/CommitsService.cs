@@ -1,10 +1,11 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 
 namespace AgentUp.Server.Features.Commits.Services;
 
-public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git)
+public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git, CommitPolicyProvider commitPolicy)
 {
     public async Task<CommitsEnqueueResult> EnqueueAsync(string worktreePath, EnqueueRequest request, CancellationToken cancellationToken = default)
     {
@@ -18,8 +19,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 if (current.ActiveSession is not null)
                     throw new InvalidOperationException("A commit queue edit session is active. Save or abort it first.");
 
-                ValidateConventionalCommit(request.Message, request.Files);
-                ValidateSliceBoundary(request);
+                commitPolicy.Validate(request.Slice, request.Message, request.Files);
                 EnsureReviewIssueIsUnassigned(current, request.ReviewIssueId);
                 var owners = current.Commits
                     .SelectMany(e => e.Files.Select(f => (File: f, Entry: e)))
@@ -125,6 +125,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             EnsureFilesAreUnassigned(current, files, entry.Id);
             var updatedFiles = entry.Files.Concat(files).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             var updatedEntry = entry with { Files = updatedFiles };
+            commitPolicy.Validate(updatedEntry.Slice, updatedEntry.Message, updatedEntry.Files);
             await queue.WriteAsync(worktreePath, ReplaceEntry(current, updatedEntry), ct);
             return CommitEditResult.Completed("Files added.", updatedEntry, current.ActiveSession);
         }, cancellationToken);
@@ -257,7 +258,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 var entry = ResolveEntry(current, entryRef);
                 EnsureNotEditingEntry(current, entry);
                 var updatedEntry = update(entry);
-                ValidateConventionalCommit(updatedEntry.Message, updatedEntry.Files);
+                commitPolicy.Validate(updatedEntry.Slice, updatedEntry.Message, updatedEntry.Files);
                 await queue.WriteAsync(worktreePath, ReplaceEntry(current, updatedEntry), ct);
                 return CommitEditResult.Completed("Entry updated.", updatedEntry, current.ActiveSession);
             }, cancellationToken);
@@ -325,93 +326,6 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
 
         if (current.Commits.Any(e => string.Equals(NormalizeOptional(e.ReviewIssueId), normalized, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"Review issue '{normalized}' is already assigned to a queued commit.");
-    }
-
-    private static void ValidateConventionalCommit(string message, IReadOnlyList<string> files)
-    {
-        var prefix = ConventionalCommitPrefix(message);
-        if (prefix is null)
-            throw new InvalidOperationException("Commit message must start with one of: feat, fix, chore, refactor, style, docs.");
-
-        if (prefix == "docs" && files.Any(file => !IsDocumentationFile(file)))
-            throw new InvalidOperationException("docs commits may only include documentation files such as docs/*, README*, AGENTS.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, or CHANGELOG.md.");
-
-        if (prefix == "style" && files.Any(file => !IsStyleFile(file)))
-            throw new InvalidOperationException("style commits may only include CSS or HTML files.");
-    }
-
-    private static string? ConventionalCommitPrefix(string message)
-    {
-        var separator = message.IndexOf(':', StringComparison.Ordinal);
-        if (separator <= 0)
-            return null;
-
-        var type = message[..separator];
-        var scopeStart = type.IndexOf('(', StringComparison.Ordinal);
-        if (scopeStart >= 0)
-            type = type[..scopeStart];
-
-        return type is "feat" or "fix" or "chore" or "refactor" or "style" or "docs"
-            ? type
-            : null;
-    }
-
-    private static bool IsDocumentationFile(string path)
-    {
-        var normalized = path.Replace('\\', '/');
-        var fileName = Path.GetFileName(normalized);
-        return normalized.StartsWith("docs/", StringComparison.OrdinalIgnoreCase)
-            || fileName.StartsWith("README", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fileName, "AGENTS.md", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fileName, "CONTRIBUTING.md", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fileName, "SECURITY.md", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fileName, "CODE_OF_CONDUCT.md", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fileName, "CHANGELOG.md", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsStyleFile(string path)
-    {
-        var extension = Path.GetExtension(path);
-        return string.Equals(extension, ".css", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void ValidateSliceBoundary(EnqueueRequest request)
-    {
-        var featureSlices = request.Files
-            .Select(FeatureSlice)
-            .Where(slice => slice is not null)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Cast<string>()
-            .ToList();
-        if (featureSlices.Count == 0)
-            return;
-        if (featureSlices.Count > 1)
-            throw new InvalidOperationException($"Commit spans multiple feature slices: {string.Join(", ", featureSlices)}. Create one queued commit per slice.");
-
-        var expected = NormalizeSliceName(featureSlices[0]);
-        var actual = NormalizeSliceName(request.Slice);
-        if (actual != expected)
-            throw new InvalidOperationException($"Commit slice '{request.Slice}' does not match feature slice '{featureSlices[0]}'.");
-    }
-
-    private static string? FeatureSlice(string path)
-    {
-        var parts = path.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        for (var i = 0; i + 1 < parts.Length; i++)
-        {
-            if (string.Equals(parts[i], "Features", StringComparison.OrdinalIgnoreCase))
-                return parts[i + 1];
-        }
-
-        return null;
-    }
-
-    private static string NormalizeSliceName(string value)
-    {
-        var last = value.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? value;
-        return string.Concat(last.Where(char.IsLetterOrDigit)).ToLowerInvariant();
     }
 
     private static string? NormalizeOptional(string? value)

@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
@@ -15,8 +16,8 @@ public sealed class CommitsControllerTests
     public async Task EnqueueAsync_delegatesToService()
     {
         var queue = new FakeCommitsQueueProvider();
-        var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider()));
-        var request = new EnqueueRequest("S", "chore: update queue", ["a.cs"], []);
+        var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider()));
+        var request = new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"], []);
 
         var result = await controller.EnqueueAsync(WorktreePath, request);
 
@@ -30,7 +31,7 @@ public sealed class CommitsControllerTests
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
             new CommitEntry("Slice", "msg", ["a.cs"], [])
         ]));
-        var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider()));
+        var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider()));
 
         var result = await controller.GetStatusAsync(WorktreePath);
 

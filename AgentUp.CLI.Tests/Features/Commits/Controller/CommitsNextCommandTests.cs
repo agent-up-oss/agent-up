@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Interfaces;
@@ -25,7 +26,7 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_stagesFilesAndReturnsZero()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs", "b.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs", "b.cs"], []);
         var git = new FakeCommitsGitProvider();
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
@@ -39,7 +40,7 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_outputContainsSliceAndMessage()
     {
-        var entry = new CommitEntry("MySlice", "feat: msg", ["a.cs"], []);
+        var entry = new CommitEntry("MySlice", "feat(Slice): msg", ["a.cs"], []);
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
@@ -47,27 +48,27 @@ public sealed class CommitsNextCommandTests
 
         var text = output.ToString();
         Assert.That(text, Does.Contain("MySlice"));
-        Assert.That(text, Does.Contain("feat: msg"));
+        Assert.That(text, Does.Contain("feat(Slice): msg"));
     }
 
     [Test]
     public async Task RunAsync_singleEntry_outputSuggestsGitCommitCommand()
     {
-        var entry = new CommitEntry("Slice", "feat: the feature", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): the feature", ["a.cs"], []);
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
         await command.RunAsync();
 
-        Assert.That(output.ToString(), Does.Contain("git commit -m \"feat: the feature\""));
+        Assert.That(output.ToString(), Does.Contain("git commit -m \"feat(Slice): the feature\""));
     }
 
     [Test]
     public async Task RunAsync_multipleEntries_popsFirstAndShowsRemaining()
     {
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix: first", ["a.cs"], []),
-            new CommitEntry("Second", "fix: second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"], []),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
         ]);
         using var output = new StringWriter();
         var command = BuildCommand(output, queue);
@@ -83,8 +84,8 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_multipleEntries_doesNotStageSecondEntryFiles()
     {
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix: first", ["a.cs"], []),
-            new CommitEntry("Second", "fix: second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"], []),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
         ]);
         var git = new FakeCommitsGitProvider();
         using var output = new StringWriter();
@@ -98,7 +99,7 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_lastEntry_outputIndicatesQueueIsEmpty()
     {
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
@@ -111,7 +112,7 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_whenStagedChangesExist_returnsOneWithError()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
         var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
 
@@ -125,7 +126,7 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_jsonFormat_singleEntry_writesCommitMessageAndRemainingCount()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix: msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["a.cs"], []);
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
         var code = await command.RunAsync(["--format", "json"]);
@@ -134,7 +135,7 @@ public sealed class CommitsNextCommandTests
         Assert.That(code, Is.EqualTo(0));
         Assert.That(json.RootElement.GetProperty("staged").GetBoolean(), Is.True);
         Assert.That(json.RootElement.GetProperty("slice").GetString(), Is.EqualTo("Slice"));
-        Assert.That(json.RootElement.GetProperty("message").GetString(), Is.EqualTo("fix: msg"));
+        Assert.That(json.RootElement.GetProperty("message").GetString(), Is.EqualTo("fix(Slice): msg"));
         Assert.That(json.RootElement.GetProperty("remainingCount").GetInt32(), Is.EqualTo(0));
         Assert.That(json.RootElement.TryGetProperty("empty", out _), Is.False);
     }
@@ -159,7 +160,7 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_jsonFormat_whenStagedChangesExist_returnsBlockedResult()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "feat: msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
         var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
 
@@ -193,7 +194,7 @@ public sealed class CommitsNextCommandTests
         FakeCommitsGitProvider? git = null)
     {
         var gitProvider = git ?? new FakeCommitsGitProvider();
-        var service = new CommitsService(new FakeCommitsQueueProvider(queue), gitProvider);
+        var service = new CommitsService(new FakeCommitsQueueProvider(queue), gitProvider, new CommitPolicyProvider());
         return new CommitsNextCommand(service, new CommitsOutputService(output, new CommitsJsonRenderer()), new CommitsFormatParser());
     }
 
