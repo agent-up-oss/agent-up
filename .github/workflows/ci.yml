@@ -12,6 +12,40 @@ permissions:
   contents: read
 
 jobs:
+  localinstaller:
+    name: Installer library (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: dotnet build localinstaller.sln --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test localinstaller.sln
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Test Report
+        uses: dorny/test-reporter@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: .NET Tests (Installer Library - ${{ matrix.os }})
+          path: "**/test-results.trx"
+          reporter: dotnet-trx
+
   version:
     name: Determine version
     runs-on: ubuntu-latest

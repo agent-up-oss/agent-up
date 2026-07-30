@@ -1,16 +1,6 @@
-using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
-using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
-using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.PrerequisiteChecks;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
 using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 
 namespace AgentUp.Installers.Tests.Features.Installation.Unit;
@@ -61,6 +51,63 @@ public class InstallerWorkflowTests
         Assert.That(InstallerWorkflow.CanGoNext(progress), Is.False);
     }
 
+    private static IEnumerable<TestCaseData> ManifestCases()
+    {
+        yield return new TestCaseData(ProductManifest.AgentUp()).SetName("AgentUp");
+        yield return new TestCaseData(
+            new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+            {
+                Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+            }).SetName("SampleProduct_AcmeStudio");
+    }
+
+    [TestCaseSource(nameof(ManifestCases))]
+    public void Workflow_forAnyManifest_advancesLicenseThenBlocksOnDockerThenReachesCompletion(ProductManifest manifest)
+    {
+        var session = SessionFor(manifest);
+
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.License),
+            $"[{manifest.ProductName}] Welcome must advance to License");
+
+        session = InstallerWorkflow.AcceptLicense(session, true);
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Prerequisites),
+            $"[{manifest.ProductName}] accepted License must advance to Prerequisites");
+
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Docker),
+            $"[{manifest.ProductName}] Prerequisites must advance to Docker");
+
+        session = InstallerWorkflow.WithDockerStatus(session,
+            new DockerStatus(DockerStatusKind.Operational, "OK", "Docker is operational.", new Version(27, 0, 0)));
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Components),
+            $"[{manifest.ProductName}] operational Docker must advance to Components");
+
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Location),
+            $"[{manifest.ProductName}] Components must advance to Location");
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.ServerConfiguration),
+            $"[{manifest.ProductName}] Location must advance to ServerConfiguration");
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Payload),
+            $"[{manifest.ProductName}] ServerConfiguration must advance to Payload");
+        session = InstallerWorkflow.GoNext(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Summary),
+            $"[{manifest.ProductName}] Payload must advance to Summary");
+        session = InstallerWorkflow.StartInstall(session);
+        Assert.That(session.Step, Is.EqualTo(InstallerStep.Progress),
+            $"[{manifest.ProductName}] must reach Progress after Summary");
+        Assert.That(InstallerWorkflow.CanGoBack(session), Is.False);
+        Assert.That(InstallerWorkflow.CanGoNext(session), Is.False);
+    }
+
     private static InstallerSession NewSession()
         => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/opt/agent-up", PayloadSelection.Bundled(new Version(1, 2, 3)));
+
+    private static InstallerSession SessionFor(ProductManifest manifest)
+        => InstallerSession.CreateDefault(manifest, new Version(1, 2, 3), manifest.DefaultInstallRoot(),
+            PayloadSelection.Bundled(manifest.ProductName, new Version(1, 2, 3)));
 }
