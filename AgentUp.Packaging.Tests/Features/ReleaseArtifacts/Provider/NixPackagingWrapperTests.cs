@@ -80,6 +80,14 @@ public class NixPackagingWrapperTests
         Assert.That(text, Does.Contain("default = \"${config.xdg.stateHome}/agent-up\""));
         Assert.That(text, Does.Contain("ExecStart = \"${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}\""));
         Assert.That(text, Does.Contain("ExecStart = \"${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.server.port}\""));
+        Assert.That(text, Does.Contain("WorkingDirectory = \"${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("ASPNETCORE_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("DOTNET_CONTENTROOT = \"${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("DOTNET_BUNDLE_EXTRACT_BASE_DIR = \"/var/cache/agent-up\""));
+        Assert.That(text, Does.Contain("CacheDirectory = \"agent-up\""));
+        Assert.That(text, Does.Contain("\"ASPNETCORE_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("\"DOTNET_CONTENTROOT=${package}/opt/agent-up/server\""));
+        Assert.That(text, Does.Contain("\"DOTNET_BUNDLE_EXTRACT_BASE_DIR=${config.xdg.cacheHome}/agent-up\""));
     }
 
     [Test]
