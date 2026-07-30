@@ -10,6 +10,7 @@ internal static class ArchitectureFixture
     public static readonly string[] ProductionProjects =
     [
         "AgentUp.Server",
+        "AgentUp.CommitPolicy",
         "AgentUp.Capabilities.Abstractions",
         "AgentUp.Capabilities.Common",
         "AgentUp.Capabilities.Dotnet",
@@ -25,6 +26,7 @@ internal static class ArchitectureFixture
     public static readonly string[] TestProjects =
     [
         "AgentUp.Server.Tests",
+        "AgentUp.CommitPolicy.Tests",
         "AgentUp.Capabilities.Abstractions.Tests",
         "AgentUp.Capabilities.Common.Tests",
         "AgentUp.Capabilities.Dotnet.Tests",

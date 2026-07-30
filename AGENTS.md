@@ -61,6 +61,9 @@ AgentUp.Desktop/
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
+AgentUp.CommitPolicy/
+  AgentUp.CommitPolicy.csproj
+
 AgentUp.Installers/
   AgentUp.Installers.csproj
 
@@ -94,6 +97,9 @@ AgentUp.Desktop.Tests/
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
 
+AgentUp.CommitPolicy.Tests/
+  AgentUp.CommitPolicy.Tests.csproj
+
 AgentUp.Installers.Tests/
   AgentUp.Installers.Tests.csproj
 
@@ -126,6 +132,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
+| `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `AgentUp.Installers` | Testable installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
 | `AgentUp.InstallerApp` | Shared Avalonia installer dashboard over platform installer adapters and installer-owned capability catalog state; no compile-time dependency on `AgentUp.Capabilities.*` |
 | `AgentUp.Packaging` | Testable release artifact staging, package metadata generation, and native packaging tool orchestration |
