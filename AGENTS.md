@@ -639,7 +639,7 @@ Read: `docs/user-docs/cli.md`.
 
 ## MCP
 
-The MCP server is the main automation interface for AI agents. It exposes workspace resources and tools for browser interaction, logs, diagnostics, screenshots, waits, and Playwright export.
+The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources and orchestration tools, and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
 
 Read: `docs/developer-guide/mcp.md`.
 
