@@ -31,6 +31,7 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using AgentUp.Server.Shared.Providers;
 
 namespace AgentUp.Server.Composition;
 
@@ -52,6 +53,9 @@ public static class ServiceRegistration
             {
                 options.Stateless = false;
                 options.EnableLegacySse = true;
+                options.ConfigureSessionOptions = (context, serverOptions, ct) =>
+                    context.RequestServices.GetRequiredService<McpEndpointSessionProvider>()
+                        .ConfigureAsync(context, serverOptions, ct);
             })
             .WithTools<OrchestrationMcpTools>()
             .WithTools<CommitQueueMcpTools>()
@@ -97,6 +101,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();
+        builder.Services.AddSingleton<McpEndpointSessionProvider>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();

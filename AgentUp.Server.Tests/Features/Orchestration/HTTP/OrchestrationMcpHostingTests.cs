@@ -1,5 +1,9 @@
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Commits.Controllers;
+using AgentUp.Server.Features.Commits.Interfaces;
+using AgentUp.Server.Features.Commits.Providers;
+using AgentUp.Server.Features.Commits.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
 using AgentUp.Server.Features.Orchestration.Providers;
@@ -12,20 +16,80 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using AgentUp.Server.Shared.Providers;
+using Microsoft.AspNetCore.Http;
 using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Server;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.HTTP;
 
 [TestFixture]
-public sealed class McpHostingTests
+public sealed class OrchestrationMcpHostingTests
 {
     [Test]
-    public void MapMcp_MapsStreamableHttpAndLegacySseEndpoints()
+    public void MapMcp_MapsSeparateStreamableHttpAndLegacySseEndpoints()
+    {
+        using var app = BuildMcpApp();
+        app.MapMcp("/mcp/commits");
+        app.MapMcp("/mcp/orchestration");
+
+        var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
+            .OfType<RouteEndpoint>()
+            .Select(endpoint => NormalizeRoutePattern(endpoint.RoutePattern.RawText))
+            .ToArray();
+
+        Assert.That(endpoints, Does.Not.Contain("/mcp"));
+        Assert.That(endpoints, Does.Contain("/mcp/commits"));
+        Assert.That(endpoints, Does.Contain("/mcp/commits/sse"));
+        Assert.That(endpoints, Does.Contain("/mcp/commits/message"));
+        Assert.That(endpoints, Does.Contain("/mcp/orchestration"));
+        Assert.That(endpoints, Does.Contain("/mcp/orchestration/sse"));
+        Assert.That(endpoints, Does.Contain("/mcp/orchestration/message"));
+    }
+
+    [Test]
+    public async Task ConfigureSessionOptions_CommitsEndpoint_ExposesOnlyCommitQueueTools()
+    {
+        using var app = BuildMcpApp();
+        var options = app.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        var transport = app.Services.GetRequiredService<IOptions<HttpServerTransportOptions>>().Value;
+        var context = new DefaultHttpContext { RequestServices = app.Services };
+        context.Request.Path = "/mcp/commits";
+
+        await transport.ConfigureSessionOptions!(context, options, CancellationToken.None);
+
+        var tools = options.ToolCollection?.PrimitiveNames.ToArray() ?? [];
+        Assert.That(tools, Does.Contain("enqueue_commit"));
+        Assert.That(tools, Does.Contain("guard_commits"));
+        Assert.That(tools, Does.Not.Contain("start_workspace"));
+        Assert.That(options.ResourceCollection?.PrimitiveNames ?? [], Is.Empty);
+        Assert.That(options.ServerInstructions, Does.Contain("commit queue MCP server"));
+    }
+
+    [Test]
+    public async Task ConfigureSessionOptions_OrchestrationEndpoint_ExposesOnlyOrchestrationTools()
+    {
+        using var app = BuildMcpApp();
+        var options = app.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        var transport = app.Services.GetRequiredService<IOptions<HttpServerTransportOptions>>().Value;
+        var context = new DefaultHttpContext { RequestServices = app.Services };
+        context.Request.Path = "/mcp/orchestration";
+
+        await transport.ConfigureSessionOptions!(context, options, CancellationToken.None);
+
+        var tools = options.ToolCollection?.PrimitiveNames.ToArray() ?? [];
+        Assert.That(tools, Does.Contain("start_workspace"));
+        Assert.That(tools, Does.Contain("get_agent_up_context"));
+        Assert.That(tools, Does.Not.Contain("enqueue_commit"));
+        Assert.That(options.ResourceCollection?.PrimitiveNames ?? [], Does.Contain("agent-up://context"));
+    }
+
+    private static WebApplication BuildMcpApp()
     {
         var builder = WebApplication.CreateBuilder();
         builder.Services.AddMcpServer(options =>
@@ -38,7 +102,11 @@ public sealed class McpHostingTests
 #pragma warning disable MCP9004 // Intentional compatibility coverage for legacy local MCP clients.
                 options.EnableLegacySse = true;
 #pragma warning restore MCP9004
+                options.ConfigureSessionOptions = (context, serverOptions, ct) =>
+                    context.RequestServices.GetRequiredService<McpEndpointSessionProvider>()
+                        .ConfigureAsync(context, serverOptions, ct);
             })
+            .WithTools<CommitQueueMcpTools>()
             .WithTools<OrchestrationMcpTools>()
             .WithResources<OrchestrationMcpResources>();
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
@@ -60,23 +128,14 @@ public sealed class McpHostingTests
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();
+        builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
+        builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
+        builder.Services.AddSingleton<CommitsService>();
+        builder.Services.AddSingleton<CommitsController>();
+        builder.Services.AddSingleton<CommitQueueMcpService>();
+        builder.Services.AddSingleton<McpEndpointSessionProvider>();
 
-        using var app = builder.Build();
-        app.MapMcp("/mcp");
-
-        var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
-            .OfType<RouteEndpoint>()
-            .Select(endpoint => NormalizeRoutePattern(endpoint.RoutePattern.RawText))
-            .ToArray();
-
-        Assert.That(endpoints, Does.Contain("/mcp"));
-        Assert.That(endpoints, Does.Contain("/mcp/sse"));
-        Assert.That(endpoints, Does.Contain("/mcp/message"));
-
-        var options = app.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
-        Assert.That(options.ServerInstructions, Does.Contain("deploy my app with Agent-Up"));
-        Assert.That(options.ServerInstructions, Does.Contain("call start_workspace"));
-        Assert.That(options.ServerInstructions, Does.Contain("Before using curl"));
+        return builder.Build();
     }
 
     private static string NormalizeRoutePattern(string? routePattern)
