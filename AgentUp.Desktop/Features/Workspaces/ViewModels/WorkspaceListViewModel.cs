@@ -91,7 +91,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     public void ApplyEvent(string workspaceId, string newState, IReadOnlyList<(string Name, string State)> appChanges)
     {
         var item = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
-        item?.UpdateFrom(newState, appChanges);
+        item?.ApplyStateChange(newState, appChanges);
     }
 
     public async Task LoadAsync(CancellationToken ct = default)
@@ -120,8 +120,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
             {
                 if (existingById.TryGetValue(dto.Id, out var existing))
                 {
-                    var appChanges = dto.Applications.Select(a => (a.Name, a.State)).ToList();
-                    existing.UpdateFrom(dto.State, appChanges);
+                    existing.UpdateFrom(dto.State, dto.Applications);
                 }
                 else
                 {

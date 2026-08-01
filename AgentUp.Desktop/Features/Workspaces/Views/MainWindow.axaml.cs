@@ -16,9 +16,10 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Browser.Controllers;
-using AgentUp.Desktop.Features.Browser.Interfaces;
 using AgentUp.Desktop.Features.Ports.ViewModels;
+using AgentUp.Desktop.Shared.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Repositories;
@@ -151,45 +152,43 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         _addressPollTimer.Start();
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
-        _browserAutomation = new BrowserAutomationController(
-            new AgentUp.Desktop.Features.Browser.Services.BrowserCommandPoller(
-                new AgentUp.Desktop.Features.Browser.Providers.BrowserCommandHttpClient(_serverHttp),
-                this));
+        _browserAutomation = BrowserAutomationComposition.Create(_serverHttp, this);
         _browserAutomation.Start();
     }
 
-    // IBrowserWindowHost — derive workspace IDs from the tab-keyed dictionary.
-    IReadOnlyCollection<string> IBrowserWindowHost.ActiveWorkspaceIds =>
-        _webViews.Keys.Select(WorkspaceFromTabKey).Distinct().ToList();
+    async Task<IReadOnlyCollection<string>> IBrowserWindowHost.GetActiveWorkspaceIdsAsync() =>
+        await Dispatcher.UIThread.InvokeAsync<IReadOnlyCollection<string>>(
+            () => _webViews.Keys.Select(WorkspaceFromTabKey).Distinct().ToList());
 
     Task<string?> IBrowserWindowHost.EvalAsync(string workspaceId, string script) =>
         EvalAsync(workspaceId, script);
 
-    void IBrowserWindowHost.NavigateTo(string workspaceId, string? url) =>
+    bool IBrowserWindowHost.NavigateTo(string workspaceId, string? url) =>
         NavigateBackground(workspaceId, url);
 
     // Navigates a workspace's tab WebView from the agent side. Switches the visible application
     // tab when the target port belongs to a different app within the same active workspace.
-    private void NavigateBackground(string workspaceId, string? url)
+    private bool NavigateBackground(string workspaceId, string? url)
     {
-        if (_isClosed || url is null) return;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+        if (_isClosed || url is null) return false;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
 
         var tabKey = TabKey(workspaceId, uri);
         _agentActiveTabKeys[workspaceId] = tabKey;
 
         SwitchApplicationTabForUrl(workspaceId, url);
 
-        if (!TryGetOrCreateWebView(tabKey, workspaceId, url, out var webView, out var destinationUrl)) return;
+        if (!TryGetOrCreateWebView(tabKey, workspaceId, url, out var webView, out var destinationUrl)) return false;
 
         // Avoid force-reloading a tab the agent is already on.
         if (_lastKnownBrowserUrls.TryGetValue(tabKey, out var currentUrl)
             && string.Equals(currentUrl, destinationUrl, StringComparison.Ordinal))
-            return;
+            return true;
 
         var navigationVersion = _navigationVersions.GetValueOrDefault(tabKey) + 1;
         _navigationVersions[tabKey] = navigationVersion;
         _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(destinationUrl), navigationVersion);
+        return true;
     }
 
     // Switches the application and sub-tab to match the port in url, so the user can watch
@@ -253,7 +252,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
 
     protected override void OnDataContextChanged(EventArgs e)
     {
-        _workspaceEventClient?.Stop();
+        _workspaceEventClient?.Dispose();
         _workspaceEventClient = null;
 
         base.OnDataContextChanged(e);
@@ -295,7 +294,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     protected override void OnClosed(EventArgs e)
     {
         _isClosed = true;
-        _workspaceEventClient?.Stop();
+        _workspaceEventClient?.Dispose();
         _browserAutomation.Stop();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
@@ -310,10 +309,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     // Evaluates a script in the tab the agent last navigated to for the given workspace.
     internal async Task<string?> EvalAsync(string workspaceId, string script)
     {
-        var tabKey = ResolveEvaluationTabKey(workspaceId);
-        if (tabKey is null) return null;
-        if (!_webViews.TryGetValue(tabKey, out var webView)) return null;
-        var result = await Dispatcher.UIThread.InvokeAsync(() => webView.InvokeScript(script));
+        var result = await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            var tabKey = ResolveEvaluationTabKey(workspaceId);
+            if (tabKey is null) return null;
+            if (!_webViews.TryGetValue(tabKey, out var webView)) return null;
+            return await webView.InvokeScript(script);
+        });
         return NormalizeScriptResult(result);
     }
 

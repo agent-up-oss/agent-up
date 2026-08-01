@@ -1,14 +1,8 @@
 using System.Threading.Channels;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Models;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
-
-public sealed record WorkspaceStateChangedEvent(
-    string WorkspaceId,
-    string State,
-    IReadOnlyList<AppStateChange> Applications);
-
-public sealed record AppStateChange(string Name, string State);
 
 public sealed class WorkspaceEventBus
 {

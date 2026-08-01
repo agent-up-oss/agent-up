@@ -32,6 +32,7 @@ using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Shared.Providers;
@@ -67,6 +68,7 @@ public static class ServiceRegistration
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
         builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
             new JsonWorkspaceRepository(Path.Join(dataDir, "workspaces.json")));

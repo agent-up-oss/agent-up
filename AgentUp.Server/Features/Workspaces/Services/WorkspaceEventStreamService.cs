@@ -1,15 +1,12 @@
-using System.Text.Json;
+using AgentUp.Server.Features.Workspaces.Providers;
 using Microsoft.AspNetCore.Http;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
 
-public sealed class WorkspaceEventStreamService(WorkspaceEventBus eventBus)
+public sealed class WorkspaceEventStreamService(
+    WorkspaceEventBus eventBus,
+    WorkspaceEventFrameProvider frames)
 {
-    private static readonly JsonSerializerOptions EventJsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     public async Task WriteAsync(HttpResponse response, CancellationToken ct)
     {
         response.ContentType = "text/event-stream";
@@ -21,8 +18,7 @@ public sealed class WorkspaceEventStreamService(WorkspaceEventBus eventBus)
         {
             await foreach (var evt in sub.Reader.ReadAllAsync(ct))
             {
-                var json = JsonSerializer.Serialize(evt, EventJsonOptions);
-                await response.WriteAsync($"data: {json}\n\n", ct);
+                await response.WriteAsync(frames.Format(evt), ct);
                 await response.Body.FlushAsync(ct);
             }
         }

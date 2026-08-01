@@ -7,7 +7,7 @@ using Avalonia.Threading;
 
 namespace AgentUp.Desktop.Features.Workspaces.Providers;
 
-internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewModel sidebar)
+internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewModel sidebar) : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -18,6 +18,7 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
 
     public void Start()
     {
+        Stop();
         _cts = new CancellationTokenSource();
         _ = RunAsync(_cts.Token);
     }
@@ -37,16 +38,26 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
             try
             {
                 await ConsumeAsync(ct);
-                delay = TimeSpan.FromSeconds(1);
+                if (!await DelayAsync(delay, ct)) break;
+                if (delay < TimeSpan.FromSeconds(30)) delay *= 2;
             }
-            catch (OperationCanceledException) { break; }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
+            }
             catch (Exception ex) when (ex is HttpRequestException or IOException or JsonException)
             {
                 Trace.TraceWarning($"[WorkspaceEventClient] Disconnected: {ex.Message}");
-                try { await Task.Delay(delay, ct); } catch (OperationCanceledException) { break; }
+                if (!await DelayAsync(delay, ct)) break;
                 if (delay < TimeSpan.FromSeconds(30)) delay *= 2;
             }
         }
+    }
+
+    public void Dispose()
+    {
+        Stop();
+        http.Dispose();
     }
 
     private async Task ConsumeAsync(CancellationToken ct)
@@ -78,6 +89,19 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
                 .ToList();
 
             Dispatcher.UIThread.Post(() => sidebar.ApplyEvent(evt.WorkspaceId, evt.State, appChanges));
+        }
+    }
+
+    private static async Task<bool> DelayAsync(TimeSpan delay, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(delay, ct);
+            return true;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return false;
         }
     }
 }

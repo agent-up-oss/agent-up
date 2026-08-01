@@ -1,3 +1,5 @@
+using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
@@ -61,5 +63,53 @@ public class WorkspaceItemViewModelTests
 
         Assert.That(vm.RepositoryName, Is.EqualTo(expectedName));
         Assert.That(vm.RepositoryToolTip, Is.EqualTo(repositoryPath));
+    }
+
+    [Test]
+    public void UpdateFrom_AddsUpdatesAndRemovesApplications()
+    {
+        var vm = new WorkspaceItemViewModel(
+            "ws-1",
+            "App",
+            "main",
+            "/repo",
+            "/worktree",
+            "Stopped",
+            [
+                new ApplicationDto("Old", "old", null, "Running"),
+                new ApplicationDto("Web", "web", null, "Starting")
+            ]);
+        var ports = new List<PortMappingDto> { new("WEB_PORT", 3000, 5300) };
+
+        vm.UpdateFrom("Running",
+            [
+                new ApplicationDto("Web", "web", null, "Running") { AllocatedPorts = ports },
+                new ApplicationDto("Worker", "worker", null, "Stopped")
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.State, Is.EqualTo("Running"));
+            Assert.That(vm.Applications.Select(app => app.Name), Is.EqualTo(["Web", "Worker"]));
+            Assert.That(vm.Applications.Single(app => app.Name == "Web").State, Is.EqualTo("Running"));
+            Assert.That(vm.Applications.Single(app => app.Name == "Worker").Command, Is.EqualTo("worker"));
+        });
+    }
+
+    [Test]
+    public void ApplyStateChange_AddsStateOnlyApplicationFromEvent()
+    {
+        var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");
+
+        vm.ApplyStateChange("Running", [("Worker", "Running")]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.State, Is.EqualTo("Running"));
+            Assert.That(vm.Applications, Has.Count.EqualTo(1));
+            Assert.That(vm.Applications[0].Name, Is.EqualTo("Worker"));
+            Assert.That(vm.Applications[0].Command, Is.Empty);
+            Assert.That(vm.Applications[0].State, Is.EqualTo("Running"));
+        });
     }
 }

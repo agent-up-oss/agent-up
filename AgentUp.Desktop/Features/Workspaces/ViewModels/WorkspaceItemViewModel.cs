@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using ReactiveUI;
@@ -30,7 +31,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
     }
 
-    public IReadOnlyList<ApplicationViewModel> Applications { get; }
+    public ObservableCollection<ApplicationViewModel> Applications { get; } = [];
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
@@ -49,14 +50,33 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         _state = state;
         Initials = BuildInitials(displayName);
         _stateColor = ResolveStateColor(state);
-        Applications = (applications ?? [])
-            .Select(a => new ApplicationViewModel(a.Name, a.Command, a.State, a.AllocatedPorts))
-            .ToList();
+        foreach (var app in applications ?? [])
+            Applications.Add(CreateApplication(app));
     }
 
     // Updates workspace and application state in-place without triggering the SelectedWorkspace
     // change notification, so existing browser sessions and navigation state are undisturbed.
-    public void UpdateFrom(string newState, IReadOnlyList<(string Name, string State)> appChanges)
+    public void UpdateFrom(string newState, IReadOnlyList<ApplicationDto> applications)
+    {
+        State = newState;
+        StateColor = ResolveStateColor(newState);
+
+        var existingByName = Applications.ToDictionary(a => a.Name);
+        var incomingByName = applications.ToDictionary(a => a.Name);
+
+        foreach (var name in existingByName.Keys.Except(incomingByName.Keys).ToList())
+            Applications.Remove(existingByName[name]);
+
+        foreach (var app in applications)
+        {
+            if (existingByName.TryGetValue(app.Name, out var existing))
+                existing.UpdateState(app.State);
+            else
+                Applications.Add(CreateApplication(app));
+        }
+    }
+
+    public void ApplyStateChange(string newState, IReadOnlyList<(string Name, string State)> appChanges)
     {
         State = newState;
         StateColor = ResolveStateColor(newState);
@@ -64,7 +84,13 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         var changesByName = appChanges.ToDictionary(a => a.Name, a => a.State);
         foreach (var app in Applications.Where(app => changesByName.ContainsKey(app.Name)))
             app.UpdateState(changesByName[app.Name]);
+
+        foreach (var app in appChanges.Where(app => !Applications.Any(existing => existing.Name == app.Name)))
+            Applications.Add(new ApplicationViewModel(app.Name, string.Empty, app.State));
     }
+
+    private static ApplicationViewModel CreateApplication(ApplicationDto app) =>
+        new(app.Name, app.Command, app.State, app.AllocatedPorts);
 
     private static string ResolveStateColor(string state) => state switch
     {
