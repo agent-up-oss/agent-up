@@ -121,6 +121,26 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserWorkspaceIdParser>();
         builder.Services.AddSingleton<BrowserPendingCommandService>();
         builder.Services.AddSingleton<BrowserMcpService>();
+        builder.Services.AddSingleton<ScreencastBroadcastService>();
+
+        if (string.Equals(
+                builder.Configuration["Browser:Mode"],
+                "headless",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            builder.Services.AddSingleton(sp =>
+                new HeadlessBrowserSessionManager(
+                    chromiumDir: Path.Join(dataDir, "chromium"),
+                    profilesDir: Path.Join(dataDir, "browser-profiles"),
+                    sp.GetRequiredService<ScreencastBroadcastService>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>()));
+            builder.Services.AddHostedService(sp =>
+                sp.GetRequiredService<HeadlessBrowserSessionManager>());
+            builder.Services.AddSingleton<CdpBrowserExecutor>();
+            builder.Services.AddSingleton<HeadlessBrowserCommandDispatcher>();
+            builder.Services.AddHostedService(sp =>
+                sp.GetRequiredService<HeadlessBrowserCommandDispatcher>());
+        }
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }

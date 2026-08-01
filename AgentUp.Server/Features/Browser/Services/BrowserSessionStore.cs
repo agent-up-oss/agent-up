@@ -88,6 +88,8 @@ public sealed class BrowserSessionStore
         return null;
     }
 
+    public IEnumerable<string> WorkspaceIds => _queues.Keys;
+
     public void CompleteCommand(BrowserCommandResultDto result)
     {
         if (_pending.TryRemove(result.CommandId, out var tcs))

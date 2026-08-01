@@ -133,6 +133,7 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<OrchestrationContextController>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
+        builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
         builder.Services.AddSingleton<CommitQueueMcpService>();

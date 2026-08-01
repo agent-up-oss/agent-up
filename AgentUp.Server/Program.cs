@@ -17,6 +17,7 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseWebSockets();
 app.MapControllers();
 app.MapMcp("/mcp/commits");
 app.MapMcp("/mcp/orchestration");
