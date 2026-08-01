@@ -28,7 +28,12 @@ public sealed class BrowserSessionStore
         {
             await channel.Writer.WriteAsync(command, ct);
         }
-        catch
+        catch (ChannelClosedException)
+        {
+            _pending.TryRemove(command.CommandId, out _);
+            throw;
+        }
+        catch (OperationCanceledException)
         {
             _pending.TryRemove(command.CommandId, out _);
             throw;
@@ -63,19 +68,21 @@ public sealed class BrowserSessionStore
 
         while (!ct.IsCancellationRequested && DateTimeOffset.UtcNow < deadline)
         {
-            foreach (var id in workspaceIds)
-            {
-                if (_queues.TryGetValue(id, out var channel) && channel.Reader.TryRead(out var cmd))
-                    return cmd;
-            }
+            var command = workspaceIds
+                .Select(id => _queues.TryGetValue(id, out var queue) ? queue : null)
+                .Where(queue => queue is not null)
+                .Select(queue => queue!.Reader.TryRead(out var cmd) ? cmd : null)
+                .FirstOrDefault(cmd => cmd is not null);
+            if (command is not null)
+                return command;
 
             try
             {
                 await Task.Delay(50, ct);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
-                break;
+                return null;
             }
         }
 

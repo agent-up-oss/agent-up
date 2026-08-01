@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AgentUp.Desktop.Features.Browser.Scripts;
+namespace AgentUp.Desktop.Features.Browser.Resources;
 
 internal static class BrowserScripts
 {

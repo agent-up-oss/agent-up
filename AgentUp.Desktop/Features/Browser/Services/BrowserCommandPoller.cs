@@ -2,7 +2,7 @@ using System.Diagnostics;
 using AgentUp.Desktop.Features.Browser.Interfaces;
 using AgentUp.Desktop.Features.Browser.Models;
 using AgentUp.Desktop.Features.Browser.Providers;
-using AgentUp.Desktop.Features.Browser.Scripts;
+using AgentUp.Desktop.Features.Browser.Resources;
 using Avalonia.Threading;
 
 namespace AgentUp.Desktop.Features.Browser.Services;
@@ -44,7 +44,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
             {
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException)
             {
                 Trace.TraceWarning($"[BrowserCommandPoller] Poll error: {ex.Message}");
                 await DelayAsync(1000, ct);
@@ -76,7 +76,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
                 _ => Fail(command, $"Unknown command kind: {command.Kind}")
             };
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or HttpRequestException or IOException)
         {
             return Fail(command, ex.Message);
         }
@@ -136,7 +136,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
         if (url is null)
             return Fail(command, $"No browser session found for workspace '{command.WorkspaceId}'.");
 
-        var path = Path.Combine(Path.GetTempPath(), $"agentup-screenshot-{Guid.NewGuid():N}.png");
+        var path = Path.Join(Path.GetTempPath(), $"agentup-screenshot-{Guid.NewGuid():N}.png");
 
         foreach (var browser in new[] { "chromium", "google-chrome", "chromium-browser" })
         {
@@ -164,7 +164,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
             }
             catch (System.ComponentModel.Win32Exception)
             {
-                // Browser executable not found; try next.
+                Trace.TraceInformation($"[BrowserCommandPoller] Browser executable not found: {browser}");
             }
         }
 
@@ -177,7 +177,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
         {
             await client.PostCommandResultAsync(result, ct);
         }
-        catch (Exception ex) when (!ct.IsCancellationRequested)
+        catch (Exception ex) when (!ct.IsCancellationRequested && ex is HttpRequestException or IOException or InvalidOperationException)
         {
             Trace.TraceWarning($"[BrowserCommandPoller] Result post error: {ex.Message}");
         }
@@ -192,6 +192,6 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
     private static async Task DelayAsync(int ms, CancellationToken ct)
     {
         try { await Task.Delay(ms, ct); }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
     }
 }
