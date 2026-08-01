@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
 using AgentUp.Server.Features.Audit.Controllers;
@@ -94,11 +93,7 @@ public sealed class BrowserMcpService(
             Content =
             [
                 new TextContentBlock { Text = result.Message },
-                new ImageContentBlock
-                {
-                    Data = Encoding.UTF8.GetBytes(screenshot.ImageBase64),
-                    MimeType = screenshot.MimeType
-                }
+                ImageContentBlock.FromBytes(screenshot.ImageBytes, screenshot.MimeType)
             ],
             StructuredContent = JsonSerializer.SerializeToElement(screenshot)
         };
@@ -145,7 +140,9 @@ public sealed class BrowserMcpService(
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         if (screenshot is null)
             return new McpToolResult(false, "Screenshot failed: desktop returned invalid image data.");
-        if (DecodedBase64Length(screenshot.ImageBase64) > MaxInlineScreenshotBytes)
+        if (!TryDecodeBase64(screenshot.ImageBase64, out var imageBytes))
+            return new McpToolResult(false, "Screenshot failed: desktop returned invalid image data.");
+        if (imageBytes.Length > MaxInlineScreenshotBytes)
             return new McpToolResult(
                 false,
                 $"Screenshot failed: inline image was larger than {MaxInlineScreenshotBytes} bytes.");
@@ -171,7 +168,7 @@ public sealed class BrowserMcpService(
                 screenshot.Width,
                 screenshot.Height,
                 recorded.Artifact.SizeBytes,
-                screenshot.ImageBase64));
+                imageBytes));
     }
 
     private async Task RecordBrowserEventAsync(
@@ -259,15 +256,18 @@ public sealed class BrowserMcpService(
         return values.Length == 0 ? null : string.Join(" | ", values);
     }
 
-    private static int DecodedBase64Length(string value)
+    private static bool TryDecodeBase64(string value, out byte[] imageBytes)
     {
-        var length = value.Trim().Length;
-        if (length == 0)
-            return 0;
-
-        var padding = value.EndsWith("==", StringComparison.Ordinal) ? 2 :
-            value.EndsWith("=", StringComparison.Ordinal) ? 1 : 0;
-        return (length * 3 / 4) - padding;
+        try
+        {
+            imageBytes = Convert.FromBase64String(value);
+            return true;
+        }
+        catch (FormatException)
+        {
+            imageBytes = [];
+            return false;
+        }
     }
 
     private string? ValidateNavigationUrl(string workspaceId, string url)

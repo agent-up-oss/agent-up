@@ -97,9 +97,47 @@ public sealed class BrowserMcpServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(data.GetProperty("imageBase64").GetString(), Is.EqualTo(image));
+            Assert.That(data.TryGetProperty("imageBase64", out _), Is.False);
             Assert.That(data.GetProperty("artifactId").GetString(), Is.Not.Null.And.Not.Empty);
             Assert.That(events.Events.Single().Action, Is.EqualTo("browser_screenshot"));
+        });
+    }
+
+    [Test]
+    public async Task ScreenshotCallToolResultAsync_ReturnsImageBlockAndMetadataWithoutInlineBase64()
+    {
+        var store = new BrowserSessionStore();
+        var service = Service(store);
+        var imageBytes = new byte[] { 1, 2, 3 };
+        var resultTask = service.ScreenshotCallToolResultAsync("workspace", CancellationToken.None);
+
+        var command = await store.TryDequeueAsync(
+            ["workspace"],
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None);
+        Assert.That(command, Is.Not.Null);
+
+        store.CompleteCommand(new BrowserCommandResultDto(
+            command!.CommandId,
+            true,
+            JsonSerializer.Serialize(new BrowserScreenshotResultDto(
+                "http://localhost:3000",
+                "image/png",
+                Convert.ToBase64String(imageBytes),
+                800,
+                450)),
+            null));
+
+        var result = await resultTask;
+        var image = result.Content.OfType<ModelContextProtocol.Protocol.ImageContentBlock>().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsError, Is.Not.True);
+            Assert.That(image.MimeType, Is.EqualTo("image/png"));
+            Assert.That(image.DecodedData.ToArray(), Is.EqualTo(imageBytes));
+            Assert.That(result.StructuredContent!.Value.TryGetProperty("imageBase64", out _), Is.False);
+            Assert.That(result.StructuredContent.Value.GetProperty("artifactId").GetString(), Is.Not.Null.And.Not.Empty);
         });
     }
 

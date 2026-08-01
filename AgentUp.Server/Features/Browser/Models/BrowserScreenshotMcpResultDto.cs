@@ -10,4 +10,4 @@ public sealed record BrowserScreenshotMcpResultDto(
     [property: JsonPropertyName("width")] int Width,
     [property: JsonPropertyName("height")] int Height,
     [property: JsonPropertyName("sizeBytes")] long SizeBytes,
-    [property: JsonPropertyName("imageBase64")] string ImageBase64);
+    [property: JsonIgnore] byte[] ImageBytes);
