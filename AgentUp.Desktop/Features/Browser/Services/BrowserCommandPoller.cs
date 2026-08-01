@@ -196,7 +196,15 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
                 using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start process.");
                 using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
-                await process.WaitForExitAsync(timeoutCts.Token);
+                try
+                {
+                    await process.WaitForExitAsync(timeoutCts.Token);
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    KillProcess(process, browser);
+                    return Fail(command, $"Screenshot failed: {browser} did not finish within 15 seconds.");
+                }
 
                 if (!File.Exists(path))
                     return Fail(command, $"Screenshot failed: {browser} exited without producing a file.");
@@ -241,6 +249,19 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
 
     private static BrowserCommandResultDto Fail(BrowserCommandDto command, string error) =>
         new(command.CommandId, false, null, error);
+
+    private static void KillProcess(Process process, string browser)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            Trace.TraceWarning($"[BrowserCommandPoller] Failed to kill timed-out {browser}: {ex.Message}");
+        }
+    }
 
     private static async Task DelayAsync(int ms, CancellationToken ct)
     {
