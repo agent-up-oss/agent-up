@@ -2,6 +2,8 @@ using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Services;
+using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
@@ -109,10 +111,13 @@ public sealed class OrchestrationMcpHostingTests
         await transport.ConfigureSessionOptions!(context, options, CancellationToken.None);
 
         var tools = options.ToolCollection?.PrimitiveNames.ToArray() ?? [];
-        Assert.That(tools, Does.Contain("audit_query"));
-        Assert.That(tools, Does.Contain("audit_load_artifact"));
-        Assert.That(tools, Does.Not.Contain("start_workspace"));
-        Assert.That(tools, Does.Not.Contain("enqueue_commit"));
+        Assert.That(tools, Is.EquivalentTo(new[]
+        {
+            "audit_query",
+            "audit_timeline",
+            "audit_get_event",
+            "audit_load_artifact"
+        }));
         Assert.That(options.ResourceCollection?.PrimitiveNames ?? [], Is.Empty);
     }
 
@@ -135,6 +140,7 @@ public sealed class OrchestrationMcpHostingTests
             })
             .WithTools<CommitQueueMcpTools>()
             .WithTools<OrchestrationMcpTools>()
+            .WithTools<BrowserMcpTools>()
             .WithTools<AuditMcpTools>()
             .WithResources<OrchestrationMcpResources>();
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
@@ -152,6 +158,8 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<BrowserSessionStore>();
+        builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
