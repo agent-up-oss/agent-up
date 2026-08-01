@@ -64,14 +64,14 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
         {
             return command.Kind switch
             {
-                BrowserCommandKind.Navigate => await NavigateAsync(command, ct),
-                BrowserCommandKind.InspectPage => await EvalCommandAsync(command, BrowserScripts.InspectPage, ct),
-                BrowserCommandKind.Click => await EvalCommandAsync(command, BrowserScripts.Click(command.Selector!), ct),
-                BrowserCommandKind.Fill => await EvalCommandAsync(command, BrowserScripts.Fill(command.Selector!, command.Text!), ct),
-                BrowserCommandKind.Press => await EvalCommandAsync(command, BrowserScripts.Press(command.Key!), ct),
-                BrowserCommandKind.WaitForSelector => await WaitForConditionAsync(command, BrowserScripts.CheckSelector(command.Selector!), ct),
-                BrowserCommandKind.WaitForText => await WaitForConditionAsync(command, BrowserScripts.CheckText(command.Text!), ct),
-                BrowserCommandKind.WaitForNavigation => await WaitForNavigationAsync(command, ct),
+                BrowserCommandKind.Navigate => await AttachPageStateAsync(await NavigateAsync(command, ct), command),
+                BrowserCommandKind.InspectPage => await InspectAsync(command),
+                BrowserCommandKind.Click => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Click(command.Selector!)), command),
+                BrowserCommandKind.Fill => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Fill(command.Selector!, command.Text!)), command),
+                BrowserCommandKind.Press => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Press(command.Key!)), command),
+                BrowserCommandKind.WaitForSelector => await AttachPageStateAsync(await WaitForConditionAsync(command, BrowserScripts.CheckSelector(command.Selector!), ct), command),
+                BrowserCommandKind.WaitForText => await AttachPageStateAsync(await WaitForConditionAsync(command, BrowserScripts.CheckText(command.Text!), ct), command),
+                BrowserCommandKind.WaitForNavigation => await AttachPageStateAsync(await WaitForNavigationAsync(command, ct), command),
                 BrowserCommandKind.Screenshot => await ScreenshotAsync(command, ct),
                 _ => Fail(command, $"Unknown command kind: {command.Kind}")
             };
@@ -88,12 +88,24 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
         return Ok(command);
     }
 
-    private async Task<BrowserCommandResultDto> EvalCommandAsync(BrowserCommandDto command, string script, CancellationToken ct)
+    private async Task<BrowserCommandResultDto> InspectAsync(BrowserCommandDto command)
+        => await EvalCommandAsync(command, BrowserScripts.InspectPage);
+
+    private async Task<BrowserCommandResultDto> EvalCommandAsync(BrowserCommandDto command, string script)
     {
         var data = await host.EvalAsync(command.WorkspaceId, script);
         return data is not null
             ? new BrowserCommandResultDto(command.CommandId, true, data, null)
             : Fail(command, $"No browser session found for workspace '{command.WorkspaceId}'.");
+    }
+
+    internal async Task<BrowserCommandResultDto> AttachPageStateAsync(BrowserCommandResultDto result, BrowserCommandDto command)
+    {
+        if (!result.Success) return result;
+        var state = await host.EvalAsync(command.WorkspaceId, BrowserScripts.InspectPage);
+        return state is null
+            ? result
+            : new BrowserCommandResultDto(command.CommandId, true, state, null);
     }
 
     private async Task<BrowserCommandResultDto> WaitForConditionAsync(BrowserCommandDto command, string conditionScript, CancellationToken ct)
