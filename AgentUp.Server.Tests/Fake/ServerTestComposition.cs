@@ -1,5 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
@@ -47,8 +48,8 @@ internal static class ServerTestComposition
 
     public static AuditController CreateAuditController(
         WorkspaceRegistry? registry = null,
-        InMemoryAuditEventRepository? events = null,
-        InMemoryAuditArtifactRepository? artifacts = null,
+        IAuditEventRepository? events = null,
+        IAuditArtifactRepository? artifacts = null,
         FakeAuditIdentityProvider? identity = null)
         => new(new AuditService(
             events ?? new InMemoryAuditEventRepository(),

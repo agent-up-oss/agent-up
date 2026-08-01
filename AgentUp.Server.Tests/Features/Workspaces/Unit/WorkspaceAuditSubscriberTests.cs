@@ -1,9 +1,6 @@
-using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.DTOs;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Models;
-using AgentUp.Server.Features.Audit.Services;
-using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
@@ -55,11 +52,7 @@ public sealed class WorkspaceAuditSubscriberTests
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var subscriber = new WorkspaceAuditSubscriber(
             bus,
-            new AuditController(new AuditService(
-                events,
-                new InMemoryAuditArtifactRepository(),
-                new FakeAuditIdentityProvider(),
-                new WorkspaceQueryController(ServerTestComposition.CreateRegistry()))),
+            ServerTestComposition.CreateAuditController(events: events),
             () => ready.TrySetResult());
 
         await subscriber.StartAsync(CancellationToken.None);
