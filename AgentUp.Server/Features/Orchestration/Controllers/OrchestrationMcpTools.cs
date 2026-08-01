@@ -10,11 +10,16 @@ public sealed class OrchestrationMcpTools
 {
     private readonly OrchestrationWorkspaceController _workspaces;
     private readonly OrchestrationContextController _context;
+    private readonly OrchestrationConsoleController _console;
 
-    public OrchestrationMcpTools(OrchestrationWorkspaceController workspaces, OrchestrationContextController context)
+    public OrchestrationMcpTools(
+        OrchestrationWorkspaceController workspaces,
+        OrchestrationContextController context,
+        OrchestrationConsoleController console)
     {
         _workspaces = workspaces;
         _context = context;
+        _console = console;
     }
 
     [McpServerTool(Name = "start_workspace", Title = "Start Workspace")]
@@ -41,6 +46,16 @@ public sealed class OrchestrationMcpTools
     [McpServerTool(Name = "list_workspaces", Title = "List Workspaces")]
     [Description("Use when selecting an existing Agent-Up workspace or checking what Agent-Up already knows about before starting, stopping, or inspecting status. Lists all workspaces registered with Agent-Up Server.")]
     public IReadOnlyList<Workspace> ListWorkspaces() => _workspaces.List();
+
+    [McpServerTool(Name = "get_workspace_console", Title = "Get Workspace Console")]
+    [Description("Return a live console snapshot for each application in a workspace plus the recent durable console audit trail. Use when debugging hosted application output through MCP.")]
+    public Task<McpToolResult> GetWorkspaceConsole(
+        [Description("Registered workspace id. Optional when worktreePath is supplied.")] string? id = null,
+        [Description("Absolute path to a registered workspace or worktree. Optional when id is supplied.")] string? worktreePath = null,
+        [Description("Maximum live console lines per application. Defaults to 200 and is capped at 1000.")] int lineLimit = 200,
+        [Description("Maximum recent console audit events. Defaults to 100 and is capped at 500.")] int auditLimit = 100,
+        CancellationToken cancellationToken = default) =>
+        _console.GetConsoleAsync(id, worktreePath, lineLimit, auditLimit, cancellationToken);
 
     [McpServerTool(Name = "get_agent_up_json_format", Title = "Get agent-up.json Format")]
     [Description("Use before creating or editing agent-up.json. Returns the current declarative agent-up.json format supported by Agent-Up.")]
