@@ -12,6 +12,8 @@ using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Services;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
@@ -30,6 +32,7 @@ using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Shared.Providers;
@@ -60,9 +63,13 @@ public static class ServiceRegistration
             })
             .WithTools<OrchestrationMcpTools>()
             .WithTools<CommitQueueMcpTools>()
+            .WithTools<BrowserMcpTools>()
             .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
 
+        builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
+        builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
             new JsonWorkspaceRepository(Path.Join(dataDir, "workspaces.json")));
         builder.Services.AddSingleton<IOutputRepository>(_ =>
@@ -110,6 +117,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<CommitsController>();
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
+        builder.Services.AddSingleton<BrowserSessionStore>();
+        builder.Services.AddSingleton<BrowserWorkspaceIdParser>();
+        builder.Services.AddSingleton<BrowserPendingCommandService>();
+        builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }

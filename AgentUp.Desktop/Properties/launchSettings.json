@@ -4,7 +4,7 @@
     "AgentUp.Desktop": {
       "commandName": "Project",
       "environmentVariables": {
-        "AGENTUP_SERVER_URL": "http://localhost:5000"
+        "AGENTUP_SERVER_URL": "http://localhost:5001"
       }
     },
     "AgentUp.Desktop (NixOS)": {
@@ -13,7 +13,7 @@
       "commandLineArgs": "run-desktop.sh",
       "workingDirectory": "$(SolutionDir)",
       "environmentVariables": {
-        "AGENTUP_SERVER_URL": "http://localhost:5000"
+        "AGENTUP_SERVER_URL": "http://localhost:5001"
       }
     }
   }

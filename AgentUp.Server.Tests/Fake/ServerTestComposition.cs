@@ -20,7 +20,8 @@ internal static class ServerTestComposition
         => new(
             new InMemoryWorkspaceRepository(),
             new PortsController(new InMemoryPortAllocationService()),
-            new CapabilitiesController(new CapabilityReconciliationService(adapters ?? [])));
+            new CapabilitiesController(new CapabilityReconciliationService(adapters ?? [])),
+            new WorkspaceEventBus());
 
     public static ProcessesController CreateProcessesController(
         IWorkspaceProcessManager processes,

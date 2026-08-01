@@ -15,15 +15,18 @@ public sealed class WorkspaceRegistry : IHostedService
     private readonly IWorkspaceRepository _repository;
     private readonly PortsController _ports;
     private readonly CapabilitiesController _capabilities;
+    private readonly WorkspaceEventBus _bus;
 
     public WorkspaceRegistry(
         IWorkspaceRepository repository,
         PortsController ports,
-        CapabilitiesController capabilities)
+        CapabilitiesController capabilities,
+        WorkspaceEventBus bus)
     {
         _repository = repository;
         _ports = ports;
         _capabilities = capabilities;
+        _bus = bus;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -122,6 +125,7 @@ public sealed class WorkspaceRegistry : IHostedService
 
         workspace.State = state;
         await _repository.SaveAllAsync(GetAll());
+        _bus.PublishWorkspaceChange(workspace);
         return true;
     }
 
@@ -145,6 +149,7 @@ public sealed class WorkspaceRegistry : IHostedService
 
         app.State = state;
         await _repository.SaveAllAsync(GetAll());
+        _bus.PublishWorkspaceChange(workspace);
         return true;
     }
 

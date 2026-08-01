@@ -196,10 +196,13 @@ public class MainViewModelTests
     }
 
     [Test]
-    public async Task SidebarReload_reselectsRefreshedWorkspaceAndEmitsSelectedPortNavigation()
+    public async Task SidebarReload_preservesWorkspaceReferenceAndEmitsNoBrowserNavigation()
     {
+        // LoadAsync merges workspace state in-place so SelectedWorkspace keeps the same
+        // reference. This prevents the reactive chain from firing and resetting active
+        // browser sessions mid-reload.
         var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 3000) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initial]);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
@@ -212,9 +215,9 @@ public class MainViewModelTests
         handler.SetWorkspaces([refreshed]);
         await vm.Sidebar.LoadAsync();
 
-        Assert.That(vm.Sidebar.SelectedWorkspace, Is.Not.SameAs(previousSelected));
-        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
-            e => e.ws == "ws-1" && e.url == "http://localhost:3000/"));
+        Assert.That(vm.Sidebar.SelectedWorkspace, Is.SameAs(previousSelected));
+        Assert.That(previousSelected!.State, Is.EqualTo("Running"));
+        Assert.That(emissions, Is.Empty);
     }
 
     [Test]

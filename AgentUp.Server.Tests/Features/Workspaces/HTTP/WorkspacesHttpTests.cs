@@ -14,6 +14,7 @@ using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
@@ -53,6 +54,9 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<PortsController>();
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<CapabilitiesController>();
+        builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider>();
+        builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
@@ -96,6 +100,34 @@ public class WorkspacesHttpTests
 
         var body = await response.Content.ReadFromJsonAsync<List<Workspace>>(JsonOptions);
         Assert.That(body, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetEvents_ReturnsServerSentWorkspaceChanges()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var responseTask = _client.GetAsync(
+            "/api/workspaces/events",
+            HttpCompletionOption.ResponseHeadersRead,
+            cts.Token);
+
+        await Task.Delay(100, cts.Token);
+        _app.Services.GetRequiredService<WorkspaceEventBus>().Publish(
+            new WorkspaceStateChangedEvent("ws-1", "Running", [new AppStateChange("Web", "Running")]));
+
+        using var response = await responseTask;
+        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+        var line = await reader.ReadLineAsync(cts.Token).AsTask().WaitAsync(TimeSpan.FromSeconds(1));
+        await cts.CancelAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(response.Content.Headers.ContentType!.MediaType, Is.EqualTo("text/event-stream"));
+            Assert.That(line, Does.StartWith("data: "));
+            Assert.That(line, Does.Contain("\"workspaceId\":\"ws-1\""));
+        });
     }
 
     [Test]
@@ -231,7 +263,10 @@ public class WorkspacesHttpTests
             ""));
         var processes = ServerTestComposition.CreateProcessesController(new KillFailingWorkspaceProcessManager());
         var lifecycle = new WorkspaceLifecycleService(registry, processes, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkspaceLifecycleService>.Instance);
-        var controller = new WorkspacesController(registry, lifecycle);
+        var eventBus = new WorkspaceEventBus();
+        var controller = new WorkspacesController(registry, lifecycle, new WorkspaceEventStreamService(
+            eventBus,
+            new AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider()));
 
         await controller.CleanupTutorialWorkspaces();
 
@@ -311,6 +346,9 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<PortsController>();
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<CapabilitiesController>();
+        builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider>();
+        builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, FailingWorkspaceProcessManager>();

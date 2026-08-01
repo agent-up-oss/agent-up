@@ -6,8 +6,15 @@ namespace AgentUp.Server.Features.Workspaces.Controllers;
 
 [ApiController]
 [Route("api/workspaces")]
-public sealed class WorkspacesController(WorkspaceRegistry registry, WorkspaceLifecycleService lifecycle) : ControllerBase
+public sealed class WorkspacesController(
+    WorkspaceRegistry registry,
+    WorkspaceLifecycleService lifecycle,
+    WorkspaceEventStreamService eventStream) : ControllerBase
 {
+    [HttpGet("events")]
+    public Task SubscribeEvents(CancellationToken ct)
+        => eventStream.WriteAsync(Response, ct);
+
     [HttpGet]
     public IActionResult GetAll() => Ok(registry.GetAll());
 
