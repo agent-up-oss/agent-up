@@ -130,14 +130,17 @@ public sealed class BrowserMcpServiceTests
 
         var result = await resultTask;
         var image = result.Content.OfType<ModelContextProtocol.Protocol.ImageContentBlock>().Single();
+        var metadata = result.Content.OfType<ModelContextProtocol.Protocol.TextContentBlock>().Single();
+        using var document = JsonDocument.Parse(metadata.Text);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.IsError, Is.Not.True);
+            Assert.That(result.StructuredContent, Is.Null);
             Assert.That(image.MimeType, Is.EqualTo("image/png"));
             Assert.That(image.DecodedData.ToArray(), Is.EqualTo(imageBytes));
-            Assert.That(result.StructuredContent!.Value.TryGetProperty("imageBase64", out _), Is.False);
-            Assert.That(result.StructuredContent.Value.GetProperty("artifactId").GetString(), Is.Not.Null.And.Not.Empty);
+            Assert.That(document.RootElement.TryGetProperty("imageBase64", out _), Is.False);
+            Assert.That(document.RootElement.GetProperty("artifactId").GetString(), Is.Not.Null.And.Not.Empty);
         });
     }
 

@@ -92,10 +92,9 @@ public sealed class BrowserMcpService(
         {
             Content =
             [
-                new TextContentBlock { Text = result.Message },
-                ImageContentBlock.FromBytes(screenshot.ImageBytes, screenshot.MimeType)
-            ],
-            StructuredContent = JsonSerializer.SerializeToElement(screenshot)
+                ImageContentBlock.FromBytes(screenshot.ImageBytes, screenshot.MimeType),
+                new TextContentBlock { Text = JsonSerializer.Serialize(screenshot) }
+            ]
         };
     }
 
