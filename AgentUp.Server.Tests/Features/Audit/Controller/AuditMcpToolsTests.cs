@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.DTOs;
 using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Tests.Fake;
 
@@ -16,13 +17,20 @@ public sealed class AuditMcpToolsTests
         await controller.RecordAsync(
             new AuditRecordRequest("browser", "mcp", "browser_click", "success", "workspace"),
             CancellationToken.None);
+        await controller.RecordAsync(
+            new AuditRecordRequest("workspace", "server", "workspace_state_changed", "success", "other"),
+            CancellationToken.None);
 
         var result = await tools.Query(workspaceId: "workspace", kind: "browser");
+        var data = (IReadOnlyList<AuditEvent>)result.Data!;
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.Message, Does.Contain("1"));
+            Assert.That(data, Has.Count.EqualTo(1));
+            Assert.That(data.Single().WorkspaceId, Is.EqualTo("workspace"));
+            Assert.That(data.Single().Kind, Is.EqualTo("browser"));
         });
     }
 
@@ -35,11 +43,14 @@ public sealed class AuditMcpToolsTests
         var saved = await artifacts.SaveAsync("evt", "browser-screenshot", "image/png", [1, 2, 3], CancellationToken.None);
 
         var result = await tools.LoadArtifact(saved.ArtifactId, includeImage: true);
+        var data = (AuditArtifactResult)result.Data!;
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(data.ArtifactId, Is.EqualTo(saved.ArtifactId));
+            Assert.That(data.MimeType, Is.EqualTo("image/png"));
+            Assert.That(data.ImageBase64, Is.EqualTo(Convert.ToBase64String([1, 2, 3])));
         });
     }
 }

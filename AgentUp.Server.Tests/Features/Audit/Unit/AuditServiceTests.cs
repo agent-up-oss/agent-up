@@ -48,9 +48,11 @@ public sealed class AuditServiceTests
     [Test]
     public async Task RecordScreenshotAsync_StoresArtifactAndReturnsEvent()
     {
+        var events = new InMemoryAuditEventRepository();
+        var artifacts = new InMemoryAuditArtifactRepository();
         var service = new AuditService(
-            new InMemoryAuditEventRepository(),
-            new InMemoryAuditArtifactRepository(),
+            events,
+            artifacts,
             new FakeAuditIdentityProvider(),
             new WorkspaceQueryController(ServerTestComposition.CreateRegistry()));
         var image = Convert.ToBase64String([1, 2, 3]);
@@ -64,6 +66,51 @@ public sealed class AuditServiceTests
             Assert.That(result.Event.Action, Is.EqualTo("browser_screenshot"));
             Assert.That(result.Event.ArtifactIds, Does.Contain(result.Artifact.ArtifactId));
             Assert.That(result.Artifact.SizeBytes, Is.EqualTo(3));
+            Assert.That(events.Events.Single().ArtifactIds, Does.Contain(result.Artifact.ArtifactId));
+        });
+        var stored = await artifacts.LoadAsync(result.Artifact.ArtifactId, CancellationToken.None);
+        Assert.Multiple(() =>
+        {
+            Assert.That(stored, Is.Not.Null);
+            var value = stored.GetValueOrDefault();
+            Assert.That(value.Metadata.MimeType, Is.EqualTo("image/png"));
+            Assert.That(value.Bytes, Is.EqualTo(new byte[] { 1, 2, 3 }));
+        });
+    }
+
+    [Test]
+    public async Task RecordAsync_RedactsSensitiveDetailsAndTruncatesLargeValues()
+    {
+        var events = new InMemoryAuditEventRepository();
+        var service = new AuditService(
+            events,
+            new InMemoryAuditArtifactRepository(),
+            new FakeAuditIdentityProvider(),
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()));
+
+        await service.RecordAsync(
+            new AuditRecordRequest(
+                "browser",
+                "mcp",
+                "browser_click",
+                "success",
+                "workspace",
+                new Dictionary<string, string>
+                {
+                    ["Password"] = "hidden",
+                    ["apiToken"] = "hidden",
+                    ["clientSecret"] = "hidden",
+                    ["safe"] = new string('x', 1001)
+                }),
+            CancellationToken.None);
+
+        var details = events.Events.Single().Details;
+        Assert.Multiple(() =>
+        {
+            Assert.That(details.ContainsKey("Password"), Is.False);
+            Assert.That(details.ContainsKey("apiToken"), Is.False);
+            Assert.That(details.ContainsKey("clientSecret"), Is.False);
+            Assert.That(details["safe"], Has.Length.EqualTo(1000));
         });
     }
 

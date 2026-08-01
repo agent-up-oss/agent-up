@@ -26,9 +26,11 @@ internal sealed class InMemoryAuditEventRepository : IAuditEventRepository
                           && Matches(query.Commit, evt.Commit)
                           && Matches(query.Kind, evt.Kind)
                           && Matches(query.Source, evt.Source)
-                          && Matches(query.Outcome, evt.Outcome))
+                          && Matches(query.Outcome, evt.Outcome)
+                          && (!query.From.HasValue || evt.Timestamp >= query.From.Value)
+                          && (!query.To.HasValue || evt.Timestamp <= query.To.Value))
             .OrderByDescending(evt => evt.Timestamp)
-            .Take(query.Limit <= 0 ? 100 : query.Limit)
+            .Take(Math.Clamp(query.Limit <= 0 ? 100 : query.Limit, 1, 500))
             .ToList();
         return Task.FromResult<IReadOnlyList<AuditEvent>>(result);
     }

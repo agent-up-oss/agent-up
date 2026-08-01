@@ -28,13 +28,18 @@ public sealed class FileAuditRepositoryTests
     {
         var repository = new FileAuditEventRepository(_dir);
         await repository.AppendAsync(Event("workspace-a", "main"), CancellationToken.None);
+        await repository.AppendAsync(Event("workspace-a", "feature"), CancellationToken.None);
         await repository.AppendAsync(Event("workspace-b", "other"), CancellationToken.None);
 
         var result = await repository.QueryAsync(
             new AuditEventQuery("workspace-a", null, null, "main", null, null, null, null, null, null, 10),
             CancellationToken.None);
 
-        Assert.That(result.Select(evt => evt.WorkspaceId), Is.EqualTo(["workspace-a"]));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Select(evt => evt.WorkspaceId), Is.EqualTo(["workspace-a"]));
+            Assert.That(result.Select(evt => evt.Branch), Is.EqualTo(["main"]));
+        });
     }
 
     [Test]
@@ -48,8 +53,9 @@ public sealed class FileAuditRepositoryTests
         Assert.Multiple(() =>
         {
             Assert.That(loaded, Is.Not.Null);
-            Assert.That(loaded!.Value.Metadata.ArtifactId, Is.EqualTo(saved.ArtifactId));
-            Assert.That(loaded.Value.Bytes, Is.EqualTo(new byte[] { 1, 2, 3 }));
+            var value = loaded.GetValueOrDefault();
+            Assert.That(value.Metadata.ArtifactId, Is.EqualTo(saved.ArtifactId));
+            Assert.That(value.Bytes, Is.EqualTo(new byte[] { 1, 2, 3 }));
         });
     }
 
