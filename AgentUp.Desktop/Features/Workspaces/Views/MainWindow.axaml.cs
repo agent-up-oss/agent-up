@@ -16,9 +16,8 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Browser.Interfaces;
-using AgentUp.Desktop.Features.Browser.Providers;
-using AgentUp.Desktop.Features.Browser.Services;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -42,7 +41,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     private readonly Dictionary<string, string> _agentActiveTabKeys = new();
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
-    private readonly BrowserCommandPoller _browserPoller;
+    private readonly BrowserAutomationController _browserAutomation;
     private readonly HttpClient _serverHttp;
     private WorkspaceEventClient? _workspaceEventClient;
     private string? _activeWorkspaceId;
@@ -152,8 +151,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         _addressPollTimer.Start();
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
-        _browserPoller = new BrowserCommandPoller(new BrowserCommandHttpClient(_serverHttp), this);
-        _browserPoller.Start();
+        _browserAutomation = new BrowserAutomationController(
+            new AgentUp.Desktop.Features.Browser.Services.BrowserCommandPoller(
+                new AgentUp.Desktop.Features.Browser.Providers.BrowserCommandHttpClient(_serverHttp),
+                this));
+        _browserAutomation.Start();
     }
 
     // IBrowserWindowHost — derive workspace IDs from the tab-keyed dictionary.
@@ -294,7 +296,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     {
         _isClosed = true;
         _workspaceEventClient?.Stop();
-        _browserPoller.Stop();
+        _browserAutomation.Stop();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
         _subscriptions.Dispose();
@@ -308,11 +310,17 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     // Evaluates a script in the tab the agent last navigated to for the given workspace.
     internal async Task<string?> EvalAsync(string workspaceId, string script)
     {
-        if (!_agentActiveTabKeys.TryGetValue(workspaceId, out var tabKey)) return null;
+        var tabKey = ResolveEvaluationTabKey(workspaceId);
+        if (tabKey is null) return null;
         if (!_webViews.TryGetValue(tabKey, out var webView)) return null;
         var result = await Dispatcher.UIThread.InvokeAsync(() => webView.InvokeScript(script));
         return NormalizeScriptResult(result);
     }
+
+    private string? ResolveEvaluationTabKey(string workspaceId)
+        => _agentActiveTabKeys.TryGetValue(workspaceId, out var tabKey)
+            ? tabKey
+            : _activeWorkspaceId == workspaceId ? _activeTabKey : null;
 
     private void UpdateErrorDisplay(string? workspaceId)
     {
@@ -350,15 +358,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
 
         if (tabKey is null || workspaceId is null || url is null) return;
 
-        // If a WebView already exists for this tab, its full page state is preserved.
-        // Only re-navigate when the tab is in error state (absent from _lastKnownBrowserUrls)
-        // so a port coming back online automatically recovers the view.
+        // If a WebView already exists for this tab, keep its full page state unless
+        // the caller explicitly requested a different URL.
         if (_webViews.TryGetValue(tabKey, out var existingWebView))
         {
             existingWebView.IsVisible = !tutorialVisible;
-            if (_lastKnownBrowserUrls.ContainsKey(tabKey)) return;
+            if (!ShouldNavigateExistingWebView(_lastKnownBrowserUrls.GetValueOrDefault(tabKey), url))
+                return;
 
-            // Error-state recovery: re-probe and re-navigate.
             var errNavVer = _navigationVersions.GetValueOrDefault(tabKey) + 1;
             _navigationVersions[tabKey] = errNavVer;
             _ = NavigatePortWebViewAsync(tabKey, workspaceId, existingWebView, new Uri(url), errNavVer);
@@ -374,6 +381,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         _navigationVersions[tabKey] = navigationVersion;
         _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, destination, navigationVersion);
     }
+
+    internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
+        => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
 
     private void ActivateTab(string? workspaceId, string? tabKey, bool tutorialVisible)
     {

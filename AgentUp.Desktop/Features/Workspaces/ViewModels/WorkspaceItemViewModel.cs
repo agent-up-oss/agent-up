@@ -62,11 +62,8 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         StateColor = ResolveStateColor(newState);
 
         var changesByName = appChanges.ToDictionary(a => a.Name, a => a.State);
-        foreach (var app in Applications)
-        {
-            if (changesByName.TryGetValue(app.Name, out var appState))
-                app.UpdateState(appState);
-        }
+        foreach (var app in Applications.Where(app => changesByName.ContainsKey(app.Name)))
+            app.UpdateState(changesByName[app.Name]);
     }
 
     private static string ResolveStateColor(string state) => state switch

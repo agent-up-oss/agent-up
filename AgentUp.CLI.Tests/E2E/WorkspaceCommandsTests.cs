@@ -382,6 +382,8 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<PortsController>();
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<CapabilitiesController>();
+        builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();

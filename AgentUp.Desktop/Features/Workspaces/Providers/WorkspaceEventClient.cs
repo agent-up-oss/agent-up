@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using Avalonia.Threading;
 
@@ -40,7 +40,7 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
                 delay = TimeSpan.FromSeconds(1);
             }
             catch (OperationCanceledException) { break; }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or JsonException)
             {
                 Trace.TraceWarning($"[WorkspaceEventClient] Disconnected: {ex.Message}");
                 try { await Task.Delay(delay, ct); } catch (OperationCanceledException) { break; }
@@ -80,11 +80,4 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
             Dispatcher.UIThread.Post(() => sidebar.ApplyEvent(evt.WorkspaceId, evt.State, appChanges));
         }
     }
-
-    private sealed record WorkspaceStateChangedEventDto(
-        string WorkspaceId,
-        string State,
-        [property: JsonPropertyName("applications")] IReadOnlyList<AppStateChangeDto> Applications);
-
-    private sealed record AppStateChangeDto(string Name, string State);
 }

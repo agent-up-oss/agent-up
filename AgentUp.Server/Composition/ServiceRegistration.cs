@@ -67,6 +67,7 @@ public static class ServiceRegistration
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
             new JsonWorkspaceRepository(Path.Join(dataDir, "workspaces.json")));
         builder.Services.AddSingleton<IOutputRepository>(_ =>
@@ -115,6 +116,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
         builder.Services.AddSingleton<BrowserSessionStore>();
+        builder.Services.AddSingleton<BrowserWorkspaceIdParser>();
+        builder.Services.AddSingleton<BrowserPendingCommandService>();
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());

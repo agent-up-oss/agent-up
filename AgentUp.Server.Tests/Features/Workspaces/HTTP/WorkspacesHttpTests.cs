@@ -53,6 +53,8 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<PortsController>();
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<CapabilitiesController>();
+        builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, NullWorkspaceProcessManager>();
@@ -231,7 +233,8 @@ public class WorkspacesHttpTests
             ""));
         var processes = ServerTestComposition.CreateProcessesController(new KillFailingWorkspaceProcessManager());
         var lifecycle = new WorkspaceLifecycleService(registry, processes, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkspaceLifecycleService>.Instance);
-        var controller = new WorkspacesController(registry, lifecycle);
+        var eventBus = new WorkspaceEventBus();
+        var controller = new WorkspacesController(registry, lifecycle, new WorkspaceEventStreamService(eventBus));
 
         await controller.CleanupTutorialWorkspaces();
 
@@ -311,6 +314,8 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<PortsController>();
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<CapabilitiesController>();
+        builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IWorkspaceProcessManager, FailingWorkspaceProcessManager>();
