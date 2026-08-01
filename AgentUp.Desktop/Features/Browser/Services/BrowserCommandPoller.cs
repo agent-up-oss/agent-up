@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using AgentUp.Desktop.Features.Browser.Models;
 using AgentUp.Desktop.Features.Browser.Providers;
 using AgentUp.Desktop.Features.Browser.Resources;
@@ -172,9 +173,22 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
                 timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
                 await process.WaitForExitAsync(timeoutCts.Token);
 
-                return File.Exists(path)
-                    ? new BrowserCommandResultDto(command.CommandId, true, path, null)
-                    : Fail(command, $"Screenshot failed: {browser} exited without producing a file.");
+                if (!File.Exists(path))
+                    return Fail(command, $"Screenshot failed: {browser} exited without producing a file.");
+
+                var bytes = await File.ReadAllBytesAsync(path, ct);
+                File.Delete(path);
+                var payload = new BrowserScreenshotResultDto(
+                    url,
+                    "image/png",
+                    Convert.ToBase64String(bytes),
+                    1280,
+                    720);
+                return new BrowserCommandResultDto(
+                    command.CommandId,
+                    true,
+                    JsonSerializer.Serialize(payload),
+                    null);
             }
             catch (System.ComponentModel.Win32Exception)
             {

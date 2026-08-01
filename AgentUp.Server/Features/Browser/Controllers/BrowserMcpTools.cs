@@ -75,7 +75,7 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.WaitForNavigationAsync(workspaceId, timeoutMs, cancellationToken);
 
     [McpServerTool(Name = "browser_screenshot", Title = "Screenshot")]
-    [Description("Capture the active workspace browser page as a PNG image. Returns the absolute file path of the saved PNG (e.g. /tmp/agentup-screenshot-<id>.png). Read the returned path with the Read tool to view the image visually.")]
+    [Description("Capture the active workspace browser page as a bounded PNG image. Returns inline base64 image data plus a Server-managed audit artifact id for later lookup.")]
     public Task<McpToolResult> Screenshot(
         [Description("Registered workspace ID.")] string workspaceId,
         CancellationToken cancellationToken) =>

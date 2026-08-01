@@ -1,10 +1,13 @@
+using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
+using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Shared.Interfaces;
 using System.Threading.Channels;
 
 namespace AgentUp.Server.Features.Browser.Services;
 
-public sealed class BrowserMcpService(BrowserSessionStore store)
+public sealed class BrowserMcpService(BrowserSessionStore store, AuditController audit)
 {
     private static readonly TimeSpan DispatchGrace = TimeSpan.FromSeconds(5);
 
@@ -51,25 +54,129 @@ public sealed class BrowserMcpService(BrowserSessionStore store)
     public Task<McpToolResult> ScreenshotAsync(string workspaceId, CancellationToken ct) =>
         DispatchAsync(new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Screenshot,
             Url: null, Selector: null, Text: null, Key: null, TimeoutMs: 20_000), ct,
-            r => new McpToolResult(true, $"Screenshot saved to: {r.Data}", r.Data));
+            r => ScreenshotResultAsync(workspaceId, r, ct));
 
     private async Task<McpToolResult> DispatchAsync(
         BrowserCommandDto command,
         CancellationToken ct,
         Func<BrowserCommandResultDto, McpToolResult> onSuccess)
+        => await DispatchAsync(command, ct, result => Task.FromResult(onSuccess(result)));
+
+    private async Task<McpToolResult> DispatchAsync(
+        BrowserCommandDto command,
+        CancellationToken ct,
+        Func<BrowserCommandResultDto, Task<McpToolResult>> onSuccess)
     {
         try
         {
             var result = await store.DispatchAsync(command, DispatchTimeout(command), ct);
-            return result.Success
-                ? onSuccess(result)
+            var mcpResult = result.Success
+                ? await onSuccess(result)
                 : new McpToolResult(false, result.Error ?? "Browser command failed.");
+            await RecordBrowserEventAsync(command, mcpResult.Succeeded ? "success" : "failure", result, mcpResult, ct);
+            return mcpResult;
         }
         catch (Exception ex) when (ex is ChannelClosedException or InvalidOperationException)
         {
-            return new McpToolResult(false, "Browser command failed.");
+            var failed = new McpToolResult(false, "Browser command failed.");
+            await RecordBrowserEventAsync(command, "failure", null, failed, ct);
+            return failed;
         }
     }
+
+    private async Task<McpToolResult> ScreenshotResultAsync(
+        string workspaceId,
+        BrowserCommandResultDto result,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(result.Data))
+            return new McpToolResult(false, "Screenshot failed: desktop returned no image data.");
+
+        var screenshot = JsonSerializer.Deserialize<BrowserScreenshotResultDto>(
+            result.Data,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (screenshot is null)
+            return new McpToolResult(false, "Screenshot failed: desktop returned invalid image data.");
+
+        var recorded = await audit.RecordScreenshotAsync(
+            new AuditScreenshot(
+                workspaceId,
+                screenshot.Url,
+                screenshot.MimeType,
+                screenshot.ImageBase64,
+                screenshot.Width,
+                screenshot.Height),
+            ct);
+
+        return new McpToolResult(
+            true,
+            $"Screenshot captured and stored as audit artifact '{recorded.Artifact.ArtifactId}'.",
+            new BrowserScreenshotMcpResultDto(
+                recorded.Event.EventId,
+                recorded.Artifact.ArtifactId,
+                screenshot.Url,
+                screenshot.MimeType,
+                screenshot.Width,
+                screenshot.Height,
+                recorded.Artifact.SizeBytes,
+                screenshot.ImageBase64));
+    }
+
+    private async Task RecordBrowserEventAsync(
+        BrowserCommandDto command,
+        string outcome,
+        BrowserCommandResultDto? browserResult,
+        McpToolResult mcpResult,
+        CancellationToken ct)
+    {
+        if (command.Kind == BrowserCommandKind.Screenshot && mcpResult.Succeeded)
+            return;
+
+        var details = new Dictionary<string, string>
+        {
+            ["commandId"] = command.CommandId.ToString(),
+            ["kind"] = command.Kind.ToString(),
+            ["message"] = mcpResult.Message
+        };
+        Add(details, "url", command.Url);
+        Add(details, "selector", command.Selector);
+        Add(details, "text", command.Text);
+        Add(details, "key", command.Key);
+        if (browserResult?.Data is not null && command.Kind != BrowserCommandKind.Screenshot)
+            details["data"] = browserResult.Data;
+        if (browserResult?.Error is not null)
+            details["error"] = browserResult.Error;
+
+        await audit.RecordAsync(
+            new AuditRecordRequest(
+                "browser",
+                "mcp",
+                ToolName(command.Kind),
+                outcome,
+                command.WorkspaceId,
+                details),
+            ct);
+    }
+
+    private static void Add(IDictionary<string, string> details, string key, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            details[key] = value;
+    }
+
+    private static string ToolName(BrowserCommandKind kind) => kind switch
+    {
+        BrowserCommandKind.Navigate => "browser_navigate",
+        BrowserCommandKind.InspectPage => "browser_inspect",
+        BrowserCommandKind.Click => "browser_click",
+        BrowserCommandKind.Fill => "browser_fill",
+        BrowserCommandKind.Press => "browser_press",
+        BrowserCommandKind.WaitForSelector => "browser_wait_for_selector",
+        BrowserCommandKind.WaitForText => "browser_wait_for_text",
+        BrowserCommandKind.WaitForNavigation => "browser_wait_for_navigation",
+        BrowserCommandKind.Screenshot => "browser_screenshot",
+        _ => $"{kind}"
+    };
 
     private static TimeSpan DispatchTimeout(BrowserCommandDto command) =>
         TimeSpan.FromMilliseconds(Math.Max(0, command.TimeoutMs)) + DispatchGrace;
