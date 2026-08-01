@@ -6,6 +6,9 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 public sealed class WorkspaceItemViewModel : ReactiveObject
 {
+    private string _state;
+    private string _stateColor;
+
     public string Id { get; }
     public string DisplayName { get; }
     public string Branch { get; }
@@ -13,9 +16,20 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public string RepositoryName { get; }
     public string RepositoryToolTip { get; }
     public string WorktreePath { get; }
-    public string State { get; }
     public string Initials { get; }
-    public string StateColor { get; }
+
+    public string State
+    {
+        get => _state;
+        private set => this.RaiseAndSetIfChanged(ref _state, value);
+    }
+
+    public string StateColor
+    {
+        get => _stateColor;
+        private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
+    }
+
     public IReadOnlyList<ApplicationViewModel> Applications { get; }
 
     public WorkspaceItemViewModel(
@@ -32,12 +46,27 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
             RepositoryName = displayName;
         RepositoryToolTip = repositoryPath;
         WorktreePath = worktreePath;
-        State = state;
+        _state = state;
         Initials = BuildInitials(displayName);
-        StateColor = ResolveStateColor(state);
+        _stateColor = ResolveStateColor(state);
         Applications = (applications ?? [])
             .Select(a => new ApplicationViewModel(a.Name, a.Command, a.State, a.AllocatedPorts))
             .ToList();
+    }
+
+    // Updates workspace and application state in-place without triggering the SelectedWorkspace
+    // change notification, so existing browser sessions and navigation state are undisturbed.
+    public void UpdateFrom(string newState, IReadOnlyList<(string Name, string State)> appChanges)
+    {
+        State = newState;
+        StateColor = ResolveStateColor(newState);
+
+        var changesByName = appChanges.ToDictionary(a => a.Name, a => a.State);
+        foreach (var app in Applications)
+        {
+            if (changesByName.TryGetValue(app.Name, out var appState))
+                app.UpdateState(appState);
+        }
     }
 
     private static string ResolveStateColor(string state) => state switch

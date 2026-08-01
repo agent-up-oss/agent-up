@@ -19,6 +19,7 @@ using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Browser.Interfaces;
 using AgentUp.Desktop.Features.Browser.Providers;
 using AgentUp.Desktop.Features.Browser.Services;
+using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Repositories;
 using ReactiveUI;
@@ -34,6 +35,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly BrowserCommandPoller _browserPoller;
+    private readonly HttpClient _serverHttp;
+    private WorkspaceEventClient? _workspaceEventClient;
     private string? _activeWorkspaceId;
     private bool _isClosed;
     private NativeWebView? _consoleWebView;
@@ -147,8 +150,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
-        var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
-        _browserPoller = new BrowserCommandPoller(new BrowserCommandHttpClient(http), this);
+        _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
+        _browserPoller = new BrowserCommandPoller(new BrowserCommandHttpClient(_serverHttp), this);
         _browserPoller.Start();
     }
 
@@ -211,8 +214,16 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
 
     protected override void OnDataContextChanged(EventArgs e)
     {
+        _workspaceEventClient?.Stop();
+        _workspaceEventClient = null;
+
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
+
+        var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
+        _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
+        _workspaceEventClient.Start();
+
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)))
@@ -248,6 +259,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     protected override void OnClosed(EventArgs e)
     {
         _isClosed = true;
+        _workspaceEventClient?.Stop();
         _browserPoller.Stop();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;

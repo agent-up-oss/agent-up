@@ -66,6 +66,7 @@ public static class ServiceRegistration
             .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
 
+        builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
             new JsonWorkspaceRepository(Path.Join(dataDir, "workspaces.json")));
         builder.Services.AddSingleton<IOutputRepository>(_ =>

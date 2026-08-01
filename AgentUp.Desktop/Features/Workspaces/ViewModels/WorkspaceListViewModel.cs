@@ -84,23 +84,55 @@ public sealed class WorkspaceListViewModel : ReactiveObject
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
     }
 
+    // Applies a state-change event from the server in-place, updating only the mutable state
+    // fields on existing workspace and application view models. Does not clear or rebuild the
+    // Workspaces collection, so SelectedWorkspace stays the same reference and no navigation
+    // or browser-session reset is triggered.
+    public void ApplyEvent(string workspaceId, string newState, IReadOnlyList<(string Name, string State)> appChanges)
+    {
+        var item = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+        item?.UpdateFrom(newState, appChanges);
+    }
+
     public async Task LoadAsync(CancellationToken ct = default)
     {
         IsLoading = true;
         ErrorMessage = null;
         try
         {
-            var selectedId = SelectedWorkspace?.Id;
-            var workspaces = await _workspaces.ListAsync(ct);
-            Workspaces.Clear();
-            foreach (var ws in workspaces)
-                Workspaces.Add(new WorkspaceItemViewModel(
-                    ws.Id, ws.DisplayName, ws.Branch, ws.RepositoryPath, ws.WorktreePath, ws.State,
-                    ws.Applications));
+            var dtos = await _workspaces.ListAsync(ct);
 
-            SelectedWorkspace = selectedId is null
-                ? Workspaces.FirstOrDefault()
-                : Workspaces.FirstOrDefault(ws => ws.Id == selectedId) ?? Workspaces.FirstOrDefault();
+            // Merge in-place: update existing items, add new ones, remove deleted ones.
+            // This keeps the same WorkspaceItemViewModel reference for existing workspaces so
+            // SelectedWorkspace never changes reference — which would trigger the navigation
+            // chain and reset the browser session URL.
+            var existingById = Workspaces.ToDictionary(w => w.Id);
+            var incomingById = dtos.ToDictionary(d => d.Id);
+
+            foreach (var id in existingById.Keys.Except(incomingById.Keys).ToList())
+            {
+                Workspaces.Remove(existingById[id]);
+                if (SelectedWorkspace?.Id == id)
+                    SelectedWorkspace = null;
+            }
+
+            foreach (var dto in dtos)
+            {
+                if (existingById.TryGetValue(dto.Id, out var existing))
+                {
+                    var appChanges = dto.Applications.Select(a => (a.Name, a.State)).ToList();
+                    existing.UpdateFrom(dto.State, appChanges);
+                }
+                else
+                {
+                    Workspaces.Add(new WorkspaceItemViewModel(
+                        dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
+                        dto.State, dto.Applications));
+                }
+            }
+
+            if (SelectedWorkspace is null || !Workspaces.Any(w => w.Id == SelectedWorkspace.Id))
+                SelectedWorkspace = Workspaces.FirstOrDefault();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {

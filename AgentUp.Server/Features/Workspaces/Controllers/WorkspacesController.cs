@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -6,8 +7,36 @@ namespace AgentUp.Server.Features.Workspaces.Controllers;
 
 [ApiController]
 [Route("api/workspaces")]
-public sealed class WorkspacesController(WorkspaceRegistry registry, WorkspaceLifecycleService lifecycle) : ControllerBase
+public sealed class WorkspacesController(
+    WorkspaceRegistry registry,
+    WorkspaceLifecycleService lifecycle,
+    WorkspaceEventBus eventBus) : ControllerBase
 {
+    private static readonly JsonSerializerOptions EventJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    [HttpGet("events")]
+    public async Task SubscribeEvents(CancellationToken ct)
+    {
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+
+        await using var sub = eventBus.Subscribe();
+        try
+        {
+            await foreach (var evt in sub.Reader.ReadAllAsync(ct))
+            {
+                var json = JsonSerializer.Serialize(evt, EventJsonOptions);
+                await Response.WriteAsync($"data: {json}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
     [HttpGet]
     public IActionResult GetAll() => Ok(registry.GetAll());
 

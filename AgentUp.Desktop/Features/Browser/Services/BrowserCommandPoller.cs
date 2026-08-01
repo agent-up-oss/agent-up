@@ -143,8 +143,12 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
             try
             {
                 var psi = new ProcessStartInfo(browser) { UseShellExecute = false };
-                psi.ArgumentList.Add("--headless");
+                psi.ArgumentList.Add("--headless=new");
                 psi.ArgumentList.Add("--no-sandbox");
+                psi.ArgumentList.Add("--disable-gpu");
+                psi.ArgumentList.Add("--disable-dev-shm-usage");
+                psi.ArgumentList.Add("--run-all-compositor-stages-before-draw");
+                psi.ArgumentList.Add("--virtual-time-budget=3000");
                 psi.ArgumentList.Add($"--screenshot={path}");
                 psi.ArgumentList.Add("--window-size=1280,720");
                 psi.ArgumentList.Add(url);
