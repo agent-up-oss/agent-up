@@ -654,7 +654,7 @@ Read: `docs/developer-guide/mcp.md`.
 
 Every browser interaction and relevant runtime signal should become an event. The event stream is the canonical history used for diagnostics, workflow inference, and future automation.
 
-Browser screenshots are Server-managed audit artifacts. Screenshot tools should return bounded inline image data for immediate agent inspection plus an opaque artifact id for later Audit MCP lookup, not temporary filesystem paths.
+Browser navigation is restricted to loopback URLs on the workspace's allocated HTTP application ports unless an explicit external allowlist is introduced for flows such as OAuth providers. Browser screenshots are Server-managed audit artifacts. Screenshot tools should return bounded MCP image content for immediate agent inspection plus an opaque artifact id for later Audit MCP lookup, not temporary filesystem paths.
 
 Read: `docs/developer-guide/event-recording.md`.
 
