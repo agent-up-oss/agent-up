@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Audit.DTOs;
@@ -53,26 +54,34 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
 
     private async Task<IReadOnlyList<AuditEvent>> LoadAsync(CancellationToken cancellationToken)
     {
-        if (!File.Exists(_path))
-            return [];
-
-        var events = new List<AuditEvent>();
-        await foreach (var line in File.ReadLinesAsync(_path, cancellationToken)
-                           .Where(line => !string.IsNullOrWhiteSpace(line)))
+        await _gate.WaitAsync(cancellationToken);
+        try
         {
-            try
-            {
-                var evt = JsonSerializer.Deserialize<AuditEvent>(line, Options);
-                if (evt is not null)
-                    events.Add(evt);
-            }
-            catch (JsonException)
-            {
-                continue;
-            }
-        }
+            if (!File.Exists(_path))
+                return [];
 
-        return events;
+            var events = new List<AuditEvent>();
+            await foreach (var line in File.ReadLinesAsync(_path, cancellationToken)
+                               .Where(line => !string.IsNullOrWhiteSpace(line)))
+            {
+                try
+                {
+                    var evt = JsonSerializer.Deserialize<AuditEvent>(line, Options);
+                    if (evt is not null)
+                        events.Add(evt);
+                }
+                catch (JsonException ex)
+                {
+                    Trace.TraceWarning($"[FileAuditEventRepository] Skipped malformed audit event line: {ex.Message}");
+                }
+            }
+
+            return events;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private static bool Matches(AuditEventQuery query, AuditEvent evt)
