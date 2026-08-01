@@ -16,13 +16,16 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using AgentUp.Desktop.Features.Browser.Interfaces;
+using AgentUp.Desktop.Features.Browser.Providers;
+using AgentUp.Desktop.Features.Browser.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Repositories;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
 
-public partial class MainWindow : ReactiveWindow<MainViewModel>
+public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowHost
 {
     private readonly Dictionary<string, NativeWebView> _webViews = new();
     private readonly Dictionary<string, string> _webViewErrors = new();
@@ -30,6 +33,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, int> _navigationVersions = new();
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
+    private readonly BrowserCommandPoller _browserPoller;
     private string? _activeWorkspaceId;
     private bool _isClosed;
     private NativeWebView? _consoleWebView;
@@ -142,6 +146,31 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
+        var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
+        var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
+        _browserPoller = new BrowserCommandPoller(new BrowserCommandHttpClient(http), this);
+        _browserPoller.Start();
+    }
+
+    IReadOnlyCollection<string> IBrowserWindowHost.ActiveWorkspaceIds => _webViews.Keys;
+
+    Task<string?> IBrowserWindowHost.EvalAsync(string workspaceId, string script) =>
+        EvalAsync(workspaceId, script);
+
+    void IBrowserWindowHost.NavigateTo(string workspaceId, string? url) =>
+        NavigateBackground(workspaceId, url);
+
+    // Navigates the workspace WebView without switching the active (visible) workspace tab.
+    // Used by MCP browser tools so agent navigation doesn't interrupt the developer's view.
+    private void NavigateBackground(string workspaceId, string? url)
+    {
+        if (_isClosed || url is null) return;
+        if (!TryGetOrCreateWebView(workspaceId, url, out var webView, out var destinationUrl)) return;
+        if (workspaceId != _activeWorkspaceId)
+            webView.IsVisible = false;
+        var navigationVersion = _navigationVersions.GetValueOrDefault(workspaceId) + 1;
+        _navigationVersions[workspaceId] = navigationVersion;
+        _ = NavigatePortWebViewAsync(workspaceId, webView, new Uri(destinationUrl), navigationVersion);
     }
 
     private void SetWindowIcon()
@@ -219,6 +248,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     protected override void OnClosed(EventArgs e)
     {
         _isClosed = true;
+        _browserPoller.Stop();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
         _subscriptions.Dispose();

@@ -35,6 +35,19 @@ public sealed class McpEndpointSessionProvider
         "get_agent_up_json_format"
     };
 
+    private static readonly HashSet<string> BrowserTools = new(StringComparer.Ordinal)
+    {
+        "browser_navigate",
+        "browser_inspect",
+        "browser_click",
+        "browser_fill",
+        "browser_press",
+        "browser_wait_for_selector",
+        "browser_wait_for_text",
+        "browser_wait_for_navigation",
+        "browser_screenshot"
+    };
+
     public Task ConfigureAsync(HttpContext context, McpServerOptions options, CancellationToken cancellationToken)
     {
         if (IsEndpoint(context, "/mcp/commits"))
@@ -46,6 +59,12 @@ public sealed class McpEndpointSessionProvider
         else if (IsEndpoint(context, "/mcp/orchestration"))
         {
             KeepTools(options, OrchestrationTools);
+        }
+        else if (IsEndpoint(context, "/mcp/browser"))
+        {
+            options.ServerInstructions = "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the shared workspace browser session visible in the Agent-Up Desktop app.";
+            KeepTools(options, BrowserTools);
+            options.ResourceCollection?.Clear();
         }
 
         return Task.CompletedTask;

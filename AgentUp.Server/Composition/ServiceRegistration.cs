@@ -12,6 +12,8 @@ using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Services;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
@@ -60,6 +62,7 @@ public static class ServiceRegistration
             })
             .WithTools<OrchestrationMcpTools>()
             .WithTools<CommitQueueMcpTools>()
+            .WithTools<BrowserMcpTools>()
             .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
 
@@ -110,6 +113,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<CommitsController>();
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
+        builder.Services.AddSingleton<BrowserSessionStore>();
+        builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }
