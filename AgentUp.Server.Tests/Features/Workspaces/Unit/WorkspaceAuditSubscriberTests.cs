@@ -18,14 +18,16 @@ public sealed class WorkspaceAuditSubscriberTests
     {
         var bus = new WorkspaceEventBus();
         var events = new InMemoryAuditEventRepository();
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var subscriber = new WorkspaceAuditSubscriber(
             bus,
-            ServerTestComposition.CreateAuditController(events: events));
+            ServerTestComposition.CreateAuditController(events: events),
+            () => ready.TrySetResult());
 
         await subscriber.StartAsync(CancellationToken.None);
         try
         {
-            await Task.Delay(100);
+            await ready.Task.WaitAsync(TimeSpan.FromSeconds(2));
             bus.Publish(Event("Starting"));
             bus.Publish(Event("Starting"));
             bus.Publish(Event("Running"));
@@ -50,20 +52,22 @@ public sealed class WorkspaceAuditSubscriberTests
     {
         var bus = new WorkspaceEventBus();
         var events = new FailsOnceAuditEventRepository();
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var subscriber = new WorkspaceAuditSubscriber(
             bus,
             new AuditController(new AuditService(
                 events,
                 new InMemoryAuditArtifactRepository(),
                 new FakeAuditIdentityProvider(),
-                new WorkspaceQueryController(ServerTestComposition.CreateRegistry()))));
+                new WorkspaceQueryController(ServerTestComposition.CreateRegistry()))),
+            () => ready.TrySetResult());
 
         await subscriber.StartAsync(CancellationToken.None);
         try
         {
-            await Task.Delay(100);
+            await ready.Task.WaitAsync(TimeSpan.FromSeconds(2));
             bus.Publish(Event("Running"));
-            await Task.Delay(100);
+            await WaitUntilAsync(() => events.AppendAttempts == 1);
             bus.Publish(Event("Running"));
 
             await WaitUntilAsync(() => events.Events.Count == 1);
