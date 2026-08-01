@@ -134,9 +134,18 @@ public sealed class BrowserMcpService(
         if (string.IsNullOrWhiteSpace(result.Data))
             return new McpToolResult(false, "Screenshot failed: desktop returned no image data.");
 
-        var screenshot = JsonSerializer.Deserialize<BrowserScreenshotResultDto>(
-            result.Data,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        BrowserScreenshotResultDto? screenshot;
+        try
+        {
+            screenshot = JsonSerializer.Deserialize<BrowserScreenshotResultDto>(
+                result.Data,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return new McpToolResult(false, "Screenshot failed: desktop returned invalid image data.");
+        }
+
         if (screenshot is null)
             return new McpToolResult(false, "Screenshot failed: desktop returned invalid image data.");
         if (!TryDecodeBase64(screenshot.ImageBase64, out var imageBytes))
@@ -146,15 +155,23 @@ public sealed class BrowserMcpService(
                 false,
                 $"Screenshot failed: inline image was larger than {MaxInlineScreenshotBytes} bytes.");
 
-        var recorded = await audit.RecordScreenshotAsync(
-            new AuditScreenshot(
-                workspaceId,
-                screenshot.Url,
-                screenshot.MimeType,
-                screenshot.ImageBase64,
-                screenshot.Width,
-                screenshot.Height),
-            ct);
+        (AgentUp.Server.Features.Audit.Models.AuditEvent Event, AgentUp.Server.Features.Audit.Models.AuditArtifact Artifact) recorded;
+        try
+        {
+            recorded = await audit.RecordScreenshotAsync(
+                new AuditScreenshot(
+                    workspaceId,
+                    screenshot.Url,
+                    screenshot.MimeType,
+                    screenshot.ImageBase64,
+                    screenshot.Width,
+                    screenshot.Height),
+                ct);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return new McpToolResult(false, "Screenshot failed: audit artifact could not be stored.");
+        }
 
         return new McpToolResult(
             true,
