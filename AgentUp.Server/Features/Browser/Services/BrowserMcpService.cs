@@ -1,11 +1,12 @@
 using AgentUp.Server.Features.Browser.Models;
 using AgentUp.Server.Shared.Interfaces;
+using System.Threading.Channels;
 
 namespace AgentUp.Server.Features.Browser.Services;
 
 public sealed class BrowserMcpService(BrowserSessionStore store)
 {
-    private static readonly TimeSpan DispatchTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DispatchGrace = TimeSpan.FromSeconds(5);
 
     public Task<McpToolResult> NavigateAsync(string workspaceId, string url, CancellationToken ct) =>
         DispatchAsync(new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate,
@@ -57,9 +58,19 @@ public sealed class BrowserMcpService(BrowserSessionStore store)
         CancellationToken ct,
         Func<BrowserCommandResultDto, McpToolResult> onSuccess)
     {
-        var result = await store.DispatchAsync(command, DispatchTimeout, ct);
-        return result.Success
-            ? onSuccess(result)
-            : new McpToolResult(false, result.Error ?? "Browser command failed.");
+        try
+        {
+            var result = await store.DispatchAsync(command, DispatchTimeout(command), ct);
+            return result.Success
+                ? onSuccess(result)
+                : new McpToolResult(false, result.Error ?? "Browser command failed.");
+        }
+        catch (Exception ex) when (ex is ChannelClosedException or InvalidOperationException)
+        {
+            return new McpToolResult(false, "Browser command failed.");
+        }
     }
+
+    private static TimeSpan DispatchTimeout(BrowserCommandDto command) =>
+        TimeSpan.FromMilliseconds(Math.Max(0, command.TimeoutMs)) + DispatchGrace;
 }

@@ -10,11 +10,11 @@ public sealed class BrowserCommandHttpClientTests
     [Test]
     public async Task GetPendingCommandAsync_ReturnsNull_ForNoContent()
     {
-        var client = new BrowserCommandHttpClient(new HttpClient(new StubHandler(
-            _ => NoContentResponse()))
+        using var http = new HttpClient(new StubHandler(_ => NoContentResponse()))
         {
             BaseAddress = new Uri("http://localhost")
-        });
+        };
+        var client = new BrowserCommandHttpClient(http);
 
         var command = await client.GetPendingCommandAsync(["workspace"], 10, CancellationToken.None);
 
@@ -25,14 +25,15 @@ public sealed class BrowserCommandHttpClientTests
     public async Task PostCommandResultAsync_PostsCommandResult()
     {
         HttpRequestMessage? request = null;
-        var client = new BrowserCommandHttpClient(new HttpClient(new StubHandler(message =>
+        using var http = new HttpClient(new StubHandler(message =>
         {
             request = message;
             return NoContentResponse();
         }))
         {
             BaseAddress = new Uri("http://localhost")
-        });
+        };
+        var client = new BrowserCommandHttpClient(http);
 
         await client.PostCommandResultAsync(
             new BrowserCommandResultDto(Guid.NewGuid(), true, "{}", null),

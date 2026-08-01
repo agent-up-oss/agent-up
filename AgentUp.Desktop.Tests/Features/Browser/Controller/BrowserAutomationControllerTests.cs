@@ -1,6 +1,6 @@
 using AgentUp.Desktop.Features.Browser.Controllers;
-using AgentUp.Desktop.Features.Browser.Interfaces;
 using AgentUp.Desktop.Features.Browser.Services;
+using AgentUp.Desktop.Shared.Interfaces;
 
 namespace AgentUp.Desktop.Tests.Features.Browser.Controller;
 
@@ -10,13 +10,13 @@ public sealed class BrowserAutomationControllerTests
     [Test]
     public void Stop_ForwardsToPollerWithoutThrowing()
     {
+        using var http = new HttpClient(new NoContentHandler())
+        {
+            BaseAddress = new Uri("http://localhost")
+        };
         var controller = new BrowserAutomationController(
             new BrowserCommandPoller(
-                new AgentUp.Desktop.Features.Browser.Providers.BrowserCommandHttpClient(
-                    new HttpClient(new NoContentHandler())
-                    {
-                        BaseAddress = new Uri("http://localhost")
-                    }),
+                new AgentUp.Desktop.Features.Browser.Providers.BrowserCommandHttpClient(http),
                 new EmptyBrowserWindowHost()));
 
         controller.Stop();
@@ -37,13 +37,15 @@ public sealed class BrowserAutomationControllerTests
 
     private sealed class EmptyBrowserWindowHost : IBrowserWindowHost
     {
-        public IReadOnlyCollection<string> ActiveWorkspaceIds => [];
+        public Task<IReadOnlyCollection<string>> GetActiveWorkspaceIdsAsync() =>
+            Task.FromResult<IReadOnlyCollection<string>>([]);
 
         public Task<string?> EvalAsync(string workspaceId, string script) =>
             Task.FromResult<string?>(null);
 
-        public void NavigateTo(string workspaceId, string? url)
+        public bool NavigateTo(string workspaceId, string? url)
         {
+            return true;
         }
     }
 }

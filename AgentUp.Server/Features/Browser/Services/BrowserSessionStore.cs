@@ -17,6 +17,8 @@ public sealed class BrowserSessionStore
         var tcs = new TaskCompletionSource<BrowserCommandResultDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         _pending[command.CommandId] = tcs;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linked.CancelAfter(timeout);
 
         var channel = _queues.GetOrAdd(command.WorkspaceId,
             _ => Channel.CreateBounded<BrowserCommandDto>(new BoundedChannelOptions(10)
@@ -26,21 +28,23 @@ public sealed class BrowserSessionStore
 
         try
         {
-            await channel.Writer.WriteAsync(command, ct);
+            await channel.Writer.WriteAsync(command, linked.Token);
         }
         catch (ChannelClosedException)
         {
             _pending.TryRemove(command.CommandId, out _);
-            throw;
+            return Failed(command, "Browser command queue is closed.");
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            _pending.TryRemove(command.CommandId, out _);
+            return Failed(command, "Request was cancelled.");
         }
         catch (OperationCanceledException)
         {
             _pending.TryRemove(command.CommandId, out _);
-            throw;
+            return Timeout(command);
         }
-
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        linked.CancelAfter(timeout);
 
         try
         {
@@ -49,13 +53,12 @@ public sealed class BrowserSessionStore
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             _pending.TryRemove(command.CommandId, out _);
-            return new BrowserCommandResultDto(command.CommandId, false, null, "Request was cancelled.");
+            return Failed(command, "Request was cancelled.");
         }
         catch (OperationCanceledException)
         {
             _pending.TryRemove(command.CommandId, out _);
-            return new BrowserCommandResultDto(command.CommandId, false, null,
-                "Desktop app did not respond within the timeout. Ensure the Agent-Up Desktop app is open with the workspace browser visible.");
+            return Timeout(command);
         }
     }
 
@@ -68,11 +71,7 @@ public sealed class BrowserSessionStore
 
         while (!ct.IsCancellationRequested && DateTimeOffset.UtcNow < deadline)
         {
-            var command = workspaceIds
-                .Select(id => _queues.TryGetValue(id, out var queue) ? queue : null)
-                .Where(queue => queue is not null)
-                .Select(queue => queue!.Reader.TryRead(out var cmd) ? cmd : null)
-                .FirstOrDefault(cmd => cmd is not null);
+            var command = TryReadPending(workspaceIds);
             if (command is not null)
                 return command;
 
@@ -94,4 +93,29 @@ public sealed class BrowserSessionStore
         if (_pending.TryRemove(result.CommandId, out var tcs))
             tcs.TrySetResult(result);
     }
+
+    private BrowserCommandDto? TryReadPending(IReadOnlyList<string> workspaceIds)
+        => workspaceIds
+            .Select(id => _queues.TryGetValue(id, out var queue) ? queue : null)
+            .Where(queue => queue is not null)
+            .Select(TryReadPending)
+            .FirstOrDefault(command => command is not null);
+
+    private BrowserCommandDto? TryReadPending(Channel<BrowserCommandDto>? queue)
+    {
+        while (queue!.Reader.TryRead(out var command))
+        {
+            if (_pending.ContainsKey(command.CommandId))
+                return command;
+        }
+
+        return null;
+    }
+
+    private static BrowserCommandResultDto Failed(BrowserCommandDto command, string error) =>
+        new(command.CommandId, false, null, error);
+
+    private static BrowserCommandResultDto Timeout(BrowserCommandDto command) =>
+        Failed(command,
+            "Desktop app did not respond within the timeout. Ensure the Agent-Up Desktop app is open with the workspace browser visible.");
 }

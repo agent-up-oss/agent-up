@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using AgentUp.Desktop.Features.Browser.Interfaces;
 using AgentUp.Desktop.Features.Browser.Models;
 using AgentUp.Desktop.Features.Browser.Providers;
 using AgentUp.Desktop.Features.Browser.Resources;
+using AgentUp.Desktop.Shared.Interfaces;
 using Avalonia.Threading;
 
 namespace AgentUp.Desktop.Features.Browser.Services;
@@ -28,7 +28,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
     {
         while (!ct.IsCancellationRequested)
         {
-            var ids = host.ActiveWorkspaceIds;
+            var ids = await host.GetActiveWorkspaceIdsAsync();
             if (ids.Count == 0)
             {
                 await DelayAsync(500, ct);
@@ -84,8 +84,10 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
 
     private async Task<BrowserCommandResultDto> NavigateAsync(BrowserCommandDto command, CancellationToken ct)
     {
-        await Dispatcher.UIThread.InvokeAsync(() => host.NavigateTo(command.WorkspaceId, command.Url));
-        return Ok(command);
+        var navigated = await Dispatcher.UIThread.InvokeAsync(() => host.NavigateTo(command.WorkspaceId, command.Url));
+        return navigated
+            ? Ok(command)
+            : Fail(command, $"Could not navigate workspace '{command.WorkspaceId}' to '{command.Url}'.");
     }
 
     private async Task<BrowserCommandResultDto> InspectAsync(BrowserCommandDto command)

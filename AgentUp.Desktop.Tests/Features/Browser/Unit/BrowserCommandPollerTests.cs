@@ -1,7 +1,7 @@
-using AgentUp.Desktop.Features.Browser.Interfaces;
 using AgentUp.Desktop.Features.Browser.Models;
 using AgentUp.Desktop.Features.Browser.Providers;
 using AgentUp.Desktop.Features.Browser.Services;
+using AgentUp.Desktop.Shared.Interfaces;
 
 namespace AgentUp.Desktop.Tests.Features.Browser.Unit;
 
@@ -13,7 +13,10 @@ public sealed class BrowserCommandPollerTests
     {
         var state = "{\"title\":\"Saved\",\"interactive\":[]}";
         var command = Command(BrowserCommandKind.Click);
-        var poller = CreatePoller(new StateReturningBrowserHost(state));
+        using var http = NoContentHttpClient();
+        var poller = new BrowserCommandPoller(
+            new BrowserCommandHttpClient(http),
+            new StateReturningBrowserHost(state));
 
         var result = await poller.AttachPageStateAsync(
             new BrowserCommandResultDto(command.CommandId, true, "{\"ok\":true}", null),
@@ -28,7 +31,8 @@ public sealed class BrowserCommandPollerTests
     {
         var command = Command(BrowserCommandKind.Click);
         var host = new StateReturningBrowserHost("{\"title\":\"Saved\"}");
-        var poller = CreatePoller(host);
+        using var http = NoContentHttpClient();
+        var poller = new BrowserCommandPoller(new BrowserCommandHttpClient(http), host);
 
         var result = await poller.AttachPageStateAsync(
             new BrowserCommandResultDto(command.CommandId, false, null, "failed"),
@@ -39,13 +43,11 @@ public sealed class BrowserCommandPollerTests
         Assert.That(host.EvalCalls, Is.EqualTo(0));
     }
 
-    private static BrowserCommandPoller CreatePoller(IBrowserWindowHost host) =>
-        new(
-            new BrowserCommandHttpClient(new HttpClient(new NoContentHandler())
-            {
-                BaseAddress = new Uri("http://localhost")
-            }),
-            host);
+    private static HttpClient NoContentHttpClient() =>
+        new(new NoContentHandler())
+        {
+            BaseAddress = new Uri("http://localhost")
+        };
 
     private static BrowserCommandDto Command(BrowserCommandKind kind) =>
         new(Guid.NewGuid(), "workspace", kind, null, "#save", null, null, 10_000);
@@ -62,7 +64,8 @@ public sealed class BrowserCommandPollerTests
     {
         public int EvalCalls { get; private set; }
 
-        public IReadOnlyCollection<string> ActiveWorkspaceIds => ["workspace"];
+        public Task<IReadOnlyCollection<string>> GetActiveWorkspaceIdsAsync() =>
+            Task.FromResult<IReadOnlyCollection<string>>(["workspace"]);
 
         public Task<string?> EvalAsync(string workspaceId, string script)
         {
@@ -70,8 +73,9 @@ public sealed class BrowserCommandPollerTests
             return Task.FromResult<string?>(state);
         }
 
-        public void NavigateTo(string workspaceId, string? url)
+        public bool NavigateTo(string workspaceId, string? url)
         {
+            return true;
         }
     }
 }

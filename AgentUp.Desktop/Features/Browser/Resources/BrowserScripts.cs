@@ -17,7 +17,9 @@ internal static class BrowserScripts
         "if(e.type)o.type=e.type;" +
         "if(e.href)o.href=e.href;" +
         "if(e.placeholder)o.placeholder=e.placeholder;" +
-        "if(e.value!==undefined&&e.tagName!=='BUTTON')o.value=e.value;" +
+        "var sensitive={password:1,hidden:1,token:1};" +
+        "var ty=(e.type||'').toLowerCase();" +
+        "if(e.value!==undefined&&e.tagName!=='BUTTON'&&!sensitive[ty])o.value=e.value;" +
         "var l=e.getAttribute('aria-label');if(l)o.ariaLabel=l;" +
         "return o;});" +
         "return{" +
@@ -45,8 +47,10 @@ internal static class BrowserScripts
         $"(function(){{" +
         $"var e=document.querySelector({Js(selector)});" +
         $"if(!e)return JSON.stringify({{error:'Element not found: '+{Js(selector)}}}); " +
-        $"var nv=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value');" +
-        $"if(nv)nv.set.call(e,{Js(text)});else e.value={Js(text)};" +
+        $"var p=e instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:" +
+        $"e instanceof HTMLSelectElement?HTMLSelectElement.prototype:HTMLInputElement.prototype;" +
+        $"var nv=Object.getOwnPropertyDescriptor(p,'value');" +
+        $"if(nv&&nv.set)nv.set.call(e,{Js(text)});else e.value={Js(text)};" +
         $"e.dispatchEvent(new Event('input',{{bubbles:true}}));" +
         $"e.dispatchEvent(new Event('change',{{bubbles:true}}));" +
         $"return JSON.stringify({{ok:true}});" +

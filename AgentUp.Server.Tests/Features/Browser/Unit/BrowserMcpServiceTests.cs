@@ -27,4 +27,24 @@ public sealed class BrowserMcpServiceTests
         Assert.That(result.Succeeded, Is.True);
         Assert.That(result.Data, Is.EqualTo(state));
     }
+
+    [Test]
+    public async Task WaitForSelectorAsync_UsesCallerTimeoutForDispatchedCommand()
+    {
+        var store = new BrowserSessionStore();
+        var service = new BrowserMcpService(store);
+        var resultTask = service.WaitForSelectorAsync("workspace", "#ready", 60_000, CancellationToken.None);
+
+        var command = await store.TryDequeueAsync(
+            ["workspace"],
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None);
+        Assert.That(command, Is.Not.Null);
+        Assert.That(command!.TimeoutMs, Is.EqualTo(60_000));
+
+        store.CompleteCommand(new BrowserCommandResultDto(command.CommandId, true, "{}", null));
+        var result = await resultTask;
+
+        Assert.That(result.Succeeded, Is.True);
+    }
 }
