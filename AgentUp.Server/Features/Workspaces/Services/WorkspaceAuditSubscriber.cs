@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
+using System.Diagnostics;
 using Microsoft.Extensions.Hosting;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
@@ -20,21 +21,28 @@ public sealed class WorkspaceAuditSubscriber(
             if (_lastFingerprints.TryGetValue(evt.WorkspaceId, out var previous)
                 && string.Equals(previous, fingerprint, StringComparison.Ordinal))
                 continue;
-            _lastFingerprints[evt.WorkspaceId] = fingerprint;
 
-            await audit.RecordAsync(
-                new AuditRecordRequest(
-                    "workspace",
-                    "server",
-                    "workspace_state_changed",
-                    evt.State,
-                    evt.WorkspaceId,
-                    new Dictionary<string, string>
-                    {
-                        ["scope"] = "workspace",
-                        ["applications"] = applications
-                    }),
-                stoppingToken);
+            try
+            {
+                await audit.RecordAsync(
+                    new AuditRecordRequest(
+                        "workspace",
+                        "server",
+                        "workspace_state_changed",
+                        evt.State,
+                        evt.WorkspaceId,
+                        new Dictionary<string, string>
+                        {
+                            ["scope"] = "workspace",
+                            ["applications"] = applications
+                        }),
+                    stoppingToken);
+                _lastFingerprints[evt.WorkspaceId] = fingerprint;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Trace.TraceWarning($"[WorkspaceAuditSubscriber] Audit write failed: {ex.Message}");
+            }
         }
     }
 }
