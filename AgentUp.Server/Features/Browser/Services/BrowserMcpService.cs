@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
 using AgentUp.Server.Features.Audit.Controllers;
@@ -10,6 +11,7 @@ namespace AgentUp.Server.Features.Browser.Services;
 public sealed class BrowserMcpService(BrowserSessionStore store, AuditController audit)
 {
     private static readonly TimeSpan DispatchGrace = TimeSpan.FromSeconds(5);
+    private const int MaxInlineScreenshotBytes = 220 * 1024;
 
     public Task<McpToolResult> NavigateAsync(string workspaceId, string url, CancellationToken ct) =>
         DispatchAsync(new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate,
@@ -97,6 +99,10 @@ public sealed class BrowserMcpService(BrowserSessionStore store, AuditController
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         if (screenshot is null)
             return new McpToolResult(false, "Screenshot failed: desktop returned invalid image data.");
+        if (DecodedBase64Length(screenshot.ImageBase64) > MaxInlineScreenshotBytes)
+            return new McpToolResult(
+                false,
+                $"Screenshot failed: inline image was larger than {MaxInlineScreenshotBytes} bytes.");
 
         var recorded = await audit.RecordScreenshotAsync(
             new AuditScreenshot(
@@ -143,7 +149,7 @@ public sealed class BrowserMcpService(BrowserSessionStore store, AuditController
         Add(details, "text", command.Text);
         Add(details, "key", command.Key);
         if (browserResult?.Data is not null && command.Kind != BrowserCommandKind.Screenshot)
-            details["data"] = browserResult.Data;
+            AddPageStateDetails(details, browserResult.Data);
         if (browserResult?.Error is not null)
             details["error"] = browserResult.Error;
 
@@ -162,6 +168,60 @@ public sealed class BrowserMcpService(BrowserSessionStore store, AuditController
     {
         if (!string.IsNullOrWhiteSpace(value))
             details[key] = value;
+    }
+
+    private static void AddPageStateDetails(IDictionary<string, string> details, string data)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(data);
+            var root = document.RootElement;
+            Add(details, "pageTitle", ReadString(root, "title"));
+            Add(details, "pageUrl", ReadString(root, "url"));
+            if (root.TryGetProperty("headings", out var headings) && headings.ValueKind == JsonValueKind.Array)
+                Add(details, "headings", SummarizeHeadings(headings));
+            if (root.TryGetProperty("interactive", out var interactive) && interactive.ValueKind == JsonValueKind.Array)
+                details["interactiveCount"] = interactive.GetArrayLength().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return;
+        }
+        catch (JsonException)
+        {
+            Trace.TraceInformation("[BrowserMcpService] Browser page state was not JSON; storing preview only.");
+        }
+
+        details["dataPreview"] = data;
+    }
+
+    private static string? ReadString(JsonElement root, string propertyName) =>
+        root.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    private static string? SummarizeHeadings(JsonElement headings)
+    {
+        var values = headings
+            .EnumerateArray()
+            .Select(heading =>
+            {
+                var level = ReadString(heading, "level");
+                var text = ReadString(heading, "text");
+                return string.IsNullOrWhiteSpace(text) ? null : $"{level}: {text}";
+            })
+            .OfType<string>()
+            .Take(8)
+            .ToArray();
+        return values.Length == 0 ? null : string.Join(" | ", values);
+    }
+
+    private static int DecodedBase64Length(string value)
+    {
+        var length = value.Trim().Length;
+        if (length == 0)
+            return 0;
+
+        var padding = value.EndsWith("==", StringComparison.Ordinal) ? 2 :
+            value.EndsWith("=", StringComparison.Ordinal) ? 1 : 0;
+        return (length * 3 / 4) - padding;
     }
 
     private static string ToolName(BrowserCommandKind kind) => kind switch
