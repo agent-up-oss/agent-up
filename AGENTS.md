@@ -646,13 +646,15 @@ Read: `docs/user-docs/cli.md`.
 
 ## MCP
 
-The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources and orchestration tools, and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
+The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources and orchestration tools, Browser MCP at `/mcp/browser` for browser automation, Audit MCP at `/mcp/audit` for durable action history and artifacts, and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
 
 Read: `docs/developer-guide/mcp.md`.
 
 ## Event Recording
 
 Every browser interaction and relevant runtime signal should become an event. The event stream is the canonical history used for diagnostics, workflow inference, and future automation.
+
+Browser screenshots are Server-managed audit artifacts. Screenshot tools should return bounded inline image data for immediate agent inspection plus an opaque artifact id for later Audit MCP lookup, not temporary filesystem paths.
 
 Read: `docs/developer-guide/event-recording.md`.
 

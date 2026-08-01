@@ -4,7 +4,7 @@ title: MCP
 
 # MCP
 
-The Server exposes separate MCP servers at `/mcp/orchestration` and `/mcp/commits`. MCP is the primary automation interface for AI agents.
+The Server exposes separate MCP servers at `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, and `/mcp/commits`. MCP is the primary automation interface for AI agents.
 
 The CLI exists for human convenience. AI agents should use MCP directly.
 
@@ -13,6 +13,10 @@ The Server sends MCP initialization instructions that tell clients to use Agent-
 The Orchestration MCP server exposes Streamable HTTP at `/mcp/orchestration` and legacy SSE compatibility at `/mcp/orchestration/sse` plus `/mcp/orchestration/message`. It owns workspace tools, workspace resources, and Agent-Up context resources.
 
 The Commits MCP server exposes Streamable HTTP at `/mcp/commits` and legacy SSE compatibility at `/mcp/commits/sse` plus `/mcp/commits/message`. It owns only commit queue tools and exposes no workspace resources.
+
+The Browser MCP server exposes Streamable HTTP at `/mcp/browser` and legacy SSE compatibility at `/mcp/browser/sse` plus `/mcp/browser/message`. It owns browser navigation, inspection, interaction, wait, and screenshot tools.
+
+The Audit MCP server exposes Streamable HTTP at `/mcp/audit` and legacy SSE compatibility at `/mcp/audit/sse` plus `/mcp/audit/message`. It owns durable audit history queries and Server-managed artifact loading.
 
 This is a breaking endpoint split. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint. MCP is a protocol surface, not a feature slice: tools and resources are thin controller-layer adapters owned by the feature slice whose capability they expose. Cross-capability workspace and context tools live in the `Orchestration` slice.
 
@@ -52,6 +56,19 @@ Initial `/mcp/commits` tools:
 - `remove_commit`, `restore_commit`, `clear_commits`: archive, restore, or clear queued entries.
 - `begin_commit_edit`, `save_commit_edit`, `abort_commit_edit`: safely edit an existing queued patch.
 
+Initial `/mcp/browser` tools:
+
+- `browser_navigate`, `browser_inspect`, `browser_click`, `browser_fill`, `browser_press`, `browser_wait_for_selector`, `browser_wait_for_text`, `browser_wait_for_navigation`, and `browser_screenshot`.
+
+`browser_screenshot` returns bounded inline PNG image data for immediate agent inspection and stores the screenshot as a Server-managed audit artifact. Agents should use the returned artifact id with `/mcp/audit` when they need to reload the screenshot later; they should not request direct access to `/tmp` screenshot paths.
+
+Initial `/mcp/audit` tools:
+
+- `audit_query`: filters durable audit events by workspace, working-directory id, repository path, branch, commit, event kind, source, outcome, and time range.
+- `audit_timeline`: returns compact recent history for agent context.
+- `audit_get_event`: returns full details for one audit event.
+- `audit_load_artifact`: loads a Server-managed artifact by opaque artifact id and can return inline image data when requested.
+
 If `start_workspace` cannot find `agent-up.json`, it instructs the agent to read `docs/user-docs/agent-up-json.md`, search for an existing `agent-up.json`, or ask the user before creating one.
 
 `commits next` remains CLI-only because staging and popping a queued entry is developer-owned review work. Agents stop after `get_commits_status`.
@@ -62,7 +79,7 @@ Agents should follow the default prefix policy from `get_agent_up_context`: `fea
 
 Cross-slice guidance or documentation updates should be queued in a separate guidance/docs entry instead of being bundled into an implementation slice.
 
-Future tools will add browser inspection, interaction, diagnostics, screenshots, and Playwright export without moving orchestration out of the Server.
+Future tools will add richer diagnostics and Playwright export without moving orchestration out of the Server.
 
 ## Commit Queue Reminders
 
@@ -112,4 +129,4 @@ wait
 screenshot
 ```
 
-The Server executes browser operations.
+The Server executes browser operations. Browser actions and screenshots are recorded into durable audit history with workspace, workdir, branch, commit, and outcome context.

@@ -25,6 +25,12 @@ The event stream is the canonical representation of user and agent interactions.
 
 Playwright tests, diagnostics, workflow summaries, and future automation features should be derived from this event stream rather than from ad hoc command logs.
 
+## Audit History
+
+Agent-Up records durable audit events for browser MCP actions, screenshots, workspace and application state changes, source revision context, and action-relevant health/probe state. Audit records include workspace id, repository path, normalized worktree path, stable working-directory id, live branch, live commit SHA, dirty state when available, action outcome, and safe result details.
+
+Screenshots are stored as Server-managed audit artifacts. Browser screenshot calls return bounded inline PNG data for immediate agent inspection and an opaque artifact id that can be loaded later through Audit MCP without exposing temporary filesystem paths.
+
 ## Intent Over Commands
 
 Events capture what happened. Higher-level systems can infer why it happened and convert raw interactions into business workflows.
