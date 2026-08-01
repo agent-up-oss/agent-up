@@ -18,6 +18,7 @@ Diagnostics include:
 ## Exposure
 
 Diagnostics are exposed through MCP and displayed by the Desktop.
+Orchestration MCP exposes `get_workspace_console` for a bounded live snapshot of application console output and the recent durable console audit trail for a workspace.
 
 ## Purpose
 

@@ -646,7 +646,7 @@ Read: `docs/user-docs/cli.md`.
 
 ## MCP
 
-The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources and orchestration tools, Browser MCP at `/mcp/browser` for browser automation, Audit MCP at `/mcp/audit` for durable action history and artifacts, and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
+The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources, orchestration tools, and live workspace console snapshots; Browser MCP at `/mcp/browser` for browser automation; Audit MCP at `/mcp/audit` for durable action history and artifacts; and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
 
 Read: `docs/developer-guide/mcp.md`.
 
@@ -654,7 +654,7 @@ Read: `docs/developer-guide/mcp.md`.
 
 Every browser interaction and relevant runtime signal should become an event. The event stream is the canonical history used for diagnostics, workflow inference, and future automation.
 
-Browser navigation is restricted to loopback URLs on the workspace's allocated HTTP application ports unless an explicit external allowlist is introduced for flows such as OAuth providers. Browser screenshots are Server-managed audit artifacts. Screenshot tools should return bounded MCP image content for immediate agent inspection plus an opaque artifact id for later Audit MCP lookup, not temporary filesystem paths.
+Browser navigation is restricted to loopback URLs on the workspace's allocated HTTP application ports unless an explicit external allowlist is introduced for flows such as OAuth providers. Browser screenshots are Server-managed audit artifacts. Screenshot tools should return bounded MCP image content for immediate agent inspection plus an opaque artifact id for later Audit MCP lookup, not temporary filesystem paths. Captured application console lines should be mirrored into durable audit events without breaking the active workspace session if audit recording fails.
 
 Read: `docs/developer-guide/event-recording.md`.
 
