@@ -189,7 +189,8 @@ public sealed class HeadlessE2ETests
                 proc?.WaitForExit();
                 if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
             }
-            catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException
+                                            or System.ComponentModel.Win32Exception)
             {
                 continue;
             }

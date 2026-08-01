@@ -8,13 +8,32 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
 {
     private readonly ConcurrentDictionary<string, WorkspaceSubscriberSet> _subscribers = new();
 
+    public bool HasSubscribers(string workspaceId)
+        => _subscribers.TryGetValue(workspaceId, out var subs) && !subs.IsEmpty;
+
     public async Task ConnectAsync(string workspaceId, WebSocket ws, CancellationToken ct)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _ = DrainToDetectCloseAsync(ws, cts, workspaceId);
-        await SubscribeAsync(workspaceId, ws, cts.Token);
-        if (ws.State == WebSocketState.Open)
-            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+        var drainTask = DrainToDetectCloseAsync(ws, cts, workspaceId);
+        try
+        {
+            await SubscribeAsync(workspaceId, ws, cts.Token);
+            if (ws.State == WebSocketState.Open)
+                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogDebug("Screencast connection for workspace {WorkspaceId} ended.", SanitizeForLog(workspaceId));
+        }
+        finally
+        {
+            await cts.CancelAsync();
+            try { await drainTask; }
+            catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
+            {
+                logger.LogDebug(ex, "Drain task ended with error for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+            }
+        }
     }
 
     public async Task BroadcastFrameAsync(string workspaceId, byte[] frame, CancellationToken ct)
@@ -29,7 +48,7 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
             }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
-                logger.LogDebug(ex, "Screencast frame send failed for workspace {WorkspaceId}.", workspaceId);
+                logger.LogDebug(ex, "Screencast frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
             }
         }
     }
@@ -46,6 +65,8 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
         finally
         {
             subs.Remove(id);
+            if (subs.IsEmpty)
+                _subscribers.TryRemove(workspaceId, out _);
         }
     }
 
@@ -62,11 +83,15 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
         }
         catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
         {
-            logger.LogDebug(ex, "WebSocket connection for workspace {WorkspaceId} closed unexpectedly.", workspaceId);
+            logger.LogDebug(ex, "WebSocket connection for workspace {WorkspaceId} closed unexpectedly.", SanitizeForLog(workspaceId));
         }
         finally
         {
             await cts.CancelAsync();
         }
     }
+
+    private static string SanitizeForLog(string value) =>
+        value.Replace("\r", string.Empty, StringComparison.Ordinal)
+             .Replace("\n", string.Empty, StringComparison.Ordinal);
 }

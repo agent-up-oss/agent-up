@@ -104,6 +104,8 @@ public sealed class HeadlessBroadcastServiceTests
         await Task.WhenAny(receiveTask, Task.Delay(400, CancellationToken.None));
         Assert.That(receiveTask.IsCompletedSuccessfully, Is.False,
             "ws-room-b should not have received any frame from ws-room-a");
+        if (receiveTask.IsFaulted)
+            await receiveTask; // re-throws so an unexpected server-side fault fails the test
     }
 
     private async Task<WebSocket> ConnectAsync(string workspaceId, CancellationToken ct)

@@ -62,19 +62,19 @@ public sealed class HeadlessBrowserSessionManager(
 
     public async Task<BrowserSessionState> EnsureSessionAsync(string workspaceId, CancellationToken ct)
     {
-        if (_sessions.TryGetValue(workspaceId, out var existing) && existing.Browser.IsConnected)
-            return existing;
+        if (_sessions.TryGetValue(workspaceId, out var fast) && fast.Browser.IsConnected)
+            return fast;
 
         await _createLock.WaitAsync(ct);
         try
         {
-            if (_sessions.TryGetValue(workspaceId, out existing) && existing.Browser.IsConnected)
-                return existing;
+            if (_sessions.TryGetValue(workspaceId, out var locked) && locked.Browser.IsConnected)
+                return locked;
 
-            if (existing is not null)
+            if (_sessions.TryGetValue(workspaceId, out var stale))
             {
                 _sessions.TryRemove(workspaceId, out _);
-                try { await existing.Browser.CloseAsync(); }
+                try { await stale.Browser.CloseAsync(); }
                 catch (Exception ex) when (ex is PuppeteerException or ObjectDisposedException)
                 {
                     logger.LogDebug(ex, "Error closing stale browser for workspace {WorkspaceId}.", workspaceId);
@@ -142,6 +142,13 @@ public sealed class HeadlessBrowserSessionManager(
         var options = new ScreenshotOptions { Type = ScreenshotType.Jpeg, Quality = 75, FullPage = false };
         while (!ct.IsCancellationRequested)
         {
+            if (!broadcast.HasSubscribers(workspaceId))
+            {
+                try { await Task.Delay(500, ct); }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
+                continue;
+            }
+
             try
             {
                 var frame = await page.ScreenshotDataAsync(options);

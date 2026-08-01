@@ -22,7 +22,7 @@ internal static class ScreencastViewerPage
           const ctx = canvas.getContext('2d');
 
           const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-          const ws = new WebSocket(`${proto}//${location.host}/api/browser/screencast/${workspaceId}`);
+          const ws = new WebSocket(`${proto}//${location.host}/api/browser/screencast/${encodeURIComponent(workspaceId)}`);
           ws.binaryType = 'arraybuffer';
 
           ws.onmessage = (e) => {

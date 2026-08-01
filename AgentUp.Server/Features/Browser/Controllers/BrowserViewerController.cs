@@ -7,8 +7,12 @@ namespace AgentUp.Server.Features.Browser.Controllers;
 public sealed class BrowserViewerController : ControllerBase
 {
     [HttpGet("viewer")]
-    public ContentResult Viewer([FromQuery] string workspaceId)
-        => Content(ScreencastViewerPage.Build(workspaceId), "text/html");
+    public IActionResult Viewer([FromQuery] string workspaceId)
+    {
+        if (string.IsNullOrEmpty(workspaceId))
+            return BadRequest("workspaceId is required.");
+        return Content(ScreencastViewerPage.Build(workspaceId), "text/html");
+    }
 
     [HttpGet("mode")]
     public ContentResult Mode([FromServices] IConfiguration config)
