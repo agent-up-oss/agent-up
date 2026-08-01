@@ -1,0 +1,25 @@
+{
+  "name": "Demo SaaS Login Agent",
+  "applications": [
+    {
+      "name": "MarketingSite",
+      "command": "node marketing-site/server.mjs",
+      "ports": [{ "variable": "WEB_PORT", "defaultPort": 8080, "protocol": "http" }]
+    },
+    {
+      "name": "Dashboard",
+      "command": "node dashboard/server.mjs",
+      "ports": [{ "variable": "DASHBOARD_PORT", "defaultPort": 3000, "protocol": "http" }]
+    },
+    {
+      "name": "Backend",
+      "command": "node backend/server.mjs",
+      "ports": [{ "variable": "API_PORT", "defaultPort": 3001, "protocol": "http" }]
+    },
+    {
+      "name": "Postgres",
+      "command": "node postgres/server.mjs",
+      "ports": [{ "variable": "DB_PORT", "defaultPort": 5432, "protocol": "http" }]
+    }
+  ]
+}

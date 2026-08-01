@@ -1,0 +1,25 @@
+{
+  "name": "Demo Shop Returns Agent",
+  "applications": [
+    {
+      "name": "Storefront",
+      "command": "node storefront/server.mjs",
+      "ports": [{ "variable": "STOREFRONT_PORT", "defaultPort": 5000, "protocol": "http" }]
+    },
+    {
+      "name": "AdminPanel",
+      "command": "node admin-panel/server.mjs",
+      "ports": [{ "variable": "ADMIN_PORT", "defaultPort": 5001, "protocol": "http" }]
+    },
+    {
+      "name": "Fulfillment",
+      "command": "node fulfillment/server.mjs",
+      "ports": [{ "variable": "FULFILLMENT_PORT", "defaultPort": 8080, "protocol": "http" }]
+    },
+    {
+      "name": "Postgres",
+      "command": "node postgres/server.mjs",
+      "ports": [{ "variable": "DB_PORT", "defaultPort": 5432, "protocol": "http" }]
+    }
+  ]
+}
