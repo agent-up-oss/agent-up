@@ -1,6 +1,9 @@
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.DTOs;
 using AgentUp.Server.Features.Audit.Models;
+using AgentUp.Server.Features.Audit.Repositories;
+using AgentUp.Server.Features.Audit.Services;
+using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Tests.Fake;
 
 namespace AgentUp.Server.Tests.Features.Audit.Controller;
@@ -8,6 +11,22 @@ namespace AgentUp.Server.Tests.Features.Audit.Controller;
 [TestFixture]
 public sealed class AuditMcpToolsTests
 {
+    private string _dir = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _dir = Path.Join(Path.GetTempPath(), "agentup-audit-mcp-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_dir);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        if (Directory.Exists(_dir))
+            Directory.Delete(_dir, recursive: true);
+    }
+
     [Test]
     public async Task Query_ReturnsMatchingAuditEvents()
     {
@@ -51,6 +70,26 @@ public sealed class AuditMcpToolsTests
             Assert.That(data.ArtifactId, Is.EqualTo(saved.ArtifactId));
             Assert.That(data.MimeType, Is.EqualTo("image/png"));
             Assert.That(data.ImageBase64, Is.EqualTo(Convert.ToBase64String([1, 2, 3])));
+        });
+    }
+
+    [TestCase("")]
+    [TestCase("../not-hex")]
+    public async Task LoadArtifact_ReturnsStructuredFailure_WhenArtifactIdIsInvalid(string artifactId)
+    {
+        var controller = new AuditController(new AuditService(
+            new InMemoryAuditEventRepository(),
+            new FileAuditArtifactRepository(_dir),
+            new FakeAuditIdentityProvider(),
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry())));
+        var tools = new AuditMcpTools(controller);
+
+        var result = await tools.LoadArtifact(artifactId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("was not found"));
         });
     }
 }

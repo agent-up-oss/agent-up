@@ -70,7 +70,16 @@ public sealed class AuditService(
         bool includeImage,
         CancellationToken cancellationToken)
     {
-        var artifact = await artifacts.LoadAsync(artifactId, cancellationToken);
+        (AuditArtifact Metadata, byte[] Bytes)? artifact;
+        try
+        {
+            artifact = await artifacts.LoadAsync(artifactId, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+
         if (artifact is null)
             return null;
 
