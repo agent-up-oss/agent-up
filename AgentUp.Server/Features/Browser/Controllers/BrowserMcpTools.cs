@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Shared.Interfaces;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace AgentUp.Server.Features.Browser.Controllers;
@@ -75,9 +76,9 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.WaitForNavigationAsync(workspaceId, timeoutMs, cancellationToken);
 
     [McpServerTool(Name = "browser_screenshot", Title = "Screenshot")]
-    [Description("Capture the active workspace browser page as a bounded PNG image. Returns inline base64 image data plus a Server-managed audit artifact id for later lookup.")]
-    public Task<McpToolResult> Screenshot(
+    [Description("Capture the active workspace browser page as a bounded PNG image. Returns an MCP image content block plus a Server-managed audit artifact id for later lookup.")]
+    public Task<CallToolResult> Screenshot(
         [Description("Registered workspace ID.")] string workspaceId,
         CancellationToken cancellationToken) =>
-        browser.ScreenshotAsync(workspaceId, cancellationToken);
+        browser.ScreenshotCallToolResultAsync(workspaceId, cancellationToken);
 }

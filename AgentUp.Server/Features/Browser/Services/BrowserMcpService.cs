@@ -1,22 +1,44 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
+using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Shared.Interfaces;
 using System.Threading.Channels;
+using ModelContextProtocol.Protocol;
 
 namespace AgentUp.Server.Features.Browser.Services;
 
-public sealed class BrowserMcpService(BrowserSessionStore store, AuditController audit)
+public sealed class BrowserMcpService(
+    BrowserSessionStore store,
+    AuditController audit,
+    WorkspaceQueryController workspaces)
 {
     private static readonly TimeSpan DispatchGrace = TimeSpan.FromSeconds(5);
     private const int MaxInlineScreenshotBytes = 220 * 1024;
 
-    public Task<McpToolResult> NavigateAsync(string workspaceId, string url, CancellationToken ct) =>
-        DispatchAsync(new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate,
-            Url: url, Selector: null, Text: null, Key: null, TimeoutMs: 10_000), ct,
+    public async Task<McpToolResult> NavigateAsync(string workspaceId, string url, CancellationToken ct)
+    {
+        var validation = ValidateNavigationUrl(workspaceId, url);
+        if (validation is not null)
+        {
+            var failed = new McpToolResult(false, validation);
+            await RecordBrowserEventAsync(
+                new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate,
+                    Url: url, Selector: null, Text: null, Key: null, TimeoutMs: 10_000),
+                "failure",
+                null,
+                failed,
+                ct);
+            return failed;
+        }
+
+        return await DispatchAsync(new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate,
+                Url: url, Selector: null, Text: null, Key: null, TimeoutMs: 10_000), ct,
             r => new McpToolResult(true, $"Navigated to {url}.", r.Data));
+    }
 
     public Task<McpToolResult> InspectPageAsync(string workspaceId, CancellationToken ct) =>
         DispatchAsync(new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.InspectPage,
@@ -57,6 +79,30 @@ public sealed class BrowserMcpService(BrowserSessionStore store, AuditController
         DispatchAsync(new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Screenshot,
             Url: null, Selector: null, Text: null, Key: null, TimeoutMs: 20_000), ct,
             r => ScreenshotResultAsync(workspaceId, r, ct));
+
+    public async Task<CallToolResult> ScreenshotCallToolResultAsync(string workspaceId, CancellationToken ct)
+    {
+        var result = await ScreenshotAsync(workspaceId, ct);
+        if (!result.Succeeded)
+            return ErrorResult(result.Message);
+
+        if (result.Data is not BrowserScreenshotMcpResultDto screenshot)
+            return ErrorResult("Screenshot failed: server returned invalid screenshot metadata.");
+
+        return new CallToolResult
+        {
+            Content =
+            [
+                new TextContentBlock { Text = result.Message },
+                new ImageContentBlock
+                {
+                    Data = Encoding.UTF8.GetBytes(screenshot.ImageBase64),
+                    MimeType = screenshot.MimeType
+                }
+            ],
+            StructuredContent = JsonSerializer.SerializeToElement(screenshot)
+        };
+    }
 
     private async Task<McpToolResult> DispatchAsync(
         BrowserCommandDto command,
@@ -223,6 +269,36 @@ public sealed class BrowserMcpService(BrowserSessionStore store, AuditController
             value.EndsWith("=", StringComparison.Ordinal) ? 1 : 0;
         return (length * 3 / 4) - padding;
     }
+
+    private string? ValidateNavigationUrl(string workspaceId, string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return "Browser navigation blocked: URL must be absolute.";
+        if (uri.Scheme is not ("http" or "https"))
+            return "Browser navigation blocked: only HTTP and HTTPS URLs are allowed.";
+        if (!uri.IsLoopback)
+            return "Browser navigation blocked: only this workspace's allocated local application ports are allowed.";
+
+        var workspace = workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return $"Browser navigation blocked: workspace '{workspaceId}' was not found.";
+
+        var allowedPorts = workspace.Applications
+            .SelectMany(app => app.AllocatedPorts)
+            .Where(port => string.Equals(port.Protocol, "http", StringComparison.OrdinalIgnoreCase))
+            .Select(port => port.AllocatedPort)
+            .ToHashSet();
+        return allowedPorts.Contains(uri.Port)
+            ? null
+            : "Browser navigation blocked: URL port is not allocated to an HTTP application in this workspace.";
+    }
+
+    private static CallToolResult ErrorResult(string message) =>
+        new()
+        {
+            IsError = true,
+            Content = [new TextContentBlock { Text = message }]
+        };
 
     private static string ToolName(BrowserCommandKind kind) => kind switch
     {
