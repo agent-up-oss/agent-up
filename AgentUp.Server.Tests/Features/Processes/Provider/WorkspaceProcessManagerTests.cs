@@ -27,7 +27,7 @@ public class WorkspaceProcessManagerTests
         await ((IHostedService)_registry).StartAsync(CancellationToken.None);
         _manager = new WorkspaceProcessManager(
             ServerTestComposition.CreateWorkspaceStateController(_registry),
-            _output,
+            new ProcessOutputService(_output),
             new LocalProcessProvider(),
             new DockerProcessProvider(),
             NullLogger<WorkspaceProcessManager>.Instance);
