@@ -272,8 +272,14 @@ public sealed class BrowserMcpService(
         return values.Length == 0 ? null : string.Join(" | ", values);
     }
 
-    private static bool TryDecodeBase64(string value, out byte[] imageBytes)
+    private static bool TryDecodeBase64(string? value, out byte[] imageBytes)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            imageBytes = [];
+            return false;
+        }
+
         try
         {
             imageBytes = Convert.FromBase64String(value);

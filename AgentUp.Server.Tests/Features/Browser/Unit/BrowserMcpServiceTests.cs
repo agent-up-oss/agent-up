@@ -183,6 +183,42 @@ public sealed class BrowserMcpServiceTests
     }
 
     [Test]
+    public async Task ScreenshotAsync_AllowsImageAtInlineSizeLimit()
+    {
+        var store = new BrowserSessionStore();
+        var events = new InMemoryAuditEventRepository();
+        var service = Service(store, events: events);
+        var image = Convert.ToBase64String(new byte[220 * 1024]);
+        var resultTask = service.ScreenshotAsync("workspace", CancellationToken.None);
+
+        var command = await store.TryDequeueAsync(
+            ["workspace"],
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None);
+        Assert.That(command, Is.Not.Null);
+        store.CompleteCommand(new BrowserCommandResultDto(
+            command!.CommandId,
+            true,
+            JsonSerializer.Serialize(new BrowserScreenshotResultDto(
+                "http://localhost:3000",
+                "image/png",
+                image,
+                1280,
+                720)),
+            null));
+
+        var result = await resultTask;
+        var data = JsonSerializer.SerializeToElement(result.Data);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(data.GetProperty("sizeBytes").GetInt32(), Is.EqualTo(220 * 1024));
+            Assert.That(events.Events.Single().Action, Is.EqualTo("browser_screenshot"));
+        });
+    }
+
+    [Test]
     public async Task ScreenshotAsync_ReturnsFailureForMalformedScreenshotPayload()
     {
         var store = new BrowserSessionStore();
@@ -229,6 +265,43 @@ public sealed class BrowserMcpServiceTests
                 "not base64",
                 1280,
                 720)),
+            null));
+
+        var result = await resultTask;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("invalid image data"));
+            Assert.That(events.Events.Single().Outcome, Is.EqualTo("failure"));
+        });
+    }
+
+    [Test]
+    public async Task ScreenshotAsync_ReturnsFailureForMissingBase64Image()
+    {
+        var store = new BrowserSessionStore();
+        var events = new InMemoryAuditEventRepository();
+        var service = Service(store, events: events);
+        var resultTask = service.ScreenshotAsync("workspace", CancellationToken.None);
+
+        var command = await store.TryDequeueAsync(
+            ["workspace"],
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None);
+        Assert.That(command, Is.Not.Null);
+        store.CompleteCommand(new BrowserCommandResultDto(
+            command!.CommandId,
+            true,
+            """
+            {
+                "url": "http://localhost:3000",
+                "mimeType": "image/png",
+                "imageBase64": null,
+                "width": 1280,
+                "height": 720
+            }
+            """,
             null));
 
         var result = await resultTask;
@@ -290,6 +363,26 @@ public sealed class BrowserMcpServiceTests
         {
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Message, Does.Contain("only this workspace's allocated local application ports"));
+            Assert.That(dequeued, Is.Null);
+            Assert.That(events.Events.Single().Outcome, Is.EqualTo("failure"));
+        });
+    }
+
+    [Test]
+    public async Task NavigateAsync_BlocksLoopbackUrlOutsideWorkspaceAllocatedHttpPorts()
+    {
+        var store = new BrowserSessionStore();
+        var events = new InMemoryAuditEventRepository();
+        var (registry, workspaceId) = await RegistryWithWorkspaceAsync();
+        var service = Service(store, events, registry);
+
+        var result = await service.NavigateAsync(workspaceId, "http://localhost:9999/path", CancellationToken.None);
+        var dequeued = await store.TryDequeueAsync([workspaceId], TimeSpan.FromMilliseconds(100), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("URL port is not allocated to an HTTP application"));
             Assert.That(dequeued, Is.Null);
             Assert.That(events.Events.Single().Outcome, Is.EqualTo("failure"));
         });
