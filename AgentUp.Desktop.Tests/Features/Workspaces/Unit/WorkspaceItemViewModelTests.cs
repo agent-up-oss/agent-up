@@ -92,7 +92,33 @@ public class WorkspaceItemViewModelTests
             Assert.That(vm.State, Is.EqualTo("Running"));
             Assert.That(vm.Applications.Select(app => app.Name), Is.EqualTo(["Web", "Worker"]));
             Assert.That(vm.Applications.Single(app => app.Name == "Web").State, Is.EqualTo("Running"));
+            Assert.That(vm.Applications.Single(app => app.Name == "Web").Command, Is.EqualTo("web"));
+            Assert.That(vm.Applications.Single(app => app.Name == "Web").AllocatedPorts.Single().AllocatedPort, Is.EqualTo(5300));
             Assert.That(vm.Applications.Single(app => app.Name == "Worker").Command, Is.EqualTo("worker"));
+        });
+    }
+
+    [Test]
+    public void UpdateFrom_RefreshesExistingApplicationMetadata()
+    {
+        var vm = new WorkspaceItemViewModel(
+            "ws-1",
+            "App",
+            "main",
+            "/repo",
+            "/worktree",
+            "Stopped",
+            [new ApplicationDto("Web", "old", null, "Starting")]);
+        var ports = new List<PortMappingDto> { new("WEB_PORT", 3000, 5400) };
+
+        vm.UpdateFrom("Running", [new ApplicationDto("Web", "new", null, "Running") { AllocatedPorts = ports }]);
+
+        var web = vm.Applications.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(web.Command, Is.EqualTo("new"));
+            Assert.That(web.AllocatedPorts.Single().AllocatedPort, Is.EqualTo(5400));
+            Assert.That(web.State, Is.EqualTo("Running"));
         });
     }
 

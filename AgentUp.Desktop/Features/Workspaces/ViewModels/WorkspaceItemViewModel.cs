@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using AgentUp.Desktop.Features.Applications.DTOs;
-using AgentUp.Desktop.Features.Applications.ViewModels;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -31,7 +30,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
     }
 
-    public ObservableCollection<ApplicationViewModel> Applications { get; } = [];
+    public ObservableCollection<WorkspaceApplicationViewModel> Applications { get; } = [];
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
@@ -70,7 +69,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         foreach (var app in applications)
         {
             if (existingByName.TryGetValue(app.Name, out var existing))
-                existing.UpdateState(app.State);
+                existing.UpdateFrom(app.Command, app.State, app.AllocatedPorts);
             else
                 Applications.Add(CreateApplication(app));
         }
@@ -86,10 +85,10 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
             app.UpdateState(changesByName[app.Name]);
 
         foreach (var app in appChanges.Where(app => !Applications.Any(existing => existing.Name == app.Name)))
-            Applications.Add(new ApplicationViewModel(app.Name, string.Empty, app.State));
+            Applications.Add(new WorkspaceApplicationViewModel(app.Name, string.Empty, app.State));
     }
 
-    private static ApplicationViewModel CreateApplication(ApplicationDto app) =>
+    private static WorkspaceApplicationViewModel CreateApplication(ApplicationDto app) =>
         new(app.Name, app.Command, app.State, app.AllocatedPorts);
 
     private static string ResolveStateColor(string state) => state switch

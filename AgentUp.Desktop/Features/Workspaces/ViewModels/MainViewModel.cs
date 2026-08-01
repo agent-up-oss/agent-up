@@ -92,7 +92,7 @@ public sealed class MainViewModel : ReactiveObject
             .Subscribe(ws =>
             {
                 Console.Clear();
-                Applications.Update(ws?.Applications ?? []);
+                Applications.Update(ws?.Applications.Select(CreateApplicationViewModel).ToList() ?? []);
             });
 
     private void SubscribeApplicationSelection()
@@ -249,6 +249,9 @@ public sealed class MainViewModel : ReactiveObject
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
             _ = portTab.ProbeAsync();
     }
+
+    private static ApplicationViewModel CreateApplicationViewModel(WorkspaceApplicationViewModel app) =>
+        new(app.Name, app.Command, app.State, app.AllocatedPorts);
 
     public async Task InitializeAsync()
     {
