@@ -13,10 +13,11 @@ public sealed class BrowserCommandPollerTests
     {
         var state = "{\"title\":\"Saved\",\"interactive\":[]}";
         var command = Command(BrowserCommandKind.Click);
+        var host = new StateReturningBrowserHost(state);
         using var http = NoContentHttpClient();
         var poller = new BrowserCommandPoller(
             new BrowserCommandHttpClient(http),
-            new StateReturningBrowserHost(state));
+            host);
 
         var result = await poller.AttachPageStateAsync(
             new BrowserCommandResultDto(command.CommandId, true, "{\"ok\":true}", null),
@@ -24,6 +25,24 @@ public sealed class BrowserCommandPollerTests
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.Data, Is.EqualTo(state));
+        Assert.That(host.EvalCalls, Is.GreaterThanOrEqualTo(2));
+    }
+
+    [Test]
+    public async Task AttachPageStateAsync_ReturnsSettledStateAfterTransientState()
+    {
+        var landing = "{\"title\":\"Agent-Up\",\"url\":\"http://localhost:3000/developer-guide/mcp\"}";
+        var docs = "{\"title\":\"MCP | Agent-Up\",\"url\":\"http://localhost:3000/developer-guide/mcp\"}";
+        var command = Command(BrowserCommandKind.Click);
+        var host = new SequenceBrowserHost([landing, docs, docs]);
+        using var http = NoContentHttpClient();
+        var poller = new BrowserCommandPoller(new BrowserCommandHttpClient(http), host);
+
+        var result = await poller.AttachPageStateAsync(
+            new BrowserCommandResultDto(command.CommandId, true, "{\"ok\":true}", null),
+            command);
+
+        Assert.That(result.Data, Is.EqualTo(docs));
     }
 
     [Test]
@@ -75,6 +94,26 @@ public sealed class BrowserCommandPollerTests
         {
             EvalCalls++;
             return Task.FromResult<string?>(state);
+        }
+
+        public bool NavigateTo(string workspaceId, string? url)
+        {
+            return true;
+        }
+    }
+
+    private sealed class SequenceBrowserHost(IReadOnlyList<string> states) : IBrowserWindowHost
+    {
+        private int _index;
+
+        public Task<IReadOnlyCollection<string>> GetActiveWorkspaceIdsAsync() =>
+            Task.FromResult<IReadOnlyCollection<string>>(["workspace"]);
+
+        public Task<string?> EvalAsync(string workspaceId, string script)
+        {
+            var value = states[Math.Min(_index, states.Count - 1)];
+            _index++;
+            return Task.FromResult<string?>(value);
         }
 
         public bool NavigateTo(string workspaceId, string? url)

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using AgentUp.Desktop.Features.Browser.Models;
 using AgentUp.Desktop.Features.Browser.Providers;
 using AgentUp.Desktop.Features.Browser.Resources;
@@ -9,6 +10,10 @@ namespace AgentUp.Desktop.Features.Browser.Services;
 
 internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBrowserWindowHost host)
 {
+    private const int ScreenshotWidth = 800;
+    private const int ScreenshotHeight = 450;
+    private static readonly TimeSpan PageStateSettleTimeout = TimeSpan.FromMilliseconds(900);
+    private static readonly TimeSpan PageStateSettleInterval = TimeSpan.FromMilliseconds(150);
     private CancellationTokenSource? _cts;
 
     public void Start()
@@ -64,14 +69,14 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
         {
             return command.Kind switch
             {
-                BrowserCommandKind.Navigate => await AttachPageStateAsync(await NavigateAsync(command, ct), command),
+                BrowserCommandKind.Navigate => await AttachPageStateAsync(await NavigateAsync(command, ct), command, ct),
                 BrowserCommandKind.InspectPage => await InspectAsync(command),
-                BrowserCommandKind.Click => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Click(command.Selector!)), command),
-                BrowserCommandKind.Fill => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Fill(command.Selector!, command.Text!)), command),
-                BrowserCommandKind.Press => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Press(command.Key!)), command),
-                BrowserCommandKind.WaitForSelector => await AttachPageStateAsync(await WaitForConditionAsync(command, BrowserScripts.CheckSelector(command.Selector!), ct), command),
-                BrowserCommandKind.WaitForText => await AttachPageStateAsync(await WaitForConditionAsync(command, BrowserScripts.CheckText(command.Text!), ct), command),
-                BrowserCommandKind.WaitForNavigation => await AttachPageStateAsync(await WaitForNavigationAsync(command, ct), command),
+                BrowserCommandKind.Click => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Click(command.Selector!)), command, ct),
+                BrowserCommandKind.Fill => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Fill(command.Selector!, command.Text!)), command, ct),
+                BrowserCommandKind.Press => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Press(command.Key!)), command, ct),
+                BrowserCommandKind.WaitForSelector => await AttachPageStateAsync(await WaitForConditionAsync(command, BrowserScripts.CheckSelector(command.Selector!), ct), command, ct),
+                BrowserCommandKind.WaitForText => await AttachPageStateAsync(await WaitForConditionAsync(command, BrowserScripts.CheckText(command.Text!), ct), command, ct),
+                BrowserCommandKind.WaitForNavigation => await AttachPageStateAsync(await WaitForNavigationAsync(command, ct), command, ct),
                 BrowserCommandKind.Screenshot => await ScreenshotAsync(command, ct),
                 _ => Fail(command, $"Unknown command kind: {command.Kind}")
             };
@@ -101,13 +106,34 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
             : Fail(command, $"No browser session found for workspace '{command.WorkspaceId}'.");
     }
 
-    internal async Task<BrowserCommandResultDto> AttachPageStateAsync(BrowserCommandResultDto result, BrowserCommandDto command)
+    internal async Task<BrowserCommandResultDto> AttachPageStateAsync(
+        BrowserCommandResultDto result,
+        BrowserCommandDto command,
+        CancellationToken ct = default)
     {
         if (!result.Success) return result;
-        var state = await host.EvalAsync(command.WorkspaceId, BrowserScripts.InspectPage);
+        var state = await ReadSettledPageStateAsync(command.WorkspaceId, ct);
         return state is null
             ? result
             : new BrowserCommandResultDto(command.CommandId, true, state, null);
+    }
+
+    private async Task<string?> ReadSettledPageStateAsync(string workspaceId, CancellationToken ct)
+    {
+        string? previous = null;
+        var sw = Stopwatch.StartNew();
+
+        while (sw.Elapsed < PageStateSettleTimeout && !ct.IsCancellationRequested)
+        {
+            var current = await host.EvalAsync(workspaceId, BrowserScripts.InspectPage);
+            if (current is not null && string.Equals(current, previous, StringComparison.Ordinal))
+                return current;
+
+            previous = current;
+            await DelayAsync((int)PageStateSettleInterval.TotalMilliseconds, ct);
+        }
+
+        return previous;
     }
 
     private async Task<BrowserCommandResultDto> WaitForConditionAsync(BrowserCommandDto command, string conditionScript, CancellationToken ct)
@@ -164,17 +190,38 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
                 psi.ArgumentList.Add("--run-all-compositor-stages-before-draw");
                 psi.ArgumentList.Add("--virtual-time-budget=3000");
                 psi.ArgumentList.Add($"--screenshot={path}");
-                psi.ArgumentList.Add("--window-size=1280,720");
+                psi.ArgumentList.Add($"--window-size={ScreenshotWidth},{ScreenshotHeight}");
                 psi.ArgumentList.Add(url);
 
                 using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start process.");
                 using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
-                await process.WaitForExitAsync(timeoutCts.Token);
+                try
+                {
+                    await process.WaitForExitAsync(timeoutCts.Token);
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    KillProcess(process, browser);
+                    return Fail(command, $"Screenshot failed: {browser} did not finish within 15 seconds.");
+                }
 
-                return File.Exists(path)
-                    ? new BrowserCommandResultDto(command.CommandId, true, path, null)
-                    : Fail(command, $"Screenshot failed: {browser} exited without producing a file.");
+                if (!File.Exists(path))
+                    return Fail(command, $"Screenshot failed: {browser} exited without producing a file.");
+
+                var bytes = await File.ReadAllBytesAsync(path, ct);
+                File.Delete(path);
+                var payload = new BrowserScreenshotResultDto(
+                    url,
+                    "image/png",
+                    Convert.ToBase64String(bytes),
+                    ScreenshotWidth,
+                    ScreenshotHeight);
+                return new BrowserCommandResultDto(
+                    command.CommandId,
+                    true,
+                    JsonSerializer.Serialize(payload),
+                    null);
             }
             catch (System.ComponentModel.Win32Exception)
             {
@@ -202,6 +249,19 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
 
     private static BrowserCommandResultDto Fail(BrowserCommandDto command, string error) =>
         new(command.CommandId, false, null, error);
+
+    private static void KillProcess(Process process, string browser)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            Trace.TraceWarning($"[BrowserCommandPoller] Failed to kill timed-out {browser}: {ex.Message}");
+        }
+    }
 
     private static async Task DelayAsync(int ms, CancellationToken ct)
     {
