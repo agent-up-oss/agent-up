@@ -41,8 +41,11 @@ public sealed class AuditGitStateProvider
 
         using var process = Process.Start(psi)
             ?? throw new InvalidOperationException("git did not start.");
-        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
         await process.WaitForExitAsync(cancellationToken);
+        var stdout = await stdoutTask;
+        await stderrTask;
         return process.ExitCode == 0 ? stdout.Trim() : string.Empty;
     }
 }
