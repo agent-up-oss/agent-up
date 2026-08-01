@@ -9,7 +9,8 @@ public sealed class HeadlessBrowserSessionManager(
     string chromiumDir,
     string profilesDir,
     ScreencastBroadcastService broadcast,
-    ILogger<HeadlessBrowserSessionManager> logger)
+    ILogger<HeadlessBrowserSessionManager> logger,
+    string? configuredExecutablePath = null)
     : IHostedService
 {
     private readonly ConcurrentDictionary<string, BrowserSessionState> _sessions = new();
@@ -20,6 +21,14 @@ public sealed class HeadlessBrowserSessionManager(
     public async Task StartAsync(CancellationToken ct)
     {
         _stopCts = new CancellationTokenSource();
+
+        if (!string.IsNullOrWhiteSpace(configuredExecutablePath))
+        {
+            _executablePath = configuredExecutablePath;
+            logger.LogInformation("Using configured Chromium at {Path}", _executablePath);
+            return;
+        }
+
         logger.LogInformation("Downloading Chromium to {ChromiumDir}…", chromiumDir);
         try
         {
@@ -103,6 +112,8 @@ public sealed class HeadlessBrowserSessionManager(
         var options = new LaunchOptions
         {
             Headless = true,
+            HeadlessMode = HeadlessMode.Shell,
+            Pipe = false,
             UserDataDir = profilePath,
             Args =
             [

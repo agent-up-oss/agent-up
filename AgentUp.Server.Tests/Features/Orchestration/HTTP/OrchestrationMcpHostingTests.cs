@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Commits.Controllers;

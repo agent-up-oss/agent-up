@@ -75,7 +75,7 @@ public sealed class HeadlessBrowserCommandDispatcher(
         {
             return;
         }
-        catch (Exception ex) when (ex is PuppeteerException or InvalidOperationException or IOException or TimeoutException)
+        catch (Exception ex) when (ex is PuppeteerException or ProcessException or InvalidOperationException or IOException or TimeoutException)
         {
             logger.LogError(ex, "Error executing browser command {CommandId}.", command.CommandId);
             result = Fail(command, ex.Message);

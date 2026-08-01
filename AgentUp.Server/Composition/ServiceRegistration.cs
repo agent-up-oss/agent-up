@@ -133,7 +133,8 @@ public static class ServiceRegistration
                     chromiumDir: Path.Join(dataDir, "chromium"),
                     profilesDir: Path.Join(dataDir, "browser-profiles"),
                     sp.GetRequiredService<ScreencastBroadcastService>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>()));
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>(),
+                    configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
             builder.Services.AddHostedService(sp =>
                 sp.GetRequiredService<HeadlessBrowserSessionManager>());
             builder.Services.AddSingleton<CdpBrowserExecutor>();
