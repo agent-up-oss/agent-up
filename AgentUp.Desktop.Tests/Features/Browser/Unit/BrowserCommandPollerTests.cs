@@ -54,6 +54,10 @@ public sealed class BrowserCommandPollerTests
 
     private sealed class NoContentHandler : HttpMessageHandler
     {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Reliability",
+            "CA2000:Dispose objects before losing scope",
+            Justification = "BrowserCommandHttpClient owns and disposes the returned response.")]
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken) =>
