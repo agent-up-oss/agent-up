@@ -20,6 +20,9 @@ public sealed class MainViewModel : ReactiveObject
     private readonly PortsController _ports;
     private readonly Subject<(string? WorkspaceId, string? Url)> _addressNavigations = new();
     private readonly Subject<BrowserCommand> _browserCommands = new();
+    // Last-visited URL per port origin (e.g. "http://localhost:10100" → "http://localhost:10100/docs/intro").
+    // Used to restore the exact page when the user switches away and back to an HTTP tab.
+    private readonly Dictionary<string, string> _portUrls = new();
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -110,7 +113,18 @@ public sealed class MainViewModel : ReactiveObject
                 this.RaisePropertyChanged(nameof(ShowConsole));
                 this.RaisePropertyChanged(nameof(ShowPortView));
                 this.RaisePropertyChanged(nameof(ShowTcpInfo));
-                AddressBarUrl = tab is PortSubTabViewModel { IsHttp: true } portTab ? portTab.Url : null;
+                if (tab is PortSubTabViewModel { IsHttp: true } portTab)
+                {
+                    // Restore the last URL the user/agent was at on this port; fall back to base URL.
+                    var origin = PortOrigin(portTab.Url);
+                    AddressBarUrl = origin is not null && _portUrls.TryGetValue(origin, out var saved)
+                        ? saved
+                        : portTab.Url;
+                }
+                else
+                {
+                    AddressBarUrl = null;
+                }
                 if (tab is PortSubTabViewModel selectedPort)
                     _ = selectedPort.ProbeAsync();
             });
@@ -146,7 +160,7 @@ public sealed class MainViewModel : ReactiveObject
 
     private (string? WorkspaceId, string? Url) CreateTabNavigation(SubTabViewModel? tab)
         => tab is PortSubTabViewModel { IsHttp: true } pt
-            ? (Sidebar.SelectedWorkspace?.Id, pt.Url)
+            ? (Sidebar.SelectedWorkspace?.Id, GetPortNavigationUrl(pt))
             : (Sidebar.SelectedWorkspace?.Id, null);
 
     private static IObservable<PortSubTabViewModel> CreatePortProbeTimer(PortSubTabViewModel? pt)
@@ -189,7 +203,25 @@ public sealed class MainViewModel : ReactiveObject
         if (!ShowPortView) return;
 
         AddressBarUrl = url;
+
+        var origin = PortOrigin(url);
+        if (origin is not null)
+            _portUrls[origin] = url;
     }
+
+    // Registers a URL as the intended destination for its port before a tab switch occurs,
+    // so SubscribeSubTabSelection restores the new URL rather than the previous one.
+    internal void PreloadPortUrl(string url)
+    {
+        var origin = PortOrigin(url);
+        if (origin is not null)
+            _portUrls[origin] = url;
+    }
+
+    private static string? PortOrigin(string url)
+        => Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            ? uri.GetLeftPart(UriPartial.Authority)
+            : null;
 
     private static string NormalizeAddress(string address)
     {

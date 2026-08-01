@@ -19,6 +19,7 @@ using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Browser.Interfaces;
 using AgentUp.Desktop.Features.Browser.Providers;
 using AgentUp.Desktop.Features.Browser.Services;
+using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Repositories;
@@ -165,15 +166,43 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
 
     // Navigates the workspace WebView without switching the active (visible) workspace tab.
     // Used by MCP browser tools so agent navigation doesn't interrupt the developer's view.
+    // If the target port belongs to a different application within the same workspace, the
+    // application tab is switched so the user can observe the agent's activity.
     private void NavigateBackground(string workspaceId, string? url)
     {
         if (_isClosed || url is null) return;
         if (!TryGetOrCreateWebView(workspaceId, url, out var webView, out var destinationUrl)) return;
         if (workspaceId != _activeWorkspaceId)
             webView.IsVisible = false;
+        SwitchApplicationTabForUrl(workspaceId, destinationUrl);
         var navigationVersion = _navigationVersions.GetValueOrDefault(workspaceId) + 1;
         _navigationVersions[workspaceId] = navigationVersion;
         _ = NavigatePortWebViewAsync(workspaceId, webView, new Uri(destinationUrl), navigationVersion);
+    }
+
+    // Switches the application and sub-tab to the one that owns the target port, so the user
+    // sees the agent's navigation activity. Only switches for the currently active workspace;
+    // background workspace navigation proceeds silently.
+    private void SwitchApplicationTabForUrl(string workspaceId, string url)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        if (vm.Sidebar.SelectedWorkspace?.Id != workspaceId) return;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+
+        var targetPort = uri.Port;
+        var matchingApp = vm.Applications.Applications
+            .FirstOrDefault(a => a.AllocatedPorts.Any(p => p.AllocatedPort == targetPort && p.Protocol == "http"));
+        if (matchingApp is null) return;
+
+        vm.PreloadPortUrl(url);
+
+        if (vm.Applications.SelectedApplication != matchingApp)
+            vm.Applications.SelectedApplication = matchingApp;
+
+        // For apps with multiple HTTP tabs, also select the exact port tab.
+        var targetTab = vm.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.AllocatedPort == targetPort);
+        if (targetTab is not null && vm.SelectedSubTab != targetTab)
+            vm.SelectedSubTab = targetTab;
     }
 
     private void SetWindowIcon()
@@ -308,6 +337,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         ActivateWorkspaceWebView(workspaceId, tutorialVisible);
 
         if (url is null || workspaceId is null) return;
+
+        // Skip navigation if the webview is already at this exact URL (e.g. tab switch restoring
+        // the preserved URL). Without this, NavigateWebView would force-reload the same page.
+        if (_lastKnownBrowserUrls.TryGetValue(workspaceId, out var currentUrl)
+            && string.Equals(currentUrl, url, StringComparison.Ordinal))
+            return;
+
         if (!TryGetOrCreateWebView(workspaceId, url, out var webView, out var destinationUrl)) return;
 
         webView.IsVisible = !tutorialVisible;
@@ -413,11 +449,19 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
             if (!CanTouchWebView(workspaceId, webView)) return;
             if (_navigationVersions.GetValueOrDefault(workspaceId) != navigationVersion) return;
 
-            NavigateWebView(
-                webView,
-                errorHtml is null
-                    ? destination
-                    : WriteBrowserErrorPage(workspaceId, errorHtml));
+            if (errorHtml is null)
+            {
+                NavigateWebView(webView, destination);
+            }
+            else
+            {
+                // Evict the cached URL so the next tab switch is not mistakenly skipped.
+                // A file:// error page does not update _lastKnownBrowserUrls, which would
+                // otherwise cause HandleNavigation to bail thinking the browser is still at
+                // the previous HTTP URL.
+                _lastKnownBrowserUrls.Remove(workspaceId);
+                NavigateWebView(webView, WriteBrowserErrorPage(workspaceId, errorHtml));
+            }
         });
     }
 
@@ -465,7 +509,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         string detail)
     {
         if (!CanTouchWebView(workspaceId, webView)) return;
-
+        _lastKnownBrowserUrls.Remove(workspaceId);
         var html = BuildBrowserErrorHtml(title, detail, destination);
         NavigateWebView(webView, WriteBrowserErrorPage(workspaceId, html));
     }
