@@ -383,6 +383,7 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider>();
         builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
