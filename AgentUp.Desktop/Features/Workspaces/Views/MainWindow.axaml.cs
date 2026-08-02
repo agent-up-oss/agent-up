@@ -230,6 +230,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         _isClosed = true;
         _workspaceEventClient?.Dispose();
+        _serverHttp.Dispose();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
         _subscriptions.Dispose();
@@ -846,7 +847,7 @@ code {
     }
 
     private Uri BuildViewerUrl(string workspaceId)
-        => new($"{_serverBaseUrl}/api/browser/viewer?workspaceId={Uri.EscapeDataString(workspaceId)}");
+        => new(_serverHttp.BaseAddress!, $"/api/browser/viewer?workspaceId={Uri.EscapeDataString(workspaceId)}");
 
 
     private void OnConsoleOverlayPointerPressed(object? sender, PointerPressedEventArgs e)
