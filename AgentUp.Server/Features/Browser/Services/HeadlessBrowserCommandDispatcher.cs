@@ -80,6 +80,11 @@ public sealed class HeadlessBrowserCommandDispatcher(
             logger.LogError(ex, "Error executing browser command {CommandId}.", command.CommandId);
             result = Fail(command, ex.Message);
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Unexpected error executing browser command {CommandId}.", command.CommandId);
+            result = Fail(command, ex.Message);
+        }
 
         store.CompleteCommand(result);
     }
