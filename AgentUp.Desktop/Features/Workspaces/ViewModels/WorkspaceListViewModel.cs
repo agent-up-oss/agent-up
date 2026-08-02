@@ -109,12 +109,14 @@ public sealed class WorkspaceListViewModel : ReactiveObject
                     if (SelectedWorkspace?.Id == workspaceId)
                         SelectedWorkspace = Workspaces.FirstOrDefault();
                 }
+                ErrorMessage = null;
                 return;
             }
 
             if (existing is not null)
             {
                 existing.UpdateFrom(dto.State, dto.Applications);
+                ErrorMessage = null;
                 return;
             }
 
@@ -124,6 +126,11 @@ public sealed class WorkspaceListViewModel : ReactiveObject
             Workspaces.Add(added);
             if (SelectedWorkspace is null)
                 SelectedWorkspace = added;
+            ErrorMessage = null;
+        }
+        catch (TaskCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {

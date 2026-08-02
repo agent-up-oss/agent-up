@@ -80,7 +80,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
             else
             {
                 Applications.Add(CreateApplication(app));
-                portsChanged |= app.AllocatedPorts.Count > 0;
+                portsChanged |= app.AllocatedPorts is { Count: > 0 };
             }
         }
 

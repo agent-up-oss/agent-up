@@ -22,18 +22,25 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
     public void Start()
     {
         Stop();
-        _cts = new CancellationTokenSource();
-        _ = RunAsync(_cts.Token);
+        CancellationToken token;
+        lock (_refreshLock)
+        {
+            _cts = new CancellationTokenSource();
+            token = _cts.Token;
+        }
+
+        _ = RunAsync(token);
     }
 
     public void Stop()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
+        CancellationTokenSource? cts;
 
         lock (_refreshLock)
         {
+            cts = _cts;
+            _cts = null;
+
             foreach (var refresh in _refreshes.Values)
             {
                 refresh.Cancel();
@@ -42,6 +49,9 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
 
             _refreshes.Clear();
         }
+
+        cts?.Cancel();
+        cts?.Dispose();
     }
 
     private async Task RunAsync(CancellationToken ct)
@@ -104,10 +114,19 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
 
             Dispatcher.UIThread.Post(() =>
             {
+                if (!IsStarted())
+                    return;
+
                 sidebar.ApplyEvent(evt.WorkspaceId, evt.State, appChanges);
                 ScheduleWorkspaceRefresh(evt.WorkspaceId);
             });
         }
+    }
+
+    private bool IsStarted()
+    {
+        lock (_refreshLock)
+            return _cts is not null;
     }
 
     private void ScheduleWorkspaceRefresh(string workspaceId)
@@ -115,13 +134,16 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
         CancellationTokenSource refreshCts;
         lock (_refreshLock)
         {
+            if (_cts is null)
+                return;
+
             if (_refreshes.Remove(workspaceId, out var existing))
             {
                 existing.Cancel();
                 existing.Dispose();
             }
 
-            refreshCts = CancellationTokenSource.CreateLinkedTokenSource(_cts?.Token ?? CancellationToken.None);
+            refreshCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
             _refreshes[workspaceId] = refreshCts;
         }
 

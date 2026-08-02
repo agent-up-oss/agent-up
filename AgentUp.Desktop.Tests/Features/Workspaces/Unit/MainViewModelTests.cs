@@ -204,7 +204,7 @@ public class MainViewModelTests
         var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
         var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 3000) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initial]);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
@@ -226,7 +226,7 @@ public class MainViewModelTests
         var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10000);
         var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 10200) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initial]);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
@@ -250,7 +250,7 @@ public class MainViewModelTests
         var initialWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20200);
         var refreshedWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10300) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
@@ -276,7 +276,7 @@ public class MainViewModelTests
         var initialWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20200);
         var refreshedWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20300) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
@@ -297,11 +297,45 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task ScopedWorkspaceRefresh_clearsPreviousErrorMessage_whenRefreshSucceeds()
+    {
+        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
+        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 10300);
+        var handler = new MutableFakeHttpMessageHandler([initial]);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        vm.Sidebar.ErrorMessage = "Could not refresh workspace 'ws-1': previous failure";
+
+        handler.SetWorkspaces([refreshed]);
+        await vm.Sidebar.RefreshWorkspaceAsync("ws-1");
+
+        Assert.That(vm.Sidebar.ErrorMessage, Is.Null);
+    }
+
+    [Test]
+    public async Task ScopedWorkspaceRefresh_doesNotSetErrorMessage_whenCallerCancels()
+    {
+        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
+        var handler = new MutableFakeHttpMessageHandler([initial]);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        using var cts = new CancellationTokenSource();
+
+        await vm.InitializeAsync();
+        await cts.CancelAsync();
+        await vm.Sidebar.RefreshWorkspaceAsync("ws-1", cts.Token);
+
+        Assert.That(vm.Sidebar.ErrorMessage, Is.Null);
+    }
+
+    [Test]
     public async Task TutorialStepTransition_reloadsWorkspaceListBehindOverlay()
     {
         var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
         var handler = new MutableFakeHttpMessageHandler([initial]);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var tutorial = new FirstRunTutorialViewModel(
             new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
             new PassingTutorialChecks());
