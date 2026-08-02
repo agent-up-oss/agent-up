@@ -18,9 +18,11 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 
         The Server owns all ports. Applications consume only environment variables declared in agent-up.json, such as WEB_PORT, API_PORT, AUTH_PORT, or service-specific variables.
 
-        When the user asks to "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up", use the registered Agent-Up MCP tools. For those requests, call start_workspace with the absolute repository/worktree path instead of curling the Server, shelling through the CLI, or starting application commands directly.
+        When the user asks to "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up", use the registered Agent-Up MCP tools. For those requests, call start_workspace with the absolute repository/worktree path immediately instead of listing workspaces, checking status, curling the Server, shelling through the CLI, or starting application commands directly.
 
-        Use list_workspaces and get_workspace_status to inspect existing Agent-Up-managed workspaces. Use stop_workspace when the user asks Agent-Up to stop, shut down, or halt a managed workspace.
+        Use list_workspaces and get_workspace_status only when you need to choose among existing workspaces, inspect an already-running workspace, or answer an explicit status/list question. Use stop_workspace when the user asks Agent-Up to stop, shut down, or halt a managed workspace.
+
+        Agent-Up validation is a feedback loop. After start_workspace, use the returned workspace id and allocated ports directly for browser MCP navigation. If browser navigation, inspection, waiting, screenshots, or interaction fails or times out, inspect the workspace console immediately through get_workspace_console on Orchestration MCP. If that tool is unavailable, query Audit MCP for recent application console events with kind=application and source=process for the workspace. Treat console output as the first diagnostic source; it often shows missing dependencies, failed commands, port binding errors, Docker startup failures, or build/runtime crashes. Fix the concrete console issue, then call start_workspace again and repeat the browser validation.
 
         Before starting a new coding task, call guard_commits for the current repository/worktree. If it fails, stop instead of making new changes unless the user explicitly asked to inspect, debug, or continue the existing queued or working-tree changes.
 

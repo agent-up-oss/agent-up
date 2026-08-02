@@ -97,6 +97,10 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("AgentUp.Server is the single source of truth"));
         Assert.That(context, Does.Contain("deploy my app with Agent-Up"));
         Assert.That(context, Does.Contain("call start_workspace"));
+        Assert.That(context, Does.Contain("immediately instead of listing workspaces"));
+        Assert.That(context, Does.Contain("If browser navigation, inspection, waiting, screenshots, or interaction fails or times out"));
+        Assert.That(context, Does.Contain("inspect the workspace console immediately"));
+        Assert.That(context, Does.Contain("query Audit MCP for recent application console events"));
         Assert.That(context, Does.Contain("Before starting a new coding task"));
         Assert.That(context, Does.Contain("guard_commits"));
         Assert.That(context, Does.Contain("inspect, debug, or continue"));
@@ -132,7 +136,37 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(description, Does.Contain("deploy"));
         Assert.That(description, Does.Contain("run"));
         Assert.That(description, Does.Contain("Agent-Up"));
-        Assert.That(description, Does.Contain("local development environments"));
+        Assert.That(description, Does.Contain("local development environment"));
+        Assert.That(description, Does.Contain("Do not list workspaces or check status first"));
+    }
+
+    [Test]
+    public void WorkspaceDiscoveryDescriptions_AvoidPreStartDiscovery()
+    {
+        var statusDescription = ToolDescription(nameof(OrchestrationMcpTools.GetWorkspaceStatus));
+        var listDescription = ToolDescription(nameof(OrchestrationMcpTools.ListWorkspaces));
+
+        Assert.That(statusDescription, Does.Contain("Do not call before start_workspace"));
+        Assert.That(listDescription, Does.Contain("Do not call before start_workspace"));
+    }
+
+    [Test]
+    public void ConsoleDescription_TellsAgentsToUseConsoleAfterBrowserFailure()
+    {
+        var description = ToolDescription(nameof(OrchestrationMcpTools.GetWorkspaceConsole));
+
+        Assert.That(description, Does.Contain("Call this first"));
+        Assert.That(description, Does.Contain("browser navigation"));
+        Assert.That(description, Does.Contain("fails or times out"));
+    }
+
+    [Test]
+    public void ServerInstructions_TellAgentsToStartThenCheckConsoleOnBrowserFailure()
+    {
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("call start_workspace with its absolute path immediately"));
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("Do not call list_workspaces or get_workspace_status before start_workspace"));
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("If browser navigation, inspection, waiting, screenshots, or interaction fails or times out"));
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("inspect the workspace console immediately"));
     }
 
     [Test]
@@ -210,6 +244,14 @@ public sealed class OrchestrationMcpToolsTests
             processes,
             audit,
             NullLogger<OrchestrationConsoleService>.Instance));
+
+    private static string ToolDescription(string methodName)
+        => typeof(OrchestrationMcpTools)
+            .GetMethod(methodName)!
+            .GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+            .Cast<System.ComponentModel.DescriptionAttribute>()
+            .Single()
+            .Description;
 
     private sealed class FakeConfigurationProvider : IAgentUpConfigurationProvider
     {
