@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Reactive;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using ReactiveUI;
 
@@ -8,6 +9,9 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
 {
     private string _state;
     private string _stateColor;
+    private string _controlAuthority = "ai";
+    private int _viewportWidth;
+    private int _viewportHeight;
 
     public string Id { get; }
     public string DisplayName { get; }
@@ -30,13 +34,26 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
     }
 
+    public string ControlAuthority
+    {
+        get => _controlAuthority;
+        private set => this.RaiseAndSetIfChanged(ref _controlAuthority, value);
+    }
+
+    public string ControlLabel => _controlAuthority == "human"
+        ? "Human"
+        : _viewportWidth > 0 ? $"AI · {_viewportWidth}×{_viewportHeight}" : "AI";
+
+    public ReactiveCommand<Unit, Unit> ToggleControlCommand { get; }
+
     public ObservableCollection<WorkspaceApplicationViewModel> Applications { get; } = [];
     public event EventHandler? ApplicationPortsChanged;
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
         string repositoryPath, string worktreePath, string state,
-        IReadOnlyList<ApplicationDto>? applications = null)
+        IReadOnlyList<ApplicationDto>? applications = null,
+        Func<string, Task>? toggleControlMode = null)
     {
         Id = id;
         DisplayName = displayName;
@@ -52,6 +69,21 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         _stateColor = ResolveStateColor(state);
         foreach (var app in applications ?? [])
             Applications.Add(CreateApplication(app));
+
+        ToggleControlCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            if (toggleControlMode is null) return;
+            var next = _controlAuthority == "human" ? "ai" : "human";
+            await toggleControlMode(next);
+        });
+    }
+
+    public void ApplyControlMode(string authority, int width, int height)
+    {
+        ControlAuthority = authority;
+        _viewportWidth = width;
+        _viewportHeight = height;
+        this.RaisePropertyChanged(nameof(ControlLabel));
     }
 
     // Updates workspace and application state in-place without triggering the SelectedWorkspace

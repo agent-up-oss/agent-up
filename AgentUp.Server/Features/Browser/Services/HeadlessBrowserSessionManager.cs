@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
 using Microsoft.Extensions.Logging;
 using PuppeteerSharp;
@@ -14,6 +15,7 @@ public sealed class HeadlessBrowserSessionManager(
     : IHostedService
 {
     private readonly ConcurrentDictionary<string, BrowserSessionState> _sessions = new();
+    private readonly ConcurrentDictionary<string, BrowserControlMode> _controlModes = new();
     private readonly SemaphoreSlim _createLock = new(1, 1);
     private CancellationTokenSource _stopCts = new();
     private string? _executablePath;
@@ -101,6 +103,66 @@ public sealed class HeadlessBrowserSessionManager(
 
     public BrowserSessionState? GetSession(string workspaceId)
         => _sessions.TryGetValue(workspaceId, out var session) ? session : null;
+
+    public BrowserControlMode GetControlMode(string workspaceId)
+        => _controlModes.TryGetValue(workspaceId, out var mode) ? mode : BrowserControlMode.DefaultAi;
+
+    public ControlModeDto GetControlModeDto(string workspaceId)
+    {
+        var m = GetControlMode(workspaceId);
+        return new ControlModeDto(m.Authority.ToString().ToLowerInvariant(), m.Width, m.Height);
+    }
+
+    public async Task<BrowserControlMode> SetControlModeAsync(
+        string workspaceId, BrowserControlMode mode, CancellationToken ct)
+    {
+        _controlModes[workspaceId] = mode;
+        if (mode.Authority == ControlAuthority.Ai && mode.Width > 0 && mode.Height > 0)
+            await SetViewportAsync(workspaceId, mode.Width, mode.Height, ct);
+        var msg = JsonSerializer.Serialize(new
+        {
+            type = "mode",
+            authority = mode.Authority == ControlAuthority.Ai ? "ai" : "human",
+            width = mode.Width,
+            height = mode.Height
+        });
+        await broadcast.BroadcastTextAsync(workspaceId, msg, ct);
+        return mode;
+    }
+
+    public async Task<(bool Success, string? Error)> TrySetControlModeAsync(
+        string workspaceId, string authority, int width, int height, CancellationToken ct)
+    {
+        if (!Enum.TryParse<ControlAuthority>(authority, ignoreCase: true, out var parsed))
+            return (false, $"Invalid authority '{authority}'. Use 'human' or 'ai'.");
+        if (parsed == ControlAuthority.Ai && !BrowserControlMode.AllowedWidths.Contains(width))
+            return (false, $"Width {width} is not allowed. Use one of: {string.Join(", ", BrowserControlMode.AllowedWidths)}.");
+        if (parsed == ControlAuthority.Ai && !BrowserControlMode.AllowedHeights.Contains(height))
+            return (false, $"Height {height} is not allowed. Use one of: {string.Join(", ", BrowserControlMode.AllowedHeights)}.");
+        var mode = parsed == ControlAuthority.Ai
+            ? new BrowserControlMode(ControlAuthority.Ai, width, height)
+            : BrowserControlMode.DefaultHuman;
+        await SetControlModeAsync(workspaceId, mode, ct);
+        return (true, null);
+    }
+
+    public async Task<bool> TrySetViewportAsync(string workspaceId, int width, int height, CancellationToken ct)
+    {
+        if (GetControlMode(workspaceId).Authority != ControlAuthority.Human) return false;
+        await SetViewportAsync(workspaceId, width, height, ct);
+        return true;
+    }
+
+    public async Task SetViewportAsync(string workspaceId, int width, int height, CancellationToken ct)
+    {
+        var session = GetSession(workspaceId);
+        if (session is null) return;
+        try { await session.Page.SetViewportAsync(new ViewPortOptions { Width = width, Height = height }).WaitAsync(ct); }
+        catch (Exception ex) when (ex is PuppeteerException or OperationCanceledException)
+        {
+            logger.LogDebug(ex, "Viewport resize failed for workspace {WorkspaceId}.", workspaceId);
+        }
+    }
 
     public async Task DisposeSessionAsync(string workspaceId)
     {

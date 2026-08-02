@@ -45,6 +45,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private NativeWebView? _consoleWebView;
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
+    private CancellationTokenSource? _viewportResizeCts;
     private const int ConsoleDefaultDisplayLines = 2_000;
     private static readonly HttpClient PortProbeHttpClient = new()
     {
@@ -144,6 +145,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
+        PortPane.SizeChanged += OnPortPaneSizeChanged;
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverBaseUrl = serverUrl;
         _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
@@ -229,6 +231,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     protected override void OnClosed(EventArgs e)
     {
         _isClosed = true;
+        _viewportResizeCts?.Cancel();
+        _viewportResizeCts?.Dispose();
         _workspaceEventClient?.Dispose();
         _serverHttp.Dispose();
         _addressPollTimer.Stop();
@@ -513,6 +517,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (_activeWorkspaceId is null) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
         await PollHeadlessAddressAsync(_activeWorkspaceId);
+        await PollControlModeAsync(_activeWorkspaceId);
     }
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
@@ -801,6 +806,61 @@ code {
                 $"/api/browser/current-url/{Uri.EscapeDataString(workspaceId)}");
             if (!string.IsNullOrWhiteSpace(url) && DataContext is MainViewModel vm)
                 vm.UpdateAddressFromBrowser(workspaceId, url.Trim());
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Trace.TraceWarning(ex.Message);
+        }
+    }
+
+    private async Task PollControlModeAsync(string workspaceId)
+    {
+        try
+        {
+            var json = await _serverHttp.GetStringAsync(
+                $"/api/browser/input/control-mode/{Uri.EscapeDataString(workspaceId)}");
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var authority = root.GetProperty("authority").GetString() ?? "ai";
+            var width = root.GetProperty("width").GetInt32();
+            var height = root.GetProperty("height").GetInt32();
+            if (DataContext is MainViewModel vm)
+                vm.Sidebar.ApplyControlMode(workspaceId, authority, width, height);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            Trace.TraceWarning(ex.Message);
+        }
+    }
+
+    private void OnPortPaneSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        _viewportResizeCts?.Cancel();
+        _viewportResizeCts = new CancellationTokenSource();
+        _ = SendViewportAfterDelayAsync((int)PortPane.Bounds.Width, (int)PortPane.Bounds.Height, _viewportResizeCts.Token);
+    }
+
+    private async Task SendViewportAfterDelayAsync(int width, int height, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(200, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        if (_isClosed || _activeWorkspaceId is null || width <= 0 || height <= 0) return;
+        await PostViewportAsync(_activeWorkspaceId, width, height);
+    }
+
+    private async Task PostViewportAsync(string workspaceId, int width, int height)
+    {
+        try
+        {
+            using var _ = await _serverHttp.PostAsync(
+                $"/api/browser/input/viewport/{Uri.EscapeDataString(workspaceId)}?width={width}&height={height}",
+                null);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {

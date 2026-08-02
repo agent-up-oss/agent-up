@@ -201,6 +201,17 @@
             <Setter Property="Background" Value="#0f7a45"/>
         </Style>
 
+        <!-- Control mode toggle pill -->
+        <Style Selector="Button.controlToggle">
+            <Setter Property="Background" Value="#1a1a2e"/>
+            <Setter Property="Foreground" Value="#9fb2a8"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.controlToggle:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#252540"/>
+        </Style>
+
         <!-- First-run tutorial -->
         <Style Selector="Border.tutorialButton">
             <Setter Property="CornerRadius" Value="7"/>
@@ -409,6 +420,13 @@
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"
                                                        Margin="13,0,0,0"/>
+                                            <Button Classes="controlToggle"
+                                                    Content="{Binding ControlLabel}"
+                                                    Command="{Binding ToggleControlCommand}"
+                                                    FontSize="11"
+                                                    Padding="6,2"
+                                                    Margin="13,4,0,0"
+                                                    HorizontalAlignment="Left"/>
                                         </StackPanel>
                                     </Border>
                                 </Border>

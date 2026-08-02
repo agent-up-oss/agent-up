@@ -13,7 +13,8 @@ namespace AgentUp.Server.Features.Browser.Services;
 public sealed class BrowserMcpService(
     BrowserSessionStore store,
     AuditController audit,
-    WorkspaceQueryController workspaces)
+    WorkspaceQueryController workspaces,
+    HeadlessBrowserSessionManager manager)
 {
     private static readonly TimeSpan DispatchGrace = TimeSpan.FromSeconds(5);
     private const int MaxInlineScreenshotBytes = 220 * 1024;
@@ -109,6 +110,9 @@ public sealed class BrowserMcpService(
         CancellationToken ct,
         Func<BrowserCommandResultDto, Task<McpToolResult>> onSuccess)
     {
+        var current = manager.GetControlMode(command.WorkspaceId);
+        if (current.Authority != ControlAuthority.Ai)
+            await manager.SetControlModeAsync(command.WorkspaceId, BrowserControlMode.DefaultAi, ct);
         try
         {
             var result = await store.DispatchAsync(command, DispatchTimeout(command), ct);

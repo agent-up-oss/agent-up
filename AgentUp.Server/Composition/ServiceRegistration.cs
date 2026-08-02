@@ -139,6 +139,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserSessionStore>();
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<ScreencastBroadcastService>();
+        builder.Services.AddSingleton<BrowserInputDispatcher>();
         builder.Services.AddSingleton(sp =>
             new HeadlessBrowserSessionManager(
                 chromiumDir: Path.Join(dataDir, "chromium"),

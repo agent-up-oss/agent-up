@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Browser.Services;
@@ -11,10 +12,10 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
     public bool HasSubscribers(string workspaceId)
         => _subscribers.TryGetValue(workspaceId, out var subs) && !subs.IsEmpty;
 
-    public async Task ConnectAsync(string workspaceId, WebSocket ws, CancellationToken ct)
+    public async Task ConnectAsync(string workspaceId, WebSocket ws, Func<string, Task>? onTextFrame, CancellationToken ct)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var drainTask = DrainToDetectCloseAsync(ws, cts, workspaceId);
+        var drainTask = DrainAndHandleInputAsync(ws, cts, workspaceId, onTextFrame);
         try
         {
             await SubscribeAsync(workspaceId, ws, cts.Token);
@@ -32,6 +33,24 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
                 logger.LogDebug(ex, "Drain task ended with error for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+            }
+        }
+    }
+
+    public async Task BroadcastTextAsync(string workspaceId, string text, CancellationToken ct)
+    {
+        if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
+        var bytes = Encoding.UTF8.GetBytes(text);
+        var segment = new ArraySegment<byte>(bytes);
+        foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
+        {
+            try
+            {
+                await ws.SendAsync(segment, WebSocketMessageType.Text, endOfMessage: true, ct);
+            }
+            catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
+            {
+                logger.LogDebug(ex, "Text frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
             }
         }
     }
@@ -70,15 +89,20 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
         }
     }
 
-    private async Task DrainToDetectCloseAsync(WebSocket ws, CancellationTokenSource cts, string workspaceId)
+    private async Task DrainAndHandleInputAsync(
+        WebSocket ws, CancellationTokenSource cts, string workspaceId, Func<string, Task>? onTextFrame)
     {
-        var buffer = new byte[64];
+        var buffer = new byte[4096];
         try
         {
             while (ws.State == WebSocketState.Open)
             {
                 var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
                 if (result.MessageType == WebSocketMessageType.Close) break;
+                if (result.MessageType != WebSocketMessageType.Text || onTextFrame is null) continue;
+                var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                try { await onTextFrame(json); }
+                catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException) { break; }
             }
         }
         catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)

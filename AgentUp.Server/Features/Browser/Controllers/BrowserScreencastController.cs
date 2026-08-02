@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgentUp.Server.Features.Browser.Controllers;
 
 [Route("api/browser")]
-public sealed class BrowserScreencastController(ScreencastBroadcastService broadcast) : ControllerBase
+public sealed class BrowserScreencastController(
+    ScreencastBroadcastService broadcast,
+    BrowserInputDispatcher inputDispatcher) : ControllerBase
 {
     [HttpGet("screencast/{workspaceId}")]
     public async Task StreamAsync(string workspaceId)
@@ -16,6 +18,8 @@ public sealed class BrowserScreencastController(ScreencastBroadcastService broad
             return;
         }
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
-        await broadcast.ConnectAsync(workspaceId, ws, HttpContext.RequestAborted);
+        await broadcast.ConnectAsync(workspaceId, ws,
+            json => inputDispatcher.DispatchAsync(workspaceId, json, HttpContext.RequestAborted),
+            HttpContext.RequestAborted);
     }
 }
