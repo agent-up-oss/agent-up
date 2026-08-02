@@ -25,6 +25,7 @@ public sealed class BrowserWorkspaceInvalidationTests
     private InvalidationHtmlServer _ws2Updated = null!;
     private MainWindow? _window;
     private ScopedWorkspaceFakeServer? _fakeServer;
+    private HttpClient? _http;
     private string _profileRoot = null!;
     private string _savedProfileRoot = null!;
     private string? _savedServerUrl;
@@ -54,6 +55,8 @@ public sealed class BrowserWorkspaceInvalidationTests
         }
 
         _fakeServer?.Dispose();
+        _http?.Dispose();
+        _http = null;
         _ws1Initial.Dispose();
         _ws1Updated.Dispose();
         _ws2Initial.Dispose();
@@ -142,8 +145,8 @@ public sealed class BrowserWorkspaceInvalidationTests
 
         return await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            var http = new HttpClient { BaseAddress = new Uri(_fakeServer.BaseUrl) };
-            var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), new ConsoleApiClient(http));
+            _http = new HttpClient { BaseAddress = new Uri(_fakeServer.BaseUrl) };
+            var vm = MainViewModelFactory.Create(new WorkspaceApiClient(_http), new ConsoleApiClient(_http));
             var window = new MainWindow { DataContext = vm };
             window.BrowserProbe = _ => Task.FromResult<string?>(null);
             window.Show();
@@ -209,9 +212,10 @@ sealed class InvalidationHtmlServer : IDisposable
     private readonly HttpListener _listener = new();
     private readonly string _html;
     private readonly SemaphoreSlim _beaconSignal = new(0);
+    private int _beaconCount;
 
     public int Port { get; }
-    public int BeaconCount { get; private set; }
+    public int BeaconCount => Volatile.Read(ref _beaconCount);
 
     public InvalidationHtmlServer(string html)
     {
@@ -235,7 +239,7 @@ sealed class InvalidationHtmlServer : IDisposable
 
             if (context.Request.Url?.AbsolutePath == "/beacon")
             {
-                BeaconCount++;
+                Interlocked.Increment(ref _beaconCount);
                 context.Response.StatusCode = 204;
                 context.Response.Close();
                 _beaconSignal.Release();
@@ -283,9 +287,17 @@ sealed class ScopedWorkspaceFakeServer : IDisposable
     private readonly List<Stream> _eventStreams = [];
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
     private List<WorkspaceDto> _workspaces = [];
+    private readonly List<string> _requestPaths = [];
 
     public string BaseUrl { get; }
-    public List<string> RequestPaths { get; } = [];
+    public IReadOnlyList<string> RequestPaths
+    {
+        get
+        {
+            lock (_lock)
+                return _requestPaths.ToList();
+        }
+    }
 
     public ScopedWorkspaceFakeServer(List<WorkspaceDto> workspaces) : this()
     {
@@ -311,7 +323,11 @@ sealed class ScopedWorkspaceFakeServer : IDisposable
         }
     }
 
-    public void ClearRequests() => RequestPaths.Clear();
+    public void ClearRequests()
+    {
+        lock (_lock)
+            _requestPaths.Clear();
+    }
 
     public async Task EmitWorkspaceEventAsync(string workspaceId, string state, IReadOnlyList<(string Name, string State)> apps)
     {
@@ -374,7 +390,10 @@ sealed class ScopedWorkspaceFakeServer : IDisposable
     {
         var path = context.Request.Url?.AbsolutePath ?? "";
         if (path != "/api/workspaces/events")
-            RequestPaths.Add(path);
+        {
+            lock (_lock)
+                _requestPaths.Add(path);
+        }
 
         if (path == "/api/workspaces/events")
         {
