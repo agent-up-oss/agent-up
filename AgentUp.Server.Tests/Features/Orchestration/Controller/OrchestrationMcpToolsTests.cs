@@ -6,11 +6,13 @@ using AgentUp.Server.Features.Orchestration.Providers;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Shared.Interfaces;
+using AgentUp.Server.Shared.Providers;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.Controller;
@@ -206,7 +208,7 @@ public sealed class OrchestrationMcpToolsTests
 
         await _processOutput.AppendAsync(workspace.Id, "Web", "older");
         await _processOutput.AppendAsync(workspace.Id, "Web", "ready");
-        await _processOutput.AppendAsync(workspace.Id, "Web", "[err] failed");
+        await _processOutput.AppendAsync(workspace.Id, "Web", "[err] failed", ProcessOutputStream.Stderr);
         await _tools.GetWorkspaceConsole(id: workspace.Id, lineLimit: 2, auditLimit: 10);
 
         var result = await _tools.GetWorkspaceConsole(id: workspace.Id, lineLimit: 2, auditLimit: 10);
@@ -222,6 +224,25 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(snapshot.AuditTrail.Select(evt => evt.Stream), Does.Contain("stderr"));
         Assert.That(_auditEvents.Events, Has.Some.Matches<AgentUp.Server.Features.Audit.Models.AuditEvent>(
             evt => evt.Action == "workspace_console_snapshot"));
+    }
+
+    [Test]
+    public async Task GetWorkspaceConsole_RedactsLiveOutputAndAuditTrailMessages()
+    {
+        _configuration.Configuration = new AgentUpConfiguration(
+            "App",
+            [new ApplicationDefinition("Web", "dotnet run", "/", [])]);
+        await _tools.StartWorkspace("/repos/app", CancellationToken.None);
+        var workspace = _registry.GetAll().Single();
+
+        await _processOutput.AppendAsync(workspace.Id, "Web", "token=abc123");
+
+        var result = await _tools.GetWorkspaceConsole(id: workspace.Id, lineLimit: 10, auditLimit: 10);
+
+        Assert.That(result.Succeeded, Is.True);
+        var snapshot = (WorkspaceConsoleSnapshot)result.Data!;
+        Assert.That(snapshot.Applications.Single().Lines, Is.EqualTo(new[] { "token=[REDACTED]" }));
+        Assert.That(snapshot.AuditTrail.Select(evt => evt.Message), Does.Contain("token=[REDACTED]"));
     }
 
     private static OrchestrationWorkspaceController CreateWorkspaceController(
@@ -243,6 +264,7 @@ public sealed class OrchestrationMcpToolsTests
             new AgentUp.Server.Features.Workspaces.Controllers.WorkspaceQueryController(_registry),
             processes,
             audit,
+            new ConsoleSecretRedactor(),
             NullLogger<OrchestrationConsoleService>.Instance));
 
     private static string ToolDescription(string methodName)

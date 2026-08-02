@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Shared.Interfaces;
+using AgentUp.Server.Shared.Providers;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Orchestration.Services;
@@ -14,6 +15,7 @@ public sealed class OrchestrationConsoleService(
     WorkspaceQueryController workspaces,
     ProcessesController processes,
     AuditController audit,
+    ConsoleSecretRedactor redactor,
     ILogger<OrchestrationConsoleService> logger)
 {
     private const int DefaultLineLimit = 200;
@@ -41,6 +43,7 @@ public sealed class OrchestrationConsoleService(
             var lines = await processes.GetOutputAsync(workspace.Id, app.Name);
             var visibleLines = lines
                 .Skip(Math.Max(0, lines.Count - normalizedLineLimit))
+                .Select(redactor.Redact)
                 .ToList();
             applications.Add(new ApplicationConsoleSnapshot(
                 app.Name,
@@ -50,7 +53,7 @@ public sealed class OrchestrationConsoleService(
                 visibleLines));
         }
 
-        var auditEvents = await audit.QueryAsync(
+        var auditEvents = await audit.QueryDtosAsync(
             new AuditEventQuery(
                 workspace.Id,
                 null,
@@ -98,7 +101,7 @@ public sealed class OrchestrationConsoleService(
     private static int NormalizeLimit(int value, int defaultValue, int maxValue)
         => Math.Clamp(value <= 0 ? defaultValue : value, 1, maxValue);
 
-    private static WorkspaceConsoleAuditEvent ToConsoleAuditEvent(AuditEvent evt)
+    private WorkspaceConsoleAuditEvent ToConsoleAuditEvent(AuditEventDto evt)
     {
         evt.Details.TryGetValue("applicationName", out var applicationName);
         evt.Details.TryGetValue("stream", out var stream);
@@ -113,7 +116,7 @@ public sealed class OrchestrationConsoleService(
             evt.Outcome,
             applicationName,
             stream,
-            message);
+            redactor.Redact(message));
     }
 
     private async Task RecordSnapshotAuditEventAsync(
