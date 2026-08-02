@@ -145,6 +145,39 @@ public sealed class HeadlessE2ETests
             "Session should still be alive after client reconnect");
     }
 
+    [Test, CancelAfter(30000)]
+    public async Task CurrentUrl_endpoint_returns_url_when_session_active(CancellationToken ct)
+    {
+        using var http = _factory.CreateClient();
+        var response = await http.GetAsync($"/api/browser/current-url/{WorkspaceId}", ct);
+
+        Assert.That((int)response.StatusCode, Is.EqualTo(200));
+        var body = await response.Content.ReadAsStringAsync(ct);
+        Assert.That(body, Is.Not.Empty, "Current URL must be non-empty when session is active");
+    }
+
+    [Test, CancelAfter(30000)]
+    public async Task Reload_endpoint_returns_no_content_when_session_active(CancellationToken ct)
+    {
+        using var http = _factory.CreateClient();
+        var response = await http.PostAsync($"/api/browser/reload/{WorkspaceId}", null, ct);
+
+        Assert.That((int)response.StatusCode, Is.EqualTo(204));
+    }
+
+    [Test, CancelAfter(30000)]
+    public async Task Navigate_http_endpoint_returns_no_content_when_headless_active(CancellationToken ct)
+    {
+        using var http = _factory.CreateClient();
+        var response = await http.PostAsync(
+            $"/api/browser/navigate/{WorkspaceId}?url=http%3A%2F%2Flocalhost%3A1",
+            null, ct);
+
+        // 204 (navigated) or 400 (page load error) — both mean the endpoint dispatched successfully.
+        Assert.That((int)response.StatusCode, Is.AnyOf(204, 400),
+            "Navigate endpoint must dispatch when headless is configured");
+    }
+
     private async Task<WebSocket> ConnectScreencastAsync(string workspaceId, CancellationToken ct)
     {
         var wsClient = _factory.Server.CreateWebSocketClient();

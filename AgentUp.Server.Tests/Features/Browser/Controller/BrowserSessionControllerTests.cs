@@ -11,9 +11,15 @@ public sealed class BrowserSessionControllerTests
     [Test]
     public void GetCurrentUrl_ReturnsNotFound_WhenNoActiveSession()
     {
-        var controller = MakeController();
+        var result = MakeController().GetCurrentUrl("ws-1");
 
-        var result = controller.GetCurrentUrl("ws-1");
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+
+    [Test]
+    public async Task Navigate_ReturnsNotFound_WhenHeadlessNotConfigured()
+    {
+        var result = await MakeController().Navigate("ws-1", "http://localhost:3000", CancellationToken.None);
 
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
@@ -22,7 +28,7 @@ public sealed class BrowserSessionControllerTests
     public async Task Navigate_ReturnsNoContent_WhenDispatchSucceeds()
     {
         var store = new BrowserSessionStore();
-        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(FakeManager()));
 
         var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", CancellationToken.None);
         var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
@@ -35,7 +41,8 @@ public sealed class BrowserSessionControllerTests
     [Test]
     public async Task Navigate_ReturnsBadRequest_WhenRequestIsCancelled()
     {
-        var controller = MakeController();
+        var store = new BrowserSessionStore();
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(FakeManager()));
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
@@ -47,9 +54,7 @@ public sealed class BrowserSessionControllerTests
     [Test]
     public async Task NavigateBack_ReturnsNotFound_WhenNoActiveSession()
     {
-        var controller = MakeController();
-
-        var result = await controller.NavigateBack("ws-1", CancellationToken.None);
+        var result = await MakeController().NavigateBack("ws-1", CancellationToken.None);
 
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
@@ -57,9 +62,7 @@ public sealed class BrowserSessionControllerTests
     [Test]
     public async Task NavigateForward_ReturnsNotFound_WhenNoActiveSession()
     {
-        var controller = MakeController();
-
-        var result = await controller.NavigateForward("ws-1", CancellationToken.None);
+        var result = await MakeController().NavigateForward("ws-1", CancellationToken.None);
 
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
@@ -67,13 +70,21 @@ public sealed class BrowserSessionControllerTests
     [Test]
     public async Task Reload_ReturnsNotFound_WhenNoActiveSession()
     {
-        var controller = MakeController();
-
-        var result = await controller.Reload("ws-1", CancellationToken.None);
+        var result = await MakeController().Reload("ws-1", CancellationToken.None);
 
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
 
     private static BrowserSessionController MakeController()
         => new(new BrowserSessionStore(), new HeadlessBrowserSessionAccessor(null));
+
+    // Returns a non-null manager so IsHeadlessModeConfigured is true, without starting Chromium.
+    private static HeadlessBrowserSessionManager FakeManager()
+        => new(
+            chromiumDir: Path.GetTempPath(),
+            profilesDir: Path.GetTempPath(),
+            broadcast: new ScreencastBroadcastService(
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<ScreencastBroadcastService>.Instance),
+            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<HeadlessBrowserSessionManager>.Instance,
+            configuredExecutablePath: "/dev/null");
 }

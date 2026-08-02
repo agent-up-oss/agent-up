@@ -60,4 +60,39 @@ public sealed class HeadlessEndpointTests
         var response = await _client.GetAsync("/api/browser/screencast/ws-1");
         Assert.That((int)response.StatusCode, Is.EqualTo(400));
     }
+
+    [Test]
+    public async Task CurrentUrl_endpoint_returns_404_when_no_session()
+    {
+        var response = await _client.GetAsync("/api/browser/current-url/ws-1");
+        Assert.That((int)response.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task Navigate_endpoint_returns_404_when_headless_not_configured()
+    {
+        var response = await _client.PostAsync("/api/browser/navigate/ws-1?url=http%3A%2F%2Flocalhost%3A3000", null);
+        Assert.That((int)response.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task NavigateBack_endpoint_returns_404_when_no_session()
+    {
+        var response = await _client.PostAsync("/api/browser/navigate-back/ws-1", null);
+        Assert.That((int)response.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task NavigateForward_endpoint_returns_404_when_no_session()
+    {
+        var response = await _client.PostAsync("/api/browser/navigate-forward/ws-1", null);
+        Assert.That((int)response.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task Reload_endpoint_returns_404_when_no_session()
+    {
+        var response = await _client.PostAsync("/api/browser/reload/ws-1", null);
+        Assert.That((int)response.StatusCode, Is.EqualTo(404));
+    }
 }
