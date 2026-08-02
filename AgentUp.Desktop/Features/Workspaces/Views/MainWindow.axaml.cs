@@ -16,21 +16,17 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using AgentUp.Desktop.Composition;
-using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Ports.ViewModels;
-using AgentUp.Desktop.Shared.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
-using AgentUp.Desktop.Features.Workspaces.Repositories;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
 
-public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowHost
+public partial class MainWindow : ReactiveWindow<MainViewModel>
 {
-    // One NativeWebView per (workspaceId, port) pair — keyed by tabKey = "workspaceId:port".
-    // Switching between port tabs only toggles IsVisible; the WebView is never navigated away,
+    // One NativeWebView per workspace viewer — keyed by "workspaceId:viewer".
+    // Switching between workspace tabs only toggles IsVisible; the WebView is never navigated away,
     // preserving full page state (scroll position, open accordions, JS memory, auth session).
     private readonly Dictionary<string, NativeWebView> _webViews = new();
     // Errors keyed by workspaceId (not tabKey) so the banner persists across tab switches.
@@ -38,12 +34,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     // Last successfully navigated http URL per tabKey; absent means tab is in error state.
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
     private readonly Dictionary<string, int> _navigationVersions = new();
-    // workspaceId → tabKey of the tab the agent last navigated to (for EvalAsync routing).
-    private readonly Dictionary<string, string> _agentActiveTabKeys = new();
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
-    private readonly BrowserAutomationController _browserAutomation;
     private readonly HttpClient _serverHttp;
+    private readonly string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
     private string? _activeWorkspaceId;
     private string? _activeTabKey;   // tabKey of the currently visible WebView
@@ -151,69 +145,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
+        _serverBaseUrl = serverUrl;
         _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
-        _browserAutomation = BrowserAutomationComposition.Create(_serverHttp, this);
-        _browserAutomation.Start();
     }
 
-    async Task<IReadOnlyCollection<string>> IBrowserWindowHost.GetActiveWorkspaceIdsAsync() =>
-        await Dispatcher.UIThread.InvokeAsync<IReadOnlyCollection<string>>(
-            () => _webViews.Keys.Select(WorkspaceFromTabKey).Distinct().ToList());
-
-    Task<string?> IBrowserWindowHost.EvalAsync(string workspaceId, string script) =>
-        EvalAsync(workspaceId, script);
-
-    bool IBrowserWindowHost.NavigateTo(string workspaceId, string? url) =>
-        NavigateBackground(workspaceId, url);
-
-    // Navigates a workspace's tab WebView from the agent side. Switches the visible application
-    // tab when the target port belongs to a different app within the same active workspace.
-    private bool NavigateBackground(string workspaceId, string? url)
-    {
-        if (_isClosed || url is null) return false;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
-
-        var tabKey = TabKey(workspaceId, uri);
-        _agentActiveTabKeys[workspaceId] = tabKey;
-
-        SwitchApplicationTabForUrl(workspaceId, url);
-
-        if (!TryGetOrCreateWebView(tabKey, workspaceId, url, out var webView, out var destinationUrl)) return false;
-
-        // Avoid force-reloading a tab the agent is already on.
-        if (_lastKnownBrowserUrls.TryGetValue(tabKey, out var currentUrl)
-            && string.Equals(currentUrl, destinationUrl, StringComparison.Ordinal))
-            return true;
-
-        var navigationVersion = _navigationVersions.GetValueOrDefault(tabKey) + 1;
-        _navigationVersions[tabKey] = navigationVersion;
-        _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(destinationUrl), navigationVersion);
-        return true;
-    }
-
-    // Switches the application and sub-tab to match the port in url, so the user can watch
-    // the agent's navigation. Only acts when url targets the currently active workspace.
-    private void SwitchApplicationTabForUrl(string workspaceId, string url)
-    {
-        if (DataContext is not MainViewModel vm) return;
-        if (vm.Sidebar.SelectedWorkspace?.Id != workspaceId) return;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
-
-        var targetPort = uri.Port;
-        var matchingApp = vm.Applications.Applications
-            .FirstOrDefault(a => a.AllocatedPorts.Any(p => p.AllocatedPort == targetPort));
-        if (matchingApp is null) return;
-
-        vm.PreloadPortUrl(url);
-
-        if (vm.Applications.SelectedApplication != matchingApp)
-            vm.Applications.SelectedApplication = matchingApp;
-
-        // For apps with multiple HTTP tabs, also select the exact port tab.
-        var targetTab = vm.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.AllocatedPort == targetPort);
-        if (targetTab is not null && vm.SelectedSubTab != targetTab)
-            vm.SelectedSubTab = targetTab;
-    }
 
     private void SetWindowIcon()
     {
@@ -295,7 +230,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     {
         _isClosed = true;
         _workspaceEventClient?.Dispose();
-        _browserAutomation.Stop();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
         _subscriptions.Dispose();
@@ -320,9 +254,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     }
 
     private string? ResolveEvaluationTabKey(string workspaceId)
-        => _agentActiveTabKeys.TryGetValue(workspaceId, out var tabKey)
-            ? tabKey
-            : _activeWorkspaceId == workspaceId ? _activeTabKey : null;
+        => _activeWorkspaceId == workspaceId ? _activeTabKey : null;
 
     private void UpdateErrorDisplay(string? workspaceId)
     {
@@ -346,42 +278,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     private void HandleNavigation(string? workspaceId, string? url)
     {
         if (_isClosed) return;
-
-        var tutorialVisible = IsTutorialVisible();
-
-        // Derive the tab key from the URL's port. Non-HTTP URLs and null urls have no tab key.
-        string? tabKey = null;
-        if (workspaceId is not null && url is not null
-            && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
-            && navUri.Scheme is "http" or "https")
-            tabKey = TabKey(workspaceId, navUri);
-
-        ActivateTab(workspaceId, tabKey, tutorialVisible);
-
-        if (tabKey is null || workspaceId is null || url is null) return;
-
-        // If a WebView already exists for this tab, keep its full page state unless
-        // the caller explicitly requested a different URL.
-        if (_webViews.TryGetValue(tabKey, out var existingWebView))
-        {
-            existingWebView.IsVisible = !tutorialVisible;
-            if (!ShouldNavigateExistingWebView(_lastKnownBrowserUrls.GetValueOrDefault(tabKey), url))
-                return;
-
-            var errNavVer = _navigationVersions.GetValueOrDefault(tabKey) + 1;
-            _navigationVersions[tabKey] = errNavVer;
-            _ = NavigatePortWebViewAsync(tabKey, workspaceId, existingWebView, new Uri(url), errNavVer);
-            return;
-        }
-
-        // First visit to this tab: create WebView and navigate.
-        if (!TryGetOrCreateWebView(tabKey, workspaceId, url, out var webView, out var destinationUrl)) return;
-
-        webView.IsVisible = !tutorialVisible;
-        var destination = new Uri(destinationUrl);
-        var navigationVersion = _navigationVersions.GetValueOrDefault(tabKey) + 1;
-        _navigationVersions[tabKey] = navigationVersion;
-        _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, destination, navigationVersion);
+        if (workspaceId is null) return;
+        HandleHeadlessNavigation(workspaceId, url, IsTutorialVisible());
     }
 
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
@@ -420,10 +318,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
             _webViews[tabKey] = webView;
             _webViewErrors.Remove(workspaceId);
 
-            // Restore the last URL visited on this port; fall back to the base URL.
-            destinationUrl = BrowserUrlStore.Read(workspaceId, requestedUrl) ?? requestedUrl;
-
-            // Start hidden; HandleNavigation / NavigateBackground makes it visible as needed.
+            // Start hidden; HandleNavigation makes it visible as needed.
             webView.IsVisible = false;
             PortPane.Children.Add(webView);
             UpdateErrorDisplay(workspaceId);
@@ -440,12 +335,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     private NativeWebView CreateWorkspaceWebView(string tabKey, string workspaceId)
     {
         var webView = WebViewFactory();
-        webView.PropertyChanged += (_, e) =>
-        {
-            if (e.Property.Name == nameof(NativeWebView.Source))
-                UpdateAddressFromWebView(tabKey, workspaceId, webView.Source);
-        };
-        webView.EnvironmentRequested += (_, e) => ConfigureWebViewProfile(workspaceId, e);
 
         var firstNavDone = false;
         webView.NavigationCompleted += (_, e) =>
@@ -465,8 +354,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
                 return;
             }
 
-            if (e.Request is not { } uri) return;
-            UpdateAddressFromWebView(tabKey, workspaceId, uri);
             _ = webView.InvokeScript(SelectionJs);
             if (firstNavDone) return;
             firstNavDone = true;
@@ -615,76 +502,16 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     private void HandleBrowserCommand(BrowserCommand command)
     {
         if (_isClosed) return;
-        if (_activeTabKey is null || _activeWorkspaceId is null) return;
-        if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
-
-        switch (command)
-        {
-            case BrowserCommand.Back:
-                if (webView.CanGoBack)
-                    webView.GoBack();
-                break;
-            case BrowserCommand.Forward:
-                if (webView.CanGoForward)
-                    webView.GoForward();
-                break;
-            case BrowserCommand.Reload:
-                var urlStr = (DataContext as MainViewModel)?.AddressBarUrl ?? webView.Source?.ToString();
-                if (!string.IsNullOrWhiteSpace(urlStr)
-                    && Uri.TryCreate(urlStr, UriKind.Absolute, out var reloadUri))
-                {
-                    var reloadTabKey = TabKey(_activeWorkspaceId, reloadUri);
-                    var navVer = _navigationVersions.GetValueOrDefault(reloadTabKey) + 1;
-                    _navigationVersions[reloadTabKey] = navVer;
-                    _ = NavigatePortWebViewAsync(reloadTabKey, _activeWorkspaceId, webView, reloadUri, navVer);
-                }
-                break;
-        }
-    }
-
-    private void UpdateAddressFromWebView(string tabKey, string workspaceId, Uri? uri)
-    {
-        if (uri is null) return;
-        if (uri.Scheme is not ("http" or "https")) return;
-        UpdateAddressFromWebView(tabKey, workspaceId, uri.ToString());
-    }
-
-    private void UpdateAddressFromWebView(string tabKey, string workspaceId, string navigatedUrl)
-    {
-        var previousUrl = _lastKnownBrowserUrls.GetValueOrDefault(tabKey);
-        _lastKnownBrowserUrls[tabKey] = navigatedUrl;
-        BrowserUrlStore.Write(workspaceId, navigatedUrl);
-
-        if (tabKey != _activeTabKey || DataContext is not MainViewModel vm)
-            return;
-
-        var addressHasUserEdit =
-            FocusManager?.GetFocusedElement() == AddressBar
-            && !string.Equals(vm.AddressBarUrl, previousUrl, StringComparison.Ordinal);
-
-        if (!addressHasUserEdit)
-            vm.UpdateAddressFromBrowser(workspaceId, navigatedUrl);
+        if (_activeWorkspaceId is null) return;
+        _ = PostHeadlessBrowserCommandAsync(command, _activeWorkspaceId);
     }
 
     private async Task PollActiveBrowserAddressAsync()
     {
         if (_isClosed) return;
-        if (_activeTabKey is null || _activeWorkspaceId is null) return;
+        if (_activeWorkspaceId is null) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
-        if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
-        if (!webView.IsVisible) return;
-
-        try
-        {
-            var result = await webView.InvokeScript("window.location.href");
-            var url = TryReadHttpLocation(result);
-            if (url is not null)
-                UpdateAddressFromWebView(_activeTabKey, _activeWorkspaceId, url);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
+        await PollHeadlessAddressAsync(_activeWorkspaceId);
     }
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
@@ -921,22 +748,8 @@ code {
         _webViewErrors.Clear();
         _lastKnownBrowserUrls.Clear();
         _navigationVersions.Clear();
-        _agentActiveTabKeys.Clear();
         _activeWorkspaceId = null;
         _activeTabKey = null;
-    }
-
-    internal static string? TryReadHttpLocation(string? scriptResult)
-    {
-        scriptResult = NormalizeScriptResult(scriptResult);
-        if (string.IsNullOrWhiteSpace(scriptResult)) return null;
-
-        var candidate = scriptResult.Trim();
-
-        return Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
-               && uri.Scheme is "http" or "https"
-            ? uri.ToString()
-            : null;
     }
 
     internal static string? NormalizeScriptResult(string? scriptResult)
@@ -957,48 +770,84 @@ code {
         }
     }
 
-    internal static void ConfigureWebViewProfile(string workspaceId, WebViewEnvironmentRequestedEventArgs e)
+    private void HandleHeadlessNavigation(string workspaceId, string? url, bool tutorialVisible)
     {
-        var profileRoot = BrowserUrlStore.ProfilePath(workspaceId);
+        var tabKey = $"{workspaceId}:viewer";
+        ActivateTab(workspaceId, tabKey, tutorialVisible);
 
-        switch (e)
+        if (_webViews.TryGetValue(tabKey, out var existing))
         {
-            case GtkWebViewEnvironmentRequestedEventArgs gtk:
-                gtk.BaseDataDirectory = Path.Join(profileRoot, "data");
-                gtk.BaseCacheDirectory = Path.Join(profileRoot, "cache");
-                break;
-            case LinuxWpeWebViewEnvironmentRequestedEventArgs wpe:
-                wpe.DataDirectory = Path.Join(profileRoot, "data");
-                wpe.CacheDirectory = Path.Join(profileRoot, "cache");
-                break;
-            case WindowsWebView2EnvironmentRequestedEventArgs webView2:
-                webView2.UserDataFolder = Path.Join(profileRoot, "webview2");
-                webView2.ProfileName = SafeProfileName(workspaceId);
-                break;
-            case AppleWKWebViewEnvironmentRequestedEventArgs apple:
-                apple.DataStoreIdentifier = StableGuid(workspaceId);
-                break;
+            existing.IsVisible = !tutorialVisible;
+        }
+        else if (url is not null)
+        {
+            var viewerUrl = BuildViewerUrl(workspaceId);
+            if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUrl.ToString(), out var webView, out var dest))
+                return;
+            webView.IsVisible = !tutorialVisible;
+            var navVer = _navigationVersions.GetValueOrDefault(tabKey) + 1;
+            _navigationVersions[tabKey] = navVer;
+            _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(dest), navVer);
+        }
+
+        if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out var navUri) && navUri.Scheme is "http" or "https")
+            _ = PostHeadlessNavigateAsync(workspaceId, url);
+    }
+
+    private async Task PollHeadlessAddressAsync(string workspaceId)
+    {
+        try
+        {
+            var url = await _serverHttp.GetStringAsync(
+                $"/api/browser/current-url/{Uri.EscapeDataString(workspaceId)}");
+            if (!string.IsNullOrWhiteSpace(url) && DataContext is MainViewModel vm)
+                vm.UpdateAddressFromBrowser(workspaceId, url.Trim());
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Trace.TraceWarning(ex.Message);
         }
     }
 
-    private static string SafeProfileName(string workspaceId)
+    private async Task PostHeadlessNavigateAsync(string workspaceId, string url)
     {
-        var builder = new StringBuilder(workspaceId.Length);
-        foreach (var c in workspaceId)
-            builder.Append(char.IsLetterOrDigit(c) || c is '-' or '_' ? c : '-');
-
-        return builder.Length > 0 ? builder.ToString() : "workspace";
+        try
+        {
+            using var response = await _serverHttp.PostAsync(
+                $"/api/browser/navigate/{Uri.EscapeDataString(workspaceId)}?url={Uri.EscapeDataString(url)}",
+                null);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Trace.TraceWarning(ex.Message);
+        }
     }
 
-    private static Guid StableGuid(string value)
+    private async Task PostHeadlessBrowserCommandAsync(BrowserCommand command, string workspaceId)
     {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        return new Guid(hash[..16]);
+        var endpoint = command switch
+        {
+            BrowserCommand.Back => $"/api/browser/navigate-back/{Uri.EscapeDataString(workspaceId)}",
+            BrowserCommand.Forward => $"/api/browser/navigate-forward/{Uri.EscapeDataString(workspaceId)}",
+            BrowserCommand.Reload => $"/api/browser/reload/{Uri.EscapeDataString(workspaceId)}",
+            _ => null
+        };
+        if (endpoint is null) return;
+        try
+        {
+            using var response = await _serverHttp.PostAsync(endpoint, null);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Trace.TraceWarning(ex.Message);
+        }
     }
 
-    // tabKey = "workspaceId:port" — uniquely identifies a persistent WebView per workspace tab.
-    private static string TabKey(string workspaceId, Uri uri) => $"{workspaceId}:{uri.Port}";
-    private static string WorkspaceFromTabKey(string tabKey) => tabKey[..tabKey.LastIndexOf(':')];
+    private Uri BuildViewerUrl(string workspaceId)
+        => new($"{_serverBaseUrl}/api/browser/viewer?workspaceId={Uri.EscapeDataString(workspaceId)}");
+
 
     private void OnConsoleOverlayPointerPressed(object? sender, PointerPressedEventArgs e)
     {
