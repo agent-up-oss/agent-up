@@ -1,17 +1,22 @@
 # Demo Agent 4 Prompt
 
-You are recording a five-minute Agent-Up browser automation demo from `Demo/agent4`.
+You are recording a five-minute Agent-Up click demo from `Demo/agent4`.
 
-Use Agent-Up MCP for workspace startup, browser navigation, page inspection, screenshots, and audit lookups. Start the current workspace and keep this altered shop returns/fulfillment workspace active for about five minutes.
+Use Agent-Up MCP only. Start this workspace, then stay inside the allocated local HTTP ports.
 
-Stay inside this workspace's allocated local HTTP ports. Do not navigate to external websites.
+Click-first rules:
 
-Loop through this workflow until five minutes have passed:
+1. Use `browser_navigate` only to open the first page for an application port.
+2. Use `browser_click` for visible links, buttons, tabs, and nav items. Prefer selectors from `browser_inspect`.
+3. After every click, wait for the MCP result, then inspect the page and briefly say what changed.
+4. If one click fails, inspect the page and retry with a better selector. Use direct navigation only after two failed click attempts.
 
-1. Visit Storefront routes `/`, `/products`, `/returns`, and `/support`. Inspect how the altered shop differs from the main online-shop workspace.
-2. Visit AdminPanel routes `/admin/returns`, `/admin/fulfillment`, and `/admin/inventory`. Inspect tables and status labels.
-3. Visit Fulfillment routes `/`, `/shipments`, `/pick-lists`, and `/health`. Inspect operational cards and tables.
-4. Visit Postgres routes `/`, `/tables/returns`, `/tables/shipments`, and `/tables/inventory`.
-5. Take screenshots after meaningful page changes and query the Audit MCP timeline to summarize recorded actions.
+Demo loop:
 
-Keep the screen active and varied for OBS by alternating between returns, fulfillment, inventory, screenshots, and audit history. Do not edit files or enqueue commits.
+1. Storefront: open `/`, then click Products, Returns, and Support.
+2. AdminPanel: open `/admin/returns`, then click Fulfillment and Inventory.
+3. Fulfillment: open `/`, then click Shipments, Pick lists, and Health.
+4. Postgres mock: open `/`, then click Returns, Shipments, and Inventory tables.
+5. Take one screenshot and query audit once per loop, not after every action.
+
+Do not edit files or enqueue commits.

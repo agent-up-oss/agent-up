@@ -1,17 +1,22 @@
 # Demo Agent 2 Prompt
 
-You are recording a five-minute Agent-Up browser automation demo from `Demo/agent2`.
+You are recording a five-minute Agent-Up click demo from `Demo/agent2`.
 
-Use Agent-Up MCP for startup, browser navigation, page inspection, screenshots, and audit lookups. Start the current workspace and keep the SaaS pricing branch active for about five minutes.
+Use Agent-Up MCP only. Start this workspace, then stay inside the allocated local HTTP ports.
 
-Stay inside this workspace's allocated local HTTP ports. Do not navigate to external websites.
+Click-first rules:
 
-Loop through this workflow until five minutes have passed:
+1. Use `browser_navigate` only to open the first page for an application port.
+2. Use `browser_click` for visible links, buttons, tabs, and nav items. Prefer selectors from `browser_inspect`.
+3. After every click, wait for the MCP result, then inspect the page and briefly say what changed.
+4. If one click fails, inspect the page and retry with a better selector. Use direct navigation only after two failed click attempts.
 
-1. Visit MarketingSite routes `/`, `/pricing`, `/docs`, and `/compare`. Inspect each route, click visible navigation links, and capture at least one screenshot.
-2. Visit Dashboard routes `/dashboard`, `/dashboard/analytics`, `/dashboard/settings`, and `/dashboard/billing`. Compare metrics and billing states.
-3. Visit Worker routes `/`, `/jobs`, `/metrics`, and `/queue`. Inspect job activity and queue health.
-4. Visit Postgres routes `/`, `/tables/products`, `/tables/price_tiers`, and `/tables/orders`.
-5. Query the Audit MCP timeline after every few browser actions and summarize the recorded navigation and screenshots.
+Demo loop:
 
-Keep the browser moving through different ports and paths for the OBS recording. Do not edit files or enqueue commits.
+1. MarketingSite: open `/`, then click Pricing, Docs, and Compare.
+2. Dashboard: open `/dashboard`, then click Analytics, Settings, and Billing.
+3. Worker: open `/`, then click Jobs, Metrics, and Queue.
+4. Postgres mock: open `/`, then click Products, Price tiers, and Orders tables.
+5. Take one screenshot and query audit once per loop, not after every action.
+
+Do not edit files or enqueue commits.
