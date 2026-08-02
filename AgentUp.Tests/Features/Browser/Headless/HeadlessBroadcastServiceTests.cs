@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace AgentUp.Tests.Features.Browser.Headless;
 
 // Verifies ScreencastBroadcastService frame routing through real in-process WebSocket connections.
-// Uses polling mode so no Chromium is involved — frames are injected manually via BroadcastFrameAsync.
+// No Chromium is involved — frames are injected manually via BroadcastFrameAsync.
 //
 // Run: dotnet test AgentUp.Tests/ --filter "Category=Headless"
 [TestFixture, Category("Headless")]
@@ -19,8 +19,7 @@ public sealed class HeadlessBroadcastServiceTests
     [OneTimeSetUp]
     public void SetUp()
     {
-        _factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(host => host.UseSetting("Browser:Mode", "polling"));
+        _factory = new WebApplicationFactory<Program>();
     }
 
     [OneTimeTearDown]

@@ -140,27 +140,20 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<ScreencastBroadcastService>();
         builder.Services.AddSingleton(sp =>
-            new HeadlessBrowserSessionAccessor(sp.GetService<HeadlessBrowserSessionManager>()));
-
-        if (string.Equals(
-                builder.Configuration["Browser:Mode"],
-                "headless",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            builder.Services.AddSingleton(sp =>
-                new HeadlessBrowserSessionManager(
-                    chromiumDir: Path.Join(dataDir, "chromium"),
-                    profilesDir: Path.Join(dataDir, "browser-profiles"),
-                    sp.GetRequiredService<ScreencastBroadcastService>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>(),
-                    configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
-            builder.Services.AddHostedService(sp =>
-                sp.GetRequiredService<HeadlessBrowserSessionManager>());
-            builder.Services.AddSingleton<CdpBrowserExecutor>();
-            builder.Services.AddSingleton<HeadlessBrowserCommandDispatcher>();
-            builder.Services.AddHostedService(sp =>
-                sp.GetRequiredService<HeadlessBrowserCommandDispatcher>());
-        }
+            new HeadlessBrowserSessionManager(
+                chromiumDir: Path.Join(dataDir, "chromium"),
+                profilesDir: Path.Join(dataDir, "browser-profiles"),
+                sp.GetRequiredService<ScreencastBroadcastService>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>(),
+                configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
+        builder.Services.AddHostedService(sp =>
+            sp.GetRequiredService<HeadlessBrowserSessionManager>());
+        builder.Services.AddSingleton<CdpBrowserExecutor>();
+        builder.Services.AddSingleton<HeadlessBrowserCommandDispatcher>();
+        builder.Services.AddHostedService(sp =>
+            sp.GetRequiredService<HeadlessBrowserCommandDispatcher>());
+        builder.Services.AddSingleton(sp =>
+            new HeadlessBrowserSessionAccessor(sp.GetRequiredService<HeadlessBrowserSessionManager>()));
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }

@@ -4,7 +4,5 @@ namespace AgentUp.Server.Features.Browser.Services;
 
 public sealed class HeadlessBrowserSessionAccessor(HeadlessBrowserSessionManager? manager)
 {
-    public bool IsHeadlessModeConfigured => manager is not null;
-
     public BrowserSessionState? GetSession(string workspaceId) => manager?.GetSession(workspaceId);
 }

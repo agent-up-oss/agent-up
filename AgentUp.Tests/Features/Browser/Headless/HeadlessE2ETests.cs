@@ -33,7 +33,6 @@ public sealed class HeadlessE2ETests
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(host =>
             {
-                host.UseSetting("Browser:Mode", "headless");
                 host.UseSetting("Storage:DataDirectory", DataDir);
                 var chromium = FindSystemChromium();
                 if (chromium is not null)

@@ -118,6 +118,5 @@ public sealed class BrowserSessionStore
         new(command.CommandId, false, null, error);
 
     private static BrowserCommandResultDto Timeout(BrowserCommandDto command) =>
-        Failed(command,
-            "Browser command timed out. Ensure the server is configured with Browser:Mode=headless and the headless browser session is running.");
+        Failed(command, "Browser command timed out. Ensure the headless browser session is running.");
 }

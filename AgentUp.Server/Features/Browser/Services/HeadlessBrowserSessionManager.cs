@@ -17,30 +17,36 @@ public sealed class HeadlessBrowserSessionManager(
     private readonly SemaphoreSlim _createLock = new(1, 1);
     private CancellationTokenSource _stopCts = new();
     private string? _executablePath;
+    private bool _chromiumReady;
 
-    public async Task StartAsync(CancellationToken ct)
+    public Task StartAsync(CancellationToken ct)
     {
         _stopCts = new CancellationTokenSource();
+        return Task.CompletedTask;
+    }
 
+    private async Task EnsureChromiumAsync(CancellationToken ct)
+    {
+        if (_chromiumReady) return;
         if (!string.IsNullOrWhiteSpace(configuredExecutablePath))
         {
             _executablePath = configuredExecutablePath;
-            logger.LogInformation("Using configured Chromium at {Path}", _executablePath);
+            _chromiumReady = true;
             return;
         }
-
         logger.LogInformation("Downloading Chromium to {ChromiumDir}…", chromiumDir);
         try
         {
             var fetcher = new BrowserFetcher(new BrowserFetcherOptions { Path = chromiumDir });
-            var revision = await fetcher.DownloadAsync();
+            var revision = await fetcher.DownloadAsync().WaitAsync(ct);
             _executablePath = revision.GetExecutablePath();
             logger.LogInformation("Chromium ready at {Path}", _executablePath);
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException or OperationCanceledException)
         {
             logger.LogWarning(ex, "Chromium download failed; will attempt to use system Chromium.");
         }
+        _chromiumReady = true;
     }
 
     public async Task StopAsync(CancellationToken ct)
@@ -70,6 +76,8 @@ public sealed class HeadlessBrowserSessionManager(
         {
             if (_sessions.TryGetValue(workspaceId, out var locked) && locked.Browser.IsConnected)
                 return locked;
+
+            await EnsureChromiumAsync(ct);
 
             if (_sessions.TryGetValue(workspaceId, out var stale))
             {

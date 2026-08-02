@@ -15,10 +15,5 @@ public sealed class BrowserViewerController : ControllerBase
     }
 
     [HttpGet("mode")]
-    public ContentResult Mode([FromServices] IConfiguration config)
-        => Content(
-            string.Equals(config["Browser:Mode"], "headless", StringComparison.OrdinalIgnoreCase)
-                ? "headless"
-                : "polling",
-            "text/plain");
+    public ContentResult Mode() => Content("headless", "text/plain");
 }

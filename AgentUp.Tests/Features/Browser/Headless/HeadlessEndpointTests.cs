@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace AgentUp.Tests.Features.Browser.Headless;
 
 // Verifies HTTP endpoint shapes for the headless browser slice without launching Chromium.
-// Both viewer and mode endpoints are registered unconditionally, so polling mode is sufficient.
+// Chromium download is lazy so WebApplicationFactory starts without triggering it.
 //
 // Run: dotnet test AgentUp.Tests/ --filter "Category=Headless"
 [TestFixture, Category("Headless")]
@@ -16,8 +16,7 @@ public sealed class HeadlessEndpointTests
     [OneTimeSetUp]
     public void SetUp()
     {
-        _factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(host => host.UseSetting("Browser:Mode", "polling"));
+        _factory = new WebApplicationFactory<Program>();
         _client = _factory.CreateClient();
     }
 
@@ -29,13 +28,13 @@ public sealed class HeadlessEndpointTests
     }
 
     [Test]
-    public async Task Mode_endpoint_returns_polling_when_configured_as_polling()
+    public async Task Mode_endpoint_returns_headless()
     {
         var response = await _client.GetAsync("/api/browser/mode");
 
         Assert.That((int)response.StatusCode, Is.EqualTo(200));
         var body = await response.Content.ReadAsStringAsync();
-        Assert.That(body, Is.EqualTo("polling"));
+        Assert.That(body, Is.EqualTo("headless"));
     }
 
     [Test]
@@ -65,13 +64,6 @@ public sealed class HeadlessEndpointTests
     public async Task CurrentUrl_endpoint_returns_404_when_no_session()
     {
         var response = await _client.GetAsync("/api/browser/current-url/ws-1");
-        Assert.That((int)response.StatusCode, Is.EqualTo(404));
-    }
-
-    [Test]
-    public async Task Navigate_endpoint_returns_404_when_headless_not_configured()
-    {
-        var response = await _client.PostAsync("/api/browser/navigate/ws-1?url=http%3A%2F%2Flocalhost%3A3000", null);
         Assert.That((int)response.StatusCode, Is.EqualTo(404));
     }
 

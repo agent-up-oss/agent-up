@@ -17,18 +17,10 @@ public sealed class BrowserSessionControllerTests
     }
 
     [Test]
-    public async Task Navigate_ReturnsNotFound_WhenHeadlessNotConfigured()
-    {
-        var result = await MakeController().Navigate("ws-1", "http://localhost:3000", CancellationToken.None);
-
-        Assert.That(result, Is.InstanceOf<NotFoundResult>());
-    }
-
-    [Test]
     public async Task Navigate_ReturnsNoContent_WhenDispatchSucceeds()
     {
         var store = new BrowserSessionStore();
-        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(FakeManager()));
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
 
         var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", CancellationToken.None);
         var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
@@ -42,7 +34,7 @@ public sealed class BrowserSessionControllerTests
     public async Task Navigate_ReturnsBadRequest_WhenRequestIsCancelled()
     {
         var store = new BrowserSessionStore();
-        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(FakeManager()));
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
@@ -77,14 +69,4 @@ public sealed class BrowserSessionControllerTests
 
     private static BrowserSessionController MakeController()
         => new(new BrowserSessionStore(), new HeadlessBrowserSessionAccessor(null));
-
-    // Returns a non-null manager so IsHeadlessModeConfigured is true, without starting Chromium.
-    private static HeadlessBrowserSessionManager FakeManager()
-        => new(
-            chromiumDir: Path.GetTempPath(),
-            profilesDir: Path.GetTempPath(),
-            broadcast: new ScreencastBroadcastService(
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<ScreencastBroadcastService>.Instance),
-            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<HeadlessBrowserSessionManager>.Instance,
-            configuredExecutablePath: "/dev/null");
 }
