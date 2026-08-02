@@ -786,9 +786,7 @@ code {
             if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUrl.ToString(), out var webView, out var dest))
                 return;
             webView.IsVisible = !tutorialVisible;
-            var navVer = _navigationVersions.GetValueOrDefault(tabKey) + 1;
-            _navigationVersions[tabKey] = navVer;
-            _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(dest), navVer);
+            NavigateWebView(webView, new Uri(dest));
         }
 
         if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out var navUri) && navUri.Scheme is "http" or "https")
