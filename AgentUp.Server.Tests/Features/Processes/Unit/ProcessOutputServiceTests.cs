@@ -1,6 +1,7 @@
 using AgentUp.Server.Features.Audit.DTOs;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Models;
+using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Tests.Fake;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -21,7 +22,7 @@ public sealed class ProcessOutputServiceTests
             audit,
             NullLogger<ProcessOutputService>.Instance);
 
-        await service.AppendAsync("workspace", "Web", "[err] failed");
+        await service.AppendAsync("workspace", "Web", "[err] failed", ProcessOutputStream.Stderr);
 
         var lines = await output.GetAsync("workspace", "Web");
         Assert.That(lines, Is.EqualTo(new[] { "[err] failed" }));
@@ -33,6 +34,43 @@ public sealed class ProcessOutputServiceTests
         Assert.That(evt.Details["applicationName"], Is.EqualTo("Web"));
         Assert.That(evt.Details["stream"], Is.EqualTo("stderr"));
         Assert.That(evt.Details["message"], Is.EqualTo("failed"));
+    }
+
+    [Test]
+    public async Task AppendAsync_PreservesStdoutLineThatStartsWithErrPrefix()
+    {
+        var output = new InMemoryOutputRepository();
+        var events = new InMemoryAuditEventRepository();
+        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var service = new ProcessOutputService(
+            output,
+            audit,
+            NullLogger<ProcessOutputService>.Instance);
+
+        await service.AppendAsync("workspace", "Web", "[err] this is stdout");
+
+        var lines = await output.GetAsync("workspace", "Web");
+        Assert.That(lines, Is.EqualTo(new[] { "[err] this is stdout" }));
+        var evt = events.Events.Single();
+        Assert.That(evt.Details["stream"], Is.EqualTo("stdout"));
+        Assert.That(evt.Details["message"], Is.EqualTo("[err] this is stdout"));
+    }
+
+    [Test]
+    public async Task AppendAsync_RedactsConsoleAuditMessage()
+    {
+        var output = new InMemoryOutputRepository();
+        var events = new InMemoryAuditEventRepository();
+        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var service = new ProcessOutputService(
+            output,
+            audit,
+            NullLogger<ProcessOutputService>.Instance);
+
+        await service.AppendAsync("workspace", "Web", "token=abc123 password:secret");
+
+        var evt = events.Events.Single();
+        Assert.That(evt.Details["message"], Is.EqualTo("token=[REDACTED] password:[REDACTED]"));
     }
 
     [Test]

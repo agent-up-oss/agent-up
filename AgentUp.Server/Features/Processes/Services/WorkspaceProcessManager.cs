@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
+using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using Microsoft.Extensions.Hosting;
@@ -53,7 +54,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         if (app.CapabilityStatus is { CanRun: false })
         {
             foreach (var message in app.CapabilityStatus.Messages)
-                await _output.AppendAsync(workspace.Id, appName, "[err] " + message);
+                await _output.AppendAsync(workspace.Id, appName, "[err] " + message, ProcessOutputStream.Stderr);
 
             await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
             throw new InvalidOperationException($"Capability '{app.CapabilityStatus.CapabilityId}' cannot run '{appName}'.");
@@ -77,7 +78,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         process.ErrorDataReceived += (_, e) =>
         {
             if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, "[err] " + e.Data);
+                _ = _output.AppendAsync(workspaceId, appName, "[err] " + e.Data, ProcessOutputStream.Stderr);
         };
 
         process.Exited += (sender, args) =>
@@ -105,7 +106,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         {
             _processes.TryRemove(key, out _);
             process.Dispose();
-            await _output.AppendAsync(workspaceId, appName, "[err] " + ex.Message);
+            await _output.AppendAsync(workspaceId, appName, "[err] " + ex.Message, ProcessOutputStream.Stderr);
             throw new InvalidOperationException($"Failed to start '{appName}': {ex.Message}", ex);
         }
 
@@ -135,13 +136,13 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         catch (System.ComponentModel.Win32Exception ex)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message);
+            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message, ProcessOutputStream.Stderr);
             throw new InvalidOperationException($"docker failed for '{app.Name}': {ex.Message}", ex);
         }
         catch (InvalidOperationException ex) when (ex.InnerException is System.ComponentModel.Win32Exception)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message);
+            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message, ProcessOutputStream.Stderr);
             throw;
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
@@ -161,7 +162,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         logProcess.ErrorDataReceived += (_, e) =>
         {
             if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, "[err] " + e.Data);
+                _ = _output.AppendAsync(workspaceId, appName, "[err] " + e.Data, ProcessOutputStream.Stderr);
         };
         logProcess.Exited += (sender, args) =>
         {
@@ -193,7 +194,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private async Task AppendDockerErrorAsync(string workspaceId, string appName, string stderr)
     {
         foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            await _output.AppendAsync(workspaceId, appName, "[err] " + line.TrimEnd('\r'));
+            await _output.AppendAsync(workspaceId, appName, "[err] " + line.TrimEnd('\r'), ProcessOutputStream.Stderr);
     }
 
     public async Task KillAsync(string workspaceId)
