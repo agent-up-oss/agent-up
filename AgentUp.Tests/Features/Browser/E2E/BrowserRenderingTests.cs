@@ -6,11 +6,10 @@ using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
-using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
-using AgentUp.Desktop.Features.Workspaces.Repositories;
 using AgentUp.Tests.Support;
 using Avalonia.Threading;
 
@@ -27,15 +26,10 @@ public sealed class BrowserRenderingTests
 {
     private HtmlTestServer _server = null!;
     private MainWindow? _window;
-    private string _profileRoot = null!;
-    private string _savedProfileRoot = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _profileRoot = Path.Join(Path.GetTempPath(), $"agentup-e2e-rendering-{Guid.NewGuid()}");
-        _savedProfileRoot = BrowserUrlStore.RootPath;
-        BrowserUrlStore.RootPath = _profileRoot;
         _server = new HtmlTestServer("""
             <!DOCTYPE html>
             <html><body>
@@ -64,7 +58,6 @@ public sealed class BrowserRenderingTests
         }
 
         _server.Dispose();
-        BrowserUrlStore.RootPath = _savedProfileRoot;
     }
 
     [Test, CancelAfter(60000)]
