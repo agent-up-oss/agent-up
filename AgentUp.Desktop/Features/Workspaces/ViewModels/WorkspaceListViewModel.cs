@@ -94,6 +94,43 @@ public sealed class WorkspaceListViewModel : ReactiveObject
         item?.ApplyStateChange(newState, appChanges);
     }
 
+    public async Task RefreshWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    {
+        try
+        {
+            var dto = await _workspaces.GetByIdAsync(workspaceId, ct);
+            var existing = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+
+            if (dto is null)
+            {
+                if (existing is not null)
+                {
+                    Workspaces.Remove(existing);
+                    if (SelectedWorkspace?.Id == workspaceId)
+                        SelectedWorkspace = Workspaces.FirstOrDefault();
+                }
+                return;
+            }
+
+            if (existing is not null)
+            {
+                existing.UpdateFrom(dto.State, dto.Applications);
+                return;
+            }
+
+            var added = new WorkspaceItemViewModel(
+                dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
+                dto.State, dto.Applications);
+            Workspaces.Add(added);
+            if (SelectedWorkspace is null)
+                SelectedWorkspace = added;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not refresh workspace '{workspaceId}': {ex.Message}";
+        }
+    }
+
     public async Task LoadAsync(CancellationToken ct = default)
     {
         IsLoading = true;

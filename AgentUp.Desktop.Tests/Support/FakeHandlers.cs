@@ -44,13 +44,28 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
     private volatile List<WorkspaceDto> _workspaces = initial;
 
     public int RequestCount { get; private set; }
+    public List<string> RequestPaths { get; } = [];
 
     public void SetWorkspaces(List<WorkspaceDto> workspaces) => _workspaces = workspaces;
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         RequestCount++;
-        var content = JsonContent.Create(_workspaces);
-        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
+        var path = request.RequestUri?.AbsolutePath ?? "";
+        RequestPaths.Add(path);
+
+        if (path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
+            && !path.EndsWith("/output", StringComparison.Ordinal))
+        {
+            var id = Uri.UnescapeDataString(path["/api/workspaces/".Length..]);
+            var workspace = _workspaces.FirstOrDefault(w => w.Id == id);
+            return workspace is null
+                ? Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound))
+                : Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                    { Content = JsonContent.Create(workspace) });
+        }
+
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            { Content = JsonContent.Create(_workspaces) });
     }
 }

@@ -15,6 +15,16 @@ public sealed class WorkspaceApiClient(HttpClient http) : IWorkspaceApiProvider
         return result ?? [];
     }
 
+    public async Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken ct = default)
+    {
+        var response = await http.GetAsync($"/api/workspaces/{Uri.EscapeDataString(workspaceId)}", ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WorkspaceDto>(Options, ct);
+    }
+
     public async Task CleanupTutorialWorkspacesAsync(CancellationToken ct = default)
     {
         var response = await http.PostAsync("/api/workspaces/tutorial/cleanup", null, ct);

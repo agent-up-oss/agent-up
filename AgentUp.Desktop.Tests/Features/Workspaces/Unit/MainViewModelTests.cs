@@ -244,6 +244,59 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task ScopedWorkspaceRefresh_fetchesOnlyChangedWorkspaceAndNavigates_whenSelectedPortChanges()
+    {
+        var initialWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
+        var initialWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20200);
+        var refreshedWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10300) with { State = "Running" };
+        var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+        emissions.Clear();
+        handler.RequestPaths.Clear();
+
+        handler.SetWorkspaces([refreshedWs1, initialWs2]);
+        await vm.Sidebar.RefreshWorkspaceAsync("ws-1");
+
+        Assert.That(handler.RequestPaths, Is.EqualTo(["/api/workspaces/ws-1"]));
+        Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(10300));
+        Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:10300/"));
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:10300/"));
+    }
+
+    [Test]
+    public async Task ScopedWorkspaceRefresh_doesNotNavigateActiveBrowser_whenNonSelectedWorkspacePortChanges()
+    {
+        var initialWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
+        var initialWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20200);
+        var refreshedWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20300) with { State = "Running" };
+        var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+        var selectedWorkspace = vm.Sidebar.SelectedWorkspace;
+        emissions.Clear();
+        handler.RequestPaths.Clear();
+
+        handler.SetWorkspaces([initialWs1, refreshedWs2]);
+        await vm.Sidebar.RefreshWorkspaceAsync("ws-2");
+
+        Assert.That(handler.RequestPaths, Is.EqualTo(["/api/workspaces/ws-2"]));
+        Assert.That(vm.Sidebar.SelectedWorkspace, Is.SameAs(selectedWorkspace));
+        Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(10200));
+        Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:10200/"));
+        Assert.That(emissions, Is.Empty);
+    }
+
+    [Test]
     public async Task TutorialStepTransition_reloadsWorkspaceListBehindOverlay()
     {
         var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
