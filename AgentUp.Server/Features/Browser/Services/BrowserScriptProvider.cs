@@ -17,9 +17,11 @@ internal static class BrowserScriptProvider
         "if(e.type)o.type=e.type;" +
         "if(e.href)o.href=e.href;" +
         "if(e.placeholder)o.placeholder=e.placeholder;" +
-        "var sensitive={password:1,hidden:1,token:1};" +
+        "var sensitive={password:1,hidden:1};" +
         "var ty=(e.type||'').toLowerCase();" +
-        "if(e.value!==undefined&&e.tagName!=='BUTTON'&&!sensitive[ty])o.value=e.value;" +
+        "var nm=(e.name||e.id||e.getAttribute('autocomplete')||'').toLowerCase();" +
+        "var sensitiveNm=/token|secret|key|auth|credential|passwd|cvv|ssn/.test(nm);" +
+        "if(e.value!==undefined&&e.tagName!=='BUTTON'&&!sensitive[ty]&&!sensitiveNm)o.value=e.value;" +
         "var l=e.getAttribute('aria-label');if(l)o.ariaLabel=l;" +
         "return o;});" +
         "return{" +
