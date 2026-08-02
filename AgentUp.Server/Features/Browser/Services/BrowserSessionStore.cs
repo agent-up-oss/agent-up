@@ -119,5 +119,5 @@ public sealed class BrowserSessionStore
 
     private static BrowserCommandResultDto Timeout(BrowserCommandDto command) =>
         Failed(command,
-            "Desktop app did not respond within the timeout. Ensure the Agent-Up Desktop app is open with the workspace browser visible.");
+            "Browser command timed out. Ensure the server is configured with Browser:Mode=headless and the headless browser session is running.");
 }
