@@ -94,6 +94,7 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         var startInfo = new ProcessStartInfo
         {
             FileName = parsed.FileName,
+            WorkingDirectory = CreateWorkspaceDirectoryAlias(workingDirectory),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

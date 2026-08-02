@@ -36,7 +36,7 @@ Used in `applications`.
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
 | `name` | string | Yes | none | Application display name. Names are used in application lists and start/stop/restart operations. |
-| `command` | string | Yes | none | Shell command used to start the application. Agent-Up runs it through `cmd.exe /C` on Windows and `bash -c` on Unix-like systems. |
+| `command` | string | Yes | none | Executable-plus-arguments command used to start the application. Agent-Up launches it directly from the configured `path` and rejects shell expressions. |
 | `path` | string or null | No | workspace root | Working directory for the command, relative to the workspace root. Use `null` or omit it to run from the workspace root. |
 | `ports` | array of [Port](#port-object) | No | `[]` | Port declarations owned and allocated by the Server. |
 | `environment` | object of string values | No | `{}` | Inline environment variables for this process. Use for values safe to store in `agent-up.json` and Server workspace state. |

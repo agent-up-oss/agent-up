@@ -80,7 +80,8 @@ public class WorkspaceProcessManagerTests
 
             var startInfo = LocalProcessProvider.CreateStartInfo(workspace, web);
 
-            Assert.That(startInfo.WorkingDirectory, Is.Empty);
+            Assert.That(Directory.ResolveLinkTarget(startInfo.WorkingDirectory, returnFinalTarget: true)!.FullName,
+                Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
             Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
                 Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
@@ -145,6 +146,25 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task CreateLocalProcessStartInfo_RunsPlainExecutablesFromApplicationPath()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition("Web", "node marketing-site/server.mjs", null)
+            ]
+        });
+
+        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo.FileName, Is.EqualTo("node"));
+        Assert.That(Directory.ResolveLinkTarget(startInfo.WorkingDirectory, returnFinalTarget: true)!.FullName,
+            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList, Is.EqualTo(new[] { "marketing-site/server.mjs" }));
+    }
+
+    [Test]
     public async Task CreateLocalProcessStartInfo_UsesValidatedExecutableAndArgumentList()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
@@ -158,7 +178,8 @@ public class WorkspaceProcessManagerTests
         var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
 
         Assert.That(startInfo.FileName, Is.EqualTo("npm"));
-        Assert.That(startInfo.WorkingDirectory, Is.Empty);
+        Assert.That(Directory.ResolveLinkTarget(startInfo.WorkingDirectory, returnFinalTarget: true)!.FullName,
+            Is.EqualTo(workspace.WorktreePath));
         Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
         Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
             Is.EqualTo(workspace.WorktreePath));
