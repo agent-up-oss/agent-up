@@ -43,7 +43,7 @@ Initial `/mcp/orchestration` tools:
 - `stop_workspace`: stops a registered workspace by workspace ID or worktree path.
 - `get_workspace_status`: returns a selected workspace status or all workspace statuses; use only for explicit status questions, already-running workspace inspection, or when `start_workspace` output is unavailable.
 - `list_workspaces`: lists registered workspaces; use only when choosing among existing workspaces or answering an explicit list-workspaces question.
-- `get_workspace_console`: returns a bounded live console snapshot for each application in a workspace plus recent durable console audit events; call this first after browser failures or timeouts.
+- `get_workspace_console`: returns a bounded, redacted live console snapshot for each application in a workspace plus recent durable console audit events; call this first after browser failures or timeouts.
 - `get_agent_up_json_format`: returns the current declarative configuration format.
 - `get_agent_up_context`: returns concise Agent-Up operating rules for AI agents.
 
