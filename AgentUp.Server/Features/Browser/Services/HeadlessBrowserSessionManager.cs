@@ -50,10 +50,10 @@ public sealed class HeadlessBrowserSessionManager(
         _sessions.Clear();
         foreach (var session in sessions)
         {
-            try { await session.Browser.CloseAsync(); }
+            try { await session.Browser.DisposeAsync(); }
             catch (Exception ex) when (ex is PuppeteerException or ObjectDisposedException)
             {
-                logger.LogWarning(ex, "Error closing browser for workspace {WorkspaceId}.", session.WorkspaceId);
+                logger.LogWarning(ex, "Error disposing browser for workspace {WorkspaceId}.", session.WorkspaceId);
             }
         }
         _stopCts.Dispose();
@@ -74,10 +74,10 @@ public sealed class HeadlessBrowserSessionManager(
             if (_sessions.TryGetValue(workspaceId, out var stale))
             {
                 _sessions.TryRemove(workspaceId, out _);
-                try { await stale.Browser.CloseAsync(); }
+                try { await stale.Browser.DisposeAsync(); }
                 catch (Exception ex) when (ex is PuppeteerException or ObjectDisposedException)
                 {
-                    logger.LogDebug(ex, "Error closing stale browser for workspace {WorkspaceId}.", workspaceId);
+                    logger.LogDebug(ex, "Error disposing stale browser for workspace {WorkspaceId}.", workspaceId);
                 }
             }
 
@@ -97,10 +97,10 @@ public sealed class HeadlessBrowserSessionManager(
     public async Task DisposeSessionAsync(string workspaceId)
     {
         if (!_sessions.TryRemove(workspaceId, out var session)) return;
-        try { await session.Browser.CloseAsync(); }
+        try { await session.Browser.DisposeAsync(); }
         catch (Exception ex) when (ex is PuppeteerException or ObjectDisposedException)
         {
-            logger.LogWarning(ex, "Error closing browser for workspace {WorkspaceId}.", workspaceId);
+            logger.LogWarning(ex, "Error disposing browser for workspace {WorkspaceId}.", workspaceId);
         }
     }
 
