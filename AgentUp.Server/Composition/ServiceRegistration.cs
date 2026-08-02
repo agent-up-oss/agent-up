@@ -118,10 +118,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
         builder.Services.AddSingleton<BrowserSessionStore>();
-        builder.Services.AddSingleton<BrowserWorkspaceIdParser>();
-        builder.Services.AddSingleton<BrowserPendingCommandService>();
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<ScreencastBroadcastService>();
+        builder.Services.AddSingleton(sp =>
+            new HeadlessBrowserSessionAccessor(sp.GetService<HeadlessBrowserSessionManager>()));
 
         if (string.Equals(
                 builder.Configuration["Browser:Mode"],
