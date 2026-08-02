@@ -31,6 +31,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     }
 
     public ObservableCollection<WorkspaceApplicationViewModel> Applications { get; } = [];
+    public event EventHandler? ApplicationPortsChanged;
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
@@ -59,20 +60,32 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     {
         State = newState;
         StateColor = ResolveStateColor(newState);
+        var portsChanged = false;
 
         var existingByName = Applications.ToDictionary(a => a.Name);
         var incomingByName = applications.ToDictionary(a => a.Name);
 
         foreach (var name in existingByName.Keys.Except(incomingByName.Keys).ToList())
+        {
+            portsChanged |= existingByName[name].AllocatedPorts.Count > 0;
             Applications.Remove(existingByName[name]);
+        }
 
         foreach (var app in applications)
         {
             if (existingByName.TryGetValue(app.Name, out var existing))
-                existing.UpdateFrom(app.Command, app.State, app.AllocatedPorts);
+            {
+                portsChanged |= existing.UpdateFrom(app.Command, app.State, app.AllocatedPorts);
+            }
             else
+            {
                 Applications.Add(CreateApplication(app));
+                portsChanged |= app.AllocatedPorts.Count > 0;
+            }
         }
+
+        if (portsChanged)
+            ApplicationPortsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ApplyStateChange(string newState, IReadOnlyList<(string Name, string State)> appChanges)

@@ -221,6 +221,29 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task SidebarReload_rebuildsSelectedPortTabAndNavigates_whenAllocatedPortChanges()
+    {
+        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10000);
+        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 10200) with { State = "Running" };
+        var handler = new MutableFakeHttpMessageHandler([initial]);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+        emissions.Clear();
+
+        handler.SetWorkspaces([refreshed]);
+        await vm.Sidebar.LoadAsync();
+
+        Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(10200));
+        Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:10200/"));
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:10200/"));
+    }
+
+    [Test]
     public async Task TutorialStepTransition_reloadsWorkspaceListBehindOverlay()
     {
         var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
