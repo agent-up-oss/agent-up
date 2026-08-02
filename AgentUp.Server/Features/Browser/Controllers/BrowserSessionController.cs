@@ -19,11 +19,13 @@ public sealed class BrowserSessionController(BrowserSessionStore store, Headless
     public async Task<IActionResult> Navigate(
         string workspaceId, [FromQuery] string url, CancellationToken ct)
     {
-        var command = new BrowserCommandDto(
-            Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate, url, null, null, null, 15000);
-        var result = await store.DispatchAsync(command, TimeSpan.FromSeconds(15), ct);
-        return result.Success ? NoContent() : BadRequest(result.Error);
+        if (!sessions.IsHeadlessModeConfigured) return NotFound();
+        var command = new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate, url, null, null, null, 15000);
+        return DispatchResult(await store.DispatchAsync(command, TimeSpan.FromSeconds(15), ct));
     }
+
+    private static IActionResult DispatchResult(BrowserCommandResultDto result)
+        => result.Success ? new NoContentResult() : new BadRequestObjectResult(result.Error);
 
     [HttpPost("navigate-back/{workspaceId}")]
     public async Task<IActionResult> NavigateBack(string workspaceId, CancellationToken ct)
