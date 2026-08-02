@@ -8,7 +8,9 @@ The Server exposes separate MCP servers at `/mcp/orchestration`, `/mcp/browser`,
 
 The CLI exists for human convenience. AI agents should use MCP directly.
 
-The Server sends MCP initialization instructions that tell clients to use Agent-Up tools whenever a user asks to use Agent-Up, agent up, the Agent-Up server, or the Agent-Up workspace manager. User wording such as "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up" means the agent should call `start_workspace` with the absolute repository/worktree path. Agent-Up starts and manages local development environments; it does not deploy to cloud infrastructure.
+The Server sends MCP initialization instructions that tell clients to use Agent-Up tools whenever a user asks to use Agent-Up, agent up, the Agent-Up server, or the Agent-Up workspace manager. User wording such as "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up" means the agent should call `start_workspace` with the absolute repository/worktree path immediately. Agents should not call `list_workspaces` or `get_workspace_status` first when the current repository/worktree is known. Agent-Up starts and manages local development environments; it does not deploy to cloud infrastructure.
+
+Agent-Up validation is a feedback loop. After `start_workspace`, agents should use the returned workspace id and allocated ports directly for Browser MCP navigation. If browser navigation, inspection, waiting, screenshots, or interaction fails or times out, agents should inspect console output first through Orchestration MCP `get_workspace_console`. If that tool is unavailable, agents should query Audit MCP for recent `application` events from `process` for the workspace. Console output is the first diagnostic source for missing dependencies, failed commands, port binding errors, Docker startup failures, and build/runtime crashes.
 
 The Orchestration MCP server exposes Streamable HTTP at `/mcp/orchestration` and legacy SSE compatibility at `/mcp/orchestration/sse` plus `/mcp/orchestration/message`. It owns workspace tools, workspace resources, and Agent-Up context resources.
 
@@ -39,9 +41,9 @@ Initial `/mcp/orchestration` tools:
 
 - `start_workspace`: registers or updates a workspace from its `agent-up.json`, then starts it. Use it for requests to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up.
 - `stop_workspace`: stops a registered workspace by workspace ID or worktree path.
-- `get_workspace_status`: returns a selected workspace status or all workspace statuses.
-- `list_workspaces`: lists registered workspaces.
-- `get_workspace_console`: returns a bounded live console snapshot for each application in a workspace plus recent durable console audit events.
+- `get_workspace_status`: returns a selected workspace status or all workspace statuses; use only for explicit status questions, already-running workspace inspection, or when `start_workspace` output is unavailable.
+- `list_workspaces`: lists registered workspaces; use only when choosing among existing workspaces or answering an explicit list-workspaces question.
+- `get_workspace_console`: returns a bounded live console snapshot for each application in a workspace plus recent durable console audit events; call this first after browser failures or timeouts.
 - `get_agent_up_json_format`: returns the current declarative configuration format.
 - `get_agent_up_context`: returns concise Agent-Up operating rules for AI agents.
 

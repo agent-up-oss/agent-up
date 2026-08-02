@@ -423,7 +423,7 @@ MCP is the primary automation interface for AI agents.
 
 Agents should use MCP directly instead of shelling through the CLI when browser inspection, interaction, diagnostics, logs, screenshots, or Playwright generation are needed. Full guide: `docs/developer-guide/mcp.md`.
 
-Agent-Up MCP initialization instructions must tell clients to use `start_workspace` when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up; this means starting the local managed development environment, not deploying to cloud infrastructure.
+Agent-Up MCP initialization instructions must tell clients to use `start_workspace` immediately when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up; this means starting the local managed development environment, not deploying to cloud infrastructure. Agents should not call `list_workspaces` or `get_workspace_status` first when the current repository/worktree is known.
 
 # Configuration Rules
 
@@ -647,6 +647,8 @@ Read: `docs/user-docs/cli.md`.
 ## MCP
 
 The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources, orchestration tools, and live workspace console snapshots; Browser MCP at `/mcp/browser` for browser automation; Audit MCP at `/mcp/audit` for durable action history and artifacts; and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
+
+Agent-Up validation is a feedback loop: call `start_workspace`, use the returned workspace id and allocated ports for Browser MCP validation, and if browser navigation, inspection, waiting, screenshots, or interaction fails or times out, inspect the workspace console first through Orchestration MCP `get_workspace_console`. If that tool is unavailable, query Audit MCP for recent `application` events from `process` for the workspace before trying more browser actions. Console output is the first diagnostic source for missing dependencies, failed commands, port binding errors, Docker startup failures, and build/runtime crashes.
 
 Read: `docs/developer-guide/mcp.md`.
 
