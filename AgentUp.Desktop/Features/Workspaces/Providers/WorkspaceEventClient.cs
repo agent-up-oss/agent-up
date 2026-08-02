@@ -9,25 +9,49 @@ namespace AgentUp.Desktop.Features.Workspaces.Providers;
 
 internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewModel sidebar) : IDisposable
 {
+    private static readonly TimeSpan RefreshDelay = TimeSpan.FromMilliseconds(150);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
     private CancellationTokenSource? _cts;
+    private readonly Lock _refreshLock = new();
+    private readonly Dictionary<string, CancellationTokenSource> _refreshes = new();
 
     public void Start()
     {
         Stop();
-        _cts = new CancellationTokenSource();
-        _ = RunAsync(_cts.Token);
+        CancellationToken token;
+        lock (_refreshLock)
+        {
+            _cts = new CancellationTokenSource();
+            token = _cts.Token;
+        }
+
+        _ = RunAsync(token);
     }
 
     public void Stop()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
+        CancellationTokenSource? cts;
+
+        lock (_refreshLock)
+        {
+            cts = _cts;
+            _cts = null;
+
+            foreach (var refresh in _refreshes.Values)
+            {
+                refresh.Cancel();
+                refresh.Dispose();
+            }
+
+            _refreshes.Clear();
+        }
+
+        cts?.Cancel();
+        cts?.Dispose();
     }
 
     private async Task RunAsync(CancellationToken ct)
@@ -88,8 +112,71 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
                 .Select(a => (a.Name, a.State))
                 .ToList();
 
-            Dispatcher.UIThread.Post(() => sidebar.ApplyEvent(evt.WorkspaceId, evt.State, appChanges));
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!IsStarted())
+                    return;
+
+                sidebar.ApplyEvent(evt.WorkspaceId, evt.State, appChanges);
+                ScheduleWorkspaceRefresh(evt.WorkspaceId);
+            });
         }
+    }
+
+    private bool IsStarted()
+    {
+        lock (_refreshLock)
+            return _cts is not null;
+    }
+
+    private void ScheduleWorkspaceRefresh(string workspaceId)
+    {
+        CancellationTokenSource refreshCts;
+        lock (_refreshLock)
+        {
+            if (_cts is null)
+                return;
+
+            if (_refreshes.Remove(workspaceId, out var existing))
+            {
+                existing.Cancel();
+                existing.Dispose();
+            }
+
+            refreshCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+            _refreshes[workspaceId] = refreshCts;
+        }
+
+        _ = RefreshWorkspaceAfterDelayAsync(workspaceId, refreshCts);
+    }
+
+    private async Task RefreshWorkspaceAfterDelayAsync(string workspaceId, CancellationTokenSource refreshCts)
+    {
+        try
+        {
+            await Task.Delay(RefreshDelay, refreshCts.Token);
+            await Dispatcher.UIThread.InvokeAsync(
+                async () => await sidebar.RefreshWorkspaceAsync(workspaceId, refreshCts.Token));
+        }
+        catch (OperationCanceledException) when (refreshCts.IsCancellationRequested)
+        {
+            return;
+        }
+        finally
+        {
+            CompleteWorkspaceRefresh(workspaceId, refreshCts);
+        }
+    }
+
+    private void CompleteWorkspaceRefresh(string workspaceId, CancellationTokenSource refreshCts)
+    {
+        lock (_refreshLock)
+        {
+            if (_refreshes.TryGetValue(workspaceId, out var current) && ReferenceEquals(current, refreshCts))
+                _refreshes.Remove(workspaceId);
+        }
+
+        refreshCts.Dispose();
     }
 
     private static async Task<bool> DelayAsync(TimeSpan delay, CancellationToken ct)

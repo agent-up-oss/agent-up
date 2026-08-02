@@ -23,6 +23,7 @@ public sealed class MainViewModel : ReactiveObject
     // Last-visited URL per port origin (e.g. "http://localhost:10100" → "http://localhost:10100/docs/intro").
     // Used to restore the exact page when the user switches away and back to an HTTP tab.
     private readonly Dictionary<string, string> _portUrls = new();
+    private WorkspaceItemViewModel? _workspacePortSubscription;
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -92,8 +93,38 @@ public sealed class MainViewModel : ReactiveObject
             .Subscribe(ws =>
             {
                 Console.Clear();
-                Applications.Update(ws?.Applications.Select(CreateApplicationViewModel).ToList() ?? []);
+                SubscribeSelectedWorkspacePorts(ws);
+                UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
             });
+
+    private void SubscribeSelectedWorkspacePorts(WorkspaceItemViewModel? workspace)
+    {
+        if (_workspacePortSubscription is not null)
+            _workspacePortSubscription.ApplicationPortsChanged -= HandleSelectedWorkspaceApplicationPortsChanged;
+
+        _workspacePortSubscription = workspace;
+
+        if (_workspacePortSubscription is not null)
+            _workspacePortSubscription.ApplicationPortsChanged += HandleSelectedWorkspaceApplicationPortsChanged;
+    }
+
+    private void HandleSelectedWorkspaceApplicationPortsChanged(object? sender, EventArgs e)
+    {
+        if (!ReferenceEquals(sender, Sidebar.SelectedWorkspace)) return;
+        UpdateApplicationsFromWorkspace(Sidebar.SelectedWorkspace, preserveSelection: true);
+    }
+
+    private void UpdateApplicationsFromWorkspace(WorkspaceItemViewModel? workspace, bool preserveSelection)
+    {
+        var selectedName = preserveSelection ? Applications.SelectedApplication?.Name : null;
+        Applications.Update(workspace?.Applications.Select(CreateApplicationViewModel).ToList() ?? []);
+
+        if (selectedName is null) return;
+
+        var selectedApplication = Applications.Applications.FirstOrDefault(app => app.Name == selectedName);
+        if (selectedApplication is not null)
+            Applications.SelectedApplication = selectedApplication;
+    }
 
     private void SubscribeApplicationSelection()
         => Applications.WhenAnyValue(x => x.SelectedApplication)

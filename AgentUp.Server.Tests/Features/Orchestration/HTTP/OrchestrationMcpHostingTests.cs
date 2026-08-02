@@ -94,6 +94,7 @@ public sealed class OrchestrationMcpHostingTests
 
         var tools = options.ToolCollection?.PrimitiveNames.ToArray() ?? [];
         Assert.That(tools, Does.Contain("start_workspace"));
+        Assert.That(tools, Does.Contain("get_workspace_console"));
         Assert.That(tools, Does.Contain("get_agent_up_context"));
         Assert.That(tools, Does.Not.Contain("enqueue_commit"));
         Assert.That(options.ResourceCollection?.PrimitiveNames ?? [], Does.Contain("agent-up://context"));
@@ -165,8 +166,10 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
         builder.Services.AddSingleton<OrchestrationContextService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
+        builder.Services.AddSingleton<OrchestrationConsoleService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();
+        builder.Services.AddSingleton<OrchestrationConsoleController>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();

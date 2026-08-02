@@ -107,6 +107,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ICapabilityAdapter, DockerCapabilityAdapter>();
         builder.Services.AddSingleton<CapabilityReconciliationService>();
         builder.Services.AddSingleton<CapabilitiesController>();
+        builder.Services.AddSingleton<ConsoleSecretRedactor>();
         builder.Services.AddSingleton<ILocalProcessProvider, LocalProcessProvider>();
         builder.Services.AddSingleton<IDockerProcessProvider, DockerProcessProvider>();
         builder.Services.AddSingleton<ProcessOutputService>();
@@ -123,8 +124,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
         builder.Services.AddSingleton<OrchestrationContextService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
+        builder.Services.AddSingleton<OrchestrationConsoleService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();
+        builder.Services.AddSingleton<OrchestrationConsoleController>();
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
         builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
