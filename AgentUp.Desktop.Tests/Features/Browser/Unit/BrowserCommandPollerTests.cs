@@ -62,6 +62,38 @@ public sealed class BrowserCommandPollerTests
         Assert.That(host.EvalCalls, Is.EqualTo(0));
     }
 
+    [Test]
+    public async Task ExecuteAsync_Click_ActivatesWorkspaceUrlAndWaitsBeforeAnimatedClick()
+    {
+        var delays = new List<int>();
+        var target = "{\"success\":true,\"url\":\"http://localhost:5100/settings\"}";
+        var state = "{\"title\":\"Settings\",\"url\":\"http://localhost:5100/settings\",\"interactive\":[]}";
+        var host = new ClickBrowserHost([target, "{\"ok\":true}", state, state]);
+        using var http = NoContentHttpClient();
+        var poller = new BrowserCommandPoller(
+            new BrowserCommandHttpClient(http),
+            host,
+            (ms, _) =>
+            {
+                delays.Add(ms);
+                return Task.CompletedTask;
+            });
+
+        var result = await poller.ExecuteAsync(Command(BrowserCommandKind.Click), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.Data, Is.EqualTo(state));
+            Assert.That(host.ActivatedUrls, Is.EqualTo(["http://localhost:5100/settings"]));
+            Assert.That(delays, Does.Contain(200));
+            Assert.That(host.EvalScripts[0], Does.Contain("getBoundingClientRect"));
+            Assert.That(host.EvalScripts[1], Does.Contain("__agentUpMouse"));
+            Assert.That(host.EvalScripts[1], Does.Contain("setTimeout"));
+            Assert.That(host.EvalScripts[1], Does.Contain("e.click()"));
+        });
+    }
+
     private static HttpClient NoContentHttpClient() =>
         new(new NoContentHandler())
         {
@@ -96,6 +128,9 @@ public sealed class BrowserCommandPollerTests
             return Task.FromResult<string?>(state);
         }
 
+        public Task<bool> ActivateWorkspaceUrlAsync(string workspaceId, string url) =>
+            Task.FromResult(true);
+
         public bool NavigateTo(string workspaceId, string? url)
         {
             return true;
@@ -114,6 +149,39 @@ public sealed class BrowserCommandPollerTests
             var value = states[Math.Min(_index, states.Count - 1)];
             _index++;
             return Task.FromResult<string?>(value);
+        }
+
+        public Task<bool> ActivateWorkspaceUrlAsync(string workspaceId, string url) =>
+            Task.FromResult(true);
+
+        public bool NavigateTo(string workspaceId, string? url)
+        {
+            return true;
+        }
+    }
+
+    private sealed class ClickBrowserHost(IReadOnlyList<string> results) : IBrowserWindowHost
+    {
+        private int _index;
+
+        public List<string> EvalScripts { get; } = [];
+        public List<string> ActivatedUrls { get; } = [];
+
+        public Task<IReadOnlyCollection<string>> GetActiveWorkspaceIdsAsync() =>
+            Task.FromResult<IReadOnlyCollection<string>>(["workspace"]);
+
+        public Task<string?> EvalAsync(string workspaceId, string script)
+        {
+            EvalScripts.Add(script);
+            var value = results[Math.Min(_index, results.Count - 1)];
+            _index++;
+            return Task.FromResult<string?>(value);
+        }
+
+        public Task<bool> ActivateWorkspaceUrlAsync(string workspaceId, string url)
+        {
+            ActivatedUrls.Add(url);
+            return Task.FromResult(true);
         }
 
         public bool NavigateTo(string workspaceId, string? url)

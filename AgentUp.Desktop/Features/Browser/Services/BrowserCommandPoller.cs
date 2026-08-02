@@ -8,13 +8,32 @@ using Avalonia.Threading;
 
 namespace AgentUp.Desktop.Features.Browser.Services;
 
-internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBrowserWindowHost host)
+internal sealed class BrowserCommandPoller
 {
     private const int ScreenshotWidth = 800;
     private const int ScreenshotHeight = 450;
     private static readonly TimeSpan PageStateSettleTimeout = TimeSpan.FromMilliseconds(900);
     private static readonly TimeSpan PageStateSettleInterval = TimeSpan.FromMilliseconds(150);
+    private static readonly TimeSpan ClickTabActivationDelay = TimeSpan.FromMilliseconds(200);
     private CancellationTokenSource? _cts;
+    private readonly BrowserCommandHttpClient _client;
+    private readonly IBrowserWindowHost _host;
+    private readonly Func<int, CancellationToken, Task> _delay;
+
+    public BrowserCommandPoller(BrowserCommandHttpClient client, IBrowserWindowHost host)
+        : this(client, host, DelayAsync)
+    {
+    }
+
+    internal BrowserCommandPoller(
+        BrowserCommandHttpClient client,
+        IBrowserWindowHost host,
+        Func<int, CancellationToken, Task> delay)
+    {
+        _client = client;
+        _host = host;
+        _delay = delay;
+    }
 
     public void Start()
     {
@@ -33,7 +52,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
     {
         while (!ct.IsCancellationRequested)
         {
-            var ids = await host.GetActiveWorkspaceIdsAsync();
+            var ids = await _host.GetActiveWorkspaceIdsAsync();
             if (ids.Count == 0)
             {
                 await DelayAsync(500, ct);
@@ -43,7 +62,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
             BrowserCommandDto? command = null;
             try
             {
-                command = await client.GetPendingCommandAsync(ids, timeoutMs: 5000, ct);
+                command = await _client.GetPendingCommandAsync(ids, timeoutMs: 5000, ct);
             }
             catch (OperationCanceledException)
             {
@@ -63,7 +82,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
         }
     }
 
-    private async Task<BrowserCommandResultDto> ExecuteAsync(BrowserCommandDto command, CancellationToken ct)
+    internal async Task<BrowserCommandResultDto> ExecuteAsync(BrowserCommandDto command, CancellationToken ct)
     {
         try
         {
@@ -71,7 +90,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
             {
                 BrowserCommandKind.Navigate => await AttachPageStateAsync(await NavigateAsync(command, ct), command, ct),
                 BrowserCommandKind.InspectPage => await InspectAsync(command),
-                BrowserCommandKind.Click => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Click(command.Selector!)), command, ct),
+                BrowserCommandKind.Click => await AttachPageStateAsync(await ClickAsync(command, ct), command, ct),
                 BrowserCommandKind.Fill => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Fill(command.Selector!, command.Text!)), command, ct),
                 BrowserCommandKind.Press => await AttachPageStateAsync(await EvalCommandAsync(command, BrowserScripts.Press(command.Key!)), command, ct),
                 BrowserCommandKind.WaitForSelector => await AttachPageStateAsync(await WaitForConditionAsync(command, BrowserScripts.CheckSelector(command.Selector!), ct), command, ct),
@@ -89,7 +108,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
 
     private async Task<BrowserCommandResultDto> NavigateAsync(BrowserCommandDto command, CancellationToken ct)
     {
-        var navigated = await Dispatcher.UIThread.InvokeAsync(() => host.NavigateTo(command.WorkspaceId, command.Url));
+        var navigated = await Dispatcher.UIThread.InvokeAsync(() => _host.NavigateTo(command.WorkspaceId, command.Url));
         return navigated
             ? Ok(command)
             : Fail(command, $"Could not navigate workspace '{command.WorkspaceId}' to '{command.Url}'.");
@@ -98,9 +117,41 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
     private async Task<BrowserCommandResultDto> InspectAsync(BrowserCommandDto command)
         => await EvalCommandAsync(command, BrowserScripts.InspectPage);
 
+    private async Task<BrowserCommandResultDto> ClickAsync(BrowserCommandDto command, CancellationToken ct)
+    {
+        var target = await ReadClickTargetAsync(command);
+        if (!target.Success)
+            return Fail(command, target.Error ?? $"Element not found: {command.Selector}");
+
+        if (!string.IsNullOrWhiteSpace(target.Url))
+        {
+            await _host.ActivateWorkspaceUrlAsync(command.WorkspaceId, target.Url);
+            await _delay((int)ClickTabActivationDelay.TotalMilliseconds, ct);
+        }
+
+        return await EvalCommandAsync(command, BrowserScripts.AnimatedClick(command.Selector!));
+    }
+
+    private async Task<ClickTargetDto> ReadClickTargetAsync(BrowserCommandDto command)
+    {
+        var data = await _host.EvalAsync(command.WorkspaceId, BrowserScripts.ClickTarget(command.Selector!));
+        if (data is null)
+            return new ClickTargetDto(false, null, $"No browser session found for workspace '{command.WorkspaceId}'.");
+
+        try
+        {
+            var target = JsonSerializer.Deserialize<ClickTargetDto>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return target ?? new ClickTargetDto(false, null, "Desktop returned invalid click target data.");
+        }
+        catch (JsonException)
+        {
+            return new ClickTargetDto(false, null, "Desktop returned invalid click target data.");
+        }
+    }
+
     private async Task<BrowserCommandResultDto> EvalCommandAsync(BrowserCommandDto command, string script)
     {
-        var data = await host.EvalAsync(command.WorkspaceId, script);
+        var data = await _host.EvalAsync(command.WorkspaceId, script);
         return data is not null
             ? new BrowserCommandResultDto(command.CommandId, true, data, null)
             : Fail(command, $"No browser session found for workspace '{command.WorkspaceId}'.");
@@ -125,7 +176,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
 
         while (sw.Elapsed < PageStateSettleTimeout && !ct.IsCancellationRequested)
         {
-            var current = await host.EvalAsync(workspaceId, BrowserScripts.InspectPage);
+            var current = await _host.EvalAsync(workspaceId, BrowserScripts.InspectPage);
             if (current is not null && string.Equals(current, previous, StringComparison.Ordinal))
                 return current;
 
@@ -143,9 +194,9 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
 
         while (sw.Elapsed < timeout && !ct.IsCancellationRequested)
         {
-            var result = await host.EvalAsync(command.WorkspaceId, conditionScript);
+            var result = await _host.EvalAsync(command.WorkspaceId, conditionScript);
             if (result is "true") return Ok(command);
-            await DelayAsync(200, ct);
+            await _delay(200, ct);
         }
 
         return Fail(command, $"Condition not met within {command.TimeoutMs} ms.");
@@ -154,16 +205,16 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
     private async Task<BrowserCommandResultDto> WaitForNavigationAsync(BrowserCommandDto command, CancellationToken ct)
     {
         // Give the browser a moment to start navigating before we poll readyState.
-        await DelayAsync(200, ct);
+        await _delay(200, ct);
 
         var timeout = TimeSpan.FromMilliseconds(command.TimeoutMs);
         var sw = Stopwatch.StartNew();
 
         while (sw.Elapsed < timeout && !ct.IsCancellationRequested)
         {
-            var state = await host.EvalAsync(command.WorkspaceId, BrowserScripts.CheckNavigation);
+            var state = await _host.EvalAsync(command.WorkspaceId, BrowserScripts.CheckNavigation);
             if (state == "complete") return Ok(command);
-            await DelayAsync(200, ct);
+            await _delay(200, ct);
         }
 
         // Treat timeout as soft success — the page may still be loading but interaction can proceed.
@@ -172,7 +223,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
 
     private async Task<BrowserCommandResultDto> ScreenshotAsync(BrowserCommandDto command, CancellationToken ct)
     {
-        var url = await host.EvalAsync(command.WorkspaceId, BrowserScripts.GetUrl);
+        var url = await _host.EvalAsync(command.WorkspaceId, BrowserScripts.GetUrl);
         if (url is null)
             return Fail(command, $"No browser session found for workspace '{command.WorkspaceId}'.");
 
@@ -236,7 +287,7 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
     {
         try
         {
-            await client.PostCommandResultAsync(result, ct);
+            await _client.PostCommandResultAsync(result, ct);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested && ex is HttpRequestException or IOException or InvalidOperationException)
         {
@@ -268,4 +319,5 @@ internal sealed class BrowserCommandPoller(BrowserCommandHttpClient client, IBro
         try { await Task.Delay(ms, ct); }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
     }
+
 }

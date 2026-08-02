@@ -43,6 +43,9 @@ public sealed class BrowserAutomationControllerTests
         public Task<string?> EvalAsync(string workspaceId, string script) =>
             Task.FromResult<string?>(null);
 
+        public Task<bool> ActivateWorkspaceUrlAsync(string workspaceId, string url) =>
+            Task.FromResult(true);
+
         public bool NavigateTo(string workspaceId, string? url)
         {
             return true;
