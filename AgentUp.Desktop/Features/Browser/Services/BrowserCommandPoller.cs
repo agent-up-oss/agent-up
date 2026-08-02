@@ -129,7 +129,19 @@ internal sealed class BrowserCommandPoller
             await _delay((int)ClickTabActivationDelay.TotalMilliseconds, ct);
         }
 
-        return await EvalCommandAsync(command, BrowserScripts.AnimatedClick(command.Selector!));
+        var moved = await EvalCommandAsync(command, BrowserScripts.BeginMouseMove(command.Selector!));
+        if (!moved.Success)
+            return moved;
+
+        await _delay(200, ct);
+
+        var effect = await EvalCommandAsync(command, BrowserScripts.BeginClickEffect(command.Selector!));
+        if (!effect.Success)
+            return effect;
+
+        await _delay(200, ct);
+
+        return await EvalCommandAsync(command, BrowserScripts.CompleteClick(command.Selector!));
     }
 
     private async Task<ClickTargetDto> ReadClickTargetAsync(BrowserCommandDto command)

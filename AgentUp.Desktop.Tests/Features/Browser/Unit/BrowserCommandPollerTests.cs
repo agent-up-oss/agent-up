@@ -68,7 +68,7 @@ public sealed class BrowserCommandPollerTests
         var delays = new List<int>();
         var target = "{\"success\":true,\"url\":\"http://localhost:5100/settings\"}";
         var state = "{\"title\":\"Settings\",\"url\":\"http://localhost:5100/settings\",\"interactive\":[]}";
-        var host = new ClickBrowserHost([target, "{\"ok\":true}", state, state]);
+        var host = new ClickBrowserHost([target, "{\"ok\":true}", "{\"ok\":true}", "{\"ok\":true}", state, state]);
         using var http = NoContentHttpClient();
         var poller = new BrowserCommandPoller(
             new BrowserCommandHttpClient(http),
@@ -86,11 +86,12 @@ public sealed class BrowserCommandPollerTests
             Assert.That(result.Success, Is.True);
             Assert.That(result.Data, Is.EqualTo(state));
             Assert.That(host.ActivatedUrls, Is.EqualTo(["http://localhost:5100/settings"]));
-            Assert.That(delays, Does.Contain(200));
+            Assert.That(delays.Take(3), Is.EqualTo([200, 200, 200]));
             Assert.That(host.EvalScripts[0], Does.Contain("getBoundingClientRect"));
             Assert.That(host.EvalScripts[1], Does.Contain("__agentUpMouse"));
-            Assert.That(host.EvalScripts[1], Does.Contain("setTimeout"));
-            Assert.That(host.EvalScripts[1], Does.Contain("e.click()"));
+            Assert.That(host.EvalScripts[2], Does.Contain("__agentUpClickRing"));
+            Assert.That(host.EvalScripts[3], Does.Contain("e.click()"));
+            Assert.That(host.EvalScripts[3], Does.Not.Contain("setTimeout"));
         });
     }
 
