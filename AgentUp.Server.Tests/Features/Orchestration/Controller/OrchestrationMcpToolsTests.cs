@@ -78,6 +78,27 @@ public sealed class OrchestrationMcpToolsTests
     }
 
     [Test]
+    public async Task StartWorkspace_UsesDisplayOverrides_ForDesktopVisuals()
+    {
+        _configuration.Configuration = new AgentUpConfiguration(
+            "Inventory",
+            Display: new WorkspaceDisplayConfiguration("Agent 2 - Search", "Search flow"));
+
+        var result = await _tools.StartWorkspace("/repos/inventory", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True);
+        var workspace = _registry.GetAll().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.DisplayName, Is.EqualTo("Agent 2 - Search"));
+            Assert.That(workspace.Branch, Is.EqualTo("Search flow"));
+            Assert.That(workspace.WorktreePath, Is.EqualTo("/repos/inventory"));
+            Assert.That(workspace.RepositoryPath, Is.EqualTo("/repos/inventory"));
+            Assert.That(workspace.Commit, Is.EqualTo("abc123"));
+        });
+    }
+
+    [Test]
     public async Task StartWorkspace_ReturnsGuidance_WhenAgentUpJsonIsMissing()
     {
         _configuration.Configuration = null;
@@ -121,6 +142,7 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("enqueue_commit intentionally restores tracked files"));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"services\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"ports\""));
+        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"display\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"prompts\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"commitPolicy\""));
     }
