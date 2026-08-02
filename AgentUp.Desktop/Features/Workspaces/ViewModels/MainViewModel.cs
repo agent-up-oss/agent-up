@@ -23,7 +23,7 @@ public sealed class MainViewModel : ReactiveObject
     // Last-visited URL per port origin (e.g. "http://localhost:10100" → "http://localhost:10100/docs/intro").
     // Used to restore the exact page when the user switches away and back to an HTTP tab.
     private readonly Dictionary<string, string> _portUrls = new();
-    private WorkspaceItemViewModel? _workspacePortSubscription;
+    private WorkspaceItemViewModel? _workspaceApplicationSubscription;
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -93,22 +93,22 @@ public sealed class MainViewModel : ReactiveObject
             .Subscribe(ws =>
             {
                 Console.Clear();
-                SubscribeSelectedWorkspacePorts(ws);
+                SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
             });
 
-    private void SubscribeSelectedWorkspacePorts(WorkspaceItemViewModel? workspace)
+    private void SubscribeSelectedWorkspaceApplications(WorkspaceItemViewModel? workspace)
     {
-        if (_workspacePortSubscription is not null)
-            _workspacePortSubscription.ApplicationPortsChanged -= HandleSelectedWorkspaceApplicationPortsChanged;
+        if (_workspaceApplicationSubscription is not null)
+            _workspaceApplicationSubscription.ApplicationsChanged -= HandleSelectedWorkspaceApplicationsChanged;
 
-        _workspacePortSubscription = workspace;
+        _workspaceApplicationSubscription = workspace;
 
-        if (_workspacePortSubscription is not null)
-            _workspacePortSubscription.ApplicationPortsChanged += HandleSelectedWorkspaceApplicationPortsChanged;
+        if (_workspaceApplicationSubscription is not null)
+            _workspaceApplicationSubscription.ApplicationsChanged += HandleSelectedWorkspaceApplicationsChanged;
     }
 
-    private void HandleSelectedWorkspaceApplicationPortsChanged(object? sender, EventArgs e)
+    private void HandleSelectedWorkspaceApplicationsChanged(object? sender, EventArgs e)
     {
         if (!ReferenceEquals(sender, Sidebar.SelectedWorkspace)) return;
         UpdateApplicationsFromWorkspace(Sidebar.SelectedWorkspace, preserveSelection: true);
@@ -247,6 +247,36 @@ public sealed class MainViewModel : ReactiveObject
         var origin = PortOrigin(url);
         if (origin is not null)
             _portUrls[origin] = url;
+    }
+
+    internal bool SelectApplicationForUrl(string workspaceId, string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return false;
+
+        var workspace = Sidebar.Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+        if (workspace is null)
+            return false;
+
+        if (Sidebar.SelectedWorkspace?.Id != workspaceId)
+            Sidebar.SelectedWorkspace = workspace;
+
+        var targetPort = uri.Port;
+        var matchingApp = Applications.Applications
+            .FirstOrDefault(a => a.AllocatedPorts.Any(p => p.AllocatedPort == targetPort));
+        if (matchingApp is null)
+            return false;
+
+        PreloadPortUrl(url);
+
+        if (Applications.SelectedApplication != matchingApp)
+            Applications.SelectedApplication = matchingApp;
+
+        var targetTab = SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.AllocatedPort == targetPort);
+        if (targetTab is not null && SelectedSubTab != targetTab)
+            SelectedSubTab = targetTab;
+
+        return true;
     }
 
     private static string? PortOrigin(string url)

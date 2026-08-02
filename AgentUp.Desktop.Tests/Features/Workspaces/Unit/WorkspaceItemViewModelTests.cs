@@ -126,13 +126,36 @@ public class WorkspaceItemViewModelTests
     public void UpdateFrom_TreatsNullAllocatedPortsAsEmptyForNewApplication()
     {
         var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");
-        var portChangeEvents = 0;
-        vm.ApplicationPortsChanged += (_, _) => portChangeEvents++;
+        var applicationChangeEvents = 0;
+        vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
 
         vm.UpdateFrom("Running", [new ApplicationDto("Worker", "worker", null, "Running") { AllocatedPorts = null! }]);
 
         Assert.That(vm.Applications.Single().AllocatedPorts, Is.Empty);
-        Assert.That(portChangeEvents, Is.Zero);
+        Assert.That(applicationChangeEvents, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ApplyStateChange_RaisesApplicationsChanged_whenExistingApplicationStateChanges()
+    {
+        var vm = new WorkspaceItemViewModel(
+            "ws-1",
+            "App",
+            "main",
+            "/repo",
+            "/worktree",
+            "Stopped",
+            [new ApplicationDto("Worker", "worker", null, "Starting")]);
+        var applicationChangeEvents = 0;
+        vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
+
+        vm.ApplyStateChange("Running", [("Worker", "Running")]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Applications.Single().State, Is.EqualTo("Running"));
+            Assert.That(applicationChangeEvents, Is.EqualTo(1));
+        });
     }
 
     [Test]

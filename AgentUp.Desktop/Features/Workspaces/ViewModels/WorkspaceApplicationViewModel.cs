@@ -56,15 +56,17 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
 
         Command = command;
         AllocatedPorts = ports;
-        UpdateState(state);
-
-        return portsChanged;
+        return portsChanged | UpdateState(state);
     }
 
-    public void UpdateState(string newState)
+    public bool UpdateState(string newState)
     {
+        if (string.Equals(State, newState, StringComparison.Ordinal))
+            return false;
+
         State = newState;
         StateColor = ResolveStateColor(newState);
+        return true;
     }
 
     private static string ResolveStateColor(string state) => state switch

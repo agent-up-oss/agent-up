@@ -195,24 +195,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     // the agent's navigation. Only acts when url targets the currently active workspace.
     private void SwitchApplicationTabForUrl(string workspaceId, string url)
     {
-        if (DataContext is not MainViewModel vm) return;
-        if (vm.Sidebar.SelectedWorkspace?.Id != workspaceId) return;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
-
-        var targetPort = uri.Port;
-        var matchingApp = vm.Applications.Applications
-            .FirstOrDefault(a => a.AllocatedPorts.Any(p => p.AllocatedPort == targetPort));
-        if (matchingApp is null) return;
-
-        vm.PreloadPortUrl(url);
-
-        if (vm.Applications.SelectedApplication != matchingApp)
-            vm.Applications.SelectedApplication = matchingApp;
-
-        // For apps with multiple HTTP tabs, also select the exact port tab.
-        var targetTab = vm.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.AllocatedPort == targetPort);
-        if (targetTab is not null && vm.SelectedSubTab != targetTab)
-            vm.SelectedSubTab = targetTab;
+        if (DataContext is MainViewModel vm)
+            vm.SelectApplicationForUrl(workspaceId, url);
     }
 
     private void SetWindowIcon()
