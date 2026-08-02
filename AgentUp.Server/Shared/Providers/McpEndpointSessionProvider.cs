@@ -31,6 +31,7 @@ public sealed class McpEndpointSessionProvider
         "stop_workspace",
         "get_workspace_status",
         "list_workspaces",
+        "get_workspace_console",
         "get_agent_up_context",
         "get_agent_up_json_format"
     };

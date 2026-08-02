@@ -5,11 +5,15 @@ using AgentUp.Server.Features.Orchestration.Interfaces;
 using AgentUp.Server.Features.Orchestration.Providers;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.DTOs;
+using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Shared.Interfaces;
+using AgentUp.Server.Shared.Providers;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.Controller;
 
@@ -19,6 +23,9 @@ public sealed class OrchestrationMcpToolsTests
     private WorkspaceRegistry _registry = null!;
     private OrchestrationMcpTools _tools = null!;
     private FakeConfigurationProvider _configuration = null!;
+    private InMemoryOutputRepository _output = null!;
+    private InMemoryAuditEventRepository _auditEvents = null!;
+    private ProcessOutputService _processOutput = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -27,13 +34,24 @@ public sealed class OrchestrationMcpToolsTests
         await _registry.StartAsync(CancellationToken.None);
 
         _configuration = new FakeConfigurationProvider();
+        _output = new InMemoryOutputRepository();
+        _auditEvents = new InMemoryAuditEventRepository();
+        var audit = ServerTestComposition.CreateAuditController(_registry, _auditEvents);
+        _processOutput = new ProcessOutputService(
+            _output,
+            audit,
+            NullLogger<ProcessOutputService>.Instance);
+        var processes = new ProcessesController(
+            new NullWorkspaceProcessManager(),
+            _processOutput);
         _tools = new OrchestrationMcpTools(
-            ServerTestComposition.CreateOrchestrationWorkspaceController(
+            CreateWorkspaceController(
                 _registry,
-                new NullWorkspaceProcessManager(),
+                processes,
                 _configuration,
                 new FakeWorkspaceIdentityProvider()),
-            new OrchestrationContextController(new OrchestrationContextService(new AgentUpContextProvider())));
+            new OrchestrationContextController(new OrchestrationContextService(new AgentUpContextProvider())),
+            CreateConsoleController(processes, audit));
     }
 
     [Test]
@@ -81,6 +99,10 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("AgentUp.Server is the single source of truth"));
         Assert.That(context, Does.Contain("deploy my app with Agent-Up"));
         Assert.That(context, Does.Contain("call start_workspace"));
+        Assert.That(context, Does.Contain("immediately instead of listing workspaces"));
+        Assert.That(context, Does.Contain("If browser navigation, inspection, waiting, screenshots, or interaction fails or times out"));
+        Assert.That(context, Does.Contain("inspect the workspace console immediately"));
+        Assert.That(context, Does.Contain("query Audit MCP for recent application console events"));
         Assert.That(context, Does.Contain("Before starting a new coding task"));
         Assert.That(context, Does.Contain("guard_commits"));
         Assert.That(context, Does.Contain("inspect, debug, or continue"));
@@ -116,7 +138,37 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(description, Does.Contain("deploy"));
         Assert.That(description, Does.Contain("run"));
         Assert.That(description, Does.Contain("Agent-Up"));
-        Assert.That(description, Does.Contain("local development environments"));
+        Assert.That(description, Does.Contain("local development environment"));
+        Assert.That(description, Does.Contain("Do not list workspaces or check status first"));
+    }
+
+    [Test]
+    public void WorkspaceDiscoveryDescriptions_AvoidPreStartDiscovery()
+    {
+        var statusDescription = ToolDescription(nameof(OrchestrationMcpTools.GetWorkspaceStatus));
+        var listDescription = ToolDescription(nameof(OrchestrationMcpTools.ListWorkspaces));
+
+        Assert.That(statusDescription, Does.Contain("Do not call before start_workspace"));
+        Assert.That(listDescription, Does.Contain("Do not call before start_workspace"));
+    }
+
+    [Test]
+    public void ConsoleDescription_TellsAgentsToUseConsoleAfterBrowserFailure()
+    {
+        var description = ToolDescription(nameof(OrchestrationMcpTools.GetWorkspaceConsole));
+
+        Assert.That(description, Does.Contain("Call this first"));
+        Assert.That(description, Does.Contain("browser navigation"));
+        Assert.That(description, Does.Contain("fails or times out"));
+    }
+
+    [Test]
+    public void ServerInstructions_TellAgentsToStartThenCheckConsoleOnBrowserFailure()
+    {
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("call start_workspace with its absolute path immediately"));
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("Do not call list_workspaces or get_workspace_status before start_workspace"));
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("If browser navigation, inspection, waiting, screenshots, or interaction fails or times out"));
+        Assert.That(AgentUpMcpGuidance.ServerInstructions, Does.Contain("inspect the workspace console immediately"));
     }
 
     [Test]
@@ -128,12 +180,15 @@ public sealed class OrchestrationMcpToolsTests
         await _tools.StartWorkspace("/repos/app", CancellationToken.None);
         var workspace = _registry.GetAll().Single();
         var tools = new OrchestrationMcpTools(
-            ServerTestComposition.CreateOrchestrationWorkspaceController(
+            CreateWorkspaceController(
                 _registry,
-                new FailingWorkspaceProcessManager(),
+                ServerTestComposition.CreateProcessesController(new FailingWorkspaceProcessManager()),
                 _configuration,
                 new FakeWorkspaceIdentityProvider()),
-            new OrchestrationContextController(new OrchestrationContextService(new AgentUpContextProvider())));
+            new OrchestrationContextController(new OrchestrationContextService(new AgentUpContextProvider())),
+            CreateConsoleController(
+                ServerTestComposition.CreateProcessesController(new NullWorkspaceProcessManager()),
+                ServerTestComposition.CreateAuditController(_registry)));
 
         var result = await tools.StopWorkspace(workspace!.Id);
 
@@ -141,6 +196,84 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(result.Message, Is.EqualTo("stop failed"));
         Assert.That(_registry.GetById(workspace.Id)!.State, Is.EqualTo(WorkspaceState.Failed));
     }
+
+    [Test]
+    public async Task GetWorkspaceConsole_ReturnsLiveOutputAndConsoleAuditTrail()
+    {
+        _configuration.Configuration = new AgentUpConfiguration(
+            "App",
+            [new ApplicationDefinition("Web", "dotnet run", "/", [])]);
+        await _tools.StartWorkspace("/repos/app", CancellationToken.None);
+        var workspace = _registry.GetAll().Single();
+
+        await _processOutput.AppendAsync(workspace.Id, "Web", "older");
+        await _processOutput.AppendAsync(workspace.Id, "Web", "ready");
+        await _processOutput.AppendAsync(workspace.Id, "Web", "[err] failed", ProcessOutputStream.Stderr);
+        await _tools.GetWorkspaceConsole(id: workspace.Id, lineLimit: 2, auditLimit: 10);
+
+        var result = await _tools.GetWorkspaceConsole(id: workspace.Id, lineLimit: 2, auditLimit: 10);
+
+        Assert.That(result.Succeeded, Is.True);
+        var snapshot = (WorkspaceConsoleSnapshot)result.Data!;
+        var app = snapshot.Applications.Single();
+        Assert.That(app.ApplicationName, Is.EqualTo("Web"));
+        Assert.That(app.TotalLineCount, Is.EqualTo(3));
+        Assert.That(app.Truncated, Is.True);
+        Assert.That(app.Lines, Is.EqualTo(new[] { "ready", "[err] failed" }));
+        Assert.That(snapshot.AuditTrail.Select(evt => evt.Message), Does.Contain("ready"));
+        Assert.That(snapshot.AuditTrail.Select(evt => evt.Stream), Does.Contain("stderr"));
+        Assert.That(_auditEvents.Events, Has.Some.Matches<AgentUp.Server.Features.Audit.Models.AuditEvent>(
+            evt => evt.Action == "workspace_console_snapshot"));
+    }
+
+    [Test]
+    public async Task GetWorkspaceConsole_RedactsLiveOutputAndAuditTrailMessages()
+    {
+        _configuration.Configuration = new AgentUpConfiguration(
+            "App",
+            [new ApplicationDefinition("Web", "dotnet run", "/", [])]);
+        await _tools.StartWorkspace("/repos/app", CancellationToken.None);
+        var workspace = _registry.GetAll().Single();
+
+        await _processOutput.AppendAsync(workspace.Id, "Web", "token=abc123");
+
+        var result = await _tools.GetWorkspaceConsole(id: workspace.Id, lineLimit: 10, auditLimit: 10);
+
+        Assert.That(result.Succeeded, Is.True);
+        var snapshot = (WorkspaceConsoleSnapshot)result.Data!;
+        Assert.That(snapshot.Applications.Single().Lines, Is.EqualTo(new[] { "token=[REDACTED]" }));
+        Assert.That(snapshot.AuditTrail.Select(evt => evt.Message), Does.Contain("token=[REDACTED]"));
+    }
+
+    private static OrchestrationWorkspaceController CreateWorkspaceController(
+        WorkspaceRegistry registry,
+        ProcessesController processes,
+        IAgentUpConfigurationProvider configuration,
+        IWorkspaceIdentityProvider identity)
+        => new(new OrchestrationWorkspaceService(
+            new AgentUp.Server.Features.Workspaces.Controllers.WorkspaceQueryController(registry),
+            ServerTestComposition.CreateWorkspaceStateController(registry),
+            processes,
+            configuration,
+            identity));
+
+    private OrchestrationConsoleController CreateConsoleController(
+        ProcessesController processes,
+        AgentUp.Server.Features.Audit.Controllers.AuditController audit)
+        => new(new OrchestrationConsoleService(
+            new AgentUp.Server.Features.Workspaces.Controllers.WorkspaceQueryController(_registry),
+            processes,
+            audit,
+            new ConsoleSecretRedactor(),
+            NullLogger<OrchestrationConsoleService>.Instance));
+
+    private static string ToolDescription(string methodName)
+        => typeof(OrchestrationMcpTools)
+            .GetMethod(methodName)!
+            .GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+            .Cast<System.ComponentModel.DescriptionAttribute>()
+            .Single()
+            .Description;
 
     private sealed class FakeConfigurationProvider : IAgentUpConfigurationProvider
     {

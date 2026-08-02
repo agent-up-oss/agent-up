@@ -6,5 +6,7 @@ public interface IWorkspaceApiProvider
 {
     Task<List<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default);
 
+    Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default);
+
     Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default);
 }
