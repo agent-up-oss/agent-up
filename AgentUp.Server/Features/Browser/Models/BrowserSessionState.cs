@@ -6,7 +6,9 @@ public sealed record BrowserSessionState(string WorkspaceId, IBrowser Browser, I
 {
     public string CurrentUrl => Page.Url;
 
-    public Task GoBackAsync(CancellationToken ct) => Page.GoBackAsync().WaitAsync(ct);
-    public Task GoForwardAsync(CancellationToken ct) => Page.GoForwardAsync().WaitAsync(ct);
-    public Task ReloadAsync(CancellationToken ct) => Page.ReloadAsync().WaitAsync(ct);
+    private static readonly NavigationOptions NavOptions = new() { Timeout = 30000 };
+
+    public Task GoBackAsync(CancellationToken ct) => Page.GoBackAsync(NavOptions).WaitAsync(ct);
+    public Task GoForwardAsync(CancellationToken ct) => Page.GoForwardAsync(NavOptions).WaitAsync(ct);
+    public Task ReloadAsync(CancellationToken ct) => Page.ReloadAsync(timeout: 30000).WaitAsync(ct);
 }
