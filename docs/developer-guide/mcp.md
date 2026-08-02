@@ -4,15 +4,21 @@ title: MCP
 
 # MCP
 
-The Server exposes separate MCP servers at `/mcp/orchestration` and `/mcp/commits`. MCP is the primary automation interface for AI agents.
+The Server exposes separate MCP servers at `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, and `/mcp/commits`. MCP is the primary automation interface for AI agents.
 
 The CLI exists for human convenience. AI agents should use MCP directly.
 
-The Server sends MCP initialization instructions that tell clients to use Agent-Up tools whenever a user asks to use Agent-Up, agent up, the Agent-Up server, or the Agent-Up workspace manager. User wording such as "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up" means the agent should call `start_workspace` with the absolute repository/worktree path. Agent-Up starts and manages local development environments; it does not deploy to cloud infrastructure.
+The Server sends MCP initialization instructions that tell clients to use Agent-Up tools whenever a user asks to use Agent-Up, agent up, the Agent-Up server, or the Agent-Up workspace manager. User wording such as "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up" means the agent should call `start_workspace` with the absolute repository/worktree path immediately. Agents should not call `list_workspaces` or `get_workspace_status` first when the current repository/worktree is known. Agent-Up starts and manages local development environments; it does not deploy to cloud infrastructure.
+
+Agent-Up validation is a feedback loop. After `start_workspace`, agents should use the returned workspace id and allocated ports directly for Browser MCP navigation. If browser navigation, inspection, waiting, screenshots, or interaction fails or times out, agents should inspect console output first through Orchestration MCP `get_workspace_console`. If that tool is unavailable, agents should query Audit MCP for recent `application` events from `process` for the workspace. Console output is the first diagnostic source for missing dependencies, failed commands, port binding errors, Docker startup failures, and build/runtime crashes.
 
 The Orchestration MCP server exposes Streamable HTTP at `/mcp/orchestration` and legacy SSE compatibility at `/mcp/orchestration/sse` plus `/mcp/orchestration/message`. It owns workspace tools, workspace resources, and Agent-Up context resources.
 
 The Commits MCP server exposes Streamable HTTP at `/mcp/commits` and legacy SSE compatibility at `/mcp/commits/sse` plus `/mcp/commits/message`. It owns only commit queue tools and exposes no workspace resources.
+
+The Browser MCP server exposes Streamable HTTP at `/mcp/browser` and legacy SSE compatibility at `/mcp/browser/sse` plus `/mcp/browser/message`. It owns browser navigation, inspection, interaction, wait, and screenshot tools.
+
+The Audit MCP server exposes Streamable HTTP at `/mcp/audit` and legacy SSE compatibility at `/mcp/audit/sse` plus `/mcp/audit/message`. It owns durable audit history queries and Server-managed artifact loading.
 
 This is a breaking endpoint split. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint. MCP is a protocol surface, not a feature slice: tools and resources are thin controller-layer adapters owned by the feature slice whose capability they expose. Cross-capability workspace and context tools live in the `Orchestration` slice.
 
@@ -35,8 +41,9 @@ Initial `/mcp/orchestration` tools:
 
 - `start_workspace`: registers or updates a workspace from its `agent-up.json`, then starts it. Use it for requests to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up.
 - `stop_workspace`: stops a registered workspace by workspace ID or worktree path.
-- `get_workspace_status`: returns a selected workspace status or all workspace statuses.
-- `list_workspaces`: lists registered workspaces.
+- `get_workspace_status`: returns a selected workspace status or all workspace statuses; use only for explicit status questions, already-running workspace inspection, or when `start_workspace` output is unavailable.
+- `list_workspaces`: lists registered workspaces; use only when choosing among existing workspaces or answering an explicit list-workspaces question.
+- `get_workspace_console`: returns a bounded, redacted live console snapshot for each application in a workspace plus recent durable console audit events; call this first after browser failures or timeouts.
 - `get_agent_up_json_format`: returns the current declarative configuration format.
 - `get_agent_up_context`: returns concise Agent-Up operating rules for AI agents.
 
@@ -52,6 +59,21 @@ Initial `/mcp/commits` tools:
 - `remove_commit`, `restore_commit`, `clear_commits`: archive, restore, or clear queued entries.
 - `begin_commit_edit`, `save_commit_edit`, `abort_commit_edit`: safely edit an existing queued patch.
 
+Initial `/mcp/browser` tools:
+
+- `browser_navigate`, `browser_inspect`, `browser_click`, `browser_fill`, `browser_press`, `browser_wait_for_selector`, `browser_wait_for_text`, `browser_wait_for_navigation`, and `browser_screenshot`.
+
+`browser_navigate` is restricted to loopback URLs whose port matches one of the workspace's allocated HTTP application ports. Future external redirects, such as OAuth providers, must be represented by explicit allowlist rules rather than arbitrary agent-supplied domains.
+
+`browser_screenshot` returns a bounded low-resolution MCP image content block for immediate agent inspection and stores the screenshot as a Server-managed audit artifact. Agents should use the returned artifact id with `/mcp/audit` when they need to reload the screenshot later; they should not request direct access to `/tmp` screenshot paths.
+
+Initial `/mcp/audit` tools:
+
+- `audit_query`: filters durable audit events by workspace, working-directory id, repository path, branch, commit, event kind, source, outcome, and time range.
+- `audit_timeline`: returns compact recent history for agent context.
+- `audit_get_event`: returns full details for one audit event.
+- `audit_load_artifact`: loads a Server-managed artifact by opaque artifact id and can return inline image data when requested.
+
 If `start_workspace` cannot find `agent-up.json`, it instructs the agent to read `docs/user-docs/agent-up-json.md`, search for an existing `agent-up.json`, or ask the user before creating one.
 
 `commits next` remains CLI-only because staging and popping a queued entry is developer-owned review work. Agents stop after `get_commits_status`.
@@ -62,7 +84,7 @@ Agents should follow the default prefix policy from `get_agent_up_context`: `fea
 
 Cross-slice guidance or documentation updates should be queued in a separate guidance/docs entry instead of being bundled into an implementation slice.
 
-Future tools will add browser inspection, interaction, diagnostics, screenshots, and Playwright export without moving orchestration out of the Server.
+Future tools will add richer diagnostics and Playwright export without moving orchestration out of the Server.
 
 ## Commit Queue Reminders
 
@@ -112,4 +134,4 @@ wait
 screenshot
 ```
 
-The Server executes browser operations.
+The Server executes browser operations. Browser actions and screenshots are recorded into durable audit history with workspace, workdir, branch, commit, and outcome context.

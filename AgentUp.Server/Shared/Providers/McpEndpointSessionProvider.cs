@@ -31,6 +31,7 @@ public sealed class McpEndpointSessionProvider
         "stop_workspace",
         "get_workspace_status",
         "list_workspaces",
+        "get_workspace_console",
         "get_agent_up_context",
         "get_agent_up_json_format"
     };
@@ -46,6 +47,14 @@ public sealed class McpEndpointSessionProvider
         "browser_wait_for_text",
         "browser_wait_for_navigation",
         "browser_screenshot"
+    };
+
+    private static readonly HashSet<string> AuditTools = new(StringComparer.Ordinal)
+    {
+        "audit_query",
+        "audit_timeline",
+        "audit_get_event",
+        "audit_load_artifact"
     };
 
     public Task ConfigureAsync(HttpContext context, McpServerOptions options, CancellationToken cancellationToken)
@@ -64,6 +73,12 @@ public sealed class McpEndpointSessionProvider
         {
             options.ServerInstructions = "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the shared workspace browser session visible in the Agent-Up Desktop app.";
             KeepTools(options, BrowserTools);
+            options.ResourceCollection?.Clear();
+        }
+        else if (IsEndpoint(context, "/mcp/audit"))
+        {
+            options.ServerInstructions = "Agent-Up audit MCP server. Use these tools to query durable workspace, browser, MCP, process, source revision, health, and artifact history.";
+            KeepTools(options, AuditTools);
             options.ResourceCollection?.Clear();
         }
 

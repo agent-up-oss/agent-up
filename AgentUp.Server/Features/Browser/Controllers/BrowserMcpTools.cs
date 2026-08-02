@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Shared.Interfaces;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace AgentUp.Server.Features.Browser.Controllers;
@@ -9,7 +10,7 @@ namespace AgentUp.Server.Features.Browser.Controllers;
 public sealed class BrowserMcpTools(BrowserMcpService browser)
 {
     [McpServerTool(Name = "browser_navigate", Title = "Navigate Browser")]
-    [Description("Navigate the workspace browser to a URL. Use before inspecting, clicking, or interacting with a page.")]
+    [Description("Navigate the workspace browser to a URL. Use the workspace id and allocated HTTP port returned by start_workspace. If navigation fails or times out, inspect the workspace console immediately through Orchestration MCP before retrying browser actions.")]
     public Task<McpToolResult> Navigate(
         [Description("Registered workspace ID.")] string workspaceId,
         [Description("The URL to navigate to.")] string url,
@@ -17,14 +18,14 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.NavigateAsync(workspaceId, url, cancellationToken);
 
     [McpServerTool(Name = "browser_inspect", Title = "Inspect Page")]
-    [Description("Return structured accessibility data for the active page: title, URL, headings, and interactive elements (links, buttons, inputs). Use this to understand page structure before clicking or filling.")]
+    [Description("Return structured accessibility data for the active page: title, URL, headings, and interactive elements (links, buttons, inputs). If inspection fails or times out, inspect the workspace console immediately through Orchestration MCP.")]
     public Task<McpToolResult> InspectPage(
         [Description("Registered workspace ID.")] string workspaceId,
         CancellationToken cancellationToken) =>
         browser.InspectPageAsync(workspaceId, cancellationToken);
 
     [McpServerTool(Name = "browser_click", Title = "Click Element")]
-    [Description("Click an element in the workspace browser by CSS selector.")]
+    [Description("Click an element in the workspace browser by CSS selector. If the click fails or times out, inspect the workspace console immediately through Orchestration MCP.")]
     public Task<McpToolResult> Click(
         [Description("Registered workspace ID.")] string workspaceId,
         [Description("CSS selector for the element to click, e.g. 'button#submit' or 'a[href=\"/login\"]'.")] string selector,
@@ -32,7 +33,7 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.ClickAsync(workspaceId, selector, cancellationToken);
 
     [McpServerTool(Name = "browser_fill", Title = "Fill Input")]
-    [Description("Set the value of an input or textarea in the workspace browser by CSS selector. Dispatches input and change events so reactive frameworks update.")]
+    [Description("Set the value of an input or textarea in the workspace browser by CSS selector. Dispatches input and change events so reactive frameworks update. If filling fails or times out, inspect the workspace console immediately through Orchestration MCP.")]
     public Task<McpToolResult> Fill(
         [Description("Registered workspace ID.")] string workspaceId,
         [Description("CSS selector for the input element, e.g. 'input[name=\"email\"]'.")] string selector,
@@ -41,7 +42,7 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.FillAsync(workspaceId, selector, text, cancellationToken);
 
     [McpServerTool(Name = "browser_press", Title = "Press Key")]
-    [Description("Dispatch keyboard events for a key on the currently focused element. Use key names such as Enter, Tab, Escape, ArrowDown.")]
+    [Description("Dispatch keyboard events for a key on the currently focused element. Use key names such as Enter, Tab, Escape, ArrowDown. If key input fails or times out, inspect the workspace console immediately through Orchestration MCP.")]
     public Task<McpToolResult> Press(
         [Description("Registered workspace ID.")] string workspaceId,
         [Description("Key name, e.g. 'Enter', 'Tab', 'Escape', 'ArrowDown'.")] string key,
@@ -49,7 +50,7 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.PressAsync(workspaceId, key, cancellationToken);
 
     [McpServerTool(Name = "browser_wait_for_selector", Title = "Wait for Selector")]
-    [Description("Wait until a CSS selector matches an element on the page. Useful after navigation or dynamic content load.")]
+    [Description("Wait until a CSS selector matches an element on the page. If waiting fails or times out, inspect the workspace console immediately through Orchestration MCP before trying more browser actions.")]
     public Task<McpToolResult> WaitForSelector(
         [Description("Registered workspace ID.")] string workspaceId,
         [Description("CSS selector to wait for.")] string selector,
@@ -58,7 +59,7 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.WaitForSelectorAsync(workspaceId, selector, timeoutMs, cancellationToken);
 
     [McpServerTool(Name = "browser_wait_for_text", Title = "Wait for Text")]
-    [Description("Wait until specific text appears in the page body. Useful for confirming messages or status updates.")]
+    [Description("Wait until specific text appears in the page body. If waiting fails or times out, inspect the workspace console immediately through Orchestration MCP before trying more browser actions.")]
     public Task<McpToolResult> WaitForText(
         [Description("Registered workspace ID.")] string workspaceId,
         [Description("Text to wait for.")] string text,
@@ -67,7 +68,7 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.WaitForTextAsync(workspaceId, text, timeoutMs, cancellationToken);
 
     [McpServerTool(Name = "browser_wait_for_navigation", Title = "Wait for Navigation")]
-    [Description("Wait for the browser to complete a page navigation (document.readyState reaches 'complete'). Call after triggering a navigation action.")]
+    [Description("Wait for the browser to complete a page navigation (document.readyState reaches 'complete'). If waiting fails or times out, inspect the workspace console immediately through Orchestration MCP before trying more browser actions.")]
     public Task<McpToolResult> WaitForNavigation(
         [Description("Registered workspace ID.")] string workspaceId,
         [Description("Maximum wait time in milliseconds. Defaults to 10000.")] int timeoutMs = 10_000,
@@ -75,9 +76,9 @@ public sealed class BrowserMcpTools(BrowserMcpService browser)
         browser.WaitForNavigationAsync(workspaceId, timeoutMs, cancellationToken);
 
     [McpServerTool(Name = "browser_screenshot", Title = "Screenshot")]
-    [Description("Capture the active workspace browser page as a PNG image. Returns the absolute file path of the saved PNG (e.g. /tmp/agentup-screenshot-<id>.png). Read the returned path with the Read tool to view the image visually.")]
-    public Task<McpToolResult> Screenshot(
+    [Description("Capture the active workspace browser page as a bounded PNG image. Returns an MCP image content block plus a Server-managed audit artifact id for later lookup. If capture fails or times out, inspect the workspace console immediately through Orchestration MCP.")]
+    public Task<CallToolResult> Screenshot(
         [Description("Registered workspace ID.")] string workspaceId,
         CancellationToken cancellationToken) =>
-        browser.ScreenshotAsync(workspaceId, cancellationToken);
+        browser.ScreenshotCallToolResultAsync(workspaceId, cancellationToken);
 }

@@ -123,6 +123,19 @@ public class WorkspaceItemViewModelTests
     }
 
     [Test]
+    public void UpdateFrom_TreatsNullAllocatedPortsAsEmptyForNewApplication()
+    {
+        var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");
+        var portChangeEvents = 0;
+        vm.ApplicationPortsChanged += (_, _) => portChangeEvents++;
+
+        vm.UpdateFrom("Running", [new ApplicationDto("Worker", "worker", null, "Running") { AllocatedPorts = null! }]);
+
+        Assert.That(vm.Applications.Single().AllocatedPorts, Is.Empty);
+        Assert.That(portChangeEvents, Is.Zero);
+    }
+
+    [Test]
     public void ApplyStateChange_AddsStateOnlyApplicationFromEvent()
     {
         var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");

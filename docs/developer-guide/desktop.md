@@ -111,6 +111,8 @@ Because the native WebView does not always raise managed navigation updates for 
 
 Reloading workspaces keeps the selected workspace by ID but rebinds it to the refreshed Server state, so the selected application's active HTTP port is navigated again after a sidebar reload.
 
+Workspace event invalidations are scoped to the event workspace ID. Desktop refreshes only that workspace from the Server and must not rebuild or navigate unrelated workspace browser sessions when another workspace changes ports or state.
+
 ## Browser Profile Isolation
 
 Each workspace gets its own `NativeWebView` instance and platform-native profile storage. The `EnvironmentRequested` handler maps `BrowserUrlStore.ProfilePath(workspaceId)` to GTK/WPE data and cache directories on Linux, WebView2 user data folders on Windows, and WKWebView data store identifiers on macOS.

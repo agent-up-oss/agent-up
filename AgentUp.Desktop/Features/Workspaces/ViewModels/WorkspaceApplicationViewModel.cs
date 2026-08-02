@@ -49,11 +49,16 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         _allocatedPorts = allocatedPorts ?? [];
     }
 
-    public void UpdateFrom(string command, string state, IReadOnlyList<PortMappingDto>? allocatedPorts)
+    public bool UpdateFrom(string command, string state, IReadOnlyList<PortMappingDto>? allocatedPorts)
     {
+        var ports = allocatedPorts ?? [];
+        var portsChanged = !AllocatedPorts.SequenceEqual(ports);
+
         Command = command;
-        AllocatedPorts = allocatedPorts ?? [];
+        AllocatedPorts = ports;
         UpdateState(state);
+
+        return portsChanged;
     }
 
     public void UpdateState(string newState)

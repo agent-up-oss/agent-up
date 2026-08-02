@@ -22,6 +22,7 @@ app.MapControllers();
 app.MapMcp("/mcp/commits");
 app.MapMcp("/mcp/orchestration");
 app.MapMcp("/mcp/browser");
+app.MapMcp("/mcp/audit");
 
 app.Run();
 

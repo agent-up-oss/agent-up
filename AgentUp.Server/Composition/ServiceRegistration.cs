@@ -8,6 +8,11 @@ using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.Interfaces;
+using AgentUp.Server.Features.Audit.Providers;
+using AgentUp.Server.Features.Audit.Repositories;
+using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Services;
@@ -64,6 +69,7 @@ public static class ServiceRegistration
             .WithTools<OrchestrationMcpTools>()
             .WithTools<CommitQueueMcpTools>()
             .WithTools<BrowserMcpTools>()
+            .WithTools<AuditMcpTools>()
             .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
 
@@ -74,6 +80,16 @@ public static class ServiceRegistration
             new JsonWorkspaceRepository(Path.Join(dataDir, "workspaces.json")));
         builder.Services.AddSingleton<IOutputRepository>(_ =>
             new FileOutputRepository(dataDir));
+        builder.Services.AddSingleton<IAuditEventRepository>(_ =>
+            new FileAuditEventRepository(dataDir));
+        builder.Services.AddSingleton<IAuditArtifactRepository>(_ =>
+            new FileAuditArtifactRepository(dataDir));
+        builder.Services.AddSingleton<AuditWorkdirIdProvider>();
+        builder.Services.AddSingleton<AuditGitStateProvider>();
+        builder.Services.AddSingleton<IAuditIdentityProvider, AuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditService>();
+        builder.Services.AddSingleton<AuditController>();
+        builder.Services.AddHostedService<WorkspaceAuditSubscriber>();
         builder.Services.AddSingleton<IPortRangeStore>(_ =>
             new FilePortRangeStore(Path.Join(dataDir, "port-ranges.json")));
         builder.Services.AddSingleton<IPortAvailabilityProvider, SocketPortAvailabilityProvider>();
@@ -91,6 +107,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ICapabilityAdapter, DockerCapabilityAdapter>();
         builder.Services.AddSingleton<CapabilityReconciliationService>();
         builder.Services.AddSingleton<CapabilitiesController>();
+        builder.Services.AddSingleton<ConsoleSecretRedactor>();
         builder.Services.AddSingleton<ILocalProcessProvider, LocalProcessProvider>();
         builder.Services.AddSingleton<IDockerProcessProvider, DockerProcessProvider>();
         builder.Services.AddSingleton<ProcessOutputService>();
@@ -107,8 +124,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
         builder.Services.AddSingleton<OrchestrationContextService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
+        builder.Services.AddSingleton<OrchestrationConsoleService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();
+        builder.Services.AddSingleton<OrchestrationConsoleController>();
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
         builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
