@@ -163,6 +163,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     Task<string?> IBrowserWindowHost.EvalAsync(string workspaceId, string script) =>
         EvalAsync(workspaceId, script);
 
+    async Task<bool> IBrowserWindowHost.ActivateWorkspaceUrlAsync(string workspaceId, string url) =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
+            DataContext is MainViewModel vm && vm.SelectApplicationForUrl(workspaceId, url));
+
     bool IBrowserWindowHost.NavigateTo(string workspaceId, string? url) =>
         NavigateBackground(workspaceId, url);
 
