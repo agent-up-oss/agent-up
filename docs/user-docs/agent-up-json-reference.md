@@ -13,11 +13,21 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
 | `name` | string | Yes | none | Human-readable project name shown for the workspace. |
+| `display` | [Display](#display-object) | No | derived workspace visuals | Optional Desktop-only workspace list label overrides. |
 | `applications` | array of [Application](#application-object) | No | `[]` | Legacy local process applications launched from opaque shell commands. |
 | `services` | array of [Docker Service](#docker-service-object) | No | `[]` | Legacy Docker service definitions. |
 | `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications launched through the Agent-Up .NET capability. |
 | `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers launched through the Agent-Up Docker capability. |
 | `prompts` | [Prompts](#prompts-object) | No | default Agent-Up guidance | Optional repository-specific guidance for AI agents. |
+
+## Display Object
+
+Used at the root to make Desktop workspace list entries more expressive. These values only affect Desktop visuals; repository path, worktree path, Git branch detection, commit identity, audit identity, and process working directories still come from the real workspace.
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `name` | string | No | root `name` | Workspace list title override. |
+| `branch` | string | No | detected Git branch or `not on a git branch` | Workspace list subtitle override. |
 
 ## Prompts Object
 

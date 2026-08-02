@@ -34,6 +34,8 @@ public sealed class WorkspaceCommandService
 
         var config = loaded.Configuration!;
         var git = await _identity.ReadAsync(_workingDirectory);
+        var displayName = string.IsNullOrWhiteSpace(config.Display?.Name) ? config.Name : config.Display.Name;
+        var branch = string.IsNullOrWhiteSpace(config.Display?.Branch) ? git.Branch : config.Display.Branch;
         var applications = config.Applications ?? [];
         var services = config.Services ?? [];
         var dotnet = config.Dotnet ?? [];
@@ -43,10 +45,10 @@ public sealed class WorkspaceCommandService
         try
         {
             workspace = await _client.RegisterAsync(new RegisterWorkspaceRequest(
-                DisplayName: config.Name,
+                DisplayName: displayName,
                 RepositoryPath: git.RepositoryPath,
                 WorktreePath: _workingDirectory,
-                Branch: git.Branch,
+                Branch: branch,
                 Commit: git.Commit)
             {
                 Applications = applications,

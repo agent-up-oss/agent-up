@@ -80,6 +80,29 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
+    public async Task Start_UsesDisplayOverrides_ForDesktopVisuals()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            name = "Test Project",
+            display = new { name = "Agent 4 - Checkout", branch = "Checkout flow" }
+        });
+        await File.WriteAllTextAsync(Path.Join(_workspaceDir, "agent-up.json"), json);
+
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspaces![0].DisplayName, Is.EqualTo("Agent 4 - Checkout"));
+            Assert.That(workspaces[0].Branch, Is.EqualTo("Checkout flow"));
+            Assert.That(workspaces[0].WorktreePath, Is.EqualTo(_workspaceDir));
+        });
+    }
+
+    [Test]
     public async Task Start_PopulatesGitBranchAndCommit()
     {
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
