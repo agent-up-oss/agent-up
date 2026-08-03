@@ -232,12 +232,23 @@ public class LocalInstallerNuGetPackagingTests
 
     private static void DotnetPack(string solutionRoot, string outputDir)
     {
-        var result = RunDotnet(
-            $"pack localinstaller.sln --configuration Release --output \"{outputDir}\"",
-            solutionRoot);
+        string[] projects =
+        [
+            Path.Join("AgentUp.Installers", "AgentUp.Installers.csproj"),
+            Path.Join("AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+            Path.Join("AgentUp.PackageSmoke", "AgentUp.PackageSmoke.csproj"),
+            Path.Join("AgentUp.Packaging", "AgentUp.Packaging.csproj"),
+        ];
 
-        if (result.ExitCode != 0)
-            throw new InvalidOperationException($"dotnet pack failed:\n{result.Output}");
+        foreach (var project in projects)
+        {
+            var result = RunDotnet(
+                $"pack \"{Path.Join(solutionRoot, project)}\" --configuration Release --output \"{outputDir}\"",
+                solutionRoot);
+
+            if (result.ExitCode != 0)
+                throw new InvalidOperationException($"dotnet pack {project} failed:\n{result.Output}");
+        }
     }
 
     private static XDocument ReadNuspec(string packDir, string packageId)
