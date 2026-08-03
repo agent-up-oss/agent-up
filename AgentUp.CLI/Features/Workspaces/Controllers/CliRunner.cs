@@ -37,10 +37,11 @@ public sealed class WorkspacesController
     public async Task<int> RunAsync(string[] args)
         => args.Any(arg => arg == "--version")
             ? PrintVersion(_output)
-            : await ResolveCommand(args, _start, _stop, _clear, _list, _status, _commits, _output)();
+            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _commits, _output)();
 
     private static Func<Task<int>> ResolveCommand(
         string[] args,
+        string serverUrl,
         StartCommand start,
         StopCommand stop,
         ClearCommand clear,
@@ -57,10 +58,10 @@ public sealed class WorkspacesController
             "list" => list.RunAsync,
             "status" => status.RunAsync,
             "commits" => () => commits.RunAsync(args.SkipWhile(a => a != "commits").Skip(1).ToArray()),
-            _ => () => Task.FromResult(PrintHelp(output))
+            _ => () => Task.FromResult(PrintHelp(output, serverUrl))
         };
 
-    private static int PrintHelp(TextWriter output)
+    private static int PrintHelp(TextWriter output, string serverUrl)
     {
         output.WriteLine("Usage: agent-up <command> [--server <url>]");
         output.WriteLine("Commands:");
@@ -74,7 +75,7 @@ public sealed class WorkspacesController
         output.WriteLine();
         output.WriteLine("Options:");
         output.WriteLine("  --version       Print the CLI version");
-        output.WriteLine("  --server <url>  Server URL (default: $AGENTUP_SERVER_URL or http://localhost:5000)");
+        output.WriteLine($"  --server <url>  Server URL (default: $AGENTUP_SERVER_URL or {serverUrl})");
         return 0;
     }
 
