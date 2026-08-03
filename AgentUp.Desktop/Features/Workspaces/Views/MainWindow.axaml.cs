@@ -845,6 +845,9 @@ code {
 
         if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out var navUri) && navUri.Scheme is "http" or "https")
             _ = PostHeadlessNavigateAsync(workspaceId, url);
+
+        if (PortPane.Bounds.Width > 0 && PortPane.Bounds.Height > 0)
+            _ = PostViewportAsync(workspaceId, (int)PortPane.Bounds.Width, (int)PortPane.Bounds.Height);
     }
 
     private async Task PollHeadlessAddressAsync(string workspaceId)
@@ -893,7 +896,7 @@ code {
     {
         try
         {
-            await Task.Delay(200, ct);
+            await Task.Delay(50, ct);
         }
         catch (OperationCanceledException)
         {

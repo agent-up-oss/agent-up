@@ -12,6 +12,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     private string _controlAuthority = "ai";
     private int _viewportWidth;
     private int _viewportHeight;
+    private string _selectedAiPresetId = "desktop";
 
     public string Id { get; }
     public string DisplayName { get; }
@@ -53,7 +54,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         string id, string displayName, string branch,
         string repositoryPath, string worktreePath, string state,
         IReadOnlyList<ApplicationDto>? applications = null,
-        Func<string, Task>? toggleControlMode = null)
+        Func<string, string?, Task>? toggleControlMode = null)
     {
         Id = id;
         DisplayName = displayName;
@@ -74,7 +75,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         {
             if (toggleControlMode is null) return;
             var next = _controlAuthority == "human" ? "ai" : "human";
-            await toggleControlMode(next);
+            await toggleControlMode(next, next == "ai" ? _selectedAiPresetId : null);
         });
     }
 
@@ -83,8 +84,21 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         ControlAuthority = authority;
         _viewportWidth = width;
         _viewportHeight = height;
+        if (authority == "ai")
+            _selectedAiPresetId = BrowserViewportPresetId(width, height);
         this.RaisePropertyChanged(nameof(ControlLabel));
     }
+
+    private static string BrowserViewportPresetId(int width, int height)
+        => (width, height) switch
+        {
+            (375, 667) => "mobile",
+            (768, 1024) => "tablet",
+            (1280, 720) => "desktop",
+            (1440, 900) => "wide",
+            (1920, 1080) => "full-hd",
+            _ => "desktop"
+        };
 
     // Updates workspace and application state in-place without triggering the SelectedWorkspace
     // change notification, so existing browser sessions and navigation state are undisturbed.

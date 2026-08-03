@@ -22,7 +22,7 @@ public static class MainViewModelFactory
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
-        Func<string, string, Task>? toggleControlMode = null,
+        Func<string, string, string?, Task>? toggleControlMode = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
@@ -46,10 +46,13 @@ public static class MainViewModelFactory
         return Create(
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),
-            toggleControlMode: async (workspaceId, authority) =>
+            toggleControlMode: async (workspaceId, authority, preset) =>
             {
+                var presetQuery = string.IsNullOrWhiteSpace(preset)
+                    ? string.Empty
+                    : $"&preset={Uri.EscapeDataString(preset)}";
                 using var _ = await http.PostAsync(
-                    $"api/browser/input/control-mode/{workspaceId}?authority={authority}",
+                    $"api/browser/input/control-mode/{workspaceId}?authority={authority}{presetQuery}",
                     content: null);
             });
     }

@@ -9,7 +9,7 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 public sealed class WorkspaceListViewModel : ReactiveObject
 {
     private readonly WorkspacesController _workspaces;
-    private readonly Func<string, string, Task>? _toggleControlMode;
+    private readonly Func<string, string, string?, Task>? _toggleControlMode;
     private WorkspaceItemViewModel? _selectedWorkspace;
     private bool _isCollapsed;
     private bool _isLoading;
@@ -78,7 +78,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
 
-    public WorkspaceListViewModel(WorkspacesController workspaces, Func<string, string, Task>? toggleControlMode = null)
+    public WorkspaceListViewModel(WorkspacesController workspaces, Func<string, string, string?, Task>? toggleControlMode = null)
     {
         _workspaces = workspaces;
         _toggleControlMode = toggleControlMode;
@@ -131,7 +131,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
             var added = new WorkspaceItemViewModel(
                 dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
                 dto.State, dto.Applications,
-                toggleControlMode: _toggleControlMode is null ? null : authority => _toggleControlMode(dto.Id, authority));
+                toggleControlMode: _toggleControlMode is null ? null : (authority, preset) => _toggleControlMode(dto.Id, authority, preset));
             Workspaces.Add(added);
             if (SelectedWorkspace is null)
                 SelectedWorkspace = added;
@@ -180,7 +180,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject
                     Workspaces.Add(new WorkspaceItemViewModel(
                         dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
                         dto.State, dto.Applications,
-                        toggleControlMode: _toggleControlMode is null ? null : authority => _toggleControlMode(dto.Id, authority)));
+                        toggleControlMode: _toggleControlMode is null ? null : (authority, preset) => _toggleControlMode(dto.Id, authority, preset)));
                 }
             }
 
