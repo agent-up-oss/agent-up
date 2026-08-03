@@ -80,8 +80,7 @@ public class WorkspaceProcessManagerTests
 
             var startInfo = LocalProcessProvider.CreateStartInfo(workspace, web);
 
-            Assert.That(Directory.ResolveLinkTarget(startInfo.WorkingDirectory, returnFinalTarget: true)!.FullName,
-                Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+            Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
             Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
                 Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
@@ -148,20 +147,32 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateLocalProcessStartInfo_RunsPlainExecutablesFromApplicationPath()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(Path.Join(worktreePath, "marketing-site"));
+
+        try
         {
-            Applications =
-            [
-                new ApplicationDefinition("Web", "node marketing-site/server.mjs", null)
-            ]
-        });
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition("Web", "node marketing-site/server.mjs", null)
+                ]
+            });
 
-        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
+            var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
 
-        Assert.That(startInfo.FileName, Is.EqualTo("node"));
-        Assert.That(Directory.ResolveLinkTarget(startInfo.WorkingDirectory, returnFinalTarget: true)!.FullName,
-            Is.EqualTo(workspace.WorktreePath));
-        Assert.That(startInfo.ArgumentList, Is.EqualTo(new[] { "marketing-site/server.mjs" }));
+            Assert.That(startInfo.FileName, Is.EqualTo("node"));
+            Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
+            Assert.That(Directory.ResolveLinkTarget(Path.GetDirectoryName(Path.GetDirectoryName(startInfo.ArgumentList[0])!)!, returnFinalTarget: true)!.FullName,
+                Is.EqualTo(workspace.WorktreePath));
+            Assert.That(startInfo.ArgumentList[0], Does.EndWith(Path.Join("marketing-site", "server.mjs")));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
     }
 
     [Test]
@@ -178,12 +189,36 @@ public class WorkspaceProcessManagerTests
         var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
 
         Assert.That(startInfo.FileName, Is.EqualTo("npm"));
-        Assert.That(Directory.ResolveLinkTarget(startInfo.WorkingDirectory, returnFinalTarget: true)!.FullName,
-            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
         Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
         Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
             Is.EqualTo(workspace.WorktreePath));
         Assert.That(startInfo.ArgumentList.Skip(2), Is.EqualTo(new[] { "run", "dev server" }));
+    }
+
+    [Test]
+    public async Task CreateLocalProcessStartInfo_QualifiesDotnetProjectPathWithoutWorkspaceWorkingDirectory()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition("Api", "dotnet run --project src/Api/Api.csproj --no-launch-profile", null)
+            ]
+        });
+
+        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo.FileName, Is.EqualTo("dotnet"));
+        Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[0], Is.EqualTo("run"));
+        Assert.That(startInfo.ArgumentList[1], Is.EqualTo("--project"));
+        Assert.That(Directory.ResolveLinkTarget(
+                Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(startInfo.ArgumentList[2])!)!)!,
+                returnFinalTarget: true)!.FullName,
+            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[2], Does.EndWith(Path.Join("src", "Api", "Api.csproj")));
+        Assert.That(startInfo.ArgumentList[3], Is.EqualTo("--no-launch-profile"));
     }
 
     [Test]
@@ -227,17 +262,28 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
-    public void CreateWorkspaceDirectoryAlias_RejectsExistingUnverifiedAlias()
+    public void CreateWorkspaceDirectoryAlias_RejectsExistingSymlinkToDifferentWorkspaceDirectory()
     {
         var root = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
         var workingDirectory = Path.Join(root, "workspace");
+        var otherDirectory = Path.Join(root, "other-workspace");
         var aliasRoot = Path.Join(root, "aliases");
 
         try
         {
             Directory.CreateDirectory(workingDirectory);
+            Directory.CreateDirectory(otherDirectory);
             Directory.CreateDirectory(aliasRoot);
-            Directory.CreateDirectory(LocalProcessProvider.WorkspaceDirectoryAliasPath(workingDirectory, aliasRoot));
+            try
+            {
+                Directory.CreateSymbolicLink(
+                    LocalProcessProvider.WorkspaceDirectoryAliasPath(workingDirectory, aliasRoot),
+                    otherDirectory);
+            }
+            catch (Exception unavailable) when (unavailable is UnauthorizedAccessException or PlatformNotSupportedException)
+            {
+                Assert.Ignore("Symbolic link creation is not available on this platform.");
+            }
 
             var ex = Assert.Throws<InvalidOperationException>(() =>
                 LocalProcessProvider.CreateWorkspaceDirectoryAlias(workingDirectory, aliasRoot));

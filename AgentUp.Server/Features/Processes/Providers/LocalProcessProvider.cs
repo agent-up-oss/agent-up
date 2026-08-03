@@ -94,7 +94,7 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         var startInfo = new ProcessStartInfo
         {
             FileName = parsed.FileName,
-            WorkingDirectory = CreateWorkspaceDirectoryAlias(workingDirectory),
+            WorkingDirectory = TrustedProcessWorkingDirectory(),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -150,9 +150,11 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             "bun" => ["--cwd", directory, .. arguments],
             "dotnet" when arguments.Count > 0 && arguments[0] == "run" && !arguments.Contains("--project", StringComparer.Ordinal)
                 => [.. arguments, "--project", directory],
+            "dotnet" => QualifyOptionPathArgument(arguments, "--project", directory),
             "gradle" => ["-p", directory, .. arguments],
             "make" => ["-C", directory, .. arguments],
             "mvn" => ["-f", Path.Join(directory, "pom.xml"), .. arguments],
+            "node" => QualifyFirstPathArgument(arguments, directory),
             "npm" => ["--prefix", directory, .. arguments],
             "pnpm" => ["--dir", directory, .. arguments],
             "yarn" => ["--cwd", directory, .. arguments],
@@ -160,8 +162,33 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         };
     }
 
+    private static IReadOnlyList<string> QualifyFirstPathArgument(IReadOnlyList<string> arguments, string workingDirectory)
+    {
+        if (arguments.Count == 0 || arguments[0].StartsWith("-", StringComparison.Ordinal) || Path.IsPathRooted(arguments[0]))
+            return arguments;
+
+        return [Path.Join(workingDirectory, arguments[0]), .. arguments.Skip(1)];
+    }
+
+    private static IReadOnlyList<string> QualifyOptionPathArgument(
+        IReadOnlyList<string> arguments,
+        string option,
+        string workingDirectory)
+    {
+        var qualified = arguments.ToArray();
+        var optionIndex = Array.IndexOf(qualified, option);
+        if (optionIndex < 0 || optionIndex == qualified.Length - 1 || Path.IsPathRooted(qualified[optionIndex + 1]))
+            return qualified;
+
+        qualified[optionIndex + 1] = Path.Join(workingDirectory, qualified[optionIndex + 1]);
+        return qualified;
+    }
+
     private static string CreateWorkspaceDirectoryAlias(string workingDirectory)
         => CreateWorkspaceDirectoryAlias(workingDirectory, WorkspaceDirectoryAliasRoot());
+
+    private static string TrustedProcessWorkingDirectory()
+        => AppContext.BaseDirectory;
 
     internal static string CreateWorkspaceDirectoryAlias(string workingDirectory, string aliasRoot)
     {
