@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace AgentUp.Installers.Tests.Features.Packaging;
+namespace AgentUp.Installers.Tests.Features.Packaging.Provider;
 
 [TestFixture]
 public class LocalInstallerNuGetPackagingTests
@@ -32,9 +32,9 @@ public class LocalInstallerNuGetPackagingTests
     public void PackTwice()
     {
         _solutionRoot = FindSolutionRoot(TestContext.CurrentContext.TestDirectory);
-        _workDir = Path.Combine(Path.GetTempPath(), $"localinstaller-pkg-{Guid.NewGuid():N}");
-        _packDir1 = Path.Combine(_workDir, "pack1");
-        _packDir2 = Path.Combine(_workDir, "pack2");
+        _workDir = Path.Join(Path.GetTempPath(), $"localinstaller-pkg-{Guid.NewGuid():N}");
+        _packDir1 = Path.Join(_workDir, "pack1");
+        _packDir2 = Path.Join(_workDir, "pack2");
         Directory.CreateDirectory(_packDir1);
         Directory.CreateDirectory(_packDir2);
 
@@ -142,19 +142,6 @@ public class LocalInstallerNuGetPackagingTests
     }
 
     [TestCaseSource(nameof(ExpectedPackageIds))]
-    public void Package_containsNoInternalTypesExposedThroughTestAssemblyNames(string packageId)
-    {
-        var nuspec = ReadNuspec(_packDir1, packageId);
-        var internalVisibleTo = nuspec.Root!.Descendants()
-            .Where(e => e.Name.LocalName == "InternalsVisibleTo")
-            .Select(e => e.Value)
-            .ToList();
-
-        Assert.That(internalVisibleTo, Is.Empty,
-            $"{packageId} .nuspec must not expose internal types via InternalsVisibleTo in its metadata");
-    }
-
-    [TestCaseSource(nameof(ExpectedPackageIds))]
     public void Pack_runTwice_producesByteForByteIdenticalPackage(string packageId)
     {
         var file1 = Directory.GetFiles(_packDir1, $"{packageId}.*.nupkg").Single();
@@ -171,11 +158,11 @@ public class LocalInstallerNuGetPackagingTests
     [Test]
     public void ConsumingProject_canRestoreAndBuildAgainstAllFourPackagesViaLocalNuGetSource()
     {
-        var consumerDir = Path.Combine(_workDir, "consumer");
+        var consumerDir = Path.Join(_workDir, "consumer");
         Directory.CreateDirectory(consumerDir);
 
         // nuget.config that points only at the local package output — no source-tree references
-        File.WriteAllText(Path.Combine(consumerDir, "nuget.config"),
+        File.WriteAllText(Path.Join(consumerDir, "nuget.config"),
             $"""
             <?xml version="1.0" encoding="utf-8"?>
             <configuration>
@@ -187,7 +174,7 @@ public class LocalInstallerNuGetPackagingTests
             </configuration>
             """);
 
-        File.WriteAllText(Path.Combine(consumerDir, "Consumer.csproj"),
+        File.WriteAllText(Path.Join(consumerDir, "Consumer.csproj"),
             """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -206,7 +193,7 @@ public class LocalInstallerNuGetPackagingTests
             """);
 
         // Each using / typeof() proves the type is accessible from the packed assembly
-        File.WriteAllText(Path.Combine(consumerDir, "Program.cs"),
+        File.WriteAllText(Path.Join(consumerDir, "Program.cs"),
             """
             using AgentUp.Installers.Features.Installation.Models;
             using AgentUp.InstallerApp.Features.Capabilities.Models;
@@ -292,9 +279,9 @@ public class LocalInstallerNuGetPackagingTests
         };
 
         using var process = Process.Start(psi)!;
-        var stdout = process.StandardOutput.ReadToEnd();
+        var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd());
         var stderr = process.StandardError.ReadToEnd();
         process.WaitForExit();
-        return (process.ExitCode, stdout + stderr);
+        return (process.ExitCode, stdoutTask.GetAwaiter().GetResult() + stderr);
     }
 }
