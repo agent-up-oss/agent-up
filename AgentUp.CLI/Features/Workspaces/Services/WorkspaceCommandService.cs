@@ -96,6 +96,39 @@ public sealed class WorkspaceCommandService
         }
     }
 
+    public async Task<WorkspaceCommandResult<int>> ClearAllAsync()
+    {
+        try
+        {
+            var workspaces = await _client.ListAsync();
+            var removed = 0;
+            foreach (var workspace in workspaces)
+            {
+                try
+                {
+                    if (string.Equals(workspace.State, "Running", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(workspace.State, "Starting", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _client.StopWorkspaceAsync(workspace.Id);
+                    }
+
+                    await _client.DeleteWorkspaceAsync(workspace.Id);
+                    removed++;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return WorkspaceCommandResult<int>.Failed($"Error: Failed to clear workspace '{workspace.DisplayName}': {ex.Message}");
+                }
+            }
+
+            return WorkspaceCommandResult<int>.Success(removed);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            return WorkspaceCommandResult<int>.Failed($"Error: Failed to clear workspaces: {ex.Message}");
+        }
+    }
+
     public async Task<WorkspaceResolution> ResolveCurrentAsync(string queryFailureMessage, string missingWorkspaceMessage)
         => await _resolver.ResolveAsync(queryFailureMessage, missingWorkspaceMessage);
 

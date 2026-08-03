@@ -51,6 +51,13 @@ public sealed class WorkspaceApiClient
             throw new InvalidOperationException(await ReadProblemDetailAsync(response));
     }
 
+    public async Task DeleteWorkspaceAsync(string id)
+    {
+        var response = await _http.DeleteAsync($"/api/workspaces/{id}");
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+    }
+
     private static async Task<string> ReadProblemDetailAsync(HttpResponseMessage response)
     {
         try
