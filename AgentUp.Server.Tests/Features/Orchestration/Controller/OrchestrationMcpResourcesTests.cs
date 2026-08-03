@@ -60,6 +60,7 @@ public sealed class OrchestrationMcpResourcesTests
 
         Assert.That(format, Does.Contain("\"applications\""));
         Assert.That(format, Does.Contain("\"services\""));
+        Assert.That(format, Does.Contain("\"display\""));
         Assert.That(format, Does.Contain("\"ports\""));
     }
 

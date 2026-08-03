@@ -63,13 +63,15 @@ internal sealed class AppDriver
         return await LaunchWithClientsAsync(workspaceClient, consoleClient);
     }
 
-    public static async Task<(AppDriver Driver, MutableFakeHttpMessageHandler Handler)> LaunchWithMutableWorkspacesAsync(List<WorkspaceDto> initial)
+    public static async Task<(AppDriver Driver, MutableFakeHttpMessageHandler Handler)> LaunchWithMutableWorkspacesAsync(
+        List<WorkspaceDto> initial,
+        Func<NativeWebView>? webViewFactory = null)
     {
         var handler = new MutableFakeHttpMessageHandler(initial);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
-        var driver = await LaunchWithClientsAsync(workspaceClient, consoleClient);
+        var driver = await LaunchWithClientsAsync(workspaceClient, consoleClient, webViewFactory);
         return (driver, handler);
     }
 
@@ -102,7 +104,7 @@ internal sealed class AppDriver
         Func<NativeWebView>? webViewFactory = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
-        var vm = MainViewModelFactory.Create(workspaceClient, consoleClient, tutorial ?? CompletedTutorial());
+        var vm = MainViewModelFactory.Create(workspaceClient, consoleClient, tutorial: tutorial ?? CompletedTutorial());
         var window = new MainWindow { DataContext = vm };
         window.WebViewFactory = webViewFactory
             ?? (() => throw new InvalidOperationException("WebView not available in headless tests"));

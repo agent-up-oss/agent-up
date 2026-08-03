@@ -47,7 +47,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> ToggleControlCommand { get; }
 
     public ObservableCollection<WorkspaceApplicationViewModel> Applications { get; } = [];
-    public event EventHandler? ApplicationPortsChanged;
+    public event EventHandler? ApplicationsChanged;
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
@@ -92,14 +92,14 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     {
         State = newState;
         StateColor = ResolveStateColor(newState);
-        var portsChanged = false;
+        var applicationsChanged = false;
 
         var existingByName = Applications.ToDictionary(a => a.Name);
         var incomingByName = applications.ToDictionary(a => a.Name);
 
         foreach (var name in existingByName.Keys.Except(incomingByName.Keys).ToList())
         {
-            portsChanged |= existingByName[name].AllocatedPorts.Count > 0;
+            applicationsChanged = true;
             Applications.Remove(existingByName[name]);
         }
 
@@ -107,17 +107,17 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         {
             if (existingByName.TryGetValue(app.Name, out var existing))
             {
-                portsChanged |= existing.UpdateFrom(app.Command, app.State, app.AllocatedPorts);
+                applicationsChanged |= existing.UpdateFrom(app.Command, app.State, app.AllocatedPorts);
             }
             else
             {
                 Applications.Add(CreateApplication(app));
-                portsChanged |= app.AllocatedPorts is { Count: > 0 };
+                applicationsChanged = true;
             }
         }
 
-        if (portsChanged)
-            ApplicationPortsChanged?.Invoke(this, EventArgs.Empty);
+        if (applicationsChanged)
+            ApplicationsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ApplyStateChange(string newState, IReadOnlyList<(string Name, string State)> appChanges)
@@ -126,11 +126,18 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         StateColor = ResolveStateColor(newState);
 
         var changesByName = appChanges.ToDictionary(a => a.Name, a => a.State);
+        var applicationsChanged = false;
         foreach (var app in Applications.Where(app => changesByName.ContainsKey(app.Name)))
-            app.UpdateState(changesByName[app.Name]);
+            applicationsChanged |= app.UpdateState(changesByName[app.Name]);
 
         foreach (var app in appChanges.Where(app => !Applications.Any(existing => existing.Name == app.Name)))
+        {
             Applications.Add(new WorkspaceApplicationViewModel(app.Name, string.Empty, app.State));
+            applicationsChanged = true;
+        }
+
+        if (applicationsChanged)
+            ApplicationsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private static WorkspaceApplicationViewModel CreateApplication(ApplicationDto app) =>

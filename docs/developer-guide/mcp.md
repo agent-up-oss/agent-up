@@ -65,6 +65,8 @@ Initial `/mcp/browser` tools:
 
 `browser_navigate` is restricted to loopback URLs whose port matches one of the workspace's allocated HTTP application ports. Future external redirects, such as OAuth providers, must be represented by explicit allowlist rules rather than arbitrary agent-supplied domains.
 
+`browser_click` is a visible Desktop action. Before executing the DOM click, Desktop activates the application tab for the current browser URL, waits 200 ms, animates the agent mouse marker from its previous position to the target element for 200 ms, then shows a 200 ms shrinking click ring and performs the actual click at the end of that ring animation. The Browser MCP call completes only after this staged click operation and the follow-up page-state read finish.
+
 `browser_screenshot` returns a bounded low-resolution MCP image content block for immediate agent inspection and stores the screenshot as a Server-managed audit artifact. Agents should use the returned artifact id with `/mcp/audit` when they need to reload the screenshot later; they should not request direct access to `/tmp` screenshot paths.
 
 Initial `/mcp/audit` tools:

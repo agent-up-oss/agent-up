@@ -408,7 +408,7 @@
                                                         Background="{Binding StateColor}"
                                                         VerticalAlignment="Center"
                                                         Margin="0,0,7,0"/>
-                                                <TextBlock Text="{Binding RepositoryName}"
+                                                <TextBlock Text="{Binding DisplayName}"
                                                            Foreground="#f5fbf7"
                                                            FontSize="15"
                                                            FontWeight="Medium"

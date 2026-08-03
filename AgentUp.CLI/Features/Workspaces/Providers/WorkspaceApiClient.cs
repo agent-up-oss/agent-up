@@ -39,14 +39,21 @@ public sealed class WorkspaceApiClient
 
     public async Task StartWorkspaceAsync(string id)
     {
-        var response = await _http.PostAsync($"/api/workspaces/{id}/start", null);
+        using var response = await _http.PostAsync($"/api/workspaces/{id}/start", null);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadProblemDetailAsync(response));
     }
 
     public async Task StopWorkspaceAsync(string id)
     {
-        var response = await _http.PostAsync($"/api/workspaces/{id}/stop", null);
+        using var response = await _http.PostAsync($"/api/workspaces/{id}/stop", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+    }
+
+    public async Task DeleteWorkspaceAsync(string id)
+    {
+        using var response = await _http.DeleteAsync($"/api/workspaces/{id}");
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadProblemDetailAsync(response));
     }

@@ -59,6 +59,25 @@ public sealed class WorkspaceEventClientTests
         Assert.That(sidebar.Workspaces.Single().Applications.Single().AllocatedPorts.Single().AllocatedPort, Is.EqualTo(10000));
     }
 
+    [AvaloniaTest]
+    public async Task WorkspaceEvents_removeDeletedWorkspaceFromSidebar()
+    {
+        using var server = new WorkspaceEventTestServer([WorkspaceFixtures.WithHttpPort("ws-1", 10000)]);
+        using var http = new HttpClient { BaseAddress = new Uri(server.BaseUrl) };
+        var sidebar = await CreateLoadedSidebarAsync(http);
+        using var events = new WorkspaceEventClient(http, sidebar);
+
+        events.Start();
+        await server.WaitForEventSubscriberAsync();
+
+        server.RemoveWorkspace("ws-1");
+        await server.EmitWorkspaceEventAsync("ws-1", "Removed", []);
+
+        await WaitUntilAsync(() => sidebar.Workspaces.Count == 0);
+
+        Assert.That(sidebar.SelectedWorkspace, Is.Null);
+    }
+
     private static async Task<WorkspaceListViewModel> CreateLoadedSidebarAsync(HttpClient http)
     {
         var api = new WorkspaceApiClient(http);
@@ -111,6 +130,12 @@ public sealed class WorkspaceEventClientTests
                 next.Add(workspace);
                 _workspaces = next;
             }
+        }
+
+        public void RemoveWorkspace(string workspaceId)
+        {
+            lock (_lock)
+                _workspaces = _workspaces.Where(w => w.Id != workspaceId).ToList();
         }
 
         public int WorkspaceGetCount(string workspaceId)

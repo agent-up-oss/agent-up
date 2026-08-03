@@ -35,12 +35,57 @@ internal static class BrowserScripts
 
     public const string CheckNavigation = "document.readyState";
 
-    public static string Click(string selector) =>
+    public static string ClickTarget(string selector) =>
         $"(function(){{" +
         $"var e=document.querySelector({Js(selector)});" +
         $"if(!e)return JSON.stringify({{error:'Element not found: '+{Js(selector)}}}); " +
-        $"e.scrollIntoView({{block:'center'}});e.click();" +
+        $"e.scrollIntoView({{block:'center',inline:'center'}});" +
+        $"var r=e.getBoundingClientRect();" +
+        $"return JSON.stringify({{success:true,url:window.location.href,x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2)}});" +
+        $"}})()";
+
+    public static string BeginMouseMove(string selector) =>
+        $"(function(){{" +
+        $"var e=document.querySelector({Js(selector)});" +
+        $"if(!e)return JSON.stringify({{error:'Element not found: '+{Js(selector)}}});" +
+        $"e.scrollIntoView({{block:'center',inline:'center'}});" +
+        $"var r=e.getBoundingClientRect();" +
+        $"var x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/2);" +
+        $"if(!window.__agentUpMouse)window.__agentUpMouse={{x:Math.round(window.innerWidth/2),y:Math.round(window.innerHeight/2)}};" +
+        $"var m=document.getElementById('__agentUpMouse');" +
+        $"if(!m){{m=document.createElement('div');m.id='__agentUpMouse';document.documentElement.appendChild(m);}}" +
+        $"m.style.cssText='position:fixed;left:'+window.__agentUpMouse.x+'px;top:'+window.__agentUpMouse.y+'px;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:999px;background:#14d86f;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 0 18px rgba(20,216,111,.7);z-index:2147483647;pointer-events:none;transition:left 200ms linear,top 200ms linear;';" +
+        $"requestAnimationFrame(function(){{m.style.left=x+'px';m.style.top=y+'px';}});" +
         $"return JSON.stringify({{ok:true}});" +
+        $"}})()";
+
+    public static string BeginClickEffect(string selector) =>
+        $"(function(){{" +
+        $"var e=document.querySelector({Js(selector)});" +
+        $"if(!e)return JSON.stringify({{error:'Element not found: '+{Js(selector)}}});" +
+        $"e.scrollIntoView({{block:'center',inline:'center'}});" +
+        $"var r=e.getBoundingClientRect();" +
+        $"var x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/2);" +
+        $"var c=document.getElementById('__agentUpClickRing');" +
+        $"if(c)c.remove();" +
+        $"c=document.createElement('div');c.id='__agentUpClickRing';document.documentElement.appendChild(c);" +
+        $"c.style.cssText='position:fixed;left:'+x+'px;top:'+y+'px;width:74px;height:74px;margin:-37px 0 0 -37px;border:3px solid rgba(20,216,111,.95);border-radius:999px;z-index:2147483646;pointer-events:none;transform:scale(1.35);opacity:.95;transition:transform 200ms ease-in,opacity 200ms ease-in;';" +
+        $"requestAnimationFrame(function(){{c.style.transform='scale(.12)';c.style.opacity='.2';}});" +
+        $"return JSON.stringify({{ok:true}});" +
+        $"}})()";
+
+    public static string CompleteClick(string selector) =>
+        $"(function(){{" +
+        $"var e=document.querySelector({Js(selector)});" +
+        $"var c=document.getElementById('__agentUpClickRing');" +
+        $"if(!e){{if(c)c.remove();return JSON.stringify({{error:'Element not found: '+{Js(selector)}}});}}" +
+        $"if(e.matches(':disabled')){{if(c)c.remove();return JSON.stringify({{error:'Element is disabled: '+{Js(selector)}}});}}" +
+        $"var r=e.getBoundingClientRect();" +
+        $"var x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/2);" +
+        $"window.__agentUpMouse={{x:x,y:y}};" +
+        $"try{{e.click();return JSON.stringify({{ok:true}});}}" +
+        $"catch(ex){{return JSON.stringify({{error:'Click failed: '+(ex&&ex.message?ex.message:ex)}});}}" +
+        $"finally{{if(c)c.remove();}}" +
         $"}})()";
 
     public static string Fill(string selector, string text) =>
