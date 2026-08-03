@@ -50,6 +50,21 @@ public class SidebarBehaviorTests
     }
 
     [AvaloniaTest]
+    public async Task Sidebar_usesDisplayNameForWorkspaceTitle()
+    {
+        var app = await AppDriver.LaunchWithWorkspacesAsync(
+            [
+                new("ws-1", "agent1", "/home/dev/agent-up-agent1", "/home/dev/agent-up-agent1/Demo/agent1", "not a git repo", "", "Running")
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(app.Sidebar.ExpandedWorkspaceTexts, Does.Contain("agent1"));
+            Assert.That(app.Sidebar.ExpandedWorkspaceTexts, Does.Not.Contain("agent-up-agent1"));
+        });
+    }
+
+    [AvaloniaTest]
     public async Task Sidebar_showsNoWorkspaces_whenNoneRegistered()
     {
         var app = await AppDriver.LaunchEmptyAsync();
@@ -84,5 +99,26 @@ public class SidebarBehaviorTests
         await app.Sidebar.ClickReloadAsync();
 
         Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(4));
+    }
+
+    [AvaloniaTest]
+    public async Task Sidebar_clearWorkspaceList_releasesBrowserResources()
+    {
+        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(
+            [workspace],
+            () => throw new InvalidOperationException("WebView not available in headless tests."));
+
+        Assert.That(app.Window.HasWorkspaceBrowserResourcesForTests, Is.True);
+
+        handler.SetWorkspaces([]);
+        await app.Sidebar.ClickReloadAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(0));
+            Assert.That(app.Window.HasWorkspaceBrowserResourcesForTests, Is.False);
+        });
     }
 }

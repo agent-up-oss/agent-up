@@ -171,6 +171,28 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task Remove_PublishesRemovedWorkspaceEvent()
+    {
+        var bus = new WorkspaceEventBus();
+        var registry = ServerTestComposition.CreateRegistry(
+            [new FakeCapabilityAdapter("dotnet"), new FakeCapabilityAdapter("docker")],
+            bus);
+        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        await using var subscription = bus.Subscribe();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+
+        await registry.RemoveAsync(workspace.Id);
+        var evt = await subscription.Reader.ReadAsync(cts.Token);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(evt.WorkspaceId, Is.EqualTo(workspace.Id));
+            Assert.That(evt.State, Is.EqualTo("Removed"));
+            Assert.That(evt.Applications, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task Remove_ReturnsFalse_WhenNotFound()
     {
         var result = await _registry.RemoveAsync("ghost");

@@ -94,6 +94,7 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         var startInfo = new ProcessStartInfo
         {
             FileName = parsed.FileName,
+            WorkingDirectory = TrustedProcessWorkingDirectory(),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -149,9 +150,11 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             "bun" => ["--cwd", directory, .. arguments],
             "dotnet" when arguments.Count > 0 && arguments[0] == "run" && !arguments.Contains("--project", StringComparer.Ordinal)
                 => [.. arguments, "--project", directory],
+            "dotnet" => QualifyOptionPathArgument(arguments, "--project", directory),
             "gradle" => ["-p", directory, .. arguments],
             "make" => ["-C", directory, .. arguments],
             "mvn" => ["-f", Path.Join(directory, "pom.xml"), .. arguments],
+            "node" => QualifyFirstPathArgument(arguments, directory),
             "npm" => ["--prefix", directory, .. arguments],
             "pnpm" => ["--dir", directory, .. arguments],
             "yarn" => ["--cwd", directory, .. arguments],
@@ -159,21 +162,41 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         };
     }
 
-    private static string CreateWorkspaceDirectoryAlias(string workingDirectory)
+    private static IReadOnlyList<string> QualifyFirstPathArgument(IReadOnlyList<string> arguments, string workingDirectory)
     {
-        var aliasRoot = Path.Join(Path.GetTempPath(), "AgentUp-WorkspaceDirectories");
+        if (arguments.Count == 0 || arguments[0].StartsWith("-", StringComparison.Ordinal) || Path.IsPathRooted(arguments[0]))
+            return arguments;
+
+        return [Path.Join(workingDirectory, arguments[0]), .. arguments.Skip(1)];
+    }
+
+    private static IReadOnlyList<string> QualifyOptionPathArgument(
+        IReadOnlyList<string> arguments,
+        string option,
+        string workingDirectory)
+    {
+        var qualified = arguments.ToArray();
+        var optionIndex = Array.IndexOf(qualified, option);
+        if (optionIndex < 0 || optionIndex == qualified.Length - 1 || Path.IsPathRooted(qualified[optionIndex + 1]))
+            return qualified;
+
+        qualified[optionIndex + 1] = Path.Join(workingDirectory, qualified[optionIndex + 1]);
+        return qualified;
+    }
+
+    private static string CreateWorkspaceDirectoryAlias(string workingDirectory)
+        => CreateWorkspaceDirectoryAlias(workingDirectory, WorkspaceDirectoryAliasRoot());
+
+    private static string TrustedProcessWorkingDirectory()
+        => AppContext.BaseDirectory;
+
+    internal static string CreateWorkspaceDirectoryAlias(string workingDirectory, string aliasRoot)
+    {
         Directory.CreateDirectory(aliasRoot);
-        var aliasName = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(workingDirectory)))[..32];
-        var aliasPath = Path.Join(aliasRoot, aliasName);
+        var aliasPath = WorkspaceDirectoryAliasPath(workingDirectory, aliasRoot);
 
         if (Directory.Exists(aliasPath))
-        {
-            var target = Directory.ResolveLinkTarget(aliasPath, returnFinalTarget: true);
-            if (target is not null && string.Equals(Path.GetFullPath(target.FullName), Path.GetFullPath(workingDirectory), StringComparison.Ordinal))
-                return aliasPath;
-
-            throw new InvalidOperationException("Workspace directory alias already exists with a different target.");
-        }
+            return VerifiedWorkspaceDirectoryAlias(aliasPath, workingDirectory);
 
         // A broken symlink (target deleted) is not a directory, so Directory.Exists returns
         // false above, but the symlink file still exists and blocks CreateSymbolicLink.
@@ -187,11 +210,38 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         }
         catch (IOException) when (Directory.Exists(aliasPath) || new DirectoryInfo(aliasPath).LinkTarget is not null)
         {
-            // Either a real directory (race) or a dangling symlink (target doesn't exist yet).
-            return aliasPath;
+            return VerifiedWorkspaceDirectoryAlias(aliasPath, workingDirectory);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return workingDirectory;
         }
 
-        return aliasPath;
+        return VerifiedWorkspaceDirectoryAlias(aliasPath, workingDirectory);
+    }
+
+    internal static string WorkspaceDirectoryAliasPath(string workingDirectory, string aliasRoot)
+    {
+        var aliasName = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(workingDirectory)))[..32];
+        return Path.Join(aliasRoot, aliasName);
+    }
+
+    private static string WorkspaceDirectoryAliasRoot()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var aliasRootBase = string.IsNullOrWhiteSpace(localAppData)
+            ? Path.GetTempPath()
+            : localAppData;
+        return Path.Join(aliasRootBase, "AgentUp", "WorkspaceDirectories");
+    }
+
+    private static string VerifiedWorkspaceDirectoryAlias(string aliasPath, string workingDirectory)
+    {
+        var target = Directory.ResolveLinkTarget(aliasPath, returnFinalTarget: true);
+        if (target is not null && string.Equals(Path.GetFullPath(target.FullName), Path.GetFullPath(workingDirectory), StringComparison.Ordinal))
+            return aliasPath;
+
+        throw new InvalidOperationException("Workspace directory alias could not be verified.");
     }
 
     private static string ResolveAllowedApplicationExecutable(string fileName)

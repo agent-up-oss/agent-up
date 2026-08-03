@@ -433,6 +433,8 @@ Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injec
 
 Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
+The optional root `display` object in `agent-up.json` is only for Desktop visuals. `display.name` overrides the workspace entry title and `display.branch` overrides the workspace entry subtitle. These values must not change repository path identity, worktree path handling, Git branch detection, commit identity, audit identity, or process working directories.
+
 User docs:
 
 - `docs/user-docs/configuration.md`

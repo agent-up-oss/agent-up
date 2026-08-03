@@ -401,6 +401,138 @@ public class MainViewModelTests
             "Selecting the port sub-tab must emit the workspace id and the port's HTTP URL");
     }
 
+    [Test]
+    public async Task SelectedWorkspaceApplicationStateChange_refreshesApplicationPanel()
+    {
+        var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
+        {
+            Applications = [new ApplicationDto("Web", "npm run dev", null, "Starting")]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [("Web", "Running")]);
+
+        Assert.That(vm.Applications.SelectedApplication!.State, Is.EqualTo("Running"));
+    }
+
+    [Test]
+    public async Task SelectApplicationForUrl_doesNotSwitchWorkspaceForBrowserActivityInAnotherWorkspace()
+    {
+        var first = new WorkspaceDto("ws-1", "First", "/repo/first", "/worktrees/first", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
+                },
+                new ApplicationDto("Api", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5102, 5102)]
+                }
+            ]
+        };
+        var second = new WorkspaceDto("ws-2", "Second", "/repo/second", "/worktrees/second", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Docs", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5201, 5201)]
+                },
+                new ApplicationDto("Admin", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5202, 5202)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([first, second]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        var selected = vm.SelectApplicationForUrl("ws-2", "http://localhost:5202/users");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(selected, Is.True);
+            Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+            Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Web"));
+            Assert.That(vm.SelectedSubTab, Is.TypeOf<PortSubTabViewModel>());
+            Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5101));
+            Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5101/"));
+        });
+    }
+
+    [Test]
+    public async Task SelectApplicationForUrl_switchesApplicationOnlyInsideSelectedWorkspace()
+    {
+        var workspace = new WorkspaceDto("ws-1", "Workspace", "/repo/first", "/worktrees/first", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
+                },
+                new ApplicationDto("Api", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5102, 5102)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([workspace]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        var selected = vm.SelectApplicationForUrl("ws-1", "http://localhost:5102/users");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(selected, Is.True);
+            Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+            Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Api"));
+            Assert.That(vm.SelectedSubTab, Is.TypeOf<PortSubTabViewModel>());
+            Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5102));
+            Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5102/users"));
+        });
+    }
+
+    [Test]
+    public async Task SelectApplicationForUrl_keepsSelectedWorkspace_WhenTargetPortIsUnknown()
+    {
+        var first = new WorkspaceDto("ws-1", "First", "/repo/first", "/worktrees/first", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
+                }
+            ]
+        };
+        var second = new WorkspaceDto("ws-2", "Second", "/repo/second", "/worktrees/second", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Docs", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5201, 5201)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([first, second]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        var selected = vm.SelectApplicationForUrl("ws-2", "http://localhost:5999/users");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(selected, Is.False);
+            Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+            Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Web"));
+            Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5101/"));
+        });
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private static WorkspaceApiClient NullWorkspaceClient()

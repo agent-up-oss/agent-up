@@ -70,7 +70,7 @@ From the repository root:
 dotnet run --project AgentUp.Server
 ```
 
-The server starts on `http://localhost:5000` in the current development launch profile.
+The server starts on `http://localhost:5001` in the current development launch profile.
 
 ### 2. Add an `agent-up.json` to your project
 
@@ -94,13 +94,13 @@ Create `agent-up.json` in the root of the repository you want to manage:
 From your project directory, run the CLI with `dotnet run`:
 
 ```bash
-dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5000
+dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5001
 ```
 
 Or set the server URL once as an environment variable and omit `--server` on every call:
 
 ```bash
-export AGENTUP_SERVER_URL=http://localhost:5000
+export AGENTUP_SERVER_URL=http://localhost:5001
 dotnet run --project /path/to/AgentUp.CLI -- start
 ```
 

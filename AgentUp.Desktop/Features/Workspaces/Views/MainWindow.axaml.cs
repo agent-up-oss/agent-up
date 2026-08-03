@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Specialized;
 using System.Net;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -63,10 +64,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
     internal bool HasBrowserResourcesForTests =>
         _addressPollTimer.IsEnabled
-        || _webViews.Count > 0
+        || HasWorkspaceBrowserResourcesForTests
+        || _activeWorkspaceId is not null;
+    internal bool HasWorkspaceBrowserResourcesForTests =>
+        _webViews.Count > 0
         || _webViewErrors.Count > 0
         || _lastKnownBrowserUrls.Count > 0
-        || _activeWorkspaceId is not null;
+        || _agentActiveTabKeys.Count > 0
+        || _activeWorkspaceId is not null
+        || _activeTabKey is not null;
 
     private const string SelectionJs =
         "(function(){" +
@@ -163,6 +169,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     Task<string?> IBrowserWindowHost.EvalAsync(string workspaceId, string script) =>
         EvalAsync(workspaceId, script);
 
+    async Task<bool> IBrowserWindowHost.ActivateWorkspaceUrlAsync(string workspaceId, string url) =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
+            DataContext is MainViewModel vm && vm.SelectApplicationForUrl(workspaceId, url));
+
     bool IBrowserWindowHost.NavigateTo(string workspaceId, string? url) =>
         NavigateBackground(workspaceId, url);
 
@@ -195,24 +205,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
     // the agent's navigation. Only acts when url targets the currently active workspace.
     private void SwitchApplicationTabForUrl(string workspaceId, string url)
     {
-        if (DataContext is not MainViewModel vm) return;
-        if (vm.Sidebar.SelectedWorkspace?.Id != workspaceId) return;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
-
-        var targetPort = uri.Port;
-        var matchingApp = vm.Applications.Applications
-            .FirstOrDefault(a => a.AllocatedPorts.Any(p => p.AllocatedPort == targetPort));
-        if (matchingApp is null) return;
-
-        vm.PreloadPortUrl(url);
-
-        if (vm.Applications.SelectedApplication != matchingApp)
-            vm.Applications.SelectedApplication = matchingApp;
-
-        // For apps with multiple HTTP tabs, also select the exact port tab.
-        var targetTab = vm.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.AllocatedPort == targetPort);
-        if (targetTab is not null && vm.SelectedSubTab != targetTab)
-            vm.SelectedSubTab = targetTab;
+        if (DataContext is MainViewModel vm)
+            vm.SelectApplicationForUrl(workspaceId, url);
     }
 
     private void SetWindowIcon()
@@ -269,6 +263,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         vm.BrowserCommands.Subscribe(command =>
             Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)))
             .DisposeWith(_subscriptions);
+        vm.Sidebar.Workspaces.CollectionChanged += OnWorkspaceCollectionChanged;
+        Disposable.Create(() => vm.Sidebar.Workspaces.CollectionChanged -= OnWorkspaceCollectionChanged)
+            .DisposeWith(_subscriptions);
         vm.Tutorial.WhenAnyValue(t => t.IsVisible)
             .DistinctUntilChanged()
             .Subscribe(isVisible =>
@@ -302,6 +299,21 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>, IBrowserWindowH
         DestroyWorkspaceWebViews();
         DestroyConsoleWebView();
         base.OnClosed(e);
+    }
+
+    private void OnWorkspaceCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_isClosed) return;
+
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            DestroyWorkspaceWebViews();
+            return;
+        }
+
+        if (e.OldItems is null) return;
+        foreach (var item in e.OldItems.OfType<WorkspaceItemViewModel>())
+            DestroyWorkspaceWebViews(item.Id);
     }
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
@@ -907,15 +919,8 @@ code {
 
     private void DestroyWorkspaceWebViews()
     {
-        foreach (var webView in _webViews.Values)
-        {
-            try { webView.Stop(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
-            try { PortPane.Children.Remove(webView); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
-            if (webView is IDisposable disposable)
-            {
-                try { disposable.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
-            }
-        }
+        foreach (var tabKey in _webViews.Keys.ToList())
+            DestroyWorkspaceWebView(tabKey);
 
         _webViews.Clear();
         _webViewErrors.Clear();
@@ -924,6 +929,42 @@ code {
         _agentActiveTabKeys.Clear();
         _activeWorkspaceId = null;
         _activeTabKey = null;
+    }
+
+    private void DestroyWorkspaceWebViews(string workspaceId)
+    {
+        foreach (var tabKey in _webViews.Keys.Where(key => string.Equals(WorkspaceFromTabKey(key), workspaceId, StringComparison.Ordinal)).ToList())
+            DestroyWorkspaceWebView(tabKey);
+
+        _webViewErrors.Remove(workspaceId);
+        _agentActiveTabKeys.Remove(workspaceId);
+        DeleteBrowserErrorPage(workspaceId);
+
+        if (_activeWorkspaceId != workspaceId)
+            return;
+
+        _activeWorkspaceId = null;
+        _activeTabKey = null;
+        UpdateErrorDisplay(null);
+    }
+
+    private void DestroyWorkspaceWebView(string tabKey)
+    {
+        if (!_webViews.Remove(tabKey, out var webView))
+            return;
+
+        try { webView.Stop(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+        try { PortPane.Children.Remove(webView); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+        if (webView is IDisposable disposable)
+            try { disposable.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+
+        _lastKnownBrowserUrls.Remove(tabKey);
+        _navigationVersions.Remove(tabKey);
+    }
+
+    private static void DeleteBrowserErrorPage(string workspaceId)
+    {
+        try { File.Delete(BrowserErrorHtmlPath(workspaceId)); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Trace.TraceWarning(ex.Message); }
     }
 
     internal static string? TryReadHttpLocation(string? scriptResult)

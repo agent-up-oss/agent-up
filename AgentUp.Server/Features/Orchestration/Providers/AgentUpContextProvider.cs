@@ -37,6 +37,10 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 
         {
           "name": "Inventory",
+          "display": {
+            "name": "Agent 1 - Checkout",
+            "branch": "Frontend polish"
+          },
           "applications": [
             {
               "name": "Frontend",
@@ -78,6 +82,8 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         Fields:
 
         name: Display name for the workspace project.
+        display.name: Optional Desktop workspace title override. It does not change repository or worktree path handling.
+        display.branch: Optional Desktop workspace subtitle override. It does not change Git branch detection, audit identity, or worktree handling.
         applications: Local application processes the Server can launch.
         applications[].name: Display name for the application.
         applications[].command: Opaque shell command used to start the application.

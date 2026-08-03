@@ -1,0 +1,29 @@
+{
+  "name": "Demo SaaS Pricing Agent",
+  "display": {
+    "name": "agent2",
+    "branch": "not a git repo"
+  },
+  "applications": [
+    {
+      "name": "MarketingSite",
+      "command": "node marketing-site/server.mjs",
+      "ports": [{ "variable": "WEB_PORT", "defaultPort": 5200, "protocol": "http" }]
+    },
+    {
+      "name": "Dashboard",
+      "command": "node dashboard/server.mjs",
+      "ports": [{ "variable": "DASHBOARD_PORT", "defaultPort": 5201, "protocol": "http" }]
+    },
+    {
+      "name": "Worker",
+      "command": "node worker/server.mjs",
+      "ports": [{ "variable": "WORKER_PORT", "defaultPort": 5202, "protocol": "http" }]
+    },
+    {
+      "name": "Postgres",
+      "command": "node postgres/server.mjs",
+      "ports": [{ "variable": "DB_PORT", "defaultPort": 5203, "protocol": "http" }]
+    }
+  ]
+}
