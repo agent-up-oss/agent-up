@@ -19,12 +19,14 @@ namespace AgentUp.Server.Tests.Fake;
 
 internal static class ServerTestComposition
 {
-    public static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter>? adapters = null)
+    public static WorkspaceRegistry CreateRegistry(
+        IReadOnlyList<ICapabilityAdapter>? adapters = null,
+        WorkspaceEventBus? bus = null)
         => new(
             new InMemoryWorkspaceRepository(),
             new PortsController(new InMemoryPortAllocationService()),
             new CapabilitiesController(new CapabilityReconciliationService(adapters ?? [])),
-            new WorkspaceEventBus());
+            bus ?? new WorkspaceEventBus());
 
     public static ProcessesController CreateProcessesController(
         IWorkspaceProcessManager processes,
