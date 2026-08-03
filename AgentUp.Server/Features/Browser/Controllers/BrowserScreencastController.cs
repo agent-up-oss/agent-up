@@ -22,4 +22,14 @@ public sealed class BrowserScreencastController(
             json => inputDispatcher.DispatchAsync(workspaceId, json, HttpContext.RequestAborted),
             HttpContext.RequestAborted);
     }
+
+    [HttpGet("screencast/{workspaceId}/frame")]
+    public IActionResult LatestFrame(string workspaceId)
+    {
+        if (!broadcast.TryGetLatestFrame(workspaceId, out var frame))
+            return NotFound();
+
+        Response.Headers.CacheControl = "no-store";
+        return File(frame, "image/jpeg");
+    }
 }

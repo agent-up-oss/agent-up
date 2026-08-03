@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
 using Microsoft.Extensions.Logging;
 using PuppeteerSharp;
@@ -135,13 +136,22 @@ public sealed class CdpBrowserExecutor(ILogger<CdpBrowserExecutor> logger)
         BrowserCommandDto command,
         CancellationToken ct)
     {
-        var path = Path.Join(Path.GetTempPath(), $"agentup-screenshot-{Guid.NewGuid():N}.png");
-        await session.Page.ScreenshotAsync(path, new ScreenshotOptions
+        var imageBytes = await session.Page.ScreenshotDataAsync(new ScreenshotOptions
         {
             Type = ScreenshotType.Png,
             FullPage = false
         }).WaitAsync(ct);
-        return new BrowserCommandResultDto(command.CommandId, true, path, null);
+
+        var url = await session.Page.EvaluateExpressionAsync<string>("window.location.href");
+        var width = await session.Page.EvaluateExpressionAsync<int>("window.innerWidth");
+        var height = await session.Page.EvaluateExpressionAsync<int>("window.innerHeight");
+        var screenshot = new BrowserScreenshotResultDto(
+            url,
+            "image/png",
+            Convert.ToBase64String(imageBytes),
+            width,
+            height);
+        return new BrowserCommandResultDto(command.CommandId, true, JsonSerializer.Serialize(screenshot), null);
     }
 
     private async Task<BrowserCommandResultDto> AttachPageStateAsync(

@@ -8,6 +8,7 @@ namespace AgentUp.Server.Features.Browser.Services;
 public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastService> logger)
 {
     private readonly ConcurrentDictionary<string, WorkspaceSubscriberSet> _subscribers = new();
+    private readonly ConcurrentDictionary<string, byte[]> _latestFrames = new();
 
     public bool HasSubscribers(string workspaceId)
         => _subscribers.TryGetValue(workspaceId, out var subs) && !subs.IsEmpty;
@@ -57,6 +58,7 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
 
     public async Task BroadcastFrameAsync(string workspaceId, byte[] frame, CancellationToken ct)
     {
+        _latestFrames[workspaceId] = frame.ToArray();
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         var segment = new ArraySegment<byte>(frame);
         foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
@@ -70,6 +72,18 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
                 logger.LogDebug(ex, "Screencast frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
             }
         }
+    }
+
+    public bool TryGetLatestFrame(string workspaceId, out byte[] frame)
+    {
+        if (_latestFrames.TryGetValue(workspaceId, out var stored))
+        {
+            frame = stored.ToArray();
+            return true;
+        }
+
+        frame = [];
+        return false;
     }
 
     private async Task SubscribeAsync(string workspaceId, WebSocket ws, CancellationToken ct)

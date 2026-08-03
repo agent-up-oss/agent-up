@@ -36,6 +36,37 @@ internal static class ScreencastViewerPage
           ws.binaryType = 'arraybuffer';
 
           let humanMode = false; // server starts in AI mode by default
+          let lastFrameAt = 0;
+          let pollTimer = 0;
+
+          function drawBlob(blob) {
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = () => {
+              if (canvas.width !== img.width) canvas.width = img.width;
+              if (canvas.height !== img.height) canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+              lastFrameAt = Date.now();
+              URL.revokeObjectURL(url);
+            };
+            img.onerror = () => URL.revokeObjectURL(url);
+            img.src = url;
+          }
+
+          async function pollFrame() {
+            try {
+              const res = await fetch(`/api/browser/screencast/${encodeURIComponent(workspaceId)}/frame?t=${Date.now()}`, { cache: 'no-store' });
+              if (!res.ok) return;
+              drawBlob(await res.blob());
+            } catch (_) {}
+          }
+
+          function startPolling() {
+            if (pollTimer) return;
+            pollTimer = window.setInterval(() => {
+              if (!lastFrameAt || Date.now() - lastFrameAt > 1000) pollFrame();
+            }, 1000);
+          }
 
           ws.onmessage = (e) => {
             if (typeof e.data === 'string') {
@@ -45,23 +76,19 @@ internal static class ScreencastViewerPage
               } catch (_) {}
               return;
             }
-            const blob = new Blob([e.data], { type: 'image/jpeg' });
-            const url = URL.createObjectURL(blob);
-            const img = new Image();
-            img.onload = () => {
-              if (canvas.width !== img.width) canvas.width = img.width;
-              if (canvas.height !== img.height) canvas.height = img.height;
-              ctx.drawImage(img, 0, 0);
-              URL.revokeObjectURL(url);
-            };
-            img.src = url;
+            drawBlob(new Blob([e.data], { type: 'image/jpeg' }));
           };
 
+          ws.onerror = () => startPolling();
           ws.onclose = () => {
             ctx.fillStyle = '#1e1e1e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            setTimeout(() => location.reload(), 2000);
+            startPolling();
           };
+
+          setTimeout(() => {
+            if (!lastFrameAt) startPolling();
+          }, 1500);
 
           function applyMode(isHuman) {
             humanMode = isHuman;
