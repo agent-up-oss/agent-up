@@ -3,7 +3,7 @@ export const apps = {
     workspace: 'online-shop-agent2 / returns-ops',
     name: 'Storefront',
     portVariable: 'STOREFRONT_PORT',
-    defaultPort: 5000,
+    defaultPort: 5400,
     routes: [
       {
         path: '/',
@@ -58,7 +58,7 @@ export const apps = {
     workspace: 'online-shop-agent2 / returns-ops',
     name: 'AdminPanel',
     portVariable: 'ADMIN_PORT',
-    defaultPort: 5001,
+    defaultPort: 5401,
     routes: [
       {
         path: '/admin/returns',
@@ -103,7 +103,7 @@ export const apps = {
     workspace: 'online-shop-agent2 / returns-ops',
     name: 'Fulfillment',
     portVariable: 'FULFILLMENT_PORT',
-    defaultPort: 8080,
+    defaultPort: 5402,
     routes: [
       {
         path: '/',
@@ -157,7 +157,7 @@ export const apps = {
     workspace: 'online-shop-agent2 / returns-ops',
     name: 'Postgres',
     portVariable: 'DB_PORT',
-    defaultPort: 5432,
+    defaultPort: 5403,
     routes: [
       {
         path: '/',

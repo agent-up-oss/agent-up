@@ -3,7 +3,7 @@ export const apps = {
     workspace: 'SaaS-agent1 / feat-login',
     name: 'MarketingSite',
     portVariable: 'WEB_PORT',
-    defaultPort: 8080,
+    defaultPort: 5100,
     routes: [
       {
         path: '/',
@@ -56,7 +56,7 @@ export const apps = {
     workspace: 'SaaS-agent1 / feat-login',
     name: 'Dashboard',
     portVariable: 'DASHBOARD_PORT',
-    defaultPort: 3000,
+    defaultPort: 5101,
     routes: [
       {
         path: '/dashboard',
@@ -110,7 +110,7 @@ export const apps = {
     workspace: 'SaaS-agent1 / feat-login',
     name: 'Backend',
     portVariable: 'API_PORT',
-    defaultPort: 3001,
+    defaultPort: 5102,
     routes: [
       {
         path: '/openapi',
@@ -156,7 +156,7 @@ export const apps = {
     workspace: 'SaaS-agent1 / feat-login',
     name: 'Postgres',
     portVariable: 'DB_PORT',
-    defaultPort: 5432,
+    defaultPort: 5103,
     routes: [
       {
         path: '/',

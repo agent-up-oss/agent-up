@@ -3,7 +3,7 @@ export const apps = {
     workspace: 'online-shop-agent1 / main',
     name: 'Storefront',
     portVariable: 'STOREFRONT_PORT',
-    defaultPort: 5000,
+    defaultPort: 5300,
     routes: [
       {
         path: '/',
@@ -55,7 +55,7 @@ export const apps = {
     workspace: 'online-shop-agent1 / main',
     name: 'AdminPanel',
     portVariable: 'ADMIN_PORT',
-    defaultPort: 5001,
+    defaultPort: 5301,
     routes: [
       {
         path: '/admin/orders',
@@ -100,7 +100,7 @@ export const apps = {
     workspace: 'online-shop-agent1 / main',
     name: 'Payments',
     portVariable: 'PAYMENTS_PORT',
-    defaultPort: 8080,
+    defaultPort: 5302,
     routes: [
       {
         path: '/openapi',
@@ -156,7 +156,7 @@ export const apps = {
     workspace: 'online-shop-agent1 / main',
     name: 'Postgres',
     portVariable: 'DB_PORT',
-    defaultPort: 5432,
+    defaultPort: 5303,
     routes: [
       {
         path: '/',

@@ -17,6 +17,13 @@ Each workspace contains:
 
 The apps intentionally use only Node built-in modules. No `npm install` step is required.
 
+The demo workspaces use non-overlapping default port ranges so all four can run on the same host:
+
+- `agent1`: `5100`-`5103`
+- `agent2`: `5200`-`5203`
+- `agent3`: `5300`-`5303`
+- `agent4`: `5400`-`5403`
+
 Suggested recording flow:
 
 1. Start the Agent-Up Server and Desktop.
