@@ -10,7 +10,7 @@ namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
 [TestFixture]
 public class UbuntuProductBrandingTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     private static readonly PackageProductManifest AcmeStudio = new("Acme Studio", "acme-studio", "ACMESTUDIO");
 
     // Test 1: control file for a non-Agent-Up manifest carries the product's package name

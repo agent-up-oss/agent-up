@@ -12,7 +12,7 @@ namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
 [TestFixture]
 public class UbuntuPackagerTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task PackageAsync_invokesDotNetPublishesAndDpkgBuild()
     {
