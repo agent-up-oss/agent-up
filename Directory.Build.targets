@@ -11,6 +11,8 @@
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <PackagePath ParameterType="System.String" Required="true" />
+      <PackageId ParameterType="System.String" Required="true" />
+      <PackageVersion ParameterType="System.String" Required="true" />
     </ParameterGroup>
     <Task>
       <Using Namespace="System" />
@@ -73,10 +75,16 @@
                     if (entry.FullName.EndsWith(".psmdcp", StringComparison.OrdinalIgnoreCase))
                     {
                         outName = psmdcpPath;
-                        using var s = entry.Open();
-                        using var ms = new MemoryStream();
-                        s.CopyTo(ms);
-                        content = ms.ToArray();
+                        var psmdcpBody = string.Join("\n", new[]
+                        {
+                            "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+                            "<coreProperties xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\">",
+                            "  <dc:identifier>" + PackageId + "</dc:identifier>",
+                            "  <version>" + PackageVersion + "</version>",
+                            "  <lastModifiedBy>agentup-pack</lastModifiedBy>",
+                            "</coreProperties>"
+                        });
+                        content = Encoding.UTF8.GetBytes(psmdcpBody);
                     }
                     else if (entry.FullName == "_rels/.rels")
                     {
@@ -120,7 +128,10 @@
             '$(PackageId)' == 'LocalInstaller.Smoke'     OR
             '$(PackageId)' == 'LocalInstaller.Packaging'
           )">
-    <NormalizeNuGetPackage PackagePath="$([System.IO.Path]::Combine('$(PackageOutputAbsolutePath)', '$(PackageId).$(PackageVersion).nupkg'))" />
+    <NormalizeNuGetPackage
+      PackagePath="$([System.IO.Path]::Combine('$(PackageOutputAbsolutePath)', '$(PackageId).$(PackageVersion).nupkg'))"
+      PackageId="$(PackageId)"
+      PackageVersion="$(PackageVersion)" />
   </Target>
 
 </Project>
