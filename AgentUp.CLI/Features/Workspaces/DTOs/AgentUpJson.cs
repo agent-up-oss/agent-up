@@ -5,4 +5,9 @@ public record AgentUpJson(
     List<ApplicationDefinition>? Applications = null,
     List<DockerServiceDefinition>? Services = null,
     List<DotnetApplicationDefinition>? Dotnet = null,
-    List<DockerCapabilityDefinition>? Docker = null);
+    List<DockerCapabilityDefinition>? Docker = null,
+    WorkspaceDisplayOptions? Display = null);
+
+public sealed record WorkspaceDisplayOptions(
+    string? Name = null,
+    string? Branch = null);

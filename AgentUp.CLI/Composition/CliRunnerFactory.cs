@@ -49,6 +49,7 @@ public static class CliRunnerFactory
             writer,
             new StartCommand(workspaceService, workspaceOutput),
             new StopCommand(workspaceService, writer),
+            new ClearCommand(workspaceService, writer),
             new ListCommand(workspaceService, workspaceOutput),
             new StatusCommand(workspaceService, workspaceOutput),
             commits);

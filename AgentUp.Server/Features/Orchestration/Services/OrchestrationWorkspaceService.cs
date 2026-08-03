@@ -73,11 +73,14 @@ public sealed class OrchestrationWorkspaceService
             return new McpToolResult(false, MissingConfigurationGuidance);
 
         var identity = await _identity.ReadAsync(worktreePath, cancellationToken);
+        var displayName = string.IsNullOrWhiteSpace(config.Display?.Name) ? config.Name : config.Display.Name;
+        var branch = string.IsNullOrWhiteSpace(config.Display?.Branch) ? identity.Branch : config.Display.Branch;
+
         var workspace = await _workspaces.RegisterAsync(new RegisterWorkspaceRequest(
-            DisplayName: config.Name,
+            DisplayName: displayName,
             RepositoryPath: identity.RepositoryPath,
             WorktreePath: worktreePath,
-            Branch: identity.Branch,
+            Branch: branch,
             Commit: identity.Commit)
         {
             Applications = config.Applications ?? [],

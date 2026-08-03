@@ -17,6 +17,7 @@ Place `agent-up.json` at the repository or worktree root. The CLI reads this fil
 ```json
 {
   "name": "Inventory",
+  "display": {},
   "applications": [],
   "services": [],
   "dotnet": [],
@@ -27,6 +28,8 @@ Place `agent-up.json` at the repository or worktree root. The CLI reads this fil
 
 Only `name` is required. All application and service arrays are optional.
 
+Use optional `display` values to override the Desktop workspace list title and subtitle without changing repository, worktree, or Git identity handling. `display.name` replaces the visible workspace title, and `display.branch` replaces the visible branch subtitle.
+
 Use optional `prompts` values, such as `prompts.commitPolicy`, to give AI agents repository-specific guidance without changing application runtime configuration.
 
 ## Preferred Sections
@@ -36,7 +39,7 @@ Use capability-aware sections when Agent-Up should understand the ecosystem boun
 - `dotnet` for .NET applications launched through the .NET capability.
 - `docker` for Docker containers launched through the Docker capability.
 
-Use compatibility sections when Agent-Up should preserve an opaque legacy command or Docker service shape:
+Use compatibility sections when Agent-Up should preserve a legacy executable-plus-arguments command or Docker service shape:
 
 - `applications` for local executable-plus-arguments applications.
 - `services` for legacy Docker services.

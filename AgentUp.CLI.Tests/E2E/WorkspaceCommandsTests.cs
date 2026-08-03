@@ -80,6 +80,29 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
+    public async Task Start_UsesDisplayOverrides_ForDesktopVisuals()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            name = "Test Project",
+            display = new { name = "Agent 4 - Checkout", branch = "Checkout flow" }
+        });
+        await File.WriteAllTextAsync(Path.Join(_workspaceDir, "agent-up.json"), json);
+
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspaces![0].DisplayName, Is.EqualTo("Agent 4 - Checkout"));
+            Assert.That(workspaces[0].Branch, Is.EqualTo("Checkout flow"));
+            Assert.That(workspaces[0].WorktreePath, Is.EqualTo(_workspaceDir));
+        });
+    }
+
+    [Test]
     public async Task Start_PopulatesGitBranchAndCommit()
     {
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
@@ -321,6 +344,39 @@ public class WorkspaceCommandsTests
         }
     }
 
+    // ── clear ────────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Clear_StopsAndRemovesAllWorkspaces()
+    {
+        var secondDir = Path.Join(Path.GetTempPath(), "AgentUp-E2E", Guid.NewGuid().ToString());
+        try
+        {
+            Directory.CreateDirectory(secondDir);
+            await InitGitRepoAsync(secondDir);
+            await WriteAgentUpJsonAsync(secondDir, "Second Project");
+
+            await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+            await CliRunnerFactory.Create($"http://localhost:{_port}", secondDir).RunAsync(["start"]);
+
+            using var output = new StringWriter();
+            var exitCode = await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["clear"]);
+
+            var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            Assert.Multiple(() =>
+            {
+                Assert.That(exitCode, Is.EqualTo(0));
+                Assert.That(output.ToString(), Does.Contain("Cleared 2 workspace(s)."));
+                Assert.That(workspaces, Is.Empty);
+            });
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(secondDir);
+        }
+    }
+
     // ── status ────────────────────────────────────────────────────────────────
 
     [Test]
@@ -360,7 +416,10 @@ public class WorkspaceCommandsTests
         var text = output.ToString();
         Assert.That(text, Does.Contain("start"));
         Assert.That(text, Does.Contain("list"));
+        Assert.That(text, Does.Contain("clear"));
         Assert.That(text, Does.Contain("status"));
+        Assert.That(text, Does.Contain($"http://localhost:{_port}"));
+        Assert.That(text, Does.Not.Contain("http://localhost:5000"));
         Assert.That(text, Does.Not.Contain("register"));
     }
 

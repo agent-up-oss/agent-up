@@ -13,11 +13,21 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
 | `name` | string | Yes | none | Human-readable project name shown for the workspace. |
-| `applications` | array of [Application](#application-object) | No | `[]` | Legacy local process applications launched from opaque shell commands. |
+| `display` | [Display](#display-object) | No | derived workspace visuals | Optional Desktop-only workspace list label overrides. |
+| `applications` | array of [Application](#application-object) | No | `[]` | Legacy local process applications launched directly from executable-plus-arguments commands. |
 | `services` | array of [Docker Service](#docker-service-object) | No | `[]` | Legacy Docker service definitions. |
 | `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications launched through the Agent-Up .NET capability. |
 | `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers launched through the Agent-Up Docker capability. |
 | `prompts` | [Prompts](#prompts-object) | No | default Agent-Up guidance | Optional repository-specific guidance for AI agents. |
+
+## Display Object
+
+Used at the root to make Desktop workspace list entries more expressive. These values only affect Desktop visuals; repository path, worktree path, Git branch detection, commit identity, audit identity, and process working directories still come from the real workspace.
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `name` | string | No | root `name` | Workspace list title override. |
+| `branch` | string | No | detected Git branch or `not on a git branch` | Workspace list subtitle override. |
 
 ## Prompts Object
 
@@ -36,7 +46,7 @@ Used in `applications`.
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
 | `name` | string | Yes | none | Application display name. Names are used in application lists and start/stop/restart operations. |
-| `command` | string | Yes | none | Shell command used to start the application. Agent-Up runs it through `cmd.exe /C` on Windows and `bash -c` on Unix-like systems. |
+| `command` | string | Yes | none | Executable-plus-arguments command used to start the application. Agent-Up launches it directly from the configured `path`, rejects shell expressions, and requires the first token to be an allowlisted executable name such as `node`, `npm`, `dotnet`, `python`, `cargo`, `go`, `java`, `make`, `mvn`, `gradle`, `bun`, `pnpm`, or `yarn`. |
 | `path` | string or null | No | workspace root | Working directory for the command, relative to the workspace root. Use `null` or omit it to run from the workspace root. |
 | `ports` | array of [Port](#port-object) | No | `[]` | Port declarations owned and allocated by the Server. |
 | `environment` | object of string values | No | `{}` | Inline environment variables for this process. Use for values safe to store in `agent-up.json` and Server workspace state. |
