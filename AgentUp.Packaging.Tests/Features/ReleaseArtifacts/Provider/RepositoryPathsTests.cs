@@ -53,6 +53,7 @@ public class RepositoryPathsTests
     {
         var root = Path.Join(Path.GetTempPath(), "AgentUp-RepositoryPathsTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(root);
+        root = new DirectoryInfo(root).FullName; // resolve symlinks (macOS /var -> /private/var)
         File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
         return root;
     }
