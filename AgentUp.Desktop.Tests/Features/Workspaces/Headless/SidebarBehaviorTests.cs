@@ -85,4 +85,25 @@ public class SidebarBehaviorTests
 
         Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(4));
     }
+
+    [AvaloniaTest]
+    public async Task Sidebar_clearWorkspaceList_releasesBrowserResources()
+    {
+        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(
+            [workspace],
+            () => throw new InvalidOperationException("WebView not available in headless tests."));
+
+        Assert.That(app.Window.HasWorkspaceBrowserResourcesForTests, Is.True);
+
+        handler.SetWorkspaces([]);
+        await app.Sidebar.ClickReloadAsync();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(0));
+            Assert.That(app.Window.HasWorkspaceBrowserResourcesForTests, Is.False);
+        });
+    }
 }
