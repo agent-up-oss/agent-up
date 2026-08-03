@@ -636,7 +636,7 @@ Read: `docs/developer-guide/server.md`.
 
 The Desktop is the Avalonia UI for humans. It presents Server-owned state and shared browser sessions.
 
-**Per-workspace browser isolation:** Each workspace gets its own `NativeWebView` instance. Isolation is achieved by handling the `EnvironmentRequested` event and assigning platform-native profile storage from `BrowserUrlStore.ProfilePath`: GTK/WPE data and cache directories on Linux, WebView2 user data folders on Windows, and WKWebView data store identifiers on macOS. The last-visited URL per workspace is persisted by `BrowserUrlStore` and restored when the workspace is reopened.
+**Per-workspace browser isolation:** Each workspace gets a Server-owned browser profile and remote browser session. Desktop displays the Server viewer page for the selected workspace and must not own browser lifecycle, profile storage, input policy, or viewport policy. Human mode follows the Desktop viewer dimensions; AI mode uses the last selected standardized viewport preset.
 
 Read: `docs/developer-guide/desktop.md`.
 

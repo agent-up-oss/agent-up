@@ -4,7 +4,7 @@ title: Browser
 
 # Browser
 
-Every workspace owns an isolated browser profile. The Server manages browser instances and the Desktop displays them.
+Every workspace owns an isolated browser profile. The Server manages browser instances, remote display, and input ownership. The Desktop displays the Server-owned session.
 
 Browser state includes:
 
@@ -15,6 +15,10 @@ Browser state includes:
 - Cache.
 
 Changing workspaces restores browser state. Restarting applications should reload the existing browser session instead of creating new tabs.
+
+## Human And AI Control
+
+Browser control can move between humans and AI agents. Human mode follows the Desktop viewer size so pointer, wheel, and keyboard input align with what is visible. AI mode uses a standardized viewport preset so automation returns to a predictable browser size.
 
 ## Structured Inspection
 
