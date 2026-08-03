@@ -8,11 +8,12 @@ namespace AgentUp.Packaging.Tests.Features.WindowsPackages.Provider;
 [TestFixture]
 public class WindowsWixPackagingToolTests
 {
+    private static readonly string Root = Path.GetFullPath("repo");
     [Test]
     public async Task BuildStepsInvokeExpectedWixCommands()
     {
         var commands = new RecordingCommandRunner();
-        var request = new PackageRequest("/repo", "windows", "win-x64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "out", "Release");
         var layout = WindowsPackageLayout.From(request);
         var tool = new WindowsWixPackagingTool(commands);
 
