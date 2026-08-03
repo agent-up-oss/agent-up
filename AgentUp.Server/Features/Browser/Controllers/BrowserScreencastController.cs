@@ -26,6 +26,7 @@ public sealed class BrowserScreencastController(
     [HttpGet("screencast/{workspaceId}/frame")]
     public IActionResult LatestFrame(string workspaceId)
     {
+        broadcast.RegisterPollingViewer(workspaceId);
         if (!broadcast.TryGetLatestFrame(workspaceId, out var frame))
             return NotFound();
 

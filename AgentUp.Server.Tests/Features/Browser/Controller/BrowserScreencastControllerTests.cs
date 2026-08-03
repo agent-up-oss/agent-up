@@ -38,6 +38,17 @@ public sealed class BrowserScreencastControllerTests
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
 
+    [Test]
+    public void LatestFrame_registers_polling_viewer_interest()
+    {
+        var broadcast = new ScreencastBroadcastService(NullLogger<ScreencastBroadcastService>.Instance);
+        var controller = CreateController(broadcast);
+
+        controller.LatestFrame("workspace");
+
+        Assert.That(broadcast.HasSubscribers("workspace"), Is.True);
+    }
+
     private static BrowserScreencastController CreateController(
         ScreencastBroadcastService? broadcast = null)
     {
