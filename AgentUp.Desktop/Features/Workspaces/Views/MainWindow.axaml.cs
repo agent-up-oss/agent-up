@@ -957,7 +957,7 @@ code {
     }
 
     private Uri BuildViewerUrl(string workspaceId)
-        => new(_serverHttp.BaseAddress!, $"/api/browser/viewer?workspaceId={Uri.EscapeDataString(workspaceId)}");
+        => new(_serverHttp.BaseAddress!, $"/api/browser/rdp-viewer?workspaceId={Uri.EscapeDataString(workspaceId)}");
 
 
     private void OnConsoleOverlayPointerPressed(object? sender, PointerPressedEventArgs e)
