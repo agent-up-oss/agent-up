@@ -56,7 +56,8 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
 
         Command = command;
         AllocatedPorts = ports;
-        return portsChanged | UpdateState(state);
+        var stateChanged = UpdateState(state);
+        return portsChanged || stateChanged;
     }
 
     public bool UpdateState(string newState)

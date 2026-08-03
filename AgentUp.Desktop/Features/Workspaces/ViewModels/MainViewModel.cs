@@ -258,12 +258,17 @@ public sealed class MainViewModel : ReactiveObject
         if (workspace is null)
             return false;
 
-        if (Sidebar.SelectedWorkspace?.Id != workspaceId)
-            Sidebar.SelectedWorkspace = workspace;
-
         var targetPort = uri.Port;
-        var matchingApp = Applications.Applications
+        var matchingWorkspaceApp = workspace.Applications
             .FirstOrDefault(a => a.AllocatedPorts.Any(p => p.AllocatedPort == targetPort));
+        if (matchingWorkspaceApp is null)
+            return false;
+
+        if (Sidebar.SelectedWorkspace?.Id != workspaceId)
+            return true;
+
+        var matchingApp = Applications.Applications
+            .FirstOrDefault(a => string.Equals(a.Name, matchingWorkspaceApp.Name, StringComparison.Ordinal));
         if (matchingApp is null)
             return false;
 

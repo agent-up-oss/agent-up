@@ -417,7 +417,7 @@ public class MainViewModelTests
     }
 
     [Test]
-    public async Task SelectApplicationForUrl_switchesWorkspaceAndApplicationForTargetPort()
+    public async Task SelectApplicationForUrl_doesNotSwitchWorkspaceForBrowserActivityInAnotherWorkspace()
     {
         var first = new WorkspaceDto("ws-1", "First", "/repo/first", "/worktrees/first", "main", "abc", "Running")
         {
@@ -455,11 +455,81 @@ public class MainViewModelTests
         Assert.Multiple(() =>
         {
             Assert.That(selected, Is.True);
-            Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-2"));
-            Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Admin"));
+            Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+            Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Web"));
             Assert.That(vm.SelectedSubTab, Is.TypeOf<PortSubTabViewModel>());
-            Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5202));
-            Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5202/users"));
+            Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5101));
+            Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5101/"));
+        });
+    }
+
+    [Test]
+    public async Task SelectApplicationForUrl_switchesApplicationOnlyInsideSelectedWorkspace()
+    {
+        var workspace = new WorkspaceDto("ws-1", "Workspace", "/repo/first", "/worktrees/first", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
+                },
+                new ApplicationDto("Api", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5102, 5102)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([workspace]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        var selected = vm.SelectApplicationForUrl("ws-1", "http://localhost:5102/users");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(selected, Is.True);
+            Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+            Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Api"));
+            Assert.That(vm.SelectedSubTab, Is.TypeOf<PortSubTabViewModel>());
+            Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5102));
+            Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5102/users"));
+        });
+    }
+
+    [Test]
+    public async Task SelectApplicationForUrl_keepsSelectedWorkspace_WhenTargetPortIsUnknown()
+    {
+        var first = new WorkspaceDto("ws-1", "First", "/repo/first", "/worktrees/first", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
+                }
+            ]
+        };
+        var second = new WorkspaceDto("ws-2", "Second", "/repo/second", "/worktrees/second", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Docs", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 5201, 5201)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([first, second]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+        var selected = vm.SelectApplicationForUrl("ws-2", "http://localhost:5999/users");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(selected, Is.False);
+            Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+            Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Web"));
+            Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5101/"));
         });
     }
 
