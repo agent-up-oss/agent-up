@@ -227,6 +227,30 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public void CreateWorkspaceDirectoryAlias_RejectsExistingUnverifiedAlias()
+    {
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        var workingDirectory = Path.Join(root, "workspace");
+        var aliasRoot = Path.Join(root, "aliases");
+
+        try
+        {
+            Directory.CreateDirectory(workingDirectory);
+            Directory.CreateDirectory(aliasRoot);
+            Directory.CreateDirectory(LocalProcessProvider.WorkspaceDirectoryAliasPath(workingDirectory, aliasRoot));
+
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                LocalProcessProvider.CreateWorkspaceDirectoryAlias(workingDirectory, aliasRoot));
+
+            Assert.That(ex!.Message, Does.Contain("could not be verified"));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(root);
+        }
+    }
+
+    [Test]
     public async Task KillApplicationAsync_marksIntentionalLocalProcessExitAsStopped()
     {
         if (!OperatingSystem.IsLinux())
@@ -379,5 +403,11 @@ public class WorkspaceProcessManagerTests
         }
 
         return state;
+    }
+
+    private static void DeleteDirectoryIfExists(string directory)
+    {
+        if (Directory.Exists(directory))
+            Directory.Delete(directory, recursive: true);
     }
 }
