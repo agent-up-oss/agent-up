@@ -50,6 +50,21 @@ public class SidebarBehaviorTests
     }
 
     [AvaloniaTest]
+    public async Task Sidebar_usesDisplayNameForWorkspaceTitle()
+    {
+        var app = await AppDriver.LaunchWithWorkspacesAsync(
+            [
+                new("ws-1", "agent1", "/home/dev/agent-up-agent1", "/home/dev/agent-up-agent1/Demo/agent1", "not a git repo", "", "Running")
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(app.Sidebar.ExpandedWorkspaceTexts, Does.Contain("agent1"));
+            Assert.That(app.Sidebar.ExpandedWorkspaceTexts, Does.Not.Contain("agent-up-agent1"));
+        });
+    }
+
+    [AvaloniaTest]
     public async Task Sidebar_showsNoWorkspaces_whenNoneRegistered()
     {
         var app = await AppDriver.LaunchEmptyAsync();

@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 
@@ -20,6 +21,15 @@ internal sealed class SidebarDriver(MainWindow window)
         window.FindControl<ScrollViewer>("WorkspaceListCollapsed")?.IsVisible ?? false;
 
     public string? SelectedWorkspaceName => Vm.Sidebar.SelectedWorkspace?.DisplayName;
+
+    public IReadOnlyList<string> ExpandedWorkspaceTexts =>
+        window.FindControl<ScrollViewer>("WorkspaceListExpanded")
+            ?.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .Select(text => text.Text ?? string.Empty)
+            .Where(text => text.Length > 0)
+            .ToList()
+        ?? [];
 
     public async Task CollapseAsync()
     {
