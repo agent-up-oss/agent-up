@@ -12,7 +12,7 @@ namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Unit;
 [TestFixture]
 public class UbuntuPackageManifestTests
 {
-    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
+    private static readonly string Root = OperatingSystem.IsWindows() ? @"C:\pkg" : "/pkg";
     [Test]
     public void From_normalizesVersionAndDefinesNativeTargets()
     {
