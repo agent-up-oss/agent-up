@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "AgentUp.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "list",
+      "environmentVariables": {
+        "AGENTUP_SERVER_URL": "http://localhost:5001"
+      }
+    }
+  }
+}
