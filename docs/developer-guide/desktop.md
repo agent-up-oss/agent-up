@@ -115,7 +115,7 @@ Workspace event invalidations are scoped to the event workspace ID. Desktop refr
 
 ## Browser Remote Sessions
 
-Desktop displays the Server-owned browser session through a viewer page at `/api/browser/viewer`. The Browser slice exposes remote-session metadata at `/api/browser/remote-session/{workspaceId}` so Desktop and future clients can discover the active transport, control authority, viewport preset, and touch capability without owning browser lifecycle.
+Desktop displays the Server-owned browser session through the RDP viewer page at `/api/browser/rdp-viewer`. The Browser slice exposes remote-session metadata at `/api/browser/remote-session/{workspaceId}` so Desktop and future clients can discover the active transport, RDP display WebSocket path, fallback frame path, control authority, viewport preset, and touch capability without owning browser lifecycle.
 
 Cookies, local storage, cache, and navigation state must be shared by applications within the same workspace and isolated from every other workspace.
 

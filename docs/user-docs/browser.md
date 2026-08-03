@@ -4,7 +4,7 @@ title: Browser
 
 # Browser
 
-Every workspace owns an isolated browser profile. The Server manages browser instances, remote display, and input ownership. The Desktop displays the Server-owned session.
+Every workspace owns an isolated browser profile. The Server manages browser instances, RDP remote display, and input ownership. The Desktop displays the Server-owned session.
 
 Browser state includes:
 
