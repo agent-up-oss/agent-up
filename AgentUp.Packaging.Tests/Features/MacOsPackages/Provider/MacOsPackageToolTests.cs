@@ -8,7 +8,7 @@ namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Provider;
 [TestFixture]
 public class MacOsPackageToolTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task BuildAsyncInvokesPkgbuildAndProductbuild()
     {

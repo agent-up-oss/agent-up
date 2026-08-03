@@ -14,7 +14,7 @@ namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Provider;
 [TestFixture]
 public class MacOsPackageStagerTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public void Stage_materializesAppBundleComponentRootsScriptsAndDistribution()
     {

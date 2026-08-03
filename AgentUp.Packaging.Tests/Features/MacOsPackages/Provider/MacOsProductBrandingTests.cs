@@ -10,7 +10,7 @@ namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Provider;
 [TestFixture]
 public class MacOsProductBrandingTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     private static readonly PackageProductManifest AcmeStudio = new("Acme Studio", "acme-studio", "ACMESTUDIO");
 
     // Test 1: distribution XML for a non-Agent-Up manifest carries the product's title and bundle

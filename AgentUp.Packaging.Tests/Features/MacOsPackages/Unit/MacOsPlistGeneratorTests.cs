@@ -12,7 +12,7 @@ namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Unit;
 [TestFixture]
 public class MacOsPlistGeneratorTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public void DesktopInfoPlist_containsBundleMetadataAndVersion()
     {
