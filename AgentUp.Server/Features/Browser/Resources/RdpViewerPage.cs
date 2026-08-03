@@ -1,6 +1,6 @@
 namespace AgentUp.Server.Features.Browser.Resources;
 
-internal static class ScreencastViewerPage
+internal static class RdpViewerPage
 {
     public static string Build(string workspaceId) => $$"""
         <!DOCTYPE html>
@@ -32,7 +32,7 @@ internal static class ScreencastViewerPage
           const badge = document.getElementById('ai-badge');
 
           const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-          const ws = new WebSocket(`${proto}//${location.host}/api/browser/screencast/${encodeURIComponent(workspaceId)}`);
+          const ws = new WebSocket(`${proto}//${location.host}/api/browser/rdp/${encodeURIComponent(workspaceId)}`);
           ws.binaryType = 'arraybuffer';
 
           let humanMode = false; // server starts in AI mode by default
@@ -55,7 +55,7 @@ internal static class ScreencastViewerPage
 
           async function pollFrame() {
             try {
-              const res = await fetch(`/api/browser/screencast/${encodeURIComponent(workspaceId)}/frame?t=${Date.now()}`, { cache: 'no-store' });
+              const res = await fetch(`/api/browser/rdp/${encodeURIComponent(workspaceId)}/frame?t=${Date.now()}`, { cache: 'no-store' });
               if (!res.ok) return;
               drawBlob(await res.blob());
             } catch (_) {}
@@ -177,7 +177,6 @@ internal static class ScreencastViewerPage
             send({ type: 'keyup', key: e.key });
           });
 
-          // Paste support: send text content as type events
           canvas.addEventListener('paste', e => {
             e.preventDefault();
             const text = e.clipboardData?.getData('text/plain');

@@ -5,11 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgentUp.Server.Features.Browser.Controllers;
 
 [Route("api/browser")]
-public sealed class BrowserScreencastController(
-    ScreencastBroadcastService broadcast,
+public sealed class BrowserRemoteDisplayController(
+    BrowserRemoteDisplayService display,
     BrowserInputDispatcher inputDispatcher) : ControllerBase
 {
-    [HttpGet("screencast/{workspaceId}")]
+    [HttpGet("rdp/{workspaceId}")]
     public async Task StreamAsync(string workspaceId)
     {
         if (!HttpContext.WebSockets.IsWebSocketRequest)
@@ -17,17 +17,18 @@ public sealed class BrowserScreencastController(
             HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
+
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
-        await broadcast.ConnectAsync(workspaceId, ws,
+        await display.ConnectAsync(workspaceId, ws,
             json => inputDispatcher.DispatchAsync(workspaceId, json, HttpContext.RequestAborted),
             HttpContext.RequestAborted);
     }
 
-    [HttpGet("screencast/{workspaceId}/frame")]
+    [HttpGet("rdp/{workspaceId}/frame")]
     public IActionResult LatestFrame(string workspaceId)
     {
-        broadcast.RegisterPollingViewer(workspaceId);
-        if (!broadcast.TryGetLatestFrame(workspaceId, out var frame))
+        display.RegisterPollingViewer(workspaceId);
+        if (!display.TryGetLatestFrame(workspaceId, out var frame))
             return NotFound();
 
         Response.Headers.CacheControl = "no-store";

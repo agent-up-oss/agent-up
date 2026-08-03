@@ -432,7 +432,7 @@ public sealed class BrowserMcpServiceTests
         => new(
             "/unused/chromium",
             "/unused/browser-profiles",
-            new ScreencastBroadcastService(NullLogger<ScreencastBroadcastService>.Instance),
+            new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
             NullLogger<HeadlessBrowserSessionManager>.Instance);
 
     private static AuditController CreateAuditController(

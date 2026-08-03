@@ -16,8 +16,10 @@ public sealed class IronRdpBrowserRemoteSessionProviderTests
         Assert.Multiple(() =>
         {
             Assert.That(session.WorkspaceId, Is.EqualTo("ws-1"));
-            Assert.That(session.Transport, Is.EqualTo("ironrdp-preview"));
-            Assert.That(session.ViewerPath, Is.EqualTo("/api/browser/viewer?workspaceId=ws-1"));
+            Assert.That(session.Transport, Is.EqualTo("rdp"));
+            Assert.That(session.ViewerPath, Is.EqualTo("/api/browser/rdp-viewer?workspaceId=ws-1"));
+            Assert.That(session.DisplayWebSocketPath, Is.EqualTo("/api/browser/rdp/ws-1"));
+            Assert.That(session.LatestFramePath, Is.EqualTo("/api/browser/rdp/ws-1/frame"));
             Assert.That(session.ControlAuthority, Is.EqualTo("ai"));
             Assert.That(session.SelectedPresetId, Is.EqualTo("desktop"));
             Assert.That(session.TouchCapable, Is.True);

@@ -9,7 +9,7 @@ namespace AgentUp.Server.Features.Browser.Services;
 public sealed class HeadlessBrowserSessionManager(
     string chromiumDir,
     string profilesDir,
-    ScreencastBroadcastService broadcast,
+    BrowserRemoteDisplayService display,
     ILogger<HeadlessBrowserSessionManager> logger,
     string? configuredExecutablePath = null)
     : IHostedService
@@ -127,7 +127,7 @@ public sealed class HeadlessBrowserSessionManager(
             width = mode.Width,
             height = mode.Height
         });
-        await broadcast.BroadcastTextAsync(workspaceId, msg, ct);
+        await display.BroadcastTextAsync(workspaceId, msg, ct);
         return mode;
     }
 
@@ -225,17 +225,17 @@ public sealed class HeadlessBrowserSessionManager(
         var page = await browser.NewPageAsync().WaitAsync(ct);
         await page.SetViewportAsync(new ViewPortOptions { Width = 1280, Height = 720 }).WaitAsync(ct);
 
-        _ = Task.Run(() => RunScreencastLoopAsync(workspaceId, page, _stopCts.Token));
+        _ = Task.Run(() => RunRemoteDisplayLoopAsync(workspaceId, page, _stopCts.Token));
 
         return new BrowserSessionState(workspaceId, browser, page);
     }
 
-    private async Task RunScreencastLoopAsync(string workspaceId, IPage page, CancellationToken ct)
+    private async Task RunRemoteDisplayLoopAsync(string workspaceId, IPage page, CancellationToken ct)
     {
         var options = new ScreenshotOptions { Type = ScreenshotType.Jpeg, Quality = 75, FullPage = false };
         while (!ct.IsCancellationRequested)
         {
-            if (!broadcast.HasSubscribers(workspaceId))
+            if (!display.HasSubscribers(workspaceId))
             {
                 try { await Task.Delay(500, ct); }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
@@ -246,7 +246,7 @@ public sealed class HeadlessBrowserSessionManager(
             {
                 var frame = await page.ScreenshotDataAsync(options);
                 if (frame.Length > 0)
-                    await broadcast.BroadcastFrameAsync(workspaceId, frame, ct);
+                    await display.BroadcastFrameAsync(workspaceId, frame, ct);
             }
             catch (OperationCanceledException)
             {
@@ -254,10 +254,10 @@ public sealed class HeadlessBrowserSessionManager(
             }
             catch (Exception ex) when (ex is PuppeteerException or InvalidOperationException)
             {
-                logger.LogDebug(ex, "Screencast frame error for workspace {WorkspaceId}.", workspaceId);
+                logger.LogDebug(ex, "RDP bitmap frame error for workspace {WorkspaceId}.", workspaceId);
             }
 
-            var delay = broadcast.HasActiveInput(workspaceId) ? 50 : 200;
+            var delay = display.HasActiveInput(workspaceId) ? 50 : 200;
             try { await Task.Delay(delay, ct); }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
         }

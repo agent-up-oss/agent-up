@@ -9,7 +9,7 @@ namespace AgentUp.Server.Features.Browser.Services;
 public sealed class BrowserInputDispatcher(
     HeadlessBrowserSessionAccessor accessor,
     HeadlessBrowserSessionManager manager,
-    ScreencastBroadcastService broadcast,
+    BrowserRemoteDisplayService display,
     ILogger<BrowserInputDispatcher> logger)
 {
     public async Task DispatchAsync(string workspaceId, string json, CancellationToken ct)
@@ -22,7 +22,7 @@ public sealed class BrowserInputDispatcher(
             var root = doc.RootElement;
             var type = root.GetProperty("type").GetString();
             if (type is not null)
-                broadcast.RegisterInputActivity(workspaceId);
+                display.RegisterInputActivity(workspaceId);
             await (type switch
             {
                 "mousemove"   => session.Page.Mouse.MoveAsync(X(root), Y(root)).WaitAsync(ct),

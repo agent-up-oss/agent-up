@@ -7,14 +7,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace AgentUp.Server.Tests.Features.Browser.Controller;
 
 [TestFixture]
-public sealed class BrowserScreencastControllerTests
+public sealed class BrowserRemoteDisplayControllerTests
 {
     [Test]
     public async Task LatestFrame_returns_no_store_jpeg_when_frame_exists()
     {
-        var broadcast = new ScreencastBroadcastService(NullLogger<ScreencastBroadcastService>.Instance);
-        await broadcast.BroadcastFrameAsync("workspace", [1, 2, 3], CancellationToken.None);
-        var controller = CreateController(broadcast);
+        var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
+        await display.BroadcastFrameAsync("workspace", [1, 2, 3], CancellationToken.None);
+        var controller = CreateController(display);
 
         var result = controller.LatestFrame("workspace");
 
@@ -41,29 +41,29 @@ public sealed class BrowserScreencastControllerTests
     [Test]
     public void LatestFrame_registers_polling_viewer_interest()
     {
-        var broadcast = new ScreencastBroadcastService(NullLogger<ScreencastBroadcastService>.Instance);
-        var controller = CreateController(broadcast);
+        var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
+        var controller = CreateController(display);
 
         controller.LatestFrame("workspace");
 
-        Assert.That(broadcast.HasSubscribers("workspace"), Is.True);
+        Assert.That(display.HasSubscribers("workspace"), Is.True);
     }
 
     [Test]
     public void Input_activity_marks_workspace_active()
     {
-        var broadcast = new ScreencastBroadcastService(NullLogger<ScreencastBroadcastService>.Instance);
+        var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
 
-        broadcast.RegisterInputActivity("workspace");
+        display.RegisterInputActivity("workspace");
 
-        Assert.That(broadcast.HasActiveInput("workspace"), Is.True);
+        Assert.That(display.HasActiveInput("workspace"), Is.True);
     }
 
-    private static BrowserScreencastController CreateController(
-        ScreencastBroadcastService? broadcast = null)
+    private static BrowserRemoteDisplayController CreateController(
+        BrowserRemoteDisplayService? display = null)
     {
-        var controller = new BrowserScreencastController(
-            broadcast ?? new ScreencastBroadcastService(NullLogger<ScreencastBroadcastService>.Instance),
+        var controller = new BrowserRemoteDisplayController(
+            display ?? new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
             inputDispatcher: null!);
         controller.ControllerContext = new ControllerContext
         {

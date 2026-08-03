@@ -40,7 +40,7 @@ public sealed class HeadlessEndpointTests
     [Test]
     public async Task Viewer_endpoint_returns_html_with_canvas_and_workspaceId()
     {
-        var response = await _client.GetAsync("/api/browser/viewer?workspaceId=test-ws");
+        var response = await _client.GetAsync("/api/browser/rdp-viewer?workspaceId=test-ws");
 
         Assert.That((int)response.StatusCode, Is.EqualTo(200));
         Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/html"));
@@ -50,6 +50,7 @@ public sealed class HeadlessEndpointTests
         {
             Assert.That(body, Does.Contain("<canvas"));
             Assert.That(body, Does.Contain("test-ws"));
+            Assert.That(body, Does.Contain("/api/browser/rdp/"));
         });
     }
 
@@ -63,16 +64,18 @@ public sealed class HeadlessEndpointTests
         Assert.Multiple(() =>
         {
             Assert.That(body, Does.Contain("\"workspaceId\":\"test-ws\""));
-            Assert.That(body, Does.Contain("\"transport\":\"ironrdp-preview\""));
+            Assert.That(body, Does.Contain("\"transport\":\"rdp\""));
+            Assert.That(body, Does.Contain("\"displayWebSocketPath\":\"/api/browser/rdp/test-ws\""));
+            Assert.That(body, Does.Contain("\"latestFramePath\":\"/api/browser/rdp/test-ws/frame\""));
             Assert.That(body, Does.Contain("\"selectedPresetId\":\"desktop\""));
             Assert.That(body, Does.Contain("\"touchCapable\":true"));
         });
     }
 
     [Test]
-    public async Task Screencast_endpoint_returns_400_for_plain_http_request()
+    public async Task Rdp_endpoint_returns_400_for_plain_http_request()
     {
-        var response = await _client.GetAsync("/api/browser/screencast/ws-1");
+        var response = await _client.GetAsync("/api/browser/rdp/ws-1");
         Assert.That((int)response.StatusCode, Is.EqualTo(400));
     }
 

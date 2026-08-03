@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentUp.Tests.Features.Browser.Headless;
 
-// Verifies ScreencastBroadcastService frame routing through real in-process WebSocket connections.
+// Verifies BrowserRemoteDisplayService frame routing through real in-process WebSocket connections.
 // No Chromium is involved — frames are injected manually via BroadcastFrameAsync.
 //
 // Run: dotnet test AgentUp.Tests/ --filter "Category=Headless"
@@ -34,10 +34,10 @@ public sealed class HeadlessBroadcastServiceTests
         using var ws = await ConnectAsync("ws-single", ct);
 
         var frame = new byte[] { 0xFF, 0xD8, 0x01, 0x02, 0x03 };
-        var broadcast = _factory.Services.GetRequiredService<ScreencastBroadcastService>();
+        var display = _factory.Services.GetRequiredService<BrowserRemoteDisplayService>();
 
         await Task.Delay(50, ct);
-        await broadcast.BroadcastFrameAsync("ws-single", frame, ct);
+        await display.BroadcastFrameAsync("ws-single", frame, ct);
 
         var received = await ReceiveFrameAsync(ws, ct);
         Assert.That(received, Is.EqualTo(frame));
@@ -50,10 +50,10 @@ public sealed class HeadlessBroadcastServiceTests
         using var ws2 = await ConnectAsync("ws-multi", ct);
 
         var frame = new byte[] { 0xFF, 0xD8, 0xAA, 0xBB };
-        var broadcast = _factory.Services.GetRequiredService<ScreencastBroadcastService>();
+        var display = _factory.Services.GetRequiredService<BrowserRemoteDisplayService>();
 
         await Task.Delay(50, ct);
-        await broadcast.BroadcastFrameAsync("ws-multi", frame, ct);
+        await display.BroadcastFrameAsync("ws-multi", frame, ct);
 
         var r1 = await ReceiveFrameAsync(ws1, ct);
         var r2 = await ReceiveFrameAsync(ws2, ct);
@@ -76,10 +76,10 @@ public sealed class HeadlessBroadcastServiceTests
         ws.Abort();
         await Task.Delay(100, ct);
 
-        var broadcast = _factory.Services.GetRequiredService<ScreencastBroadcastService>();
+        var display = _factory.Services.GetRequiredService<BrowserRemoteDisplayService>();
 
         Assert.DoesNotThrowAsync(async () =>
-            await broadcast.BroadcastFrameAsync("ws-closed", [0x01, 0x02], ct));
+            await display.BroadcastFrameAsync("ws-closed", [0x01, 0x02], ct));
     }
 
     [Test, CancelAfter(10000)]
@@ -89,10 +89,10 @@ public sealed class HeadlessBroadcastServiceTests
         using var wsB = await ConnectAsync("ws-room-b", ct);
 
         var frameA = new byte[] { 0xFF, 0xD8, 0xCA, 0xFE };
-        var broadcast = _factory.Services.GetRequiredService<ScreencastBroadcastService>();
+        var display = _factory.Services.GetRequiredService<BrowserRemoteDisplayService>();
 
         await Task.Delay(50, ct);
-        await broadcast.BroadcastFrameAsync("ws-room-a", frameA, ct);
+        await display.BroadcastFrameAsync("ws-room-a", frameA, ct);
 
         var received = await ReceiveFrameAsync(wsA, ct);
         Assert.That(received, Is.EqualTo(frameA), "ws-room-a subscriber should receive the frame");
@@ -110,7 +110,7 @@ public sealed class HeadlessBroadcastServiceTests
     private async Task<WebSocket> ConnectAsync(string workspaceId, CancellationToken ct)
     {
         var wsClient = _factory.Server.CreateWebSocketClient();
-        var uri = new Uri($"ws://localhost/api/browser/screencast/{workspaceId}");
+        var uri = new Uri($"ws://localhost/api/browser/rdp/{workspaceId}");
         return await wsClient.ConnectAsync(uri, ct);
     }
 

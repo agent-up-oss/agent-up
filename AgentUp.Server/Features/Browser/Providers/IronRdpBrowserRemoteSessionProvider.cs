@@ -18,8 +18,10 @@ public sealed class IronRdpBrowserRemoteSessionProvider : IBrowserRemoteSessionP
 
         return new BrowserRemoteSessionDto(
             WorkspaceId: workspaceId,
-            Transport: IsIronRdpBindingAvailable() ? "ironrdp-preview" : "screencast-fallback",
-            ViewerPath: $"/api/browser/viewer?workspaceId={Uri.EscapeDataString(workspaceId)}",
+            Transport: IsIronRdpBindingAvailable() ? "rdp" : "rdp-unavailable",
+            ViewerPath: $"/api/browser/rdp-viewer?workspaceId={Uri.EscapeDataString(workspaceId)}",
+            DisplayWebSocketPath: $"/api/browser/rdp/{Uri.EscapeDataString(workspaceId)}",
+            LatestFramePath: $"/api/browser/rdp/{Uri.EscapeDataString(workspaceId)}/frame",
             ControlAuthority: mode.Authority == ControlAuthority.Human ? "human" : "ai",
             Width: mode.Width,
             Height: mode.Height,

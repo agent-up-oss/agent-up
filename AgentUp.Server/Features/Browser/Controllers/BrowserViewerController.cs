@@ -6,12 +6,12 @@ namespace AgentUp.Server.Features.Browser.Controllers;
 [Route("api/browser")]
 public sealed class BrowserViewerController : ControllerBase
 {
-    [HttpGet("viewer")]
+    [HttpGet("rdp-viewer")]
     public IActionResult Viewer([FromQuery] string workspaceId)
     {
         if (string.IsNullOrEmpty(workspaceId))
             return BadRequest("workspaceId is required.");
-        return Content(ScreencastViewerPage.Build(workspaceId), "text/html");
+        return Content(RdpViewerPage.Build(workspaceId), "text/html");
     }
 
     [HttpGet("mode")]

@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace AgentUp.Tests.Features.Browser.Headless;
 
 // Exercises the full headless browser stack end-to-end: Chromium is downloaded, launched,
-// navigated, screenshotted, and screencast-streamed over WebSocket.
+// navigated, screenshotted, and streamed over the RDP display endpoint.
 //
 // Chromium is cached in a stable temp directory so the download only happens once.
 // First run may take ~2 minutes; subsequent runs are fast.
@@ -99,9 +99,9 @@ public sealed class HeadlessE2ETests
     }
 
     [Test, CancelAfter(30000)]
-    public async Task Screencast_endpoint_streams_jpeg_frames(CancellationToken ct)
+    public async Task Rdp_endpoint_streams_jpeg_frames(CancellationToken ct)
     {
-        using var ws = await ConnectScreencastAsync(WorkspaceId, ct);
+        using var ws = await ConnectRdpAsync(WorkspaceId, ct);
 
         var frame = await ReceiveFrameAsync(ws, ct);
 
@@ -114,10 +114,10 @@ public sealed class HeadlessE2ETests
     }
 
     [Test, CancelAfter(30000)]
-    public async Task Two_screencast_clients_both_receive_frames(CancellationToken ct)
+    public async Task Two_rdp_clients_both_receive_frames(CancellationToken ct)
     {
-        using var ws1 = await ConnectScreencastAsync(WorkspaceId, ct);
-        using var ws2 = await ConnectScreencastAsync(WorkspaceId, ct);
+        using var ws1 = await ConnectRdpAsync(WorkspaceId, ct);
+        using var ws2 = await ConnectRdpAsync(WorkspaceId, ct);
 
         var r1Task = ReceiveFrameAsync(ws1, ct);
         var r2Task = ReceiveFrameAsync(ws2, ct);
@@ -133,7 +133,7 @@ public sealed class HeadlessE2ETests
     [Test, CancelAfter(30000)]
     public async Task Session_persists_after_client_reconnect(CancellationToken ct)
     {
-        using (var ws = await ConnectScreencastAsync(WorkspaceId, ct))
+        using (var ws = await ConnectRdpAsync(WorkspaceId, ct))
         {
             await ReceiveFrameAsync(ws, ct);
             ws.Abort();
@@ -143,7 +143,7 @@ public sealed class HeadlessE2ETests
         await Task.Delay(200, ct);
 
         // Reconnect — the Chromium session must still be alive.
-        using var ws2 = await ConnectScreencastAsync(WorkspaceId, ct);
+        using var ws2 = await ConnectRdpAsync(WorkspaceId, ct);
         var frame = await ReceiveFrameAsync(ws2, ct);
 
         Assert.That(frame.Length, Is.GreaterThan(2),
@@ -183,10 +183,10 @@ public sealed class HeadlessE2ETests
             "Navigate endpoint must dispatch when headless is configured");
     }
 
-    private async Task<WebSocket> ConnectScreencastAsync(string workspaceId, CancellationToken ct)
+    private async Task<WebSocket> ConnectRdpAsync(string workspaceId, CancellationToken ct)
     {
         var wsClient = _factory.Server.CreateWebSocketClient();
-        var uri = new Uri($"ws://localhost/api/browser/screencast/{workspaceId}");
+        var uri = new Uri($"ws://localhost/api/browser/rdp/{workspaceId}");
         return await wsClient.ConnectAsync(uri, ct);
     }
 
@@ -195,7 +195,7 @@ public sealed class HeadlessE2ETests
         var buffer = new byte[256 * 1024];
         var result = await ws.ReceiveAsync(buffer, ct);
         Assert.That(result.MessageType, Is.EqualTo(WebSocketMessageType.Binary),
-            "Screencast frames must be binary WebSocket messages");
+            "RDP display frames must be binary WebSocket messages");
         return buffer[..result.Count];
     }
 

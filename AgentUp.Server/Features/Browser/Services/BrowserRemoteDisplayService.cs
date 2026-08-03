@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Browser.Services;
 
-public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastService> logger)
+public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayService> logger)
 {
     private static readonly TimeSpan PollingViewerTtl = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ActiveInputTtl = TimeSpan.FromMilliseconds(1200);
@@ -48,7 +48,7 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
         }
         catch (OperationCanceledException)
         {
-            logger.LogDebug("Screencast connection for workspace {WorkspaceId} ended.", SanitizeForLog(workspaceId));
+            logger.LogDebug("RDP display connection for workspace {WorkspaceId} ended.", SanitizeForLog(workspaceId));
         }
         finally
         {
@@ -56,7 +56,7 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
             try { await drainTask; }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
-                logger.LogDebug(ex, "Drain task ended with error for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+                logger.LogDebug(ex, "RDP input drain ended with error for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
             }
         }
     }
@@ -74,7 +74,7 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
             }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
-                logger.LogDebug(ex, "Text frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+                logger.LogDebug(ex, "RDP control frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
             }
         }
     }
@@ -92,7 +92,7 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
             }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
-                logger.LogDebug(ex, "Screencast frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+                logger.LogDebug(ex, "RDP bitmap frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
             }
         }
     }
@@ -156,7 +156,7 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
         }
         catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
         {
-            logger.LogDebug(ex, "WebSocket connection for workspace {WorkspaceId} closed unexpectedly.", SanitizeForLog(workspaceId));
+            logger.LogDebug(ex, "RDP WebSocket connection for workspace {WorkspaceId} closed unexpectedly.", SanitizeForLog(workspaceId));
         }
         finally
         {
