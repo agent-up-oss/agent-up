@@ -77,13 +77,15 @@ internal static class BrowserScripts
     public static string CompleteClick(string selector) =>
         $"(function(){{" +
         $"var e=document.querySelector({Js(selector)});" +
-        $"if(!e)return JSON.stringify({{error:'Element not found: '+{Js(selector)}}});" +
+        $"var c=document.getElementById('__agentUpClickRing');" +
+        $"if(!e){{if(c)c.remove();return JSON.stringify({{error:'Element not found: '+{Js(selector)}}});}}" +
+        $"if(e.matches(':disabled')){{if(c)c.remove();return JSON.stringify({{error:'Element is disabled: '+{Js(selector)}}});}}" +
         $"var r=e.getBoundingClientRect();" +
         $"var x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/2);" +
         $"window.__agentUpMouse={{x:x,y:y}};" +
-        $"var c=document.getElementById('__agentUpClickRing');" +
-        $"try{{e.click();}}finally{{if(c)c.remove();}}" +
-        $"return JSON.stringify({{ok:true}});" +
+        $"try{{e.click();return JSON.stringify({{ok:true}});}}" +
+        $"catch(ex){{return JSON.stringify({{error:'Click failed: '+(ex&&ex.message?ex.message:ex)}});}}" +
+        $"finally{{if(c)c.remove();}}" +
         $"}})()";
 
     public static string Fill(string selector, string text) =>
