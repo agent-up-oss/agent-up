@@ -6,7 +6,7 @@ namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Unit;
 [TestFixture]
 public class PackageRequestTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [TestCase("v1.2.3", "1.2.3")]
     [TestCase("1.2.3-ci.149", "1.2.3")]
     [TestCase("0.0.0-ci.149", "0.0.1")]

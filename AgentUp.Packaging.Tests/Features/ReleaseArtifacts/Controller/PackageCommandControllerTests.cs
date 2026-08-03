@@ -12,7 +12,7 @@ namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Controller;
 [TestFixture]
 public class PackageCommandControllerTests
 {
-    private static readonly string Root = Path.GetFullPath("repo");
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task ExecuteAsync_withUbuntuCommandDispatchesToUbuntuController()
     {
