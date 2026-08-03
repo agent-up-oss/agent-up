@@ -39,7 +39,7 @@ Use capability-aware sections when Agent-Up should understand the ecosystem boun
 - `dotnet` for .NET applications launched through the .NET capability.
 - `docker` for Docker containers launched through the Docker capability.
 
-Use compatibility sections when Agent-Up should preserve an opaque legacy command or Docker service shape:
+Use compatibility sections when Agent-Up should preserve a legacy executable-plus-arguments command or Docker service shape:
 
 - `applications` for local executable-plus-arguments applications.
 - `services` for legacy Docker services.
