@@ -49,6 +49,16 @@ public sealed class BrowserScreencastControllerTests
         Assert.That(broadcast.HasSubscribers("workspace"), Is.True);
     }
 
+    [Test]
+    public void Input_activity_marks_workspace_active()
+    {
+        var broadcast = new ScreencastBroadcastService(NullLogger<ScreencastBroadcastService>.Instance);
+
+        broadcast.RegisterInputActivity("workspace");
+
+        Assert.That(broadcast.HasActiveInput("workspace"), Is.True);
+    }
+
     private static BrowserScreencastController CreateController(
         ScreencastBroadcastService? broadcast = null)
     {

@@ -11,8 +11,8 @@ internal static class ScreencastViewerPage
           <title>AgentUp Browser</title>
           <style>
             html, body { margin: 0; padding: 0; background: #1e1e1e; overflow: hidden; width: 100%; height: 100%; }
-            #c { display: block; width: 100%; height: 100%; object-fit: contain; cursor: crosshair; }
-            #c.ai-mode { cursor: not-allowed; opacity: 0.85; }
+            #c { display: block; width: 100%; height: 100%; object-fit: contain; cursor: none; touch-action: none; }
+            #c.ai-mode { opacity: 0.85; }
             #ai-badge {
               display: none; position: fixed; bottom: 8px; right: 10px;
               background: #222; color: #888; font: bold 11px/1 monospace;
@@ -64,8 +64,8 @@ internal static class ScreencastViewerPage
           function startPolling() {
             if (pollTimer) return;
             pollTimer = window.setInterval(() => {
-              if (!lastFrameAt || Date.now() - lastFrameAt > 1000) pollFrame();
-            }, 1000);
+              if (!lastFrameAt || Date.now() - lastFrameAt > 250) pollFrame();
+            }, 250);
           }
 
           ws.onmessage = (e) => {
@@ -100,12 +100,17 @@ internal static class ScreencastViewerPage
             if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
           }
 
+          function viewerSize() {
+            const r = canvas.getBoundingClientRect();
+            return { width: Math.max(1, Math.round(r.width)), height: Math.max(1, Math.round(r.height)) };
+          }
+
           function reclaim() {
             if (!humanMode) {
               humanMode = true;
               canvas.classList.remove('ai-mode');
               badge.classList.remove('visible');
-              send({ type: 'controlmode', authority: 'human' });
+              send({ type: 'controlmode', authority: 'human', ...viewerSize() });
             }
           }
 
@@ -126,9 +131,12 @@ internal static class ScreencastViewerPage
             return m;
           }
 
-          canvas.addEventListener('mouseenter', () => canvas.focus({ preventScroll: true }));
+          canvas.addEventListener('mouseenter', () => {
+            canvas.focus({ preventScroll: true });
+            reclaim();
+          });
           canvas.addEventListener('mousemove', e => {
-            if (!humanMode) return;
+            reclaim();
             const p = scale(e);
             send({ type: 'mousemove', ...p });
           });
@@ -156,11 +164,13 @@ internal static class ScreencastViewerPage
           });
           canvas.addEventListener('wheel', e => {
             e.preventDefault();
+            reclaim();
             send({ type: 'wheel', deltaX: e.deltaX, deltaY: e.deltaY });
           }, { passive: false });
 
           canvas.addEventListener('keydown', e => {
             e.preventDefault();
+            reclaim();
             send({ type: 'keydown', key: e.key, modifiers: mods(e) });
           });
           canvas.addEventListener('keyup', e => {

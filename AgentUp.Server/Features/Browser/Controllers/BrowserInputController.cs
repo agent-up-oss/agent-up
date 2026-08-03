@@ -15,11 +15,12 @@ public sealed class BrowserInputController(HeadlessBrowserSessionManager manager
     public async Task<IActionResult> SetControlModeAsync(
         string workspaceId,
         [FromQuery] string authority,
+        [FromQuery] string? preset = null,
         [FromQuery] int width = 1280,
         [FromQuery] int height = 720,
         CancellationToken ct = default)
     {
-        var (success, error) = await manager.TrySetControlModeAsync(workspaceId, authority, width, height, ct);
+        var (success, error) = await manager.TrySetControlModeAsync(workspaceId, authority, preset, width, height, ct);
         return success ? Ok(manager.GetControlModeDto(workspaceId)) : BadRequest(error);
     }
 

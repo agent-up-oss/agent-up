@@ -54,6 +54,22 @@ public sealed class HeadlessEndpointTests
     }
 
     [Test]
+    public async Task Remote_session_endpoint_returns_ironrdp_viewer_metadata()
+    {
+        var response = await _client.GetAsync("/api/browser/remote-session/test-ws");
+
+        Assert.That((int)response.StatusCode, Is.EqualTo(200));
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(body, Does.Contain("\"workspaceId\":\"test-ws\""));
+            Assert.That(body, Does.Contain("\"transport\":\"ironrdp-preview\""));
+            Assert.That(body, Does.Contain("\"selectedPresetId\":\"desktop\""));
+            Assert.That(body, Does.Contain("\"touchCapable\":true"));
+        });
+    }
+
+    [Test]
     public async Task Screencast_endpoint_returns_400_for_plain_http_request()
     {
         var response = await _client.GetAsync("/api/browser/screencast/ws-1");

@@ -9,6 +9,7 @@ namespace AgentUp.Server.Features.Browser.Services;
 public sealed class BrowserInputDispatcher(
     HeadlessBrowserSessionAccessor accessor,
     HeadlessBrowserSessionManager manager,
+    ScreencastBroadcastService broadcast,
     ILogger<BrowserInputDispatcher> logger)
 {
     public async Task DispatchAsync(string workspaceId, string json, CancellationToken ct)
@@ -20,6 +21,8 @@ public sealed class BrowserInputDispatcher(
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             var type = root.GetProperty("type").GetString();
+            if (type is not null)
+                broadcast.RegisterInputActivity(workspaceId);
             await (type switch
             {
                 "mousemove"   => session.Page.Mouse.MoveAsync(X(root), Y(root)).WaitAsync(ct),
@@ -30,7 +33,7 @@ public sealed class BrowserInputDispatcher(
                 "keydown"     => session.Page.Keyboard.DownAsync(Key(root)).WaitAsync(ct),
                 "keyup"       => session.Page.Keyboard.UpAsync(Key(root)).WaitAsync(ct),
                 "type"        => session.Page.Keyboard.TypeAsync(Text(root)).WaitAsync(ct),
-                "controlmode" => SwitchToHumanAsync(workspaceId, ct),
+                "controlmode" => SwitchToHumanAsync(workspaceId, root, ct),
                 _             => Task.CompletedTask
             });
         }
@@ -41,11 +44,13 @@ public sealed class BrowserInputDispatcher(
         }
     }
 
-    private async Task SwitchToHumanAsync(string workspaceId, CancellationToken ct)
+    private async Task SwitchToHumanAsync(string workspaceId, JsonElement root, CancellationToken ct)
     {
         var current = manager.GetControlMode(workspaceId);
         if (current.Authority != ControlAuthority.Human)
             await manager.SetControlModeAsync(workspaceId, BrowserControlMode.DefaultHuman, ct);
+        if (root.TryGetProperty("width", out var w) && root.TryGetProperty("height", out var h))
+            await manager.TrySetViewportAsync(workspaceId, w.GetInt32(), h.GetInt32(), ct);
     }
 
     private static decimal X(JsonElement e) => (decimal)e.GetProperty("x").GetDouble();

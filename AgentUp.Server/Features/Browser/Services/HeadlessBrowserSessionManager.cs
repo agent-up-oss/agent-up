@@ -16,6 +16,7 @@ public sealed class HeadlessBrowserSessionManager(
 {
     private readonly ConcurrentDictionary<string, BrowserSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, BrowserControlMode> _controlModes = new();
+    private readonly ConcurrentDictionary<string, BrowserViewportPreset> _aiViewportPresets = new();
     private readonly SemaphoreSlim _createLock = new(1, 1);
     private CancellationTokenSource _stopCts = new();
     private string? _executablePath;
@@ -131,19 +132,41 @@ public sealed class HeadlessBrowserSessionManager(
     }
 
     public async Task<(bool Success, string? Error)> TrySetControlModeAsync(
-        string workspaceId, string authority, int width, int height, CancellationToken ct)
+        string workspaceId, string authority, string? preset, int width, int height, CancellationToken ct)
     {
         if (!Enum.TryParse<ControlAuthority>(authority, ignoreCase: true, out var parsed))
             return (false, $"Invalid authority '{authority}'. Use 'human' or 'ai'.");
-        if (parsed == ControlAuthority.Ai && !BrowserControlMode.AllowedWidths.Contains(width))
-            return (false, $"Width {width} is not allowed. Use one of: {string.Join(", ", BrowserControlMode.AllowedWidths)}.");
-        if (parsed == ControlAuthority.Ai && !BrowserControlMode.AllowedHeights.Contains(height))
-            return (false, $"Height {height} is not allowed. Use one of: {string.Join(", ", BrowserControlMode.AllowedHeights)}.");
+
+        string? error = null;
         var mode = parsed == ControlAuthority.Ai
-            ? new BrowserControlMode(ControlAuthority.Ai, width, height)
+            ? ResolveAiMode(workspaceId, preset, width, height, out error)
             : BrowserControlMode.DefaultHuman;
+        if (mode is null)
+            return (false, error);
+
         await SetControlModeAsync(workspaceId, mode, ct);
         return (true, null);
+    }
+
+    private BrowserControlMode? ResolveAiMode(
+        string workspaceId, string? presetId, int width, int height, out string? error)
+    {
+        var preset = !string.IsNullOrWhiteSpace(presetId)
+            ? BrowserViewportPreset.Find(presetId)
+            : BrowserViewportPreset.Find(width, height)
+              ?? (_aiViewportPresets.TryGetValue(workspaceId, out var remembered)
+                  ? remembered
+                  : BrowserViewportPreset.Default);
+
+        if (preset is null)
+        {
+            error = $"Viewport preset '{presetId}' is not allowed. Use one of: {string.Join(", ", BrowserViewportPreset.Standard.Select(p => p.Id))}.";
+            return null;
+        }
+
+        _aiViewportPresets[workspaceId] = preset;
+        error = null;
+        return new BrowserControlMode(ControlAuthority.Ai, preset.Width, preset.Height);
     }
 
     public async Task<bool> TrySetViewportAsync(string workspaceId, int width, int height, CancellationToken ct)
@@ -234,7 +257,8 @@ public sealed class HeadlessBrowserSessionManager(
                 logger.LogDebug(ex, "Screencast frame error for workspace {WorkspaceId}.", workspaceId);
             }
 
-            try { await Task.Delay(200, ct); }
+            var delay = broadcast.HasActiveInput(workspaceId) ? 50 : 200;
+            try { await Task.Delay(delay, ct); }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
         }
     }

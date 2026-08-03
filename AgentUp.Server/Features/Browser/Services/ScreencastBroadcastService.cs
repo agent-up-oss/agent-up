@@ -8,9 +8,11 @@ namespace AgentUp.Server.Features.Browser.Services;
 public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastService> logger)
 {
     private static readonly TimeSpan PollingViewerTtl = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan ActiveInputTtl = TimeSpan.FromMilliseconds(1200);
     private readonly ConcurrentDictionary<string, WorkspaceSubscriberSet> _subscribers = new();
     private readonly ConcurrentDictionary<string, byte[]> _latestFrames = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _pollingViewers = new();
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _activeInput = new();
 
     public bool HasSubscribers(string workspaceId)
         => (_subscribers.TryGetValue(workspaceId, out var subs) && !subs.IsEmpty)
@@ -18,6 +20,21 @@ public sealed class ScreencastBroadcastService(ILogger<ScreencastBroadcastServic
 
     public void RegisterPollingViewer(string workspaceId)
         => _pollingViewers[workspaceId] = DateTimeOffset.UtcNow.Add(PollingViewerTtl);
+
+    public void RegisterInputActivity(string workspaceId)
+        => _activeInput[workspaceId] = DateTimeOffset.UtcNow.Add(ActiveInputTtl);
+
+    public bool HasActiveInput(string workspaceId)
+    {
+        if (!_activeInput.TryGetValue(workspaceId, out var expiresAt))
+            return false;
+
+        if (expiresAt > DateTimeOffset.UtcNow)
+            return true;
+
+        _activeInput.TryRemove(workspaceId, out _);
+        return false;
+    }
 
     public async Task ConnectAsync(string workspaceId, WebSocket ws, Func<string, Task>? onTextFrame, CancellationToken ct)
     {

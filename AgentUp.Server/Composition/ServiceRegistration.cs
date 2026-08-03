@@ -18,6 +18,8 @@ using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Services;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Browser.Interfaces;
+using AgentUp.Server.Features.Browser.Providers;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
@@ -139,6 +141,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserSessionStore>();
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<ScreencastBroadcastService>();
+        builder.Services.AddSingleton<IBrowserRemoteSessionProvider, IronRdpBrowserRemoteSessionProvider>();
+        builder.Services.AddSingleton<BrowserRemoteSessionService>();
         builder.Services.AddSingleton<BrowserInputDispatcher>();
         builder.Services.AddSingleton(sp =>
             new HeadlessBrowserSessionManager(

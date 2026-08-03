@@ -41,6 +41,16 @@ public sealed class CdpBrowserExecutor(ILogger<CdpBrowserExecutor> logger)
         BrowserCommandDto command,
         CancellationToken ct)
     {
+        if (string.Equals(command.Url, "about:blank", StringComparison.OrdinalIgnoreCase))
+        {
+            await session.Page.GoToAsync("about:blank", new NavigationOptions
+            {
+                Timeout = command.TimeoutMs,
+                WaitUntil = [WaitUntilNavigation.Load]
+            }).WaitAsync(ct);
+            return Ok(command);
+        }
+
         if (!Uri.TryCreate(command.Url, UriKind.Absolute, out var uri)
             || uri.Scheme is not ("http" or "https"))
             return Fail(command, $"Navigation target must use http or https. Received: {command.Url}");

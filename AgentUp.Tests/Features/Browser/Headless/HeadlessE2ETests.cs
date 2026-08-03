@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Text.Json;
 using AgentUp.Server;
 using AgentUp.Server.Features.Browser.Models;
 using AgentUp.Server.Features.Browser.Services;
@@ -65,18 +66,23 @@ public sealed class HeadlessE2ETests
     }
 
     [Test, CancelAfter(30000)]
-    public async Task Screenshot_returns_path_to_valid_png(CancellationToken ct)
+    public async Task Screenshot_returns_valid_png_metadata(CancellationToken ct)
     {
         var result = await _store.DispatchAsync(
             Command(BrowserCommandKind.Screenshot), TimeSpan.FromSeconds(20), ct);
 
         Assert.That(result.Success, Is.True, result.Error);
-        Assert.That(result.Data, Is.Not.Null.And.EndsWith(".png"));
+        Assert.That(result.Data, Is.Not.Null);
 
-        var bytes = await File.ReadAllBytesAsync(result.Data!, ct);
+        var screenshot = JsonSerializer.Deserialize<BrowserScreenshotResultDto>(
+            result.Data!,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.That(screenshot, Is.Not.Null);
+        var bytes = Convert.FromBase64String(screenshot!.ImageBase64);
         Assert.Multiple(() =>
         {
             Assert.That(bytes.Length, Is.GreaterThan(8), "PNG file must have content");
+            Assert.That(screenshot.MimeType, Is.EqualTo("image/png"));
             Assert.That(bytes[0], Is.EqualTo(0x89), "PNG signature byte 0");
             Assert.That(bytes[1], Is.EqualTo(0x50), "PNG signature byte 1 ('P')");
             Assert.That(bytes[2], Is.EqualTo(0x4E), "PNG signature byte 2 ('N')");
