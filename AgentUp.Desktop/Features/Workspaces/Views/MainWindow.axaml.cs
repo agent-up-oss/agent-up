@@ -315,6 +315,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static bool ShouldReclaimViewerUrl(string? currentSource, string viewerUrl)
         => !string.Equals(currentSource, viewerUrl, StringComparison.Ordinal);
 
+    internal static bool IsBrowserViewerRequest(Uri? request)
+        => request?.AbsolutePath == "/api/browser/rdp-viewer";
+
     private void ActivateTab(string? workspaceId, string? tabKey, bool tutorialVisible)
     {
         if (workspaceId == _activeWorkspaceId && tabKey == _activeTabKey) return;
@@ -373,6 +376,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             {
                 if (e.Request is { } failedUri && failedUri.Scheme is "http" or "https")
                 {
+                    if (IsBrowserViewerRequest(failedUri))
+                    {
+                        RetryViewerNavigation(tabKey, webView, failedUri);
+                        return;
+                    }
+
                     ShowBrowserErrorPage(
                         tabKey,
                         workspaceId,
@@ -543,6 +552,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
         await PollHeadlessAddressAsync(_activeWorkspaceId);
         await PollControlModeAsync(_activeWorkspaceId);
+        ReclaimActiveViewer();
     }
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
@@ -856,6 +866,16 @@ code {
             _ = PostViewportAsync(workspaceId, (int)PortPane.Bounds.Width, (int)PortPane.Bounds.Height);
     }
 
+    private void ReclaimActiveViewer()
+    {
+        if (_activeWorkspaceId is null || _activeTabKey is null) return;
+        if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
+
+        var viewerUrl = BuildViewerUrl(_activeWorkspaceId);
+        if (!IsAtViewerUrl(webView, viewerUrl))
+            NavigateWebView(webView, viewerUrl);
+    }
+
     private async Task PollHeadlessAddressAsync(string workspaceId)
     {
         try
@@ -967,6 +987,17 @@ code {
 
     private static bool IsAtViewerUrl(NativeWebView webView, Uri viewerUrl)
         => !ShouldReclaimViewerUrl(webView.Source?.AbsoluteUri, viewerUrl.AbsoluteUri);
+
+    private void RetryViewerNavigation(string tabKey, NativeWebView webView, Uri viewerUrl)
+    {
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (CanTouchWebView(tabKey, webView))
+                    NavigateWebView(webView, viewerUrl);
+            },
+            DispatcherPriority.Background);
+    }
 
 
     private void OnConsoleOverlayPointerPressed(object? sender, PointerPressedEventArgs e)

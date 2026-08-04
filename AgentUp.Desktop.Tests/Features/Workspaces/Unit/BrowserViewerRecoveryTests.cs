@@ -24,4 +24,20 @@ public sealed class BrowserViewerRecoveryTests
 
         Assert.That(shouldReclaim, Is.False);
     }
+
+    [Test]
+    public void Viewer_failure_is_classified_as_browser_viewer_request()
+    {
+        var request = new Uri("http://localhost:5001/api/browser/rdp-viewer?workspaceId=ws-1");
+
+        Assert.That(MainWindow.IsBrowserViewerRequest(request), Is.True);
+    }
+
+    [Test]
+    public void App_failure_is_not_classified_as_browser_viewer_request()
+    {
+        var request = new Uri("http://localhost:3000/");
+
+        Assert.That(MainWindow.IsBrowserViewerRequest(request), Is.False);
+    }
 }
