@@ -22,12 +22,26 @@ public sealed class BrowserSessionControllerTests
         var store = new BrowserSessionStore();
         var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
 
-        var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", CancellationToken.None);
+        var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", true, CancellationToken.None);
         var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
         store.CompleteCommand(new BrowserCommandResultDto(command!.CommandId, true, null, null));
         var result = await navigateTask;
 
         Assert.That(result, Is.InstanceOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task Navigate_PreservesReloadIfSameUrlFlag()
+    {
+        var store = new BrowserSessionStore();
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
+
+        var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", false, CancellationToken.None);
+        var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
+        store.CompleteCommand(new BrowserCommandResultDto(command!.CommandId, true, null, null));
+        await navigateTask;
+
+        Assert.That(command.ReloadIfSameUrl, Is.False);
     }
 
     [Test]
@@ -38,7 +52,7 @@ public sealed class BrowserSessionControllerTests
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        var result = await controller.Navigate("ws-1", "http://localhost:3000", cts.Token);
+        var result = await controller.Navigate("ws-1", "http://localhost:3000", true, cts.Token);
 
         Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }

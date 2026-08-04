@@ -17,9 +17,12 @@ public sealed class BrowserSessionController(BrowserSessionStore store, Headless
 
     [HttpPost("navigate/{workspaceId}")]
     public async Task<IActionResult> Navigate(
-        string workspaceId, [FromQuery] string url, CancellationToken ct)
+        string workspaceId,
+        [FromQuery] string url,
+        [FromQuery] bool? reloadIfSameUrl,
+        CancellationToken ct)
     {
-        var command = new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate, url, null, null, null, 15000);
+        var command = new BrowserCommandDto(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate, url, null, null, null, 15000, reloadIfSameUrl ?? true);
         var result = await store.DispatchAsync(command, TimeSpan.FromSeconds(15), ct);
         return result.Success ? NoContent() : BadRequest(result.Error);
     }

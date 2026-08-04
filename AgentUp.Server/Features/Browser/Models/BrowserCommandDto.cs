@@ -8,4 +8,5 @@ public sealed record BrowserCommandDto(
     string? Selector,
     string? Text,
     string? Key,
-    int TimeoutMs);
+    int TimeoutMs,
+    bool ReloadIfSameUrl = true);
