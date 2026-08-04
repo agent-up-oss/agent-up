@@ -417,6 +417,32 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task SelectedWorkspaceApplicationStateChange_emitsActiveBrowserNavigation()
+    {
+        var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "npm run dev", null, "Starting")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 3000, 10400)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(emissions.Add);
+
+        await vm.InitializeAsync();
+        emissions.Clear();
+
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [("Web", "Running")]);
+
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:10400/"));
+    }
+
+    [Test]
     public async Task SelectApplicationForUrl_doesNotSwitchWorkspaceForBrowserActivityInAnotherWorkspace()
     {
         var first = new WorkspaceDto("ws-1", "First", "/repo/first", "/worktrees/first", "main", "abc", "Running")

@@ -112,6 +112,8 @@ public sealed class MainViewModel : ReactiveObject
     {
         if (!ReferenceEquals(sender, Sidebar.SelectedWorkspace)) return;
         UpdateApplicationsFromWorkspace(Sidebar.SelectedWorkspace, preserveSelection: true);
+        if (SelectedSubTab is PortSubTabViewModel { IsHttp: true } pt)
+            _addressNavigations.OnNext((Sidebar.SelectedWorkspace?.Id, GetPortNavigationUrl(pt)));
     }
 
     private void UpdateApplicationsFromWorkspace(WorkspaceItemViewModel? workspace, bool preserveSelection)
