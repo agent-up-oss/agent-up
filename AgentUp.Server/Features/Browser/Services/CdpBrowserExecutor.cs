@@ -55,7 +55,11 @@ public sealed class CdpBrowserExecutor(ILogger<CdpBrowserExecutor> logger)
             || uri.Scheme is not ("http" or "https"))
             return Fail(command, $"Navigation target must use http or https. Received: {command.Url}");
 
-        await session.Page.GoToAsync(uri.ToString(), new NavigationOptions
+        var page = await session.ActivatePageForUrlAsync(uri, ct);
+        if (string.Equals(page.Url, uri.ToString(), StringComparison.Ordinal))
+            return Ok(command);
+
+        await page.GoToAsync(uri.ToString(), new NavigationOptions
         {
             Timeout = command.TimeoutMs,
             WaitUntil = [WaitUntilNavigation.Load]
