@@ -8,32 +8,42 @@ namespace AgentUp.Packaging.Tests.Features.WindowsPackages.Provider;
 [TestFixture]
 public class WindowsWixPackagingToolTests
 {
-    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task BuildStepsInvokeExpectedWixCommands()
     {
-        var commands = new RecordingCommandRunner();
-        var request = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "out", "Release");
-        var layout = WindowsPackageLayout.From(request);
-        var tool = new WindowsWixPackagingTool(commands);
+        var root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg-wix", Guid.NewGuid().ToString("N")));
 
-        // On Windows, BuildBundleAsync resolves WixToolset.Bal.wixext to a staged DLL.
-        // Pre-create the file so the staging step skips the NuGet download.
-        var extensionDll = OperatingSystem.IsWindows()
-            ? Path.GetFullPath(Path.Join(Root, "packaging", "windows", ".wix", "extensions",
-                "WixToolset.Bal.wixext", "7.0.0", "wixext7", "WixToolset.BootstrapperApplications.wixext.dll"))
-            : null;
-        if (extensionDll is not null)
+        try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(extensionDll)!);
-            File.WriteAllBytes(extensionDll, []);
+            Directory.CreateDirectory(root);
+            var commands = new RecordingCommandRunner();
+            var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release");
+            var layout = WindowsPackageLayout.From(request);
+            var tool = new WindowsWixPackagingTool(commands);
+
+            // On Windows, BuildBundleAsync resolves WixToolset.Bal.wixext to a staged DLL.
+            // Pre-create the file so the staging step skips the NuGet download.
+            var extensionDll = OperatingSystem.IsWindows()
+                ? Path.GetFullPath(Path.Join(root, "packaging", "windows", ".wix", "extensions",
+                    "WixToolset.Bal.wixext", "7.0.0", "wixext7", "WixToolset.BootstrapperApplications.wixext.dll"))
+                : null;
+            if (extensionDll is not null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(extensionDll)!);
+                File.WriteAllBytes(extensionDll, []);
+            }
+
+            await tool.AcceptWixLicenseAsync();
+            await tool.BuildProductMsiAsync(layout);
+            await tool.BuildBundleAsync(request, layout);
+
+            Assert.That(CommandBytes(commands.Commands), Is.EqualTo(CommandBytes(ExpectedAgentUpWixCommands(layout, extensionDll))));
         }
-
-        await tool.AcceptWixLicenseAsync();
-        await tool.BuildProductMsiAsync(layout);
-        await tool.BuildBundleAsync(request, layout);
-
-        Assert.That(CommandBytes(commands.Commands), Is.EqualTo(CommandBytes(ExpectedAgentUpWixCommands(layout, extensionDll))));
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
     }
 
     private static IReadOnlyList<CommandSpec> ExpectedAgentUpWixCommands(WindowsPackageLayout layout, string? extensionDll = null)
