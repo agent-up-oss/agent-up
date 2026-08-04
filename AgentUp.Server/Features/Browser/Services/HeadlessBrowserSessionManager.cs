@@ -187,6 +187,25 @@ public sealed class HeadlessBrowserSessionManager(
         }
     }
 
+    public async Task<byte[]?> CaptureDisplayFrameAsync(string workspaceId, CancellationToken ct)
+    {
+        var session = GetSession(workspaceId);
+        if (session is null) return null;
+
+        try
+        {
+            var frame = await session.Page.ScreenshotDataAsync(DisplayScreenshotOptions).WaitAsync(ct);
+            if (frame.Length == 0) return null;
+            await display.BroadcastFrameAsync(workspaceId, frame, ct);
+            return frame;
+        }
+        catch (Exception ex) when (ex is PuppeteerException or InvalidOperationException or OperationCanceledException)
+        {
+            logger.LogDebug(ex, "RDP display frame capture failed for workspace {WorkspaceId}.", workspaceId);
+            return null;
+        }
+    }
+
     public async Task DisposeSessionAsync(string workspaceId)
     {
         if (!_sessions.TryRemove(workspaceId, out var session)) return;
@@ -232,7 +251,6 @@ public sealed class HeadlessBrowserSessionManager(
 
     private async Task RunRemoteDisplayLoopAsync(string workspaceId, IPage page, CancellationToken ct)
     {
-        var options = new ScreenshotOptions { Type = ScreenshotType.Jpeg, Quality = 75, FullPage = false };
         while (!ct.IsCancellationRequested)
         {
             if (!display.HasSubscribers(workspaceId))
@@ -244,7 +262,7 @@ public sealed class HeadlessBrowserSessionManager(
 
             try
             {
-                var frame = await page.ScreenshotDataAsync(options);
+                var frame = await page.ScreenshotDataAsync(DisplayScreenshotOptions);
                 if (frame.Length > 0)
                     await display.BroadcastFrameAsync(workspaceId, frame, ct);
             }
@@ -262,4 +280,11 @@ public sealed class HeadlessBrowserSessionManager(
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
         }
     }
+
+    private static readonly ScreenshotOptions DisplayScreenshotOptions = new()
+    {
+        Type = ScreenshotType.Jpeg,
+        Quality = 75,
+        FullPage = false
+    };
 }

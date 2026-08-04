@@ -16,7 +16,7 @@ public sealed class BrowserRemoteDisplayControllerTests
         await display.BroadcastFrameAsync("workspace", [1, 2, 3], CancellationToken.None);
         var controller = CreateController(display);
 
-        var result = controller.LatestFrame("workspace");
+        var result = await controller.LatestFrame("workspace");
 
         Assert.That(result, Is.InstanceOf<FileContentResult>());
         var file = (FileContentResult)result;
@@ -29,22 +29,22 @@ public sealed class BrowserRemoteDisplayControllerTests
     }
 
     [Test]
-    public void LatestFrame_returns_not_found_before_first_frame()
+    public async Task LatestFrame_returns_not_found_before_first_frame()
     {
         var controller = CreateController();
 
-        var result = controller.LatestFrame("workspace");
+        var result = await controller.LatestFrame("workspace");
 
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
 
     [Test]
-    public void LatestFrame_registers_polling_viewer_interest()
+    public async Task LatestFrame_registers_polling_viewer_interest()
     {
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
         var controller = CreateController(display);
 
-        controller.LatestFrame("workspace");
+        await controller.LatestFrame("workspace");
 
         Assert.That(display.HasSubscribers("workspace"), Is.True);
     }
@@ -59,16 +59,41 @@ public sealed class BrowserRemoteDisplayControllerTests
         Assert.That(display.HasActiveInput("workspace"), Is.True);
     }
 
+    [Test]
+    public async Task GetLatestFrameOrCaptureAsync_captures_when_no_cached_frame_exists()
+    {
+        var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
+
+        var frame = await display.GetLatestFrameOrCaptureAsync(
+            "workspace",
+            _ => Task.FromResult<byte[]?>([4, 5, 6]),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(frame, Is.EqualTo(new byte[] { 4, 5, 6 }));
+            Assert.That(display.HasSubscribers("workspace"), Is.True);
+        });
+    }
+
     private static BrowserRemoteDisplayController CreateController(
         BrowserRemoteDisplayService? display = null)
     {
         var controller = new BrowserRemoteDisplayController(
             display ?? new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
-            inputDispatcher: null!);
+            inputDispatcher: null!,
+            sessions: CreateSessionManager(display));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
         };
         return controller;
     }
+
+    private static HeadlessBrowserSessionManager CreateSessionManager(BrowserRemoteDisplayService? display)
+        => new(
+            "/unused/chromium",
+            "/unused/browser-profiles",
+            display ?? new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            NullLogger<HeadlessBrowserSessionManager>.Instance);
 }

@@ -7,7 +7,8 @@ namespace AgentUp.Server.Features.Browser.Controllers;
 [Route("api/browser")]
 public sealed class BrowserRemoteDisplayController(
     BrowserRemoteDisplayService display,
-    BrowserInputDispatcher inputDispatcher) : ControllerBase
+    BrowserInputDispatcher inputDispatcher,
+    HeadlessBrowserSessionManager sessions) : ControllerBase
 {
     [HttpGet("rdp/{workspaceId}")]
     public async Task StreamAsync(string workspaceId)
@@ -25,13 +26,13 @@ public sealed class BrowserRemoteDisplayController(
     }
 
     [HttpGet("rdp/{workspaceId}/frame")]
-    public IActionResult LatestFrame(string workspaceId)
+    public async Task<IActionResult> LatestFrame(string workspaceId)
     {
-        display.RegisterPollingViewer(workspaceId);
-        if (!display.TryGetLatestFrame(workspaceId, out var frame))
-            return NotFound();
-
+        var frame = await display.GetLatestFrameOrCaptureAsync(
+            workspaceId,
+            ct => sessions.CaptureDisplayFrameAsync(workspaceId, ct),
+            HttpContext.RequestAborted);
         Response.Headers.CacheControl = "no-store";
-        return File(frame, "image/jpeg");
+        return frame is null ? NotFound() : File(frame, "image/jpeg");
     }
 }

@@ -109,6 +109,17 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         return false;
     }
 
+    public async Task<byte[]?> GetLatestFrameOrCaptureAsync(
+        string workspaceId,
+        Func<CancellationToken, Task<byte[]?>> captureFrame,
+        CancellationToken ct)
+    {
+        RegisterPollingViewer(workspaceId);
+        return TryGetLatestFrame(workspaceId, out var frame)
+            ? frame
+            : await captureFrame(ct);
+    }
+
     private bool HasRecentPollingViewer(string workspaceId)
     {
         if (!_pollingViewers.TryGetValue(workspaceId, out var expiresAt))
