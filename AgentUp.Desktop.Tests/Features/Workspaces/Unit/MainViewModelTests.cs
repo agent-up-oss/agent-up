@@ -372,7 +372,7 @@ public class MainViewModelTests
     }
 
     [Test]
-    public async Task BrowserNavigation_emitsPortUrl_whenPortSubTabSelected()
+    public async Task BrowserTabNavigation_emitsPortUrl_whenPortSubTabSelected()
     {
         const int port = 3000;
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
@@ -388,7 +388,7 @@ public class MainViewModelTests
         var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         var emissions = new List<(string? WorkspaceId, string? Url)>();
-        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+        vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
 
         await vm.InitializeAsync();
 
@@ -402,7 +402,7 @@ public class MainViewModelTests
     }
 
     [Test]
-    public async Task BrowserNavigation_fallsBackToPortUrl_whenAddressBarShowsChromeError()
+    public async Task BrowserTabNavigation_fallsBackToPortUrl_whenAddressBarShowsChromeError()
     {
         const int port = 3000;
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
@@ -417,7 +417,7 @@ public class MainViewModelTests
         };
         var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
         var emissions = new List<(string? WorkspaceId, string? Url)>();
-        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+        vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
 
         await vm.InitializeAsync();
 
@@ -438,6 +438,37 @@ public class MainViewModelTests
                 e => e.url == "chrome-error://chromewebdata/"),
                 "Chrome error URL must never be passed as a navigation target");
         });
+    }
+
+    [Test]
+    public async Task BrowserTabNavigation_doesNotReemitPortUrl_whenReturningFromConsoleToSamePort()
+    {
+        const int port = 3000;
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, port, port)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+
+        var portTab = vm.SubTabs.OfType<PortSubTabViewModel>().First();
+        var consoleTab = vm.SubTabs.OfType<ConsoleSubTabViewModel>().Single();
+        vm.SelectedSubTab = consoleTab;
+        emissions.Clear();
+
+        vm.SelectedSubTab = portTab;
+
+        Assert.That(emissions, Has.None.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == $"http://localhost:{port}/"));
     }
 
     [Test]

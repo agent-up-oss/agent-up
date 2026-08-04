@@ -207,7 +207,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
-            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url)))
+            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url, reloadIfSameUrl: true)))
+            .DisposeWith(_subscriptions);
+        vm.BrowserTabNavigation.Subscribe(nav =>
+            Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url, reloadIfSameUrl: false)))
             .DisposeWith(_subscriptions);
         vm.BrowserCommands.Subscribe(command =>
             Dispatcher.UIThread.Post(() => HandleBrowserCommand(command)))
@@ -317,7 +320,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             DestroyWorkspaceWebViews(item.Id);
     }
 
-    internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url);
+    internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url, reloadIfSameUrl: true);
 
     // Evaluates a script in the tab the agent last navigated to for the given workspace.
     internal async Task<string?> EvalAsync(string workspaceId, string script)
@@ -354,18 +357,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         }
     }
 
-    private void HandleNavigation(string? workspaceId, string? url)
+    private void HandleNavigation(string? workspaceId, string? url, bool reloadIfSameUrl)
     {
         if (_isClosed) return;
         if (workspaceId is null) return;
-        HandleHeadlessNavigation(workspaceId, url, IsTutorialVisible());
+        HandleHeadlessNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
     }
 
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
-
-    internal static bool ShouldPostHeadlessNavigate(string? lastKnownUrl, string requestedUrl)
-        => ShouldNavigateExistingWebView(lastKnownUrl, requestedUrl);
 
     internal static bool ShouldReclaimViewerUrl(string? currentSource, string viewerUrl)
         => !string.Equals(currentSource, viewerUrl, StringComparison.Ordinal);
@@ -895,7 +895,7 @@ code {
         }
     }
 
-    private void HandleHeadlessNavigation(string workspaceId, string? url, bool tutorialVisible)
+    private void HandleHeadlessNavigation(string workspaceId, string? url, bool tutorialVisible, bool reloadIfSameUrl)
     {
         var tabKey = $"{workspaceId}:viewer";
         ActivateTab(workspaceId, tabKey, tutorialVisible);
@@ -918,9 +918,8 @@ code {
 
         if (url is not null
             && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
-            && navUri.Scheme is "http" or "https"
-            && ShouldPostHeadlessNavigate(_lastKnownBrowserUrls.GetValueOrDefault(tabKey), url))
-            _ = PostHeadlessNavigateAndRememberAsync(tabKey, workspaceId, url);
+            && navUri.Scheme is "http" or "https")
+            _ = PostHeadlessNavigateAndRememberAsync(tabKey, workspaceId, url, reloadIfSameUrl);
 
         if (PortPane.Bounds.Width > 0 && PortPane.Bounds.Height > 0)
             _ = PostViewportAsync(workspaceId, (int)PortPane.Bounds.Width, (int)PortPane.Bounds.Height);
@@ -1027,9 +1026,13 @@ code {
         }
     }
 
-    private async Task PostHeadlessNavigateAndRememberAsync(string tabKey, string workspaceId, string url)
+    private async Task PostHeadlessNavigateAndRememberAsync(
+        string tabKey,
+        string workspaceId,
+        string url,
+        bool reloadIfSameUrl)
     {
-        if (await PostHeadlessNavigateAsync(workspaceId, url))
+        if (await PostHeadlessNavigateAsync(workspaceId, url, reloadIfSameUrl))
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -1039,12 +1042,12 @@ code {
         }
     }
 
-    private async Task<bool> PostHeadlessNavigateAsync(string workspaceId, string url)
+    private async Task<bool> PostHeadlessNavigateAsync(string workspaceId, string url, bool reloadIfSameUrl)
     {
         try
         {
             using var response = await _serverHttp.PostAsync(
-                $"/api/browser/navigate/{Uri.EscapeDataString(workspaceId)}?url={Uri.EscapeDataString(url)}",
+                $"/api/browser/navigate/{Uri.EscapeDataString(workspaceId)}?url={Uri.EscapeDataString(url)}&reloadIfSameUrl={(reloadIfSameUrl ? "true" : "false")}",
                 null);
             response.EnsureSuccessStatusCode();
             return true;
