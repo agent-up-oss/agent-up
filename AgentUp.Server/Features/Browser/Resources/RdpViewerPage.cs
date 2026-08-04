@@ -48,8 +48,9 @@ internal static class RdpViewerPage
           const cursor = document.getElementById('remote-cursor');
 
           const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-          const ws = new WebSocket(`${proto}//${location.host}/api/browser/rdp/${encodeURIComponent(workspaceId)}`);
-          ws.binaryType = 'arraybuffer';
+          const streamUrl = `${proto}//${location.host}/api/browser/rdp/${encodeURIComponent(workspaceId)}`;
+          let ws = null;
+          let reconnectTimer = 0;
 
           let humanMode = false; // server starts in AI mode by default
           let lastFrameAt = 0;
@@ -84,23 +85,39 @@ internal static class RdpViewerPage
             }, 250);
           }
 
-          ws.onmessage = (e) => {
-            if (typeof e.data === 'string') {
-              try {
-                const m = JSON.parse(e.data);
-                if (m.type === 'mode') applyMode(m.authority === 'human');
-              } catch (_) {}
-              return;
-            }
-            drawBlob(new Blob([e.data], { type: 'image/jpeg' }));
-          };
+          function connectStream() {
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+            ws = new WebSocket(streamUrl);
+            ws.binaryType = 'arraybuffer';
 
-          ws.onerror = () => startPolling();
-          ws.onclose = () => {
-            ctx.fillStyle = '#1e1e1e';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            startPolling();
-          };
+            ws.onopen = () => {
+              if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = 0;
+              }
+            };
+            ws.onmessage = (e) => {
+              if (typeof e.data === 'string') {
+                try {
+                  const m = JSON.parse(e.data);
+                  if (m.type === 'mode') applyMode(m.authority === 'human');
+                } catch (_) {}
+                return;
+              }
+              drawBlob(new Blob([e.data], { type: 'image/jpeg' }));
+            };
+            ws.onerror = () => startPolling();
+            ws.onclose = () => {
+              startPolling();
+              if (!reconnectTimer)
+                reconnectTimer = window.setTimeout(() => {
+                  reconnectTimer = 0;
+                  connectStream();
+                }, 500);
+            };
+          }
+
+          connectStream();
 
           setTimeout(() => {
             if (!lastFrameAt) startPolling();
@@ -113,7 +130,7 @@ internal static class RdpViewerPage
           }
 
           function send(obj) {
-            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
           }
 
           function showCursor(e) {
