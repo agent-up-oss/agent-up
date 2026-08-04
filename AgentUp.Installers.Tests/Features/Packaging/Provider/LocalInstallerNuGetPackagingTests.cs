@@ -291,8 +291,11 @@ public class LocalInstallerNuGetPackagingTests
 
         using var process = Process.Start(psi)!;
         var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd());
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        return (process.ExitCode, stdoutTask.GetAwaiter().GetResult() + stderr);
+        var stderrTask = Task.Run(() => process.StandardError.ReadToEnd());
+        if (!process.WaitForExit(300_000))
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        return (process.ExitCode, stdoutTask.GetAwaiter().GetResult() + stderrTask.GetAwaiter().GetResult());
     }
 }
