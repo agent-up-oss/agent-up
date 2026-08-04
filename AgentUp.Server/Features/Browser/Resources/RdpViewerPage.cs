@@ -13,6 +13,20 @@ internal static class RdpViewerPage
             html, body { margin: 0; padding: 0; background: #1e1e1e; overflow: hidden; width: 100%; height: 100%; }
             #c { display: block; width: 100%; height: 100%; object-fit: contain; cursor: none; touch-action: none; }
             #c.ai-mode { opacity: 0.85; }
+            #remote-cursor {
+              display: none; position: fixed; left: 0; top: 0; width: 18px; height: 24px;
+              pointer-events: none; z-index: 20; transform: translate(-100px, -100px);
+              filter: drop-shadow(0 1px 1px rgba(0,0,0,.75));
+            }
+            #remote-cursor.visible { display: block; }
+            #remote-cursor::before {
+              content: ""; position: absolute; left: 0; top: 0; width: 15px; height: 21px;
+              background: #111; clip-path: polygon(0 0, 0 19px, 5px 14px, 8px 22px, 12px 20px, 9px 12px, 15px 12px, 15px 10px, 10px 10px, 1px 1px, 1px 16px, 5px 11px, 9px 20px, 10px 19px, 7px 12px, 13px 11px);
+            }
+            #remote-cursor::after {
+              content: ""; position: absolute; left: 0; top: 0; width: 15px; height: 21px;
+              background: #fff; clip-path: polygon(1px 1px, 1px 17px, 5px 12px, 9px 20px, 10px 19px, 7px 11px, 13px 11px);
+            }
             #ai-badge {
               display: none; position: fixed; bottom: 8px; right: 10px;
               background: #222; color: #888; font: bold 11px/1 monospace;
@@ -24,12 +38,14 @@ internal static class RdpViewerPage
         </head>
         <body>
         <canvas id="c" tabindex="0"></canvas>
+        <div id="remote-cursor" aria-hidden="true"></div>
         <div id="ai-badge">AI</div>
         <script>
           const workspaceId = {{System.Text.Json.JsonSerializer.Serialize(workspaceId)}};
           const canvas = document.getElementById('c');
           const ctx = canvas.getContext('2d');
           const badge = document.getElementById('ai-badge');
+          const cursor = document.getElementById('remote-cursor');
 
           const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
           const ws = new WebSocket(`${proto}//${location.host}/api/browser/rdp/${encodeURIComponent(workspaceId)}`);
@@ -100,6 +116,15 @@ internal static class RdpViewerPage
             if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
           }
 
+          function showCursor(e) {
+            cursor.classList.add('visible');
+            cursor.style.transform = `translate(${Math.round(e.clientX)}px, ${Math.round(e.clientY)}px)`;
+          }
+
+          function hideCursor() {
+            cursor.classList.remove('visible');
+          }
+
           function viewerSize() {
             const r = canvas.getBoundingClientRect();
             return { width: Math.max(1, Math.round(r.width)), height: Math.max(1, Math.round(r.height)) };
@@ -135,13 +160,17 @@ internal static class RdpViewerPage
             canvas.focus({ preventScroll: true });
             reclaim();
           });
+          canvas.addEventListener('mouseleave', hideCursor);
+          window.addEventListener('blur', hideCursor);
           canvas.addEventListener('mousemove', e => {
             reclaim();
+            showCursor(e);
             const p = scale(e);
             send({ type: 'mousemove', ...p });
           });
           canvas.addEventListener('mousedown', e => {
             reclaim();
+            showCursor(e);
             const p = scale(e);
             send({ type: 'mousedown', button: btn(e), ...p });
           });

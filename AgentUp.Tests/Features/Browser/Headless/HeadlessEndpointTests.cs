@@ -51,6 +51,8 @@ public sealed class HeadlessEndpointTests
             Assert.That(body, Does.Contain("<canvas"));
             Assert.That(body, Does.Contain("test-ws"));
             Assert.That(body, Does.Contain("/api/browser/rdp/"));
+            Assert.That(body, Does.Contain("id=\"remote-cursor\""));
+            Assert.That(body, Does.Contain("showCursor(e)"));
         });
     }
 
