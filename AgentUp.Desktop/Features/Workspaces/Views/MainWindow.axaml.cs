@@ -235,6 +235,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Where(all => all && vm.ShowConsole)
             .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
             .DisposeWith(_subscriptions);
+        vm.WhenAnyValue(v => v.ShowPortView)
+            .Skip(1)
+            .DistinctUntilChanged()
+            .Where(show => show)
+            .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveViewer))
+            .DisposeWith(_subscriptions);
 
         _auditService ??= new ViewModelAuditService(_serverHttp);
         _auditService.Attach(vm, CaptureViewState);
@@ -920,6 +926,16 @@ code {
         var viewerUrl = BuildViewerUrl(_activeWorkspaceId);
         if (!IsAtViewerUrl(webView, viewerUrl))
             NavigateWebView(webView, viewerUrl);
+    }
+
+    // Called when ShowPortView transitions false→true (e.g. switching from a TCP tab back to an HTTP
+    // tab). WebKit may have suspended the streaming connection while PortPane was hidden, so force a
+    // viewer reload to reconnect.
+    private void WakeActiveViewer()
+    {
+        if (_isClosed || _activeTabKey is null || _activeWorkspaceId is null) return;
+        if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
+        NavigateWebView(webView, BuildViewerUrl(_activeWorkspaceId));
     }
 
     private async Task PollHeadlessAddressAsync(string workspaceId)
