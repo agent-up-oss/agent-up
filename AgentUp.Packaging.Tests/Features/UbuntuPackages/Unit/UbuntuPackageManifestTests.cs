@@ -12,10 +12,11 @@ namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Unit;
 [TestFixture]
 public class UbuntuPackageManifestTests
 {
+    private static readonly string Root = OperatingSystem.IsWindows() ? @"C:\pkg" : "/pkg";
     [Test]
     public void From_normalizesVersionAndDefinesNativeTargets()
     {
-        var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "v1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "v1.2.3", "artifacts", "Release");
 
         var manifest = UbuntuPackageManifest.From(request);
 
@@ -28,7 +29,7 @@ public class UbuntuPackageManifestTests
     [Test]
     public void MetainfoText_containsAppStreamComponentWithVersionAndPackageName()
     {
-        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+        var manifest = UbuntuPackageManifest.From(new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
 
         var text = manifest.MetainfoText();
 
@@ -42,7 +43,7 @@ public class UbuntuPackageManifestTests
     [Test]
     public void ControlFileText_containsDebianPackageMetadata()
     {
-        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+        var manifest = UbuntuPackageManifest.From(new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
 
         var text = manifest.ControlFileText();
 
@@ -55,7 +56,7 @@ public class UbuntuPackageManifestTests
     [Test]
     public void PostInstallScript_updatesLauncherMetadataWithoutLaunchingInstallerDashboard()
     {
-        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+        var manifest = UbuntuPackageManifest.From(new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
 
         var text = manifest.PostInstallScript();
 
@@ -67,7 +68,7 @@ public class UbuntuPackageManifestTests
     [Test]
     public void InstallerDesktopEntryText_declaresStartupWmClassForUbuntuTaskbarIcon()
     {
-        var manifest = UbuntuPackageManifest.From(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
+        var manifest = UbuntuPackageManifest.From(new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release"));
 
         var text = manifest.InstallerDesktopEntryText();
 

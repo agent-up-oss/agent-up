@@ -53,6 +53,9 @@ public class RepositoryPathsTests
     {
         var root = Path.Join(Path.GetTempPath(), "AgentUp-RepositoryPathsTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(root);
+        var saved = Directory.GetCurrentDirectory();
+        try { Directory.SetCurrentDirectory(root); root = Directory.GetCurrentDirectory(); }
+        finally { Directory.SetCurrentDirectory(saved); }
         File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
         return root;
     }

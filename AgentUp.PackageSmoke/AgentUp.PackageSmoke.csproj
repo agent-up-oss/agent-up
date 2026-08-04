@@ -5,7 +5,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <PackageId>LocalInstaller.Smoke</PackageId>
+    <Version>$(LocalInstallerVersion)</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(ExcludeAgentUpProductConfiguration)' == 'true'">

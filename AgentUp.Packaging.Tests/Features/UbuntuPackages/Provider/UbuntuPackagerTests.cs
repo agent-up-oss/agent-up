@@ -12,13 +12,14 @@ namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
 [TestFixture]
 public class UbuntuPackagerTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task PackageAsync_invokesDotNetPublishesAndDpkgBuild()
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingPackageWriter();
         var packageTool = new RecordingUbuntuPackageTool();
-        var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release");
 
         await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool).PackageAsync(request);
 
@@ -30,8 +31,8 @@ public class UbuntuPackagerTests
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:PublishSingleFile=true")));
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeNativeLibrariesForSelfExtract=true")));
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeAllContentForSelfExtract=true")));
-        Assert.That(packageTool.Layouts.Single().DebOutputPath, Is.EqualTo(Path.Join("/repo", "out", "agent-up-ubuntu-linux-x64.deb")));
-        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join("/repo", "out")));
+        Assert.That(packageTool.Layouts.Single().DebOutputPath, Is.EqualTo(Path.Join(Root, "out", "agent-up-ubuntu-linux-x64.deb")));
+        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join(Root, "out")));
     }
 
     [Test]

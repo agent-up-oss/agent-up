@@ -14,10 +14,11 @@ namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
 [TestFixture]
 public class UbuntuPackageStagerTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public void Stage_materializesExpectedDebianLayout()
     {
-        var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release");
         var layout = UbuntuPackageLayout.From(request);
         var manifest = UbuntuPackageManifest.From(request);
         var writer = new RecordingPackageWriter();
@@ -27,7 +28,7 @@ public class UbuntuPackageStagerTests
         Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join(layout.DebRoot, "DEBIAN")));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.InstallerPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "installer"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "payload", "cli"))));
-        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join("/repo", "packaging", "linux", "agent-up-server.service"), Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "payload", "service", "agent-up-server.service"))));
+        Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(Root, "packaging", "linux", "agent-up-server.service"), Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "payload", "service", "agent-up-server.service"))));
         Assert.That(writer.ExecutablePaths, Does.Contain(Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "AgentUp.InstallerApp")));
         Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Contain("AgentUp.InstallerApp"));
         Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Not.Contain("--install-core"));

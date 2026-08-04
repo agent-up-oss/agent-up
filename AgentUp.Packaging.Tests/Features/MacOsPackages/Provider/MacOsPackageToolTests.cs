@@ -8,11 +8,12 @@ namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Provider;
 [TestFixture]
 public class MacOsPackageToolTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task BuildAsyncInvokesPkgbuildAndProductbuild()
     {
         var commands = new RecordingCommandRunner();
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.2.3", "out", "Release");
         var layout = MacOsPackageLayout.From(request);
         var manifest = MacOsPackageManifest.From(request);
         var tool = new MacOsPackageTool(commands);
@@ -28,7 +29,7 @@ public class MacOsPackageToolTests
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.desktop")), Is.False);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.cli")), Is.False);
         Assert.That(commands.Commands.Any(command => command.Arguments.Contains("dev.agent-up.server")), Is.False);
-        Assert.That(commands.Commands.Last().Arguments, Does.Contain(Path.Join("/repo", "out", "agent-up-macos-osx-arm64.pkg")));
+        Assert.That(commands.Commands.Last().Arguments, Does.Contain(Path.Join(Root, "out", "agent-up-macos-osx-arm64.pkg")));
     }
 
     private sealed class RecordingCommandRunner : ICommandRunner
