@@ -17,7 +17,7 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using AgentUp.Desktop.Features.Audit.Services;
+using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -48,7 +48,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
     private CancellationTokenSource? _viewportResizeCts;
-    private ViewModelAuditService? _auditService;
+    private ViewModelAuditController? _auditController;
     private const int ConsoleDefaultDisplayLines = 2_000;
     private static readonly HttpClient PortProbeHttpClient = new()
     {
@@ -242,8 +242,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveViewer))
             .DisposeWith(_subscriptions);
 
-        _auditService ??= new ViewModelAuditService(_serverHttp);
-        _auditService.Attach(vm, CaptureViewState);
+        _auditController ??= new ViewModelAuditController(_serverHttp);
+        _auditController.Attach(vm, CaptureViewState);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -252,7 +252,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _viewportResizeCts?.Cancel();
         _viewportResizeCts?.Dispose();
         _workspaceEventClient?.Dispose();
-        _auditService?.Dispose();
+        _auditController?.Dispose();
         _serverHttp.Dispose();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
@@ -363,6 +363,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
+
+    internal static bool ShouldPostHeadlessNavigate(string? lastKnownUrl, string requestedUrl)
+        => ShouldNavigateExistingWebView(lastKnownUrl, requestedUrl);
 
     internal static bool ShouldReclaimViewerUrl(string? currentSource, string viewerUrl)
         => !string.Equals(currentSource, viewerUrl, StringComparison.Ordinal);
@@ -534,13 +537,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private static void NavigateWebView(NativeWebView webView, Uri destination)
     {
         if (string.Equals(webView.Source?.ToString(), destination.ToString(), StringComparison.Ordinal))
-        {
-            webView.Source = new Uri("about:blank");
-            Dispatcher.UIThread.Post(() => webView.Source = destination, DispatcherPriority.Background);
             return;
-        }
 
         webView.Source = destination;
+    }
+
+    private static void ReloadWebView(NativeWebView webView, Uri destination)
+    {
+        webView.Source = new Uri("about:blank");
+        Dispatcher.UIThread.Post(() => webView.Source = destination, DispatcherPriority.Background);
     }
 
     private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
@@ -911,8 +916,11 @@ code {
             NavigateWebView(webView, new Uri(dest));
         }
 
-        if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out var navUri) && navUri.Scheme is "http" or "https")
-            _ = PostHeadlessNavigateAsync(workspaceId, url);
+        if (url is not null
+            && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
+            && navUri.Scheme is "http" or "https"
+            && ShouldPostHeadlessNavigate(_lastKnownBrowserUrls.GetValueOrDefault(tabKey), url))
+            _ = PostHeadlessNavigateAndRememberAsync(tabKey, workspaceId, url);
 
         if (PortPane.Bounds.Width > 0 && PortPane.Bounds.Height > 0)
             _ = PostViewportAsync(workspaceId, (int)PortPane.Bounds.Width, (int)PortPane.Bounds.Height);
@@ -929,13 +937,15 @@ code {
     }
 
     // Called when ShowPortView transitions false→true (e.g. switching from a TCP tab back to an HTTP
-    // tab). WebKit may have suspended the streaming connection while PortPane was hidden, so force a
-    // viewer reload to reconnect.
+    // tab). Only reclaim the viewer when it drifted away from the RDP page; reloading an already-active
+    // viewer discards local page state in the Server-owned browser session.
     private void WakeActiveViewer()
     {
         if (_isClosed || _activeTabKey is null || _activeWorkspaceId is null) return;
         if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
-        NavigateWebView(webView, BuildViewerUrl(_activeWorkspaceId));
+        var viewerUrl = BuildViewerUrl(_activeWorkspaceId);
+        if (!IsAtViewerUrl(webView, viewerUrl))
+            NavigateWebView(webView, viewerUrl);
     }
 
     private async Task PollHeadlessAddressAsync(string workspaceId)
@@ -944,8 +954,17 @@ code {
         {
             var url = await _serverHttp.GetStringAsync(
                 $"/api/browser/current-url/{Uri.EscapeDataString(workspaceId)}");
-            if (!string.IsNullOrWhiteSpace(url) && DataContext is MainViewModel vm)
-                vm.UpdateAddressFromBrowser(workspaceId, url.Trim());
+            if (string.IsNullOrWhiteSpace(url)) return;
+
+            var trimmed = url.Trim();
+            var tabKey = $"{workspaceId}:viewer";
+            if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+                _lastKnownBrowserUrls[tabKey] = trimmed;
+            else
+                _lastKnownBrowserUrls.Remove(tabKey);
+
+            if (DataContext is MainViewModel vm)
+                vm.UpdateAddressFromBrowser(workspaceId, trimmed);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -1008,7 +1027,19 @@ code {
         }
     }
 
-    private async Task PostHeadlessNavigateAsync(string workspaceId, string url)
+    private async Task PostHeadlessNavigateAndRememberAsync(string tabKey, string workspaceId, string url)
+    {
+        if (await PostHeadlessNavigateAsync(workspaceId, url))
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!_isClosed && _webViews.ContainsKey(tabKey))
+                    _lastKnownBrowserUrls[tabKey] = url;
+            });
+        }
+    }
+
+    private async Task<bool> PostHeadlessNavigateAsync(string workspaceId, string url)
     {
         try
         {
@@ -1016,10 +1047,12 @@ code {
                 $"/api/browser/navigate/{Uri.EscapeDataString(workspaceId)}?url={Uri.EscapeDataString(url)}",
                 null);
             response.EnsureSuccessStatusCode();
+            return true;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             Trace.TraceWarning(ex.Message);
+            return false;
         }
     }
 
@@ -1056,7 +1089,7 @@ code {
             () =>
             {
                 if (CanTouchWebView(tabKey, webView))
-                    NavigateWebView(webView, viewerUrl);
+                    ReloadWebView(webView, viewerUrl);
             },
             DispatcherPriority.Background);
     }
