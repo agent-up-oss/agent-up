@@ -312,6 +312,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
 
+    internal static bool ShouldReclaimViewerUrl(string? currentSource, string viewerUrl)
+        => !string.Equals(currentSource, viewerUrl, StringComparison.Ordinal);
+
     private void ActivateTab(string? workspaceId, string? tabKey, bool tutorialVisible)
     {
         if (workspaceId == _activeWorkspaceId && tabKey == _activeTabKey) return;
@@ -833,6 +836,9 @@ code {
         if (_webViews.TryGetValue(tabKey, out var existing))
         {
             existing.IsVisible = !tutorialVisible;
+            var viewerUrl = BuildViewerUrl(workspaceId);
+            if (!IsAtViewerUrl(existing, viewerUrl))
+                NavigateWebView(existing, viewerUrl);
         }
         else if (url is not null)
         {
@@ -958,6 +964,9 @@ code {
 
     private Uri BuildViewerUrl(string workspaceId)
         => new(_serverHttp.BaseAddress!, $"/api/browser/rdp-viewer?workspaceId={Uri.EscapeDataString(workspaceId)}");
+
+    private static bool IsAtViewerUrl(NativeWebView webView, Uri viewerUrl)
+        => !ShouldReclaimViewerUrl(webView.Source?.AbsoluteUri, viewerUrl.AbsoluteUri);
 
 
     private void OnConsoleOverlayPointerPressed(object? sender, PointerPressedEventArgs e)
