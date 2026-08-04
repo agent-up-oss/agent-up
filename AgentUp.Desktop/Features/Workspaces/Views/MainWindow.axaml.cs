@@ -17,6 +17,7 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using AgentUp.Desktop.Features.Audit.Services;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -47,6 +48,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
     private CancellationTokenSource? _viewportResizeCts;
+    private ViewModelAuditService? _auditService;
     private const int ConsoleDefaultDisplayLines = 2_000;
     private static readonly HttpClient PortProbeHttpClient = new()
     {
@@ -233,6 +235,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Where(all => all && vm.ShowConsole)
             .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
             .DisposeWith(_subscriptions);
+
+        _auditService ??= new ViewModelAuditService(_serverHttp);
+        _auditService.Attach(vm, CaptureViewState);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -241,6 +246,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _viewportResizeCts?.Cancel();
         _viewportResizeCts?.Dispose();
         _workspaceEventClient?.Dispose();
+        _auditService?.Dispose();
         _serverHttp.Dispose();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
@@ -248,6 +254,46 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         DestroyWorkspaceWebViews();
         DestroyConsoleWebView();
         base.OnClosed(e);
+    }
+
+    private IReadOnlyDictionary<string, string> CaptureViewState()
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+            return CaptureCoreOnUiThread();
+        try
+        {
+            return Dispatcher.UIThread.Invoke(CaptureCoreOnUiThread);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or TaskCanceledException)
+        {
+            return new Dictionary<string, string> { ["webView.captureError"] = ex.Message };
+        }
+    }
+
+    private Dictionary<string, string> CaptureCoreOnUiThread()
+    {
+        var f = new Dictionary<string, string>
+        {
+            ["webView.activeWorkspaceId"] = _activeWorkspaceId ?? string.Empty,
+            ["webView.activeTabKey"] = _activeTabKey ?? string.Empty,
+            ["webView.webViewCount"] = _webViews.Count.ToString(),
+            ["webView.hasConsoleWebView"] = (_consoleWebView is not null).ToString(),
+            ["webView.windowState"] = WindowState.ToString(),
+            ["webView.isClosed"] = _isClosed.ToString(),
+            ["webView.addressPollTimerEnabled"] = _addressPollTimer.IsEnabled.ToString(),
+            ["webView.errorCount"] = _webViewErrors.Count.ToString(),
+            ["webView.errors"] = string.Join("; ", _webViewErrors.Select(kv => $"{kv.Key}={kv.Value}")),
+            ["webView.lastKnownUrlCount"] = _lastKnownBrowserUrls.Count.ToString(),
+            ["webView.lastKnownUrls"] = string.Join("; ", _lastKnownBrowserUrls.Select(kv => $"{kv.Key}={kv.Value}")),
+            ["webView.tabKeys"] = string.Join(", ", _webViews.Keys),
+        };
+
+        if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var activeWv))
+            f["webView.activeSourceUrl"] = activeWv.Source?.ToString() ?? string.Empty;
+        else
+            f["webView.activeSourceUrl"] = string.Empty;
+
+        return f;
     }
 
     private void OnWorkspaceCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
