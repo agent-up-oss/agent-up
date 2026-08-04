@@ -109,6 +109,8 @@ When the selected tab is an HTTP port, the Desktop shows a third row with back, 
 
 Switching from an HTTP port tab to Console, TCP info, or another non-browser surface must hide and restore the existing remote browser viewer without reloading or re-navigating when the Server browser is already at the requested URL. Switching to a different application URL may request Server-owned navigation, but duplicate same-URL tab-return navigation is forbidden because it resets scroll position, JavaScript memory, and open UI state.
 
+Same-URL navigation is still required for reconnect paths such as application state changes after a restart. Desktop tab-selection navigation must request non-reloading activation of an existing Server page, while app-state wake, address-bar, reload, and explicit navigation paths must keep reload-on-same-URL behavior.
+
 Because the native WebView does not always raise managed navigation updates for in-page link clicks, the Desktop also polls `window.location.href` for the active HTTP WebView and mirrors HTTP/HTTPS changes into the address field.
 
 Reloading workspaces keeps the selected workspace by ID but rebinds it to the refreshed Server state, so the selected application's active HTTP port is navigated again after a sidebar reload.
