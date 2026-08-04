@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,8 @@ public sealed class BrowserInputDispatcher(
     BrowserRemoteDisplayService display,
     ILogger<BrowserInputDispatcher> logger)
 {
+    private readonly ConcurrentDictionary<string, string> _lastCursorByWorkspace = new();
+
     public async Task DispatchAsync(string workspaceId, string json, CancellationToken ct)
     {
         var session = accessor.GetSession(workspaceId);
@@ -25,7 +28,7 @@ public sealed class BrowserInputDispatcher(
                 display.RegisterInputActivity(workspaceId);
             await (type switch
             {
-                "mousemove"   => session.Page.Mouse.MoveAsync(X(root), Y(root)).WaitAsync(ct),
+                "mousemove"   => MoveMouseAsync(workspaceId, session, root, ct),
                 "mousedown"   => session.Page.Mouse.DownAsync(ClickOpts(root)).WaitAsync(ct),
                 "mouseup"     => session.Page.Mouse.UpAsync(ClickOpts(root)).WaitAsync(ct),
                 "click"       => session.Page.Mouse.ClickAsync(X(root), Y(root), ClickOpts(root)).WaitAsync(ct),
@@ -52,6 +55,49 @@ public sealed class BrowserInputDispatcher(
         if (root.TryGetProperty("width", out var w) && root.TryGetProperty("height", out var h))
             await manager.TrySetViewportAsync(workspaceId, w.GetInt32(), h.GetInt32(), ct);
     }
+
+    private async Task MoveMouseAsync(string workspaceId, BrowserSessionState session, JsonElement root, CancellationToken ct)
+    {
+        var x = X(root);
+        var y = Y(root);
+        await session.Page.Mouse.MoveAsync(x, y).WaitAsync(ct);
+        var cursor = await ReadCursorAsync(session.Page, x, y, ct);
+        if (!_lastCursorByWorkspace.TryGetValue(workspaceId, out var last) ||
+            !string.Equals(last, cursor, StringComparison.Ordinal))
+        {
+            _lastCursorByWorkspace[workspaceId] = cursor;
+            await display.BroadcastTextAsync(workspaceId, JsonSerializer.Serialize(new
+            {
+                type = "cursor",
+                cursor
+            }), ct);
+        }
+    }
+
+    private static async Task<string> ReadCursorAsync(IPage page, decimal x, decimal y, CancellationToken ct)
+    {
+        var script = string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $$"""
+            (() => {
+              const el = document.elementFromPoint({{x}}, {{y}});
+              if (!el) return 'default';
+              const cursor = getComputedStyle(el).cursor || 'default';
+              return cursor === 'auto' ? 'default' : cursor;
+            })()
+            """);
+        var cursor = await page.EvaluateExpressionAsync<string>(script).WaitAsync(ct);
+        return CursorKind(cursor);
+    }
+
+    private static string CursorKind(string? cursor)
+        => cursor switch
+        {
+            "pointer" => "pointer",
+            "text" or "vertical-text" => "text",
+            "grab" or "grabbing" => "grab",
+            _ => "default"
+        };
 
     private static decimal X(JsonElement e) => (decimal)e.GetProperty("x").GetDouble();
     private static decimal Y(JsonElement e) => (decimal)e.GetProperty("y").GetDouble();

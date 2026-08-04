@@ -27,6 +27,28 @@ internal static class RdpViewerPage
               content: ""; position: absolute; left: 0; top: 0; width: 15px; height: 21px;
               background: #fff; clip-path: polygon(1px 1px, 1px 17px, 5px 12px, 9px 20px, 10px 19px, 7px 11px, 13px 11px);
             }
+            #remote-cursor.pointer { width: 20px; height: 22px; }
+            #remote-cursor.pointer::before {
+              left: 1px; top: 1px; width: 16px; height: 19px;
+              clip-path: polygon(6px 0, 10px 0, 10px 7px, 12px 6px, 14px 7px, 15px 8px, 17px 9px, 18px 11px, 17px 18px, 15px 21px, 7px 21px, 4px 17px, 0 12px, 2px 10px, 6px 14px);
+            }
+            #remote-cursor.pointer::after {
+              left: 2px; top: 2px; width: 14px; height: 17px;
+              clip-path: polygon(6px 0, 8px 0, 8px 8px, 10px 7px, 11px 8px, 12px 9px, 14px 10px, 15px 11px, 14px 16px, 12px 19px, 7px 19px, 5px 16px, 1px 11px, 2px 10px, 6px 14px);
+            }
+            #remote-cursor.text { width: 16px; height: 24px; }
+            #remote-cursor.text::before {
+              left: 4px; top: 0; width: 8px; height: 24px;
+              clip-path: polygon(0 0, 8px 0, 8px 3px, 5px 3px, 5px 21px, 8px 21px, 8px 24px, 0 24px, 0 21px, 3px 21px, 3px 3px, 0 3px);
+            }
+            #remote-cursor.text::after {
+              left: 6px; top: 2px; width: 4px; height: 20px;
+              clip-path: polygon(0 0, 4px 0, 4px 2px, 3px 2px, 3px 18px, 4px 18px, 4px 20px, 0 20px, 0 18px, 1px 18px, 1px 2px, 0 2px);
+            }
+            #remote-cursor.grab { width: 18px; height: 20px; }
+            #remote-cursor.grab::before, #remote-cursor.grab::after {
+              border-radius: 8px 8px 6px 6px; clip-path: none;
+            }
             #ai-badge {
               display: none; position: fixed; bottom: 8px; right: 10px;
               background: #222; color: #888; font: bold 11px/1 monospace;
@@ -55,6 +77,8 @@ internal static class RdpViewerPage
           let humanMode = false; // server starts in AI mode by default
           let lastFrameAt = 0;
           let pollTimer = 0;
+          let pendingMove = null;
+          let moveScheduled = false;
 
           function drawBlob(blob) {
             const url = URL.createObjectURL(blob);
@@ -100,7 +124,7 @@ internal static class RdpViewerPage
               if (typeof e.data === 'string') {
                 try {
                   const m = JSON.parse(e.data);
-                  if (m.type === 'mode') applyMode(m.authority === 'human');
+                  handleControlMessage(m);
                 } catch (_) {}
                 return;
               }
@@ -118,10 +142,8 @@ internal static class RdpViewerPage
           }
 
           connectStream();
-
-          setTimeout(() => {
-            if (!lastFrameAt) startPolling();
-          }, 1500);
+          startPolling();
+          pollFrame();
 
           function applyMode(isHuman) {
             humanMode = isHuman;
@@ -131,6 +153,13 @@ internal static class RdpViewerPage
 
           function send(obj) {
             if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+          }
+
+          function applyCursorKind(kind) {
+            cursor.classList.remove('pointer', 'text', 'grab');
+            if (kind === 'pointer') cursor.classList.add('pointer');
+            else if (kind === 'text') cursor.classList.add('text');
+            else if (kind === 'grab' || kind === 'grabbing') cursor.classList.add('grab');
           }
 
           function showCursor(e) {
@@ -173,6 +202,20 @@ internal static class RdpViewerPage
             return m;
           }
 
+          function flushMove() {
+            moveScheduled = false;
+            if (!pendingMove) return;
+            send(pendingMove);
+            pendingMove = null;
+          }
+
+          function scheduleMove(p) {
+            pendingMove = { type: 'mousemove', ...p };
+            if (moveScheduled) return;
+            moveScheduled = true;
+            requestAnimationFrame(flushMove);
+          }
+
           canvas.addEventListener('mouseenter', () => {
             canvas.focus({ preventScroll: true });
             reclaim();
@@ -183,30 +226,30 @@ internal static class RdpViewerPage
             reclaim();
             showCursor(e);
             const p = scale(e);
-            send({ type: 'mousemove', ...p });
+            scheduleMove(p);
           });
           canvas.addEventListener('mousedown', e => {
+            e.preventDefault();
             reclaim();
             showCursor(e);
             const p = scale(e);
+            flushMove();
             send({ type: 'mousedown', button: btn(e), ...p });
           });
           canvas.addEventListener('mouseup', e => {
+            e.preventDefault();
             const p = scale(e);
+            flushMove();
             send({ type: 'mouseup', button: btn(e), ...p });
           });
           canvas.addEventListener('click', e => {
-            const p = scale(e);
-            send({ type: 'click', button: btn(e), clickCount: e.detail, ...p });
+            e.preventDefault();
           });
           canvas.addEventListener('dblclick', e => {
-            const p = scale(e);
-            send({ type: 'click', button: 'left', clickCount: 2, ...p });
+            e.preventDefault();
           });
           canvas.addEventListener('contextmenu', e => {
             e.preventDefault();
-            const p = scale(e);
-            send({ type: 'mousedown', button: 'right', ...p });
           });
           canvas.addEventListener('wheel', e => {
             e.preventDefault();
@@ -228,6 +271,11 @@ internal static class RdpViewerPage
             const text = e.clipboardData?.getData('text/plain');
             if (text) send({ type: 'type', text });
           });
+
+          function handleControlMessage(m) {
+            if (m.type === 'mode') applyMode(m.authority === 'human');
+            if (m.type === 'cursor') applyCursorKind(m.cursor);
+          }
         </script>
         </body>
         </html>
