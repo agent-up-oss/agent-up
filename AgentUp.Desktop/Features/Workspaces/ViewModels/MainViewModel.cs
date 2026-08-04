@@ -212,7 +212,15 @@ public sealed class MainViewModel : ReactiveObject
                 .Select(_ => ((string?)Sidebar.SelectedWorkspace?.Id, (string?)GetPortNavigationUrl(pt)));
 
     private string GetPortNavigationUrl(PortSubTabViewModel pt)
-        => pt.IsHttp ? AddressBarUrl ?? pt.Url : pt.Url;
+    {
+        if (!pt.IsHttp) return pt.Url;
+        var address = AddressBarUrl;
+        return address is not null
+               && (address.StartsWith("http://", StringComparison.Ordinal)
+                   || address.StartsWith("https://", StringComparison.Ordinal))
+            ? address
+            : pt.Url;
+    }
 
     private async Task ReloadWorkspaceBehindTutorialAsync()
     {

@@ -402,6 +402,45 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task BrowserNavigation_fallsBackToPortUrl_whenAddressBarShowsChromeError()
+    {
+        const int port = 3000;
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, port, port)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+
+        // Simulate the headless browser reporting a chrome error (app was down, then workspace restarted).
+        vm.UpdateAddressFromBrowser("ws-1", "chrome-error://chromewebdata/");
+
+        // Deselect then re-select the port tab — mimics the port-open transition triggering navigation.
+        var portTab = vm.SubTabs.OfType<PortSubTabViewModel>().First();
+        vm.SelectedSubTab = null;
+        vm.SelectedSubTab = portTab;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+                e => e.ws == "ws-1" && e.url == $"http://localhost:{port}/"),
+                "Navigation must fall back to the port URL when the address bar shows a chrome error");
+            Assert.That(emissions, Has.None.Matches<(string? ws, string? url)>(
+                e => e.url == "chrome-error://chromewebdata/"),
+                "Chrome error URL must never be passed as a navigation target");
+        });
+    }
+
+    [Test]
     public async Task SelectedWorkspaceApplicationStateChange_refreshesApplicationPanel()
     {
         var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
