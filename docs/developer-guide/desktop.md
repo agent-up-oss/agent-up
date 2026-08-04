@@ -107,6 +107,8 @@ For applications without configured ports, Console is selected by default.
 
 When the selected tab is an HTTP port, the Desktop shows a third row with back, forward, and reload controls followed by an editable browser address field. The field contains the full URL, such as `http://localhost:3000/`, for the selected port. Pressing Enter requests navigation through the Server-owned browser session, and successful HTTP/HTTPS browser navigations update the field to the current page URL. Non-HTTP ports do not show the address row.
 
+Switching from an HTTP port tab to Console, TCP info, or another non-browser surface must hide and restore the existing remote browser viewer without reloading or re-navigating when the Server browser is already at the requested URL. Switching to a different application URL may request Server-owned navigation, but duplicate same-URL tab-return navigation is forbidden because it resets scroll position, JavaScript memory, and open UI state.
+
 Because the native WebView does not always raise managed navigation updates for in-page link clicks, the Desktop also polls `window.location.href` for the active HTTP WebView and mirrors HTTP/HTTPS changes into the address field.
 
 Reloading workspaces keeps the selected workspace by ID but rebinds it to the refreshed Server state, so the selected application's active HTTP port is navigated again after a sidebar reload.
