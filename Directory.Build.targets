@@ -6,6 +6,7 @@
     PSMDCP filename and writes current-time ZIP entry timestamps — both of which break reproducibility.
     This target replaces both with values derived deterministically from the package identity.
   -->
+
   <UsingTask TaskName="NormalizeNuGetPackage"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -15,8 +16,6 @@
       <PackageVersion ParameterType="System.String" Required="true" />
     </ParameterGroup>
     <Task>
-      <Reference Include="System.IO.Compression" />
-      <Reference Include="System.IO.Compression.ZipFile" />
       <Using Namespace="System" />
       <Using Namespace="System.IO" />
       <Using Namespace="System.IO.Compression" />
