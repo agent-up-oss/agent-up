@@ -101,10 +101,10 @@ public sealed class NixOsInstallerPlatformAdapterTests
 
     private static InstallerSession Session()
         => InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(),
+            AgentUpTestManifests.Product(),
             new Version(1, 2, 3),
             "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 2, 3)));
+            AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
 
     private static InstallerSession AcmeStudioSession()
         => InstallerSession.CreateDefault(
