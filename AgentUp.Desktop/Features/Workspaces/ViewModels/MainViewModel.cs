@@ -115,7 +115,11 @@ public sealed class MainViewModel : ReactiveObject
     {
         if (!ReferenceEquals(sender, Sidebar.SelectedWorkspace)) return;
         UpdateApplicationsFromWorkspace(Sidebar.SelectedWorkspace, preserveSelection: true);
-        if (SelectedSubTab is PortSubTabViewModel { IsHttp: true } pt)
+        // Navigate even when the console or TCP tab is active so the headless browser reconnects
+        // when the workspace starts remotely while the user is viewing a non-port tab.
+        var pt = SelectedSubTab as PortSubTabViewModel
+            ?? SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.IsHttp);
+        if (pt is { IsHttp: true })
             _addressNavigations.OnNext((Sidebar.SelectedWorkspace?.Id, GetPortNavigationUrl(pt)));
     }
 
