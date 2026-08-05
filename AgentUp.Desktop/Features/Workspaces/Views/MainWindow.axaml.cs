@@ -1084,18 +1084,24 @@ code {
     private void SwitchWebViewMode(string workspaceId, string authority)
     {
         var tutorialVisible = IsTutorialVisible();
+        var vm = DataContext as MainViewModel;
+
         if (authority == "human")
         {
             // Activate the direct port WebView; navigate to the last URL the headless browser was at,
             // or fall back to the address bar URL (e.g. when the app is offline and never loaded).
             var viewerTabKey = $"{workspaceId}:viewer";
             if (!_lastKnownBrowserUrls.TryGetValue(viewerTabKey, out var lastUrl))
-                lastUrl = (DataContext as MainViewModel)?.AddressBarUrl;
+                lastUrl = vm?.AddressBarUrl;
             if (lastUrl is null) return;
             if (!Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)) return;
 
             var tabKey = TabKey(workspaceId, lastUri);
             ActivateTab(workspaceId, tabKey, tutorialVisible);
+
+            // Restore human-mode address bar state (prefer where human was last, else AI's URL).
+            if (vm is not null)
+                vm.AddressBarUrl = _lastKnownBrowserUrls.GetValueOrDefault(tabKey) ?? lastUrl;
 
             if (_webViews.TryGetValue(tabKey, out var existingWv))
             {
@@ -1115,6 +1121,10 @@ code {
             var tabKey = $"{workspaceId}:viewer";
             ActivateTab(workspaceId, tabKey, tutorialVisible);
             WakeActiveViewer();
+
+            // Restore AI-mode address bar state.
+            if (vm is not null && _lastKnownBrowserUrls.TryGetValue(tabKey, out var aiUrl))
+                vm.AddressBarUrl = aiUrl;
         }
     }
 
