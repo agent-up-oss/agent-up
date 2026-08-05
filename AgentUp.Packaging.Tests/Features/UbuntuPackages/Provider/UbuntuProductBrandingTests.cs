@@ -18,7 +18,7 @@ public class UbuntuProductBrandingTests
     [Test]
     public void ControlFile_forNonAgentUpProduct_carriesProductPackageName_andNoArtifactContainsAgentUpString()
     {
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var manifest = UbuntuPackageManifest.From(request, AcmeStudio);
         var layout = UbuntuPackageLayout.From(request, AcmeStudio);
         var writer = new RecordingPackageWriter();
@@ -42,7 +42,7 @@ public class UbuntuProductBrandingTests
     [Test]
     public void PostInstallScript_forNonAgentUpProduct_usesProductInstallRootAndUnitName()
     {
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var manifest = UbuntuPackageManifest.From(request, AcmeStudio);
 
         var script = manifest.PostInstallScript();
@@ -62,7 +62,7 @@ public class UbuntuProductBrandingTests
     [Test]
     public void PreRemoveScript_forAcmeStudio_stopsProductUnitAndContainsNoAgentUpUnitName()
     {
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var manifest = UbuntuPackageManifest.From(request, AcmeStudio);
 
         var script = manifest.PreRemoveScript();
@@ -81,8 +81,8 @@ public class UbuntuProductBrandingTests
     public async Task BuildDebAsync_forAgentUpManifest_commandShapeMatchesBaseline()
     {
         var commands = new RecordingCommandRunner();
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release");
-        var layout = UbuntuPackageLayout.From(request, PackageProductManifest.AgentUp());
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
+        var layout = UbuntuPackageLayout.From(request, AgentUpPackageTestManifests.Product());
 
         await new DpkgDebPackageTool(commands).BuildDebAsync(layout);
 
@@ -114,7 +114,7 @@ public class UbuntuProductBrandingTests
     private static string CollectAllArtifactOutput(string slug)
     {
         var product = new PackageProductManifest(SlugToProductName(slug), slug, slug.ToUpperInvariant().Replace("-", ""));
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var manifest = UbuntuPackageManifest.From(request, product);
         var layout = UbuntuPackageLayout.From(request, product);
         var writer = new RecordingPackageWriter();
