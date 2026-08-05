@@ -59,11 +59,20 @@ public sealed class CdpBrowserExecutor(ILogger<CdpBrowserExecutor> logger)
         if (!command.ReloadIfSameUrl && string.Equals(page.Url, uri.ToString(), StringComparison.Ordinal))
             return Ok(command);
 
-        await page.GoToAsync(uri.ToString(), new NavigationOptions
+        try
         {
-            Timeout = command.TimeoutMs,
-            WaitUntil = [WaitUntilNavigation.Load]
-        }).WaitAsync(ct);
+            await page.GoToAsync(uri.ToString(), new NavigationOptions
+            {
+                Timeout = command.TimeoutMs,
+                WaitUntil = [WaitUntilNavigation.Load]
+            }).WaitAsync(ct);
+        }
+        catch (PuppeteerException)
+        {
+            // Page-load failed (e.g. ERR_CONNECTION_REFUSED). Chromium received the URL
+            // and shows the error page. Treat as a soft accept so the desktop can store
+            // the intended URL and retry via the poll loop.
+        }
         return Ok(command);
     }
 
