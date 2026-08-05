@@ -38,6 +38,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, int> _navigationVersions = new();
     // Current control authority per workspace: "ai" (default) or "human".
     private readonly Dictionary<string, string> _workspaceAuthority = new();
+    private DateTimeOffset _lastHeadlessRetry = DateTimeOffset.MinValue;
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
@@ -1025,12 +1026,27 @@ code {
             var trimmed = url.Trim();
             var tabKey = $"{workspaceId}:viewer";
             if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+            {
                 _lastKnownBrowserUrls[tabKey] = trimmed;
+                if (DataContext is MainViewModel vm)
+                    vm.UpdateAddressFromBrowser(workspaceId, trimmed);
+            }
             else
+            {
                 _lastKnownBrowserUrls.Remove(tabKey);
-
-            if (DataContext is MainViewModel vm)
-                vm.UpdateAddressFromBrowser(workspaceId, trimmed);
+                // Chromium is on an error or blank page. Retry navigation to the intended URL
+                // so the display recovers automatically once the app is reachable again.
+                if (DateTimeOffset.UtcNow - _lastHeadlessRetry >= TimeSpan.FromSeconds(5))
+                {
+                    var intendedUrl = (DataContext as MainViewModel)?.AddressBarUrl;
+                    if (!string.IsNullOrWhiteSpace(intendedUrl)
+                        && intendedUrl.StartsWith("http", StringComparison.Ordinal))
+                    {
+                        _lastHeadlessRetry = DateTimeOffset.UtcNow;
+                        _ = PostHeadlessNavigateAsync(workspaceId, intendedUrl, reloadIfSameUrl: true);
+                    }
+                }
+            }
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -1070,9 +1086,12 @@ code {
         var tutorialVisible = IsTutorialVisible();
         if (authority == "human")
         {
-            // Activate the direct port WebView; navigate to the last URL the headless browser was at.
+            // Activate the direct port WebView; navigate to the last URL the headless browser was at,
+            // or fall back to the address bar URL (e.g. when the app is offline and never loaded).
             var viewerTabKey = $"{workspaceId}:viewer";
-            if (!_lastKnownBrowserUrls.TryGetValue(viewerTabKey, out var lastUrl)) return;
+            if (!_lastKnownBrowserUrls.TryGetValue(viewerTabKey, out var lastUrl))
+                lastUrl = (DataContext as MainViewModel)?.AddressBarUrl;
+            if (lastUrl is null) return;
             if (!Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)) return;
 
             var tabKey = TabKey(workspaceId, lastUri);
