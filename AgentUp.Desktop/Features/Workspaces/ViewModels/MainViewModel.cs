@@ -25,6 +25,7 @@ public sealed class MainViewModel : ReactiveObject
     private readonly Dictionary<string, string> _portUrls = new();
     private WorkspaceItemViewModel? _workspaceApplicationSubscription;
     private string? _lastSelectedHttpPortKey;
+    private bool _isActiveWorkspaceAiMode = true;
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -48,6 +49,18 @@ public sealed class MainViewModel : ReactiveObject
         get => _addressBarUrl;
         set => this.RaiseAndSetIfChanged(ref _addressBarUrl, value);
     }
+
+    public bool IsActiveWorkspaceAiMode
+    {
+        get => _isActiveWorkspaceAiMode;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isActiveWorkspaceAiMode, value);
+            this.RaisePropertyChanged(nameof(IsActiveWorkspaceHumanMode));
+        }
+    }
+
+    public bool IsActiveWorkspaceHumanMode => !IsActiveWorkspaceAiMode;
 
     public ReactiveCommand<Unit, Unit> NavigateAddressCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserBackCommand { get; }
@@ -86,10 +99,19 @@ public sealed class MainViewModel : ReactiveObject
         SubscribeSubTabSelection();
         SubscribeTutorialSteps();
         SubscribeSelectedPortProbe(selectedPortTab);
+        SubscribeWorkspaceAuthorityTracking();
 
         BrowserTabNavigation = CreateBrowserTabNavigation();
         BrowserNavigation = CreateBrowserNavigation(selectedPortTab);
     }
+
+    private void SubscribeWorkspaceAuthorityTracking()
+        => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
+            .Select(ws => ws is null
+                ? Observable.Return(true)
+                : ws.WhenAnyValue(w => w.ControlAuthority).Select(auth => auth != "human"))
+            .Switch()
+            .Subscribe(isAi => IsActiveWorkspaceAiMode = isAi);
 
     private void SubscribeWorkspaceSelection()
         => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)

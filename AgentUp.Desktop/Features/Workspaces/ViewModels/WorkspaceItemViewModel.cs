@@ -41,6 +41,8 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _controlAuthority, value);
     }
 
+    public bool IsAiMode => _controlAuthority != "human";
+
     public string ControlLabel => _controlAuthority == "human"
         ? "Human"
         : _viewportWidth > 0 ? $"AI · {_viewportWidth}×{_viewportHeight}" : "AI";
@@ -86,6 +88,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         _viewportHeight = height;
         if (authority == "ai")
             _selectedAiPresetId = BrowserViewportPresetId(width, height);
+        this.RaisePropertyChanged(nameof(IsAiMode));
         this.RaisePropertyChanged(nameof(ControlLabel));
     }
 
