@@ -27,6 +27,7 @@ public sealed class BrowserSessionState
         if (_pagesByOrigin.TryGetValue(pageKey, out var cached) && !cached.IsClosed)
         {
             Page = cached;
+            await Page.BringToFrontAsync().WaitAsync(ct);
             return cached;
         }
 
@@ -35,6 +36,7 @@ public sealed class BrowserSessionState
             : await Browser.NewPageAsync().WaitAsync(ct);
         _pagesByOrigin[pageKey] = page;
         Page = page;
+        await Page.BringToFrontAsync().WaitAsync(ct);
         return page;
     }
 
