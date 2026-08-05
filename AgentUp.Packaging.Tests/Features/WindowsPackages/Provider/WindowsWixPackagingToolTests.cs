@@ -17,7 +17,7 @@ public class WindowsWixPackagingToolTests
         {
             Directory.CreateDirectory(root);
             var commands = new RecordingCommandRunner();
-            var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release");
+            var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
             var layout = WindowsPackageLayout.From(request);
             var tool = new WindowsWixPackagingTool(commands);
 

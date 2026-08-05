@@ -19,7 +19,7 @@ public class WindowsPackagerTests
         var writer = new RecordingWindowsPackageWriter();
         var packagingTool = new RecordingWindowsPackagingTool();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
-        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
 
         try
         {
@@ -48,7 +48,7 @@ public class WindowsPackagerTests
         var packagingTool = new RecordingWindowsPackagingTool();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-WindowsPackagerTests", Guid.NewGuid().ToString());
         var payloadRoot = Path.Join(root, "payload");
-        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot);
+        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot, AgentUpPackageTestManifests.Product());
 
         try
         {
