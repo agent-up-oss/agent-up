@@ -1,3 +1,4 @@
+using AgentUp.InstallerConfig;
 using AgentUp.PackageSmoke.Shared.Providers;
 
 namespace AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
@@ -40,9 +41,10 @@ public sealed record SmokeCommandRequest
 
     public SmokeProductManifest? ProductManifest { get; }
 
-#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
-    public SmokeProductManifest Product => ProductManifest ?? throw new InvalidOperationException("Generic package smoke requests require an explicit product manifest.");
-#else
-    public SmokeProductManifest Product => ProductManifest ?? SmokeProductManifest.AgentUp;
-#endif
+    public SmokeProductManifest Product => ProductManifest ?? new SmokeProductManifest(
+        ServiceName: AgentUpProduct.Slug + "-server",
+        CliShimName: AgentUpProduct.Slug,
+        ArtifactBaseName: AgentUpProduct.Slug,
+        DisplayName: AgentUpProduct.Name,
+        InstallDirName: AgentUpProduct.Name);
 }
