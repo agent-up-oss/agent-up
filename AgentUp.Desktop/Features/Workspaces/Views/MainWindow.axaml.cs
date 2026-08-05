@@ -27,7 +27,7 @@ namespace AgentUp.Desktop.Features.Workspaces.Views;
 
 public partial class MainWindow : ReactiveWindow<MainViewModel>
 {
-    // One NativeWebView per workspace viewer — keyed by "workspaceId:viewer".
+    // One NativeWebView per tab — keyed by "workspaceId:viewer" (AI stream) or "workspaceId:{port}" (human direct).
     // Switching between workspace tabs only toggles IsVisible; the WebView is never navigated away,
     // preserving full page state (scroll position, open accordions, JS memory, auth session).
     private readonly Dictionary<string, NativeWebView> _webViews = new();
@@ -36,6 +36,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Last successfully navigated http URL per tabKey; absent means tab is in error state.
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
     private readonly Dictionary<string, int> _navigationVersions = new();
+    // Current control authority per workspace: "ai" (default) or "human".
+    private readonly Dictionary<string, string> _workspaceAuthority = new();
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
@@ -47,7 +49,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private NativeWebView? _consoleWebView;
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
-    private CancellationTokenSource? _viewportResizeCts;
     private ViewModelAuditController? _auditController;
     private const int ConsoleDefaultDisplayLines = 2_000;
     private static readonly HttpClient PortProbeHttpClient = new()
@@ -67,6 +68,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _webViews.Count > 0
         || _webViewErrors.Count > 0
         || _lastKnownBrowserUrls.Count > 0
+        || _workspaceAuthority.Count > 0
         || _activeWorkspaceId is not null
         || _activeTabKey is not null;
 
@@ -252,8 +254,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     protected override void OnClosed(EventArgs e)
     {
         _isClosed = true;
-        _viewportResizeCts?.Cancel();
-        _viewportResizeCts?.Dispose();
         _workspaceEventClient?.Dispose();
         _auditController?.Dispose();
         _serverHttp.Dispose();
@@ -359,10 +359,41 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void HandleNavigation(string? workspaceId, string? url, bool reloadIfSameUrl)
     {
-        if (_isClosed) return;
-        if (workspaceId is null) return;
-        HandleHeadlessNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
+        if (_isClosed || workspaceId is null) return;
+        var authority = _workspaceAuthority.GetValueOrDefault(workspaceId, "ai");
+        if (authority == "human")
+            HandleDirectNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
+        else
+            HandleHeadlessNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
     }
+
+    private void HandleDirectNavigation(string? workspaceId, string? url, bool tutorialVisible, bool reloadIfSameUrl)
+    {
+        if (workspaceId is null || url is null) return;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var navUri) || navUri.Scheme is not ("http" or "https")) return;
+
+        var tabKey = TabKey(workspaceId, navUri);
+        ActivateTab(workspaceId, tabKey, tutorialVisible);
+
+        if (_webViews.TryGetValue(tabKey, out var existingWebView))
+        {
+            existingWebView.IsVisible = !tutorialVisible;
+            if (!reloadIfSameUrl && !ShouldNavigateExistingWebView(_lastKnownBrowserUrls.GetValueOrDefault(tabKey), url))
+                return;
+            var errNavVer = _navigationVersions.GetValueOrDefault(tabKey) + 1;
+            _navigationVersions[tabKey] = errNavVer;
+            _ = NavigatePortWebViewAsync(tabKey, workspaceId, existingWebView, navUri, errNavVer);
+            return;
+        }
+
+        if (!TryGetOrCreateWebView(tabKey, workspaceId, url, out var webView, out var destinationUrl)) return;
+        webView.IsVisible = !tutorialVisible;
+        var navigationVersion = _navigationVersions.GetValueOrDefault(tabKey) + 1;
+        _navigationVersions[tabKey] = navigationVersion;
+        _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(destinationUrl), navigationVersion);
+    }
+
+    private static string TabKey(string workspaceId, Uri uri) => $"{workspaceId}:{uri.Port}";
 
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
@@ -597,8 +628,24 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void HandleBrowserCommand(BrowserCommand command)
     {
-        if (_isClosed) return;
-        if (_activeWorkspaceId is null) return;
+        if (_isClosed || _activeWorkspaceId is null) return;
+
+        if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") == "human")
+        {
+            if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var wv))
+            {
+                switch (command)
+                {
+                    case BrowserCommand.Back: wv.GoBack(); break;
+                    case BrowserCommand.Forward: wv.GoForward(); break;
+                    case BrowserCommand.Reload:
+                        if (wv.Source is { } src) ReloadWebView(wv, src);
+                        break;
+                }
+            }
+            return;
+        }
+
         _ = PostHeadlessBrowserCommandAsync(command, _activeWorkspaceId);
     }
 
@@ -609,7 +656,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
         await PollHeadlessAddressAsync(_activeWorkspaceId);
         await PollControlModeAsync(_activeWorkspaceId);
-        ReclaimActiveViewer();
     }
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
@@ -838,6 +884,7 @@ code {
         _webViewErrors.Clear();
         _lastKnownBrowserUrls.Clear();
         _navigationVersions.Clear();
+        _workspaceAuthority.Clear();
         _activeWorkspaceId = null;
         _activeTabKey = null;
     }
@@ -848,6 +895,7 @@ code {
             DestroyWorkspaceWebView(tabKey);
 
         _webViewErrors.Remove(workspaceId);
+        _workspaceAuthority.Remove(workspaceId);
         DeleteBrowserErrorPage(workspaceId);
 
         if (_activeWorkspaceId != workspaceId)
@@ -920,28 +968,29 @@ code {
             && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
             && navUri.Scheme is "http" or "https")
             _ = PostHeadlessNavigateAndRememberAsync(tabKey, workspaceId, url, reloadIfSameUrl);
-
-        if (PortPane.Bounds.Width > 0 && PortPane.Bounds.Height > 0)
-            _ = PostViewportAsync(workspaceId, (int)PortPane.Bounds.Width, (int)PortPane.Bounds.Height);
     }
 
-    private void ReclaimActiveViewer()
-    {
-        if (_activeWorkspaceId is null || _activeTabKey is null) return;
-        if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
-
-        var viewerUrl = BuildViewerUrl(_activeWorkspaceId);
-        if (!IsAtViewerUrl(webView, viewerUrl))
-            NavigateWebView(webView, viewerUrl);
-    }
-
-    // Called when ShowPortView transitions false→true (e.g. switching from a TCP tab back to an HTTP
-    // tab). Only reclaim the viewer when it drifted away from the RDP page; reloading an already-active
-    // viewer discards local page state in the Server-owned browser session.
+    // Called when ShowPortView transitions false→true (e.g. switching from a TCP tab back to an HTTP tab).
     private void WakeActiveViewer()
     {
         if (_isClosed || _activeTabKey is null || _activeWorkspaceId is null) return;
         if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
+
+        if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") == "human")
+        {
+            // Human mode: navigate the direct port WebView to the last known URL if needed.
+            if (_lastKnownBrowserUrls.TryGetValue(_activeTabKey, out var lastUrl)
+                && Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)
+                && !string.Equals(webView.Source?.ToString(), lastUrl, StringComparison.Ordinal))
+            {
+                var ver = _navigationVersions.GetValueOrDefault(_activeTabKey) + 1;
+                _navigationVersions[_activeTabKey] = ver;
+                _ = NavigatePortWebViewAsync(_activeTabKey, _activeWorkspaceId, webView, lastUri, ver);
+            }
+            return;
+        }
+
+        // AI mode: ensure the viewer WebView is on the RDP viewer page.
         var viewerUrl = BuildViewerUrl(_activeWorkspaceId);
         if (!IsAtViewerUrl(webView, viewerUrl))
             NavigateWebView(webView, viewerUrl);
@@ -949,6 +998,24 @@ code {
 
     private async Task PollHeadlessAddressAsync(string workspaceId)
     {
+        if (_workspaceAuthority.GetValueOrDefault(workspaceId, "ai") == "human")
+        {
+            // In human mode read the URL directly from the native WebView source.
+            var humanTabKey = _webViews.Keys
+                .FirstOrDefault(k => k.StartsWith($"{workspaceId}:") && k != $"{workspaceId}:viewer");
+            if (humanTabKey is not null && _webViews.TryGetValue(humanTabKey, out var humanWv))
+            {
+                var src = humanWv.Source?.ToString();
+                if (!string.IsNullOrWhiteSpace(src))
+                {
+                    _lastKnownBrowserUrls[humanTabKey] = src;
+                    if (DataContext is MainViewModel vm)
+                        vm.UpdateAddressFromBrowser(workspaceId, src);
+                }
+            }
+            return;
+        }
+
         try
         {
             var url = await _serverHttp.GetStringAsync(
@@ -982,8 +1049,15 @@ code {
             var authority = root.GetProperty("authority").GetString() ?? "ai";
             var width = root.GetProperty("width").GetInt32();
             var height = root.GetProperty("height").GetInt32();
+
+            var oldAuthority = _workspaceAuthority.GetValueOrDefault(workspaceId, "ai");
+            _workspaceAuthority[workspaceId] = authority;
+
             if (DataContext is MainViewModel vm)
                 vm.Sidebar.ApplyControlMode(workspaceId, authority, width, height);
+
+            if (oldAuthority != authority)
+                SwitchWebViewMode(workspaceId, authority);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
@@ -991,40 +1065,41 @@ code {
         }
     }
 
-    private void OnPortPaneSizeChanged(object? sender, SizeChangedEventArgs e)
+    private void SwitchWebViewMode(string workspaceId, string authority)
     {
-        _viewportResizeCts?.Cancel();
-        _viewportResizeCts = new CancellationTokenSource();
-        _ = SendViewportAfterDelayAsync((int)PortPane.Bounds.Width, (int)PortPane.Bounds.Height, _viewportResizeCts.Token);
+        var tutorialVisible = IsTutorialVisible();
+        if (authority == "human")
+        {
+            // Activate the direct port WebView; navigate to the last URL the headless browser was at.
+            var viewerTabKey = $"{workspaceId}:viewer";
+            if (!_lastKnownBrowserUrls.TryGetValue(viewerTabKey, out var lastUrl)) return;
+            if (!Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)) return;
+
+            var tabKey = TabKey(workspaceId, lastUri);
+            ActivateTab(workspaceId, tabKey, tutorialVisible);
+
+            if (_webViews.TryGetValue(tabKey, out var existingWv))
+            {
+                existingWv.IsVisible = !tutorialVisible;
+                return;
+            }
+
+            if (!TryGetOrCreateWebView(tabKey, workspaceId, lastUrl, out var wv, out var dest)) return;
+            wv.IsVisible = !tutorialVisible;
+            var ver = _navigationVersions.GetValueOrDefault(tabKey) + 1;
+            _navigationVersions[tabKey] = ver;
+            _ = NavigatePortWebViewAsync(tabKey, workspaceId, wv, new Uri(dest), ver);
+        }
+        else
+        {
+            // Activate the AI stream viewer tab.
+            var tabKey = $"{workspaceId}:viewer";
+            ActivateTab(workspaceId, tabKey, tutorialVisible);
+            WakeActiveViewer();
+        }
     }
 
-    private async Task SendViewportAfterDelayAsync(int width, int height, CancellationToken ct)
-    {
-        try
-        {
-            await Task.Delay(50, ct);
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-        if (_isClosed || _activeWorkspaceId is null || width <= 0 || height <= 0) return;
-        await PostViewportAsync(_activeWorkspaceId, width, height);
-    }
-
-    private async Task PostViewportAsync(string workspaceId, int width, int height)
-    {
-        try
-        {
-            using var _ = await _serverHttp.PostAsync(
-                $"/api/browser/input/viewport/{Uri.EscapeDataString(workspaceId)}?width={width}&height={height}",
-                null);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
-    }
+    private void OnPortPaneSizeChanged(object? sender, SizeChangedEventArgs e) { }
 
     private async Task PostHeadlessNavigateAndRememberAsync(
         string tabKey,
