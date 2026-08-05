@@ -1,5 +1,4 @@
 using AgentUp.Architecture.Tests.Fixtures;
-using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,9 +10,9 @@ public sealed class ProductIdentityBoundaries
 {
     private static readonly string[] GenericInstallerProjects =
     [
-        "AgentUp.Installers/AgentUp.Installers.csproj",
-        "AgentUp.Packaging/AgentUp.Packaging.csproj",
-        "AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj"
+        "AgentUp.Installers",
+        "AgentUp.Packaging",
+        "AgentUp.PackageSmoke"
     ];
 
     private static readonly string[] InstallerProductIdentityTokens =
@@ -22,20 +21,6 @@ public sealed class ProductIdentityBoundaries
         "Agent-Up",
         "dev.agent-up",
         "AGENTUP"
-    ];
-
-    private static readonly string[] InstallerProductIdentityAllowedFiles =
-    [
-        "AgentUp.Installers/Features/Installation/DTOs/AgentUpPayloadSelection.cs",
-        "AgentUp.Installers/Features/Installation/Models/AgentUpProductManifest.cs",
-        "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerManifest.cs",
-        "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerPaths.cs",
-        "AgentUp.Installers/Features/UbuntuInstallation/Models/AgentUpUbuntuInstallerPaths.cs",
-        "AgentUp.Installers/Features/UbuntuInstallation/Models/AgentUpUbuntuInstallerManifest.cs",
-        "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerManifest.cs",
-        "AgentUp.Installers/Features/WindowsInstallation/Models/AgentUpWindowsInstallerPaths.cs",
-        "AgentUp.Installers/Composition/AgentUpInstallerEnvironment.cs",
-        "AgentUp.Installers/Composition/AgentUpInstallerPlatformAdapterFactory.cs"
     ];
 
     [Test]
@@ -51,17 +36,17 @@ public sealed class ProductIdentityBoundaries
     }
 
     [Test]
-    public void Generic_installer_projects_build_with_agent_up_product_configuration_excluded()
+    public void Generic_installer_library_projects_contain_no_agent_up_named_source_files()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var failures = GenericInstallerProjects
-            .Select(project => BuildProjectWithoutAgentUpProductConfiguration(root, project))
-            .Where(result => result.ExitCode != 0)
-            .Select(result => $"{result.Project}:{Environment.NewLine}{result.Output}")
+        var agentUpFiles = GenericInstallerProjects
+            .SelectMany(project => ArchitectureFixture.ProjectSourceFiles(root, project))
+            .Where(path => Path.GetFileName(path).StartsWith("AgentUp", StringComparison.Ordinal))
+            .Select(path => ArchitectureFixture.Relative(root, path))
             .ToArray();
 
-        Assert.That(failures, Is.Empty,
-            "Generic installer-related projects must compile when Agent-Up product configuration files are excluded.");
+        Assert.That(agentUpFiles, Is.Empty,
+            "Generic LocalInstaller library projects must contain no AgentUp-named source files; register product configuration in each executable's Program.cs instead.");
     }
 
     [Test]
@@ -99,7 +84,7 @@ public sealed class ProductIdentityBoundaries
     }
 
     [Test]
-    public void Generic_installer_source_scan_ignores_allowed_configuration_and_non_product_text()
+    public void Generic_installer_source_scan_ignores_test_support_files_and_non_product_text()
     {
         const string testSupportSource = """
                                          namespace AgentUp.Installers.Tests.Support;
@@ -110,23 +95,6 @@ public sealed class ProductIdentityBoundaries
                                              public const string ProductSlug = "agent-up";
                                          }
                                          """;
-        const string agentUpProductManifestSource = """
-                                                     namespace AgentUp.Installers.Features.Installation.Models;
-
-                                                     public static class ProductManifest
-                                                     {
-                                                         public const string ProductName = "Agent-Up";
-                                                         public const string EnvironmentPrefix = "AGENTUP";
-                                                     }
-                                                     """;
-        const string agentUpMacOsManifestSource = """
-                                                  namespace AgentUp.Installers.Features.MacOsInstallation.Models;
-
-                                                  public static class MacOsInstallerManifest
-                                                  {
-                                                      public const string Domain = "dev.agent-up";
-                                                  }
-                                                  """;
         const string genericCategorySource = """
                                              namespace AgentUp.Installers.Features.Installation.Services;
 
@@ -139,12 +107,6 @@ public sealed class ProductIdentityBoundaries
         var violations = InstallerProductIdentityViolationsInSource(
                 "AgentUp.Installers.Tests/Support/InstallerFixture.cs",
                 testSupportSource)
-            .Concat(InstallerProductIdentityViolationsInSource(
-                "AgentUp.Installers/Features/Installation/Models/AgentUpProductManifest.cs",
-                agentUpProductManifestSource))
-            .Concat(InstallerProductIdentityViolationsInSource(
-                "AgentUp.Installers/Features/MacOsInstallation/Models/AgentUpMacOsInstallerManifest.cs",
-                agentUpMacOsManifestSource))
             .Concat(InstallerProductIdentityViolationsInSource(
                 "AgentUp.Installers/Features/Installation/Services/InstallerComponentOperations.cs",
                 genericCategorySource))
@@ -239,31 +201,6 @@ public sealed class ProductIdentityBoundaries
         }
     }
 
-    private static (string Project, int ExitCode, string Output) BuildProjectWithoutAgentUpProductConfiguration(
-        string root,
-        string project)
-    {
-        using var process = Process.Start(new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            ArgumentList =
-            {
-                "build",
-                project,
-                "-p:ExcludeAgentUpProductConfiguration=true",
-                "--no-restore"
-            },
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        }) ?? throw new InvalidOperationException("Failed to start dotnet build.");
-
-        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        return (project, process.ExitCode, output);
-    }
-
     private static IEnumerable<string> InstallerProductIdentityViolations(string root, string path)
     {
         var relativePath = ArchitectureFixture.Relative(root, path);
@@ -275,10 +212,6 @@ public sealed class ProductIdentityBoundaries
     {
         if (!relativePath.StartsWith("AgentUp.Installers/", StringComparison.Ordinal)
             && !relativePath.StartsWith("AgentUp.Installers" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
-            return [];
-
-        var normalizedPath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
-        if (InstallerProductIdentityAllowedFiles.Contains(normalizedPath, StringComparer.Ordinal))
             return [];
 
         var tree = CSharpSyntaxTree.ParseText(source);
