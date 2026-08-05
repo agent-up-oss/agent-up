@@ -11,6 +11,7 @@ public sealed partial record ProductManifest(
 
     public string ServiceName => $"{Slug}-server";
     public string CliCommandName => Slug;
+    public string FakeInstallerVariable => $"{EnvironmentPrefix}_INSTALLER_FAKE";
     public string PayloadRootVariable => $"{EnvironmentPrefix}_INSTALLER_PAYLOAD_ROOT";
 
     public string DefaultInstallRoot()

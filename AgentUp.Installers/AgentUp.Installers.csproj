@@ -9,8 +9,5 @@
     <Version>$(LocalInstallerVersion)</Version>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(ExcludeAgentUpProductConfiguration)' == 'true'">
-    <Compile Remove="**/AgentUp*.cs" />
-  </ItemGroup>
 
 </Project>

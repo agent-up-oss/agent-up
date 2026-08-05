@@ -1,3 +1,4 @@
+using AgentUp.InstallerConfig;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Composition;
 using AgentUp.InstallerApp.Features.Installation.Factories;
@@ -23,25 +24,25 @@ public class InstallerAdapterFactoryTests
     [SetUp]
     public void SetUp()
     {
-        _fakeInstaller = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable);
-        _payloadRoot = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable);
-        _nixOsLookupOnly = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable, null);
+        _fakeInstaller = Environment.GetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable);
+        _payloadRoot = Environment.GetEnvironmentVariable(AgentUpProduct.PayloadRootVariable);
+        _nixOsLookupOnly = Environment.GetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable);
+        Environment.SetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable, null);
     }
 
     [TearDown]
     public void TearDown()
     {
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, _fakeInstaller);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, _payloadRoot);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable, _nixOsLookupOnly);
+        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, _fakeInstaller);
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, _payloadRoot);
+        Environment.SetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable, _nixOsLookupOnly);
     }
 
     [Test]
     public void Create_usesFakeAdapterWhenExplicitlyEnabled()
     {
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, "1");
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, "1");
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
 
         var adapter = InstallerAdapterFactory.Create();
 
@@ -51,15 +52,15 @@ public class InstallerAdapterFactoryTests
     [Test]
     public void Create_requiresPayloadRootForRealInstaller()
     {
-        if (OperatingSystem.IsLinux() && InstallerPlatformAdapterFactory.UseNixOsLookupOnlyMode())
+        if (OperatingSystem.IsLinux() && InstallerAdapterFactory.UseNixOsLookupOnlyMode())
             Assert.Ignore("NixOS lookup-only mode does not require installer payloads.");
 
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
 
         Assert.That(
             () => InstallerAdapterFactory.Create(),
-            Throws.InvalidOperationException.With.Message.Contains(InstallerPlatformAdapterFactory.PayloadRootVariable));
+            Throws.InvalidOperationException.With.Message.Contains(AgentUpProduct.PayloadRootVariable));
     }
 
     [Test]
@@ -69,13 +70,13 @@ public class InstallerAdapterFactoryTests
 
         try
         {
-            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+            Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
             Directory.CreateDirectory(Path.Join(root, "payload", "desktop"));
             Directory.CreateDirectory(Path.Join(root, "payload", "server"));
             Directory.CreateDirectory(Path.Join(root, "payload", "cli"));
             Directory.CreateDirectory(Path.Join(root, "payload", "tray"));
 
-            var payloadRoot = InstallerPlatformAdapterFactory.ResolvePayloadRoot(root);
+            var payloadRoot = InstallerPlatformAdapterFactory.ResolvePayloadRoot(root, AgentUpInstallerAppTestManifests.Product());
 
             Assert.That(payloadRoot, Is.EqualTo(Path.Join(root, "payload")));
         }
@@ -93,13 +94,13 @@ public class InstallerAdapterFactoryTests
 
         try
         {
-            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
+            Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
             Directory.CreateDirectory(Path.Join(root, "payload", "desktop"));
             Directory.CreateDirectory(Path.Join(root, "payload", "server"));
             Directory.CreateDirectory(Path.Join(root, "payload", "cli"));
 
             Assert.That(
-                () => InstallerPlatformAdapterFactory.ResolvePayloadRoot(root),
+                () => InstallerPlatformAdapterFactory.ResolvePayloadRoot(root, AgentUpInstallerAppTestManifests.Product()),
                 Throws.InvalidOperationException.With.Message.Contains("desktop, server, cli, and tray directories"));
         }
         finally
@@ -112,9 +113,9 @@ public class InstallerAdapterFactoryTests
     [Test]
     public void ResolvePayloadRoot_prefersExplicitEnvironmentPayload()
     {
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, "/payload");
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, "/payload");
 
-        var payloadRoot = InstallerPlatformAdapterFactory.ResolvePayloadRoot("/app");
+        var payloadRoot = InstallerPlatformAdapterFactory.ResolvePayloadRoot("/app", AgentUpInstallerAppTestManifests.Product());
 
         Assert.That(payloadRoot, Is.EqualTo("/payload"));
     }
@@ -124,7 +125,7 @@ public class InstallerAdapterFactoryTests
     {
         var program = File.ReadAllText(Path.Join(FindRepositoryRoot(TestContext.CurrentContext.TestDirectory), "AgentUp.InstallerApp", "Program.cs"));
 
-        Assert.That(program, Does.Contain("InstallerPlatformAdapterFactory.UseNixOsLookupOnlyMode()"));
+        Assert.That(program, Does.Contain("InstallerPlatformAdapterFactory.IsNixOsHost()"));
         Assert.That(program, Does.Contain("return;"));
     }
 
@@ -133,11 +134,11 @@ public class InstallerAdapterFactoryTests
     {
         if (!OperatingSystem.IsLinux())
             Assert.Ignore("Ubuntu adapter selection is Linux-specific.");
-        if (InstallerPlatformAdapterFactory.UseNixOsLookupOnlyMode())
+        if (InstallerAdapterFactory.UseNixOsLookupOnlyMode())
             Assert.Ignore("NixOS uses the lookup-only adapter instead of the Ubuntu installer adapter.");
 
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, "/payload");
+        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, "/payload");
 
         var adapter = InstallerAdapterFactory.Create();
 
@@ -150,9 +151,9 @@ public class InstallerAdapterFactoryTests
         if (!OperatingSystem.IsLinux())
             Assert.Ignore("NixOS adapter selection is Linux-specific.");
 
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, null);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.NixOsLookupOnlyVariable, "1");
+        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable, "1");
 
         var adapter = InstallerAdapterFactory.Create();
 
@@ -166,8 +167,8 @@ public class InstallerAdapterFactoryTests
         if (!OperatingSystem.IsMacOS())
             Assert.Ignore("macOS adapter selection is macOS-specific.");
 
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, "/payload");
+        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, "/payload");
 
         var adapter = InstallerAdapterFactory.Create();
 
@@ -180,8 +181,8 @@ public class InstallerAdapterFactoryTests
         if (!OperatingSystem.IsWindows())
             Assert.Ignore("Windows adapter selection is Windows-specific.");
 
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, @"C:\payload");
+        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, @"C:\payload");
 
         var adapter = InstallerAdapterFactory.Create();
 

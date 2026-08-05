@@ -3,10 +3,18 @@ using Avalonia.ReactiveUI;
 using AgentUp.InstallerApp;
 using AgentUp.InstallerApp.Composition;
 using AgentUp.InstallerApp.Features.Logging.Tools;
+using AgentUp.InstallerConfig;
 using AgentUp.Installers.Composition;
+using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.WindowsInstallation.Models;
 using System.Diagnostics;
 using System.Text;
+
+var product = new ProductManifest(AgentUpProduct.Name, AgentUpProduct.Slug, AgentUpProduct.EnvironmentPrefix)
+{
+    Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli],
+    WindowsUpgradeCode = AgentUpProduct.WindowsUpgradeCode
+};
 
 AppDomain.CurrentDomain.UnhandledException += (_, e) =>
     InstallerLog.WriteException("unhandled-exception", (Exception)e.ExceptionObject);
@@ -23,14 +31,21 @@ Console.Error.WriteLine($"[Agent-Up Installer] Log: {InstallerLog.FilePath}");
 try
 {
     if (args.Contains("--uninstall", StringComparer.OrdinalIgnoreCase))
-        return await RunWindowsUninstallAsync();
+        return await RunWindowsUninstallAsync(product);
 
-    SetBundledPayloadRoot(args);
-    InstallerLog.Write($"Payload root: {Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable) ?? "(not set)"}");
+    SetBundledPayloadRoot(args, product);
+    InstallerLog.Write($"Payload root: {Environment.GetEnvironmentVariable(product.PayloadRootVariable) ?? "(not set)"}");
 
     var commandLine = AppComposition.CreateCommandLineController();
     if (commandLine.ShouldRunCommandLine(args))
-        return await commandLine.RunAsync(InstallerPlatformAdapterFactory.Create(), args, Console.Out, Console.Error);
+    {
+        var adapter = InstallerPlatformAdapterFactory.Create(
+            product,
+            AppContext.BaseDirectory,
+            Environment.GetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable),
+            Environment.GetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable) == "1" || InstallerPlatformAdapterFactory.IsNixOsHost());
+        return await commandLine.RunAsync(adapter, args, Console.Out, Console.Error);
+    }
 
     InstallerLog.Write("Starting GUI");
     return AppBuilder.Configure<App>()
@@ -45,18 +60,18 @@ catch (Exception exception) when (exception is InvalidOperationException or IOEx
     throw;
 }
 
-static void SetBundledPayloadRoot(string[] args)
+static void SetBundledPayloadRoot(string[] args, ProductManifest product)
 {
-    if (InstallerPlatformAdapterFactory.UseNixOsLookupOnlyMode())
+    if (Environment.GetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable) == "1" || InstallerPlatformAdapterFactory.IsNixOsHost())
         return;
 
-    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable)))
+    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(product.PayloadRootVariable)))
         return;
 
     var payloadRoot = PayloadRootFromArgs(args)
-        ?? InstallerPlatformAdapterFactory.ResolvePayloadRoot(AppContext.BaseDirectory);
+        ?? InstallerPlatformAdapterFactory.ResolvePayloadRoot(AppContext.BaseDirectory, product);
 
-    Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.PayloadRootVariable, payloadRoot);
+    Environment.SetEnvironmentVariable(product.PayloadRootVariable, payloadRoot);
 }
 
 static string? PayloadRootFromArgs(string[] args)
@@ -78,13 +93,12 @@ static string? PayloadRootFromArgs(string[] args)
     return null;
 }
 
-
-static async Task<int> RunWindowsUninstallAsync()
+static async Task<int> RunWindowsUninstallAsync(ProductManifest product)
 {
     if (!OperatingSystem.IsWindows())
         return 0;
 
-    var scriptPath = WindowsInstallerPaths.SystemDefault().UninstallScriptPath;
+    var scriptPath = WindowsInstallerPaths.ForProduct(product).UninstallScriptPath;
     if (!File.Exists(scriptPath))
         return 0;
 

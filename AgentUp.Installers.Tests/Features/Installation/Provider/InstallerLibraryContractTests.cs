@@ -19,7 +19,7 @@ public class InstallerLibraryContractTests
     // Must always include at least one Agent-Up manifest entry and at least one SampleProduct entry.
     private static IEnumerable<TestCaseData> StandardManifestCases()
     {
-        yield return new TestCaseData(ProductManifest.AgentUp())
+        yield return new TestCaseData(AgentUpTestManifests.Product())
             .SetName("AgentUp");
         yield return new TestCaseData(
             new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
@@ -86,7 +86,7 @@ public class InstallerLibraryContractTests
         var root = manifest.DefaultInstallRoot();
         var otherManifest = manifest.Slug == "agent-up"
             ? new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
-            : ProductManifest.AgentUp();
+            : AgentUpTestManifests.Product();
 
         Assert.Multiple(() =>
         {
