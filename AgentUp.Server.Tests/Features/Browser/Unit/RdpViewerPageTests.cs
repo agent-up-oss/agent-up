@@ -15,27 +15,30 @@ public sealed class RdpViewerPageTests
     }
 
     [Test]
-    public void Build_coalesces_mousemove_and_does_not_emit_synthetic_clicks()
+    public void Build_is_read_only_observer_with_no_input_forwarding()
     {
         var html = RdpViewerPage.Build("workspace");
 
         Assert.Multiple(() =>
         {
-            Assert.That(html, Does.Contain("requestAnimationFrame(flushMove)"));
-            Assert.That(html, Does.Not.Contain("send({ type: 'click'"));
+            Assert.That(html, Does.Not.Contain("mousemove"));
+            Assert.That(html, Does.Not.Contain("mousedown"));
+            Assert.That(html, Does.Not.Contain("keydown"));
+            Assert.That(html, Does.Not.Contain("reclaim"));
+            Assert.That(html, Does.Not.Contain("controlmode"));
         });
     }
 
     [Test]
-    public void Build_renders_remote_cursor_kinds_from_control_messages()
+    public void Build_draws_frames_from_websocket_and_polling()
     {
         var html = RdpViewerPage.Build("workspace");
 
         Assert.Multiple(() =>
         {
-            Assert.That(html, Does.Contain("m.type === 'cursor'"));
-            Assert.That(html, Does.Contain("cursor.classList.add('pointer')"));
-            Assert.That(html, Does.Contain("cursor.classList.add('text')"));
+            Assert.That(html, Does.Contain("drawBlob"));
+            Assert.That(html, Does.Contain("connectStream"));
+            Assert.That(html, Does.Contain("/api/browser/rdp/"));
         });
     }
 }
