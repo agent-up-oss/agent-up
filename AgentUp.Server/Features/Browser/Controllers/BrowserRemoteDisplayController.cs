@@ -20,6 +20,9 @@ public sealed class BrowserRemoteDisplayController(
         }
 
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
+        // Bootstrap the session so the display loop is running by the time the first frame
+        // is needed — without waiting for an explicit navigate command to arrive.
+        _ = sessions.EnsureSessionAsync(workspaceId, HttpContext.RequestAborted);
         await display.ConnectAsync(workspaceId, ws,
             json => inputDispatcher.DispatchAsync(workspaceId, json, HttpContext.RequestAborted),
             HttpContext.RequestAborted);
