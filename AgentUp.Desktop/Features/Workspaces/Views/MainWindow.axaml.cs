@@ -377,6 +377,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         if (workspaceId == _activeWorkspaceId && tabKey == _activeTabKey) return;
 
+        var isWorkspaceSwitch = workspaceId != _activeWorkspaceId;
+
         if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var previous))
             previous.IsVisible = false;
 
@@ -384,9 +386,32 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _activeTabKey = tabKey;
 
         if (!tutorialVisible && tabKey is not null && _webViews.TryGetValue(tabKey, out var next))
+        {
             next.IsVisible = true;
+            if (isWorkspaceSwitch)
+                ForceWebKitRepaint(tabKey, next);
+        }
 
         UpdateErrorDisplay(workspaceId);
+    }
+
+    // GTK won't send an Expose event to a native window that was hidden while another workspace
+    // was displayed. The hide→show cycle at separate dispatcher priorities forces recompositing,
+    // matching the same workaround used by ForceFirstWebKitPaint on initial load.
+    private void ForceWebKitRepaint(string tabKey, NativeWebView webView)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!CanTouchWebView(tabKey, webView) || !webView.IsVisible) return;
+            webView.IsVisible = false;
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (CanTouchWebView(tabKey, webView))
+                        webView.IsVisible = true;
+                },
+                DispatcherPriority.Background);
+        });
     }
 
     private bool TryGetOrCreateWebView(
