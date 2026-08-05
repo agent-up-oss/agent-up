@@ -2,6 +2,7 @@ using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
+using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
@@ -14,6 +15,7 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Fake;
 
@@ -44,6 +46,22 @@ internal static class ServerTestComposition
             CreateProcessesController(processes),
             configuration,
             identity));
+
+    public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
+        WorkspaceRegistry registry,
+        IWorkspaceProcessManager processes)
+    {
+        var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
+        var sessions = new HeadlessBrowserSessionManager(
+            Path.GetTempPath(), Path.GetTempPath(), display,
+            NullLogger<HeadlessBrowserSessionManager>.Instance);
+        return new WorkspaceLifecycleService(
+            registry,
+            CreateProcessesController(processes),
+            sessions,
+            display,
+            NullLogger<WorkspaceLifecycleService>.Instance);
+    }
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
         => new(registry);

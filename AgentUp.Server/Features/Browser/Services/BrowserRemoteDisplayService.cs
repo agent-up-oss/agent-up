@@ -97,6 +97,20 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         }
     }
 
+    public async Task DisconnectAllAsync(string workspaceId, CancellationToken ct)
+    {
+        _latestFrames.TryRemove(workspaceId, out _);
+        if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
+        foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
+        {
+            try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, ct); }
+            catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
+            {
+                logger.LogDebug(ex, "RDP disconnect failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+            }
+        }
+    }
+
     public bool TryGetLatestFrame(string workspaceId, out byte[] frame)
     {
         if (_latestFrames.TryGetValue(workspaceId, out var stored))

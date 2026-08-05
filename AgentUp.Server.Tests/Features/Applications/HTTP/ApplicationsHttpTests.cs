@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
@@ -64,6 +65,11 @@ public class ApplicationsHttpTests
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
+        builder.Services.AddSingleton<BrowserRemoteDisplayService>();
+        builder.Services.AddSingleton(sp => new HeadlessBrowserSessionManager(
+            Path.GetTempPath(), Path.GetTempPath(),
+            sp.GetRequiredService<BrowserRemoteDisplayService>(),
+            sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);

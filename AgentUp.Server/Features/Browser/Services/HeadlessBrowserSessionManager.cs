@@ -252,7 +252,7 @@ public sealed class HeadlessBrowserSessionManager(
 
     private async Task RunRemoteDisplayLoopAsync(BrowserSessionState session, CancellationToken ct)
     {
-        while (!ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested && session.Browser.IsConnected)
         {
             if (!display.HasSubscribers(session.WorkspaceId))
             {
