@@ -1,3 +1,4 @@
+using AgentUp.InstallerConfig;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.Models;
@@ -27,11 +28,7 @@ public sealed class InstallerFlowSmokeValidator
             version,
             DefaultInstallRoot(manifest, platform),
             PayloadSelection.Bundled(manifest.ProductName, version));
-#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
-        var adapter = InstallerPlatformAdapterFactory.Create(manifest, AppContext.BaseDirectory, null, false);
-#else
-        var adapter = InstallerPlatformAdapterFactory.Create();
-#endif
+        var adapter = InstallerPlatformAdapterFactory.Create(manifest, AppContext.BaseDirectory, Environment.GetEnvironmentVariable(manifest.FakeInstallerVariable), false);
 
         session = InstallerWorkflow.GoNext(session);
         session = InstallerWorkflow.AcceptLicense(session, true);
@@ -84,11 +81,9 @@ public sealed class InstallerFlowSmokeValidator
         };
 
     private static ProductManifest DefaultProductManifest()
-    {
-#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
-        throw new InvalidOperationException("Generic installer-flow smoke validation requires an explicit product manifest.");
-#else
-        return ProductManifest.AgentUp();
-#endif
-    }
+        => new(AgentUpProduct.Name, AgentUpProduct.Slug, AgentUpProduct.EnvironmentPrefix)
+        {
+            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli],
+            WindowsUpgradeCode = AgentUpProduct.WindowsUpgradeCode
+        };
 }
