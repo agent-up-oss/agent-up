@@ -19,7 +19,7 @@ public class MacOsPackagerTests
         var writer = new RecordingMacOsPackageWriter();
         var packageTool = new RecordingMacOsPackageTool();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-MacOsPackagerTests", Guid.NewGuid().ToString());
-        var request = new PackageRequest(root, "macos", "osx-arm64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(root, "macos", "osx-arm64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
 
         try
         {
@@ -44,7 +44,7 @@ public class MacOsPackagerTests
         var packageTool = new RecordingMacOsPackageTool();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-MacOsPackagerTests", Guid.NewGuid().ToString());
         var payloadRoot = Path.Join(root, "payload");
-        var request = new PackageRequest(root, "macos", "osx-arm64", "1.2.3", "out", "Release", payloadRoot);
+        var request = new PackageRequest(root, "macos", "osx-arm64", "1.2.3", "out", "Release", payloadRoot, AgentUpPackageTestManifests.Product());
 
         try
         {

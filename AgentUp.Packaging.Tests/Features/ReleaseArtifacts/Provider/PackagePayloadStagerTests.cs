@@ -14,7 +14,7 @@ public class PackagePayloadStagerTests
     {
         var commands = new RecordingCommandRunner();
         var files = new RecordingPackageFileSystem();
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
 
         await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
             request,
@@ -41,7 +41,7 @@ public class PackagePayloadStagerTests
         var files = new RecordingPackageFileSystem();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-PackagePayloadStagerTests", Guid.NewGuid().ToString());
         var payloadRoot = Path.Join(root, "payload");
-        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot);
+        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot, AgentUpPackageTestManifests.Product());
 
         try
         {

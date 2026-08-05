@@ -1,3 +1,4 @@
+using AgentUp.InstallerConfig;
 using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.Services;
 using AgentUp.Installers.Features.Installation.DTOs;
@@ -16,7 +17,7 @@ public class PayloadSelectionTests
     [Test]
     public void BundledPayload_describesOfflineInstallPayload()
     {
-        var payload = PayloadSelection.Bundled(new Version(1, 2, 3));
+        var payload = AgentUpTestManifests.BundledPayload(new Version(1, 2, 3));
 
         Assert.That(payload.Source, Is.EqualTo(PayloadSourceKind.Bundled));
         Assert.That(payload.DownloadUrl, Is.Null);
@@ -26,7 +27,7 @@ public class PayloadSelectionTests
     [Test]
     public void OnlinePayload_keepsDownloadUrlForUpdateFlow()
     {
-        var payload = PayloadSelection.Online(new Version(1, 2, 4), "https://example.invalid/agent-up.zip");
+        var payload = PayloadSelection.Online(AgentUpProduct.Name, new Version(1, 2, 4), "https://example.invalid/agent-up.zip");
 
         Assert.That(payload.Source, Is.EqualTo(PayloadSourceKind.Online));
         Assert.That(payload.DownloadUrl, Is.EqualTo("https://example.invalid/agent-up.zip"));

@@ -103,7 +103,7 @@ public class SampleProductPipelineTests
     {
         var acmeRequest = new PackageRequest(Path.GetTempPath(), "windows", "win-x64", "1.0.0", "out", "Release",
             productManifest: AcmeStudio);
-        var agentUpRequest = new PackageRequest(Path.GetTempPath(), "windows", "win-x64", "1.0.0", "out", "Release");
+        var agentUpRequest = new PackageRequest(Path.GetTempPath(), "windows", "win-x64", "1.0.0", "out", "Release", AgentUpPackageTestManifests.Product());
 
         var acmeGuid = WindowsPackageManifest.From(acmeRequest).InstallerManifest.UpgradeCode;
         var agentUpGuid = WindowsPackageManifest.From(agentUpRequest).InstallerManifest.UpgradeCode;
@@ -123,7 +123,7 @@ public class SampleProductPipelineTests
     {
         var acmeRequest = new PackageRequest(Path.GetTempPath(), "ubuntu", "linux-x64", "1.0.0", "out", "Release",
             productManifest: AcmeStudio);
-        var agentUpRequest = new PackageRequest(Path.GetTempPath(), "ubuntu", "linux-x64", "1.0.0", "out", "Release");
+        var agentUpRequest = new PackageRequest(Path.GetTempPath(), "ubuntu", "linux-x64", "1.0.0", "out", "Release", AgentUpPackageTestManifests.Product());
 
         var acmeName = UbuntuPackageManifest.From(acmeRequest, AcmeStudio).PackageName;
         var agentUpName = UbuntuPackageManifest.From(agentUpRequest).PackageName;
@@ -146,9 +146,9 @@ public class SampleProductPipelineTests
 
         try
         {
-            var baseline = await CollectUbuntuPipelineText(PackageProductManifest.AgentUp(), agentUpRoot);
+            var baseline = await CollectUbuntuPipelineText(AgentUpPackageTestManifests.Product(), agentUpRoot);
             await CollectUbuntuPipelineText(AcmeStudio, acmeRoot);
-            var afterAcme = await CollectUbuntuPipelineText(PackageProductManifest.AgentUp(), agentUpRoot);
+            var afterAcme = await CollectUbuntuPipelineText(AgentUpPackageTestManifests.Product(), agentUpRoot);
 
             Assert.That(afterAcme.Keys, Is.EquivalentTo(baseline.Keys),
                 "Agent-Up pipeline must write the same set of files after Acme Studio run");

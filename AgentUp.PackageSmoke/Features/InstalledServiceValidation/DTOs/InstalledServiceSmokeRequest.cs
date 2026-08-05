@@ -1,3 +1,4 @@
+using AgentUp.InstallerConfig;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
 using AgentUp.PackageSmoke.Shared.Providers;
 
@@ -41,9 +42,10 @@ public sealed record InstalledServiceSmokeRequest
 
     public string SystemRoot { get; }
 
-#if EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION
-    public SmokeProductConfig Product => ProductConfig?.ToConfig() ?? throw new InvalidOperationException("Generic installed-service smoke requests require explicit product configuration.");
-#else
-    public SmokeProductConfig Product => ProductConfig?.ToConfig() ?? SmokeProductConfig.AgentUp;
-#endif
+    public SmokeProductConfig Product => ProductConfig?.ToConfig() ?? new SmokeProductConfig(
+        ServiceName: AgentUpProduct.Slug + "-server",
+        CliShimName: AgentUpProduct.Slug,
+        ArtifactBaseName: AgentUpProduct.Slug,
+        DisplayName: AgentUpProduct.Name,
+        InstallDirName: AgentUpProduct.Name);
 }

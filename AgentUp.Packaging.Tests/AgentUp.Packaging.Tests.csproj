@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
+    <Using Include="AgentUp.Packaging.Tests.Support" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.Packaging\AgentUp.Packaging.csproj" />
+    <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
   </ItemGroup>
 
 </Project>

@@ -12,7 +12,7 @@ public class PackageRequestTests
     [TestCase("0.0.0-ci.149", "0.0.1")]
     public void WindowsInstallerVersion_usesValidMsiProductVersion(string version, string expected)
     {
-        var request = new PackageRequest(Root, "windows", "win-x64", version, "artifacts", "Release");
+        var request = new PackageRequest(Root, "windows", "win-x64", version, "artifacts", "Release", AgentUpPackageTestManifests.Product());
 
         Assert.That(request.WindowsInstallerVersion, Is.EqualTo(expected));
     }
@@ -21,7 +21,7 @@ public class PackageRequestTests
     public void Constructor_rejectsOutputDirectoryTraversal()
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            new PackageRequest(Root, "windows", "win-x64", "1.2.3", "../outside", "Release"));
+            new PackageRequest(Root, "windows", "win-x64", "1.2.3", "../outside", "Release", AgentUpPackageTestManifests.Product()));
 
         Assert.That(exception!.ParamName, Is.EqualTo("OutputDirectory"));
     }
@@ -30,7 +30,7 @@ public class PackageRequestTests
     public void Constructor_rejectsPlatformPathComponents()
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            new PackageRequest(Root, "../windows", "win-x64", "1.2.3", "artifacts", "Release"));
+            new PackageRequest(Root, "../windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product()));
 
         Assert.That(exception!.ParamName, Is.EqualTo("Platform"));
     }
@@ -38,7 +38,7 @@ public class PackageRequestTests
     [Test]
     public void Constructor_normalizesRelativePayloadRootUnderRepository()
     {
-        var request = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "artifacts", "Release", Path.Join("payloads", "win-x64"));
+        var request = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "artifacts", "Release", Path.Join("payloads", "win-x64"), AgentUpPackageTestManifests.Product());
 
         Assert.That(request.PayloadRoot, Is.EqualTo(Path.GetFullPath(Path.Join(Root, "payloads", "win-x64"))));
         Assert.That(request.DesktopPayloadDirectory, Is.EqualTo(Path.GetFullPath(Path.Join(Root, "payloads", "win-x64", "desktop"))));
@@ -47,7 +47,7 @@ public class PackageRequestTests
     [Test]
     public void WindowsPackageLayout_usesProductSlugForArtifactNamesAndKeepsAgentUpDefault()
     {
-        var agentUp = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
+        var agentUp = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var orbit = new PackageRequest(
             Root,
             "windows",

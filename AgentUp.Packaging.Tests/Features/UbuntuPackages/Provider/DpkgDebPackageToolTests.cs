@@ -13,7 +13,7 @@ public class DpkgDebPackageToolTests
     public async Task BuildDebAsyncInvokesDpkgDebBuild()
     {
         var commands = new RecordingCommandRunner();
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
         var layout = UbuntuPackageLayout.From(request);
 
         await new DpkgDebPackageTool(commands).BuildDebAsync(layout);

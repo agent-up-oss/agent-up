@@ -20,6 +20,16 @@ public sealed partial class PackagingServiceRegistry
 {
     public PackageCommandController PackageCommands { get; }
 
+    public PackagingServiceRegistry(string productName, string slug, string environmentPrefix, string? manufacturer = null, string? windowsUpgradeCode = null)
+        : this(new PackageProductManifest(productName, slug, environmentPrefix)
+        {
+            Manufacturer = manufacturer,
+            WindowsUpgradeCode = windowsUpgradeCode
+        })
+    {
+        PackageProductManifest.Validate(new PackageProductManifest(productName, slug, environmentPrefix));
+    }
+
     public PackagingServiceRegistry(PackageProductManifest product)
     {
         PackageProductManifest.Validate(product);

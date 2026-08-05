@@ -1,3 +1,4 @@
+using AgentUp.InstallerConfig;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
 using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
 using AgentUp.Installers.Composition;
@@ -25,11 +26,11 @@ public class InstallerFlowSmokeValidatorTests
     public async Task ValidateAsync_exercisesDryRunInstallerFlow()
     {
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-InstallerFlow", Guid.NewGuid().ToString());
-        var previousFake = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable);
+        var previousFake = Environment.GetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable);
 
         try
         {
-            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, "1");
+            Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, "1");
 
             var result = await new InstallerFlowSmokeValidator().ValidateAsync("ubuntu", workDir);
 
@@ -38,7 +39,7 @@ public class InstallerFlowSmokeValidatorTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, previousFake);
+            Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, previousFake);
             if (Directory.Exists(workDir))
                 Directory.Delete(workDir, recursive: true);
         }
@@ -50,11 +51,12 @@ public class InstallerFlowSmokeValidatorTests
     public async Task ValidateAsync_exercisesDryRunInstallerFlow_forAcmeStudio(string platform)
     {
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-InstallerFlow-AcmeStudio", Guid.NewGuid().ToString());
-        var previousFake = Environment.GetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable);
+        var fakeVar = AcmeStudio.FakeInstallerVariable;
+        var previousFake = Environment.GetEnvironmentVariable(fakeVar);
 
         try
         {
-            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, "1");
+            Environment.SetEnvironmentVariable(fakeVar, "1");
 
             var result = await new InstallerFlowSmokeValidator().ValidateAsync(platform, workDir, AcmeStudio);
 
@@ -63,7 +65,7 @@ public class InstallerFlowSmokeValidatorTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(InstallerPlatformAdapterFactory.FakeInstallerVariable, previousFake);
+            Environment.SetEnvironmentVariable(fakeVar, previousFake);
             if (Directory.Exists(workDir))
                 Directory.Delete(workDir, recursive: true);
         }

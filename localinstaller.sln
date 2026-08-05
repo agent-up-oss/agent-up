@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentUp.InstallerConfig", "AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj", "{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentUp.Installers", "AgentUp.Installers\AgentUp.Installers.csproj", "{2641D262-B06B-4944-A0DB-16494CC4FF9A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentUp.Installers.Tests", "AgentUp.Installers.Tests\AgentUp.Installers.Tests.csproj", "{49197ED9-22E5-48B8-8045-D8FE8568BA93}"
@@ -29,6 +31,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Debug|x64.Build.0 = Debug|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Debug|x86.Build.0 = Debug|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Release|x64.ActiveCfg = Release|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Release|x64.Build.0 = Release|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Release|x86.ActiveCfg = Release|Any CPU
+		{C8F3E5A2-1D7B-4F9E-8C6A-3B2E1A9F4D7C}.Release|x86.Build.0 = Release|Any CPU
 		{2641D262-B06B-4944-A0DB-16494CC4FF9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2641D262-B06B-4944-A0DB-16494CC4FF9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2641D262-B06B-4944-A0DB-16494CC4FF9A}.Debug|x64.ActiveCfg = Debug|Any CPU

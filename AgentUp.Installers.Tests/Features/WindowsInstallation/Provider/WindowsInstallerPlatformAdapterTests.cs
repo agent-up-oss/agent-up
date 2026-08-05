@@ -212,7 +212,7 @@ public class WindowsInstallerPlatformAdapterTests
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
-            var generator = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100"));
+            var generator = new WindowsWixSourceGenerator(WindowsInstallerManifest.From(AgentUpTestManifests.Product(), "1.2.3", "http://127.0.0.1:6100"));
             var product = generator.ProductWxs(layout);
             var bundle = generator.BundleWxs(layout);
 
@@ -281,7 +281,7 @@ public class WindowsInstallerPlatformAdapterTests
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
-            var product = new WindowsWixSourceGenerator(WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100")).ProductWxs(layout);
+            var product = new WindowsWixSourceGenerator(WindowsInstallerManifest.From(AgentUpTestManifests.Product(), "1.2.3", "http://127.0.0.1:6100")).ProductWxs(layout);
 
             Assert.That(product, Does.Not.Contain("TrayAutoStartComponent"));
         }
@@ -354,7 +354,7 @@ public class WindowsInstallerPlatformAdapterTests
     [TestCase("shim.cmd ")]
     public void WindowsWixSourceGenerator_rejectsUnsafeCliShimNameBeforeBuildingSourcePath(string cliShimName)
     {
-        var manifest = WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100") with { CliShimName = cliShimName };
+        var manifest = WindowsInstallerManifest.From(AgentUpTestManifests.Product(), "1.2.3", "http://127.0.0.1:6100") with { CliShimName = cliShimName };
 
         var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
 
@@ -503,7 +503,7 @@ public class WindowsInstallerPlatformAdapterTests
     private static IEnumerable<TestCaseData> TwoManifestCases()
     {
         yield return new TestCaseData(
-            ProductManifest.AgentUp(), Options(),
+            AgentUpTestManifests.Product(), Options(),
             AcmeStudio(), AcmeStudioOptions())
             .SetName("AgentUp_vs_AcmeStudio");
     }
@@ -540,7 +540,7 @@ public class WindowsInstallerPlatformAdapterTests
             new DockerPrerequisite(new DockerPrerequisiteProvider(commands), new Version(27, 0, 0)));
 
     private static InstallerSession Session()
-        => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), @"C:\Program Files\Agent-Up", PayloadSelection.Bundled(new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(AgentUpTestManifests.Product(), new Version(1, 2, 3), @"C:\Program Files\Agent-Up", AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
 
     private static WindowsInstallerOptions Options()
         => new(

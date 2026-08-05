@@ -9,7 +9,7 @@ public sealed class TrayAutoStartProviderTests
     [Test]
     public void WindowsValidationCommand_comparesRunValueToExpectedTrayExecutable()
     {
-        var product = SmokeProductConfig.AgentUp;
+        var product = AgentUpSmokeTestManifests.Product();
         var trayExecutable = Path.Join("C:", "Program Files", "Agent-Up", "tray", "AgentUp.Tray.exe");
 
         var command = new WindowsTrayAutoStartSmokeProvider().ValidationCommand(product, trayExecutable);
@@ -29,7 +29,7 @@ public sealed class TrayAutoStartProviderTests
     [Test]
     public void MacOsLaunchAgentPath_usesCurrentUserLaunchAgentsAndProductShim()
     {
-        var product = SmokeProductConfig.AgentUp;
+        var product = AgentUpSmokeTestManifests.Product();
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         var path = new MacOsTrayAutoStartProvider().LaunchAgentPath(product);

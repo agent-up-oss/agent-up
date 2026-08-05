@@ -53,7 +53,7 @@ public class InstallerWorkflowTests
 
     private static IEnumerable<TestCaseData> ManifestCases()
     {
-        yield return new TestCaseData(ProductManifest.AgentUp()).SetName("AgentUp");
+        yield return new TestCaseData(AgentUpTestManifests.Product()).SetName("AgentUp");
         yield return new TestCaseData(
             new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
             {
@@ -105,7 +105,7 @@ public class InstallerWorkflowTests
     }
 
     private static InstallerSession NewSession()
-        => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/opt/agent-up", PayloadSelection.Bundled(new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(AgentUpTestManifests.Product(), new Version(1, 2, 3), "/opt/agent-up", AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
 
     private static InstallerSession SessionFor(ProductManifest manifest)
         => InstallerSession.CreateDefault(manifest, new Version(1, 2, 3), manifest.DefaultInstallRoot(),

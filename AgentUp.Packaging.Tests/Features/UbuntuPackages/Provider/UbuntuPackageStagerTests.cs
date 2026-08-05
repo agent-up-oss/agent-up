@@ -18,7 +18,7 @@ public class UbuntuPackageStagerTests
     [Test]
     public void Stage_materializesExpectedDebianLayout()
     {
-        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = UbuntuPackageLayout.From(request);
         var manifest = UbuntuPackageManifest.From(request);
         var writer = new RecordingPackageWriter();

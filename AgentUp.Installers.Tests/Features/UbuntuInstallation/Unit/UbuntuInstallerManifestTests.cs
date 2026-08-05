@@ -8,7 +8,7 @@ public class UbuntuInstallerManifestTests
     [Test]
     public void PostInstallScript_registersAndStartsService()
     {
-        var script = UbuntuInstallerManifest.AgentUp().PostInstallScript();
+        var script = UbuntuInstallerManifest.ForProduct(AgentUpTestManifests.Product()).PostInstallScript();
 
         Assert.That(script, Does.Contain("systemctl enable --now agent-up-server.service"));
     }
@@ -16,7 +16,7 @@ public class UbuntuInstallerManifestTests
     [Test]
     public void PostInstallScript_doesNotRunInstallCore()
     {
-        var script = UbuntuInstallerManifest.AgentUp().PostInstallScript();
+        var script = UbuntuInstallerManifest.ForProduct(AgentUpTestManifests.Product()).PostInstallScript();
 
         Assert.That(script, Does.Not.Contain("--install-core"));
     }
@@ -24,7 +24,7 @@ public class UbuntuInstallerManifestTests
     [Test]
     public void DesktopEntryText_declaresStartupWmClassForUbuntuTaskbarIcon()
     {
-        var text = UbuntuInstallerManifest.AgentUp()
+        var text = UbuntuInstallerManifest.ForProduct(AgentUpTestManifests.Product())
             .DesktopEntryText("/opt/agent-up/desktop/AgentUp.Desktop", "1.2.3");
 
         Assert.That(text, Does.Contain("Icon=agent-up"));

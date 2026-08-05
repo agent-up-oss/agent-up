@@ -2,6 +2,7 @@ using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
+using AgentUp.InstallerApp.Tests.Support;
 using AgentUp.Installers.Features.Installation.DTOs;
 using AgentUp.Installers.Features.Installation.Interfaces;
 using AgentUp.Installers.Features.Installation.Models;
@@ -96,10 +97,10 @@ public class ProductComponentCardTests
     [Test]
     public void ComponentCards_matchManifestComponents_forAgentUpThreeComponentProduct()
     {
-        var manifest = ProductManifest.AgentUp();
+        var manifest = AgentUpInstallerAppTestManifests.Product();
         var session = InstallerSession.CreateDefault(
             manifest, new Version(1, 0, 0), "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 0, 0)));
+            AgentUpInstallerAppTestManifests.BundledPayload(new Version(1, 0, 0)));
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
@@ -113,8 +114,8 @@ public class ProductComponentCardTests
     public async Task RefreshCommand_rechecksComponentStatusAndUpdatesPrimaryButton()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 0, 0)));
+            AgentUpInstallerAppTestManifests.Product(), new Version(1, 0, 0), "/opt/agent-up",
+            AgentUpInstallerAppTestManifests.BundledPayload(new Version(1, 0, 0)));
         var adapter = new RefreshStatusAdapter();
         var model = new InstallerViewModel(
             session,
@@ -138,8 +139,8 @@ public class ProductComponentCardTests
     public void CapabilityCard_withoutMatchingActiveVersion_doesNotShowActiveVersionDetail()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 0, 0)));
+            AgentUpInstallerAppTestManifests.Product(), new Version(1, 0, 0), "/opt/agent-up",
+            AgentUpInstallerAppTestManifests.BundledPayload(new Version(1, 0, 0)));
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
@@ -162,8 +163,8 @@ public class ProductComponentCardTests
     public async Task InstallCatalogModuleAsync_forExistingCapability_reusesCardAndAppliesInstalledModule()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 0, 0)));
+            AgentUpInstallerAppTestManifests.Product(), new Version(1, 0, 0), "/opt/agent-up",
+            AgentUpInstallerAppTestManifests.BundledPayload(new Version(1, 0, 0)));
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),
@@ -198,8 +199,8 @@ public class ProductComponentCardTests
     public void CatalogCapabilityButtonText_forNixOsManagedInstalledCapability_reportsManagedByNixOs()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 0, 0)));
+            AgentUpInstallerAppTestManifests.Product(), new Version(1, 0, 0), "/opt/agent-up",
+            AgentUpInstallerAppTestManifests.BundledPayload(new Version(1, 0, 0)));
         var model = new InstallerViewModel(
             session,
             new FakeInstallerPlatformAdapter(),

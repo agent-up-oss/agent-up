@@ -27,7 +27,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_containsWindowsServicePathShortcutAndFiles()
     {
-        var request = new PackageRequest(_root, "windows", "win-x64", "0.0.0-ci.149", "artifacts", "Release");
+        var request = new PackageRequest(_root, "windows", "win-x64", "0.0.0-ci.149", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
         WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
@@ -74,7 +74,7 @@ public class WindowsWixSourceGeneratorTests
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(
-            new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release"))).ProductWxs(layout);
+            new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product()))).ProductWxs(layout);
 
         var registryValue = TrayAutoStartRegistryValue(xml);
         Assert.That(registryValue, Is.Not.Null);
@@ -89,7 +89,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_whenTrayDirectoryAbsent_doesNotIncludeTrayAutoStartComponent()
     {
-        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release");
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
         WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
@@ -106,7 +106,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_whenTrayDirectoryExistsWithoutTrayExecutable_doesNotIncludeTrayAutoStartComponent()
     {
-        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release");
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
         WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
@@ -124,7 +124,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void BundleWxs_chainsProductMsiWithoutLaunchingInstallerApp()
     {
-        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
         WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.InstallerPublishDirectory, "support.dll");
@@ -303,7 +303,7 @@ public class WindowsWixSourceGeneratorTests
 
     private static IEnumerable<TestCaseData> ProductIdentityCases()
     {
-        var agentUp = WindowsInstallerManifest.Create("1.2.3", "http://127.0.0.1:6100");
+        var agentUp = WindowsInstallerManifest.From(AgentUpPackageTestManifests.InstallerProduct(), "1.2.3", "http://127.0.0.1:6100");
         var orbit = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
 
         yield return new TestCaseData(
@@ -316,7 +316,7 @@ public class WindowsWixSourceGeneratorTests
 
     private WindowsPackageLayout CreateLayoutWithPublishedFiles()
     {
-        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
         WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");

@@ -221,7 +221,7 @@ public class MacOsInstallerPlatformAdapterTests
         {
             Assert.That(script, Does.Contain("'/Applications/Acme Studio.app'"), "App bundle must be placed under the product name");
             Assert.That(script, Does.Not.Contain("Agent-Up.app"), "Agent-Up bundle must not be mentioned");
-            Assert.That(AcmePaths().AppBundleDirectory, Is.Not.EqualTo(MacOsInstallerPaths.SystemDefault().AppBundleDirectory),
+            Assert.That(AcmePaths().AppBundleDirectory, Is.Not.EqualTo(MacOsInstallerPaths.From(AgentUpTestManifests.Product()).AppBundleDirectory),
                 "The two products must have distinct bundle directories");
         });
     }
@@ -283,7 +283,7 @@ public class MacOsInstallerPlatformAdapterTests
 
     private static IEnumerable<TestCaseData> ManifestPairs()
     {
-        yield return new TestCaseData(ProductManifest.AgentUp(), AcmeStudio)
+        yield return new TestCaseData(AgentUpTestManifests.Product(), AcmeStudio)
             .SetName("AgentUp_vs_AcmeStudio");
     }
 
@@ -357,7 +357,7 @@ public class MacOsInstallerPlatformAdapterTests
     }
 
     private static InstallerSession Session()
-        => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/Applications/Agent-Up.app", PayloadSelection.Bundled(new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(AgentUpTestManifests.Product(), new Version(1, 2, 3), "/Applications/Agent-Up.app", AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
 
     private static MacOsInstallerOptions Options()
         => new(new MacOsInstallPayload("/payload/desktop", "/payload/server", "/payload/cli", "/payload/tray", "/payload/icon/Agent-Up.png"));

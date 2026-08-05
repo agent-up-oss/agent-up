@@ -16,7 +16,7 @@ public class MacOsPlistGeneratorTests
     [Test]
     public void DesktopInfoPlist_containsBundleMetadataAndVersion()
     {
-        var manifest = MacOsPackageManifest.From(new PackageRequest(Root, "macos", "osx-arm64", "v1.2.3", "artifacts", "Release"));
+        var manifest = MacOsPackageManifest.From(new PackageRequest(Root, "macos", "osx-arm64", "v1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product()));
 
         var plist = new MacOsPlistGenerator(manifest).DesktopInfoPlist();
 
@@ -33,7 +33,7 @@ public class MacOsPlistGeneratorTests
     [Test]
     public void InstallerInfoPlist_containsInstallerExecutableAndVersion()
     {
-        var manifest = MacOsPackageManifest.From(new PackageRequest(Root, "macos", "osx-arm64", "v1.2.3", "artifacts", "Release"));
+        var manifest = MacOsPackageManifest.From(new PackageRequest(Root, "macos", "osx-arm64", "v1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product()));
 
         var plist = new MacOsPlistGenerator(manifest).InstallerInfoPlist();
 
@@ -47,7 +47,7 @@ public class MacOsPlistGeneratorTests
     [Test]
     public void LaunchDaemonPlist_containsServiceContract()
     {
-        var manifest = MacOsPackageManifest.From(new PackageRequest(Root, "macos", "osx-arm64", "1.2.3", "artifacts", "Release"));
+        var manifest = MacOsPackageManifest.From(new PackageRequest(Root, "macos", "osx-arm64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product()));
 
         var plist = new MacOsPlistGenerator(manifest).LaunchDaemonPlist();
 
