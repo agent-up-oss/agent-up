@@ -11,19 +11,42 @@ public class WindowsWixPackagingToolTests
     [Test]
     public async Task BuildStepsInvokeExpectedWixCommands()
     {
-        var commands = new RecordingCommandRunner();
-        var request = new PackageRequest("/repo", "windows", "win-x64", "1.2.3", "out", "Release");
-        var layout = WindowsPackageLayout.From(request);
-        var tool = new WindowsWixPackagingTool(commands);
+        var root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg-wix", Guid.NewGuid().ToString("N")));
 
-        await tool.AcceptWixLicenseAsync();
-        await tool.BuildProductMsiAsync(layout);
-        await tool.BuildBundleAsync(request, layout);
+        try
+        {
+            Directory.CreateDirectory(root);
+            var commands = new RecordingCommandRunner();
+            var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
+            var layout = WindowsPackageLayout.From(request);
+            var tool = new WindowsWixPackagingTool(commands);
 
-        Assert.That(CommandBytes(commands.Commands), Is.EqualTo(CommandBytes(ExpectedAgentUpWixCommands(layout))));
+            // On Windows, BuildBundleAsync resolves WixToolset.Bal.wixext to a staged DLL.
+            // Pre-create the file so the staging step skips the NuGet download.
+            var extensionDll = OperatingSystem.IsWindows()
+                ? Path.GetFullPath(Path.Join(root, "packaging", "windows", ".wix", "extensions",
+                    "WixToolset.Bal.wixext", "7.0.0", "wixext7", "WixToolset.BootstrapperApplications.wixext.dll"))
+                : null;
+            if (extensionDll is not null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(extensionDll)!);
+                File.WriteAllBytes(extensionDll, []);
+            }
+
+            await tool.AcceptWixLicenseAsync();
+            await tool.BuildProductMsiAsync(layout);
+            await tool.BuildBundleAsync(request, layout);
+
+            Assert.That(CommandBytes(commands.Commands), Is.EqualTo(CommandBytes(ExpectedAgentUpWixCommands(layout, extensionDll))));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
     }
 
-    private static IReadOnlyList<CommandSpec> ExpectedAgentUpWixCommands(WindowsPackageLayout layout)
+    private static IReadOnlyList<CommandSpec> ExpectedAgentUpWixCommands(WindowsPackageLayout layout, string? extensionDll = null)
     {
         string[] accept = ["eula", "accept", "wix7"];
         string[] product =
@@ -37,7 +60,7 @@ public class WindowsWixPackagingToolTests
         [
             "build",
             layout.BundleWxsPath,
-            "-ext", "WixToolset.Bal.wixext",
+            "-ext", extensionDll ?? "WixToolset.Bal.wixext",
             "-o", layout.SetupExePath
         ];
 

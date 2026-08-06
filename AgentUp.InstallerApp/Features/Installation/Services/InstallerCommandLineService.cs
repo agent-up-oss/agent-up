@@ -1,3 +1,4 @@
+using AgentUp.InstallerConfig;
 using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Logging.Tools;
 using AgentUp.Installers.Features.Installation.DTOs;
@@ -244,5 +245,9 @@ public sealed class InstallerCommandLineService
     }
 
     private static ProductManifest AgentUpManifest()
-        => ProductManifest.AgentUp();
+        => new(AgentUpProduct.Name, AgentUpProduct.Slug, AgentUpProduct.EnvironmentPrefix)
+        {
+            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli],
+            WindowsUpgradeCode = AgentUpProduct.WindowsUpgradeCode
+        };
 }

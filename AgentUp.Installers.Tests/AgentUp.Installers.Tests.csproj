@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
     <ProjectReference Include="..\AgentUp.Installers\AgentUp.Installers.csproj" />
   </ItemGroup>
 

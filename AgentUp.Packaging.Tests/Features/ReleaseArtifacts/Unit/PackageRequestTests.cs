@@ -6,12 +6,13 @@ namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Unit;
 [TestFixture]
 public class PackageRequestTests
 {
+    private static readonly string Root = OperatingSystem.IsWindows() ? @"C:\pkg" : "/pkg";
     [TestCase("v1.2.3", "1.2.3")]
     [TestCase("1.2.3-ci.149", "1.2.3")]
     [TestCase("0.0.0-ci.149", "0.0.1")]
     public void WindowsInstallerVersion_usesValidMsiProductVersion(string version, string expected)
     {
-        var request = new PackageRequest("/repo", "windows", "win-x64", version, "artifacts", "Release");
+        var request = new PackageRequest(Root, "windows", "win-x64", version, "artifacts", "Release", AgentUpPackageTestManifests.Product());
 
         Assert.That(request.WindowsInstallerVersion, Is.EqualTo(expected));
     }
@@ -20,7 +21,7 @@ public class PackageRequestTests
     public void Constructor_rejectsOutputDirectoryTraversal()
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            new PackageRequest("/repo", "windows", "win-x64", "1.2.3", "../outside", "Release"));
+            new PackageRequest(Root, "windows", "win-x64", "1.2.3", "../outside", "Release", AgentUpPackageTestManifests.Product()));
 
         Assert.That(exception!.ParamName, Is.EqualTo("OutputDirectory"));
     }
@@ -29,7 +30,7 @@ public class PackageRequestTests
     public void Constructor_rejectsPlatformPathComponents()
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            new PackageRequest("/repo", "../windows", "win-x64", "1.2.3", "artifacts", "Release"));
+            new PackageRequest(Root, "../windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product()));
 
         Assert.That(exception!.ParamName, Is.EqualTo("Platform"));
     }
@@ -37,18 +38,18 @@ public class PackageRequestTests
     [Test]
     public void Constructor_normalizesRelativePayloadRootUnderRepository()
     {
-        var request = new PackageRequest("/repo", "windows", "win-x64", "1.2.3", "artifacts", "Release", Path.Join("payloads", "win-x64"));
+        var request = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "artifacts", "Release", Path.Join("payloads", "win-x64"), AgentUpPackageTestManifests.Product());
 
-        Assert.That(request.PayloadRoot, Is.EqualTo(Path.GetFullPath(Path.Join("/repo", "payloads", "win-x64"))));
-        Assert.That(request.DesktopPayloadDirectory, Is.EqualTo(Path.GetFullPath(Path.Join("/repo", "payloads", "win-x64", "desktop"))));
+        Assert.That(request.PayloadRoot, Is.EqualTo(Path.GetFullPath(Path.Join(Root, "payloads", "win-x64"))));
+        Assert.That(request.DesktopPayloadDirectory, Is.EqualTo(Path.GetFullPath(Path.Join(Root, "payloads", "win-x64", "desktop"))));
     }
 
     [Test]
     public void WindowsPackageLayout_usesProductSlugForArtifactNamesAndKeepsAgentUpDefault()
     {
-        var agentUp = new PackageRequest("/repo", "windows", "win-x64", "1.2.3", "artifacts", "Release");
+        var agentUp = new PackageRequest(Root, "windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var orbit = new PackageRequest(
-            "/repo",
+            Root,
             "windows",
             "win-x64",
             "1.2.3",
@@ -56,8 +57,8 @@ public class PackageRequestTests
             "Release",
             productManifest: new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
 
-        Assert.That(WindowsPackageLayout.From(agentUp).ProductMsiOutputPath, Is.EqualTo(Path.GetFullPath("/repo/artifacts/agent-up-windows-win-x64.msi")));
-        Assert.That(WindowsPackageLayout.From(orbit).ProductMsiOutputPath, Is.EqualTo(Path.GetFullPath("/repo/artifacts/orbit-desk-windows-win-x64.msi")));
+        Assert.That(WindowsPackageLayout.From(agentUp).ProductMsiOutputPath, Is.EqualTo(Path.GetFullPath(Path.Join(Root, "artifacts", "agent-up-windows-win-x64.msi"))));
+        Assert.That(WindowsPackageLayout.From(orbit).ProductMsiOutputPath, Is.EqualTo(Path.GetFullPath(Path.Join(Root, "artifacts", "orbit-desk-windows-win-x64.msi"))));
     }
 
     [Test]
@@ -65,7 +66,7 @@ public class PackageRequestTests
     {
         var exception = Assert.Throws<ArgumentException>(() =>
             new PackageRequest(
-                "/repo",
+                Root,
                 "windows",
                 "win-x64",
                 "1.2.3",
@@ -89,7 +90,7 @@ public class PackageRequestTests
     {
         var exception = Assert.Throws<ArgumentException>(() =>
             new PackageRequest(
-                "/repo",
+                Root,
                 "windows",
                 "win-x64",
                 "1.2.3",

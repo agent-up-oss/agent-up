@@ -14,10 +14,11 @@ namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Provider;
 [TestFixture]
 public class MacOsPackageStagerTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public void Stage_materializesAppBundleComponentRootsScriptsAndDistribution()
     {
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.2.3", "artifacts", "Release");
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = MacOsPackageLayout.From(request);
         var manifest = MacOsPackageManifest.From(request);
         var writer = new RecordingMacOsPackageWriter();

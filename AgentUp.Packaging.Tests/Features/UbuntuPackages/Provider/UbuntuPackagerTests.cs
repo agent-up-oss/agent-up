@@ -12,15 +12,16 @@ namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
 [TestFixture]
 public class UbuntuPackagerTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task PackageAsync_invokesDotNetPublishesAndDpkgBuild()
     {
         var commands = new RecordingCommandRunner();
         var writer = new RecordingPackageWriter();
         var packageTool = new RecordingUbuntuPackageTool();
-        var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
 
-        await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool).PackageAsync(request);
+        await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool, AgentUpPackageTestManifests.Product()).PackageAsync(request);
 
         var publishCommands = commands.Commands
             .Where(command => command.FileName == "dotnet" && command.Arguments.Contains("publish"))
@@ -30,8 +31,8 @@ public class UbuntuPackagerTests
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:PublishSingleFile=true")));
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeNativeLibrariesForSelfExtract=true")));
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeAllContentForSelfExtract=true")));
-        Assert.That(packageTool.Layouts.Single().DebOutputPath, Is.EqualTo(Path.Join("/repo", "out", "agent-up-ubuntu-linux-x64.deb")));
-        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join("/repo", "out")));
+        Assert.That(packageTool.Layouts.Single().DebOutputPath, Is.EqualTo(Path.Join(Root, "out", "agent-up-ubuntu-linux-x64.deb")));
+        Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join(Root, "out")));
     }
 
     [Test]
@@ -42,7 +43,7 @@ public class UbuntuPackagerTests
         var packageTool = new RecordingUbuntuPackageTool();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-UbuntuPackagerTests", Guid.NewGuid().ToString());
         var payloadRoot = Path.Join(root, "payload");
-        var request = new PackageRequest(root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", payloadRoot);
+        var request = new PackageRequest(root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", payloadRoot, AgentUpPackageTestManifests.Product());
 
         try
         {
@@ -52,7 +53,7 @@ public class UbuntuPackagerTests
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
             WritePayloadFile(payloadRoot, "tray", "AgentUp.Tray");
 
-            await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool).PackageAsync(request);
+            await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool, AgentUpPackageTestManifests.Product()).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "installer", "AgentUp.InstallerApp")), Is.True);

@@ -8,12 +8,13 @@ namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Provider;
 [TestFixture]
 public class PackagePayloadStagerTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task StageAsync_withoutPayloadRootPublishesInstallerDesktopServerCliAndTray()
     {
         var commands = new RecordingCommandRunner();
         var files = new RecordingPackageFileSystem();
-        var request = new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
 
         await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
             request,
@@ -23,14 +24,14 @@ public class PackagePayloadStagerTests
             "/stage/cli",
             "/stage/tray"));
 
-        Assert.That(files.ResetDirectories, Is.EqualTo(new[] { "/repo/artifacts/stage/ubuntu-linux-x64" }));
-        Assert.That(files.CreatedDirectories, Is.EqualTo(new[] { "/repo/out" }));
+        Assert.That(files.ResetDirectories, Is.EqualTo(new[] { Path.Join(Root, "artifacts", "stage", "ubuntu-linux-x64") }));
+        Assert.That(files.CreatedDirectories, Is.EqualTo(new[] { Path.Join(Root, "out") }));
         Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(5));
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj")), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.Desktop/AgentUp.Desktop.csproj")), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.Server/AgentUp.Server.csproj")), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.CLI/AgentUp.CLI.csproj")), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains("/repo/AgentUp.Tray/AgentUp.Tray.csproj")), Is.True);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"))), Is.True);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Desktop", "AgentUp.Desktop.csproj"))), Is.True);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Server", "AgentUp.Server.csproj"))), Is.True);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.CLI", "AgentUp.CLI.csproj"))), Is.True);
+        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Tray", "AgentUp.Tray.csproj"))), Is.True);
     }
 
     [Test]
@@ -40,7 +41,7 @@ public class PackagePayloadStagerTests
         var files = new RecordingPackageFileSystem();
         var root = Path.Join(Path.GetTempPath(), "AgentUp-PackagePayloadStagerTests", Guid.NewGuid().ToString());
         var payloadRoot = Path.Join(root, "payload");
-        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot);
+        var request = new PackageRequest(root, "windows", "win-x64", "1.2.3", "out", "Release", payloadRoot, AgentUpPackageTestManifests.Product());
 
         try
         {

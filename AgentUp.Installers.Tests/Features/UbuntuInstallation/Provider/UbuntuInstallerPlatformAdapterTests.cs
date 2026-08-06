@@ -275,7 +275,7 @@ public class UbuntuInstallerPlatformAdapterTests
     private static IEnumerable<TestCaseData> ManifestPairs()
     {
         yield return new TestCaseData(
-                UbuntuInstallerManifest.AgentUp(),
+                UbuntuInstallerManifest.ForProduct(AgentUpTestManifests.Product()),
                 UbuntuInstallerManifest.ForProduct(new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")))
             .SetName("AgentUp_vs_AcmeStudio");
     }
@@ -309,13 +309,13 @@ public class UbuntuInstallerPlatformAdapterTests
     };
 
     private static InstallerSession Session()
-        => InstallerSession.CreateDefault(ProductManifest.AgentUp(), new Version(1, 2, 3), "/opt/agent-up", PayloadSelection.Bundled(new Version(1, 2, 3)));
+        => InstallerSession.CreateDefault(AgentUpTestManifests.Product(), new Version(1, 2, 3), "/opt/agent-up", AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
 
     private static InstallerSession CustomSession()
     {
         var manifest = UbuntuInstallerManifest.ForProduct(AcmeStudioProduct);
         var paths = UbuntuInstallerPaths.ForProduct(manifest);
-        return InstallerSession.CreateDefault(AcmeStudioProduct, new Version(1, 2, 3), paths.RootDirectory, PayloadSelection.Bundled(new Version(1, 2, 3)));
+        return InstallerSession.CreateDefault(AcmeStudioProduct, new Version(1, 2, 3), paths.RootDirectory, PayloadSelection.Bundled("Acme Studio", new Version(1, 2, 3)));
     }
 
     private static UbuntuInstallerOptions Options()
@@ -327,8 +327,8 @@ public class UbuntuInstallerPlatformAdapterTests
                 "/payload/tray",
                 "/payload/agent-up-server.service",
                 "/payload/logo.png"),
-            UbuntuInstallerPaths.SystemDefault(),
-            UbuntuInstallerManifest.AgentUp());
+            UbuntuInstallerPaths.ForProduct(UbuntuInstallerManifest.ForProduct(AgentUpTestManifests.Product())),
+            UbuntuInstallerManifest.ForProduct(AgentUpTestManifests.Product()));
 
     private static UbuntuInstallerOptions CustomOptions()
     {

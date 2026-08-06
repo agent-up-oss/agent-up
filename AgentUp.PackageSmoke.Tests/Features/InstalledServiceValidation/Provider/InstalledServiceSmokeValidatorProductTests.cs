@@ -399,7 +399,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
     [Test]
     public void ProductConfigs_agentUpAndAcme_haveFullyDisjointSmokeTargets()
     {
-        var agentUp = SmokeProductConfig.AgentUp;
+        var agentUp = AgentUpSmokeTestManifests.Product();
         var acme = AcmeProduct;
 
         // Service names are distinct and neither is a substring of the other

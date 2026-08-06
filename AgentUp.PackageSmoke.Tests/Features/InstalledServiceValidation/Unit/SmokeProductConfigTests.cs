@@ -11,7 +11,7 @@ public sealed class SmokeProductConfigTests
     {
         var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", "/artifacts", "/work");
 
-        Assert.That(request.Product, Is.EqualTo(SmokeProductConfig.AgentUp));
+        Assert.That(request.Product, Is.EqualTo(AgentUpSmokeTestManifests.Product()));
     }
 
     [TestCase("ServiceName", "acme;rm")]

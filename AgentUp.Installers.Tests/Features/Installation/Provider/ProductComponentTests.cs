@@ -73,8 +73,8 @@ public class ProductComponentTests
     public async Task FakeAdapter_forComponentNotInManifest_throwsBeforeAnyProgressEvent()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 0, 0)));
+            AgentUpTestManifests.Product(), new Version(1, 0, 0), "/opt/agent-up",
+            AgentUpTestManifests.BundledPayload(new Version(1, 0, 0)));
         var adapter = new FakeInstallerPlatformAdapter();
         var unknownComponent = new ProductComponent("unknown", "Unknown");
 
@@ -94,8 +94,8 @@ public class ProductComponentTests
     public async Task FakeAdapter_agentUpBaseline_allThreeComponentsInstallableAndNamed()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(), new Version(1, 0, 0), "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 0, 0)));
+            AgentUpTestManifests.Product(), new Version(1, 0, 0), "/opt/agent-up",
+            AgentUpTestManifests.BundledPayload(new Version(1, 0, 0)));
         var adapter = new FakeInstallerPlatformAdapter();
 
         foreach (var component in session.Manifest.Components)
@@ -197,7 +197,7 @@ public class ProductComponentTests
 
     private static IEnumerable<TestCaseData> ManifestCases()
     {
-        yield return new TestCaseData(ProductManifest.AgentUp()).SetName("AgentUp_threeComponents");
+        yield return new TestCaseData(AgentUpTestManifests.Product()).SetName("AgentUp_threeComponents");
         yield return new TestCaseData(EditorRenderer).SetName("EditorRenderer_twoComponents");
     }
 

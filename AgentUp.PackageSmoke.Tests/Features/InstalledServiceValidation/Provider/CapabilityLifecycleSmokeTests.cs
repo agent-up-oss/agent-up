@@ -180,15 +180,7 @@ public sealed class CapabilityLifecycleSmokeTests
     }
 
     private static string ExpectedDockerImageForCurrentPlatform()
-    {
-        if (!OperatingSystem.IsWindows())
-            return "nginx:alpine";
-
-        var tag = Environment.OSVersion.Version.Build >= 26000
-            ? "windowsservercore-ltsc2025"
-            : "windowsservercore-ltsc2022";
-        return $"mcr.microsoft.com/windows/servercore/iis:{tag}";
-    }
+        => "nginx:alpine";
 
     private static int CommandIndex(RecordingCommandRunner commands, string fragment)
         => commands.Commands.FindIndex(command => command.Arguments.Any(argument => argument.Contains(fragment, StringComparison.Ordinal)));

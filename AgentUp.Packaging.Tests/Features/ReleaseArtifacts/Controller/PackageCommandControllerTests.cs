@@ -12,6 +12,7 @@ namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Controller;
 [TestFixture]
 public class PackageCommandControllerTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     [Test]
     public async Task ExecuteAsync_withUbuntuCommandDispatchesToUbuntuController()
     {
@@ -32,7 +33,7 @@ public class PackageCommandControllerTests
         Assert.That(error.ToString(), Is.Empty);
         Assert.That(calls, Has.Count.EqualTo(1));
         Assert.That(calls[0].Target, Is.EqualTo("ubuntu"));
-        Assert.That(calls[0].Request, Is.EqualTo(new PackageRequest("/repo", "ubuntu", "linux-x64", "1.2.3", "artifacts", "Debug", "/payload")));
+        Assert.That(calls[0].Request, Is.EqualTo(new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Debug", "/payload", AgentUpPackageTestManifests.Product())));
     }
 
     [Test]
@@ -51,7 +52,7 @@ public class PackageCommandControllerTests
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(calls, Has.Count.EqualTo(1));
         Assert.That(calls[0].Target, Is.EqualTo("windows"));
-        Assert.That(calls[0].Request, Is.EqualTo(new PackageRequest("/repo", "windows", "win-x64", "2.0.0", "release-output", "Release", "/arg-payload")));
+        Assert.That(calls[0].Request, Is.EqualTo(new PackageRequest(Root, "windows", "win-x64", "2.0.0", "release-output", "Release", "/arg-payload", AgentUpPackageTestManifests.Product())));
     }
 
     [Test]
@@ -66,7 +67,7 @@ public class PackageCommandControllerTests
         Assert.That(exitCode, Is.EqualTo(0));
         Assert.That(calls, Has.Count.EqualTo(1));
         Assert.That(calls[0].Target, Is.EqualTo("macos"));
-        Assert.That(calls[0].Request, Is.EqualTo(new PackageRequest("/repo", "macos", "osx-arm64", "3.0.0", "dist", "Release")));
+        Assert.That(calls[0].Request, Is.EqualTo(new PackageRequest(Root, "macos", "osx-arm64", "3.0.0", "dist", "Release", AgentUpPackageTestManifests.Product())));
     }
 
     [Test]
@@ -124,12 +125,13 @@ public class PackageCommandControllerTests
                 environmentProvider,
                 new RecordingUbuntuController(calls),
                 new RecordingWindowsController(calls),
-                new RecordingMacOsController(calls)));
+                new RecordingMacOsController(calls),
+                AgentUpPackageTestManifests.Product()));
     }
 
     private sealed class FixedRepositoryPathProvider : IRepositoryPathProvider
     {
-        public string FindRepositoryRoot() => "/repo";
+        public string FindRepositoryRoot() => Root;
     }
 
     private sealed class DelegateEnvironmentVariableProvider : IEnvironmentVariableProvider

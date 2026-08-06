@@ -5,19 +5,16 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(ExcludeAgentUpProductConfiguration)' == 'true'">
-    <DefineConstants>$(DefineConstants);EXCLUDE_AGENTUP_PRODUCT_CONFIGURATION</DefineConstants>
+    <IsPackable>true</IsPackable>
+    <PackageId>LocalInstaller.Packaging</PackageId>
+    <Version>$(LocalInstallerVersion)</Version>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj">
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
     <ProjectReference Include="..\AgentUp.Installers\AgentUp.Installers.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(ExcludeAgentUpProductConfiguration)' == 'true'">
-    <Compile Remove="**/AgentUp*.cs" />
   </ItemGroup>
 
 </Project>

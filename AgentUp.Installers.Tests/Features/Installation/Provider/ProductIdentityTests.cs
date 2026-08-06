@@ -46,7 +46,7 @@ public class ProductIdentityTests
     [Test]
     public void TwoManifests_haveDistinctNonOverlappingDefaultInstallRoots()
     {
-        var agentUp = ProductManifest.AgentUp();
+        var agentUp = AgentUpTestManifests.Product();
         var acmeStudio = AcmeStudio;
 
         var agentUpRoot = agentUp.DefaultInstallRoot();
@@ -63,7 +63,7 @@ public class ProductIdentityTests
     [Test]
     public void TwoManifests_useDistinctPayloadRootVariables_allowingIndependentOverride()
     {
-        var agentUp = ProductManifest.AgentUp();
+        var agentUp = AgentUpTestManifests.Product();
         var acmeStudio = AcmeStudio;
 
         Assert.Multiple(() =>
@@ -76,7 +76,7 @@ public class ProductIdentityTests
 
     private static IEnumerable<TestCaseData> ManifestPairs()
     {
-        yield return new TestCaseData(ProductManifest.AgentUp(), new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO"))
+        yield return new TestCaseData(AgentUpTestManifests.Product(), new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO"))
             .SetName("AgentUp_vs_AcmeStudio");
     }
 

@@ -21,6 +21,7 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Shared.Providers;
 using Microsoft.AspNetCore.Http;
 using AgentUp.Server.Tests.Fake;
@@ -167,6 +168,7 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
         builder.Services.AddSingleton<OrchestrationContextService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
+        builder.Services.AddSingleton<ConsoleSecretRedactor>();
         builder.Services.AddSingleton<OrchestrationConsoleService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();

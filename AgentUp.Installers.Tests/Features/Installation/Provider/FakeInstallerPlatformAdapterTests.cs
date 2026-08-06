@@ -18,10 +18,10 @@ public class FakeInstallerPlatformAdapterTests
     public async Task ExecuteInstallAsync_reportsEveryPlannedOperationAndValidatesState()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(),
+            AgentUpTestManifests.Product(),
             new Version(1, 2, 3),
             "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 2, 3)));
+            AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
         var adapter = new FakeInstallerPlatformAdapter();
 
         var plan = adapter.PlanInstall(session);
@@ -41,10 +41,10 @@ public class FakeInstallerPlatformAdapterTests
     public async Task ExecuteComponentActionAsync_installsOnlyRequestedTargetStatus()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(),
+            AgentUpTestManifests.Product(),
             new Version(1, 2, 3),
             "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 2, 3)));
+            AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
         var adapter = new FakeInstallerPlatformAdapter();
 
         var progress = new List<InstallProgress>();
@@ -67,10 +67,10 @@ public class FakeInstallerPlatformAdapterTests
     public async Task ExecuteComponentActionAsync_uninstallReturnsTargetToNotInstalled()
     {
         var session = InstallerSession.CreateDefault(
-            ProductManifest.AgentUp(),
+            AgentUpTestManifests.Product(),
             new Version(1, 2, 3),
             "/opt/agent-up",
-            PayloadSelection.Bundled(new Version(1, 2, 3)));
+            AgentUpTestManifests.BundledPayload(new Version(1, 2, 3)));
         var adapter = new FakeInstallerPlatformAdapter();
 
         await adapter.ExecuteComponentActionAsync(ProductComponent.Server, InstallerComponentAction.Install, session).DrainAsync();

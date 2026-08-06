@@ -10,6 +10,7 @@ namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Provider;
 [TestFixture]
 public class MacOsProductBrandingTests
 {
+    private static readonly string Root = Path.GetFullPath(Path.Join(Path.GetTempPath(), "pkg"));
     private static readonly PackageProductManifest AcmeStudio = new("Acme Studio", "acme-studio", "ACMESTUDIO");
 
     // Test 1: distribution XML for a non-Agent-Up manifest carries the product's title and bundle
@@ -17,7 +18,7 @@ public class MacOsProductBrandingTests
     [Test]
     public void DistributionXml_forNonAgentUpProduct_carriesProductTitleAndBundleId_andNoArtifactContainsAgentUpString()
     {
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
             productManifest: AcmeStudio);
         var layout = MacOsPackageLayout.From(request);
         var manifest = MacOsPackageManifest.From(request);
@@ -41,7 +42,7 @@ public class MacOsProductBrandingTests
     [Test]
     public void PostInstallScript_forNonAgentUpProduct_opensProductAppBundle_withNoReferenceToAgentUpInstallerApp()
     {
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
             productManifest: AcmeStudio);
         var manifest = MacOsPackageManifest.From(request);
         var installerAppName = $"{manifest.InstallerManifest.ProductName} Installer";
@@ -60,7 +61,7 @@ public class MacOsProductBrandingTests
     [Test]
     public void PostInstallScript_forNonAgentUpProduct_logPathDerivedFromProductName_withNoReferenceToAgentUpLogDir()
     {
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
             productManifest: AcmeStudio);
         var manifest = MacOsPackageManifest.From(request);
         var installerAppName = $"{manifest.InstallerManifest.ProductName} Installer";
@@ -80,7 +81,7 @@ public class MacOsProductBrandingTests
     public async Task BuildComponentAndProductPackage_forAgentUpManifest_commandShapeMatchesBaseline()
     {
         var commands = new RecordingCommandRunner();
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.2.3", "out", "Release");
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
         var layout = MacOsPackageLayout.From(request);
         var manifest = MacOsPackageManifest.From(request);
         var tool = new MacOsPackageTool(commands);
@@ -104,7 +105,7 @@ public class MacOsProductBrandingTests
         {
             "--distribution", Path.Join(stage, "Distribution.xml"),
             "--package-path", Path.Join(stage, "component-packages"),
-            Path.Join("/repo", "out", "agent-up-macos-osx-arm64.pkg")
+            Path.Join(Root, "out", "agent-up-macos-osx-arm64.pkg")
         }));
     }
 
@@ -113,7 +114,7 @@ public class MacOsProductBrandingTests
     public async Task BuildComponentPackages_forNonAgentUpManifest_usesProductBundleIdentifier()
     {
         var commands = new RecordingCommandRunner();
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.0.0", "out", "Release",
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.0.0", "out", "Release",
             productManifest: AcmeStudio);
         var layout = MacOsPackageLayout.From(request);
         var manifest = MacOsPackageManifest.From(request);
@@ -145,7 +146,7 @@ public class MacOsProductBrandingTests
     private static string CollectAllArtifactOutput(string slug)
     {
         var product = new PackageProductManifest(SlugToProductName(slug), slug, slug.ToUpperInvariant().Replace("-", ""));
-        var request = new PackageRequest("/repo", "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
+        var request = new PackageRequest(Root, "macos", "osx-arm64", "1.0.0", "artifacts", "Release",
             productManifest: product);
         var layout = MacOsPackageLayout.From(request);
         var manifest = MacOsPackageManifest.From(request);

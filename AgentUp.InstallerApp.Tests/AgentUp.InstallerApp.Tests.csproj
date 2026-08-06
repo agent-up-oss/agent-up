@@ -9,10 +9,11 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
+    <Using Include="AgentUp.InstallerApp.Tests.Support" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia.Headless.NUnit" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Headless.NUnit" Version="12.1.1" />
     <PackageReference Include="coverlet.collector" Version="10.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="NUnit" Version="4.6.1" />
@@ -21,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.InstallerApp\AgentUp.InstallerApp.csproj" />
+    <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
   </ItemGroup>
 
 </Project>
