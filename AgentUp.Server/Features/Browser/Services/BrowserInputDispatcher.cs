@@ -43,7 +43,7 @@ public sealed class BrowserInputDispatcher(
         catch (Exception ex) when (ex is PuppeteerException or JsonException or KeyNotFoundException
                                        or InvalidOperationException or OperationCanceledException)
         {
-            logger.LogDebug(ex, "Input dispatch failed for workspace {WorkspaceId}.", workspaceId);
+            logger.LogDebug(ex, "Input dispatch failed for workspace {WorkspaceId}.", Sanitize(workspaceId));
         }
     }
 
@@ -89,6 +89,10 @@ public sealed class BrowserInputDispatcher(
         var cursor = await page.EvaluateExpressionAsync<string>(script).WaitAsync(ct);
         return CursorKind(cursor);
     }
+
+    private static string Sanitize(string id) =>
+        id.Replace("\r", string.Empty, StringComparison.Ordinal)
+          .Replace("\n", string.Empty, StringComparison.Ordinal);
 
     private static string CursorKind(string? cursor)
         => cursor switch

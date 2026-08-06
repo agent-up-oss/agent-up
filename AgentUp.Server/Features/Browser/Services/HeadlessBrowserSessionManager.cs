@@ -23,6 +23,10 @@ public sealed class HeadlessBrowserSessionManager(
     private bool _chromiumReady;
     private int _stopCalled;
 
+    private static string Sanitize(string id) =>
+        id.Replace("\r", string.Empty, StringComparison.Ordinal)
+          .Replace("\n", string.Empty, StringComparison.Ordinal);
+
     public Task StartAsync(CancellationToken ct)
     {
         _stopCts = new CancellationTokenSource();
@@ -65,7 +69,7 @@ public sealed class HeadlessBrowserSessionManager(
             try { await session.Browser.DisposeAsync(); }
             catch (Exception ex) when (ex is PuppeteerException or ObjectDisposedException)
             {
-                logger.LogWarning(ex, "Error disposing browser for workspace {WorkspaceId}.", session.WorkspaceId);
+                logger.LogWarning(ex, "Error disposing browser for workspace {WorkspaceId}.", Sanitize(session.WorkspaceId));
             }
         }
         _stopCts.Dispose();
@@ -91,7 +95,7 @@ public sealed class HeadlessBrowserSessionManager(
                 try { await stale.Browser.DisposeAsync(); }
                 catch (Exception ex) when (ex is PuppeteerException or ObjectDisposedException)
                 {
-                    logger.LogDebug(ex, "Error disposing stale browser for workspace {WorkspaceId}.", workspaceId);
+                    logger.LogDebug(ex, "Error disposing stale browser for workspace {WorkspaceId}.", Sanitize(workspaceId));
                 }
             }
 
@@ -186,7 +190,7 @@ public sealed class HeadlessBrowserSessionManager(
         try { await session.SetViewportAsync(new ViewPortOptions { Width = width, Height = height }, ct); }
         catch (Exception ex) when (ex is PuppeteerException or OperationCanceledException)
         {
-            logger.LogDebug(ex, "Viewport resize failed for workspace {WorkspaceId}.", workspaceId);
+            logger.LogDebug(ex, "Viewport resize failed for workspace {WorkspaceId}.", Sanitize(workspaceId));
         }
     }
 
@@ -204,7 +208,7 @@ public sealed class HeadlessBrowserSessionManager(
         }
         catch (Exception ex) when (ex is PuppeteerException or InvalidOperationException or OperationCanceledException)
         {
-            logger.LogDebug(ex, "RDP display frame capture failed for workspace {WorkspaceId}.", workspaceId);
+            logger.LogDebug(ex, "RDP display frame capture failed for workspace {WorkspaceId}.", Sanitize(workspaceId));
             return null;
         }
     }
@@ -215,12 +219,14 @@ public sealed class HeadlessBrowserSessionManager(
         try { await session.Browser.DisposeAsync(); }
         catch (Exception ex) when (ex is PuppeteerException or ObjectDisposedException)
         {
-            logger.LogWarning(ex, "Error disposing browser for workspace {WorkspaceId}.", workspaceId);
+            logger.LogWarning(ex, "Error disposing browser for workspace {WorkspaceId}.", Sanitize(workspaceId));
         }
     }
 
     private async Task<BrowserSessionState> CreateSessionAsync(string workspaceId, CancellationToken ct)
     {
+        if (!Guid.TryParse(workspaceId, out _))
+            throw new ArgumentException("Workspace ID must be a valid GUID.", nameof(workspaceId));
         var profilePath = Path.Join(profilesDir, workspaceId);
         Directory.CreateDirectory(profilePath);
 
@@ -242,7 +248,7 @@ public sealed class HeadlessBrowserSessionManager(
         if (_executablePath is not null)
             options.ExecutablePath = _executablePath;
 
-        logger.LogInformation("Launching Chromium for workspace {WorkspaceId}.", workspaceId);
+        logger.LogInformation("Launching Chromium for workspace {WorkspaceId}.", Sanitize(workspaceId));
         var browser = await Puppeteer.LaunchAsync(options).WaitAsync(ct);
         var page = await browser.NewPageAsync().WaitAsync(ct);
         await page.SetViewportAsync(new ViewPortOptions { Width = 1280, Height = 720 }).WaitAsync(ct);
@@ -276,7 +282,7 @@ public sealed class HeadlessBrowserSessionManager(
             }
             catch (Exception ex) when (ex is PuppeteerException or InvalidOperationException)
             {
-                logger.LogDebug(ex, "RDP bitmap frame error for workspace {WorkspaceId}.", session.WorkspaceId);
+                logger.LogDebug(ex, "RDP bitmap frame error for workspace {WorkspaceId}.", Sanitize(session.WorkspaceId));
             }
 
             var delay = display.HasActiveInput(session.WorkspaceId) ? 50 : 200;
