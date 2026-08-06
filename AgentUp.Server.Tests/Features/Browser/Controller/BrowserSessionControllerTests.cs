@@ -58,6 +58,21 @@ public sealed class BrowserSessionControllerTests
     }
 
     [Test]
+    public async Task Navigate_ReturnsBadRequest_WithDispatcherError_WhenDispatchFails()
+    {
+        var store = new BrowserSessionStore();
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
+
+        var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", true, CancellationToken.None);
+        var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
+        store.CompleteCommand(new BrowserCommandResultDto(command!.CommandId, false, null, "Browser command execution failed."));
+        var result = await navigateTask;
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result).Value, Is.EqualTo("Browser command execution failed."));
+    }
+
+    [Test]
     public async Task NavigateBack_ReturnsNotFound_WhenNoActiveSession()
     {
         var result = await MakeController().NavigateBack("ws-1", CancellationToken.None);
