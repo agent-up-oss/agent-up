@@ -173,7 +173,8 @@ jobs:
           # Run HeadlessE2E tests now that Chromium is confirmed available.
           chromium_exe="${PUPPETEER_EXECUTABLE_PATH:-}"
           if [ -z "$chromium_exe" ]; then
-            echo "No Chromium binary found — skipping HeadlessE2E tests"
+            echo "No Chromium binary found — HeadlessE2E tests cannot run"
+            exit 1
           else
             echo "Running HeadlessE2E tests with $chromium_exe"
             PUPPETEER_EXECUTABLE_PATH="$chromium_exe" \
