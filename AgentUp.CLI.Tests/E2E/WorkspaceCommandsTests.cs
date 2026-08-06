@@ -17,6 +17,8 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
+using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -451,6 +453,12 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
+        builder.Services.AddSingleton<BrowserRemoteDisplayService>();
+        builder.Services.AddSingleton(sp => new HeadlessBrowserSessionManager(
+            Path.GetTempPath(), Path.GetTempPath(),
+            sp.GetRequiredService<BrowserRemoteDisplayService>(),
+            sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
+        builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
