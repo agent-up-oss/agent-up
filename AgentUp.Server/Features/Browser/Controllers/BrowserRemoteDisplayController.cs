@@ -38,4 +38,12 @@ public sealed class BrowserRemoteDisplayController(
         Response.Headers.CacheControl = "no-store";
         return frame is null ? NotFound() : File(frame, "image/jpeg");
     }
+
+    [HttpGet("chromium-status")]
+    public IActionResult ChromiumStatus()
+    {
+        var (state, progress) = sessions.GetChromiumStatus();
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new { state, progress });
+    }
 }
