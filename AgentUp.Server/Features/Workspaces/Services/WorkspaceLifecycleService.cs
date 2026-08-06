@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using AgentUp.Server.Features.Applications.DTOs;
-using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using Microsoft.Extensions.Logging;
@@ -11,21 +11,18 @@ public sealed class WorkspaceLifecycleService
 {
     private readonly WorkspaceRegistry _registry;
     private readonly ProcessesController _processes;
-    private readonly HeadlessBrowserSessionManager _browserSessions;
-    private readonly BrowserRemoteDisplayService _display;
+    private readonly BrowserLifecycleController _browser;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
 
     public WorkspaceLifecycleService(
         WorkspaceRegistry registry,
         ProcessesController processes,
-        HeadlessBrowserSessionManager browserSessions,
-        BrowserRemoteDisplayService display,
+        BrowserLifecycleController browser,
         ILogger<WorkspaceLifecycleService> logger)
     {
         _registry = registry;
         _processes = processes;
-        _browserSessions = browserSessions;
-        _display = display;
+        _browser = browser;
         _logger = logger;
     }
 
@@ -41,7 +38,7 @@ public sealed class WorkspaceLifecycleService
 
         // Dispose any stale browser session from a previous run so the first navigate
         // after this start creates a fresh Chromium session at the correct URL.
-        await _browserSessions.DisposeSessionAsync(id);
+        await _browser.DisposeSessionAsync(id);
 
         try
         {
@@ -82,8 +79,8 @@ public sealed class WorkspaceLifecycleService
 
             // Dispose the headless browser session so the display loop stops streaming stale
             // content, and disconnect viewer WebSockets so clients reconnect after restart.
-            await _browserSessions.DisposeSessionAsync(id);
-            await _display.DisconnectAllAsync(id, CancellationToken.None);
+            await _browser.DisposeSessionAsync(id);
+            await _browser.DisconnectAllAsync(id, CancellationToken.None);
 
             return WorkspaceLifecycleResult.Success();
         }

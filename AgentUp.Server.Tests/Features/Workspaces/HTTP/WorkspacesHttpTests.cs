@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
@@ -70,6 +71,7 @@ public class WorkspacesHttpTests
             Path.GetTempPath(), Path.GetTempPath(),
             sp.GetRequiredService<BrowserRemoteDisplayService>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
+        builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -366,6 +368,7 @@ public class WorkspacesHttpTests
             Path.GetTempPath(), Path.GetTempPath(),
             sp.GetRequiredService<BrowserRemoteDisplayService>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
+        builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.None);
