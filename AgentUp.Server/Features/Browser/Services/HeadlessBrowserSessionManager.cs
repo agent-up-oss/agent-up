@@ -22,40 +22,123 @@ public sealed class HeadlessBrowserSessionManager(
     private string? _executablePath;
     private bool _chromiumReady;
     private int _stopCalled;
+    private volatile string _chromiumDownloadState = "not_started";
+    private int _chromiumDownloadProgress; // Volatile.Read/Write
+    private TaskCompletionSource? _chromiumTcs;
 
     private static string Sanitize(string id) =>
         id.Replace("\r", string.Empty, StringComparison.Ordinal)
           .Replace("\n", string.Empty, StringComparison.Ordinal);
 
+    public (string State, int Progress) GetChromiumStatus()
+        => (_chromiumDownloadState, Volatile.Read(ref _chromiumDownloadProgress));
+
     public Task StartAsync(CancellationToken ct)
     {
         _stopCts = new CancellationTokenSource();
         Interlocked.Exchange(ref _stopCalled, 0);
+        if (!_chromiumReady)
+        {
+            _chromiumTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _ = Task.Run(() => RunChromiumDownloadAsync(_stopCts.Token));
+        }
         return Task.CompletedTask;
     }
 
     private async Task EnsureChromiumAsync(CancellationToken ct)
     {
         if (_chromiumReady) return;
+        if (_chromiumTcs is { Task: var t })
+        {
+            try { await t.WaitAsync(ct); }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch { /* download failed gracefully; proceed with system Chromium */ }
+            return;
+        }
+        await RunChromiumDownloadAsync(ct);
+    }
+
+    private async Task RunChromiumDownloadAsync(CancellationToken ct)
+    {
+        if (_chromiumReady)
+        {
+            _chromiumTcs?.TrySetResult();
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(configuredExecutablePath))
         {
             _executablePath = configuredExecutablePath;
+            _chromiumDownloadState = "ready";
+            Volatile.Write(ref _chromiumDownloadProgress, 100);
             _chromiumReady = true;
+            _chromiumTcs?.TrySetResult();
             return;
         }
-        logger.LogInformation("Downloading Chromium to {ChromiumDir}…", chromiumDir);
+
         try
         {
-            var fetcher = new BrowserFetcher(new BrowserFetcherOptions { Path = chromiumDir });
+            var checkFetcher = new BrowserFetcher(new BrowserFetcherOptions { Path = chromiumDir });
+            var installed = checkFetcher.GetInstalledBrowsers().FirstOrDefault();
+            if (installed is not null)
+            {
+                _executablePath = installed.GetExecutablePath();
+                logger.LogInformation("Chromium already cached at {Path}", _executablePath);
+                _chromiumDownloadState = "ready";
+                Volatile.Write(ref _chromiumDownloadProgress, 100);
+                _chromiumReady = true;
+                _chromiumTcs?.TrySetResult();
+                return;
+            }
+
+            logger.LogInformation("Downloading Chromium to {ChromiumDir}…", chromiumDir);
+            _chromiumDownloadState = "downloading";
+
+            var fetcher = new BrowserFetcher(new BrowserFetcherOptions
+            {
+                Path = chromiumDir,
+                CustomFileDownload = (address, fileName) => DownloadWithProgressAsync(address, fileName, ct)
+            });
             var revision = await fetcher.DownloadAsync().WaitAsync(ct);
             _executablePath = revision.GetExecutablePath();
             logger.LogInformation("Chromium ready at {Path}", _executablePath);
+            Volatile.Write(ref _chromiumDownloadProgress, 100);
+            _chromiumDownloadState = "ready";
+            _chromiumReady = true;
+            _chromiumTcs?.TrySetResult();
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException or OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            _chromiumDownloadState = "failed";
+            _chromiumTcs?.TrySetCanceled(ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException)
         {
             logger.LogWarning(ex, "Chromium download failed; will attempt to use system Chromium.");
+            _chromiumDownloadState = "failed";
+            _chromiumReady = true;
+            _chromiumTcs?.TrySetResult();
         }
-        _chromiumReady = true;
+    }
+
+    private async Task DownloadWithProgressAsync(string address, string fileName, CancellationToken ct)
+    {
+        using var http = new HttpClient();
+        using var response = await http.GetAsync(address, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
+        var total = response.Content.Headers.ContentLength ?? -1L;
+        await using var src = await response.Content.ReadAsStreamAsync(ct);
+        await using var dst = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, 65536, useAsync: true);
+        var buffer = new byte[65536];
+        long downloaded = 0;
+        int read;
+        while ((read = await src.ReadAsync(buffer, ct)) > 0)
+        {
+            await dst.WriteAsync(buffer.AsMemory(0, read), ct);
+            downloaded += read;
+            if (total > 0)
+                Volatile.Write(ref _chromiumDownloadProgress, (int)(downloaded * 100L / total));
+        }
     }
 
     public async Task StopAsync(CancellationToken ct)
