@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AgentUp.Server.Features.Browser.Models;
 using Microsoft.Extensions.Logging;
 using PuppeteerSharp;
@@ -11,6 +12,7 @@ public sealed class HeadlessBrowserCommandDispatcher(
     ILogger<HeadlessBrowserCommandDispatcher> logger)
     : IHostedService
 {
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _workspaceLocks = new();
     private CancellationTokenSource? _cts;
     private Task? _loop;
 
@@ -60,6 +62,10 @@ public sealed class HeadlessBrowserCommandDispatcher(
 
     private async Task ExecuteAndCompleteAsync(BrowserCommandDto command, CancellationToken ct)
     {
+        var gate = _workspaceLocks.GetOrAdd(command.WorkspaceId, _ => new SemaphoreSlim(1, 1));
+        try { await gate.WaitAsync(ct); }
+        catch (OperationCanceledException) { return; }
+
         BrowserCommandResultDto result;
         try
         {
@@ -78,12 +84,16 @@ public sealed class HeadlessBrowserCommandDispatcher(
         catch (Exception ex) when (ex is PuppeteerException or ProcessException or InvalidOperationException or IOException or TimeoutException)
         {
             logger.LogError(ex, "Error executing browser command {CommandId}.", command.CommandId);
-            result = Fail(command, ex.Message);
+            result = Fail(command, "Browser command execution failed.");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Unexpected error executing browser command {CommandId}.", command.CommandId);
-            result = Fail(command, ex.Message);
+            result = Fail(command, "Browser command execution failed.");
+        }
+        finally
+        {
+            gate.Release();
         }
 
         store.CompleteCommand(result);
