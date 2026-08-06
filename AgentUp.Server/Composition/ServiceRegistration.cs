@@ -154,6 +154,7 @@ public static class ServiceRegistration
         builder.Services.AddHostedService(sp =>
             sp.GetRequiredService<HeadlessBrowserSessionManager>());
         builder.Services.AddSingleton<CdpBrowserExecutor>();
+        builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<HeadlessBrowserCommandDispatcher>();
         builder.Services.AddHostedService(sp =>
             sp.GetRequiredService<HeadlessBrowserCommandDispatcher>());

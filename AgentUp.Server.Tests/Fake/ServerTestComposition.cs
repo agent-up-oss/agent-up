@@ -2,6 +2,7 @@ using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
+using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
@@ -55,11 +56,11 @@ internal static class ServerTestComposition
         var sessions = new HeadlessBrowserSessionManager(
             Path.GetTempPath(), Path.GetTempPath(), display,
             NullLogger<HeadlessBrowserSessionManager>.Instance);
+        var browser = new BrowserLifecycleController(sessions, display);
         return new WorkspaceLifecycleService(
             registry,
             CreateProcessesController(processes),
-            sessions,
-            display,
+            browser,
             NullLogger<WorkspaceLifecycleService>.Instance);
     }
 

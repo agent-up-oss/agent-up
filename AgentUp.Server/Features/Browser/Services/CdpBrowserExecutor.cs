@@ -36,7 +36,7 @@ public sealed class CdpBrowserExecutor(ILogger<CdpBrowserExecutor> logger)
         }
     }
 
-    private static async Task<BrowserCommandResultDto> NavigateAsync(
+    private async Task<BrowserCommandResultDto> NavigateAsync(
         BrowserSessionState session,
         BrowserCommandDto command,
         CancellationToken ct)
@@ -67,11 +67,12 @@ public sealed class CdpBrowserExecutor(ILogger<CdpBrowserExecutor> logger)
                 WaitUntil = [WaitUntilNavigation.Load]
             }).WaitAsync(ct);
         }
-        catch (PuppeteerException)
+        catch (PuppeteerException ex)
         {
             // Page-load failed (e.g. ERR_CONNECTION_REFUSED). Chromium received the URL
             // and shows the error page. Treat as a soft accept so the desktop can store
             // the intended URL and retry via the poll loop.
+            logger.LogDebug(ex, "Navigate to {Url} returned a page error; treating as soft accept.", uri);
         }
         return Ok(command);
     }
