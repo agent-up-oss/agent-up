@@ -21,10 +21,12 @@ public sealed class HeadlessBrowserSessionManager(
     private CancellationTokenSource _stopCts = new();
     private string? _executablePath;
     private bool _chromiumReady;
+    private int _stopCalled;
 
     public Task StartAsync(CancellationToken ct)
     {
         _stopCts = new CancellationTokenSource();
+        Interlocked.Exchange(ref _stopCalled, 0);
         return Task.CompletedTask;
     }
 
@@ -54,6 +56,7 @@ public sealed class HeadlessBrowserSessionManager(
 
     public async Task StopAsync(CancellationToken ct)
     {
+        if (Interlocked.Exchange(ref _stopCalled, 1) != 0) return;
         await _stopCts.CancelAsync();
         var sessions = _sessions.Values.ToArray();
         _sessions.Clear();
