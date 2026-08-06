@@ -739,6 +739,31 @@
                                                TextWrapping="Wrap"
                                                MaxWidth="400"/>
                                 </Border>
+                                <!-- Shown while Chromium is being downloaded on first run (AI mode only) -->
+                                <Border x:Name="ChromiumDownloadBanner"
+                                        IsVisible="False"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#0d0f14"
+                                        BorderBrush="#252d3a"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="28,24">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock x:Name="ChromiumDownloadText"
+                                                   Foreground="#9ca8bb"
+                                                   FontSize="13"
+                                                   TextAlignment="Center"
+                                                   Text="Downloading Chromium…"/>
+                                        <ProgressBar x:Name="ChromiumDownloadProgress"
+                                                     Minimum="0"
+                                                     Maximum="100"
+                                                     Value="0"
+                                                     Width="260"
+                                                     Height="4"
+                                                     IsIndeterminate="True"/>
+                                    </StackPanel>
+                                </Border>
                             </Panel>
 
                             <!-- TCP port placeholder -->

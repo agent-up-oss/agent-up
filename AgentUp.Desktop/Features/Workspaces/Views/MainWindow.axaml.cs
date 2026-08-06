@@ -47,6 +47,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private string? _activeWorkspaceId;
     private string? _activeTabKey;   // tabKey of the currently visible WebView
     private bool _isClosed;
+    private bool _chromiumReady = true; // set to false only when server reports downloading
     private NativeWebView? _consoleWebView;
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
@@ -655,8 +656,86 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (_isClosed) return;
         if (_activeWorkspaceId is null) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
+        if (!_chromiumReady)
+            await PollChromiumStatusAsync();
         await PollHeadlessAddressAsync(_activeWorkspaceId);
         await PollControlModeAsync(_activeWorkspaceId);
+    }
+
+    private async Task PollChromiumStatusAsync()
+    {
+        try
+        {
+            var json = await _serverHttp.GetStringAsync("/api/browser/chromium-status");
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            // If the response doesn't have a "state" property, it's not a chromium-status response
+            // (e.g. in tests the fake handler returns workspace JSON) — treat as ready.
+            if (!root.TryGetProperty("state", out var stateProp)) return;
+            var state = stateProp.GetString() ?? "not_started";
+            root.TryGetProperty("progress", out var progressProp);
+            var progress = progressProp.ValueKind == JsonValueKind.Number ? progressProp.GetInt32() : 0;
+
+            if (state == "ready")
+            {
+                if (!_chromiumReady)
+                {
+                    _chromiumReady = true;
+                    OnChromiumReady();
+                }
+            }
+            else if (state is "downloading" or "not_started")
+            {
+                if (_chromiumReady)
+                {
+                    // Transition: Chromium is not ready — hide any existing viewer WebView.
+                    _chromiumReady = false;
+                    var viewerKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
+                    if (viewerKey is not null && _webViews.TryGetValue(viewerKey, out var viewer))
+                        viewer.IsVisible = false;
+                }
+
+                ChromiumDownloadText.Text = progress > 0
+                    ? $"Downloading Chromium… {progress}%"
+                    : "Downloading Chromium…";
+                ChromiumDownloadProgress.IsIndeterminate = progress == 0;
+                ChromiumDownloadProgress.Value = progress;
+                var viewerTabKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
+                if (_activeTabKey == viewerTabKey && !IsTutorialVisible())
+                    ChromiumDownloadBanner.IsVisible = true;
+            }
+            else if (state == "failed")
+            {
+                _chromiumReady = true; // stop polling
+                ChromiumDownloadText.Text = "Chromium download failed. AI mode unavailable.";
+                ChromiumDownloadProgress.IsVisible = false;
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            Trace.TraceWarning(ex.Message);
+        }
+    }
+
+    private void OnChromiumReady()
+    {
+        ChromiumDownloadBanner.IsVisible = false;
+        if (_activeWorkspaceId is null) return;
+        if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") != "ai") return;
+
+        // Show the viewer WebView if it was created and hidden during the download.
+        var viewerTabKey = $"{_activeWorkspaceId}:viewer";
+        if (_webViews.TryGetValue(viewerTabKey, out var existing))
+        {
+            existing.IsVisible = !IsTutorialVisible();
+            return;
+        }
+
+        // WebView doesn't exist yet (e.g. app started while Chromium was downloading and no URL came in).
+        var url = _lastKnownBrowserUrls.GetValueOrDefault(viewerTabKey)
+            ?? (DataContext as MainViewModel)?.AddressBarUrl
+            ?? "about:blank";
+        HandleHeadlessNavigation(_activeWorkspaceId, url, IsTutorialVisible(), reloadIfSameUrl: false);
     }
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
@@ -949,6 +1028,22 @@ code {
         var tabKey = $"{workspaceId}:viewer";
         ActivateTab(workspaceId, tabKey, tutorialVisible);
 
+        if (!_chromiumReady)
+        {
+            // Chromium is still downloading — remember the URL and queue the server navigate so
+            // it executes once Chromium is ready. Don't create/show the WebView yet.
+            if (url is not null
+                && Uri.TryCreate(url, UriKind.Absolute, out var queueUri)
+                && queueUri.Scheme is "http" or "https")
+            {
+                _lastKnownBrowserUrls[tabKey] = url;
+                _ = PostHeadlessNavigateAsync(workspaceId, url, reloadIfSameUrl);
+            }
+            return;
+        }
+
+        ChromiumDownloadBanner.IsVisible = false;
+
         if (_webViews.TryGetValue(tabKey, out var existing))
         {
             existing.IsVisible = !tutorialVisible;
@@ -1088,6 +1183,7 @@ code {
 
         if (authority == "human")
         {
+            ChromiumDownloadBanner.IsVisible = false;
             // Activate the direct port WebView; navigate to the last URL the headless browser was at,
             // or fall back to the address bar URL (e.g. when the app is offline and never loaded).
             var viewerTabKey = $"{workspaceId}:viewer";
