@@ -20,9 +20,23 @@ public sealed class BrowserRemoteDisplayController(
         }
 
         using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
-        // Bootstrap the session so the display loop is running by the time the first frame
-        // is needed — without waiting for an explicit navigate command to arrive.
-        _ = sessions.EnsureSessionAsync(workspaceId, HttpContext.RequestAborted);
+        // Await session creation (with a timeout) so the display loop is guaranteed to be
+        // running before the subscriber registers. Fire-and-forget caused a race where
+        // HasSubscribers was true but no loop had started yet, producing a blank screen.
+        using var sessionCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted);
+        sessionCts.CancelAfter(TimeSpan.FromSeconds(10));
+        try
+        {
+            await sessions.EnsureSessionAsync(workspaceId, sessionCts.Token);
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception)
+        {
+            // Timed out or session creation failed; proceed — viewer will retry.
+        }
         await display.ConnectAsync(workspaceId, ws,
             json => inputDispatcher.DispatchAsync(workspaceId, json, HttpContext.RequestAborted),
             HttpContext.RequestAborted);

@@ -151,6 +151,19 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         var id = Guid.NewGuid();
         var subs = _subscribers.GetOrAdd(workspaceId, _ => new WorkspaceSubscriberSet());
         subs.Add(id, ws);
+        // Send the most recent cached frame immediately so the viewer isn't blank while
+        // waiting for the display loop's next iteration (up to 200 ms on reconnect).
+        if (_latestFrames.TryGetValue(workspaceId, out var snapshot) && ws.State == WebSocketState.Open)
+        {
+            try
+            {
+                await ws.SendAsync(new ArraySegment<byte>(snapshot), WebSocketMessageType.Binary, endOfMessage: true, ct);
+            }
+            catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
+            {
+                logger.LogDebug(ex, "Failed to send initial frame to RDP subscriber for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+            }
+        }
         try
         {
             await Task.Delay(Timeout.Infinite, ct);
