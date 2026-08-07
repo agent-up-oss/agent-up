@@ -95,5 +95,6 @@ public sealed class BrowserRemoteDisplayControllerTests
             "/unused/chromium",
             "/unused/browser-profiles",
             display ?? new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new BrowserEventBus(),
             NullLogger<HeadlessBrowserSessionManager>.Instance);
 }

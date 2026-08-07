@@ -433,6 +433,7 @@ public sealed class BrowserMcpServiceTests
             "/unused/chromium",
             "/unused/browser-profiles",
             new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new BrowserEventBus(),
             NullLogger<HeadlessBrowserSessionManager>.Instance);
 
     private static AuditController CreateAuditController(

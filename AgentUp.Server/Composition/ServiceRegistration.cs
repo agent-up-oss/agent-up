@@ -140,6 +140,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
         builder.Services.AddSingleton<BrowserSessionStore>();
         builder.Services.AddSingleton<BrowserMcpService>();
+        builder.Services.AddSingleton<BrowserEventBus>();
         builder.Services.AddSingleton<BrowserRemoteDisplayService>();
         builder.Services.AddSingleton<IBrowserRemoteSessionProvider, IronRdpBrowserRemoteSessionProvider>();
         builder.Services.AddSingleton<BrowserRemoteSessionService>();
@@ -149,6 +150,7 @@ public static class ServiceRegistration
                 chromiumDir: Path.Join(dataDir, "chromium"),
                 profilesDir: Path.Join(dataDir, "browser-profiles"),
                 sp.GetRequiredService<BrowserRemoteDisplayService>(),
+                sp.GetRequiredService<BrowserEventBus>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>(),
                 configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
         builder.Services.AddHostedService(sp =>

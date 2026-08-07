@@ -10,6 +10,7 @@ public sealed class HeadlessBrowserSessionManager(
     string chromiumDir,
     string profilesDir,
     BrowserRemoteDisplayService display,
+    BrowserEventBus eventBus,
     ILogger<HeadlessBrowserSessionManager> logger,
     string? configuredExecutablePath = null)
     : IHostedService
@@ -24,6 +25,7 @@ public sealed class HeadlessBrowserSessionManager(
     private int _stopCalled;
     private volatile string _chromiumDownloadState = "not_started";
     private int _chromiumDownloadProgress; // Volatile.Read/Write
+    private int _lastPublishedProgress = -1;
     private TaskCompletionSource? _chromiumTcs;
 
     private static string Sanitize(string id) =>
@@ -72,6 +74,7 @@ public sealed class HeadlessBrowserSessionManager(
             _chromiumDownloadState = "ready";
             Volatile.Write(ref _chromiumDownloadProgress, 100);
             _chromiumReady = true;
+            eventBus.PublishChromiumStatus("ready", 100);
             _chromiumTcs?.TrySetResult();
             return;
         }
@@ -87,12 +90,14 @@ public sealed class HeadlessBrowserSessionManager(
                 _chromiumDownloadState = "ready";
                 Volatile.Write(ref _chromiumDownloadProgress, 100);
                 _chromiumReady = true;
+                eventBus.PublishChromiumStatus("ready", 100);
                 _chromiumTcs?.TrySetResult();
                 return;
             }
 
             logger.LogInformation("Downloading Chromium to {ChromiumDir}…", chromiumDir);
             _chromiumDownloadState = "downloading";
+            eventBus.PublishChromiumStatus("downloading", 0);
 
             var fetcher = new BrowserFetcher(new BrowserFetcherOptions
             {
@@ -105,11 +110,13 @@ public sealed class HeadlessBrowserSessionManager(
             Volatile.Write(ref _chromiumDownloadProgress, 100);
             _chromiumDownloadState = "ready";
             _chromiumReady = true;
+            eventBus.PublishChromiumStatus("ready", 100);
             _chromiumTcs?.TrySetResult();
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             _chromiumDownloadState = "failed";
+            eventBus.PublishChromiumStatus("failed", 0);
             _chromiumTcs?.TrySetCanceled(ct);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException)
@@ -117,6 +124,7 @@ public sealed class HeadlessBrowserSessionManager(
             logger.LogWarning(ex, "Chromium download failed; will attempt to use system Chromium.");
             _chromiumDownloadState = "failed";
             _chromiumReady = true;
+            eventBus.PublishChromiumStatus("failed", 0);
             _chromiumTcs?.TrySetResult();
         }
     }
@@ -137,7 +145,15 @@ public sealed class HeadlessBrowserSessionManager(
             await dst.WriteAsync(buffer.AsMemory(0, read), ct);
             downloaded += read;
             if (total > 0)
-                Volatile.Write(ref _chromiumDownloadProgress, (int)(downloaded * 100L / total));
+            {
+                var pct = (int)(downloaded * 100L / total);
+                Volatile.Write(ref _chromiumDownloadProgress, pct);
+                if (pct >= _lastPublishedProgress + 5)
+                {
+                    _lastPublishedProgress = pct;
+                    eventBus.PublishChromiumStatus("downloading", pct);
+                }
+            }
         }
     }
 
