@@ -67,9 +67,11 @@ public class ApplicationsHttpTests
         builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<BrowserRemoteDisplayService>();
+        builder.Services.AddSingleton<BrowserEventBus>();
         builder.Services.AddSingleton(sp => new HeadlessBrowserSessionManager(
             Path.GetTempPath(), Path.GetTempPath(),
             sp.GetRequiredService<BrowserRemoteDisplayService>(),
+            sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
