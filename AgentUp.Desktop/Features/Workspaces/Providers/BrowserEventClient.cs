@@ -98,7 +98,10 @@ internal sealed class BrowserEventClient(HttpClient http) : IDisposable
                     ChromiumStatusChanged?.Invoke(state, progress);
                 }
             }
-            catch (JsonException) { }
+            catch (JsonException ex)
+            {
+                Trace.TraceWarning($"[BrowserEventClient] Malformed event JSON, skipping: {ex.Message}");
+            }
         }
 
         return true;
