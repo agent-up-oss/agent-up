@@ -44,6 +44,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly HttpClient _serverHttp;
     private readonly string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
+    private BrowserEventClient? _browserEventClient;
+    private bool _hadBrowserEventsConnection;
+    private bool _browserEventsConnected;
     private string? _activeWorkspaceId;
     private string? _activeTabKey;   // tabKey of the currently visible WebView
     private bool _isClosed;
@@ -201,6 +204,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         _workspaceEventClient?.Dispose();
         _workspaceEventClient = null;
+        _browserEventClient?.Dispose();
+        _browserEventClient = null;
 
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
@@ -208,6 +213,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
         _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
         _workspaceEventClient.Start();
+
+        var browserEventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
+        _browserEventClient = new BrowserEventClient(browserEventHttp);
+        _browserEventClient.Connected += OnBrowserEventsConnected;
+        _browserEventClient.Disconnected += OnBrowserEventsDisconnected;
+        _browserEventClient.ChromiumStatusChanged += OnBrowserEventsChromiumStatusChanged;
+        _browserEventClient.Start();
 
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
@@ -257,6 +269,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         _isClosed = true;
         _workspaceEventClient?.Dispose();
+        _browserEventClient?.Dispose();
         _auditController?.Dispose();
         _serverHttp.Dispose();
         _addressPollTimer.Stop();
@@ -656,25 +669,41 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (_isClosed) return;
         if (_activeWorkspaceId is null) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
-        if (!_chromiumReady)
-            await PollChromiumStatusAsync();
         await PollHeadlessAddressAsync(_activeWorkspaceId);
         await PollControlModeAsync(_activeWorkspaceId);
     }
 
-    private async Task PollChromiumStatusAsync()
+    private void OnBrowserEventsConnected()
     {
-        try
+        Dispatcher.UIThread.Post(() =>
         {
-            var json = await _serverHttp.GetStringAsync("/api/browser/chromium-status");
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            // If the response doesn't have a "state" property, it's not a chromium-status response
-            // (e.g. in tests the fake handler returns workspace JSON) — treat as ready.
-            if (!root.TryGetProperty("state", out var stateProp)) return;
-            var state = stateProp.GetString() ?? "not_started";
-            root.TryGetProperty("progress", out var progressProp);
-            var progress = progressProp.ValueKind == JsonValueKind.Number ? progressProp.GetInt32() : 0;
+            if (_isClosed) return;
+            _hadBrowserEventsConnection = true;
+            _browserEventsConnected = true;
+            ConnectionLostBanner.IsVisible = false;
+        });
+    }
+
+    private void OnBrowserEventsDisconnected()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_isClosed) return;
+            _browserEventsConnected = false;
+            if (!_hadBrowserEventsConnection) return;
+            ConnectionLostBanner.IsVisible = true;
+            ChromiumDownloadBanner.IsVisible = false;
+            var viewerKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
+            if (viewerKey is not null && _webViews.TryGetValue(viewerKey, out var viewer))
+                viewer.IsVisible = false;
+        });
+    }
+
+    private void OnBrowserEventsChromiumStatusChanged(string state, int progress)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_isClosed) return;
 
             if (state == "ready")
             {
@@ -688,7 +717,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             {
                 if (_chromiumReady)
                 {
-                    // Transition: Chromium is not ready — hide any existing viewer WebView.
                     _chromiumReady = false;
                     var viewerKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
                     if (viewerKey is not null && _webViews.TryGetValue(viewerKey, out var viewer))
@@ -706,15 +734,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             }
             else if (state == "failed")
             {
-                _chromiumReady = true; // stop polling
+                _chromiumReady = true;
                 ChromiumDownloadText.Text = "Chromium download failed. AI mode unavailable.";
                 ChromiumDownloadProgress.IsVisible = false;
             }
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
+        });
     }
 
     private void OnChromiumReady()
@@ -1184,6 +1208,7 @@ code {
         if (authority == "human")
         {
             ChromiumDownloadBanner.IsVisible = false;
+            ConnectionLostBanner.IsVisible = false;
             // Activate the direct port WebView; navigate to the last URL the headless browser was at,
             // or fall back to the address bar URL (e.g. when the app is offline and never loaded).
             var viewerTabKey = $"{workspaceId}:viewer";
@@ -1216,7 +1241,12 @@ code {
             // Activate the AI stream viewer tab.
             var tabKey = $"{workspaceId}:viewer";
             ActivateTab(workspaceId, tabKey, tutorialVisible);
-            WakeActiveViewer();
+
+            // If the server SSE stream is down, show the connection lost banner instead of the viewer.
+            if (_hadBrowserEventsConnection && !_browserEventsConnected)
+                ConnectionLostBanner.IsVisible = true;
+            else
+                WakeActiveViewer();
 
             // Restore AI-mode address bar state.
             if (vm is not null && _lastKnownBrowserUrls.TryGetValue(tabKey, out var aiUrl))

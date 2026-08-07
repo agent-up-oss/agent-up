@@ -764,6 +764,21 @@
                                                      IsIndeterminate="True"/>
                                     </StackPanel>
                                 </Border>
+                                <!-- Shown when the server SSE stream drops (environment downed) -->
+                                <Border x:Name="ConnectionLostBanner"
+                                        IsVisible="False"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#0f0a0a"
+                                        BorderBrush="#3d1a1a"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="28,24">
+                                    <TextBlock Foreground="#c97070"
+                                               FontSize="13"
+                                               TextAlignment="Center"
+                                               Text="Connection to AI browser lost.&#x0a;The environment may be down."/>
+                                </Border>
                             </Panel>
 
                             <!-- TCP port placeholder -->
