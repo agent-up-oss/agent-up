@@ -23,7 +23,7 @@ public sealed class HeadlessE2ETests
     private static readonly string DataDir =
         Path.Join(Path.GetTempPath(), "agentup-headless-e2e");
 
-    private const string WorkspaceId = "e2e-ws";
+    private const string WorkspaceId = "00000000-0000-0000-0000-e2e000000001";
 
     private WebApplicationFactory<Program> _factory = null!;
     private BrowserSessionStore _store = null!;
