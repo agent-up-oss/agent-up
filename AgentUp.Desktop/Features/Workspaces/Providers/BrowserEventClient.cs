@@ -9,6 +9,7 @@ internal sealed class BrowserEventClient(HttpClient http) : IDisposable
     public event Action? Connected;
     public event Action? Disconnected;
     public event Action<string, int>? ChromiumStatusChanged;
+    public event Action<string, string, int, int>? ConnectivityChanged;
 
     private CancellationTokenSource? _cts;
 
@@ -90,12 +91,22 @@ internal sealed class BrowserEventClient(HttpClient http) : IDisposable
                 var root = doc.RootElement;
                 if (!root.TryGetProperty("type", out var typeProp)) continue;
 
-                if (typeProp.GetString() == "chromium-status")
+                var eventType = typeProp.GetString();
+                if (eventType == "chromium-status")
                 {
                     var state = root.TryGetProperty("state", out var sp) ? sp.GetString() ?? "not_started" : "not_started";
                     var progress = root.TryGetProperty("progress", out var pp) && pp.ValueKind == JsonValueKind.Number
                         ? pp.GetInt32() : 0;
                     ChromiumStatusChanged?.Invoke(state, progress);
+                }
+                else if (eventType == "browser-connectivity")
+                {
+                    var wsId = root.TryGetProperty("workspaceId", out var wProp) ? wProp.GetString() : null;
+                    var state = root.TryGetProperty("state", out var sProp) ? sProp.GetString() ?? "connecting" : "connecting";
+                    var attempt = root.TryGetProperty("attempt", out var aProp) && aProp.ValueKind == JsonValueKind.Number ? aProp.GetInt32() : 0;
+                    var maxAttempts = root.TryGetProperty("maxAttempts", out var mProp) && mProp.ValueKind == JsonValueKind.Number ? mProp.GetInt32() : 30;
+                    if (wsId is not null)
+                        ConnectivityChanged?.Invoke(wsId, state, attempt, maxAttempts);
                 }
             }
             catch (JsonException ex)

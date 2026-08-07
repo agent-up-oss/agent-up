@@ -779,6 +779,22 @@
                                                TextAlignment="Center"
                                                Text="Connection to AI browser lost.&#x0a;The environment may be down."/>
                                 </Border>
+                                <!-- Shown while Chromium is probing the workspace app (connecting/reconnecting) -->
+                                <Border x:Name="BrowserConnectingBanner"
+                                        IsVisible="False"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#0d0f14"
+                                        BorderBrush="#252d3a"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="28,24">
+                                    <TextBlock x:Name="BrowserConnectingText"
+                                               Foreground="#9ca8bb"
+                                               FontSize="13"
+                                               TextAlignment="Center"
+                                               Text="Connecting to app… (1 / 30)"/>
+                                </Border>
                             </Panel>
 
                             <!-- TCP port placeholder -->

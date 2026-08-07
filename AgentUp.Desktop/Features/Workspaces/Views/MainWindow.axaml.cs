@@ -38,6 +38,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, int> _navigationVersions = new();
     // Current control authority per workspace: "ai" (default) or "human".
     private readonly Dictionary<string, string> _workspaceAuthority = new();
+    // Per-workspace browser connectivity state: "connecting", "connected", "failed".
+    private readonly Dictionary<string, string> _browserConnectivity = new();
     private DateTimeOffset _lastHeadlessRetry = DateTimeOffset.MinValue;
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
@@ -219,6 +221,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _browserEventClient.Connected += OnBrowserEventsConnected;
         _browserEventClient.Disconnected += OnBrowserEventsDisconnected;
         _browserEventClient.ChromiumStatusChanged += OnBrowserEventsChromiumStatusChanged;
+        _browserEventClient.ConnectivityChanged += OnBrowserConnectivityChanged;
         _browserEventClient.Start();
 
         _subscriptions.Clear();
@@ -741,17 +744,50 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         });
     }
 
+    private void OnBrowserConnectivityChanged(string workspaceId, string state, int attempt, int maxAttempts)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_isClosed) return;
+            _browserConnectivity[workspaceId] = state;
+
+            if (_activeWorkspaceId != workspaceId) return;
+            if (_workspaceAuthority.GetValueOrDefault(workspaceId, "ai") != "ai") return;
+
+            var viewerKey = $"{workspaceId}:viewer";
+            if (state == "connected")
+            {
+                BrowserConnectingBanner.IsVisible = false;
+                if (_webViews.TryGetValue(viewerKey, out var viewer) && !IsTutorialVisible())
+                    viewer.IsVisible = true;
+                else if (!IsTutorialVisible())
+                    WakeActiveViewer();
+            }
+            else
+            {
+                var label = state == "failed"
+                    ? $"Could not reach app after {maxAttempts} attempts."
+                    : $"Connecting to app… ({attempt} / {maxAttempts})";
+                BrowserConnectingText.Text = label;
+                BrowserConnectingBanner.IsVisible = !IsTutorialVisible();
+                if (_webViews.TryGetValue(viewerKey, out var viewer))
+                    viewer.IsVisible = false;
+            }
+        });
+    }
+
     private void OnChromiumReady()
     {
         ChromiumDownloadBanner.IsVisible = false;
         if (_activeWorkspaceId is null) return;
         if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") != "ai") return;
 
-        // Show the viewer WebView if it was created and hidden during the download.
+        // Show the viewer WebView if it was created and hidden during the download (only when app is connected).
         var viewerTabKey = $"{_activeWorkspaceId}:viewer";
+        var appReady = _browserConnectivity.GetValueOrDefault(_activeWorkspaceId) == "connected";
         if (_webViews.TryGetValue(viewerTabKey, out var existing))
         {
-            existing.IsVisible = !IsTutorialVisible();
+            existing.IsVisible = !IsTutorialVisible() && appReady;
             return;
         }
 
@@ -1068,9 +1104,11 @@ code {
 
         ChromiumDownloadBanner.IsVisible = false;
 
+        var appConnected = _browserConnectivity.GetValueOrDefault(workspaceId) == "connected";
+
         if (_webViews.TryGetValue(tabKey, out var existing))
         {
-            existing.IsVisible = !tutorialVisible;
+            existing.IsVisible = !tutorialVisible && appConnected;
             var viewerUrl = BuildViewerUrl(workspaceId);
             if (!IsAtViewerUrl(existing, viewerUrl))
                 NavigateWebView(existing, viewerUrl);
@@ -1080,9 +1118,12 @@ code {
             var viewerUrl = BuildViewerUrl(workspaceId);
             if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUrl.ToString(), out var webView, out var dest))
                 return;
-            webView.IsVisible = !tutorialVisible;
+            webView.IsVisible = !tutorialVisible && appConnected;
             NavigateWebView(webView, new Uri(dest));
         }
+
+        BrowserConnectingBanner.IsVisible = !tutorialVisible && !appConnected
+            && _browserConnectivity.ContainsKey(workspaceId);
 
         if (url is not null
             && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
@@ -1110,7 +1151,8 @@ code {
             return;
         }
 
-        // AI mode: ensure the viewer WebView is on the RDP viewer page.
+        // AI mode: only show the viewer if the app is connected.
+        if (_browserConnectivity.GetValueOrDefault(_activeWorkspaceId) != "connected") return;
         var viewerUrl = BuildViewerUrl(_activeWorkspaceId);
         if (!IsAtViewerUrl(webView, viewerUrl))
             NavigateWebView(webView, viewerUrl);
