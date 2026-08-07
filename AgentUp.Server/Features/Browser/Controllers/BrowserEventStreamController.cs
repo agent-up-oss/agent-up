@@ -12,18 +12,6 @@ public sealed class BrowserEventStreamController(BrowserEventBus eventBus) : Con
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
         Response.Headers.Connection = "keep-alive";
-
-        await using var sub = eventBus.Subscribe();
-        try
-        {
-            await foreach (var json in sub.Reader.ReadAllAsync(ct))
-            {
-                await Response.WriteAsync($"data: {json}\n\n", ct);
-                await Response.Body.FlushAsync(ct);
-            }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-        }
+        await eventBus.StreamToResponseAsync(Response, ct);
     }
 }

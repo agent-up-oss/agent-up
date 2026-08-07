@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Threading.Channels;
+using Microsoft.AspNetCore.Http;
 
 namespace AgentUp.Server.Features.Browser.Services;
 
@@ -25,6 +26,23 @@ public sealed class BrowserEventBus
             lock (_lock) _subscribers.Remove(ch);
             ch.Writer.TryComplete();
         });
+    }
+
+    public async Task StreamToResponseAsync(HttpResponse response, CancellationToken ct)
+    {
+        await using var sub = Subscribe();
+        try
+        {
+            await foreach (var json in sub.Reader.ReadAllAsync(ct))
+            {
+                await response.WriteAsync($"data: {json}\n\n", ct);
+                await response.Body.FlushAsync(ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
     }
 
     public void PublishChromiumStatus(string state, int progress)

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net.WebSockets;
 using System.Text.Json;
 using AgentUp.Server.Features.Browser.Models;
 using Microsoft.Extensions.Logging;
@@ -54,7 +55,10 @@ public sealed class HeadlessBrowserSessionManager(
         {
             try { await t.WaitAsync(ct); }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch { /* download failed gracefully; proceed with system Chromium */ }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex, "Chromium download failed; proceeding with system Chromium.");
+            }
             return;
         }
         await RunChromiumDownloadAsync(ct);
@@ -206,6 +210,23 @@ public sealed class HeadlessBrowserSessionManager(
         {
             _createLock.Release();
         }
+    }
+
+    public async Task StreamDisplayAsync(
+        string workspaceId,
+        WebSocket ws,
+        Func<string, Task> inputCallback,
+        CancellationToken ct)
+    {
+        using var sessionCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        sessionCts.CancelAfter(TimeSpan.FromSeconds(10));
+        try { await EnsureSessionAsync(workspaceId, sessionCts.Token); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+        {
+            logger.LogDebug(ex, "Session bootstrap timed out or failed for {WorkspaceId}; viewer will retry.", workspaceId);
+        }
+        await display.ConnectAsync(workspaceId, ws, inputCallback, ct);
     }
 
     public BrowserSessionState? GetSession(string workspaceId)
