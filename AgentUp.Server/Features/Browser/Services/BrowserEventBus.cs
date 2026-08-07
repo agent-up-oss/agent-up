@@ -10,6 +10,7 @@ public sealed class BrowserEventBus
     private readonly List<Channel<string>> _subscribers = [];
     private string _latestChromiumEvent =
         """{"type":"chromium-status","state":"not_started","progress":0}""";
+    private readonly Dictionary<string, string> _latestConnectivityEvents = [];
 
     public BrowserEventSubscription Subscribe()
     {
@@ -18,8 +19,9 @@ public sealed class BrowserEventBus
         lock (_lock)
         {
             _subscribers.Add(ch);
-            // Replay the last known chromium state to the new subscriber immediately.
             ch.Writer.TryWrite(_latestChromiumEvent);
+            foreach (var ev in _latestConnectivityEvents.Values)
+                ch.Writer.TryWrite(ev);
         }
         return new BrowserEventSubscription(ch.Reader, () =>
         {
@@ -42,6 +44,17 @@ public sealed class BrowserEventBus
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             return;
+        }
+    }
+
+    public void PublishConnectivity(string workspaceId, string state, int attempt, int maxAttempts)
+    {
+        var json = JsonSerializer.Serialize(new { type = "browser-connectivity", workspaceId, state, attempt, maxAttempts });
+        lock (_lock)
+        {
+            _latestConnectivityEvents[workspaceId] = json;
+            foreach (var sub in _subscribers)
+                sub.Writer.TryWrite(json);
         }
     }
 

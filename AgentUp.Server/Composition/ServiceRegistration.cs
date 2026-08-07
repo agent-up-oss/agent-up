@@ -155,6 +155,7 @@ public static class ServiceRegistration
                 configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
         builder.Services.AddHostedService(sp =>
             sp.GetRequiredService<HeadlessBrowserSessionManager>());
+        builder.Services.AddSingleton<BrowserConnectivityService>();
         builder.Services.AddSingleton<CdpBrowserExecutor>();
         builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<HeadlessBrowserCommandDispatcher>();
