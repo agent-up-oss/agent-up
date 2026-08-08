@@ -1171,7 +1171,8 @@ code {
                 if (!string.IsNullOrWhiteSpace(src))
                 {
                     _lastKnownBrowserUrls[humanTabKey] = src;
-                    if (DataContext is MainViewModel vm)
+                    // Don't overwrite the address bar while the user is typing in it.
+                    if (DataContext is MainViewModel vm && !AddressBar.IsFocused)
                         vm.UpdateAddressFromBrowser(workspaceId, src);
                 }
             }
