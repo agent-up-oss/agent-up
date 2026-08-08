@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
@@ -137,6 +138,16 @@ public sealed class MainViewModel : ReactiveObject
     {
         if (!ReferenceEquals(sender, Sidebar.SelectedWorkspace)) return;
         UpdateApplicationsFromWorkspace(Sidebar.SelectedWorkspace, preserveSelection: true);
+
+        var selectedAppName = Applications.SelectedApplication?.Name;
+        if (selectedAppName is not null)
+        {
+            var wsApp = Sidebar.SelectedWorkspace?.Applications
+                .FirstOrDefault(a => string.Equals(a.Name, selectedAppName, StringComparison.Ordinal));
+            if (wsApp is not null)
+                ApplyPortHealthToSubTabs(wsApp);
+        }
+
         // Navigate even when the console or TCP tab is active so the headless browser reconnects
         // when the workspace starts remotely while the user is viewing a non-port tab.
         var pt = SelectedSubTab as PortSubTabViewModel
@@ -167,6 +178,7 @@ public sealed class MainViewModel : ReactiveObject
                 if (workspaceId is not null)
                     _ = Console.LoadAsync(workspaceId, app.Name);
             });
+
 
     private void SubscribeSubTabSelection()
         => this.WhenAnyValue(x => x.SelectedSubTab)
@@ -373,6 +385,29 @@ public sealed class MainViewModel : ReactiveObject
 
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
             _ = portTab.ProbeAsync();
+
+        var wsApp = Sidebar.SelectedWorkspace?.Applications
+            .FirstOrDefault(a => string.Equals(a.Name, app.Name, StringComparison.Ordinal));
+        if (wsApp is not null)
+            ApplyPortHealthToSubTabs(wsApp);
+    }
+
+    private void ApplyPortHealthToSubTabs(WorkspaceApplicationViewModel app)
+    {
+        var byPort = app.PortHealth?.ToDictionary(p => p.AllocatedPort, p => p.HealthState) ?? [];
+        foreach (var tab in SubTabs.OfType<PortSubTabViewModel>())
+        {
+            var ledState = byPort.TryGetValue(tab.AllocatedPort, out var hs)
+                ? hs switch
+                {
+                    "Healthy"   => PortLedState.Healthy,
+                    "Checking"  => PortLedState.Checking,
+                    "Unhealthy" => PortLedState.Unhealthy,
+                    _           => PortLedState.Probing
+                }
+                : PortLedState.Probing;
+            tab.SetLedState(ledState);
+        }
     }
 
     private static ApplicationViewModel CreateApplicationViewModel(WorkspaceApplicationViewModel app) =>

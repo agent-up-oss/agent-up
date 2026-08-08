@@ -1,5 +1,6 @@
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using System.Reactive.Linq;
 
@@ -174,7 +175,7 @@ public class WorkspaceItemViewModelTests
         var applicationChangeEvents = 0;
         vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
 
-        vm.ApplyStateChange("Running", [("Worker", "Running")]);
+        vm.ApplyStateChange("Running", [new AppStateChangeDto("Worker", "Running")]);
 
         Assert.Multiple(() =>
         {
@@ -188,7 +189,7 @@ public class WorkspaceItemViewModelTests
     {
         var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");
 
-        vm.ApplyStateChange("Running", [("Worker", "Running")]);
+        vm.ApplyStateChange("Running", [new AppStateChangeDto("Worker", "Running")]);
 
         Assert.Multiple(() =>
         {

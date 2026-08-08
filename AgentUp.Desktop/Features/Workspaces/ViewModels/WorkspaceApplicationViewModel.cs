@@ -1,4 +1,6 @@
+using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -9,6 +11,7 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
     private string _state;
     private string _stateColor;
     private IReadOnlyList<PortMappingDto> _allocatedPorts;
+    private IReadOnlyList<PortHealthChangeDto>? _portHealth;
 
     public string Name { get; }
 
@@ -36,17 +39,25 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
     }
 
-    public WorkspaceApplicationViewModel(
+    internal IReadOnlyList<PortHealthChangeDto>? PortHealth
+    {
+        get => _portHealth;
+        private set => this.RaiseAndSetIfChanged(ref _portHealth, value);
+    }
+
+    internal WorkspaceApplicationViewModel(
         string name,
         string command,
         string state,
-        IReadOnlyList<PortMappingDto>? allocatedPorts = null)
+        IReadOnlyList<PortMappingDto>? allocatedPorts = null,
+        IReadOnlyList<PortHealthChangeDto>? portHealth = null)
     {
         Name = name;
         _command = command;
         _state = state;
-        _stateColor = ResolveStateColor(state);
+        _stateColor = AppHealthLedRules.StateColor(state);
         _allocatedPorts = allocatedPorts ?? [];
+        _portHealth = portHealth;
     }
 
     public bool UpdateFrom(string command, string state, IReadOnlyList<PortMappingDto>? allocatedPorts)
@@ -60,20 +71,14 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         return portsChanged || stateChanged;
     }
 
-    public bool UpdateState(string newState)
+    internal bool UpdateState(string newState, IReadOnlyList<PortHealthChangeDto>? portHealth = null)
     {
-        if (string.Equals(State, newState, StringComparison.Ordinal))
+        PortHealth = portHealth;
+        if (string.Equals(State, newState, StringComparison.Ordinal) && portHealth is null)
             return false;
 
         State = newState;
-        StateColor = ResolveStateColor(newState);
+        StateColor = AppHealthLedRules.StateColor(newState);
         return true;
     }
-
-    private static string ResolveStateColor(string state) => state switch
-    {
-        "Running" => "#00d66b",
-        "Failed" => "#b85a5a",
-        _ => "#5a5a72"
-    };
 }

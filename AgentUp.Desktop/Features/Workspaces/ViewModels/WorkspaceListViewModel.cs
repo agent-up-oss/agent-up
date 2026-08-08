@@ -96,10 +96,14 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     // fields on existing workspace and application view models. Does not clear or rebuild the
     // Workspaces collection, so SelectedWorkspace stays the same reference and no navigation
     // or browser-session reset is triggered.
-    public void ApplyEvent(string workspaceId, string newState, IReadOnlyList<(string Name, string State)> appChanges)
+    internal void ApplyEvent(
+        string workspaceId,
+        string newState,
+        IReadOnlyList<AppStateChangeDto> appChanges,
+        string? healthState)
     {
         var item = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
-        item?.ApplyStateChange(newState, appChanges);
+        item?.ApplyStateChange(newState, appChanges, healthState);
     }
 
     public async Task RefreshWorkspaceAsync(string workspaceId, CancellationToken ct = default)

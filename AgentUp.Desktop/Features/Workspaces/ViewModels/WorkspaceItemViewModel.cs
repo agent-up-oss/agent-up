@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
 using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -69,7 +70,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         WorktreePath = worktreePath;
         _state = state;
         Initials = BuildInitials(displayName);
-        _stateColor = ResolveStateColor(state);
+        _stateColor = AppHealthLedRules.StateColor(state);
         foreach (var app in applications ?? [])
             Applications.Add(CreateApplication(app));
 
@@ -108,7 +109,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public void UpdateFrom(string newState, IReadOnlyList<ApplicationDto> applications)
     {
         State = newState;
-        StateColor = ResolveStateColor(newState);
+        StateColor = AppHealthLedRules.StateColor(newState);
         var applicationsChanged = false;
 
         var existingByName = Applications.ToDictionary(a => a.Name);
@@ -137,19 +138,27 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
             ApplicationsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void ApplyStateChange(string newState, IReadOnlyList<(string Name, string State)> appChanges)
+    internal void ApplyStateChange(
+        string newState,
+        IReadOnlyList<AppStateChangeDto> appChanges,
+        string? healthState = null)
     {
         State = newState;
-        StateColor = ResolveStateColor(newState);
+        StateColor = healthState is not null
+            ? AppHealthLedRules.StateColor(healthState)
+            : AppHealthLedRules.StateColor(newState);
 
-        var changesByName = appChanges.ToDictionary(a => a.Name, a => a.State);
+        var changesByName = appChanges.ToDictionary(a => a.Name);
         var applicationsChanged = false;
         foreach (var app in Applications.Where(app => changesByName.ContainsKey(app.Name)))
-            applicationsChanged |= app.UpdateState(changesByName[app.Name]);
-
-        foreach (var app in appChanges.Where(app => !Applications.Any(existing => existing.Name == app.Name)))
         {
-            Applications.Add(new WorkspaceApplicationViewModel(app.Name, string.Empty, app.State));
+            var change = changesByName[app.Name];
+            applicationsChanged |= app.UpdateState(change.State, change.PortHealth);
+        }
+
+        foreach (var change in appChanges.Where(a => !Applications.Any(existing => existing.Name == a.Name)))
+        {
+            Applications.Add(new WorkspaceApplicationViewModel(change.Name, string.Empty, change.State, portHealth: change.PortHealth));
             applicationsChanged = true;
         }
 
@@ -159,13 +168,6 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
 
     private static WorkspaceApplicationViewModel CreateApplication(ApplicationDto app) =>
         new(app.Name, app.Command, app.State, app.AllocatedPorts);
-
-    private static string ResolveStateColor(string state) => state switch
-    {
-        "Running" => "#00d66b",
-        "Failed" => "#b85a5a",
-        _ => "#5a5a72"
-    };
 
     private static string LastPathSegment(string path)
         => path.TrimEnd('/', '\\')

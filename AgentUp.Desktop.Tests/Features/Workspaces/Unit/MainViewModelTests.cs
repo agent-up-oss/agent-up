@@ -481,7 +481,7 @@ public class MainViewModelTests
         var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
-        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [("Web", "Running")]);
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [new AppStateChangeDto("Web", "Running")]);
 
         Assert.That(vm.Applications.SelectedApplication!.State, Is.EqualTo("Running"));
     }
@@ -506,7 +506,7 @@ public class MainViewModelTests
         await vm.InitializeAsync();
         emissions.Clear();
 
-        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [("Web", "Running")]);
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [new AppStateChangeDto("Web", "Running")]);
 
         Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
             e => e.ws == "ws-1" && e.url == "http://localhost:10400/"));
@@ -533,7 +533,7 @@ public class MainViewModelTests
         vm.SelectedSubTab = vm.SubTabs.OfType<ConsoleSubTabViewModel>().Single();
         emissions.Clear();
 
-        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [("Web", "Running")]);
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [new AppStateChangeDto("Web", "Running")]);
 
         Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
             e => e.ws == "ws-1" && e.url == "http://localhost:10400/"),
