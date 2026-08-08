@@ -152,8 +152,8 @@ public sealed class BrowserConnectivityService(
     {
         for (var attempt = 1; attempt <= MaxAttempts && !ct.IsCancellationRequested; attempt++)
         {
-            eventBus.PublishConnectivity(workspaceId, "connecting", attempt, MaxAttempts);
             if (await ProbeAsync(url, ct)) return true;
+            eventBus.PublishConnectivity(workspaceId, "connecting", attempt, MaxAttempts);
             if (attempt < MaxAttempts)
                 await DelayAsync(RetryIntervalMs, ct);
         }
