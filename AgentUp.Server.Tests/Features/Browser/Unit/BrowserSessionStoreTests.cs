@@ -37,7 +37,7 @@ public sealed class BrowserSessionStoreTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Success, Is.False);
-            Assert.That(result.Error, Does.Contain("timeout"));
+            Assert.That(result.Error, Does.Contain("timed out"));
         });
     }
 

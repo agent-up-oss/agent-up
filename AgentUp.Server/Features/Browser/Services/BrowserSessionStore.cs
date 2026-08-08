@@ -88,6 +88,8 @@ public sealed class BrowserSessionStore
         return null;
     }
 
+    public IEnumerable<string> WorkspaceIds => _queues.Keys;
+
     public void CompleteCommand(BrowserCommandResultDto result)
     {
         if (_pending.TryRemove(result.CommandId, out var tcs))
@@ -116,6 +118,5 @@ public sealed class BrowserSessionStore
         new(command.CommandId, false, null, error);
 
     private static BrowserCommandResultDto Timeout(BrowserCommandDto command) =>
-        Failed(command,
-            "Desktop app did not respond within the timeout. Ensure the Agent-Up Desktop app is open with the workspace browser visible.");
+        Failed(command, "Browser command timed out. Ensure the headless browser session is running.");
 }

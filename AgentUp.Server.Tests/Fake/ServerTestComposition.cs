@@ -1,7 +1,11 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
+using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
+using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
@@ -14,6 +18,7 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Fake;
 
@@ -40,13 +45,37 @@ internal static class ServerTestComposition
         IWorkspaceIdentityProvider identity)
         => new(new OrchestrationWorkspaceService(
             new WorkspaceQueryController(registry),
-            new WorkspaceStateController(registry),
+            new WorkspaceStateController(registry, new WorkspaceEventBus()),
             CreateProcessesController(processes),
             configuration,
             identity));
 
+    public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
+        WorkspaceRegistry registry,
+        IWorkspaceProcessManager processes)
+    {
+        var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
+        var sessions = new HeadlessBrowserSessionManager(
+            Path.GetTempPath(), Path.GetTempPath(), display,
+            new BrowserEventBus(),
+            NullLogger<HeadlessBrowserSessionManager>.Instance);
+        var browser = new BrowserLifecycleController(sessions, display);
+        var bus = new WorkspaceEventBus();
+        var stateController = new WorkspaceStateController(registry, bus);
+        var queryController = new WorkspaceQueryController(registry);
+        var healthCheckService = new AppHealthCheckService(
+            queryController, stateController, CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
+        var healthChecks = new AppHealthController(healthCheckService);
+        return new WorkspaceLifecycleService(
+            registry,
+            CreateProcessesController(processes),
+            browser,
+            healthChecks,
+            NullLogger<WorkspaceLifecycleService>.Instance);
+    }
+
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
-        => new(registry);
+        => new(registry, new WorkspaceEventBus());
 
     public static AuditController CreateAuditController(
         WorkspaceRegistry? registry = null,

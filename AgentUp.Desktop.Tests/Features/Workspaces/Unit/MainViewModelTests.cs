@@ -339,7 +339,7 @@ public class MainViewModelTests
         var tutorial = new FirstRunTutorialViewModel(
             new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
             new PassingTutorialChecks());
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient(), tutorial);
+        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient(), tutorial: tutorial);
         var browserCommands = new List<BrowserCommand>();
         vm.BrowserCommands.Subscribe(browserCommands.Add);
 
@@ -372,7 +372,7 @@ public class MainViewModelTests
     }
 
     [Test]
-    public async Task BrowserNavigation_emitsPortUrl_whenPortSubTabSelected()
+    public async Task BrowserTabNavigation_emitsPortUrl_whenPortSubTabSelected()
     {
         const int port = 3000;
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
@@ -388,7 +388,7 @@ public class MainViewModelTests
         var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         var emissions = new List<(string? WorkspaceId, string? Url)>();
-        vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
+        vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
 
         await vm.InitializeAsync();
 
@@ -402,6 +402,76 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task BrowserTabNavigation_fallsBackToPortUrl_whenAddressBarShowsChromeError()
+    {
+        const int port = 3000;
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, port, port)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+
+        // Simulate the headless browser reporting a chrome error (app was down, then workspace restarted).
+        vm.UpdateAddressFromBrowser("ws-1", "chrome-error://chromewebdata/");
+
+        // Deselect then re-select the port tab — mimics the port-open transition triggering navigation.
+        var portTab = vm.SubTabs.OfType<PortSubTabViewModel>().First();
+        vm.SelectedSubTab = null;
+        vm.SelectedSubTab = portTab;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+                e => e.ws == "ws-1" && e.url == $"http://localhost:{port}/"),
+                "Navigation must fall back to the port URL when the address bar shows a chrome error");
+            Assert.That(emissions, Has.None.Matches<(string? ws, string? url)>(
+                e => e.url == "chrome-error://chromewebdata/"),
+                "Chrome error URL must never be passed as a navigation target");
+        });
+    }
+
+    [Test]
+    public async Task BrowserTabNavigation_doesNotReemitPortUrl_whenReturningFromConsoleToSamePort()
+    {
+        const int port = 3000;
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("App", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, port, port)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
+
+        await vm.InitializeAsync();
+
+        var portTab = vm.SubTabs.OfType<PortSubTabViewModel>().First();
+        var consoleTab = vm.SubTabs.OfType<ConsoleSubTabViewModel>().Single();
+        vm.SelectedSubTab = consoleTab;
+        emissions.Clear();
+
+        vm.SelectedSubTab = portTab;
+
+        Assert.That(emissions, Has.None.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == $"http://localhost:{port}/"));
+    }
+
+    [Test]
     public async Task SelectedWorkspaceApplicationStateChange_refreshesApplicationPanel()
     {
         var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
@@ -411,9 +481,63 @@ public class MainViewModelTests
         var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
 
         await vm.InitializeAsync();
-        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [("Web", "Running")]);
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [new AppStateChangeDto("Web", "Running")]);
 
         Assert.That(vm.Applications.SelectedApplication!.State, Is.EqualTo("Running"));
+    }
+
+    [Test]
+    public async Task SelectedWorkspaceApplicationStateChange_emitsActiveBrowserNavigation()
+    {
+        var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "npm run dev", null, "Starting")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 3000, 10400)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(emissions.Add);
+
+        await vm.InitializeAsync();
+        emissions.Clear();
+
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [new AppStateChangeDto("Web", "Running")]);
+
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:10400/"));
+    }
+
+    [Test]
+    public async Task SelectedWorkspaceApplicationStateChange_emitsActiveBrowserNavigation_whenConsoleTabSelected()
+    {
+        var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
+        {
+            Applications =
+            [
+                new ApplicationDto("Web", "npm run dev", null, "Starting")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, 3000, 10400)]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var emissions = new List<(string? WorkspaceId, string? Url)>();
+        vm.BrowserNavigation.Subscribe(emissions.Add);
+
+        await vm.InitializeAsync();
+        vm.SelectedSubTab = vm.SubTabs.OfType<ConsoleSubTabViewModel>().Single();
+        emissions.Clear();
+
+        vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [new AppStateChangeDto("Web", "Running")]);
+
+        Assert.That(emissions, Has.Some.Matches<(string? ws, string? url)>(
+            e => e.ws == "ws-1" && e.url == "http://localhost:10400/"),
+            "Headless browser must reconnect even when the console tab is currently shown");
     }
 
     [Test]

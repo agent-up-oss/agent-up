@@ -50,7 +50,8 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
                 {
                   "variable": "WEB_PORT",
                   "defaultPort": 5173,
-                  "protocol": "http"
+                  "protocol": "http",
+                  "healthCheck": "/health"
                 }
               ]
             }
@@ -99,6 +100,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         ports[].variable: Environment variable that receives the allocated port.
         ports[].defaultPort: Preferred/default port used to derive allocation intent.
         ports[].protocol: Protocol label, usually http or tcp.
+        ports[].healthCheck: Optional HTTP path the server probes every 5 seconds (e.g. "/health"). When present the port LED shows Checking (amber) until the path responds, then Healthy (green). Absence means the desktop uses a local TCP probe instead.
 
         If agent-up.json is missing, inspect docs/user-docs/agent-up-json.md, search the repository for an existing agent-up.json, or ask the user before creating one.
         """;

@@ -7,6 +7,7 @@ using AgentUp.Capabilities.Docker.Features.DockerCapability.Services;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
+using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
@@ -18,6 +19,8 @@ using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Services;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Browser.Interfaces;
+using AgentUp.Server.Features.Browser.Providers;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
@@ -137,9 +140,32 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
         builder.Services.AddSingleton<BrowserSessionStore>();
-        builder.Services.AddSingleton<BrowserWorkspaceIdParser>();
-        builder.Services.AddSingleton<BrowserPendingCommandService>();
         builder.Services.AddSingleton<BrowserMcpService>();
+        builder.Services.AddSingleton<BrowserEventBus>();
+        builder.Services.AddSingleton<BrowserRemoteDisplayService>();
+        builder.Services.AddSingleton<IBrowserRemoteSessionProvider, IronRdpBrowserRemoteSessionProvider>();
+        builder.Services.AddSingleton<BrowserRemoteSessionService>();
+        builder.Services.AddSingleton<BrowserInputDispatcher>();
+        builder.Services.AddSingleton(sp =>
+            new HeadlessBrowserSessionManager(
+                chromiumDir: Path.Join(dataDir, "chromium"),
+                profilesDir: Path.Join(dataDir, "browser-profiles"),
+                sp.GetRequiredService<BrowserRemoteDisplayService>(),
+                sp.GetRequiredService<BrowserEventBus>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>(),
+                configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
+        builder.Services.AddHostedService(sp =>
+            sp.GetRequiredService<HeadlessBrowserSessionManager>());
+        builder.Services.AddSingleton<AppHealthCheckService>();
+        builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<BrowserConnectivityService>();
+        builder.Services.AddSingleton<CdpBrowserExecutor>();
+        builder.Services.AddSingleton<BrowserLifecycleController>();
+        builder.Services.AddSingleton<HeadlessBrowserCommandDispatcher>();
+        builder.Services.AddHostedService(sp =>
+            sp.GetRequiredService<HeadlessBrowserCommandDispatcher>());
+        builder.Services.AddSingleton(sp =>
+            new HeadlessBrowserSessionAccessor(sp.GetRequiredService<HeadlessBrowserSessionManager>()));
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }

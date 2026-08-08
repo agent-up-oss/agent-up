@@ -9,6 +9,7 @@ using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.Browser.Unit;
@@ -423,8 +424,17 @@ public sealed class BrowserMcpServiceTests
         return new BrowserMcpService(
             store,
             CreateAuditController(registry, events, artifacts),
-            new WorkspaceQueryController(registry));
+            new WorkspaceQueryController(registry),
+            CreateHeadlessBrowserSessionManager());
     }
+
+    private static HeadlessBrowserSessionManager CreateHeadlessBrowserSessionManager()
+        => new(
+            "/unused/chromium",
+            "/unused/browser-profiles",
+            new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new BrowserEventBus(),
+            NullLogger<HeadlessBrowserSessionManager>.Instance);
 
     private static AuditController CreateAuditController(
         WorkspaceRegistry registry,

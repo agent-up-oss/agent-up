@@ -104,7 +104,7 @@ internal sealed class AppDriver
         Func<NativeWebView>? webViewFactory = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
-        var vm = MainViewModelFactory.Create(workspaceClient, consoleClient, tutorial ?? CompletedTutorial());
+        var vm = MainViewModelFactory.Create(workspaceClient, consoleClient, tutorial: tutorial ?? CompletedTutorial());
         var window = new MainWindow { DataContext = vm };
         window.WebViewFactory = webViewFactory
             ?? (() => throw new InvalidOperationException("WebView not available in headless tests"));

@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Audit.Controllers;
@@ -27,6 +28,7 @@ using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Server;
@@ -161,6 +163,13 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<BrowserSessionStore>();
+        builder.Services.AddSingleton<BrowserRemoteDisplayService>();
+        builder.Services.AddSingleton<BrowserEventBus>();
+        builder.Services.AddSingleton(sp => new HeadlessBrowserSessionManager(
+            Path.GetTempPath(), Path.GetTempPath(),
+            sp.GetRequiredService<BrowserRemoteDisplayService>(),
+            sp.GetRequiredService<BrowserEventBus>(),
+            sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
