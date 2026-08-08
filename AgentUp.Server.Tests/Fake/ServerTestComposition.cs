@@ -55,27 +55,51 @@ internal static class ServerTestComposition
         IWorkspaceProcessManager processes)
     {
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
-        var sessions = new HeadlessBrowserSessionManager(
-            Path.GetTempPath(), Path.GetTempPath(), display,
-            new BrowserEventBus(),
-            NullLogger<HeadlessBrowserSessionManager>.Instance);
-        var browser = new BrowserLifecycleController(sessions, display);
+        var eventBus = new BrowserEventBus();
         var bus = new WorkspaceEventBus();
         var stateController = new WorkspaceStateController(registry, bus);
         var queryController = new WorkspaceQueryController(registry);
         var healthCheckService = new AppHealthCheckService(
             queryController, stateController, CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
         var healthChecks = new AppHealthController(healthCheckService);
+        var streamState = new WorkspaceStreamStateService(
+            eventBus, healthChecks, queryController,
+            NullLogger<WorkspaceStreamStateService>.Instance);
+        var sessions = new HeadlessBrowserSessionManager(
+            Path.GetTempPath(), Path.GetTempPath(), display,
+            streamState,
+            NullLogger<HeadlessBrowserSessionManager>.Instance);
+        var browser = new BrowserLifecycleController(sessions, display);
         return new WorkspaceLifecycleService(
             registry,
             CreateProcessesController(processes),
             browser,
             healthChecks,
+            new WorkspaceStreamStateController(streamState),
             NullLogger<WorkspaceLifecycleService>.Instance);
     }
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
         => new(registry, new WorkspaceEventBus());
+
+    public static WorkspaceStreamStateService CreateStreamState(
+        BrowserEventBus? eventBus = null,
+        WorkspaceRegistry? registry = null)
+    {
+        registry ??= CreateRegistry();
+        var queryController = new WorkspaceQueryController(registry);
+        var healthCheckService = new AppHealthCheckService(
+            queryController,
+            new WorkspaceStateController(registry, new WorkspaceEventBus()),
+            CreateAuditController(),
+            NullLogger<AppHealthCheckService>.Instance);
+        var healthChecks = new AppHealthController(healthCheckService);
+        return new WorkspaceStreamStateService(
+            eventBus ?? new BrowserEventBus(),
+            healthChecks,
+            queryController,
+            NullLogger<WorkspaceStreamStateService>.Instance);
+    }
 
     public static AuditController CreateAuditController(
         WorkspaceRegistry? registry = null,

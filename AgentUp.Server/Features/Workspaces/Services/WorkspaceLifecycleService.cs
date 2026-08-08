@@ -14,6 +14,7 @@ public sealed class WorkspaceLifecycleService
     private readonly ProcessesController _processes;
     private readonly BrowserLifecycleController _browser;
     private readonly AppHealthController _healthChecks;
+    private readonly WorkspaceStreamStateController _streamState;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
 
     public WorkspaceLifecycleService(
@@ -21,12 +22,14 @@ public sealed class WorkspaceLifecycleService
         ProcessesController processes,
         BrowserLifecycleController browser,
         AppHealthController healthChecks,
+        WorkspaceStreamStateController streamState,
         ILogger<WorkspaceLifecycleService> logger)
     {
         _registry = registry;
         _processes = processes;
         _browser = browser;
         _healthChecks = healthChecks;
+        _streamState = streamState;
         _logger = logger;
     }
 
@@ -53,6 +56,7 @@ public sealed class WorkspaceLifecycleService
             foreach (var app in workspace.Applications)
                 await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
 
+            _streamState.OnWorkspaceStarted(workspace);
             _healthChecks.StartForWorkspace(workspace);
 
             return WorkspaceLifecycleResult.Success();
@@ -78,6 +82,9 @@ public sealed class WorkspaceLifecycleService
 
         try
         {
+            // Publish WorkspaceStopped early so any live desktop clients hide the WebView
+            // and show the correct banner before we start tearing down the session.
+            _streamState.OnWorkspaceStopped(id);
             _healthChecks.StopForWorkspace(id);
             await _processes.KillWorkspaceAsync(id);
             await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);

@@ -1,5 +1,5 @@
-using System.Text.Json;
 using System.Threading.Channels;
+using AgentUp.Server.Features.Browser.Models;
 using Microsoft.AspNetCore.Http;
 
 namespace AgentUp.Server.Features.Browser.Services;
@@ -8,9 +8,7 @@ public sealed class BrowserEventBus
 {
     private readonly Lock _lock = new();
     private readonly List<Channel<string>> _subscribers = [];
-    private string _latestChromiumEvent =
-        """{"type":"chromium-status","state":"not_started","progress":0}""";
-    private readonly Dictionary<string, string> _latestConnectivityEvents = [];
+    private readonly Dictionary<string, string> _latestStreamStates = [];
 
     public BrowserEventSubscription Subscribe()
     {
@@ -19,8 +17,7 @@ public sealed class BrowserEventBus
         lock (_lock)
         {
             _subscribers.Add(ch);
-            ch.Writer.TryWrite(_latestChromiumEvent);
-            foreach (var ev in _latestConnectivityEvents.Values)
+            foreach (var ev in _latestStreamStates.Values)
                 ch.Writer.TryWrite(ev);
         }
         return new BrowserEventSubscription(ch.Reader, () =>
@@ -47,25 +44,23 @@ public sealed class BrowserEventBus
         }
     }
 
-    public void PublishConnectivity(string workspaceId, string state, int attempt, int maxAttempts)
+    public void PublishStreamState(string workspaceId, StreamState state)
     {
-        var json = JsonSerializer.Serialize(new { type = "browser-connectivity", workspaceId, state, attempt, maxAttempts });
+        var json = StreamStateEvent.From(workspaceId, state).Serialize();
         lock (_lock)
         {
-            _latestConnectivityEvents[workspaceId] = json;
+            _latestStreamStates[workspaceId] = json;
             foreach (var sub in _subscribers)
                 sub.Writer.TryWrite(json);
         }
     }
 
-    public void PublishChromiumStatus(string state, int progress)
+    // Called on workspace remove so a re-subscribing client doesn't replay a stale entry.
+    public void RemoveWorkspaceStreamStateCache(string workspaceId)
     {
-        var json = JsonSerializer.Serialize(new { type = "chromium-status", state, progress });
         lock (_lock)
         {
-            _latestChromiumEvent = json;
-            foreach (var sub in _subscribers)
-                sub.Writer.TryWrite(json);
+            _latestStreamStates.Remove(workspaceId);
         }
     }
 }

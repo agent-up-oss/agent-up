@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -95,6 +96,6 @@ public sealed class BrowserRemoteDisplayControllerTests
             "/unused/chromium",
             "/unused/browser-profiles",
             display ?? new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
-            new BrowserEventBus(),
+            ServerTestComposition.CreateStreamState(),
             NullLogger<HeadlessBrowserSessionManager>.Instance);
 }

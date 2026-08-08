@@ -14,6 +14,11 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
     private readonly ConcurrentDictionary<string, DateTimeOffset> _pollingViewers = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _activeInput = new();
 
+    // Notified once per workspace on the first broadcast frame after (re)connect,
+    // so WorkspaceStreamStateService can flip SessionLaunching → Streaming.
+    // Wired after construction to avoid a DI cycle (stream service depends on this service transitively).
+    public event Action<string>? FrameBroadcast;
+
     public bool HasSubscribers(string workspaceId)
         => (_subscribers.TryGetValue(workspaceId, out var subs) && !subs.IsEmpty)
            || HasRecentPollingViewer(workspaceId);
@@ -82,6 +87,7 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
     public async Task BroadcastFrameAsync(string workspaceId, byte[] frame, CancellationToken ct)
     {
         _latestFrames[workspaceId] = frame.ToArray();
+        FrameBroadcast?.Invoke(workspaceId);
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         var segment = new ArraySegment<byte>(frame);
         foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
@@ -99,6 +105,8 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
 
     public async Task DisconnectAllAsync(string workspaceId, CancellationToken ct)
     {
+        // Frame cache invalidated: next subscriber won't receive a stale frame, and stream
+        // state stays SessionLaunching until a genuinely new frame is broadcast.
         _latestFrames.TryRemove(workspaceId, out _);
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))

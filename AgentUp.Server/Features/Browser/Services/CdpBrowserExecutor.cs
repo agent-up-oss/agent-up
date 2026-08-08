@@ -7,7 +7,7 @@ using PuppeteerSharp;
 namespace AgentUp.Server.Features.Browser.Services;
 
 public sealed class CdpBrowserExecutor(
-    BrowserConnectivityService connectivity,
+    WorkspaceStreamStateService streamState,
     ILogger<CdpBrowserExecutor> logger)
 {
     public async Task<BrowserCommandResultDto> ExecuteAsync(
@@ -57,7 +57,7 @@ public sealed class CdpBrowserExecutor(
             || uri.Scheme is not ("http" or "https"))
             return Fail(command, $"Navigation target must use http or https. Received: {command.Url}");
 
-        connectivity.StartProbe(command.WorkspaceId, uri.ToString(), ct);
+        streamState.OnCurrentTargetChanged(command.WorkspaceId, uri.ToString(), ct);
 
         var page = await session.ActivatePageForUrlAsync(uri, ct);
         if (!command.ReloadIfSameUrl && string.Equals(page.Url, uri.ToString(), StringComparison.Ordinal))

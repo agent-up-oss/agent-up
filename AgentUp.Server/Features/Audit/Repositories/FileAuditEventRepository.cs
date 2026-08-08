@@ -83,13 +83,14 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
         var fromDate = from.HasValue ? DateOnly.FromDateTime(from.Value.UtcDateTime) : (DateOnly?)null;
         var toDate = to.HasValue ? DateOnly.FromDateTime(to.Value.UtcDateTime) : (DateOnly?)null;
 
-        foreach (var file in Directory.GetFiles(_dir, "events-????-??-??.jsonl").Order())
-        {
-            if (!TryGetFileDate(file, out var fileDate)) continue;
-            if (fromDate.HasValue && fileDate < fromDate.Value) continue;
-            if (toDate.HasValue && fileDate > toDate.Value) continue;
+        var dated = Directory.GetFiles(_dir, "events-????-??-??.jsonl")
+            .Order()
+            .Select(file => (file, parsed: TryGetFileDate(file, out var d), date: d))
+            .Where(x => x.parsed)
+            .Where(x => !fromDate.HasValue || x.date >= fromDate.Value)
+            .Where(x => !toDate.HasValue || x.date <= toDate.Value);
+        foreach (var (file, _, _) in dated)
             yield return file;
-        }
     }
 
     private static bool TryGetFileDate(string path, out DateOnly date)

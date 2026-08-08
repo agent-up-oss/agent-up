@@ -38,10 +38,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, int> _navigationVersions = new();
     // Current control authority per workspace: "ai" (default) or "human".
     private readonly Dictionary<string, string> _workspaceAuthority = new();
-    // Per-workspace browser connectivity state: "connecting", "connected", "failed".
-    private readonly Dictionary<string, string> _browserConnectivity = new();
+    // Server-authoritative stream state per workspace. This is the *only* signal the UI
+    // consults to decide "show viewer WebView vs show a status banner". Populated by the
+    // stream-state SSE event; RenderStreamState is the sole writer of viewer.IsVisible.
+    private readonly Dictionary<string, StreamStateSnapshot> _streamStates = new();
+    // Last kind actually rendered per workspace, so transitions INTO Streaming can trigger
+    // a WebView reload (reconnect the RDP WebSocket) without renavigating on every render.
+    private readonly Dictionary<string, StreamStateKind?> _lastRenderedKind = new();
     // Tracks which workspaces have had their viewer page complete at least one navigation,
-    // so OnBrowserConnectivityChanged can ReloadWebView (reconnect WebSocket) vs NavigateWebView (first load).
+    // so RenderStreamState can ReloadWebView (reconnect WebSocket) vs NavigateWebView (first load).
     private readonly HashSet<string> _viewerPagesLoaded = new();
     private DateTimeOffset _lastHeadlessRetry = DateTimeOffset.MinValue;
     private readonly CompositeDisposable _subscriptions = new();
@@ -55,7 +60,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private string? _activeWorkspaceId;
     private string? _activeTabKey;   // tabKey of the currently visible WebView
     private bool _isClosed;
-    private bool _chromiumReady = true; // set to false only when server reports downloading
     private NativeWebView? _consoleWebView;
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
@@ -223,8 +227,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _browserEventClient = new BrowserEventClient(browserEventHttp);
         _browserEventClient.Connected += OnBrowserEventsConnected;
         _browserEventClient.Disconnected += OnBrowserEventsDisconnected;
-        _browserEventClient.ChromiumStatusChanged += OnBrowserEventsChromiumStatusChanged;
-        _browserEventClient.ConnectivityChanged += OnBrowserConnectivityChanged;
+        _browserEventClient.StreamStateChanged += OnStreamStateChanged;
         _browserEventClient.Start();
 
         _subscriptions.Clear();
@@ -429,16 +432,27 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         if (workspaceId == _activeWorkspaceId && tabKey == _activeTabKey) return;
 
+        var previousWorkspaceId = _activeWorkspaceId;
         if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var previous))
             previous.IsVisible = false;
 
         _activeWorkspaceId = workspaceId;
         _activeTabKey = tabKey;
 
-        if (!tutorialVisible && tabKey is not null && _webViews.TryGetValue(tabKey, out var next))
+        // For viewer tabs, visibility is decided by RenderStreamState — NOT unconditionally
+        // shown. Only human-mode direct-port tabs get their WebView shown here directly.
+        var isViewerTab = tabKey is not null && tabKey.EndsWith(":viewer", StringComparison.Ordinal);
+        if (!tutorialVisible && !isViewerTab && tabKey is not null && _webViews.TryGetValue(tabKey, out var next))
             next.IsVisible = true;
 
         UpdateErrorDisplay(workspaceId);
+
+        // Refresh stream-state rendering: the previously-active viewer needs its banner cleared,
+        // and the newly-active viewer's WebView/banner needs to match the current stream state.
+        if (previousWorkspaceId is not null && previousWorkspaceId != workspaceId)
+            RenderStreamState(previousWorkspaceId);
+        if (workspaceId is not null)
+            RenderStreamState(workspaceId);
     }
 
     private bool TryGetOrCreateWebView(
@@ -486,7 +500,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 {
                     ["tabKey"] = tabKey,
                     ["url"] = url,
-                    ["connectivity"] = _browserConnectivity.GetValueOrDefault(workspaceId, "unknown"),
+                    ["streamKind"] = _streamStates.GetValueOrDefault(workspaceId)?.Kind.ToString() ?? "unknown",
                     ["isVisible"] = webView.IsVisible.ToString(),
                 });
 
@@ -656,6 +670,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (tutorialVisible)
         {
             WebViewErrorBanner.IsVisible = false;
+            ChromiumDownloadBanner.IsVisible = false;
+            BrowserConnectingBanner.IsVisible = false;
             return;
         }
         UpdateErrorDisplay(_activeWorkspaceId);
@@ -663,7 +679,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (!_webViews.TryGetValue(_activeTabKey, out var active)) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
 
-        active.IsVisible = true;
+        // For viewer tabs, defer to RenderStreamState (invariant: sole writer of viewer.IsVisible).
+        var isViewerTab = _activeTabKey.EndsWith(":viewer", StringComparison.Ordinal);
+        if (isViewerTab && _activeWorkspaceId is not null)
+            RenderStreamState(_activeWorkspaceId);
+        else
+            active.IsVisible = true;
     }
 
     private void HandleBrowserCommand(BrowserCommand command)
@@ -718,122 +739,142 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             if (!_hadBrowserEventsConnection) return;
             ConnectionLostBanner.IsVisible = true;
             ChromiumDownloadBanner.IsVisible = false;
+            BrowserConnectingBanner.IsVisible = false;
+            // SSE stream is down — server-side truth is stale. Purge cached state so
+            // RenderStreamState hides the WebView until reconnection replays the events.
+            _streamStates.Clear();
+            _lastRenderedKind.Clear();
             var viewerKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
             if (viewerKey is not null && _webViews.TryGetValue(viewerKey, out var viewer))
                 viewer.IsVisible = false;
         });
     }
 
-    private void OnBrowserEventsChromiumStatusChanged(string state, int progress)
+    private void OnStreamStateChanged(StreamStateSnapshot snapshot)
     {
+        RecordWebViewEvent(snapshot.WorkspaceId, "stream_state_changed", snapshot.Kind.ToString(), new()
+        {
+            ["kind"] = snapshot.Kind.ToString(),
+            ["chromiumState"] = snapshot.ChromiumState ?? string.Empty,
+            ["chromiumProgress"] = snapshot.ChromiumProgress.ToString(),
+            ["attempt"] = snapshot.Attempt.ToString(),
+            ["maxAttempts"] = snapshot.MaxAttempts.ToString(),
+            ["isActiveWorkspace"] = (_activeWorkspaceId == snapshot.WorkspaceId).ToString(),
+        });
+
         Dispatcher.UIThread.Post(() =>
         {
             if (_isClosed) return;
-
-            if (state == "ready")
-            {
-                if (!_chromiumReady)
-                {
-                    _chromiumReady = true;
-                    OnChromiumReady();
-                }
-            }
-            else if (state is "downloading" or "not_started")
-            {
-                if (_chromiumReady)
-                {
-                    _chromiumReady = false;
-                    var viewerKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
-                    if (viewerKey is not null && _webViews.TryGetValue(viewerKey, out var viewer))
-                        viewer.IsVisible = false;
-                }
-
-                ChromiumDownloadText.Text = progress > 0
-                    ? $"Downloading Chromium… {progress}%"
-                    : "Downloading Chromium…";
-                ChromiumDownloadProgress.IsIndeterminate = progress == 0;
-                ChromiumDownloadProgress.Value = progress;
-                var viewerTabKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
-                if (_activeTabKey == viewerTabKey && !IsTutorialVisible())
-                    ChromiumDownloadBanner.IsVisible = true;
-            }
-            else if (state == "failed")
-            {
-                _chromiumReady = true;
-                ChromiumDownloadText.Text = "Chromium download failed. AI mode unavailable.";
-                ChromiumDownloadProgress.IsVisible = false;
-            }
+            _streamStates[snapshot.WorkspaceId] = snapshot;
+            RenderStreamState(snapshot.WorkspaceId);
         });
     }
 
-    private void OnBrowserConnectivityChanged(string workspaceId, string state, int attempt, int maxAttempts)
+    // ────────────────────────────────────────────────────────────────
+    // INVARIANT: this is the ONLY method that writes viewer.IsVisible
+    // for the AI-stream WebView, and the only method that toggles the
+    // ChromiumDownloadBanner or BrowserConnectingBanner. Any change to
+    // "when do we show the WebView vs a banner" must live here.
+    // Callers: OnStreamStateChanged (SSE), ActivateTab, tutorial-visibility
+    // change, workspace destroy, SwitchWebViewMode.
+    // ────────────────────────────────────────────────────────────────
+    private void RenderStreamState(string workspaceId)
     {
-        RecordWebViewEvent(workspaceId, "connectivity_changed", state, new()
+        if (_isClosed) return;
+
+        var viewerKey = $"{workspaceId}:viewer";
+        var isAi = _workspaceAuthority.GetValueOrDefault(workspaceId, "ai") == "ai";
+        var isActiveViewerTab = _activeWorkspaceId == workspaceId && _activeTabKey == viewerKey;
+        var tutorialVisible = IsTutorialVisible();
+        _streamStates.TryGetValue(workspaceId, out var snap);
+        var kind = snap?.Kind;
+        var prevKind = _lastRenderedKind.GetValueOrDefault(workspaceId);
+        var showWebView = isAi && isActiveViewerTab && !tutorialVisible && kind == StreamStateKind.Streaming;
+
+        // WebView visibility — sole write point.
+        if (_webViews.TryGetValue(viewerKey, out var viewer))
         {
-            ["state"] = state,
-            ["attempt"] = attempt.ToString(),
-            ["maxAttempts"] = maxAttempts.ToString(),
-            ["isActiveWorkspace"] = (_activeWorkspaceId == workspaceId).ToString(),
-        });
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_isClosed) return;
-            _browserConnectivity[workspaceId] = state;
-
-            if (_activeWorkspaceId != workspaceId) return;
-            if (_workspaceAuthority.GetValueOrDefault(workspaceId, "ai") != "ai") return;
-
-            var viewerKey = $"{workspaceId}:viewer";
-            if (state == "connected")
+            viewer.IsVisible = showWebView;
+            if (showWebView)
             {
-                BrowserConnectingBanner.IsVisible = false;
-                if (_webViews.TryGetValue(viewerKey, out var viewer) && !IsTutorialVisible())
+                var viewerUrl = BuildViewerUrl(workspaceId);
+                var enteringStream = prevKind != StreamStateKind.Streaming;
+                if (enteringStream || !IsAtViewerUrl(viewer, viewerUrl))
                 {
-                    var viewerUrl = BuildViewerUrl(workspaceId);
                     if (_viewerPagesLoaded.Contains(workspaceId))
-                        ReloadWebView(viewer, viewerUrl);    // page was loaded before: reload to reconnect WebSocket
+                        ReloadWebView(viewer, viewerUrl);    // reconnect the RDP WebSocket after restart
                     else
-                        NavigateWebView(viewer, viewerUrl);  // first load: don't interrupt in-progress navigation
-                    viewer.IsVisible = true;
+                        NavigateWebView(viewer, viewerUrl);  // first load
                 }
-                else if (!IsTutorialVisible())
-                    WakeActiveViewer();
             }
-            else
-            {
-                var label = state == "failed"
-                    ? $"Could not reach app after {maxAttempts} attempts."
-                    : $"Connecting to app… ({attempt} / {maxAttempts})";
-                BrowserConnectingText.Text = label;
-                BrowserConnectingBanner.IsVisible = !IsTutorialVisible();
-                if (_webViews.TryGetValue(viewerKey, out var viewer))
-                    viewer.IsVisible = false;
-            }
-        });
+        }
+
+        // Banner state applies only when this workspace's viewer tab is currently active.
+        if (isAi && isActiveViewerTab && !tutorialVisible)
+            ApplyBanners(snap);
+        else if (_activeWorkspaceId == workspaceId)
+        {
+            ChromiumDownloadBanner.IsVisible = false;
+            BrowserConnectingBanner.IsVisible = false;
+        }
+
+        _lastRenderedKind[workspaceId] = kind;
     }
 
-    private void OnChromiumReady()
+    private void ApplyBanners(StreamStateSnapshot? snap)
     {
-        ChromiumDownloadBanner.IsVisible = false;
-        if (_activeWorkspaceId is null) return;
-        if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") != "ai") return;
-
-        // Show the viewer WebView if it was created and hidden during the download (only when app is connected).
-        var viewerTabKey = $"{_activeWorkspaceId}:viewer";
-        var appReady = _browserConnectivity.GetValueOrDefault(_activeWorkspaceId) == "connected";
-        if (_webViews.TryGetValue(viewerTabKey, out var existing))
+        if (snap is null)
         {
-            existing.IsVisible = !IsTutorialVisible() && appReady;
+            ChromiumDownloadBanner.IsVisible = false;
+            BrowserConnectingBanner.IsVisible = true;
+            BrowserConnectingText.Text = "Connecting…";
             return;
         }
 
-        // WebView doesn't exist yet (e.g. app started while Chromium was downloading and no URL came in).
-        var url = _lastKnownBrowserUrls.GetValueOrDefault(viewerTabKey)
-            ?? (DataContext as MainViewModel)?.AddressBarUrl
-            ?? "about:blank";
-        HandleHeadlessNavigation(_activeWorkspaceId, url, IsTutorialVisible(), reloadIfSameUrl: false);
+        switch (snap.Kind)
+        {
+            case StreamStateKind.ChromiumDownloading:
+                BrowserConnectingBanner.IsVisible = false;
+                ChromiumDownloadBanner.IsVisible = true;
+                var failed = string.Equals(snap.ChromiumState, "failed", StringComparison.Ordinal);
+                ChromiumDownloadText.Text = failed
+                    ? "Chromium download failed. AI mode unavailable."
+                    : snap.ChromiumProgress > 0
+                        ? $"Downloading Chromium… {snap.ChromiumProgress}%"
+                        : "Downloading Chromium…";
+                ChromiumDownloadProgress.IsIndeterminate = !failed && snap.ChromiumProgress == 0;
+                ChromiumDownloadProgress.Value = snap.ChromiumProgress;
+                ChromiumDownloadProgress.IsVisible = !failed;
+                break;
+            case StreamStateKind.WorkspaceStopped:
+                ChromiumDownloadBanner.IsVisible = false;
+                BrowserConnectingBanner.IsVisible = true;
+                BrowserConnectingText.Text = "Workspace stopped.";
+                break;
+            case StreamStateKind.AppConnecting:
+                ChromiumDownloadBanner.IsVisible = false;
+                BrowserConnectingBanner.IsVisible = true;
+                BrowserConnectingText.Text = snap.MaxAttempts > 0 && snap.Attempt > 0
+                    ? $"Connecting to app… ({snap.Attempt} / {snap.MaxAttempts})"
+                    : "Connecting to app…";
+                break;
+            case StreamStateKind.AppFailed:
+                ChromiumDownloadBanner.IsVisible = false;
+                BrowserConnectingBanner.IsVisible = true;
+                BrowserConnectingText.Text = snap.Reason ?? "Could not reach app.";
+                break;
+            case StreamStateKind.SessionLaunching:
+                ChromiumDownloadBanner.IsVisible = false;
+                BrowserConnectingBanner.IsVisible = true;
+                BrowserConnectingText.Text = "Preparing browser session…";
+                break;
+            case StreamStateKind.Streaming:
+                ChromiumDownloadBanner.IsVisible = false;
+                BrowserConnectingBanner.IsVisible = false;
+                break;
+        }
     }
+
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
@@ -1063,6 +1104,8 @@ code {
         _navigationVersions.Clear();
         _workspaceAuthority.Clear();
         _viewerPagesLoaded.Clear();
+        _streamStates.Clear();
+        _lastRenderedKind.Clear();
         _activeWorkspaceId = null;
         _activeTabKey = null;
     }
@@ -1075,6 +1118,8 @@ code {
         _webViewErrors.Remove(workspaceId);
         _workspaceAuthority.Remove(workspaceId);
         _viewerPagesLoaded.Remove(workspaceId);
+        _streamStates.Remove(workspaceId);
+        _lastRenderedKind.Remove(workspaceId);
         DeleteBrowserErrorPage(workspaceId);
 
         if (_activeWorkspaceId != workspaceId)
@@ -1127,70 +1172,41 @@ code {
         var tabKey = $"{workspaceId}:viewer";
         ActivateTab(workspaceId, tabKey, tutorialVisible);
 
-        if (!_chromiumReady)
-        {
-            // Chromium is still downloading — remember the URL and queue the server navigate so
-            // it executes once Chromium is ready. Don't create/show the WebView yet.
-            // Show the download banner now that this tab is active (the ChromiumStatusChanged
-            // event may have fired before the tab was activated, missing the banner check).
-            if (!tutorialVisible)
-                ChromiumDownloadBanner.IsVisible = true;
-            if (url is not null
-                && Uri.TryCreate(url, UriKind.Absolute, out var queueUri)
-                && queueUri.Scheme is "http" or "https")
-            {
-                _lastKnownBrowserUrls[tabKey] = url;
-                _ = PostHeadlessNavigateAsync(workspaceId, url, reloadIfSameUrl);
-            }
-            return;
-        }
-
-        ChromiumDownloadBanner.IsVisible = false;
-
-        var appConnected = _browserConnectivity.GetValueOrDefault(workspaceId) == "connected";
-
-        if (_webViews.TryGetValue(tabKey, out var existing))
-        {
-            existing.IsVisible = !tutorialVisible && appConnected;
-            var viewerUrl = BuildViewerUrl(workspaceId);
-            if (!IsAtViewerUrl(existing, viewerUrl))
-                NavigateWebView(existing, viewerUrl);
-        }
-        else if (url is not null)
-        {
-            var viewerUrl = BuildViewerUrl(workspaceId);
-            if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUrl.ToString(), out var webView, out var dest))
-                return;
-            webView.IsVisible = !tutorialVisible && appConnected;
-            NavigateWebView(webView, new Uri(dest));
-        }
-
-        BrowserConnectingBanner.IsVisible = !tutorialVisible && !appConnected
-            && _browserConnectivity.ContainsKey(workspaceId);
-
+        // Only create the viewer WebView when we actually have a URL to load. Otherwise
+        // the WebView stays absent and RenderStreamState shows a banner. This keeps the
+        // "no navigation yet" case free of any WebView instantiation (which can fail).
         if (url is not null
             && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
             && navUri.Scheme is "http" or "https")
         {
+            if (!_webViews.ContainsKey(tabKey))
+            {
+                var viewerUrl = BuildViewerUrl(workspaceId);
+                if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUrl.ToString(), out _, out _))
+                    return;
+            }
+
+            _lastKnownBrowserUrls[tabKey] = url;
             RecordWebViewEvent(workspaceId, "headless_navigate", "info", new()
             {
                 ["url"] = url,
                 ["reloadIfSameUrl"] = reloadIfSameUrl.ToString(),
-                ["appConnected"] = appConnected.ToString(),
                 ["viewerTabKey"] = tabKey,
             });
             _ = PostHeadlessNavigateAndRememberAsync(tabKey, workspaceId, url, reloadIfSameUrl);
         }
+
+        RenderStreamState(workspaceId);
     }
 
     // Called when ShowPortView transitions false→true (e.g. switching from a TCP tab back to an HTTP tab).
     private void WakeActiveViewer()
     {
         if (_isClosed || _activeTabKey is null || _activeWorkspaceId is null) return;
-        if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
 
         if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") == "human")
         {
+            if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
             // Human mode: navigate the direct port WebView to the last known URL if needed.
             if (_lastKnownBrowserUrls.TryGetValue(_activeTabKey, out var lastUrl)
                 && Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)
@@ -1203,11 +1219,8 @@ code {
             return;
         }
 
-        // AI mode: only show the viewer if the app is connected.
-        if (_browserConnectivity.GetValueOrDefault(_activeWorkspaceId) != "connected") return;
-        var viewerUrl = BuildViewerUrl(_activeWorkspaceId);
-        if (!IsAtViewerUrl(webView, viewerUrl))
-            NavigateWebView(webView, viewerUrl);
+        // AI mode: RenderStreamState decides visibility + performs navigate/reload as needed.
+        RenderStreamState(_activeWorkspaceId);
     }
 
     private async Task PollHeadlessAddressAsync(string workspaceId)
@@ -1418,7 +1431,7 @@ code {
             ["tabKey"] = tabKey,
             ["url"] = viewerUrl.ToString(),
             ["currentSource"] = webView.Source?.ToString() ?? string.Empty,
-            ["connectivity"] = _browserConnectivity.GetValueOrDefault(workspaceId, "unknown"),
+            ["streamKind"] = _streamStates.GetValueOrDefault(workspaceId)?.Kind.ToString() ?? "unknown",
         });
         Dispatcher.UIThread.Post(
             () =>

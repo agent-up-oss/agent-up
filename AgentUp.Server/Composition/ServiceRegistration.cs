@@ -146,19 +146,33 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IBrowserRemoteSessionProvider, IronRdpBrowserRemoteSessionProvider>();
         builder.Services.AddSingleton<BrowserRemoteSessionService>();
         builder.Services.AddSingleton<BrowserInputDispatcher>();
+        builder.Services.AddSingleton<AppHealthCheckService>();
+        builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton(sp =>
+        {
+            var svc = new WorkspaceStreamStateService(
+                sp.GetRequiredService<BrowserEventBus>(),
+                sp.GetRequiredService<AppHealthController>(),
+                sp.GetRequiredService<WorkspaceQueryController>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WorkspaceStreamStateService>>());
+            // Wire display → stream state here to avoid a DI cycle
+            // (BrowserRemoteDisplayService is a dependency of HeadlessBrowserSessionManager,
+            //  which is also a dependency of WorkspaceStreamStateService's callers).
+            sp.GetRequiredService<BrowserRemoteDisplayService>().FrameBroadcast += svc.OnFirstFrame;
+            return svc;
+        });
+        builder.Services.AddSingleton<WorkspaceStreamStateController>();
+        builder.Services.AddHostedService<StreamStateWorkspaceSubscriber>();
         builder.Services.AddSingleton(sp =>
             new HeadlessBrowserSessionManager(
                 chromiumDir: Path.Join(dataDir, "chromium"),
                 profilesDir: Path.Join(dataDir, "browser-profiles"),
                 sp.GetRequiredService<BrowserRemoteDisplayService>(),
-                sp.GetRequiredService<BrowserEventBus>(),
+                sp.GetRequiredService<WorkspaceStreamStateService>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HeadlessBrowserSessionManager>>(),
                 configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
         builder.Services.AddHostedService(sp =>
             sp.GetRequiredService<HeadlessBrowserSessionManager>());
-        builder.Services.AddSingleton<AppHealthCheckService>();
-        builder.Services.AddSingleton<AppHealthController>();
-        builder.Services.AddSingleton<BrowserConnectivityService>();
         builder.Services.AddSingleton<CdpBrowserExecutor>();
         builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<HeadlessBrowserCommandDispatcher>();

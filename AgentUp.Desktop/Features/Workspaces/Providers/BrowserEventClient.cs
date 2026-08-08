@@ -4,12 +4,31 @@ using System.Text.Json;
 
 namespace AgentUp.Desktop.Features.Workspaces.Providers;
 
+// Wire kinds match StreamStateEvent on the server (kebab-cased type + snake_case kind).
+internal enum StreamStateKind
+{
+    ChromiumDownloading,
+    WorkspaceStopped,
+    AppConnecting,
+    AppFailed,
+    SessionLaunching,
+    Streaming,
+}
+
+internal sealed record StreamStateSnapshot(
+    string WorkspaceId,
+    StreamStateKind Kind,
+    string? ChromiumState,
+    int ChromiumProgress,
+    int Attempt,
+    int MaxAttempts,
+    string? Reason);
+
 internal sealed class BrowserEventClient(HttpClient http) : IDisposable
 {
     public event Action? Connected;
     public event Action? Disconnected;
-    public event Action<string, int>? ChromiumStatusChanged;
-    public event Action<string, string, int, int>? ConnectivityChanged;
+    public event Action<StreamStateSnapshot>? StreamStateChanged;
 
     private CancellationTokenSource? _cts;
 
@@ -90,24 +109,10 @@ internal sealed class BrowserEventClient(HttpClient http) : IDisposable
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
                 if (!root.TryGetProperty("type", out var typeProp)) continue;
+                if (typeProp.GetString() != "stream-state") continue;
 
-                var eventType = typeProp.GetString();
-                if (eventType == "chromium-status")
-                {
-                    var state = root.TryGetProperty("state", out var sp) ? sp.GetString() ?? "not_started" : "not_started";
-                    var progress = root.TryGetProperty("progress", out var pp) && pp.ValueKind == JsonValueKind.Number
-                        ? pp.GetInt32() : 0;
-                    ChromiumStatusChanged?.Invoke(state, progress);
-                }
-                else if (eventType == "browser-connectivity")
-                {
-                    var wsId = root.TryGetProperty("workspaceId", out var wProp) ? wProp.GetString() : null;
-                    var state = root.TryGetProperty("state", out var sProp) ? sProp.GetString() ?? "connecting" : "connecting";
-                    var attempt = root.TryGetProperty("attempt", out var aProp) && aProp.ValueKind == JsonValueKind.Number ? aProp.GetInt32() : 0;
-                    var maxAttempts = root.TryGetProperty("maxAttempts", out var mProp) && mProp.ValueKind == JsonValueKind.Number ? mProp.GetInt32() : 30;
-                    if (wsId is not null)
-                        ConnectivityChanged?.Invoke(wsId, state, attempt, maxAttempts);
-                }
+                var snapshot = ParseStreamState(root);
+                if (snapshot is not null) StreamStateChanged?.Invoke(snapshot);
             }
             catch (JsonException ex)
             {
@@ -117,6 +122,40 @@ internal sealed class BrowserEventClient(HttpClient http) : IDisposable
 
         return true;
     }
+
+    private static StreamStateSnapshot? ParseStreamState(JsonElement root)
+    {
+        var wsId = root.TryGetProperty("workspaceId", out var w) ? w.GetString() ?? "" : "";
+        var kindStr = root.TryGetProperty("kind", out var k) ? k.GetString() : null;
+        if (kindStr is null) return null;
+
+        var kind = kindStr switch
+        {
+            "chromium_downloading" => StreamStateKind.ChromiumDownloading,
+            "workspace_stopped" => StreamStateKind.WorkspaceStopped,
+            "app_connecting" => StreamStateKind.AppConnecting,
+            "app_failed" => StreamStateKind.AppFailed,
+            "session_launching" => StreamStateKind.SessionLaunching,
+            "streaming" => StreamStateKind.Streaming,
+            _ => (StreamStateKind?)null,
+        };
+        if (kind is null) return null;
+
+        return new StreamStateSnapshot(
+            WorkspaceId: wsId,
+            Kind: kind.Value,
+            ChromiumState: TryStr(root, "chromiumState"),
+            ChromiumProgress: TryInt(root, "chromiumProgress"),
+            Attempt: TryInt(root, "attempt"),
+            MaxAttempts: TryInt(root, "maxAttempts"),
+            Reason: TryStr(root, "reason"));
+    }
+
+    private static string? TryStr(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+
+    private static int TryInt(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.Number ? p.GetInt32() : 0;
 
     private static async Task<bool> DelayAsync(TimeSpan delay, CancellationToken ct)
     {
