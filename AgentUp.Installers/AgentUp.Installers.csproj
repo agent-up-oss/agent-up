@@ -7,7 +7,14 @@
     <IsPackable>true</IsPackable>
     <PackageId>LocalInstaller.Core</PackageId>
     <Version>$(LocalInstallerVersion)</Version>
+    <Authors>themassiveone</Authors>
+    <Description>Cross-platform installer library for Windows, macOS, Ubuntu, and NixOS.</Description>
+    <PackageTags>installer;cross-platform;windows;macos;linux;localinstaller</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>
