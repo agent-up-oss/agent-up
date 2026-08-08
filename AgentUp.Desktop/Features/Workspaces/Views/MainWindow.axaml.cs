@@ -784,7 +784,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 BrowserConnectingBanner.IsVisible = false;
                 if (_webViews.TryGetValue(viewerKey, out var viewer) && !IsTutorialVisible())
                 {
-                    ReloadWebView(viewer, BuildViewerUrl(workspaceId));
+                    NavigateWebView(viewer, BuildViewerUrl(workspaceId));
                     viewer.IsVisible = true;
                 }
                 else if (!IsTutorialVisible())
