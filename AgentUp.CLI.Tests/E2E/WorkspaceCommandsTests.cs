@@ -6,7 +6,11 @@ using System.Text.Json.Serialization;
 using AgentUp.CLI.Composition;
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Tests.Fake;
+using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.Interfaces;
+using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
@@ -461,6 +465,13 @@ public class WorkspaceCommandsTests
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
+        builder.Services.AddSingleton<IAuditEventRepository, NullAuditEventRepository>();
+        builder.Services.AddSingleton<IAuditArtifactRepository, NullAuditArtifactRepository>();
+        builder.Services.AddSingleton<IAuditIdentityProvider, NullAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditService>();
+        builder.Services.AddSingleton<AuditController>();
+        builder.Services.AddSingleton<AppHealthCheckService>();
+        builder.Services.AddSingleton<AppHealthController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);

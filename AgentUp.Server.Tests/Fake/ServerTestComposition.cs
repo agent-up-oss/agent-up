@@ -1,4 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
+using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
@@ -43,7 +45,7 @@ internal static class ServerTestComposition
         IWorkspaceIdentityProvider identity)
         => new(new OrchestrationWorkspaceService(
             new WorkspaceQueryController(registry),
-            new WorkspaceStateController(registry),
+            new WorkspaceStateController(registry, new WorkspaceEventBus()),
             CreateProcessesController(processes),
             configuration,
             identity));
@@ -58,15 +60,22 @@ internal static class ServerTestComposition
             new BrowserEventBus(),
             NullLogger<HeadlessBrowserSessionManager>.Instance);
         var browser = new BrowserLifecycleController(sessions, display);
+        var bus = new WorkspaceEventBus();
+        var stateController = new WorkspaceStateController(registry, bus);
+        var queryController = new WorkspaceQueryController(registry);
+        var healthCheckService = new AppHealthCheckService(
+            queryController, stateController, CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
+        var healthChecks = new AppHealthController(healthCheckService);
         return new WorkspaceLifecycleService(
             registry,
             CreateProcessesController(processes),
             browser,
+            healthChecks,
             NullLogger<WorkspaceLifecycleService>.Instance);
     }
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
-        => new(registry);
+        => new(registry, new WorkspaceEventBus());
 
     public static AuditController CreateAuditController(
         WorkspaceRegistry? registry = null,

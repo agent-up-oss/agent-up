@@ -7,7 +7,8 @@ public sealed class WorkspaceEventFrameProvider
 {
     private static readonly JsonSerializerOptions EventJsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
     public string Format(WorkspaceStateChangedEvent evt) =>

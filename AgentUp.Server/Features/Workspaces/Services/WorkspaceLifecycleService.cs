@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
@@ -12,17 +13,20 @@ public sealed class WorkspaceLifecycleService
     private readonly WorkspaceRegistry _registry;
     private readonly ProcessesController _processes;
     private readonly BrowserLifecycleController _browser;
+    private readonly AppHealthController _healthChecks;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
 
     public WorkspaceLifecycleService(
         WorkspaceRegistry registry,
         ProcessesController processes,
         BrowserLifecycleController browser,
+        AppHealthController healthChecks,
         ILogger<WorkspaceLifecycleService> logger)
     {
         _registry = registry;
         _processes = processes;
         _browser = browser;
+        _healthChecks = healthChecks;
         _logger = logger;
     }
 
@@ -49,6 +53,8 @@ public sealed class WorkspaceLifecycleService
             foreach (var app in workspace.Applications)
                 await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
 
+            _healthChecks.StartForWorkspace(workspace);
+
             return WorkspaceLifecycleResult.Success();
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
@@ -72,6 +78,7 @@ public sealed class WorkspaceLifecycleService
 
         try
         {
+            _healthChecks.StopForWorkspace(id);
             await _processes.KillWorkspaceAsync(id);
             await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);
             foreach (var app in workspace.Applications)

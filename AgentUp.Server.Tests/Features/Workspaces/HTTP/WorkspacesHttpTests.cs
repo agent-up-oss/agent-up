@@ -3,8 +3,12 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.Interfaces;
+using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
@@ -74,6 +78,13 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
+        builder.Services.AddSingleton<IAuditEventRepository, InMemoryAuditEventRepository>();
+        builder.Services.AddSingleton<IAuditArtifactRepository, InMemoryAuditArtifactRepository>();
+        builder.Services.AddSingleton<IAuditIdentityProvider, FakeAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditService>();
+        builder.Services.AddSingleton<AuditController>();
+        builder.Services.AddSingleton<AppHealthCheckService>();
+        builder.Services.AddSingleton<AppHealthController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -373,6 +384,13 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
+        builder.Services.AddSingleton<IAuditEventRepository, InMemoryAuditEventRepository>();
+        builder.Services.AddSingleton<IAuditArtifactRepository, InMemoryAuditArtifactRepository>();
+        builder.Services.AddSingleton<IAuditIdentityProvider, FakeAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditService>();
+        builder.Services.AddSingleton<AuditController>();
+        builder.Services.AddSingleton<AppHealthCheckService>();
+        builder.Services.AddSingleton<AppHealthController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.None);
