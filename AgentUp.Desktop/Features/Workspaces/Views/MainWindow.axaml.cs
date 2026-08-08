@@ -476,13 +476,22 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var firstNavDone = false;
         webView.NavigationCompleted += (_, e) =>
         {
+            var url = e.Request?.ToString() ?? string.Empty;
             if (!e.IsSuccess)
             {
+                RecordWebViewEvent(workspaceId, "navigation_error", "error", new()
+                {
+                    ["tabKey"] = tabKey,
+                    ["url"] = url,
+                    ["connectivity"] = _browserConnectivity.GetValueOrDefault(workspaceId, "unknown"),
+                    ["isVisible"] = webView.IsVisible.ToString(),
+                });
+
                 if (e.Request is { } failedUri && failedUri.Scheme is "http" or "https")
                 {
                     if (IsBrowserViewerRequest(failedUri))
                     {
-                        RetryViewerNavigation(tabKey, webView, failedUri);
+                        RetryViewerNavigation(tabKey, workspaceId, webView, failedUri);
                         return;
                     }
 
@@ -496,6 +505,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 }
                 return;
             }
+
+            RecordWebViewEvent(workspaceId, "navigation_complete", "success", new()
+            {
+                ["tabKey"] = tabKey,
+                ["url"] = url,
+                ["isVisible"] = webView.IsVisible.ToString(),
+            });
 
             _ = webView.InvokeScript(SelectionJs);
             if (firstNavDone) return;
@@ -746,6 +762,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void OnBrowserConnectivityChanged(string workspaceId, string state, int attempt, int maxAttempts)
     {
+        RecordWebViewEvent(workspaceId, "connectivity_changed", state, new()
+        {
+            ["state"] = state,
+            ["attempt"] = attempt.ToString(),
+            ["maxAttempts"] = maxAttempts.ToString(),
+            ["isActiveWorkspace"] = (_activeWorkspaceId == workspaceId).ToString(),
+        });
+
         Dispatcher.UIThread.Post(() =>
         {
             if (_isClosed) return;
@@ -1131,7 +1155,16 @@ code {
         if (url is not null
             && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
             && navUri.Scheme is "http" or "https")
+        {
+            RecordWebViewEvent(workspaceId, "headless_navigate", "info", new()
+            {
+                ["url"] = url,
+                ["reloadIfSameUrl"] = reloadIfSameUrl.ToString(),
+                ["appConnected"] = appConnected.ToString(),
+                ["viewerTabKey"] = tabKey,
+            });
             _ = PostHeadlessNavigateAndRememberAsync(tabKey, workspaceId, url, reloadIfSameUrl);
+        }
     }
 
     // Called when ShowPortView transitions false→true (e.g. switching from a TCP tab back to an HTTP tab).
@@ -1362,8 +1395,15 @@ code {
     private static bool IsAtViewerUrl(NativeWebView webView, Uri viewerUrl)
         => !ShouldReclaimViewerUrl(webView.Source?.AbsoluteUri, viewerUrl.AbsoluteUri);
 
-    private void RetryViewerNavigation(string tabKey, NativeWebView webView, Uri viewerUrl)
+    private void RetryViewerNavigation(string tabKey, string workspaceId, NativeWebView webView, Uri viewerUrl)
     {
+        RecordWebViewEvent(workspaceId, "viewer_retry", "info", new()
+        {
+            ["tabKey"] = tabKey,
+            ["url"] = viewerUrl.ToString(),
+            ["currentSource"] = webView.Source?.ToString() ?? string.Empty,
+            ["connectivity"] = _browserConnectivity.GetValueOrDefault(workspaceId, "unknown"),
+        });
         Dispatcher.UIThread.Post(
             () =>
             {
@@ -1371,6 +1411,29 @@ code {
                     ReloadWebView(webView, viewerUrl);
             },
             DispatcherPriority.Background);
+    }
+
+    private static readonly JsonSerializerOptions _auditJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private void RecordWebViewEvent(string workspaceId, string action, string outcome, Dictionary<string, string> details)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var dto = new { kind = "desktop", source = "webview", action, outcome, workspaceId, details };
+                var json = JsonSerializer.Serialize(dto, _auditJsonOptions);
+                using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                await _serverHttp.PostAsync("/api/audit/record", content);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or ObjectDisposedException)
+            {
+                Trace.TraceWarning(ex.Message);
+            }
+        });
     }
 
 
