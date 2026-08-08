@@ -40,6 +40,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly Dictionary<string, string> _workspaceAuthority = new();
     // Per-workspace browser connectivity state: "connecting", "connected", "failed".
     private readonly Dictionary<string, string> _browserConnectivity = new();
+    // Tracks which workspaces have had their viewer page complete at least one navigation,
+    // so OnBrowserConnectivityChanged can ReloadWebView (reconnect WebSocket) vs NavigateWebView (first load).
+    private readonly HashSet<string> _viewerPagesLoaded = new();
     private DateTimeOffset _lastHeadlessRetry = DateTimeOffset.MinValue;
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
@@ -513,6 +516,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 ["isVisible"] = webView.IsVisible.ToString(),
             });
 
+            if (e.Request is { } successUri && IsBrowserViewerRequest(successUri))
+                _viewerPagesLoaded.Add(workspaceId);
+
             _ = webView.InvokeScript(SelectionJs);
             if (firstNavDone) return;
             firstNavDone = true;
@@ -784,7 +790,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 BrowserConnectingBanner.IsVisible = false;
                 if (_webViews.TryGetValue(viewerKey, out var viewer) && !IsTutorialVisible())
                 {
-                    NavigateWebView(viewer, BuildViewerUrl(workspaceId));
+                    var viewerUrl = BuildViewerUrl(workspaceId);
+                    if (_viewerPagesLoaded.Contains(workspaceId))
+                        ReloadWebView(viewer, viewerUrl);    // page was loaded before: reload to reconnect WebSocket
+                    else
+                        NavigateWebView(viewer, viewerUrl);  // first load: don't interrupt in-progress navigation
                     viewer.IsVisible = true;
                 }
                 else if (!IsTutorialVisible())
@@ -1052,6 +1062,7 @@ code {
         _lastKnownBrowserUrls.Clear();
         _navigationVersions.Clear();
         _workspaceAuthority.Clear();
+        _viewerPagesLoaded.Clear();
         _activeWorkspaceId = null;
         _activeTabKey = null;
     }
@@ -1063,6 +1074,7 @@ code {
 
         _webViewErrors.Remove(workspaceId);
         _workspaceAuthority.Remove(workspaceId);
+        _viewerPagesLoaded.Remove(workspaceId);
         DeleteBrowserErrorPage(workspaceId);
 
         if (_activeWorkspaceId != workspaceId)
@@ -1119,6 +1131,10 @@ code {
         {
             // Chromium is still downloading — remember the URL and queue the server navigate so
             // it executes once Chromium is ready. Don't create/show the WebView yet.
+            // Show the download banner now that this tab is active (the ChromiumStatusChanged
+            // event may have fired before the tab was activated, missing the banner check).
+            if (!tutorialVisible)
+                ChromiumDownloadBanner.IsVisible = true;
             if (url is not null
                 && Uri.TryCreate(url, UriKind.Absolute, out var queueUri)
                 && queueUri.Scheme is "http" or "https")
