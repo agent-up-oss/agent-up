@@ -9,13 +9,19 @@
     <PackageId>LocalInstaller.Smoke</PackageId>
     <Version>$(LocalInstallerVersion)</Version>
     <Authors>themassiveone</Authors>
+    <Company>Agent-Up</Company>
     <Description>Smoke-test runner for validating freshly installed products on Windows, macOS, Ubuntu, and NixOS.</Description>
     <PackageTags>installer;smoke-test;validation;cross-platform;localinstaller</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>logo.png</PackageIcon>
+    <Copyright>Copyright © 2025 themassiveone, Agent-Up</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\media\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
