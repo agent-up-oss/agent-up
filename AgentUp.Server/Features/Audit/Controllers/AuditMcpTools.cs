@@ -9,7 +9,7 @@ namespace AgentUp.Server.Features.Audit.Controllers;
 public sealed class AuditMcpTools(AuditController audit)
 {
     [McpServerTool(Name = "audit_query", Title = "Query Audit Events")]
-    [Description("Query durable Agent-Up audit events by workspace, workdir, repository, branch, commit, kind, source, outcome, and time range.")]
+    [Description("Query durable Agent-Up audit events by workspace, workdir, repository, branch, commit, kind, source, outcome, and time range. Returns compact summaries by default (no Details); set compact=false to include Details, or call audit_get_event with an eventId for a single full record.")]
     public async Task<McpToolResult> Query(
         string? workspaceId = null,
         string? workdirId = null,
@@ -22,11 +22,34 @@ public sealed class AuditMcpTools(AuditController audit)
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
         int limit = 100,
+        bool compact = true,
         CancellationToken cancellationToken = default)
     {
         var events = await audit.QueryAsync(
             new AuditEventQuery(workspaceId, workdirId, repositoryPath, branch, commit, kind, source, outcome, from, to, limit),
             cancellationToken);
+
+        if (compact)
+        {
+            var slim = events.Select(e => new
+            {
+                e.EventId,
+                e.Timestamp,
+                e.Kind,
+                e.Source,
+                e.Action,
+                e.Outcome,
+                e.WorkspaceId,
+                e.WorkdirId,
+                e.Branch,
+                e.Commit,
+                e.ArtifactIds
+            }).ToList();
+            return new McpToolResult(true,
+                $"Returned {slim.Count} audit event(s) (compact). Call audit_get_event with an eventId for full Details.",
+                slim);
+        }
+
         return new McpToolResult(true, $"Returned {events.Count} audit event(s).", events);
     }
 
