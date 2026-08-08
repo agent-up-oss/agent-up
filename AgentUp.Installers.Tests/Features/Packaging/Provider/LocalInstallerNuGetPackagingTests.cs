@@ -73,13 +73,13 @@ public class LocalInstallerNuGetPackagingTests
     }
 
     [TestCaseSource(nameof(ExpectedPackageIds))]
-    public void EachPackage_hasApacheLicenseExpression(string packageId)
+    public void EachPackage_hasApacheLicenseFile(string packageId)
     {
         var nuspec = ReadNuspec(_packDir1, packageId);
         var license = nuspec.Root!.Descendants().FirstOrDefault(e => e.Name.LocalName == "license");
         Assert.That(license, Is.Not.Null, $"{packageId} must have a <license> element");
-        Assert.That(license!.Value, Is.EqualTo("Apache-2.0"));
-        Assert.That(license.Attribute("type")?.Value, Is.EqualTo("expression"));
+        Assert.That(license!.Value, Is.EqualTo("LICENSE"));
+        Assert.That(license.Attribute("type")?.Value, Is.EqualTo("file"));
     }
 
     [TestCaseSource(nameof(ExpectedPackageIds))]
@@ -112,7 +112,6 @@ public class LocalInstallerNuGetPackagingTests
         var entries = GetPackageEntries(_packDir1, packageId);
 
         var productConfigFiles = entries.Where(e =>
-            Path.GetFileName(e).Equals("logo.png", StringComparison.OrdinalIgnoreCase) ||
             Path.GetFileName(e).Equals("logo.ico", StringComparison.OrdinalIgnoreCase) ||
             Path.GetFileName(e).Equals("app.manifest", StringComparison.OrdinalIgnoreCase) ||
             (Path.GetExtension(e).Equals(".json", StringComparison.OrdinalIgnoreCase) &&

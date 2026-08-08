@@ -11,6 +11,14 @@
     <IsPackable>true</IsPackable>
     <PackageId>LocalInstaller.App</PackageId>
     <Version>$(LocalInstallerVersion)</Version>
+    <Authors>themassiveone</Authors>
+    <Company>Agent-Up</Company>
+    <Description>Avalonia-based installer GUI and command-line interface built on LocalInstaller.Core.</Description>
+    <PackageTags>installer;gui;avalonia;cross-platform;localinstaller</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>logo.png</PackageIcon>
+    <Copyright>Copyright © 2025 themassiveone, Agent-Up</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +43,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="../media/logo.png" Link="media/logo.png" CopyToOutputDirectory="PreserveNewest" Pack="false" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="\" />
+    <Content Include="../media/logo.png" Link="media/logo.png" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
