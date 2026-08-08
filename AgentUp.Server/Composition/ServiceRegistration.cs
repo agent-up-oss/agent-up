@@ -7,6 +7,7 @@ using AgentUp.Capabilities.Docker.Features.DockerCapability.Services;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
+using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
@@ -155,6 +156,8 @@ public static class ServiceRegistration
                 configuredExecutablePath: sp.GetRequiredService<IConfiguration>()["Browser:ExecutablePath"]));
         builder.Services.AddHostedService(sp =>
             sp.GetRequiredService<HeadlessBrowserSessionManager>());
+        builder.Services.AddSingleton<AppHealthCheckService>();
+        builder.Services.AddSingleton<AppHealthController>();
         builder.Services.AddSingleton<BrowserConnectivityService>();
         builder.Services.AddSingleton<CdpBrowserExecutor>();
         builder.Services.AddSingleton<BrowserLifecycleController>();
