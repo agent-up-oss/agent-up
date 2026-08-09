@@ -1,13 +1,9 @@
 using System.Xml.Linq;
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Unit;
+namespace LocalInstaller.Packaging.Tests.Features.UbuntuPackages.Unit;
 
 [TestFixture]
 public class UbuntuPackageManifestTests

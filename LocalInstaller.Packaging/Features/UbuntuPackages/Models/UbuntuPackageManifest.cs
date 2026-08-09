@@ -1,10 +1,8 @@
 using System.Security;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Shared.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Models;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Models;
 
 public sealed record UbuntuPackageManifest(
     string PackageName,

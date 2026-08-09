@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Interfaces;
 
 public interface IRepositoryPathProvider
 {

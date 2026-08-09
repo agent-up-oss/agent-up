@@ -1,6 +1,6 @@
 using AgentUp.InstallerApp.Features.Installation.Services;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
 
 namespace AgentUp.InstallerApp.Features.Installation.Controllers;
 

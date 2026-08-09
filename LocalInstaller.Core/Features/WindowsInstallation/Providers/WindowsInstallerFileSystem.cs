@@ -1,7 +1,7 @@
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
+using LocalInstaller.Core.Shared.Providers;
+using LocalInstaller.Core.Features.WindowsInstallation.Interfaces;
 
-namespace AgentUp.Installers.Features.WindowsInstallation.Providers;
+namespace LocalInstaller.Core.Features.WindowsInstallation.Providers;
 
 public sealed class WindowsInstallerFileSystem : InstallerFileSystem, IWindowsInstallerFileSystem
 {

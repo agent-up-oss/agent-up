@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.UbuntuInstallation.DTOs;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.DTOs;
 
 public sealed record UbuntuInstallPayload(
     string DesktopDirectory,

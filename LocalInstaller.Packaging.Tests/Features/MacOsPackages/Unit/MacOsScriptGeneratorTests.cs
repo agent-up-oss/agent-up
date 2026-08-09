@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Features.MacOsPackages.Models;
+using LocalInstaller.Packaging.Features.MacOsPackages.Models;
 
-namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Unit;
+namespace LocalInstaller.Packaging.Tests.Features.MacOsPackages.Unit;
 
 [TestFixture]
 public class MacOsScriptGeneratorTests

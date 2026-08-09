@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
 
 public interface IServerProbe
 {

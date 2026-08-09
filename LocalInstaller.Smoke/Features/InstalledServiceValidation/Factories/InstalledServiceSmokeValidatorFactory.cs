@@ -1,9 +1,9 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Factories;
 
 public static class InstalledServiceSmokeValidatorFactory
 {

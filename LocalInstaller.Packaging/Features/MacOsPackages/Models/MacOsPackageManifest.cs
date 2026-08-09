@@ -1,9 +1,7 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Installers.Features.MacOsInstallation.Models;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Core.Features.MacOsInstallation.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Models;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Models;
 
 public sealed record MacOsPackageManifest(MacOsInstallerManifest InstallerManifest)
 {

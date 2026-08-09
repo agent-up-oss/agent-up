@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.NetworkInformation;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Providers;
+namespace LocalInstaller.Smoke.Features.RuntimeSecurity.Providers;
 
 public sealed class SystemNetworkStateProvider : INetworkStateProvider
 {

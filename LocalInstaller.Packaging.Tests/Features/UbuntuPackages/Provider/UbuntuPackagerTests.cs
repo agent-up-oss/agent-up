@@ -1,13 +1,14 @@
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
-using AgentUp.Packaging.Features.UbuntuPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Services;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.UbuntuPackages.Provider;
 
 [TestFixture]
 public class UbuntuPackagerTests

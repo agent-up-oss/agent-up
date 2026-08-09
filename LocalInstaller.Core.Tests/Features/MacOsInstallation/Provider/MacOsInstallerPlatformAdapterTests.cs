@@ -1,19 +1,16 @@
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.MacOsInstallation.DTOs;
-using AgentUp.Installers.Features.MacOsInstallation.Models;
-using AgentUp.Installers.Features.MacOsInstallation.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.MacOsInstallation.DTOs;
+using LocalInstaller.Core.Features.MacOsInstallation.Interfaces;
+using LocalInstaller.Core.Features.MacOsInstallation.Models;
+using LocalInstaller.Core.Features.MacOsInstallation.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Providers;
+using LocalInstaller.Core.Tests.Support;
 
-namespace AgentUp.Installers.Tests.Features.MacOsInstallation.Provider;
+namespace LocalInstaller.Core.Tests.Features.MacOsInstallation.Provider;
 
 // RunElevatedAsync writes scripts to /tmp (hardcoded to avoid the macOS PKG installer
 // sandbox that redirects TMPDIR to a path child processes cannot access). /tmp does not
@@ -326,7 +323,7 @@ public class MacOsInstallerPlatformAdapterTests
     private static ProductManifest AcmeStudio
         => new("Acme Studio", "acme-studio", "ACMESTUDIO")
         {
-            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli, ProductComponent.Tray]
         };
 
     [TestCase("Acme Studio", "../acme")]

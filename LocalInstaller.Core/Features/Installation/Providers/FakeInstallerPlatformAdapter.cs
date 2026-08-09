@@ -1,9 +1,10 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Services;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.Installation.Providers;
+namespace LocalInstaller.Core.Features.Installation.Providers;
 
 public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
 {
@@ -119,13 +120,13 @@ public sealed class FakeInstallerPlatformAdapter : IInstallerPlatformAdapter
 
     private void EnsureInitialized(InstallerSession session)
     {
-        foreach (var component in session.Manifest.Components.Where(component => !_statuses.ContainsKey(component.Id)))
+        foreach (var component in session.Manifest.InstallableComponents.Where(component => !_statuses.ContainsKey(component.Id)))
             _statuses[component.Id] = new InstallerComponentStatus(component, InstallerComponentStatusKind.NotInstalled);
     }
 
     private static void ValidateComponent(ProductComponent component, InstallerSession session)
     {
-        if (!session.Manifest.Components.Any(c => c.Id == component.Id))
+        if (!session.Manifest.InstallableComponents.Any(c => c.Id == component.Id))
             throw new InvalidOperationException(
                 $"Component '{component.Id}' is not declared in the '{session.Manifest.ProductName}' manifest.");
     }

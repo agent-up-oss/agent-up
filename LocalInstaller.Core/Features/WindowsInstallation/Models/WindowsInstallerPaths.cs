@@ -1,4 +1,6 @@
-namespace AgentUp.Installers.Features.WindowsInstallation.Models;
+using LocalInstaller.Core.Features.Installation.Models;
+
+namespace LocalInstaller.Core.Features.WindowsInstallation.Models;
 
 public sealed partial record WindowsInstallerPaths(
     string RootDirectory,
@@ -21,7 +23,7 @@ public sealed partial record WindowsInstallerPaths(
     public string UninstallScriptPath => WindowsCombine(RootDirectory, UninstallScriptName);
 
     public static WindowsInstallerPaths ForProduct(
-        AgentUp.Installers.Features.Installation.Models.ProductManifest product,
+        ProductManifest product,
         string programFilesRoot,
         string commonStartMenuRoot)
     {
@@ -38,7 +40,7 @@ public sealed partial record WindowsInstallerPaths(
             UninstallScriptName: $"uninstall-{product.Slug}.ps1");
     }
 
-    public static WindowsInstallerPaths ForProduct(AgentUp.Installers.Features.Installation.Models.ProductManifest product)
+    public static WindowsInstallerPaths ForProduct(ProductManifest product)
     {
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         if (string.IsNullOrWhiteSpace(programFiles))

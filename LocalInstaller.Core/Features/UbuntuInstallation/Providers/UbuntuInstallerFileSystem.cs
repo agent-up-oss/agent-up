@@ -1,7 +1,7 @@
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
+using LocalInstaller.Core.Shared.Providers;
+using LocalInstaller.Core.Features.UbuntuInstallation.Interfaces;
 
-namespace AgentUp.Installers.Features.UbuntuInstallation.Providers;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.Providers;
 
 public sealed class UbuntuInstallerFileSystem : UnixInstallerFileSystem, IUbuntuInstallerFileSystem
 {

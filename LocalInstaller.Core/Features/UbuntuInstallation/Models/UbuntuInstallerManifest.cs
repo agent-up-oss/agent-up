@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.Installers.Features.UbuntuInstallation.Models;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.Models;
 
 public sealed partial record UbuntuInstallerManifest(
     string PackageName,

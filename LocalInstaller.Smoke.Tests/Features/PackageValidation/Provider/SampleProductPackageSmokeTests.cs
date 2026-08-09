@@ -1,10 +1,10 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
-using AgentUp.PackageSmoke.Tests.Features.PackageValidation.Fake;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Services;
+using LocalInstaller.Smoke.Tests.Features.PackageValidation.Fake;
 
-namespace AgentUp.PackageSmoke.Tests.Features.PackageValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.PackageValidation.Provider;
 
 [TestFixture]
 public class SampleProductPackageSmokeTests
@@ -15,7 +15,12 @@ public class SampleProductPackageSmokeTests
         ArtifactBaseName: "acme-studio",
         DisplayName: "Acme Studio",
         InstallDirName: "Acme Studio",
-        WorkspaceConfigFileName: "acme-studio.json");
+        WorkspaceConfigFileName: "acme-studio.json",
+        InstallerExecutableName: "AcmeStudio.InstallerApp",
+        DesktopExecutableName: "AcmeStudio.Desktop",
+        ServerExecutableName: "AcmeStudio.Server",
+        CliExecutableName: "AcmeStudio.CLI",
+        TrayExecutableName: "AcmeStudio.Tray");
 
     [Test]
     public async Task UbuntuValidator_forAcmeStudio_reportsExpectedPathsAndFindings()
@@ -43,8 +48,8 @@ public class SampleProductPackageSmokeTests
             var result = await new UbuntuPackageValidator(new UbuntuPackageArchiveProvider(commands)).ValidateAsync(request);
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.ServerPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "acme-studio", "installer", "payload", "server", "AgentUp.Server")));
-            Assert.That(result.CliPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "acme-studio", "installer", "payload", "cli", "AgentUp.CLI")));
+            Assert.That(result.ServerPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "acme-studio", "installer", "payload", "server", "AcmeStudio.Server")));
+            Assert.That(result.CliPath, Is.EqualTo(Path.Join(workDir, "root", "opt", "acme-studio", "installer", "payload", "cli", "AcmeStudio.CLI")));
         }
         finally
         {
@@ -75,8 +80,8 @@ public class SampleProductPackageSmokeTests
             var result = await new MacOsPackageValidator(new MacOsPackageArchiveProvider(commands)).ValidateAsync(request);
 
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.ServerPath, Does.EndWith(Path.Join("Acme Studio Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server")));
-            Assert.That(result.CliPath, Does.EndWith(Path.Join("Acme Studio Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI")));
+            Assert.That(result.ServerPath, Does.EndWith(Path.Join("Acme Studio Installer.app", "Contents", "MacOS", "payload", "server", "AcmeStudio.Server")));
+            Assert.That(result.CliPath, Does.EndWith(Path.Join("Acme Studio Installer.app", "Contents", "MacOS", "payload", "cli", "AcmeStudio.CLI")));
         }
         finally
         {
@@ -123,12 +128,12 @@ public class SampleProductPackageSmokeTests
 
     private static void CreateUbuntuRoot(string root)
     {
-        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "AgentUp.InstallerApp"));
-        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "payload", "desktop", "AgentUp.Desktop"));
-        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "payload", "server", "AgentUp.Server"));
-        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "payload", "cli", "AgentUp.CLI"));
+        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "AcmeStudio.InstallerApp"));
+        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "payload", "desktop", "AcmeStudio.Desktop"));
+        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "payload", "server", "AcmeStudio.Server"));
+        WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "payload", "cli", "AcmeStudio.CLI"));
         WriteText(Path.Join(root, "opt", "acme-studio", "installer", "payload", "service", "acme-studio-server.service"),
-            "ExecStart=/opt/acme-studio/server/AgentUp.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/acme-studio\nCacheDirectory=acme-studio\nRestartSec=5\n");
+            "ExecStart=/opt/acme-studio/server/AcmeStudio.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/acme-studio\nCacheDirectory=acme-studio\nRestartSec=5\n");
         WriteText(Path.Join(root, "opt", "acme-studio", "installer", "payload", "icon", "Agent-Up.png"), "png");
         WriteText(Path.Join(root, "usr", "share", "applications", "acme-studio-installer.desktop"), "[Desktop Entry]\nName=Acme Studio Installer\n");
         WriteText(Path.Join(root, "usr", "share", "metainfo", "acme-studio-installer.desktop.metainfo.xml"), "<component><id>acme-studio-installer.desktop</id><provides><pkgname>acme-studio</pkgname></provides><releases><release version=\"1.0.0\" date=\"2026-01-01\"/></releases></component>\n");
@@ -137,18 +142,18 @@ public class SampleProductPackageSmokeTests
 
     private static void CreateUbuntuControl(string control)
     {
-        WriteText(Path.Join(control, "postinst"), "#!/usr/bin/env bash\nchmod +x /opt/acme-studio/installer/AgentUp.InstallerApp\n");
+        WriteText(Path.Join(control, "postinst"), "#!/usr/bin/env bash\nchmod +x /opt/acme-studio/installer/AcmeStudio.InstallerApp\n");
         WriteText(Path.Join(control, "prerm"), "#!/usr/bin/env bash\n");
     }
 
     private static void CreateExpandedPackage(string root)
     {
-        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
+        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "AcmeStudio.InstallerApp"));
         WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "Info.plist"), "CFBundleIconFile\nAcme-Studio.png\n");
         WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "Resources", "Acme-Studio.png"), "");
-        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
-        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
-        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
+        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "payload", "desktop", "AcmeStudio.Desktop"));
+        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "payload", "server", "AcmeStudio.Server"));
+        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "payload", "cli", "AcmeStudio.CLI"));
         WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Acme Studio Installer.app", "Contents", "MacOS", "payload", "icon", "Acme-Studio.png"), "");
         WriteText(Path.Join(root, "InstallerApp.pkg", "Scripts", "postinstall"), "open -a \"/Applications/Acme Studio Installer.app\"\n");
         WriteText(Path.Join(root, "Distribution"), "InstallerApp.pkg\n");

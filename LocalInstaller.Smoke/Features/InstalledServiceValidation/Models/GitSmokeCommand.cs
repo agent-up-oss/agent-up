@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
 
 internal enum GitSmokeCommand
 {

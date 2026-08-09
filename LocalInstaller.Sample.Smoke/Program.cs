@@ -1,14 +1,16 @@
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-using AgentUp.PackageSmoke.Shared.Factories;
-using LocalInstaller.Sample;
+using LocalInstaller.Smoke.Composition;
+using LocalInstaller.Sample.Cli;
+using LocalInstaller.Sample.Desktop;
+using LocalInstaller.Sample.InstallerApp;
+using LocalInstaller.Sample.Server;
+using LocalInstaller.Sample.Tray;
 
-var product = new SmokeProductManifest(
-    ServiceName: SampleProduct.Slug + "-server",
-    CliShimName: SampleProduct.Slug,
-    ArtifactBaseName: SampleProduct.Slug,
-    DisplayName: SampleProduct.Name,
-    InstallDirName: SampleProduct.Name,
-    WorkspaceConfigFileName: SampleProduct.WorkspaceConfigFileName);
-
-var controller = PackageSmokeServiceRegistry.CreateSmokeCommandController(product);
-return await controller.ExecuteAsync(args, Console.Out, Console.Error);
+return await LocalInstallerSmoke.Create(args)
+    .UseProductManifest<SampleProductManifest>()
+    .InstallerApplication<SampleInstallerAppManifest>()
+    .InstallerOptionCli<SampleCliManifest>()
+    .InstallerOptionServer<SampleServerManifest>()
+    .InstallerOptionDesktop<SampleDesktopManifest>()
+    .InstallerOptionTray<SampleTrayManifest>()
+    .WorkspaceConfigFileName(LocalInstaller.Sample.SampleProduct.WorkspaceConfigFileName)
+    .RunAsync(Console.Out, Console.Error);

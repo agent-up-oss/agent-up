@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.Installation.Services;
+namespace LocalInstaller.Core.Features.Installation.Services;
 
 public sealed record PathPlan(IReadOnlyList<string> Entries)
 {

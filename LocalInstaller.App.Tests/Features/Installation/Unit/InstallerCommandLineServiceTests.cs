@@ -1,6 +1,6 @@
 using AgentUp.InstallerApp.Features.Installation.Services;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Unit;
+namespace LocalInstaller.App.Tests.Features.Installation.Unit;
 
 [TestFixture]
 public sealed class InstallerCommandLineServiceTests

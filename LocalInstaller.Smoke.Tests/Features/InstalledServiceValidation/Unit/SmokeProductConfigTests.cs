@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Unit;
+namespace LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Unit;
 
 [TestFixture]
 public sealed class SmokeProductConfigTests

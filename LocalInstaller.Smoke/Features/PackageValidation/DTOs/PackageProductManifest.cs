@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
 public sealed record PackageProductManifest(
     string ServiceName,
@@ -6,4 +6,9 @@ public sealed record PackageProductManifest(
     string ArtifactBaseName,
     string DisplayName,
     string InstallDirName,
-    string WorkspaceConfigFileName = "agent-up.json");
+    string WorkspaceConfigFileName = "agent-up.json",
+    string InstallerExecutableName = "installer",
+    string DesktopExecutableName = "desktop",
+    string ServerExecutableName = "server",
+    string CliExecutableName = "cli",
+    string TrayExecutableName = "tray");

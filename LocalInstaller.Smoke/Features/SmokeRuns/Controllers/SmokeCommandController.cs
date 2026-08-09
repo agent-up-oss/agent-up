@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.SmokeRuns.Services;
+using LocalInstaller.Smoke.Features.SmokeRuns.Services;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.Controllers;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.Controllers;
 
 public sealed class SmokeCommandController
 {

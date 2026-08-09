@@ -1,10 +1,9 @@
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
-using AgentUp.Packaging.Features.UbuntuPackages.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Services;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Services;
 
 public sealed partial class UbuntuPackager
 {

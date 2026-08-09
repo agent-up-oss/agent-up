@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Provider;
 
 [TestFixture]
 public class NixPackagingWrapperTests

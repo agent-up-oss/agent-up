@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
 
 public sealed record SmokeCommandRequest
 {

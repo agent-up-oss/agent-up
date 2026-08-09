@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.Installation.DTOs;
+namespace LocalInstaller.Core.Features.Installation.DTOs;
 
 public enum ValidationSeverity
 {

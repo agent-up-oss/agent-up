@@ -1,13 +1,13 @@
 using System.Net;
 using System.Text.Json;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Provider;
 
 [TestFixture]
 public sealed class CapabilityLifecycleSmokeTests

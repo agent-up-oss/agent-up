@@ -1,8 +1,8 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.NixOsInstallation.Services;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.NixOsInstallation.Services;
 
-namespace AgentUp.Installers.Features.NixOsInstallation.Controllers;
+namespace LocalInstaller.Core.Features.NixOsInstallation.Controllers;
 
 public sealed class NixOsInstallationController
 {

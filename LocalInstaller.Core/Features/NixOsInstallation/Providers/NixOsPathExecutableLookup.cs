@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
+using LocalInstaller.Core.Features.NixOsInstallation.Interfaces;
 
-namespace AgentUp.Installers.Features.NixOsInstallation.Providers;
+namespace LocalInstaller.Core.Features.NixOsInstallation.Providers;
 
 public sealed class NixOsPathExecutableLookup : INixOsExecutableLookup
 {

@@ -1,6 +1,6 @@
 using AgentUp.Server.Features.Workspaces.DTOs;
 
-namespace AgentUp.Server.Features.Workspaces.Repositories;
+namespace AgentUp.Server.Features.Workspaces.Interfaces;
 
 public interface IWorkspaceRepository
 {

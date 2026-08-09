@@ -1,8 +1,6 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Models;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Models;
 
 public sealed record MacOsPackageLayout(
     string StageDirectory,

@@ -1,10 +1,10 @@
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Composition;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
 
 namespace AgentUp.InstallerApp.Composition;
 

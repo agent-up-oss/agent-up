@@ -5,8 +5,8 @@ using System.Windows.Input;
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Logging.Tools;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
 
 namespace AgentUp.InstallerApp.Features.Installation.ViewModels;
 
@@ -29,7 +29,7 @@ public sealed class InstallerViewModel : INotifyPropertyChanged
         _adapter = adapter;
         _capabilities = capabilities;
         ComponentCards = new ObservableCollection<ComponentCardViewModel>(
-            session.Manifest.Components.Select(c =>
+            session.Manifest.InstallableComponents.Select(c =>
                 new ComponentCardViewModel(c, c.DisplayName, c.Description, this, adapter.SupportsInstallActions)));
         AddModuleCommand = new DelegateCommand(async _ => await ShowAddModuleAsync());
         BackToDashboardCommand = new DelegateCommand(_ => ShowDashboard());

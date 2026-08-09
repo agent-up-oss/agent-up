@@ -1,7 +1,8 @@
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.Installation.Services;
+namespace LocalInstaller.Core.Features.Installation.Services;
 
 public sealed class InstallerWorkflowService
 {
@@ -19,15 +20,15 @@ public sealed class InstallerWorkflowService
     public InstallerSession WithDockerStatus(InstallerSession session, WorkflowDockerStatus status)
         => InstallerWorkflow.WithDockerStatus(session, ToDockerStatus(status));
 
-    private static AgentUp.Installers.Features.PrerequisiteChecks.Models.DockerStatus ToDockerStatus(WorkflowDockerStatus status)
+    private static DockerStatus ToDockerStatus(WorkflowDockerStatus status)
         => new(
             status.Kind switch
             {
-                WorkflowDockerStatusKind.NotInstalled => AgentUp.Installers.Features.PrerequisiteChecks.Models.DockerStatusKind.NotInstalled,
-                WorkflowDockerStatusKind.DaemonNotRunning => AgentUp.Installers.Features.PrerequisiteChecks.Models.DockerStatusKind.DaemonNotRunning,
-                WorkflowDockerStatusKind.Inaccessible => AgentUp.Installers.Features.PrerequisiteChecks.Models.DockerStatusKind.Inaccessible,
-                WorkflowDockerStatusKind.UnsupportedVersion => AgentUp.Installers.Features.PrerequisiteChecks.Models.DockerStatusKind.UnsupportedVersion,
-                WorkflowDockerStatusKind.Operational => AgentUp.Installers.Features.PrerequisiteChecks.Models.DockerStatusKind.Operational,
+                WorkflowDockerStatusKind.NotInstalled => DockerStatusKind.NotInstalled,
+                WorkflowDockerStatusKind.DaemonNotRunning => DockerStatusKind.DaemonNotRunning,
+                WorkflowDockerStatusKind.Inaccessible => DockerStatusKind.Inaccessible,
+                WorkflowDockerStatusKind.UnsupportedVersion => DockerStatusKind.UnsupportedVersion,
+                WorkflowDockerStatusKind.Operational => DockerStatusKind.Operational,
                 _ => throw new ArgumentOutOfRangeException(nameof(status), status.Kind, "Unsupported Docker status kind.")
             },
             status.Title,

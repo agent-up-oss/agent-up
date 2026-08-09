@@ -1,19 +1,19 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Controllers;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Controllers;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation.Controllers;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Providers;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Controllers;
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Providers;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Services;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Controllers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Factories;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
+using LocalInstaller.Smoke.Features.InstallerFlowValidation.Controllers;
+using LocalInstaller.Smoke.Features.InstallerFlowValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.Controllers;
+using LocalInstaller.Smoke.Features.PackageValidation.Factories;
+using LocalInstaller.Smoke.Features.PackageValidation.Providers;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Providers;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Services;
+using LocalInstaller.Smoke.Features.SmokeRuns.Controllers;
+using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.Providers;
+using LocalInstaller.Smoke.Features.SmokeRuns.Services;
 
-namespace AgentUp.PackageSmoke.Shared.Factories;
+namespace LocalInstaller.Smoke.Shared.Factories;
 
 public static class PackageSmokeServiceRegistry
 {

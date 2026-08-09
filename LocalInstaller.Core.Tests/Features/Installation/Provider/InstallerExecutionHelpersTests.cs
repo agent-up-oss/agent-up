@@ -1,21 +1,11 @@
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
-using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
-using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.PrerequisiteChecks;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using System.Text;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.Installation.Services;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Tests.Features.Installation.Provider;
+namespace LocalInstaller.Core.Tests.Features.Installation.Provider;
 
 [TestFixture]
 public class InstallerExecutionHelpersTests

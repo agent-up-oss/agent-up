@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Models;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Models;
 
 public static class RepositoryPaths
 {

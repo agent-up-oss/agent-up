@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Shared.Interfaces;
+using LocalInstaller.Smoke.Shared.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
+namespace LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
 
 public interface IRuntimeSecurityChecks
 {

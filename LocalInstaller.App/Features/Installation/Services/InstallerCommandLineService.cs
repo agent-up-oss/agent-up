@@ -1,9 +1,9 @@
 using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Logging.Tools;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Services;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Services;
 
 namespace AgentUp.InstallerApp.Features.Installation.Services;
 
@@ -53,13 +53,13 @@ public sealed class InstallerCommandLineService
                 return await RunSmokeInstallerOperationsAsync(adapter, manifest, output, error, cancellationToken);
             if (args.Contains(ValidateInstalledArgument, StringComparer.OrdinalIgnoreCase))
                 return await RunValidateInstalledAsync(adapter, manifest, output, error, cancellationToken);
-            if (InstallerCommandLineParser.TryComponentAction(args, InstallComponentArgument, manifest.Components, out var installTarget))
+            if (InstallerCommandLineParser.TryComponentAction(args, InstallComponentArgument, manifest.InstallableComponents, out var installTarget))
                 return await RunComponentActionAsync(adapter, installTarget, InstallerComponentAction.Install, manifest, output, error, cancellationToken);
-            if (InstallerCommandLineParser.TryComponentAction(args, UpdateComponentArgument, manifest.Components, out var updateTarget))
+            if (InstallerCommandLineParser.TryComponentAction(args, UpdateComponentArgument, manifest.InstallableComponents, out var updateTarget))
                 return await RunComponentActionAsync(adapter, updateTarget, InstallerComponentAction.Update, manifest, output, error, cancellationToken);
-            if (InstallerCommandLineParser.TryComponentAction(args, RepairComponentArgument, manifest.Components, out var repairTarget))
+            if (InstallerCommandLineParser.TryComponentAction(args, RepairComponentArgument, manifest.InstallableComponents, out var repairTarget))
                 return await RunComponentActionAsync(adapter, repairTarget, InstallerComponentAction.Repair, manifest, output, error, cancellationToken);
-            if (InstallerCommandLineParser.TryComponentAction(args, UninstallComponentArgument, manifest.Components, out var uninstallTarget))
+            if (InstallerCommandLineParser.TryComponentAction(args, UninstallComponentArgument, manifest.InstallableComponents, out var uninstallTarget))
                 return await RunComponentActionAsync(adapter, uninstallTarget, InstallerComponentAction.Uninstall, manifest, output, error, cancellationToken);
             if (args.Contains(InstallCoreArgument, StringComparer.OrdinalIgnoreCase))
                 return await RunInstallCoreAsync(adapter, manifest, output, error, cancellationToken);
@@ -150,7 +150,7 @@ public sealed class InstallerCommandLineService
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        foreach (var component in manifest.Components)
+        foreach (var component in manifest.InstallableComponents)
         {
             foreach (var action in new[] { InstallerComponentAction.Install, InstallerComponentAction.Repair, InstallerComponentAction.Update, InstallerComponentAction.Uninstall })
             {

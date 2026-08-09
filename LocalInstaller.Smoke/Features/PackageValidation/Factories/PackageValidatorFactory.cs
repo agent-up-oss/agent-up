@@ -1,8 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Services;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Factories;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Factories;
 
 public static class PackageValidatorFactory
 {

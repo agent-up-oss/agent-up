@@ -1,9 +1,11 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.WindowsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
+using WindowsWixSourceGenerator = LocalInstaller.Packaging.Features.WindowsPackages.Models.WindowsWixSourceGenerator;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Services;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Services;
 
 public sealed class WindowsPackager
 {
@@ -36,7 +38,7 @@ public sealed class WindowsPackager
         _writer.WriteText(
             Path.Join(
                 layout.InstallerSourceDirectory,
-                AgentUp.Installers.Features.WindowsInstallation.Models.WindowsInstallerManifest.RequireSafeCliShimFileName(manifest.InstallerManifest.CliShimName)),
+                WindowsInstallerManifest.RequireSafeCliShimFileName(manifest.InstallerManifest.CliShimName)),
             WindowsWixSourceGenerator.CliShimText());
         _writer.WriteText(layout.ProductWxsPath, generator.ProductWxs(layout));
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));

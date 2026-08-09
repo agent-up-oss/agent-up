@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Shared.Interfaces;
+namespace LocalInstaller.Packaging.Shared.Interfaces;
 
 public interface ISymbolicLinkPackageFileSystem : IUnixPackageFileSystem
 {

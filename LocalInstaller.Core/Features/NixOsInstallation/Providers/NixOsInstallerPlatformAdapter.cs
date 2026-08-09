@@ -1,11 +1,11 @@
 using System.Runtime.CompilerServices;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.NixOsInstallation.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.NixOsInstallation.Providers;
+namespace LocalInstaller.Core.Features.NixOsInstallation.Providers;
 
 public sealed class NixOsInstallerPlatformAdapter(
     INixOsExecutableLookup executables,
@@ -94,7 +94,7 @@ public sealed class NixOsInstallerPlatformAdapter(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var findings = session.Manifest.Components
+        var findings = session.Manifest.InstallableComponents
             .Select(component =>
             {
                 var target = TargetFor(component);
@@ -111,9 +111,10 @@ public sealed class NixOsInstallerPlatformAdapter(
     }
 
     private static InstallerComponentTarget TargetFor(ProductComponent component)
-        => Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
             ? t
-            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the NixOS adapter.");
+            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the NixOS adapter."));
 
     private static string ExecutableName(ProductManifest manifest, InstallerComponentTarget target)
         => target switch

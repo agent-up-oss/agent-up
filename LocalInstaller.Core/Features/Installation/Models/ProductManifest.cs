@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.Installation.Models;
+namespace LocalInstaller.Core.Features.Installation.Models;
 
 public sealed partial record ProductManifest(
     string ProductName,
@@ -6,6 +6,7 @@ public sealed partial record ProductManifest(
     string EnvironmentPrefix)
 {
     public IReadOnlyList<ProductComponent> Components { get; init; } = [];
+    public IReadOnlyList<ProductComponent> InstallerOptions { get; init; } = [];
     public string? Manufacturer { get; init; }
     public string? WindowsUpgradeCode { get; init; }
 
@@ -29,4 +30,7 @@ public sealed partial record ProductManifest(
 
         return $"/opt/{Slug}";
     }
+
+    public IReadOnlyList<ProductComponent> InstallableComponents
+        => InstallerOptions.Count == 0 ? Components : InstallerOptions;
 }

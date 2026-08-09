@@ -1,10 +1,10 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Interfaces;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Providers;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.Interfaces;
+using LocalInstaller.Smoke.Features.SmokeRuns.Providers;
+using LocalInstaller.Smoke.Features.SmokeRuns.Services;
 
-namespace AgentUp.PackageSmoke.Tests.Features.SmokeRuns.Controller;
+namespace LocalInstaller.Smoke.Tests.Features.SmokeRuns.Controller;
 
 [TestFixture]
 public sealed class SmokeCommandParserTests

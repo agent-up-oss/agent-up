@@ -1,7 +1,7 @@
 using AgentUp.InstallerApp.Features.Installation.Controllers;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Controller;
+namespace LocalInstaller.App.Tests.Features.Installation.Controller;
 
 [TestFixture]
 public class InstallerCommandLineParserTests
@@ -14,7 +14,14 @@ public class InstallerCommandLineParserTests
     [
         ProductComponent.Desktop,
         ProductComponent.Server,
-        ProductComponent.Cli
+        ProductComponent.Cli,
+        ProductComponent.Tray
+    ];
+
+    private static readonly IReadOnlyList<ProductComponent> MultiCliComponents =
+    [
+        new("admin-cli", "Admin CLI", "Admin command surface.", InstallerComponentTarget.Cli),
+        new("user-cli", "User CLI", "User command surface.", InstallerComponentTarget.Cli)
     ];
 
     [Test]
@@ -71,9 +78,9 @@ public class InstallerCommandLineParserTests
     }
 
     [Test]
-    public void TryComponentAction_acceptsAllThreeAgentUpComponentIds()
+    public void TryComponentAction_acceptsAllAgentUpComponentIds()
     {
-        foreach (var id in new[] { "desktop", "server", "cli" })
+        foreach (var id in new[] { "desktop", "server", "cli", "tray" })
         {
             var found = InstallerCommandLineParser.TryComponentAction(
                 ["--install-component", id], "--install-component", AgentUpComponents, out var component);
@@ -93,5 +100,27 @@ public class InstallerCommandLineParserTests
                     ["--install-component", id], "--install-component", TwoComponents, out _),
                 $"Expected '{id}' to be rejected for editor/renderer product");
         }
+    }
+
+    [Test]
+    public void TryComponentAction_acceptsExplicitId_whenMultipleOptionsShareTarget()
+    {
+        var found = InstallerCommandLineParser.TryComponentAction(
+            ["--install-component", "admin-cli"], "--install-component", MultiCliComponents, out var component);
+
+        Assert.That(found, Is.True);
+        Assert.That(component.Id, Is.EqualTo("admin-cli"));
+    }
+
+    [Test]
+    public void TryComponentAction_rejectsTargetAlias_whenMultipleOptionsShareTarget()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            InstallerCommandLineParser.TryComponentAction(
+                ["--install-component", "cli"], "--install-component", MultiCliComponents, out _));
+
+        Assert.That(ex!.Message, Does.Contain("ambiguous"));
+        Assert.That(ex.Message, Does.Contain("admin-cli"));
+        Assert.That(ex.Message, Does.Contain("user-cli"));
     }
 }

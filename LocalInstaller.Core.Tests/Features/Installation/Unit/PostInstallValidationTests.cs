@@ -1,14 +1,7 @@
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
-using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
-using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.Installers.Tests.Features.Installation.Unit;
+namespace LocalInstaller.Core.Tests.Features.Installation.Unit;
 
 [TestFixture]
 public class PostInstallValidationTests

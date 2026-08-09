@@ -1,8 +1,4 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-namespace AgentUp.Packaging.Tests.Features.WindowsPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.WindowsPackages.Provider;
 
 [TestFixture]
 public class WindowsDotNetToolManifestTests

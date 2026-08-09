@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.Installation.Interfaces;
+namespace LocalInstaller.Core.Features.Installation.Interfaces;
 
 public interface IUnixInstallerFileSystem : IInstallerFileSystem
 {

@@ -1,8 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.Services;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.Services;
 
 public sealed class SmokeCommandService
 {

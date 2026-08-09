@@ -1,11 +1,11 @@
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
 
 public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
 {
@@ -27,12 +27,12 @@ public sealed class UbuntuInstalledServiceSmokeValidator : InstalledServiceSmoke
             return null;
 
         await RunRequiredAsync(assert, new CommandSpec("sudo", ["apt-get", "install", "-y", debPath]), "installed.ubuntu.install", cancellationToken);
-        var installCoreCommand = $"/opt/{product.ArtifactBaseName}/installer/AgentUp.InstallerApp --install-core";
+        var installCoreCommand = $"/opt/{product.ArtifactBaseName}/installer/{product.InstallerExecutableName} --install-core";
         await RunRequiredAsync(assert, new CommandSpec("sudo", ["bash", "-c", installCoreCommand]), "installed.ubuntu.install-core", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("bash", ["-lc", $"command -v {product.CliShimName}"]), "installed.ubuntu.path", cancellationToken);
         assert.FileExists(Path.Join(request.SystemRoot, "usr", "share", "applications", $"{product.CliShimName}.desktop"), "installed.ubuntu.desktop.entry");
         assert.FileExists(Path.Join(request.SystemRoot, "usr", "share", "pixmaps", $"{product.CliShimName}.png"), "installed.ubuntu.icon");
-        assert.FileExists(Path.Join(request.SystemRoot, "opt", product.ArtifactBaseName, "tray", "AgentUp.Tray"), "installed.ubuntu.tray");
+        assert.FileExists(Path.Join(request.SystemRoot, "opt", product.ArtifactBaseName, "tray", product.TrayExecutableName), "installed.ubuntu.tray");
         assert.FileExists(Path.Join(request.SystemRoot, "etc", "xdg", "autostart", $"{product.ArtifactBaseName}-tray.desktop"), "installed.ubuntu.tray.autostart");
 
         return new InstalledServiceContext(

@@ -1,7 +1,7 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.Installation.Models;
+namespace LocalInstaller.Core.Features.Installation.Models;
 
 public sealed record InstallerSession(
     ProductManifest Manifest,
@@ -28,7 +28,7 @@ public sealed record InstallerSession(
             InstallerStep.Welcome,
             LicenseAccepted: false,
             DockerStatus: null,
-            Components: ComponentSelection.CreateDefault(manifest.ProductName, version, installRoot).Components,
+            Components: ComponentSelection.FromComponents(manifest.InstallableComponents),
             Location: new InstallLocation(installRoot),
             ServerUrl: "http://127.0.0.1:5000",
             Payload: payload,

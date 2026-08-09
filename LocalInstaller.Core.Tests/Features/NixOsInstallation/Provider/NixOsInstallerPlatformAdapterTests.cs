@@ -1,11 +1,12 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
-using AgentUp.Installers.Features.NixOsInstallation.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.NixOsInstallation.Interfaces;
+using LocalInstaller.Core.Features.NixOsInstallation.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Tests.Support;
 
-namespace AgentUp.Installers.Tests.Features.NixOsInstallation.Provider;
+namespace LocalInstaller.Core.Tests.Features.NixOsInstallation.Provider;
 
 [TestFixture]
 public sealed class NixOsInstallerPlatformAdapterTests

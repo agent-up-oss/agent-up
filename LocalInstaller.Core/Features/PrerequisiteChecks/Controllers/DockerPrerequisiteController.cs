@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.PrerequisiteChecks.Controllers;
+namespace LocalInstaller.Core.Features.PrerequisiteChecks.Controllers;
 
 public sealed class DockerPrerequisiteController
 {

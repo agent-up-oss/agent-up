@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.Interfaces;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.Interfaces;
 
 public interface ISmokeCommandParser
 {

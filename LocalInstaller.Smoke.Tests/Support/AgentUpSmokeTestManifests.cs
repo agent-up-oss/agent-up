@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
 
-namespace AgentUp.PackageSmoke.Tests.Support;
+namespace LocalInstaller.Smoke.Tests.Support;
 
 internal static class AgentUpSmokeTestManifests
 {
@@ -13,5 +13,10 @@ internal static class AgentUpSmokeTestManifests
             CliShimName: ProductSlug,
             ArtifactBaseName: ProductSlug,
             DisplayName: ProductName,
-            InstallDirName: ProductName);
+            InstallDirName: ProductName,
+            InstallerExecutableName: "AgentUp.InstallerApp",
+            DesktopExecutableName: "AgentUp.Desktop",
+            ServerExecutableName: "AgentUp.Server",
+            CliExecutableName: "AgentUp.CLI",
+            TrayExecutableName: "AgentUp.Tray");
 }

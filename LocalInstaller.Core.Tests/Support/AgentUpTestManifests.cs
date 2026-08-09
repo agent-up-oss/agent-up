@@ -1,7 +1,7 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.Installers.Tests.Support;
+namespace LocalInstaller.Core.Tests.Support;
 
 internal static class AgentUpTestManifests
 {
@@ -13,7 +13,7 @@ internal static class AgentUpTestManifests
     public static ProductManifest Product()
         => new(ProductName, ProductSlug, EnvironmentPrefix)
         {
-            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli],
+            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli, ProductComponent.Tray],
             WindowsUpgradeCode = WindowsUpgradeCode
         };
 

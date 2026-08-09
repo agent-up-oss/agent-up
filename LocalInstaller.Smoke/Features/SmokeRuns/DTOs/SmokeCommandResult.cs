@@ -1,5 +1,5 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
 
 public sealed record SmokeCommandResult(bool Succeeded, IReadOnlyList<SmokeFinding> Findings);

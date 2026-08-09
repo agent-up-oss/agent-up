@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Shared.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Shared.Interfaces;
 
-namespace AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
+namespace LocalInstaller.Smoke.Tests.Features.RuntimeSecurity.Fake;
 
 internal sealed class NullRuntimeSecurityChecks : IRuntimeSecurityChecks
 {

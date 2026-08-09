@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
 
 public sealed record SmokeCommandParseResult(SmokeCommandRequest? Request, string Usage, bool HelpRequested = false)
 {

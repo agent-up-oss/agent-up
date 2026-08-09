@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
 public sealed partial record PackageRequest
 {

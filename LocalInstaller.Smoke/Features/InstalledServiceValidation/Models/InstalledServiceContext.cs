@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
 
 public sealed record InstalledServiceContext(
     string CliCommand,

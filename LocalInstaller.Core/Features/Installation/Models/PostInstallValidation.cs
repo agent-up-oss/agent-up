@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.DTOs;
 
-namespace AgentUp.Installers.Features.Installation.Models;
+namespace LocalInstaller.Core.Features.Installation.Models;
 
 public static class PostInstallValidation
 {

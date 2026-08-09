@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.PrerequisiteChecks.Models;
+namespace LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
 public enum DockerStatusKind
 {

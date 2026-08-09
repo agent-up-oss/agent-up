@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Shared.Providers;
+namespace LocalInstaller.Smoke.Shared.Providers;
 
 public static class SafeSmokePaths
 {

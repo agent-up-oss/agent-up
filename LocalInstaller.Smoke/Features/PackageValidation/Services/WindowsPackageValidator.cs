@@ -1,9 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Services;
 
 public sealed class WindowsPackageValidator : IPackageValidator
 {

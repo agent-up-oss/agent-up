@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Providers;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Provider;
 
 [TestFixture]
 public sealed class CapabilityWorkspaceProviderTests

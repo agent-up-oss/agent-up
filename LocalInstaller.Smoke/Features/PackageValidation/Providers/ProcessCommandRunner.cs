@@ -1,9 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Models;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using System.Diagnostics;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.Models;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Providers;
 
 public sealed class ProcessCommandRunner : ICommandRunner
 {

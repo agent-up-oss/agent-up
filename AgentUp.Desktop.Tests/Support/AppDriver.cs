@@ -4,6 +4,7 @@ using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using Avalonia.Controls;

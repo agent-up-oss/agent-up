@@ -1,8 +1,7 @@
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Providers;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Providers;
 
 public sealed class FileSystemPackageWriter : SymbolicLinkPackageFileSystem, IPackageWriter
 {

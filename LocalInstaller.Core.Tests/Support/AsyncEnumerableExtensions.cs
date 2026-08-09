@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Tests.Support;
+namespace LocalInstaller.Core.Tests.Support;
 
 public static class AsyncEnumerableExtensions
 {

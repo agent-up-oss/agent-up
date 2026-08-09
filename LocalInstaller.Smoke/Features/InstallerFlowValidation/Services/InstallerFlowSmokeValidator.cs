@@ -1,12 +1,11 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Core.Composition;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.InstallerFlowValidation.Services;
+namespace LocalInstaller.Smoke.Features.InstallerFlowValidation.Services;
 
 public sealed class InstallerFlowSmokeValidator
 {

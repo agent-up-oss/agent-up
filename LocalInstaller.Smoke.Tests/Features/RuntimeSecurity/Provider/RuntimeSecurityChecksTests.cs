@@ -1,19 +1,10 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
 using System.Net;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Shared.Providers;
-using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Services;
+using LocalInstaller.Smoke.Shared.Providers;
+using LocalInstaller.Smoke.Tests.Features.RuntimeSecurity.Fake;
 
-namespace AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.RuntimeSecurity.Provider;
 
 [TestFixture]
 public class RuntimeSecurityChecksTests

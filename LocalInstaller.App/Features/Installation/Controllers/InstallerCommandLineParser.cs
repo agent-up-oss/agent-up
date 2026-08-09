@@ -1,4 +1,4 @@
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Models;
 
 namespace AgentUp.InstallerApp.Features.Installation.Controllers;
 
@@ -28,11 +28,26 @@ internal static class InstallerCommandLineParser
     private static ProductComponent ParseComponent(string value, IReadOnlyList<ProductComponent> components)
     {
         var found = components.FirstOrDefault(c => c.Id.Equals(value, StringComparison.OrdinalIgnoreCase));
-        if (found is null)
+        if (found is not null)
+            return found;
+
+        if (Enum.TryParse<InstallerComponentTarget>(value, ignoreCase: true, out var target))
         {
-            var expected = string.Join(", ", components.Select(c => c.Id));
-            throw new InvalidOperationException($"Unknown installer component '{value}'. Expected {expected}.");
+            var matches = components.Where(c => ComponentTarget(c) == target).ToArray();
+            if (matches.Length == 1)
+                return matches[0];
+            if (matches.Length > 1)
+            {
+                var ids = string.Join(", ", matches.Select(c => c.Id));
+                throw new InvalidOperationException($"Installer component target '{value}' is ambiguous. Use one of: {ids}.");
+            }
         }
-        return found;
+
+        var expected = string.Join(", ", components.Select(c => c.Id));
+        throw new InvalidOperationException($"Unknown installer component '{value}'. Expected {expected}.");
     }
+
+    private static InstallerComponentTarget? ComponentTarget(ProductComponent component)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, ignoreCase: true, out var target) ? target : null);
 }

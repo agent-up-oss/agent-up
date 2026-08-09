@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.Providers;
 
-namespace AgentUp.PackageSmoke.Tests.Features.PackageValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.PackageValidation.Provider;
 
 [TestFixture]
 public class ProcessCommandRunnerTests

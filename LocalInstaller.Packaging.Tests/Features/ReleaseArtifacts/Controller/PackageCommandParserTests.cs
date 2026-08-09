@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Interfaces;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Controller;
+namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Controller;
 
 [TestFixture]
 public class PackageCommandParserTests

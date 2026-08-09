@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
 
 public sealed record CommandSpec(
     string FileName,

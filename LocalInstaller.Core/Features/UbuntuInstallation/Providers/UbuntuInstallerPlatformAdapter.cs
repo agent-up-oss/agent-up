@@ -1,15 +1,14 @@
 using System.Diagnostics;
 using System.Text;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.UbuntuInstallation.DTOs;
-using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
-using AgentUp.Installers.Features.UbuntuInstallation.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.UbuntuInstallation.DTOs;
+using LocalInstaller.Core.Features.UbuntuInstallation.Interfaces;
 
-namespace AgentUp.Installers.Features.UbuntuInstallation.Providers;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.Providers;
 
 public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
 {
@@ -284,9 +283,10 @@ public sealed class UbuntuInstallerPlatformAdapter : IInstallerPlatformAdapter
     private static string Q(string path) => $"'{path.Replace("'", "'\\''")}'";
 
     private static InstallerComponentTarget TargetFor(ProductComponent component)
-        => Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
             ? t
-            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the Ubuntu adapter.");
+            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the Ubuntu adapter."));
 
     public async Task<ValidationReport> ValidateInstalledStateAsync(
         InstallerSession session,

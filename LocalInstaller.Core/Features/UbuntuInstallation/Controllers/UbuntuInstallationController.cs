@@ -1,8 +1,8 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.UbuntuInstallation.Services;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.UbuntuInstallation.Services;
 
-namespace AgentUp.Installers.Features.UbuntuInstallation.Controllers;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.Controllers;
 
 public sealed class UbuntuInstallationController
 {

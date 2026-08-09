@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.PackageSmoke.Features.InstallerFlowValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.InstallerFlowValidation.DTOs;
 
 public sealed record InstallerFlowProductManifest(
     string ProductName,

@@ -1,7 +1,7 @@
 using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
 using AgentUp.InstallerApp.Features.Capabilities.Providers;
 
-namespace AgentUp.InstallerApp.Tests.Features.Capabilities.Provider;
+namespace LocalInstaller.App.Tests.Features.Capabilities.Provider;
 
 [TestFixture]
 public sealed class OfficialCapabilityCatalogProviderTests

@@ -1,17 +1,19 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Shared.Factories;
+using LocalInstaller.Packaging.Composition;
 using LocalInstaller.Sample;
+using LocalInstaller.Sample.Cli;
+using LocalInstaller.Sample.Desktop;
+using LocalInstaller.Sample.InstallerApp;
+using LocalInstaller.Sample.Server;
+using LocalInstaller.Sample.Tray;
 
-var product = new PackageProductManifest(
-    SampleProduct.Name,
-    SampleProduct.Slug,
-    SampleProduct.EnvironmentPrefix)
-{
-    Manufacturer = SampleProduct.Name,
-    WindowsUpgradeCode = SampleProduct.UpgradeCode,
-    WindowsServiceName = SampleProduct.Slug + "-server",
-    WindowsCliShimName = SampleProduct.Slug + ".cmd",
-    WindowsServerUrl = SampleProduct.ServerUrl
-};
-
-return await new PackagingServiceRegistry(product).PackageCommands.ExecuteAsync(args);
+return await LocalInstallerPackager.Create(args)
+    .UseProductManifest<SampleProductManifest>()
+    .InstallerApplication<SampleInstallerAppManifest>()
+    .InstallerOptionCli<SampleCliManifest>()
+    .InstallerOptionServer<SampleServerManifest>()
+    .InstallerOptionDesktop<SampleDesktopManifest>()
+    .InstallerOptionTray<SampleTrayManifest>()
+    .Windows(options => options
+        .WithUpgradeCode(SampleProduct.UpgradeCode)
+        .WithCliShimName(SampleProduct.Slug + ".cmd"))
+    .RunAsync();

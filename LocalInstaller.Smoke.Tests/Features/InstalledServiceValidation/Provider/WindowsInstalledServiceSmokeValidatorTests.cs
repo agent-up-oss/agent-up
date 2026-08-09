@@ -1,20 +1,11 @@
-using AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Fake;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Tests.Features.PackageValidation.Fake;
-using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Fake;
+using LocalInstaller.Smoke.Tests.Features.PackageValidation.Fake;
+using LocalInstaller.Smoke.Tests.Features.RuntimeSecurity.Fake;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Provider;
 
 [TestFixture]
 public class WindowsInstalledServiceSmokeValidatorTests
@@ -184,7 +175,12 @@ public class WindowsInstalledServiceSmokeValidatorTests
             CliShimName: "agent-up",
             ArtifactBaseName: "agent-up",
             DisplayName: "Agent-Up",
-            InstallDirName: "Agent-Up");
+            InstallDirName: "Agent-Up",
+            InstallerExecutableName: "AgentUp.InstallerApp",
+            DesktopExecutableName: "AgentUp.Desktop",
+            ServerExecutableName: "AgentUp.Server",
+            CliExecutableName: "AgentUp.CLI",
+            TrayExecutableName: "AgentUp.Tray");
 
     private static void WriteText(string path, string text)
     {

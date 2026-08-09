@@ -1,15 +1,14 @@
 using AgentUp.InstallerApp;
 using AgentUp.InstallerApp.Composition;
-using LocalInstaller.Sample;
+using LocalInstaller.Sample.Cli;
+using LocalInstaller.Sample.Desktop;
+using LocalInstaller.Sample.Server;
+using LocalInstaller.Sample.Tray;
 
 return await LocalInstallerApp.Create(args)
-    .Product(SampleProduct.Name, SampleProduct.Slug, SampleProduct.EnvironmentPrefix)
-    .Component("cli", "CLI", "Command-line app.")
-    .Component("server", "Server", "Local service app.")
-    .Component("desktop", "Desktop", "Desktop app.")
-    .Component("tray", "Tray", "Notification area app.")
-    .Manufacturer(SampleProduct.Name)
-    .UpgradeCode(SampleProduct.UpgradeCode)
-    .FakeInstallerVariable(SampleProduct.FakeInstallerVariable)
-    .NixOsLookupOnlyVariable(SampleProduct.NixOsLookupOnlyVariable)
+    .UseProductManifest<SampleProductManifest>()
+    .InstallerOptionCli<SampleCliManifest>()
+    .InstallerOptionServer<SampleServerManifest>()
+    .InstallerOptionDesktop<SampleDesktopManifest>()
+    .InstallerOptionTray<SampleTrayManifest>()
     .RunAsync<App>();

@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Fake;
+namespace LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Fake;
 
 /// <summary>
 /// Returns successful HTTP responses for tray session endpoints so smoke validator tests

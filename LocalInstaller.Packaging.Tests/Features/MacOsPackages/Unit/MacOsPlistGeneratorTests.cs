@@ -1,13 +1,8 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages;
-using AgentUp.Packaging.Features.MacOsPackages.Models;
-using AgentUp.Packaging.Features.ReleaseArtifacts;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.MacOsPackages.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Unit;
+namespace LocalInstaller.Packaging.Tests.Features.MacOsPackages.Unit;
 
 [TestFixture]
 public class MacOsPlistGeneratorTests

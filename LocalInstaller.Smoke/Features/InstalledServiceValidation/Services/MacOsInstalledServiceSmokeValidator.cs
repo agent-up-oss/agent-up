@@ -1,12 +1,12 @@
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
 
 public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
 {
@@ -33,7 +33,7 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
         assert.ExecutableExists($"/usr/local/bin/{product.CliShimName}", "installed.macos.cli");
         assert.ExecutableExists($"/usr/local/bin/{product.ServiceName}", "installed.macos.server");
         assert.ExecutableExists($"/usr/local/bin/{product.CliShimName}-desktop", "installed.macos.desktop");
-        assert.ExecutableExists($"/Library/Application Support/{product.InstallDirName}/tray/AgentUp.Tray", "installed.macos.tray");
+        assert.ExecutableExists($"/Library/Application Support/{product.InstallDirName}/tray/{product.TrayExecutableName}", "installed.macos.tray");
         assert.FileExists(_trayAutoStart.LaunchAgentPath(product), "installed.macos.tray.autostart");
 
         // AMFI on macOS 15 may block launchd from starting unsigned daemons; fall back to direct start.
@@ -45,7 +45,7 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
             await RunRequiredAsync(assert,
                 new CommandSpec("sudo", [
                     "bash", "-c",
-                    $"nohup \"/Library/Application Support/{product.InstallDirName}/server/AgentUp.Server\" --urls http://127.0.0.1:5000 >> \"/Library/Logs/{product.InstallDirName}/server.out.log\" 2>> \"/Library/Logs/{product.InstallDirName}/server.err.log\" &"
+                    $"nohup \"/Library/Application Support/{product.InstallDirName}/server/{product.ServerExecutableName}\" --urls http://127.0.0.1:5000 >> \"/Library/Logs/{product.InstallDirName}/server.out.log\" 2>> \"/Library/Logs/{product.InstallDirName}/server.err.log\" &"
                 ]),
                 "installed.macos.server-fallback", cancellationToken);
         }
@@ -57,7 +57,7 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
                 new CommandSpec("sudo", [
                     "bash",
                     "-c",
-                    $"launchctl bootout system /Library/LaunchDaemons/dev.{product.CliShimName}.server.plist 2>/dev/null || true; pkill -f AgentUp.Server 2>/dev/null || true; rm -f /Library/LaunchDaemons/dev.{product.CliShimName}.server.plist; rm -f /usr/local/bin/{product.CliShimName} /usr/local/bin/{product.ServiceName} /usr/local/bin/{product.CliShimName}-desktop; rm -rf /usr/local/{product.CliShimName}; rm -rf \"/Library/Application Support/{product.InstallDirName}\"; rm -rf \"/Applications/{product.InstallDirName}.app\" \"/Applications/{product.InstallDirName} Installer.app\""
+                    $"launchctl bootout system /Library/LaunchDaemons/dev.{product.CliShimName}.server.plist 2>/dev/null || true; pkill -f {product.ServerExecutableName} 2>/dev/null || true; rm -f /Library/LaunchDaemons/dev.{product.CliShimName}.server.plist; rm -f /usr/local/bin/{product.CliShimName} /usr/local/bin/{product.ServiceName} /usr/local/bin/{product.CliShimName}-desktop; rm -rf /usr/local/{product.CliShimName}; rm -rf \"/Library/Application Support/{product.InstallDirName}\"; rm -rf \"/Applications/{product.InstallDirName}.app\" \"/Applications/{product.InstallDirName} Installer.app\""
                 ])
             ],
             [

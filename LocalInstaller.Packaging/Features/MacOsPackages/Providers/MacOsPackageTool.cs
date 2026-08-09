@@ -1,9 +1,9 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Models;
-using AgentUp.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Features.MacOsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.MacOsPackages.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Shared.Interfaces;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Providers;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Providers;
 
 public sealed class MacOsPackageTool : IMacOsPackageTool
 {

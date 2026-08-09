@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
+namespace LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
 
 public interface IDockerPrerequisiteProvider
 {

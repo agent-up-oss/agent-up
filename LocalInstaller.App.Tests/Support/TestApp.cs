@@ -2,10 +2,11 @@ using Avalonia;
 using Avalonia.Headless;
 using Avalonia.ReactiveUI;
 using Avalonia.Themes.Fluent;
+using LocalInstaller.App.Tests.Support;
 
-[assembly: AvaloniaTestApplication(typeof(AgentUp.InstallerApp.Tests.Support.TestApp))]
+[assembly: AvaloniaTestApplication(typeof(TestApp))]
 
-namespace AgentUp.InstallerApp.Tests.Support;
+namespace LocalInstaller.App.Tests.Support;
 
 public class TestApp : Application
 {

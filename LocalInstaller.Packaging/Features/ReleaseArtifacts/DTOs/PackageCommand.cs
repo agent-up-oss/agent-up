@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
 public sealed record PackageCommand(
     string Platform,

@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Interfaces;
 
-namespace AgentUp.Installers.Features.WindowsInstallation.Interfaces;
+namespace LocalInstaller.Core.Features.WindowsInstallation.Interfaces;
 
 public interface IWindowsInstallerFileSystem : IInstallerFileSystem
 {

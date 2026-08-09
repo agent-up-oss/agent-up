@@ -1,10 +1,10 @@
-using AgentUp.Packaging.Features.MacOsPackages.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Controllers;
-using AgentUp.Packaging.Features.WindowsPackages.Controllers;
+using LocalInstaller.Packaging.Features.MacOsPackages.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Controllers;
+using LocalInstaller.Packaging.Features.WindowsPackages.Controllers;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
 
 public sealed partial class PackageCommandService
 {

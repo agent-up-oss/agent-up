@@ -1,8 +1,8 @@
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
-using AgentUp.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Shared.Interfaces;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Providers;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Providers;
 
 public sealed class DpkgDebPackageTool : IUbuntuPackageTool
 {

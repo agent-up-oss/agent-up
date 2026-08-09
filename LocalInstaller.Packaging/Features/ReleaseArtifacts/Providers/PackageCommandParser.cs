@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Interfaces;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
 
 public sealed class PackageCommandParser : IPackageCommandParser
 {

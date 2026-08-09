@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.Interfaces;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.Interfaces;
 
 public interface ISmokeWorkDirectoryProvider
 {

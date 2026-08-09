@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Shared.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Shared.Interfaces;
 
-namespace AgentUp.PackageSmoke.Shared.Providers;
+namespace LocalInstaller.Smoke.Shared.Providers;
 
 public sealed class FileAssertions : IFindingSink
 {

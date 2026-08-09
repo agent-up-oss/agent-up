@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.Installation.Models;
+namespace LocalInstaller.Core.Features.Installation.Models;
 
 [Flags]
 public enum InstallerComponent
@@ -36,4 +36,29 @@ public static class ComponentSelection
             | InstallerComponent.Tray
             | InstallerComponent.RuntimeDependencies,
             new InstallLocation(rootDirectory));
+
+    public static InstallerComponent FromComponents(IReadOnlyList<ProductComponent> components)
+    {
+        if (components.Count == 0)
+            return CreateDefault("", new Version(0, 0, 0), "").Components;
+
+        var selected = InstallerComponent.RuntimeDependencies;
+        foreach (var component in components)
+        {
+            selected |= TargetFor(component) switch
+            {
+                InstallerComponentTarget.Server => InstallerComponent.Server,
+                InstallerComponentTarget.Cli => InstallerComponent.Cli,
+                InstallerComponentTarget.Desktop => InstallerComponent.Desktop,
+                InstallerComponentTarget.Tray => InstallerComponent.Tray,
+                _ => InstallerComponent.None
+            };
+        }
+
+        return selected;
+    }
+
+    private static InstallerComponentTarget? TargetFor(ProductComponent component)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, ignoreCase: true, out var target) ? target : null);
 }

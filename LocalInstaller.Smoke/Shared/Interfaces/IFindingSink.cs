@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Shared.Interfaces;
+namespace LocalInstaller.Smoke.Shared.Interfaces;
 
 public interface IFindingSink
 {

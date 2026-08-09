@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Controllers;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Controllers;
 
 public sealed class InstalledServiceSmokeController
 {

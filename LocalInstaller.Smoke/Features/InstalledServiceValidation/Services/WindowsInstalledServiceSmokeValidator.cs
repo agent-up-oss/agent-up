@@ -1,12 +1,12 @@
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
 
 public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmokeValidator
 {
@@ -38,10 +38,10 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failure", product.ServiceName, "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"]), "installed.windows.service.recovery", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failureflag", product.ServiceName, "1"]), "installed.windows.service.recovery", cancellationToken);
 
-        var cli = Path.Join(installDir, "cli", "AgentUp.CLI.exe");
+        var cli = Path.Join(installDir, "cli", product.CliExecutableName + ".exe");
         assert.FileExists(Path.Join(installDir, "bin", $"{product.CliShimName}.cmd"), "installed.windows.path.shim");
         assert.FileExists(cli, "installed.windows.cli");
-        var trayExecutable = Path.Join(installDir, "tray", "AgentUp.Tray.exe");
+        var trayExecutable = Path.Join(installDir, "tray", product.TrayExecutableName + ".exe");
         assert.FileExists(trayExecutable, "installed.windows.tray");
         await RunRequiredAsync(
             assert,

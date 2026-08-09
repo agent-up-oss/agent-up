@@ -1,19 +1,20 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Models;
-using AgentUp.Packaging.Features.MacOsPackages.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
-using AgentUp.Packaging.Features.UbuntuPackages.Services;
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
-using AgentUp.Packaging.Features.WindowsPackages.Services;
-using AgentUp.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Features.MacOsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.MacOsPackages.Models;
+using LocalInstaller.Packaging.Features.MacOsPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Services;
+using LocalInstaller.Packaging.Features.WindowsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Features.WindowsPackages.Services;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Provider;
 
 [TestFixture]
 public class SampleProductPipelineTests

@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Models;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Models;
 
 public static class MacOsDistributionGenerator
 {

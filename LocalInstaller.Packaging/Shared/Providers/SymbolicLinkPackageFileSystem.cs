@@ -1,5 +1,6 @@
-using AgentUp.Packaging.Shared.Interfaces;
-namespace AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Shared.Interfaces;
+
+namespace LocalInstaller.Packaging.Shared.Providers;
 
 public abstract class SymbolicLinkPackageFileSystem : UnixPackageFileSystem, ISymbolicLinkPackageFileSystem
 {

@@ -1,24 +1,16 @@
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
-using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
-using AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.UbuntuInstallation;
-using AgentUp.Installers.Features.UbuntuInstallation.DTOs;
-using AgentUp.Installers.Features.UbuntuInstallation.Models;
-using AgentUp.Installers.Features.UbuntuInstallation.Providers;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Providers;
+using LocalInstaller.Core.Features.UbuntuInstallation.DTOs;
+using LocalInstaller.Core.Features.UbuntuInstallation.Interfaces;
+using LocalInstaller.Core.Features.UbuntuInstallation.Models;
+using LocalInstaller.Core.Features.UbuntuInstallation.Providers;
+using LocalInstaller.Core.Tests.Support;
 
-namespace AgentUp.Installers.Tests.Features.UbuntuInstallation.Provider;
+namespace LocalInstaller.Core.Tests.Features.UbuntuInstallation.Provider;
 
 // RunElevatedAsync writes scripts to /tmp (hardcoded to avoid sandbox-constrained TMPDIR).
 // /tmp does not exist as a real directory on Windows, so these tests are Unix-only.
@@ -305,7 +297,7 @@ public class UbuntuInstallerPlatformAdapterTests
 
     private static ProductManifest AcmeStudioProduct => new("Acme Studio", "acme-studio", "ACMESTUDIO")
     {
-        Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
+        Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli, ProductComponent.Tray]
     };
 
     private static InstallerSession Session()

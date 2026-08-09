@@ -1,10 +1,9 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Providers;
-using AgentUp.PackageSmoke.Shared.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Shared.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
+namespace LocalInstaller.Smoke.Features.RuntimeSecurity.Services;
 
 public sealed class RuntimeSecurityChecks : IRuntimeSecurityChecks, IDisposable
 {

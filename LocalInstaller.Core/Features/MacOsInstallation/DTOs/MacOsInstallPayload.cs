@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.MacOsInstallation.DTOs;
+namespace LocalInstaller.Core.Features.MacOsInstallation.DTOs;
 
 public sealed record MacOsInstallPayload(
     string DesktopDirectory,

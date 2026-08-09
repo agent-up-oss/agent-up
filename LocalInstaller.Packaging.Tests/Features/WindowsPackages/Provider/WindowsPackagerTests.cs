@@ -1,13 +1,14 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
-using AgentUp.Packaging.Features.WindowsPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Features.WindowsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Features.WindowsPackages.Services;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.WindowsPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.WindowsPackages.Provider;
 
 [TestFixture]
 public class WindowsPackagerTests

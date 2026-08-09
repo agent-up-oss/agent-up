@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.Installation.Models;
+namespace LocalInstaller.Core.Features.Installation.Models;
 
 public enum InstallerStep
 {

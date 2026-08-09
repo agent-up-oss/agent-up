@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.WindowsInstallation.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
 
-namespace AgentUp.Installers.Features.WindowsInstallation.Providers;
+namespace LocalInstaller.Core.Features.WindowsInstallation.Providers;
 
 public static class WindowsTrayAutoStartProvider
 {

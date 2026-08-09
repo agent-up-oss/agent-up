@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
 
 public sealed partial record SmokeProductConfig
 {
@@ -8,7 +8,12 @@ public sealed partial record SmokeProductConfig
         string ArtifactBaseName,
         string DisplayName,
         string InstallDirName,
-        string WorkspaceConfigFileName = "agent-up.json")
+        string WorkspaceConfigFileName = "agent-up.json",
+        string InstallerExecutableName = "installer",
+        string DesktopExecutableName = "desktop",
+        string ServerExecutableName = "server",
+        string CliExecutableName = "cli",
+        string TrayExecutableName = "tray")
     {
         ValidateSafeIdentifier(ServiceName, nameof(ServiceName));
         ValidateSafeIdentifier(CliShimName, nameof(CliShimName));
@@ -23,6 +28,11 @@ public sealed partial record SmokeProductConfig
         this.DisplayName = DisplayName;
         this.InstallDirName = InstallDirName;
         this.WorkspaceConfigFileName = WorkspaceConfigFileName;
+        this.InstallerExecutableName = InstallerExecutableName;
+        this.DesktopExecutableName = DesktopExecutableName;
+        this.ServerExecutableName = ServerExecutableName;
+        this.CliExecutableName = CliExecutableName;
+        this.TrayExecutableName = TrayExecutableName;
     }
 
     public string ServiceName { get; }
@@ -36,6 +46,11 @@ public sealed partial record SmokeProductConfig
     public string InstallDirName { get; }
 
     public string WorkspaceConfigFileName { get; }
+    public string InstallerExecutableName { get; }
+    public string DesktopExecutableName { get; }
+    public string ServerExecutableName { get; }
+    public string CliExecutableName { get; }
+    public string TrayExecutableName { get; }
 
     private static void ValidateSafeIdentifier(string value, string parameterName)
     {

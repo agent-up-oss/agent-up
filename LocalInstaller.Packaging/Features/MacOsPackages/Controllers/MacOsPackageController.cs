@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.MacOsPackages.Services;
+using LocalInstaller.Packaging.Features.MacOsPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Controllers;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Controllers;
 
 public sealed class MacOsPackageController : IMacOsPackageController
 {

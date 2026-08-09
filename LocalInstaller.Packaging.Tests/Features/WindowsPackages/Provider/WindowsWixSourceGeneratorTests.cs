@@ -1,9 +1,10 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
 using System.Xml.Linq;
-using WindowsInstallerManifest = AgentUp.Installers.Features.WindowsInstallation.Models.WindowsInstallerManifest;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Tests.Support;
+using WindowsInstallerManifest = LocalInstaller.Core.Features.WindowsInstallation.Models.WindowsInstallerManifest;
 
-namespace AgentUp.Packaging.Tests.Features.WindowsPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.WindowsPackages.Provider;
 
 [TestFixture]
 public class WindowsWixSourceGeneratorTests

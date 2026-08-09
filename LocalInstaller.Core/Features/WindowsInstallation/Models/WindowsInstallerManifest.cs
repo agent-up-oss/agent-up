@@ -1,9 +1,9 @@
-using AgentUp.Installers.Features.Installation.Models;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.Installers.Features.WindowsInstallation.Models;
+namespace LocalInstaller.Core.Features.WindowsInstallation.Models;
 
 public sealed partial record WindowsInstallerManifest(
     string ProductName,

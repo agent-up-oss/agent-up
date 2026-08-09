@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
-    <Using Include="AgentUp.PackageSmoke.Tests.Support" />
+    <Using Include="LocalInstaller.Smoke.Tests.Support" />
   </ItemGroup>
 
   <ItemGroup>

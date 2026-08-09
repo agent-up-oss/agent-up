@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.NixOsInstallation.Interfaces;
+namespace LocalInstaller.Core.Features.NixOsInstallation.Interfaces;
 
 public interface INixOsExecutableLookup
 {

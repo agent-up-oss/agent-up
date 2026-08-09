@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Providers;
 
 public sealed class UbuntuPackageArchiveProvider : IUbuntuPackageArchiveProvider
 {

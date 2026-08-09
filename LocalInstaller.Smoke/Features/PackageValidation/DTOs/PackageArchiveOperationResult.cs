@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
 public sealed record PackageArchiveOperationResult(bool Succeeded, string? ErrorMessage = null)
 {

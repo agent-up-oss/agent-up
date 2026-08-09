@@ -1,15 +1,10 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.UbuntuPackages;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
-using AgentUp.Packaging.Features.UbuntuPackages.Providers;
-using AgentUp.Packaging.Features.UbuntuPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Services;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.UbuntuPackages.Provider;
 
 [TestFixture]
 public class UbuntuPackageStagerTests

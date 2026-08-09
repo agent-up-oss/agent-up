@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
 
 public sealed record InstalledServiceSmokeResult(
     string? ServerUrl,

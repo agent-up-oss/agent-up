@@ -1,8 +1,8 @@
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Services;
 
-namespace AgentUp.Installers.Features.Installation.Controllers;
+namespace LocalInstaller.Core.Features.Installation.Controllers;
 
 public sealed class InstallerWorkflowController
 {

@@ -1,8 +1,8 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.WindowsInstallation.Services;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Services;
 
-namespace AgentUp.Installers.Features.WindowsInstallation.Controllers;
+namespace LocalInstaller.Core.Features.WindowsInstallation.Controllers;
 
 public sealed class WindowsInstallationController
 {

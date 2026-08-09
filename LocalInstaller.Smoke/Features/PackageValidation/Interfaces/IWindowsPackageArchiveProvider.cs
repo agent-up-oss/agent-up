@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
 
 public interface IWindowsPackageArchiveProvider
 {

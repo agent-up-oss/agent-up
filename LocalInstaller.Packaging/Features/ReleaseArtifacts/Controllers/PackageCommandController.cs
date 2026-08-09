@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
 
 public sealed class PackageCommandController
 {

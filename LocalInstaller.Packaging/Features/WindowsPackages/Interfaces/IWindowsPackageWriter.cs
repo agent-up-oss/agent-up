@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Shared.Interfaces;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Interfaces;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Interfaces;
 
 public interface IWindowsPackageWriter : IPackageFileSystem
 {

@@ -1,8 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Services;
+using LocalInstaller.Smoke.Features.InstallerFlowValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstallerFlowValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.InstallerFlowValidation.Controllers;
+namespace LocalInstaller.Smoke.Features.InstallerFlowValidation.Controllers;
 
 public sealed class InstallerFlowSmokeController
 {

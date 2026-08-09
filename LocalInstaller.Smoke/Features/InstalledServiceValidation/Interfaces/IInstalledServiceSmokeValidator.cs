@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
 
 public interface IInstalledServiceSmokeValidator : IDisposable
 {

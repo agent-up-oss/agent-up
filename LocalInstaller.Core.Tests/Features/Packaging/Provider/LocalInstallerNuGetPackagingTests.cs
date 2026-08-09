@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace AgentUp.Installers.Tests.Features.Packaging.Provider;
+namespace LocalInstaller.Core.Tests.Features.Packaging.Provider;
 
 [TestFixture]
 public class LocalInstallerNuGetPackagingTests

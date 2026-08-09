@@ -1,8 +1,8 @@
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Shared.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Interfaces;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Interfaces;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
 
 public sealed class PackagePublisher : IPackagePublisher
 {

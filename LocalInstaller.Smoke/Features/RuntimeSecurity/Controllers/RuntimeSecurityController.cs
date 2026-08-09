@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Shared.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
+using LocalInstaller.Smoke.Shared.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Controllers;
+namespace LocalInstaller.Smoke.Features.RuntimeSecurity.Controllers;
 
 public sealed class RuntimeSecurityController
 {

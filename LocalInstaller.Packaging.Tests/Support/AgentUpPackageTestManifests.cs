@@ -1,7 +1,7 @@
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Tests.Support;
+namespace LocalInstaller.Packaging.Tests.Support;
 
 internal static class AgentUpPackageTestManifests
 {

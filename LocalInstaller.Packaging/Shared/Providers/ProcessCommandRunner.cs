@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Shared.Interfaces;
 using System.Diagnostics;
+using LocalInstaller.Packaging.Shared.Interfaces;
 
-namespace AgentUp.Packaging.Shared.Providers;
+namespace LocalInstaller.Packaging.Shared.Providers;
 
 public sealed class ProcessCommandRunner : ICommandRunner
 {

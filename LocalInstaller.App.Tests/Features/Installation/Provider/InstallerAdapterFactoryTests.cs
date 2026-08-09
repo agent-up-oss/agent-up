@@ -1,18 +1,14 @@
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Composition;
 using AgentUp.InstallerApp.Features.Installation.Factories;
-using AgentUp.Installers.Features.Installation;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.MacOsInstallation;
-using AgentUp.Installers.Features.MacOsInstallation.Providers;
-using AgentUp.Installers.Features.NixOsInstallation.Providers;
-using AgentUp.Installers.Features.UbuntuInstallation;
-using AgentUp.Installers.Features.UbuntuInstallation.Providers;
-using AgentUp.Installers.Features.WindowsInstallation;
-using AgentUp.Installers.Features.WindowsInstallation.Providers;
+using LocalInstaller.App.Tests.Support;
+using LocalInstaller.Core.Composition;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.MacOsInstallation.Providers;
+using LocalInstaller.Core.Features.NixOsInstallation.Providers;
+using LocalInstaller.Core.Features.UbuntuInstallation.Providers;
+using LocalInstaller.Core.Features.WindowsInstallation.Providers;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Provider;
+namespace LocalInstaller.App.Tests.Features.Installation.Provider;
 
 [TestFixture]
 public class InstallerAdapterFactoryTests
@@ -106,7 +102,7 @@ public class InstallerAdapterFactoryTests
 
             Assert.That(
                 () => InstallerPlatformAdapterFactory.ResolvePayloadRoot(root, AgentUpInstallerAppTestManifests.Product()),
-                Throws.InvalidOperationException.With.Message.Contains("desktop, server, cli, and tray directories"));
+                Throws.InvalidOperationException.With.Message.Contains("registered installer option directories"));
         }
         finally
         {

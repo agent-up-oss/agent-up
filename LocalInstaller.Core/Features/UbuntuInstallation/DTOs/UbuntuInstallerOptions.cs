@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.UbuntuInstallation.Models;
+using LocalInstaller.Core.Features.UbuntuInstallation.Models;
 
-namespace AgentUp.Installers.Features.UbuntuInstallation.DTOs;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.DTOs;
 
 public sealed record UbuntuInstallerOptions(
     UbuntuInstallPayload Payload,

@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using AgentUp.InstallerApp.Features.Installation.Controllers;
 using AgentUp.InstallerApp.Features.Installation.Services;
 using AgentUp.InstallerApp.Features.Installation.Views;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Models;
 
 namespace AgentUp.InstallerApp.Composition;
 

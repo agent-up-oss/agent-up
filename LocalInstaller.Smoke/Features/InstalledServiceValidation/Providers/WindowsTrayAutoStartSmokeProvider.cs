@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
 
 public sealed class WindowsTrayAutoStartSmokeProvider
 {

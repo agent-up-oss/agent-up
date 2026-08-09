@@ -1,9 +1,12 @@
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Core.Shared.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Interfaces;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Provider;
 
 [TestFixture]
 public class PackagePayloadStagerTests
@@ -73,6 +76,40 @@ public class PackagePayloadStagerTests
         }
     }
 
+    [Test]
+    public async Task StageAsync_withManifestOptionsPublishesFlatPayloadIdsAndMirrorsLegacyTargets()
+    {
+        var publisher = new RecordingPublisher();
+        var files = new RecordingPackageFileSystem();
+        var product = new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+        {
+            InstallerApplication = new PackageProductArtifact("orbit-installer", "Installer", "", "Orbit.Installer", "Orbit.Installer/Orbit.Installer.csproj", "orbit-installer", LocalInstallerArtifactTarget.InstallerApp),
+            InstallerOptions =
+            [
+                new PackageProductArtifact("orbit-cli-admin", "Admin CLI", "", "Orbit.Admin.Cli", "Orbit.Admin.Cli/Orbit.Admin.Cli.csproj", "orbit-cli-admin", LocalInstallerArtifactTarget.Cli),
+                new PackageProductArtifact("orbit-cli-user", "User CLI", "", "Orbit.User.Cli", "Orbit.User.Cli/Orbit.User.Cli.csproj", "orbit-cli-user", LocalInstallerArtifactTarget.Cli),
+                new PackageProductArtifact("orbit-server", "Server", "", "Orbit.Server", "Orbit.Server/Orbit.Server.csproj", "orbit-server", LocalInstallerArtifactTarget.Server),
+                new PackageProductArtifact("orbit-desktop", "Desktop", "", "Orbit.Desktop", "Orbit.Desktop/Orbit.Desktop.csproj", "orbit-desktop", LocalInstallerArtifactTarget.Desktop),
+                new PackageProductArtifact("orbit-tray", "Tray", "", "Orbit.Tray", "Orbit.Tray/Orbit.Tray.csproj", "orbit-tray", LocalInstallerArtifactTarget.Tray)
+            ]
+        };
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", product);
+
+        await new PackagePayloadStager(publisher, files).StageAsync(new PayloadStagingRequest(
+            request,
+            "/stage/installer",
+            "/stage/desktop",
+            "/stage/server",
+            "/stage/cli",
+            "/stage/tray"));
+
+        Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "orbit-cli-admin")));
+        Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "orbit-cli-user")));
+        Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain("/stage/installer"));
+        Assert.That(publisher.Copied.Select(c => c.Destination), Does.Contain("/stage/cli"));
+        Assert.That(publisher.Copied.Any(c => c.Source == Path.Join(request.StageDirectory, "orbit-cli-admin") && c.Destination == "/stage/cli"), Is.True);
+    }
+
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)
     {
         var directory = Path.Join(payloadRoot, component);
@@ -100,5 +137,26 @@ public class PackagePayloadStagerTests
         public void CreateDirectory(string path) => CreatedDirectories.Add(path);
         public void CopyFile(string source, string destination) { }
         public void WriteText(string path, string text) { }
+    }
+
+    private sealed class RecordingPublisher : IPackagePublisher
+    {
+        public List<(string ProjectPath, string OutputDirectory)> Published { get; } = [];
+        public List<(string Source, string Destination)> Copied { get; } = [];
+
+        public Task PublishDotNetProjectAsync(
+            string projectPath,
+            string runtimeId,
+            string configuration,
+            string version,
+            string outputDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            Published.Add((projectPath, outputDirectory));
+            return Task.CompletedTask;
+        }
+
+        public void CopyPrebuiltPayload(string payloadDirectory, string outputDirectory)
+            => Copied.Add((payloadDirectory, outputDirectory));
     }
 }

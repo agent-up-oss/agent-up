@@ -1,8 +1,8 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.MacOsInstallation.Services;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.MacOsInstallation.Services;
 
-namespace AgentUp.Installers.Features.MacOsInstallation.Controllers;
+namespace LocalInstaller.Core.Features.MacOsInstallation.Controllers;
 
 public sealed class MacOsInstallationController
 {

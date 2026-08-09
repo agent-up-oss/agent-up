@@ -1,11 +1,11 @@
 using System.IO.Compression;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.WindowsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Providers;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Providers;
 
 public sealed class WindowsWixPackagingTool : IWindowsPackagingTool
 {

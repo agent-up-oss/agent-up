@@ -1,6 +1,6 @@
 using AgentUp.InstallerApp.Features.Logging.Tools;
 
-namespace AgentUp.InstallerApp.Tests.Features.Logging.Provider;
+namespace LocalInstaller.App.Tests.Features.Logging.Provider;
 
 [TestFixture]
 public class InstallerLogTests

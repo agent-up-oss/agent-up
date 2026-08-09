@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
 
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
 
 public sealed class PayloadStagingController
 {

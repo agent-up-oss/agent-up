@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Interfaces;
 
-namespace AgentUp.Installers.Features.Installation.Models;
+namespace LocalInstaller.Core.Shared.Providers;
 
 public abstract class InstallerFileSystem : IInstallerFileSystem
 {

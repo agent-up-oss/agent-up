@@ -1,7 +1,8 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Unit;
+namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Unit;
 
 [TestFixture]
 public class PackageRequestTests

@@ -1,11 +1,4 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-namespace AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
+namespace LocalInstaller.Smoke.Tests.Features.RuntimeSecurity.Fake;
 
 internal sealed class FakeHttpMessageHandler : HttpMessageHandler
 {

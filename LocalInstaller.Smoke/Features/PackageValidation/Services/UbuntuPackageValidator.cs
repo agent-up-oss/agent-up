@@ -1,9 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Services;
 
 public sealed class UbuntuPackageValidator : IPackageValidator
 {
@@ -36,12 +35,12 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         if (!controlExtract.Succeeded)
             assert.Error("ubuntu.control", controlExtract.ErrorMessage!);
 
-        var installerApp = SafeSmokePaths.Child(root, "opt", pkg, "installer", "AgentUp.InstallerApp");
+        var installerApp = SafeSmokePaths.Child(root, "opt", pkg, "installer", product.InstallerExecutableName);
         assert.ExecutableExists(installerApp, "ubuntu.installer");
 
-        var payloadDesktop = SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "desktop", "AgentUp.Desktop");
-        var payloadServer = SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "server", "AgentUp.Server");
-        var payloadCli = SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "cli", "AgentUp.CLI");
+        var payloadDesktop = SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "desktop", product.DesktopExecutableName);
+        var payloadServer = SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "server", product.ServerExecutableName);
+        var payloadCli = SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "cli", product.CliExecutableName);
         assert.ExecutableExists(payloadDesktop, "ubuntu.desktop");
         assert.ExecutableExists(payloadServer, "ubuntu.server");
         assert.ExecutableExists(payloadCli, "ubuntu.cli");
@@ -49,7 +48,7 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         var serviceFile = $"{product.ServiceName}.service";
         var serviceUnit = SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "service", serviceFile);
         assert.FileExists(serviceUnit, "ubuntu.service");
-        assert.Contains(serviceUnit, $"ExecStart=/opt/{pkg}/server/AgentUp.Server", "ubuntu.service.exec");
+        assert.Contains(serviceUnit, $"ExecStart=/opt/{pkg}/server/{product.ServerExecutableName}", "ubuntu.service.exec");
         assert.Contains(serviceUnit, "RestartSec=5", "ubuntu.service.restart");
         assert.Contains(serviceUnit, $"DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/{pkg}", "ubuntu.service.bundle.extract");
         assert.Contains(serviceUnit, $"CacheDirectory={pkg}", "ubuntu.service.cache");
@@ -66,7 +65,7 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         assert.Contains(metainfo, "<release version=", "ubuntu.metainfo.version");
 
         var postinst = SafeSmokePaths.Child(control, "postinst");
-        assert.Contains(postinst, $"chmod +x /opt/{pkg}/installer/AgentUp.InstallerApp", "ubuntu.postinst");
+        assert.Contains(postinst, $"chmod +x /opt/{pkg}/installer/{product.InstallerExecutableName}", "ubuntu.postinst");
         assert.FileExists(SafeSmokePaths.Child(control, "prerm"), "ubuntu.prerm");
 
         return new PackageValidationResult(payloadServer, payloadCli, assert.Findings);

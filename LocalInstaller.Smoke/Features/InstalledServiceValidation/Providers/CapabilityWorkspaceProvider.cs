@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
 
 public sealed class CapabilityWorkspaceProvider
 {

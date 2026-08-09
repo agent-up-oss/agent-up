@@ -1,9 +1,10 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
-using AgentUp.Packaging.Features.UbuntuPackages.Providers;
-using AgentUp.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Providers;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.UbuntuPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.UbuntuPackages.Provider;
 
 [TestFixture]
 public class DpkgDebPackageToolTests

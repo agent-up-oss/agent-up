@@ -2,14 +2,14 @@ using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Capabilities.Models;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
-using AgentUp.InstallerApp.Tests.Support;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.App.Tests.Support;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Headless;
+namespace LocalInstaller.App.Tests.Features.Installation.Headless;
 
 [TestFixture]
 public class ProductComponentCardTests
@@ -95,7 +95,7 @@ public class ProductComponentCardTests
     }
 
     [Test]
-    public void ComponentCards_matchManifestComponents_forAgentUpThreeComponentProduct()
+    public void ComponentCards_matchManifestComponents_forAgentUpProduct()
     {
         var manifest = AgentUpInstallerAppTestManifests.Product();
         var session = InstallerSession.CreateDefault(
@@ -106,8 +106,8 @@ public class ProductComponentCardTests
             new FakeInstallerPlatformAdapter(),
             new CapabilitiesController(CapabilityDashboardServiceFactory.CreateFake()));
 
-        Assert.That(model.ComponentCards, Has.Count.EqualTo(3));
-        Assert.That(model.ComponentCards.Select(c => c.Target.Id), Is.EqualTo(new[] { "desktop", "server", "cli" }));
+        Assert.That(model.ComponentCards, Has.Count.EqualTo(4));
+        Assert.That(model.ComponentCards.Select(c => c.Target.Id), Is.EqualTo(new[] { "desktop", "server", "cli", "tray" }));
     }
 
     [Test]

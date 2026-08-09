@@ -1,8 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Providers;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Providers;
 
 public sealed class MacOsPackageArchiveProvider : IMacOsPackageArchiveProvider
 {

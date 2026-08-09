@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.Installers.Features.MacOsInstallation.Models;
+namespace LocalInstaller.Core.Features.MacOsInstallation.Models;
 
 public sealed partial record MacOsInstallerManifest(
     string ProductName,

@@ -1,15 +1,15 @@
 using System.Diagnostics;
 using System.Text;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.MacOsInstallation.DTOs;
-using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
-using AgentUp.Installers.Features.MacOsInstallation.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.MacOsInstallation.DTOs;
+using LocalInstaller.Core.Features.MacOsInstallation.Interfaces;
+using LocalInstaller.Core.Features.MacOsInstallation.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.MacOsInstallation.Providers;
+namespace LocalInstaller.Core.Features.MacOsInstallation.Providers;
 
 public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
 {
@@ -379,7 +379,8 @@ public sealed class MacOsInstallerPlatformAdapter : IInstallerPlatformAdapter
     private static string Q(string path) => $"'{path.Replace("'", "'\\''")}'";
 
     private static InstallerComponentTarget TargetFor(ProductComponent component)
-        => Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, true, out var t)
             ? t
-            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the macOS adapter.");
+            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the macOS adapter."));
 }

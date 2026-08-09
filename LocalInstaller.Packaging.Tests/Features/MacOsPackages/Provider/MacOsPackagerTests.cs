@@ -1,13 +1,14 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Models;
-using AgentUp.Packaging.Features.MacOsPackages.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Packaging.Features.MacOsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.MacOsPackages.Models;
+using LocalInstaller.Packaging.Features.MacOsPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.MacOsPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.MacOsPackages.Provider;
 
 [TestFixture]
 public class MacOsPackagerTests

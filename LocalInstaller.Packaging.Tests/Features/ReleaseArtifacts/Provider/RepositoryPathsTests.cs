@@ -1,7 +1,6 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Models;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Provider;
 
 [TestFixture]
 public class RepositoryPathsTests

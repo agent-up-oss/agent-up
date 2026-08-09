@@ -1,7 +1,7 @@
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.MacOsInstallation.Interfaces;
+using LocalInstaller.Core.Shared.Providers;
+using LocalInstaller.Core.Features.MacOsInstallation.Interfaces;
 
-namespace AgentUp.Installers.Features.MacOsInstallation.Providers;
+namespace LocalInstaller.Core.Features.MacOsInstallation.Providers;
 
 public sealed class MacOsInstallerFileSystem : UnixInstallerFileSystem, IMacOsInstallerFileSystem
 {

@@ -1,15 +1,22 @@
+using AgentUp.CLI;
+using AgentUp.CLI.Composition;
+using AgentUp.Desktop;
+using AgentUp.Desktop.Composition;
 using AgentUp.InstallerConfig;
 using AgentUp.InstallerApp;
 using AgentUp.InstallerApp.Composition;
+using AgentUp.Server;
+using AgentUp.Server.Composition;
+using AgentUp.Tray;
+using AgentUp.Tray.Composition;
 
 return await LocalInstallerApp.Create(args)
-    .Product(AgentUpProduct.Name, AgentUpProduct.Slug, AgentUpProduct.EnvironmentPrefix)
-    .Component("cli", "CLI", "Command-line app.")
-    .Component("server", "Server", "Local service app.")
-    .Component("desktop", "Desktop", "Desktop app.")
-    .Component("tray", "Tray", "Notification area app.")
-    .Manufacturer(AgentUpProduct.Name)
-    .UpgradeCode(AgentUpProduct.WindowsUpgradeCode)
+    .UseProductManifest<AgentUpProductManifest>()
+    .InstallerOptionCli<AgentUpCliManifest>()
+    .InstallerOptionServer<AgentUpServerManifest>()
+    .InstallerOptionDesktop<AgentUpDesktopManifest>()
+    .InstallerOptionTray<AgentUpTrayManifest>()
+    .Windows(options => options.WithUpgradeCode(AgentUpProduct.WindowsUpgradeCode))
     .FakeInstallerVariable(AgentUpProduct.FakeInstallerVariable)
     .NixOsLookupOnlyVariable(AgentUpProduct.NixOsLookupOnlyVariable)
-    .RunAsync<App>();
+    .RunAsync<AgentUp.InstallerApp.App>();

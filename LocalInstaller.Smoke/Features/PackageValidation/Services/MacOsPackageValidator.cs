@@ -1,9 +1,8 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Services;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Services;
 
 public sealed class MacOsPackageValidator : IPackageValidator
 {
@@ -35,12 +34,12 @@ public sealed class MacOsPackageValidator : IPackageValidator
         }
 
         var appBase = Path.Join("Applications", appBundleName);
-        var installerApp = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "AgentUp.InstallerApp"));
+        var installerApp = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", product.InstallerExecutableName));
         var installerInfoPlist = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "Info.plist"));
         var installerIcon = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "Resources", iconFileName));
-        var installerPayloadDesktop = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));
-        var installerPayloadServer = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "server", "AgentUp.Server"));
-        var installerPayloadCli = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "cli", "AgentUp.CLI"));
+        var installerPayloadDesktop = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "desktop", product.DesktopExecutableName));
+        var installerPayloadServer = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "server", product.ServerExecutableName));
+        var installerPayloadCli = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "cli", product.CliExecutableName));
         var installerPayloadIcon = _archive.FindFirst(expanded, Path.Join(appBase, "Contents", "MacOS", "payload", "icon", iconFileName));
         var distribution = _archive.FindDistribution(expanded);
         var postinstall = _archive.FindFirst(expanded, Path.Join("InstallerApp.pkg", "Scripts", "postinstall"));

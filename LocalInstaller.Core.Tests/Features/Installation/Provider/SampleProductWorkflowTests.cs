@@ -1,10 +1,10 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.Installation.Services;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Tests.Features.Installation.Provider;
+namespace LocalInstaller.Core.Tests.Features.Installation.Provider;
 
 [TestFixture]
 public class SampleProductWorkflowTests

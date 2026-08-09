@@ -1,17 +1,24 @@
+using AgentUp.CLI;
+using AgentUp.CLI.Composition;
+using AgentUp.Desktop;
+using AgentUp.Desktop.Composition;
 using AgentUp.InstallerConfig;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Shared.Factories;
+using AgentUp.InstallerApp;
+using AgentUp.InstallerApp.Composition;
+using AgentUp.Server;
+using AgentUp.Server.Composition;
+using AgentUp.Tray;
+using AgentUp.Tray.Composition;
+using LocalInstaller.Packaging.Composition;
 
-var product = new PackageProductManifest(
-    AgentUpProduct.Name,
-    AgentUpProduct.Slug,
-    AgentUpProduct.EnvironmentPrefix)
-{
-    Manufacturer = AgentUpProduct.Name,
-    WindowsUpgradeCode = AgentUpProduct.WindowsUpgradeCode,
-    WindowsServiceName = AgentUpProduct.Slug + "-server",
-    WindowsCliShimName = AgentUpProduct.Slug + ".cmd",
-    WindowsServerUrl = "http://127.0.0.1:5000"
-};
-
-return await new PackagingServiceRegistry(product).PackageCommands.ExecuteAsync(args);
+return await LocalInstallerPackager.Create(args)
+    .UseProductManifest<AgentUpProductManifest>()
+    .InstallerApplication<AgentUpInstallerAppManifest>()
+    .InstallerOptionCli<AgentUpCliManifest>()
+    .InstallerOptionServer<AgentUpServerManifest>()
+    .InstallerOptionDesktop<AgentUpDesktopManifest>()
+    .InstallerOptionTray<AgentUpTrayManifest>()
+    .Windows(options => options
+        .WithUpgradeCode(AgentUpProduct.WindowsUpgradeCode)
+        .WithCliShimName(AgentUpProduct.Slug + ".cmd"))
+    .RunAsync();

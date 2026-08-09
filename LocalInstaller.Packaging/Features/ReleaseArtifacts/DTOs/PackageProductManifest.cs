@@ -1,4 +1,6 @@
-namespace AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Core.Shared.Models;
+
+namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
 public sealed partial record PackageProductManifest
 {
@@ -41,7 +43,7 @@ public sealed partial record PackageProductManifest
         string environmentPrefix)
     {
         ProductName = RequireSafeWindowsPathComponent(productName, nameof(ProductName));
-        Slug = global::AgentUp.Packaging.Shared.Providers.PackagePathValidator.RequireSafePathComponent(slug, nameof(Slug));
+        Slug = global::LocalInstaller.Packaging.Shared.Providers.PackagePathValidator.RequireSafePathComponent(slug, nameof(Slug));
         EnvironmentPrefix = RequireEnvironmentPrefix(environmentPrefix, nameof(EnvironmentPrefix));
     }
 
@@ -53,6 +55,8 @@ public sealed partial record PackageProductManifest
     public string? WindowsServiceName { get; init; }
     public string? WindowsCliShimName { get; init; }
     public string? WindowsServerUrl { get; init; }
+    public PackageProductArtifact? InstallerApplication { get; init; }
+    public IReadOnlyList<PackageProductArtifact> InstallerOptions { get; init; } = [];
 
     public bool IsValid()
         => IsValidWindowsPathComponent(ProductName)
@@ -67,7 +71,7 @@ public sealed partial record PackageProductManifest
     public static void Validate(PackageProductManifest manifest)
     {
         _ = RequireSafeWindowsPathComponent(manifest.ProductName, nameof(ProductName));
-        _ = global::AgentUp.Packaging.Shared.Providers.PackagePathValidator.RequireSafePathComponent(manifest.Slug, nameof(Slug));
+        _ = global::LocalInstaller.Packaging.Shared.Providers.PackagePathValidator.RequireSafePathComponent(manifest.Slug, nameof(Slug));
         _ = RequireEnvironmentPrefix(manifest.EnvironmentPrefix, nameof(EnvironmentPrefix));
 
         if (!IsValidOptionalWindowsPathComponent(manifest.Manufacturer))
@@ -92,7 +96,7 @@ public sealed partial record PackageProductManifest
         => Try(() => RequireSafeWindowsPathComponent(value, nameof(value)));
 
     private static bool IsValidSlug(string value)
-        => Try(() => global::AgentUp.Packaging.Shared.Providers.PackagePathValidator.RequireSafePathComponent(value, nameof(value)));
+        => Try(() => global::LocalInstaller.Packaging.Shared.Providers.PackagePathValidator.RequireSafePathComponent(value, nameof(value)));
 
     private static bool IsValidEnvironmentPrefix(string value)
         => Try(() => RequireEnvironmentPrefix(value, nameof(value)));
@@ -186,4 +190,24 @@ public sealed partial record PackageProductManifest
             return false;
         }
     }
+}
+
+public sealed record PackageProductArtifact(
+    string Id,
+    string DisplayName,
+    string Description,
+    string ExecutableName,
+    string SourceProjectPath,
+    string PayloadDirectoryName,
+    LocalInstallerArtifactTarget Target)
+{
+    public static PackageProductArtifact From(LocalInstallerArtifactDescriptor descriptor)
+        => new(
+            descriptor.Id,
+            descriptor.DisplayName,
+            descriptor.Description,
+            descriptor.ExecutableName,
+            descriptor.SourceProjectPath,
+            descriptor.PayloadDirectoryName,
+            descriptor.Target);
 }

@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Shared.Providers;
+namespace LocalInstaller.Packaging.Shared.Providers;
 
 public static class PackagePathValidator
 {

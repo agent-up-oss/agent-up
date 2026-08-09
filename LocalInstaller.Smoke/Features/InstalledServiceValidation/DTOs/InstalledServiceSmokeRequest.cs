@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
 
 public sealed record InstalledServiceSmokeRequest
 {

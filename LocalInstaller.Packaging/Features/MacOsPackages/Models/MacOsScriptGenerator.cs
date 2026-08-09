@@ -1,4 +1,4 @@
-namespace AgentUp.Packaging.Features.MacOsPackages.Models;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Models;
 
 public static class MacOsScriptGenerator
 {

@@ -1,9 +1,10 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation.Services;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.Installation.Services;
+using LocalInstaller.Core.Tests.Support;
 
-namespace AgentUp.Installers.Tests.Features.Installation.Provider;
+namespace LocalInstaller.Core.Tests.Features.Installation.Provider;
 
 [TestFixture]
 public class ProductComponentTests
@@ -109,7 +110,7 @@ public class ProductComponentTests
                 Is.True, $"Plan for {component.DisplayName} must contain the component's display name in at least one operation title");
         }
 
-        Assert.That(session.Manifest.Components, Has.Count.EqualTo(3));
+        Assert.That(session.Manifest.Components, Has.Count.EqualTo(4));
     }
 
     [Test]

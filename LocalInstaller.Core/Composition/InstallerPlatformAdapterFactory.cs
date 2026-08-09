@@ -1,21 +1,20 @@
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.MacOsInstallation.DTOs;
-using AgentUp.Installers.Features.MacOsInstallation.Models;
-using AgentUp.Installers.Features.MacOsInstallation.Providers;
-using AgentUp.Installers.Features.NixOsInstallation.Providers;
-using AgentUp.Installers.Features.UbuntuInstallation.DTOs;
-using AgentUp.Installers.Features.UbuntuInstallation.Models;
-using AgentUp.Installers.Features.UbuntuInstallation.Providers;
-using AgentUp.Installers.Features.WindowsInstallation.DTOs;
-using AgentUp.Installers.Features.WindowsInstallation.Models;
-using AgentUp.Installers.Features.WindowsInstallation.Providers;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.MacOsInstallation.DTOs;
+using LocalInstaller.Core.Features.MacOsInstallation.Providers;
+using LocalInstaller.Core.Features.NixOsInstallation.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.UbuntuInstallation.DTOs;
+using LocalInstaller.Core.Features.UbuntuInstallation.Models;
+using LocalInstaller.Core.Features.UbuntuInstallation.Providers;
+using LocalInstaller.Core.Features.WindowsInstallation.DTOs;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Providers;
 
-namespace AgentUp.Installers.Composition;
+namespace LocalInstaller.Core.Composition;
 
 public static partial class InstallerPlatformAdapterFactory
 {
@@ -62,11 +61,11 @@ public static partial class InstallerPlatformAdapterFactory
         foreach (var candidateDirectory in PayloadCandidateDirectories(appBaseDirectory))
         {
             var bundledPayloadRoot = System.IO.Path.Join(candidateDirectory, "payload");
-            if (IsPayloadRoot(bundledPayloadRoot))
+            if (IsPayloadRoot(bundledPayloadRoot, manifest))
                 return bundledPayloadRoot;
         }
 
-        throw new InvalidOperationException($"{manifest.PayloadRootVariable} must point at a payload root containing desktop, server, cli, and tray directories, or the installer app must include a bundled payload directory next to the executable.");
+        throw new InvalidOperationException($"{manifest.PayloadRootVariable} must point at a payload root containing the registered installer option directories, or the installer app must include a bundled payload directory next to the executable.");
     }
 
     public static IReadOnlyList<string> PayloadCandidateDirectories(string appBaseDirectory)
@@ -81,11 +80,16 @@ public static partial class InstallerPlatformAdapterFactory
         return candidates;
     }
 
-    private static bool IsPayloadRoot(string payloadRoot)
-        => Directory.Exists(System.IO.Path.Join(payloadRoot, "desktop")) &&
-           Directory.Exists(System.IO.Path.Join(payloadRoot, "server")) &&
-           Directory.Exists(System.IO.Path.Join(payloadRoot, "cli")) &&
-           Directory.Exists(System.IO.Path.Join(payloadRoot, "tray"));
+    private static bool IsPayloadRoot(string payloadRoot, ProductManifest manifest)
+    {
+        if (manifest.InstallableComponents.Count > 0)
+            return manifest.InstallableComponents.All(component => Directory.Exists(System.IO.Path.Join(payloadRoot, PayloadDirectoryName(component))));
+
+        return Directory.Exists(System.IO.Path.Join(payloadRoot, "desktop")) &&
+               Directory.Exists(System.IO.Path.Join(payloadRoot, "server")) &&
+               Directory.Exists(System.IO.Path.Join(payloadRoot, "cli")) &&
+               Directory.Exists(System.IO.Path.Join(payloadRoot, "tray"));
+    }
 
     private static void AddCandidate(List<string> candidates, string? candidate)
     {
@@ -103,10 +107,10 @@ public static partial class InstallerPlatformAdapterFactory
         var manifest = UbuntuInstallerManifest.ForProduct(product);
         var paths = UbuntuInstallerPaths.ForProduct(manifest);
         var payload = new UbuntuInstallPayload(
-            DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
-            ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
-            CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
-            TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
+            DesktopDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Desktop, payloadRoot, "desktop"),
+            ServerDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Server, payloadRoot, "server"),
+            CliDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Cli, payloadRoot, "cli"),
+            TrayDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Tray, payloadRoot, "tray"),
             ServiceFilePath: System.IO.Path.Join(payloadRoot, "service", manifest.ServiceUnitName),
             IconPath: System.IO.Path.Join(payloadRoot, "icon", product.ProductName + ".png"));
 
@@ -128,10 +132,10 @@ public static partial class InstallerPlatformAdapterFactory
     {
         var composition = Composition();
         var payload = new MacOsInstallPayload(
-            DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
-            ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
-            CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
-            TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"),
+            DesktopDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Desktop, payloadRoot, "desktop"),
+            ServerDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Server, payloadRoot, "server"),
+            CliDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Cli, payloadRoot, "cli"),
+            TrayDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Tray, payloadRoot, "tray"),
             IconPath: System.IO.Path.Join(payloadRoot, "icon", product.ProductName + ".png"));
 
         return new MacOsInstallerPlatformAdapter(
@@ -146,10 +150,10 @@ public static partial class InstallerPlatformAdapterFactory
     {
         var composition = Composition();
         var payload = new WindowsInstallPayload(
-            DesktopDirectory: System.IO.Path.Join(payloadRoot, "desktop"),
-            ServerDirectory: System.IO.Path.Join(payloadRoot, "server"),
-            CliDirectory: System.IO.Path.Join(payloadRoot, "cli"),
-            TrayDirectory: System.IO.Path.Join(payloadRoot, "tray"));
+            DesktopDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Desktop, payloadRoot, "desktop"),
+            ServerDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Server, payloadRoot, "server"),
+            CliDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Cli, payloadRoot, "cli"),
+            TrayDirectory: PayloadDirectoryFor(product, InstallerComponentTarget.Tray, payloadRoot, "tray"));
 
         return new WindowsInstallerPlatformAdapter(
             composition.Commands,
@@ -169,6 +173,23 @@ public static partial class InstallerPlatformAdapterFactory
             return "macOS";
         return "Linux";
     }
+
+    private static string PayloadDirectoryFor(
+        ProductManifest product,
+        InstallerComponentTarget target,
+        string payloadRoot,
+        string legacyDirectoryName)
+    {
+        var component = product.InstallableComponents.FirstOrDefault(c => ComponentTarget(c) == target);
+        return System.IO.Path.Join(payloadRoot, component is null ? legacyDirectoryName : PayloadDirectoryName(component));
+    }
+
+    private static string PayloadDirectoryName(ProductComponent component)
+        => string.IsNullOrWhiteSpace(component.PayloadDirectoryName) ? component.Id : component.PayloadDirectoryName;
+
+    private static InstallerComponentTarget? ComponentTarget(ProductComponent component)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, ignoreCase: true, out var target) ? target : null);
 
     public static bool IsNixOsHost()
     {

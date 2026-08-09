@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.UbuntuPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Services;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Controllers;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Controllers;
 
 public sealed class UbuntuPackageController : IUbuntuPackageController
 {

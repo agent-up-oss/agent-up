@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.WindowsInstallation.DTOs;
+namespace LocalInstaller.Core.Features.WindowsInstallation.DTOs;
 
 public sealed record WindowsInstallPayload(
     string DesktopDirectory,

@@ -1,9 +1,10 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
-using AgentUp.Packaging.Features.WindowsPackages.Providers;
-using AgentUp.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Features.WindowsPackages.Providers;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Tests.Support;
 
-namespace AgentUp.Packaging.Tests.Features.WindowsPackages.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.WindowsPackages.Provider;
 
 [TestFixture]
 public class WindowsWixPackagingToolTests

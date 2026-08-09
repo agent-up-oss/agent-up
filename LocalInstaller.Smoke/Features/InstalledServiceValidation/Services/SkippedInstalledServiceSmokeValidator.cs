@@ -1,8 +1,8 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
 
 public sealed class SkippedInstalledServiceSmokeValidator : IInstalledServiceSmokeValidator
 {

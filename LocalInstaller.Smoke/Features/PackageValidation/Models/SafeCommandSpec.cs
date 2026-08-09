@@ -1,4 +1,4 @@
-namespace AgentUp.PackageSmoke.Features.PackageValidation.Models;
+namespace LocalInstaller.Smoke.Features.PackageValidation.Models;
 
 internal readonly record struct SafeCommandSpec(
     SmokeExecutable Executable,

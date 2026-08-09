@@ -1,8 +1,7 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Features.WindowsPackages.Interfaces;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Providers;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Providers;
 
 public sealed class WindowsFileSystemPackageWriter : PackageFileSystem, IWindowsPackageWriter
 {

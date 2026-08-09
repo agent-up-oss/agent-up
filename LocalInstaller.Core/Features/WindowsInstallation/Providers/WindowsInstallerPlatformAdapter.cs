@@ -1,14 +1,14 @@
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.WindowsInstallation.DTOs;
-using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
-using AgentUp.Installers.Features.WindowsInstallation.Models;
-using AgentUp.Installers.Features.WindowsInstallation.Services;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.DTOs;
+using LocalInstaller.Core.Features.WindowsInstallation.Interfaces;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Services;
 
-namespace AgentUp.Installers.Features.WindowsInstallation.Providers;
+namespace LocalInstaller.Core.Features.WindowsInstallation.Providers;
 
 public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
 {
@@ -224,9 +224,10 @@ public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
     }
 
     private static InstallerComponentTarget TargetFor(ProductComponent component)
-        => Enum.TryParse<InstallerComponentTarget>(component.Id, ignoreCase: true, out var t)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, ignoreCase: true, out var t)
             ? t
-            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the Windows adapter.");
+            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the Windows adapter."));
 
     public async Task<ValidationReport> ValidateInstalledStateAsync(
         InstallerSession session,

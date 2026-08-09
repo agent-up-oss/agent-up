@@ -1,20 +1,19 @@
+using AgentUp.InstallerApp.Composition;
 using AgentUp.InstallerApp.Features.Capabilities.Controllers;
 using AgentUp.InstallerApp.Features.Capabilities.Factories;
 using AgentUp.InstallerApp.Features.Capabilities.Providers;
-using AgentUp.InstallerApp.Composition;
 using AgentUp.InstallerApp.Features.Installation.ViewModels;
 using AgentUp.InstallerApp.Features.Installation.Views;
-using AgentUp.InstallerApp.Tests.Support;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.NixOsInstallation.Interfaces;
-using AgentUp.Installers.Features.NixOsInstallation.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using LocalInstaller.App.Tests.Support;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.NixOsInstallation.Interfaces;
+using LocalInstaller.Core.Features.NixOsInstallation.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Headless;
+namespace LocalInstaller.App.Tests.Features.Installation.Headless;
 
 [TestFixture]
 public class InstallerWindowBehaviorTests

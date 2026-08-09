@@ -1,9 +1,8 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.MacOsPackages.Models;
-using AgentUp.Packaging.Features.MacOsPackages.Providers;
+using LocalInstaller.Packaging.Features.MacOsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.MacOsPackages.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Services;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Services;
 
 public sealed class MacOsPackageStager
 {
@@ -15,6 +14,9 @@ public sealed class MacOsPackageStager
     }
 
     public void Stage(MacOsPackageLayout layout, MacOsPackageManifest manifest)
+        => Stage(layout, manifest, null);
+
+    public void Stage(MacOsPackageLayout layout, MacOsPackageManifest manifest, PackageRequest? request)
     {
         var plists = new MacOsPlistGenerator(manifest);
         var installerAppName = $"{manifest.InstallerManifest.ProductName} Installer";
@@ -34,6 +36,14 @@ public sealed class MacOsPackageStager
         _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "server"));
         _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "cli"));
         _writer.CopyDirectory(layout.TrayPublishDirectory, Path.Join(layout.InstallerPayloadDirectory, "tray"));
+        if (request is not null)
+        {
+            foreach (var option in request.ProductManifest.InstallerOptions)
+            {
+                var payloadName = string.IsNullOrWhiteSpace(option.PayloadDirectoryName) ? option.Id : option.PayloadDirectoryName;
+                _writer.CopyDirectory(Path.Join(request.StageDirectory, payloadName), Path.Join(layout.InstallerPayloadDirectory, payloadName));
+            }
+        }
 
         var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
         var installerPostInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "postinstall");

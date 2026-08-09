@@ -1,9 +1,7 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Installers.Features.WindowsInstallation.Models;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Models;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Models;
 
 public sealed record WindowsPackageLayout(
     string StageDirectory,

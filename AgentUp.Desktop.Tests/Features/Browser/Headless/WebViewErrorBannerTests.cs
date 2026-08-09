@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using AgentUp.Desktop.Features.FirstRun.Services;

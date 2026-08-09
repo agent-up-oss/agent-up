@@ -1,7 +1,7 @@
 using System.Xml.Linq;
 using AgentUp.InstallerApp.Features.Installation.Views;
 
-namespace AgentUp.InstallerApp.Tests.Features.Installation.Provider;
+namespace LocalInstaller.App.Tests.Features.Installation.Provider;
 
 [TestFixture]
 public class InstallerProjectIconTests

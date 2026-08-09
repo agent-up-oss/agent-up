@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Tests.Features.ReleaseArtifacts.Provider;
+namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Provider;
 
 [TestFixture]
 public class PackagePathValidatorTests

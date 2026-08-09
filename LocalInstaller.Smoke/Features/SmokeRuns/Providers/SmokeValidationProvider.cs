@@ -1,13 +1,13 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Controllers;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Controllers;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Controllers;
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Controllers;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstallerFlowValidation.Controllers;
+using LocalInstaller.Smoke.Features.InstallerFlowValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Controllers;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.Providers;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.Providers;
 
 public sealed class SmokeValidationProvider : ISmokeValidationProvider
 {
@@ -80,7 +80,12 @@ public sealed class SmokeValidationProvider : ISmokeValidationProvider
             product.ArtifactBaseName,
             product.DisplayName,
             product.InstallDirName,
-            product.WorkspaceConfigFileName);
+            product.WorkspaceConfigFileName,
+            product.InstallerExecutableName,
+            product.DesktopExecutableName,
+            product.ServerExecutableName,
+            product.CliExecutableName,
+            product.TrayExecutableName);
 
     private static InstalledServiceProductManifest ToInstalledServiceProduct(SmokeProductManifest product)
         => new(
@@ -89,7 +94,12 @@ public sealed class SmokeValidationProvider : ISmokeValidationProvider
             product.ArtifactBaseName,
             product.DisplayName,
             product.InstallDirName,
-            product.WorkspaceConfigFileName);
+            product.WorkspaceConfigFileName,
+            product.InstallerExecutableName,
+            product.DesktopExecutableName,
+            product.ServerExecutableName,
+            product.CliExecutableName,
+            product.TrayExecutableName);
 
     private static InstallerFlowProductManifest ToInstallerFlowProduct(SmokeProductManifest product)
         => new(

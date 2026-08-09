@@ -1,14 +1,12 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
-using AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Fake;
-using AgentUp.PackageSmoke.Tests.Features.PackageValidation.Fake;
-using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Fake;
+using LocalInstaller.Smoke.Tests.Features.PackageValidation.Fake;
+using LocalInstaller.Smoke.Tests.Features.RuntimeSecurity.Fake;
+using LocalInstaller.Smoke.Tests.Support;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Provider;
 
 [TestFixture]
 public sealed class InstalledServiceSmokeValidatorProductTests
@@ -19,7 +17,12 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         ArtifactBaseName: "acme",
         DisplayName: "Acme",
         InstallDirName: "Acme",
-        WorkspaceConfigFileName: "acme.json");
+        WorkspaceConfigFileName: "acme.json",
+        InstallerExecutableName: "Acme.InstallerApp",
+        DesktopExecutableName: "Acme.Desktop",
+        ServerExecutableName: "Acme.Server",
+        CliExecutableName: "Acme.CLI",
+        TrayExecutableName: "Acme.Tray");
 
     private static readonly InstalledServiceProductManifest AgentUpProduct = new(
         ServiceName: "agent-up-server",
@@ -27,7 +30,12 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         ArtifactBaseName: "agent-up",
         DisplayName: "Agent-Up",
         InstallDirName: "Agent-Up",
-        WorkspaceConfigFileName: "agent-up.json");
+        WorkspaceConfigFileName: "agent-up.json",
+        InstallerExecutableName: "AgentUp.InstallerApp",
+        DesktopExecutableName: "AgentUp.Desktop",
+        ServerExecutableName: "AgentUp.Server",
+        CliExecutableName: "AgentUp.CLI",
+        TrayExecutableName: "AgentUp.Tray");
 
     [Test]
     public async Task ValidateAsync_acmeProduct_doesNotProbeAgentUpServiceOrCliNames()
@@ -441,6 +449,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
 
     private static void SetupUbuntuSystemFiles(string systemRoot, string shimName)
     {
+        var trayExecutableName = shimName == "agent-up" ? "AgentUp.Tray" : "Acme.Tray";
         var appsDir = Path.Join(systemRoot, "usr", "share", "applications");
         var pixmapsDir = Path.Join(systemRoot, "usr", "share", "pixmaps");
         var trayDir = Path.Join(systemRoot, "opt", shimName, "tray");
@@ -451,15 +460,16 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         Directory.CreateDirectory(xdgDir);
         File.WriteAllText(Path.Join(appsDir, $"{shimName}.desktop"), "");
         File.WriteAllText(Path.Join(pixmapsDir, $"{shimName}.png"), "");
-        File.WriteAllText(Path.Join(trayDir, "AgentUp.Tray"), "");
+        File.WriteAllText(Path.Join(trayDir, trayExecutableName), "");
         File.WriteAllText(Path.Join(xdgDir, $"{shimName}-tray.desktop"), "");
     }
 
     private static void RemoveUbuntuSystemFiles(string systemRoot, string shimName)
     {
+        var trayExecutableName = shimName == "agent-up" ? "AgentUp.Tray" : "Acme.Tray";
         File.Delete(Path.Join(systemRoot, "usr", "share", "applications", $"{shimName}.desktop"));
         File.Delete(Path.Join(systemRoot, "usr", "share", "pixmaps", $"{shimName}.png"));
-        File.Delete(Path.Join(systemRoot, "opt", shimName, "tray", "AgentUp.Tray"));
+        File.Delete(Path.Join(systemRoot, "opt", shimName, "tray", trayExecutableName));
         File.Delete(Path.Join(systemRoot, "etc", "xdg", "autostart", $"{shimName}-tray.desktop"));
     }
 

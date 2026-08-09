@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using System.Text;
 using AgentUp.InstallerApp.Features.Logging.Tools;
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.WindowsInstallation.Models;
 using Avalonia;
 using Avalonia.ReactiveUI;
+using LocalInstaller.Core.Composition;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Core.Shared.Models;
 
 namespace AgentUp.InstallerApp.Composition;
 
@@ -19,6 +20,7 @@ public sealed class LocalInstallerAppBuilder
 {
     private readonly string[] _args;
     private readonly List<ProductComponent> _components = [];
+    private readonly List<ProductComponent> _installerOptions = [];
     private string? _productName;
     private string? _slug;
     private string? _environmentPrefix;
@@ -38,9 +40,43 @@ public sealed class LocalInstallerAppBuilder
         return this;
     }
 
+    public LocalInstallerAppBuilder UseProductManifest<TManifest>()
+        where TManifest : LocalInstallerProductManifest, new()
+    {
+        var manifest = new TManifest();
+        _productName = manifest.ProductName;
+        _slug = manifest.Slug;
+        _environmentPrefix = manifest.EnvironmentPrefix;
+        _manufacturer = manifest.Manufacturer;
+        return this;
+    }
+
     public LocalInstallerAppBuilder Component(string id, string displayName, string description)
     {
         _components.Add(new ProductComponent(id, displayName, description));
+        return this;
+    }
+
+    public LocalInstallerAppBuilder InstallerOptionCli<TManifest>()
+        where TManifest : LocalInstallerCliManifest, new()
+        => InstallerOption<TManifest>();
+
+    public LocalInstallerAppBuilder InstallerOptionServer<TManifest>()
+        where TManifest : LocalInstallerServerManifest, new()
+        => InstallerOption<TManifest>();
+
+    public LocalInstallerAppBuilder InstallerOptionDesktop<TManifest>()
+        where TManifest : LocalInstallerDesktopManifest, new()
+        => InstallerOption<TManifest>();
+
+    public LocalInstallerAppBuilder InstallerOptionTray<TManifest>()
+        where TManifest : LocalInstallerTrayManifest, new()
+        => InstallerOption<TManifest>();
+
+    public LocalInstallerAppBuilder InstallerOption<TManifest>()
+        where TManifest : LocalInstallerArtifactManifest, new()
+    {
+        _installerOptions.Add(new TManifest().ToProductComponent());
         return this;
     }
 
@@ -53,6 +89,14 @@ public sealed class LocalInstallerAppBuilder
     public LocalInstallerAppBuilder UpgradeCode(string upgradeCode)
     {
         _upgradeCode = upgradeCode;
+        return this;
+    }
+
+    public LocalInstallerAppBuilder Windows(Action<LocalInstallerWindowsOptions> configure)
+    {
+        var options = new LocalInstallerWindowsOptions();
+        configure(options);
+        _upgradeCode = options.UpgradeCode;
         return this;
     }
 
@@ -120,12 +164,25 @@ public sealed class LocalInstallerAppBuilder
         if (string.IsNullOrWhiteSpace(_environmentPrefix))
             throw new InvalidOperationException("LocalInstaller.App requires an environment prefix.");
 
+        ValidateInstallerOptions();
+
         return new ProductManifest(_productName, _slug, _environmentPrefix)
         {
             Components = _components.ToArray(),
+            InstallerOptions = _installerOptions.ToArray(),
             Manufacturer = _manufacturer,
             WindowsUpgradeCode = _upgradeCode
         };
+    }
+
+    private void ValidateInstallerOptions()
+    {
+        var duplicate = _installerOptions
+            .GroupBy(c => c.Id, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (duplicate is not null)
+            throw new InvalidOperationException($"LocalInstaller.App installer option '{duplicate.Key}' is registered more than once.");
     }
 
     private void SetBundledPayloadRoot(ProductManifest product)
@@ -207,5 +264,16 @@ public sealed class LocalInstallerAppBuilder
 
         await process.WaitForExitAsync();
         return process.ExitCode;
+    }
+}
+
+public sealed class LocalInstallerWindowsOptions
+{
+    public string? UpgradeCode { get; private set; }
+
+    public LocalInstallerWindowsOptions WithUpgradeCode(string upgradeCode)
+    {
+        UpgradeCode = upgradeCode;
+        return this;
     }
 }

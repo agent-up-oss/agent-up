@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.WindowsPackages.Models;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Interfaces;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Interfaces;
 
 public interface IWindowsPackagingTool
 {

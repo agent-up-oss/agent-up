@@ -1,10 +1,8 @@
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
-using AgentUp.Packaging.Features.UbuntuPackages.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Services;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Services;
 
 public sealed class UbuntuPackageStager
 {
@@ -32,6 +30,11 @@ public sealed class UbuntuPackageStager
         _writer.CopyDirectory(layout.ServerPublishDirectory, Path.Join(payloadDir, "server"));
         _writer.CopyDirectory(layout.CliPublishDirectory, Path.Join(payloadDir, "cli"));
         _writer.CopyDirectory(layout.TrayPublishDirectory, Path.Join(payloadDir, "tray"));
+        foreach (var option in request.ProductManifest.InstallerOptions)
+        {
+            var payloadName = string.IsNullOrWhiteSpace(option.PayloadDirectoryName) ? option.Id : option.PayloadDirectoryName;
+            _writer.CopyDirectory(Path.Join(request.StageDirectory, payloadName), Path.Join(payloadDir, payloadName));
+        }
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "packaging", "linux", manifest.ServiceName),
             Path.Join(payloadDir, "service", manifest.ServiceName));

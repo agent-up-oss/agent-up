@@ -1,21 +1,18 @@
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.Installers.Features.Installation.Services;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.Installers.Features.Installation.Interfaces;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.PrerequisiteChecks.Providers;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
-using AgentUp.Installers.Features.WindowsInstallation.DTOs;
-using AgentUp.Installers.Features.WindowsInstallation.Interfaces;
-using AgentUp.Installers.Features.WindowsInstallation.Models;
-using AgentUp.Installers.Features.WindowsInstallation.Providers;
 using System.Text;
 using System.Xml.Linq;
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.Installation.Providers;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Providers;
+using LocalInstaller.Core.Features.WindowsInstallation.DTOs;
+using LocalInstaller.Core.Features.WindowsInstallation.Interfaces;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Providers;
+using LocalInstaller.Core.Tests.Support;
 
-namespace AgentUp.Installers.Tests.Features.WindowsInstallation.Provider;
+namespace LocalInstaller.Core.Tests.Features.WindowsInstallation.Provider;
 
 [TestFixture]
 public class WindowsInstallerPlatformAdapterTests

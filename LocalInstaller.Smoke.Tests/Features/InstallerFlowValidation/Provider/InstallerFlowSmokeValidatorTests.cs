@@ -1,17 +1,7 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.DTOs;
-using AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation;
-using AgentUp.Installers.Features.Installation;
-using AgentUp.Installers.Features.Installation.Models;
-using AgentUp.Installers.Features.Installation.Providers;
-using AgentUp.PackageSmoke.Features.InstallerFlowValidation.Services;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Smoke.Features.InstallerFlowValidation.Services;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstallerFlowValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.InstallerFlowValidation.Provider;
 
 [TestFixture]
 public class InstallerFlowSmokeValidatorTests

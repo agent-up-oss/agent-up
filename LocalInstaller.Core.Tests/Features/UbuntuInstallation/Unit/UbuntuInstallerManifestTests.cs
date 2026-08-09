@@ -1,6 +1,7 @@
-using AgentUp.Installers.Features.UbuntuInstallation.Models;
+using LocalInstaller.Core.Features.UbuntuInstallation.Models;
+using LocalInstaller.Core.Tests.Support;
 
-namespace AgentUp.Installers.Tests.Features.UbuntuInstallation.Unit;
+namespace LocalInstaller.Core.Tests.Features.UbuntuInstallation.Unit;
 
 [TestFixture]
 public class UbuntuInstallerManifestTests

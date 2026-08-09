@@ -1,6 +1,6 @@
-using AgentUp.Installers.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Interfaces;
 
-namespace AgentUp.Installers.Features.UbuntuInstallation.Interfaces;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.Interfaces;
 
 public interface IUbuntuInstallerFileSystem : IUnixInstallerFileSystem
 {

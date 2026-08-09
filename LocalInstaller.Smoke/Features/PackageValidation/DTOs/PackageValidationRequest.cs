@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Shared.Providers;
+using LocalInstaller.Smoke.Shared.Providers;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
 public sealed record PackageValidationRequest
 {

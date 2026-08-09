@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Features.UbuntuPackages.Models;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Models;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
 
 public interface IUbuntuPackageTool
 {

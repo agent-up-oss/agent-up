@@ -1,11 +1,11 @@
-using AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Fake;
-using AgentUp.PackageSmoke.Tests.Features.RuntimeSecurity.Fake;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Services;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
-using AgentUp.PackageSmoke.Tests.Features.PackageValidation.Fake;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Factories;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Fake;
+using LocalInstaller.Smoke.Tests.Features.PackageValidation.Fake;
+using LocalInstaller.Smoke.Tests.Features.RuntimeSecurity.Fake;
 
-namespace AgentUp.PackageSmoke.Tests.Features.InstalledServiceValidation.Provider;
+namespace LocalInstaller.Smoke.Tests.Features.InstalledServiceValidation.Provider;
 
 [TestFixture]
 public sealed class InstalledServiceSmokeValidatorFactoryTests

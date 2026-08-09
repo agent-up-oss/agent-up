@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
 
 public sealed class MacOsTrayAutoStartProvider
 {

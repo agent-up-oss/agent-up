@@ -1,20 +1,20 @@
-using AgentUp.Packaging.Features.MacOsPackages.Controllers;
-using AgentUp.Packaging.Features.MacOsPackages.Providers;
-using AgentUp.Packaging.Features.MacOsPackages.Services;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Services;
-using AgentUp.Packaging.Features.UbuntuPackages.Controllers;
-using AgentUp.Packaging.Features.UbuntuPackages.Providers;
-using AgentUp.Packaging.Features.UbuntuPackages.Services;
-using AgentUp.Packaging.Features.WindowsPackages.Controllers;
-using AgentUp.Packaging.Features.WindowsPackages.Providers;
-using AgentUp.Packaging.Features.WindowsPackages.Services;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Shared.Providers;
+using LocalInstaller.Packaging.Features.MacOsPackages.Controllers;
+using LocalInstaller.Packaging.Features.MacOsPackages.Providers;
+using LocalInstaller.Packaging.Features.MacOsPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Controllers;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Providers;
+using LocalInstaller.Packaging.Features.UbuntuPackages.Services;
+using LocalInstaller.Packaging.Features.WindowsPackages.Controllers;
+using LocalInstaller.Packaging.Features.WindowsPackages.Providers;
+using LocalInstaller.Packaging.Features.WindowsPackages.Services;
+using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Shared.Providers;
 
-namespace AgentUp.Packaging.Shared.Factories;
+namespace LocalInstaller.Packaging.Shared.Factories;
 
 public sealed partial class PackagingServiceRegistry
 {

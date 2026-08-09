@@ -1,8 +1,8 @@
 using System.Text.Json;
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-using AgentUp.PackageSmoke.Features.SmokeRuns.Interfaces;
+using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
+using LocalInstaller.Smoke.Features.SmokeRuns.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.SmokeRuns.Providers;
+namespace LocalInstaller.Smoke.Features.SmokeRuns.Providers;
 
 public sealed class SmokeCommandParser : ISmokeCommandParser
 {

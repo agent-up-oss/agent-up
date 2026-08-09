@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Shared.Interfaces;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Interfaces;
 
 public interface IPackageWriter : ISymbolicLinkPackageFileSystem
 {

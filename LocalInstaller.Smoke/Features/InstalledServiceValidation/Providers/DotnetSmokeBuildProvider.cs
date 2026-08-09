@@ -1,7 +1,7 @@
-using AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
-using AgentUp.PackageSmoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.DTOs;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.Providers;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
 
 public sealed class DotnetSmokeBuildProvider(ICommandRunner commands)
 {

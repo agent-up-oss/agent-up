@@ -1,7 +1,7 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
-using AgentUp.Packaging.Features.WindowsPackages.Services;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.WindowsPackages.Services;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Controllers;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Controllers;
 
 public sealed class WindowsPackageController : IWindowsPackageController
 {

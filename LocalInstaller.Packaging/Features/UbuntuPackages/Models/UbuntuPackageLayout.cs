@@ -1,8 +1,6 @@
-using AgentUp.Packaging.Features.UbuntuPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.UbuntuPackages.Models;
+namespace LocalInstaller.Packaging.Features.UbuntuPackages.Models;
 
 public sealed record UbuntuPackageLayout(
     string DebRoot,

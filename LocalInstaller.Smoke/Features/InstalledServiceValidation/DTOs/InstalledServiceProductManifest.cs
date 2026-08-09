@@ -1,6 +1,6 @@
-using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
 
-namespace AgentUp.PackageSmoke.Features.InstalledServiceValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
 
 public sealed record InstalledServiceProductManifest(
     string ServiceName,
@@ -8,7 +8,12 @@ public sealed record InstalledServiceProductManifest(
     string ArtifactBaseName,
     string DisplayName,
     string InstallDirName,
-    string WorkspaceConfigFileName = "agent-up.json")
+    string WorkspaceConfigFileName = "agent-up.json",
+    string InstallerExecutableName = "installer",
+    string DesktopExecutableName = "desktop",
+    string ServerExecutableName = "server",
+    string CliExecutableName = "cli",
+    string TrayExecutableName = "tray")
 {
     internal SmokeProductConfig ToConfig()
         => new(
@@ -17,5 +22,10 @@ public sealed record InstalledServiceProductManifest(
             ArtifactBaseName,
             DisplayName,
             InstallDirName,
-            WorkspaceConfigFileName);
+            WorkspaceConfigFileName,
+            InstallerExecutableName,
+            DesktopExecutableName,
+            ServerExecutableName,
+            CliExecutableName,
+            TrayExecutableName);
 }

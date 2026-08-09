@@ -4,7 +4,7 @@ Smoke-test runner for validating freshly installed products on Windows, macOS, U
 and NixOS. Checks that services are running, CLI shims resolve, tray agents autostart,
 and package signatures are intact.
 
-Provides `PackageSmokeServiceRegistry`, `SmokeProductManifest`, and
+Provides `LocalInstallerSmoke`, `SmokeProductManifest`, and
 `InstalledServiceSmokeRequest`. Wire up in a `Program.cs` console app that CI invokes
 after a test install.
 
@@ -17,19 +17,22 @@ dotnet add package LocalInstaller.Smoke
 ## Usage
 
 ```csharp
-using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-using AgentUp.PackageSmoke.Shared.Factories;
+using AgentUp.PackageSmoke.Composition;
+using Acme.Studio.Cli;
+using Acme.Studio.Desktop;
+using Acme.Studio.Installer;
+using Acme.Studio.Server;
+using Acme.Studio.Tray;
 
-var product = new SmokeProductManifest(
-    ServiceName: "acme-studio-server",
-    CliShimName: "acme-studio",
-    ArtifactBaseName: "acme-studio",
-    DisplayName: "Acme Studio",
-    InstallDirName: "Acme Studio",
-    WorkspaceConfigFileName: "acme-studio.json");
-
-var controller = PackageSmokeServiceRegistry.CreateSmokeCommandController(product);
-return await controller.ExecuteAsync(args, Console.Out, Console.Error);
+return await LocalInstallerSmoke.Create(args)
+    .UseProductManifest<AcmeStudioProductManifest>()
+    .InstallerApplication<AcmeStudioInstallerAppManifest>()
+    .InstallerOptionCli<AcmeStudioCliManifest>()
+    .InstallerOptionServer<AcmeStudioServerManifest>()
+    .InstallerOptionDesktop<AcmeStudioDesktopManifest>()
+    .InstallerOptionTray<AcmeStudioTrayManifest>()
+    .WorkspaceConfigFileName("acme-studio.json")
+    .RunAsync(Console.Out, Console.Error);
 ```
 
 Consumers can pass the product manifest directly through the registry or override it

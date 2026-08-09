@@ -1,9 +1,7 @@
-using AgentUp.Packaging.Features.WindowsPackages.Interfaces;
-using AgentUp.Packaging.Shared.Interfaces;
-using AgentUp.Installers.Features.WindowsInstallation.Models;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Models;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Models;
 
 public sealed record WindowsPackageManifest(WindowsInstallerManifest InstallerManifest)
 {
@@ -41,11 +39,11 @@ public sealed class WindowsWixSourceGenerator
         => Generator().BundleWxs(layout.ToInstallerLayout());
 
     public static string LicenseRtf(string productName = "Agent-Up")
-        => Installers.Features.WindowsInstallation.Models.WindowsWixSourceGenerator.LicenseRtf(productName);
+        => Core.Features.WindowsInstallation.Models.WindowsWixSourceGenerator.LicenseRtf(productName);
 
     public static string CliShimText()
-        => Installers.Features.WindowsInstallation.Models.WindowsWixSourceGenerator.CliShimText();
+        => Core.Features.WindowsInstallation.Models.WindowsWixSourceGenerator.CliShimText();
 
-    private Installers.Features.WindowsInstallation.Models.WindowsWixSourceGenerator Generator()
+    private Core.Features.WindowsInstallation.Models.WindowsWixSourceGenerator Generator()
         => new(_manifest.InstallerManifest);
 }

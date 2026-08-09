@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace AgentUp.PackageSmoke.Features.RuntimeSecurity.Interfaces;
+namespace LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
 
 public interface INetworkStateProvider
 {

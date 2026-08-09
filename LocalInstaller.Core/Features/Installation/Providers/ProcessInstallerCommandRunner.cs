@@ -1,7 +1,7 @@
-using AgentUp.Installers.Features.PrerequisiteChecks.Interfaces;
-using AgentUp.Installers.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
 
-namespace AgentUp.Installers.Features.Installation.Providers;
+namespace LocalInstaller.Core.Features.Installation.Providers;
 
 public sealed class ProcessInstallerCommandRunner : ICommandRunner
 {

@@ -1,4 +1,4 @@
-namespace AgentUp.Installers.Features.UbuntuInstallation.Models;
+namespace LocalInstaller.Core.Features.UbuntuInstallation.Models;
 
 public sealed partial record UbuntuInstallerPaths(
     string RootDirectory,

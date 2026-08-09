@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 
-namespace AgentUp.InstallerApp.Tests.Support;
+namespace LocalInstaller.App.Tests.Support;
 
 internal static class HeadlessExtensions
 {

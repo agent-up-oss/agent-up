@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace AgentUp.PackageSmoke.Features.PackageValidation.DTOs;
+namespace LocalInstaller.Smoke.Features.PackageValidation.DTOs;
 
 public enum FindingSeverity
 {

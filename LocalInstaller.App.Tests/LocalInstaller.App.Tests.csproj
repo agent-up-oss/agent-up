@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
-    <Using Include="AgentUp.InstallerApp.Tests.Support" />
+    <Using Include="LocalInstaller.App.Tests.Support" />
   </ItemGroup>
 
   <ItemGroup>

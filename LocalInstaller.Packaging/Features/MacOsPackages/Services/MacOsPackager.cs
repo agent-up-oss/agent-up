@@ -1,10 +1,9 @@
-using AgentUp.Packaging.Features.MacOsPackages.Interfaces;
-using AgentUp.Packaging.Features.ReleaseArtifacts.Controllers;
-using AgentUp.Packaging.Features.MacOsPackages.Models;
-using AgentUp.Packaging.Features.MacOsPackages.Providers;
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.MacOsPackages.Interfaces;
+using LocalInstaller.Packaging.Features.MacOsPackages.Models;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.Controllers;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.MacOsPackages.Services;
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Services;
 
 public sealed class MacOsPackager
 {
@@ -32,7 +31,7 @@ public sealed class MacOsPackager
             cancellationToken);
 
         var manifest = MacOsPackageManifest.From(request);
-        new MacOsPackageStager(_writer).Stage(layout, manifest);
+        new MacOsPackageStager(_writer).Stage(layout, manifest, request);
 
         await _packageTool.BuildComponentPackagesAsync(request, layout, manifest, cancellationToken);
         await _packageTool.BuildProductPackageAsync(layout, cancellationToken);

@@ -1,6 +1,6 @@
-using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 
-namespace AgentUp.Packaging.Features.WindowsPackages.Controllers;
+namespace LocalInstaller.Packaging.Features.WindowsPackages.Controllers;
 
 public interface IWindowsPackageController
 {
