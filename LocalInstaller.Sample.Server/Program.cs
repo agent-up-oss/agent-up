@@ -2,7 +2,7 @@ using System.Net;
 using LocalInstaller.Sample;
 
 var url = Environment.GetEnvironmentVariable(SampleProduct.EnvironmentPrefix + "_SERVER_URL")
-    ?? SampleProduct.WindowsServerUrl + "/";
+    ?? SampleProduct.ServerUrl + "/";
 
 if (!url.EndsWith('/'))
     url += "/";

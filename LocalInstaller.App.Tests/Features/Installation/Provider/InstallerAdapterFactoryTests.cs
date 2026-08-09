@@ -126,12 +126,14 @@ public class InstallerAdapterFactoryTests
     }
 
     [Test]
-    public void Program_skipsBundledPayloadResolutionWhenNixOsLookupOnlyModeIsEnabled()
+    public void SampleInstallerProgram_usesFluentApiWithoutPlatformAdapterLogic()
     {
         var program = File.ReadAllText(Path.Join(FindRepositoryRoot(TestContext.CurrentContext.TestDirectory), "LocalInstaller.Sample.InstallerApp", "Program.cs"));
 
-        Assert.That(program, Does.Contain("InstallerPlatformAdapterFactory.IsNixOsHost()"));
-        Assert.That(program, Does.Contain("return;"));
+        Assert.That(program, Does.Contain("LocalInstallerApp.Create(args)"));
+        Assert.That(program, Does.Contain(".RunAsync<App>()"));
+        Assert.That(program, Does.Not.Contain("InstallerPlatformAdapterFactory"));
+        Assert.That(program, Does.Not.Contain("Windows"));
     }
 
     [Test]

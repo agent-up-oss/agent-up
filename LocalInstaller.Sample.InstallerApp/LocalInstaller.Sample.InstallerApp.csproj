@@ -8,9 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\LocalInstaller.Sample.Shared\SampleProduct.cs" Link="SampleProduct.cs" />
     <ProjectReference Include="..\LocalInstaller.App\LocalInstaller.App.csproj" />
-    <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Sample.Shared\LocalInstaller.Sample.Shared.csproj" />
   </ItemGroup>
 
 </Project>
