@@ -137,7 +137,7 @@ public sealed class WorkspaceStreamStateServiceTests
     }
 
     [Test]
-    public void SessionLaunching_Requires_Session_Active_And_First_Frame()
+    public void SessionLaunching_Before_Session_Active_Then_Streaming_When_Session_Up()
     {
         var (svc, bus, _, _) = Build();
         var id = Guid.NewGuid().ToString();
@@ -146,10 +146,11 @@ public sealed class WorkspaceStreamStateServiceTests
         svc.OnWorkspaceStarted(workspace);
         svc.OnCurrentTargetChanged(id, "http://localhost:5004/", CancellationToken.None);
 
-        // We can't easily fire a healthy-port event here without wiring through AppHealthCheckService's
-        // internals. Instead assert that with no health signal + no session, state is AppConnecting.
+        // Without a session yet, state must be SessionLaunching (or app_connecting if health
+        // hasn't landed). Once session becomes active, state transitions to streaming — the
+        // RDP viewer HTML page is responsible for showing its own "connecting…" state until
+        // the first frame lands, so we don't gate Streaming on frame liveness (would deadlock).
         var events = Capture(bus, () => svc.OnSessionActive(id));
-        // Session active alone is not enough to reach Streaming.
-        Assert.That(events.All(e => e.Kind != "streaming"), Is.True);
+        Assert.That(events.Any(e => e.Kind == "streaming"), Is.True);
     }
 }

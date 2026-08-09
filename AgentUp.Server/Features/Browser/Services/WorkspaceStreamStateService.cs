@@ -87,7 +87,6 @@ public sealed class WorkspaceStreamStateService : IDisposable
                 IsRunning = true,
                 PortHealth = new Dictionary<string, string>(),
                 SessionActive = false,
-                FirstFrameReceived = false,
                 CurrentTarget = null,
             };
         }
@@ -99,21 +98,15 @@ public sealed class WorkspaceStreamStateService : IDisposable
         CancelStandaloneProbe(workspaceId);
         lock (_lock)
         {
-            if (_inputs.TryGetValue(workspaceId, out var current))
-            {
-                _inputs[workspaceId] = current with
+            _inputs[workspaceId] = _inputs.TryGetValue(workspaceId, out var current)
+                ? current with
                 {
                     IsRunning = false,
                     PortHealth = new Dictionary<string, string>(),
                     SessionActive = false,
-                    FirstFrameReceived = false,
                     CurrentTarget = null,
-                };
-            }
-            else
-            {
-                _inputs[workspaceId] = new WorkspaceStreamInputs { IsRunning = false, PortHealth = new Dictionary<string, string>() };
-            }
+                }
+                : new WorkspaceStreamInputs { IsRunning = false, PortHealth = new Dictionary<string, string>() };
         }
         RecomputeAndPublish(workspaceId);
     }
@@ -146,18 +139,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
         lock (_lock)
         {
             if (!_inputs.TryGetValue(workspaceId, out var current)) return;
-            _inputs[workspaceId] = current with { SessionActive = false, FirstFrameReceived = false };
-        }
-        RecomputeAndPublish(workspaceId);
-    }
-
-    public void OnFirstFrame(string workspaceId)
-    {
-        lock (_lock)
-        {
-            if (!_inputs.TryGetValue(workspaceId, out var current)) return;
-            if (current.FirstFrameReceived) return;
-            _inputs[workspaceId] = current with { FirstFrameReceived = true };
+            _inputs[workspaceId] = current with { SessionActive = false };
         }
         RecomputeAndPublish(workspaceId);
     }
@@ -211,15 +193,10 @@ public sealed class WorkspaceStreamStateService : IDisposable
         StreamState? previous;
         lock (_lock)
         {
-            if (!_inputs.TryGetValue(workspaceId, out var inputs))
-            {
-                // Removed workspaces publish one final WorkspaceStopped so any live UI clears.
-                next = StreamState.Stopped();
-            }
-            else
-            {
-                next = Compute(inputs);
-            }
+            // Removed workspaces publish one final WorkspaceStopped so any live UI clears.
+            next = _inputs.TryGetValue(workspaceId, out var inputs)
+                ? Compute(inputs)
+                : StreamState.Stopped();
             _lastPublished.TryGetValue(workspaceId, out previous);
             _lastPublished[workspaceId] = next;
         }
@@ -253,11 +230,14 @@ public sealed class WorkspaceStreamStateService : IDisposable
             return StreamState.Connecting(attempt: 0, maxAttempts: 0);
         }
 
-        // 4. Session liveness. WebView must not be shown until we know the RDP loop has
-        //    produced at least one frame — otherwise the viewer HTML page opens a WebSocket
-        //    to a dead session and shows nothing.
-        if (!inputs.SessionActive || !inputs.FirstFrameReceived)
-            return StreamState.Launching();
+        // 4. Session liveness. Session must exist server-side — otherwise the viewer HTML
+        //    page opens a WebSocket to nothing. First-frame liveness is intentionally NOT
+        //    tracked here: the RDP display loop only broadcasts frames when a subscriber
+        //    exists, and the viewer HTML page only subscribes once the desktop shows the
+        //    WebView. Gating Streaming on "first frame received" would deadlock. The viewer
+        //    HTML has its own "connecting…" spinner shown until the first frame lands, so
+        //    the "bare WebView" invariant is upheld by the viewer page itself, not by us.
+        if (!inputs.SessionActive) return StreamState.Launching();
 
         return StreamState.Streaming();
     }

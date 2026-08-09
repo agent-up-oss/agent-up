@@ -7,7 +7,6 @@ internal sealed record WorkspaceStreamInputs
     public bool IsRunning { get; init; }
     public IReadOnlyDictionary<string, string> PortHealth { get; init; } = new Dictionary<string, string>();
     public bool SessionActive { get; init; }
-    public bool FirstFrameReceived { get; init; }
     public CurrentStreamTarget? CurrentTarget { get; init; }
 }
 

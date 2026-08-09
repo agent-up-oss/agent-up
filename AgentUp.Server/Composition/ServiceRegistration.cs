@@ -148,19 +148,11 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserInputDispatcher>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
-        builder.Services.AddSingleton(sp =>
-        {
-            var svc = new WorkspaceStreamStateService(
-                sp.GetRequiredService<BrowserEventBus>(),
-                sp.GetRequiredService<AppHealthController>(),
-                sp.GetRequiredService<WorkspaceQueryController>(),
-                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WorkspaceStreamStateService>>());
-            // Wire display → stream state here to avoid a DI cycle
-            // (BrowserRemoteDisplayService is a dependency of HeadlessBrowserSessionManager,
-            //  which is also a dependency of WorkspaceStreamStateService's callers).
-            sp.GetRequiredService<BrowserRemoteDisplayService>().FrameBroadcast += svc.OnFirstFrame;
-            return svc;
-        });
+        builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
+            sp.GetRequiredService<BrowserEventBus>(),
+            sp.GetRequiredService<AppHealthController>(),
+            sp.GetRequiredService<WorkspaceQueryController>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WorkspaceStreamStateService>>()));
         builder.Services.AddSingleton<WorkspaceStreamStateController>();
         builder.Services.AddHostedService<StreamStateWorkspaceSubscriber>();
         builder.Services.AddSingleton(sp =>
