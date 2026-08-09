@@ -182,13 +182,21 @@ public sealed class HeadlessBrowserSessionManager(
     public async Task<BrowserSessionState> EnsureSessionAsync(string workspaceId, CancellationToken ct)
     {
         if (_sessions.TryGetValue(workspaceId, out var fast) && fast.Browser.IsConnected)
+        {
+            // Re-affirm: on workspace start the stream state may have been reset while the
+            // session is still alive. Idempotent — dedupe drops a no-change publish.
+            streamState.OnSessionActive(workspaceId);
             return fast;
+        }
 
         await _createLock.WaitAsync(ct);
         try
         {
             if (_sessions.TryGetValue(workspaceId, out var locked) && locked.Browser.IsConnected)
+            {
+                streamState.OnSessionActive(workspaceId);
                 return locked;
+            }
 
             await EnsureChromiumAsync(ct);
 

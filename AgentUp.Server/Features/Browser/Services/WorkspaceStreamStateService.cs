@@ -82,11 +82,17 @@ public sealed class WorkspaceStreamStateService : IDisposable
     {
         lock (_lock)
         {
-            _inputs[workspace.Id] = new WorkspaceStreamInputs
+            // Merge, don't replace. A previous EnsureSessionAsync (from an early viewer
+            // WebSocket reconnect) may have already set SessionActive=true — wiping it
+            // strands the state at SessionLaunching forever because EnsureSessionAsync
+            // fast-paths on the second navigate and never re-emits OnSessionActive.
+            // CurrentTarget IS reset: ReallocatePortsAsync during Start may change the
+            // port, so the desktop needs to re-navigate to refresh the target.
+            var existing = _inputs.GetValueOrDefault(workspace.Id);
+            _inputs[workspace.Id] = (existing ?? new WorkspaceStreamInputs()) with
             {
                 IsRunning = true,
                 PortHealth = new Dictionary<string, string>(),
-                SessionActive = false,
                 CurrentTarget = null,
             };
         }
@@ -128,7 +134,10 @@ public sealed class WorkspaceStreamStateService : IDisposable
     {
         lock (_lock)
         {
-            if (!_inputs.TryGetValue(workspaceId, out var current)) return;
+            // Upsert: session may become active before OnWorkspaceStarted fires (e.g. viewer
+            // HTML JS reconnects its WebSocket on server restart, triggering EnsureSessionAsync
+            // before the user clicks Start). Buffer the signal so later start doesn't wipe it.
+            var current = _inputs.GetValueOrDefault(workspaceId) ?? new WorkspaceStreamInputs();
             _inputs[workspaceId] = current with { SessionActive = true };
         }
         RecomputeAndPublish(workspaceId);
@@ -138,7 +147,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
     {
         lock (_lock)
         {
-            if (!_inputs.TryGetValue(workspaceId, out var current)) return;
+            var current = _inputs.GetValueOrDefault(workspaceId) ?? new WorkspaceStreamInputs();
             _inputs[workspaceId] = current with { SessionActive = false };
         }
         RecomputeAndPublish(workspaceId);
@@ -154,7 +163,9 @@ public sealed class WorkspaceStreamStateService : IDisposable
 
         lock (_lock)
         {
-            if (!_inputs.TryGetValue(workspaceId, out var current)) return;
+            // Upsert: same reasoning as OnSessionActive — navigate may reach us before
+            // OnWorkspaceStarted.
+            var current = _inputs.GetValueOrDefault(workspaceId) ?? new WorkspaceStreamInputs();
             var previous = current.CurrentTarget;
             if (previous is not null && previous.Port == uri.Port && previous.Url == url) return;
             _inputs[workspaceId] = current with

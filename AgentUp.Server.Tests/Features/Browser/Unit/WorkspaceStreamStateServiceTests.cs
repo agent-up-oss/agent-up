@@ -137,6 +137,32 @@ public sealed class WorkspaceStreamStateServiceTests
     }
 
     [Test]
+    public void OnSessionActive_Before_OnWorkspaceStarted_Is_Preserved_Not_Wiped()
+    {
+        // Regression: previously OnSessionActive was a NO-OP when _inputs was empty
+        // (e.g. viewer HTML JS reconnects its WebSocket on server restart, triggering
+        // EnsureSessionAsync before the user clicks Start). Then OnWorkspaceStarted
+        // REPLACED _inputs, wiping SessionActive=false → EnsureSessionAsync's fast path
+        // on the next navigate never re-fires OnSessionActive → stuck at SessionLaunching.
+        var (svc, bus, _, _) = Build();
+        var id = Guid.NewGuid().ToString();
+        var workspace = HealthCheckedWorkspace(id, "api", 5010);
+        svc.OnChromiumStateChanged("ready", 100);
+
+        // 1. Session becomes active BEFORE workspace start (early WebSocket reconnect).
+        svc.OnSessionActive(id);
+
+        // 2. User then starts workspace.
+        svc.OnWorkspaceStarted(workspace);
+
+        // 3. Desktop navigates.
+        var events = Capture(bus, () => svc.OnCurrentTargetChanged(id, "http://localhost:5010/", CancellationToken.None));
+
+        // SessionActive should have survived OnWorkspaceStarted → target set → Streaming.
+        Assert.That(events.Any(e => e.Kind == "streaming"), Is.True);
+    }
+
+    [Test]
     public void SessionLaunching_Before_Session_Active_Then_Streaming_When_Session_Up()
     {
         var (svc, bus, _, _) = Build();
