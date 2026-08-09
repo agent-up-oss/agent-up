@@ -185,6 +185,7 @@ public class LocalInstallerNuGetPackagingTests
                 <TargetFramework>net10.0</TargetFramework>
                 <Nullable>enable</Nullable>
                 <ImplicitUsings>enable</ImplicitUsings>
+                <RestorePackagesPath>$(MSBuildProjectDirectory)/packages</RestorePackagesPath>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="LocalInstaller.Core"      Version="1.0.0" />
@@ -198,10 +199,10 @@ public class LocalInstallerNuGetPackagingTests
         // Each using / typeof() proves the type is accessible from the packed assembly
         File.WriteAllText(Path.Join(consumerDir, "Program.cs"),
             """
-            using AgentUp.Installers.Features.Installation.Models;
             using AgentUp.InstallerApp.Features.Capabilities.Models;
-            using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
-            using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
+            using LocalInstaller.Core.Features.Installation.Models;
+            using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
+            using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;
 
             _ = typeof(ProductManifest);       // LocalInstaller.Core
             _ = typeof(CapabilityArtifact);    // LocalInstaller.App
