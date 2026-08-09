@@ -17,5 +17,5 @@ public sealed class AgentUpCliManifest : LocalInstallerCliManifest
     public override string Description => "Command-line app.";
     public override string ExecutableName => "AgentUp.CLI";
     public override string SourceProjectPath => "AgentUp.CLI/AgentUp.CLI.csproj";
-    public override string PayloadDirectoryName => Id;
+    public override string PayloadDirectoryName => "cli";
 }

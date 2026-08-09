@@ -10,6 +10,6 @@ public sealed class AgentUpServerManifest : LocalInstallerServerManifest
     public override string Description => "Local service app.";
     public override string ExecutableName => "AgentUp.Server";
     public override string SourceProjectPath => "AgentUp.Server/AgentUp.Server.csproj";
-    public override string PayloadDirectoryName => Id;
+    public override string PayloadDirectoryName => "server";
     public override string ServiceName => AgentUpProduct.Slug + "-server";
 }

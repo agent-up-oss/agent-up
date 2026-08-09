@@ -9,5 +9,5 @@ public sealed class AgentUpDesktopManifest : LocalInstallerDesktopManifest
     public override string Description => "Desktop app.";
     public override string ExecutableName => "AgentUp.Desktop";
     public override string SourceProjectPath => "AgentUp.Desktop/AgentUp.Desktop.csproj";
-    public override string PayloadDirectoryName => Id;
+    public override string PayloadDirectoryName => "desktop";
 }

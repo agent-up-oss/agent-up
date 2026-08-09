@@ -9,5 +9,5 @@ public sealed class AgentUpTrayManifest : LocalInstallerTrayManifest
     public override string Description => "Notification area app.";
     public override string ExecutableName => "AgentUp.Tray";
     public override string SourceProjectPath => "AgentUp.Tray/AgentUp.Tray.csproj";
-    public override string PayloadDirectoryName => Id;
+    public override string PayloadDirectoryName => "tray";
 }
