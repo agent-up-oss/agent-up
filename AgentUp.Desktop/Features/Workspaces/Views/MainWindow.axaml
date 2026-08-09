@@ -726,6 +726,7 @@
                                 <!-- Shown only when NativeWebView creation fails for the active workspace -->
                                 <Border x:Name="WebViewErrorBanner"
                                         IsVisible="False"
+                                        ZIndex="10"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Background="#140f0f"
@@ -742,6 +743,7 @@
                                 <!-- Shown while Chromium is being downloaded on first run (AI mode only) -->
                                 <Border x:Name="ChromiumDownloadBanner"
                                         IsVisible="False"
+                                        ZIndex="10"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Background="#0d0f14"
@@ -767,6 +769,7 @@
                                 <!-- Shown when the server SSE stream drops (environment downed) -->
                                 <Border x:Name="ConnectionLostBanner"
                                         IsVisible="False"
+                                        ZIndex="10"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Background="#0f0a0a"
@@ -782,6 +785,7 @@
                                 <!-- Shown while Chromium is probing the workspace app (connecting/reconnecting) -->
                                 <Border x:Name="BrowserConnectingBanner"
                                         IsVisible="False"
+                                        ZIndex="10"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Background="#0d0f14"

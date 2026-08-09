@@ -49,6 +49,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // so RenderStreamState can ReloadWebView (reconnect WebSocket) vs NavigateWebView (first load).
     private readonly HashSet<string> _viewerPagesLoaded = new();
     private DateTimeOffset _lastHeadlessRetry = DateTimeOffset.MinValue;
+    // Tracks OS-window focus. Drives per-viewer presence: an unfocused window means the
+    // user isn't looking, so every viewer drops to background (1 fps) on the server side.
+    // Default true because Avalonia's Activated event may not fire before the first render
+    // if the window opens focused (common case) — assuming true avoids a startup 1 fps spike.
+    private bool _windowFocused = true;
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
@@ -169,6 +174,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
         PortPane.SizeChanged += OnPortPaneSizeChanged;
+        Activated += (_, _) => { _windowFocused = true; UpdateAllViewerPresences(); };
+        Deactivated += (_, _) => { _windowFocused = false; UpdateAllViewerPresences(); };
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverBaseUrl = serverUrl;
         _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
@@ -268,6 +275,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .DistinctUntilChanged()
             .Where(show => show)
             .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveViewer))
+            .DisposeWith(_subscriptions);
+        // Sub-tab changes (viewer ↔ console ↔ port) flip which viewer is user-visible,
+        // so every viewer needs its presence recomputed — the one becoming active goes
+        // foreground, the one leaving goes background.
+        vm.WhenAnyValue(v => v.SelectedSubTab)
+            .Skip(1)
+            .Subscribe(_ => Dispatcher.UIThread.Post(UpdateAllViewerPresences))
             .DisposeWith(_subscriptions);
 
         _auditController ??= new ViewModelAuditController(_serverHttp);
@@ -531,7 +545,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             });
 
             if (e.Request is { } successUri && IsBrowserViewerRequest(successUri))
+            {
                 _viewerPagesLoaded.Add(workspaceId);
+                // Page's __setPresence hook now exists — push the desktop's current view
+                // of foreground/background so the fresh JS doesn't default-report itself
+                // as foreground when the user is actually elsewhere.
+                UpdateViewerPresence(workspaceId);
+            }
 
             _ = webView.InvokeScript(SelectionJs);
             if (firstNavDone) return;
@@ -789,25 +809,24 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _streamStates.TryGetValue(workspaceId, out var snap);
         var kind = snap?.Kind;
         var prevKind = _lastRenderedKind.GetValueOrDefault(workspaceId);
-        var showWebView = isAi && isActiveViewerTab && !tutorialVisible && kind == StreamStateKind.Streaming;
+        // Visibility follows tab activation ONLY — never gated by stream state. If the
+        // active viewer's stream flips to non-Streaming we keep the WebView mapped so
+        // WebKit doesn't unmap the GTK widget (that unmap froze the compositor + timers
+        // for minutes on re-map, producing the "blank screen" bug). Banners with ZIndex
+        // overlay the WebView while non-Streaming.
+        var showWebView = isAi && isActiveViewerTab && !tutorialVisible;
 
-        // WebView visibility — sole write point.
         if (_webViews.TryGetValue(viewerKey, out var viewer))
         {
             viewer.IsVisible = showWebView;
-            if (showWebView)
+            if (showWebView && kind == StreamStateKind.Streaming)
             {
                 var viewerUrl = BuildViewerUrl(workspaceId);
                 var enteringStream = prevKind != StreamStateKind.Streaming;
                 if (enteringStream || !IsAtViewerUrl(viewer, viewerUrl))
                 {
-                    // Defer the actual navigation to after Avalonia has finished the
-                    // visibility→layout→render cycle so WebKit sees the new page load
-                    // with visibilityState=visible already applied. Firing the reload
-                    // on the same tick as IsVisible=true races with GTK propagation
-                    // and WebKit freezes the newly-loaded page's JS timers (blank canvas
-                    // with no heartbeats). Loaded priority runs after layout+render but
-                    // before input — the WebKit process sees the visible state first.
+                    // Defer navigation one dispatcher tick past Loaded so any layout the
+                    // banner-hide triggered has settled before WebKit's page-load runs.
                     var pinnedViewer = viewer;
                     var pinnedUrl = viewerUrl;
                     var shouldReload = _viewerPagesLoaded.Contains(workspaceId);
@@ -833,6 +852,39 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         }
 
         _lastRenderedKind[workspaceId] = kind;
+        UpdateViewerPresence(workspaceId);
+    }
+
+    // Presence is "foreground" only if a human is actually watching THIS viewer right now:
+    // window has focus, viewer tab is the active sub-tab, workspace is the active workspace,
+    // AI mode, no tutorial in the way, AND stream state is Streaming (non-Streaming means
+    // banner is covering it or content is stale, no point burning CPU sending frames).
+    // Anything else → background → server caps this subscriber at 1 fps.
+    private void UpdateViewerPresence(string workspaceId)
+    {
+        if (_isClosed) return;
+        var viewerKey = $"{workspaceId}:viewer";
+        if (!_webViews.TryGetValue(viewerKey, out var viewer)) return;
+        if (!_viewerPagesLoaded.Contains(workspaceId)) return;  // page's __setPresence hook not yet installed.
+
+        var isAi = _workspaceAuthority.GetValueOrDefault(workspaceId, "ai") == "ai";
+        var isActiveViewerTab = _activeWorkspaceId == workspaceId && _activeTabKey == viewerKey;
+        var tutorialVisible = IsTutorialVisible();
+        var streamStreaming = _streamStates.GetValueOrDefault(workspaceId)?.Kind == StreamStateKind.Streaming;
+        var isForeground = _windowFocused && isAi && isActiveViewerTab && !tutorialVisible && streamStreaming;
+
+        var state = isForeground ? "foreground" : "background";
+        _ = viewer.InvokeScript($"window.__setPresence && window.__setPresence('{state}')");
+    }
+
+    private void UpdateAllViewerPresences()
+    {
+        if (_isClosed) return;
+        foreach (var workspaceId in _webViews.Keys
+                     .Where(k => k.EndsWith(":viewer", StringComparison.Ordinal))
+                     .Select(k => k[..^":viewer".Length])
+                     .ToList())
+            UpdateViewerPresence(workspaceId);
     }
 
     private void ApplyBanners(StreamStateSnapshot? snap)

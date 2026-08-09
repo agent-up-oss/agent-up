@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Browser.Services;
@@ -14,6 +15,9 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
     // restart mid-flight, subscribers gone) or Chromium's screenshot is slow. Either way,
     // the polling HTTP endpoint should force a fresh capture rather than serve stale bytes.
     private static readonly TimeSpan CachedFrameFreshness = TimeSpan.FromMilliseconds(400);
+    // Per-subscriber cap for background viewers (unfocused window, non-active tab). Every
+    // background subscriber gets at most this rate regardless of what other subscribers do.
+    public static readonly TimeSpan BackgroundSubscriberInterval = TimeSpan.FromMilliseconds(1000);
     private readonly ConcurrentDictionary<string, WorkspaceSubscriberSet> _subscribers = new();
     private readonly ConcurrentDictionary<string, byte[]> _latestFrames = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _latestFrameAt = new();
@@ -23,6 +27,12 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
 
     public bool HasSubscribers(string workspaceId)
         => (_subscribers.TryGetValue(workspaceId, out var subs) && !subs.IsEmpty)
+           || HasRecentPollingViewer(workspaceId);
+
+    // Polling viewers can't send presence messages, so they count as foreground —
+    // they're driven by an HTTP fetch loop that only runs when the client wants frames.
+    public bool HasForegroundSubscribers(string workspaceId)
+        => (_subscribers.TryGetValue(workspaceId, out var subs) && subs.HasForeground())
            || HasRecentPollingViewer(workspaceId);
 
     public void RegisterPollingViewer(string workspaceId)
@@ -45,11 +55,12 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
 
     public async Task ConnectAsync(string workspaceId, WebSocket ws, Func<string, Task>? onTextFrame, CancellationToken ct)
     {
+        var subscriberId = Guid.NewGuid();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var drainTask = DrainAndHandleInputAsync(ws, cts, workspaceId, onTextFrame);
+        var drainTask = DrainAndHandleInputAsync(ws, cts, workspaceId, subscriberId, onTextFrame);
         try
         {
-            await SubscribeAsync(workspaceId, ws, cts.Token);
+            await SubscribeAsync(workspaceId, ws, subscriberId, cts.Token);
             if (ws.State == WebSocketState.Open)
                 await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
         }
@@ -73,11 +84,11 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         var bytes = Encoding.UTF8.GetBytes(text);
         var segment = new ArraySegment<byte>(bytes);
-        foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
+        foreach (var entry in subs.Snapshot().Where(e => e.Socket.State == WebSocketState.Open))
         {
             try
             {
-                await ws.SendAsync(segment, WebSocketMessageType.Text, endOfMessage: true, ct);
+                await entry.Socket.SendAsync(segment, WebSocketMessageType.Text, endOfMessage: true, ct);
             }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
@@ -92,11 +103,19 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         _latestFrameAt[workspaceId] = DateTimeOffset.UtcNow;
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         var segment = new ArraySegment<byte>(frame);
-        foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
+        var nowTicks = DateTimeOffset.UtcNow.UtcTicks;
+        var backgroundIntervalTicks = BackgroundSubscriberInterval.Ticks;
+        foreach (var entry in subs.Snapshot().Where(e => e.Socket.State == WebSocketState.Open))
         {
+            // Background subscribers get at most one frame per BackgroundSubscriberInterval,
+            // independent of the capture cadence a foreground peer is driving.
+            if (entry.Presence == PresenceState.Background
+                && nowTicks - entry.LastFrameSentAtTicks < backgroundIntervalTicks)
+                continue;
             try
             {
-                await ws.SendAsync(segment, WebSocketMessageType.Binary, endOfMessage: true, ct);
+                await entry.Socket.SendAsync(segment, WebSocketMessageType.Binary, endOfMessage: true, ct);
+                entry.LastFrameSentAtTicks = nowTicks;
             }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
@@ -112,9 +131,9 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         _latestFrames.TryRemove(workspaceId, out _);
         _latestFrameAt.TryRemove(workspaceId, out _);
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
-        foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
+        foreach (var entry in subs.Snapshot().Where(e => e.Socket.State == WebSocketState.Open))
         {
-            try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, ct); }
+            try { await entry.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, ct); }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
                 logger.LogDebug(ex, "RDP disconnect failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
@@ -151,6 +170,10 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         return await captureFrame(ct);
     }
 
+    internal bool SetSubscriberPresence(string workspaceId, Guid subscriberId, PresenceState state)
+        => _subscribers.TryGetValue(workspaceId, out var subs)
+           && subs.SetPresence(subscriberId, state);
+
     private bool HasRecentPollingViewer(string workspaceId)
     {
         if (!_pollingViewers.TryGetValue(workspaceId, out var expiresAt))
@@ -163,11 +186,10 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         return false;
     }
 
-    private async Task SubscribeAsync(string workspaceId, WebSocket ws, CancellationToken ct)
+    private async Task SubscribeAsync(string workspaceId, WebSocket ws, Guid subscriberId, CancellationToken ct)
     {
-        var id = Guid.NewGuid();
         var subs = _subscribers.GetOrAdd(workspaceId, _ => new WorkspaceSubscriberSet());
-        subs.Add(id, ws);
+        subs.Add(subscriberId, ws);
         // Send the most recent cached frame immediately so the viewer isn't blank while
         // waiting for the display loop's next iteration (up to 200 ms on reconnect).
         if (_latestFrames.TryGetValue(workspaceId, out var snapshot) && ws.State == WebSocketState.Open)
@@ -187,14 +209,14 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         }
         finally
         {
-            subs.Remove(id);
+            subs.Remove(subscriberId);
             if (subs.IsEmpty)
                 _subscribers.TryRemove(workspaceId, out _);
         }
     }
 
     private async Task DrainAndHandleInputAsync(
-        WebSocket ws, CancellationTokenSource cts, string workspaceId, Func<string, Task>? onTextFrame)
+        WebSocket ws, CancellationTokenSource cts, string workspaceId, Guid subscriberId, Func<string, Task>? onTextFrame)
     {
         var buffer = new byte[4096];
         try
@@ -203,8 +225,12 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
             {
                 var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
                 if (result.MessageType == WebSocketMessageType.Close) break;
-                if (result.MessageType != WebSocketMessageType.Text || onTextFrame is null) continue;
+                if (result.MessageType != WebSocketMessageType.Text) continue;
                 var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                // Presence messages are consumed here — never forwarded to the input handler,
+                // which only cares about pointer/keyboard events.
+                if (TryHandlePresenceMessage(workspaceId, subscriberId, json)) continue;
+                if (onTextFrame is null) continue;
                 try { await onTextFrame(json); }
                 catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException) { break; }
             }
@@ -216,6 +242,38 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         finally
         {
             await cts.CancelAsync();
+        }
+    }
+
+    private bool TryHandlePresenceMessage(string workspaceId, Guid subscriberId, string json)
+    {
+        // Cheap prefix check to skip the JSON parser for the common pointer/keyboard case.
+        if (json.IndexOf("\"presence\"", StringComparison.Ordinal) < 0) return false;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return false;
+            if (!root.TryGetProperty("type", out var typeEl) || typeEl.ValueKind != JsonValueKind.String) return false;
+            if (!string.Equals(typeEl.GetString(), "presence", StringComparison.Ordinal)) return false;
+            if (!root.TryGetProperty("state", out var stateEl) || stateEl.ValueKind != JsonValueKind.String) return true;
+            var state = stateEl.GetString();
+            var presence = state switch
+            {
+                "foreground" => (PresenceState?)PresenceState.Foreground,
+                "background" => (PresenceState?)PresenceState.Background,
+                _ => null,
+            };
+            if (presence is null) return true;
+            if (SetSubscriberPresence(workspaceId, subscriberId, presence.Value))
+                logger.LogDebug(
+                    "RDP subscriber {SubscriberId} presence → {State} for workspace {WorkspaceId}.",
+                    subscriberId, presence.Value, SanitizeForLog(workspaceId));
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
         }
     }
 

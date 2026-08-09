@@ -418,7 +418,12 @@ public sealed class HeadlessBrowserSessionManager(
                 logger.LogDebug(ex, "RDP bitmap frame error for workspace {WorkspaceId}.", Sanitize(session.WorkspaceId));
             }
 
-            var delay = display.HasActiveInput(session.WorkspaceId) ? 50 : 200;
+            // When every subscriber is background (unfocused window, non-active tab), we
+            // still want a slow trickle so their canvas doesn't rot — but capturing at
+            // 50/200ms just to serve 1 fps to each of them wastes JPEG-encode CPU.
+            var delay = display.HasForegroundSubscribers(session.WorkspaceId)
+                ? (display.HasActiveInput(session.WorkspaceId) ? 50 : 200)
+                : (int)BrowserRemoteDisplayService.BackgroundSubscriberInterval.TotalMilliseconds;
             try { await Task.Delay(delay, ct); }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
         }

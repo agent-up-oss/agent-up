@@ -47,6 +47,10 @@ internal static class RdpViewerPage
           let lastPollError = '';
           let lastWsEvent = 'none';
           let pollTimer = 0;
+          // Presence: Avalonia calls window.__setPresence('foreground'|'background') when
+          // the viewer's tab activation or window focus changes. Server uses this to cap
+          // background subscribers at 1 fps regardless of the capture cadence.
+          let presence = 'foreground';
 
           function drawBlob(blob) {
             const url = URL.createObjectURL(blob);
@@ -94,6 +98,7 @@ internal static class RdpViewerPage
                 clearTimeout(reconnectTimer);
                 reconnectTimer = 0;
               }
+              sendPresence();
             };
             ws.onmessage = (e) => {
               if (typeof e.data !== 'string')
@@ -110,6 +115,23 @@ internal static class RdpViewerPage
                 }, 500);
             };
           }
+
+          function sendPresence() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            try {
+              ws.send(JSON.stringify({ type: 'presence', state: presence }));
+            } catch (_) {}
+          }
+
+          // Called from Avalonia via ExecuteScriptAsync when the viewer's tab activation
+          // or the desktop window's focus state changes. Idempotent — repeated calls with
+          // the same state are cheap and safe.
+          window.__setPresence = function(state) {
+            if (state !== 'foreground' && state !== 'background') return;
+            if (state === presence) return;
+            presence = state;
+            sendPresence();
+          };
 
           const heartbeatMs = 3000;
           let heartbeatCount = 0;
@@ -184,6 +206,7 @@ internal static class RdpViewerPage
                 streamUrl: streamUrl,
                 viewportWidth: String(window.innerWidth),
                 viewportHeight: String(window.innerHeight),
+                presence: presence,
               }
             };
             try {
