@@ -80,6 +80,10 @@ public class LocalInstallerNuGetPackagingTests
         Assert.That(license, Is.Not.Null, $"{packageId} must have a <license> element");
         Assert.That(license!.Value, Is.EqualTo("LICENSE"));
         Assert.That(license.Attribute("type")?.Value, Is.EqualTo("file"));
+
+        var entries = GetPackageEntries(_packDir1, packageId);
+        Assert.That(entries, Does.Contain("LICENSE"),
+            $"{packageId} must bundle the LICENSE file in the package archive");
     }
 
     [TestCaseSource(nameof(ExpectedPackageIds))]
