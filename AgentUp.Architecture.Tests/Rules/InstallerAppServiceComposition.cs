@@ -9,7 +9,7 @@ public sealed class InstallerAppServiceComposition
     public void InstallerApp_services_do_not_contain_environment_lookup_or_temp_path_construction()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.InstallerApp")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.App")
             .Where(path => ArchitectureFixture.HasPathPart(root, path, "Services"))
             .SelectMany(path => ArchitectureFixture.ForbiddenInstallerAppServiceTokens
                 .Where(token => File.ReadAllText(path).Contains(token, StringComparison.Ordinal))

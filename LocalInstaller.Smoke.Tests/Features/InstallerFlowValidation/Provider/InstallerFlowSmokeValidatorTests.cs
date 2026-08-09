@@ -1,4 +1,3 @@
-using AgentUp.InstallerConfig;
 using AgentUp.PackageSmoke.Features.InstalledServiceValidation.Factories;
 using AgentUp.PackageSmoke.Features.PackageValidation.Factories;
 using AgentUp.Installers.Composition;
@@ -21,16 +20,17 @@ public class InstallerFlowSmokeValidatorTests
     {
         Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]
     };
+    private static string AgentUpFakeInstallerVariable => new ProductManifest("Agent-Up", "agent-up", "AGENTUP").FakeInstallerVariable;
 
     [Test]
     public async Task ValidateAsync_exercisesDryRunInstallerFlow()
     {
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-InstallerFlow", Guid.NewGuid().ToString());
-        var previousFake = Environment.GetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable);
+        var previousFake = Environment.GetEnvironmentVariable(AgentUpFakeInstallerVariable);
 
         try
         {
-            Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, "1");
+            Environment.SetEnvironmentVariable(AgentUpFakeInstallerVariable, "1");
 
             var result = await new InstallerFlowSmokeValidator().ValidateAsync("ubuntu", workDir);
 
@@ -39,7 +39,7 @@ public class InstallerFlowSmokeValidatorTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, previousFake);
+            Environment.SetEnvironmentVariable(AgentUpFakeInstallerVariable, previousFake);
             if (Directory.Exists(workDir))
                 Directory.Delete(workDir, recursive: true);
         }

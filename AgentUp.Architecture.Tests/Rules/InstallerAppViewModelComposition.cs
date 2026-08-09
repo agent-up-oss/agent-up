@@ -9,7 +9,7 @@ public sealed class InstallerAppViewModelComposition
     public void InstallerApp_view_models_do_not_contain_static_factory_methods()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.InstallerApp")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.App")
             .Where(path => ArchitectureFixture.HasPathPart(root, path, "ViewModels"))
             .SelectMany(path => ArchitectureFixture.FindStaticFactoryMethodsInFile(root, path))
             .ToArray();

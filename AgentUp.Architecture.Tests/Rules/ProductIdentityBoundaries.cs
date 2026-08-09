@@ -10,9 +10,9 @@ public sealed class ProductIdentityBoundaries
 {
     private static readonly string[] GenericInstallerProjects =
     [
-        "AgentUp.Installers",
-        "AgentUp.Packaging",
-        "AgentUp.PackageSmoke"
+        "LocalInstaller.Core",
+        "LocalInstaller.Packaging",
+        "LocalInstaller.Smoke"
     ];
 
     private static readonly string[] InstallerProductIdentityTokens =
@@ -27,12 +27,12 @@ public sealed class ProductIdentityBoundaries
     public void Generic_installer_source_does_not_embed_agent_up_product_identity()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.Installers")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.Core")
             .SelectMany(path => InstallerProductIdentityViolations(root, path))
             .ToArray();
 
         Assert.That(violations, Is.Empty,
-            "Agent-Up product identity strings in AgentUp.Installers must stay in explicitly AgentUp-named configuration files; generic installer code must use manifest-derived identity.");
+            "Agent-Up product identity strings in LocalInstaller.Core must stay in explicitly AgentUp-named configuration files; generic installer code must use manifest-derived identity.");
     }
 
     [Test]
@@ -55,7 +55,7 @@ public sealed class ProductIdentityBoundaries
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var source = File.ReadAllText(Path.Join(
             root,
-            "AgentUp.Installers.Tests",
+            "LocalInstaller.Core.Tests",
             "Features",
             "Installation",
             "Provider",
@@ -87,7 +87,7 @@ public sealed class ProductIdentityBoundaries
     public void Generic_installer_source_scan_ignores_test_support_files_and_non_product_text()
     {
         const string testSupportSource = """
-                                         namespace AgentUp.Installers.Tests.Support;
+                                         namespace LocalInstaller.Core.Tests.Support;
 
                                          public static class InstallerFixture
                                          {
@@ -96,7 +96,7 @@ public sealed class ProductIdentityBoundaries
                                          }
                                          """;
         const string genericCategorySource = """
-                                             namespace AgentUp.Installers.Features.Installation.Services;
+                                             namespace LocalInstaller.Core.Features.Installation.Services;
 
                                              public sealed class InstallerComponentOperations
                                              {
@@ -105,10 +105,10 @@ public sealed class ProductIdentityBoundaries
                                              """;
 
         var violations = InstallerProductIdentityViolationsInSource(
-                "AgentUp.Installers.Tests/Support/InstallerFixture.cs",
+                "LocalInstaller.Core.Tests/Support/InstallerFixture.cs",
                 testSupportSource)
             .Concat(InstallerProductIdentityViolationsInSource(
-                "AgentUp.Installers/Features/Installation/Services/InstallerComponentOperations.cs",
+                "LocalInstaller.Core/Features/Installation/Services/InstallerComponentOperations.cs",
                 genericCategorySource))
             .ToArray();
 
@@ -119,7 +119,7 @@ public sealed class ProductIdentityBoundaries
     public void Packaging_does_not_depend_on_installer_product_session_models()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.Packaging")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.Packaging")
             .SelectMany(path => ForbiddenInstallerWorkflowReferences(root, path))
             .ToArray();
 
@@ -131,7 +131,7 @@ public sealed class ProductIdentityBoundaries
     public void Package_product_slug_path_components_are_validated_at_request_boundaries()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.Packaging")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.Packaging")
             .SelectMany(path => Constructors(root, path)
                 .Where(item => item.Constructor.ParameterList.Parameters.Any(parameter => IsProductIdentityParameter(parameter.Identifier.Text)))
                 .Where(item => item.Constructor.Body is not null)
@@ -146,7 +146,7 @@ public sealed class ProductIdentityBoundaries
     public void Windows_cli_shim_paths_validate_manifest_filenames_before_joining()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = new[] { "AgentUp.Installers", "AgentUp.Packaging" }
+        var violations = new[] { "LocalInstaller.Core", "LocalInstaller.Packaging" }
             .SelectMany(project => ArchitectureFixture.ProjectSourceFiles(root, project))
             .SelectMany(path => ShimPathValidationViolations(root, path))
             .ToArray();
@@ -159,7 +159,7 @@ public sealed class ProductIdentityBoundaries
     public void Windows_wix_guid_seeds_are_scoped_to_product_identity()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.Installers")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.Core")
             .SelectMany(path => Methods(root, path)
                 .Where(item => item.Method.Identifier.Text.Contains("Guid", StringComparison.Ordinal))
                 .Where(item => UsesFixedInstallerGuidSeeds(item.Method))
@@ -174,7 +174,7 @@ public sealed class ProductIdentityBoundaries
     private static IEnumerable<string> ForbiddenInstallerWorkflowReferences(string root, string path)
     {
         var (tree, rootNode) = ArchitectureFixture.ParseSourceFile(path);
-        const string forbiddenNamespace = "AgentUp.Installers.Features.Installation";
+        const string forbiddenNamespace = "LocalInstaller.Core.Features.Installation";
 
         foreach (var usingDirective in rootNode.DescendantNodes().OfType<UsingDirectiveSyntax>())
         {
@@ -210,8 +210,8 @@ public sealed class ProductIdentityBoundaries
 
     private static IEnumerable<string> InstallerProductIdentityViolationsInSource(string relativePath, string source)
     {
-        if (!relativePath.StartsWith("AgentUp.Installers/", StringComparison.Ordinal)
-            && !relativePath.StartsWith("AgentUp.Installers" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        if (!relativePath.StartsWith("LocalInstaller.Core/", StringComparison.Ordinal)
+            && !relativePath.StartsWith("LocalInstaller.Core" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             return [];
 
         var tree = CSharpSyntaxTree.ParseText(source);
@@ -244,9 +244,9 @@ public sealed class ProductIdentityBoundaries
     private static IEnumerable<(string RelativePath, string Source)> InstallerProductIdentityViolationCases()
     {
         yield return (
-            "AgentUp.Installers/Features/Installation/Services/GenericInstallerService.cs",
+            "LocalInstaller.Core/Features/Installation/Services/GenericInstallerService.cs",
             """
-            namespace AgentUp.Installers.Features.Installation.Services;
+            namespace LocalInstaller.Core.Features.Installation.Services;
 
             public sealed class GenericInstallerService
             {
@@ -254,9 +254,9 @@ public sealed class ProductIdentityBoundaries
             }
             """);
         yield return (
-            "AgentUp.Installers/Features/Installation/Services/GenericEnvironmentService.cs",
+            "LocalInstaller.Core/Features/Installation/Services/GenericEnvironmentService.cs",
             """
-            namespace AgentUp.Installers.Features.Installation.Services;
+            namespace LocalInstaller.Core.Features.Installation.Services;
 
             public sealed class GenericEnvironmentService
             {
@@ -264,9 +264,9 @@ public sealed class ProductIdentityBoundaries
             }
             """);
         yield return (
-            "AgentUp.Installers/Features/Installation/Services/AgentUpGenericInstallerService.cs",
+            "LocalInstaller.Core/Features/Installation/Services/AgentUpGenericInstallerService.cs",
             """
-            namespace AgentUp.Installers.Features.Installation.Services;
+            namespace LocalInstaller.Core.Features.Installation.Services;
 
             public sealed class AgentUpGenericInstallerService
             {

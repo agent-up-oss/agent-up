@@ -135,7 +135,7 @@ public class NixPackagingWrapperTests
 
         Assert.That(text, Does.Contain("AgentUp.InstallerApp/AgentUp.InstallerApp.csproj"));
         Assert.That(text, Does.Contain("cp -a \"$stage/installer\" \"$pkgs_root/package/opt/agent-up/installer\""));
-        Assert.That(text, Does.Contain("ln -s $out/opt/agent-up/installer/LocalInstaller.Sample.InstallerApp $out/bin/agent-up-installer"));
+        Assert.That(text, Does.Contain("ln -s $out/opt/agent-up/installer/AgentUp.InstallerApp $out/bin/agent-up-installer"));
         Assert.That(text, Does.Contain("--set AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY 1"));
         Assert.That(text, Does.Contain("xdg.desktopEntries.agent-up-installer"));
     }

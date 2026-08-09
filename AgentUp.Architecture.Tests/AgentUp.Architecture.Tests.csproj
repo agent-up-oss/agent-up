@@ -21,10 +21,10 @@
     <ProjectReference Include="..\AgentUp.CLI\AgentUp.CLI.csproj" />
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
-    <ProjectReference Include="..\AgentUp.InstallerApp\AgentUp.InstallerApp.csproj" />
-    <ProjectReference Include="..\AgentUp.Installers\AgentUp.Installers.csproj" />
-    <ProjectReference Include="..\AgentUp.PackageSmoke\AgentUp.PackageSmoke.csproj" />
-    <ProjectReference Include="..\AgentUp.Packaging\AgentUp.Packaging.csproj" />
+    <ProjectReference Include="..\LocalInstaller.App\LocalInstaller.App.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Packaging\LocalInstaller.Packaging.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Smoke\LocalInstaller.Smoke.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
   </ItemGroup>
 

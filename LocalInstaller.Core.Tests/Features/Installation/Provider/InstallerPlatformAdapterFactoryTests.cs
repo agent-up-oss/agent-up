@@ -1,4 +1,3 @@
-using AgentUp.InstallerConfig;
 using AgentUp.Installers.Composition;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Installers.Features.Installation.Services;
@@ -22,28 +21,33 @@ public class InstallerPlatformAdapterFactoryTests
     private string? _payloadRoot;
     private string? _nixOsLookupOnly;
 
+    private static ProductManifest Product => AgentUpTestManifests.Product();
+    private static string FakeInstallerVariable => Product.FakeInstallerVariable;
+    private static string PayloadRootVariable => Product.PayloadRootVariable;
+    private const string NixOsLookupOnlyVariable = "AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY";
+
     [SetUp]
     public void SetUp()
     {
-        _fakeInstaller = Environment.GetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable);
-        _payloadRoot = Environment.GetEnvironmentVariable(AgentUpProduct.PayloadRootVariable);
-        _nixOsLookupOnly = Environment.GetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable);
-        Environment.SetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable, null);
+        _fakeInstaller = Environment.GetEnvironmentVariable(FakeInstallerVariable);
+        _payloadRoot = Environment.GetEnvironmentVariable(PayloadRootVariable);
+        _nixOsLookupOnly = Environment.GetEnvironmentVariable(NixOsLookupOnlyVariable);
+        Environment.SetEnvironmentVariable(NixOsLookupOnlyVariable, null);
     }
 
     [TearDown]
     public void TearDown()
     {
-        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, _fakeInstaller);
-        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, _payloadRoot);
-        Environment.SetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable, _nixOsLookupOnly);
+        Environment.SetEnvironmentVariable(FakeInstallerVariable, _fakeInstaller);
+        Environment.SetEnvironmentVariable(PayloadRootVariable, _payloadRoot);
+        Environment.SetEnvironmentVariable(NixOsLookupOnlyVariable, _nixOsLookupOnly);
     }
 
     [Test]
     public void Create_returnsFakeAdapterWhenExplicitlyRequested()
     {
-        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, "1");
-        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
+        Environment.SetEnvironmentVariable(FakeInstallerVariable, "1");
+        Environment.SetEnvironmentVariable(PayloadRootVariable, null);
 
         var adapter = CreateAgentUpAdapter();
 
@@ -56,8 +60,8 @@ public class InstallerPlatformAdapterFactoryTests
         if (OperatingSystem.IsLinux() && InstallerPlatformAdapterFactory.IsNixOsHost())
             Assert.Ignore("NixOS lookup-only mode does not require installer payloads.");
 
-        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
+        Environment.SetEnvironmentVariable(FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(PayloadRootVariable, null);
 
         var product = AgentUpTestManifests.Product();
         Assert.That(
@@ -72,7 +76,7 @@ public class InstallerPlatformAdapterFactoryTests
 
         try
         {
-            Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
+            Environment.SetEnvironmentVariable(PayloadRootVariable, null);
             Directory.CreateDirectory(Path.Join(root, "payload", "desktop"));
             Directory.CreateDirectory(Path.Join(root, "payload", "server"));
             Directory.CreateDirectory(Path.Join(root, "payload", "cli"));
@@ -96,7 +100,7 @@ public class InstallerPlatformAdapterFactoryTests
 
         try
         {
-            Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
+            Environment.SetEnvironmentVariable(PayloadRootVariable, null);
             Directory.CreateDirectory(Path.Join(root, "payload", "desktop"));
             Directory.CreateDirectory(Path.Join(root, "payload", "server"));
             Directory.CreateDirectory(Path.Join(root, "payload", "cli"));
@@ -131,8 +135,8 @@ public class InstallerPlatformAdapterFactoryTests
         if (InstallerPlatformAdapterFactory.IsNixOsHost())
             Assert.Ignore("NixOS uses the lookup-only adapter instead of the Ubuntu installer adapter.");
 
-        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, "/payload");
+        Environment.SetEnvironmentVariable(FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(PayloadRootVariable, "/payload");
 
         var adapter = CreateAgentUpAdapter();
 
@@ -145,9 +149,9 @@ public class InstallerPlatformAdapterFactoryTests
         if (!OperatingSystem.IsLinux())
             Assert.Ignore("NixOS adapter selection is Linux-specific.");
 
-        Environment.SetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable, null);
-        Environment.SetEnvironmentVariable(AgentUpProduct.PayloadRootVariable, null);
-        Environment.SetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable, "1");
+        Environment.SetEnvironmentVariable(FakeInstallerVariable, null);
+        Environment.SetEnvironmentVariable(PayloadRootVariable, null);
+        Environment.SetEnvironmentVariable(NixOsLookupOnlyVariable, "1");
 
         var adapter = CreateAgentUpAdapter();
 
@@ -161,7 +165,7 @@ public class InstallerPlatformAdapterFactoryTests
         return InstallerPlatformAdapterFactory.Create(
             product,
             AppContext.BaseDirectory,
-            Environment.GetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable),
-            Environment.GetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable) == "1" || InstallerPlatformAdapterFactory.IsNixOsHost());
+            Environment.GetEnvironmentVariable(FakeInstallerVariable),
+            Environment.GetEnvironmentVariable(NixOsLookupOnlyVariable) == "1" || InstallerPlatformAdapterFactory.IsNixOsHost());
     }
 }

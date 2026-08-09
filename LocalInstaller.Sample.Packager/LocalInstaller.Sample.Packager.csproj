@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <Compile Include="..\LocalInstaller.Sample.Shared\SampleProduct.cs" Link="SampleProduct.cs" />
-    <ProjectReference Include="..\AgentUp.Packaging\AgentUp.Packaging.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Packaging\LocalInstaller.Packaging.csproj" />
   </ItemGroup>
 
 </Project>

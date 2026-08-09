@@ -1,4 +1,3 @@
-using AgentUp.InstallerConfig;
 using AgentUp.Installers.Features.Installation.Models;
 using AgentUp.Packaging.Features.ReleaseArtifacts.DTOs;
 
@@ -6,16 +5,21 @@ namespace AgentUp.Packaging.Tests.Support;
 
 internal static class AgentUpPackageTestManifests
 {
+    private const string ProductName = "Agent-Up";
+    private const string ProductSlug = "agent-up";
+    private const string EnvironmentPrefix = "AGENTUP";
+    private const string WindowsUpgradeCode = "8f9076cc-95f1-4bd6-a087-1686e5e0d540";
+
     public static PackageProductManifest Product()
-        => new(AgentUpProduct.Name, AgentUpProduct.Slug, AgentUpProduct.EnvironmentPrefix)
+        => new(ProductName, ProductSlug, EnvironmentPrefix)
         {
-            Manufacturer = AgentUpProduct.Name,
-            WindowsUpgradeCode = AgentUpProduct.WindowsUpgradeCode
+            Manufacturer = ProductName,
+            WindowsUpgradeCode = WindowsUpgradeCode
         };
 
     public static ProductManifest InstallerProduct()
-        => new(AgentUpProduct.Name, AgentUpProduct.Slug, AgentUpProduct.EnvironmentPrefix)
+        => new(ProductName, ProductSlug, EnvironmentPrefix)
         {
-            WindowsUpgradeCode = AgentUpProduct.WindowsUpgradeCode
+            WindowsUpgradeCode = WindowsUpgradeCode
         };
 }

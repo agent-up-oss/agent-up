@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
     <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
   </ItemGroup>
 
