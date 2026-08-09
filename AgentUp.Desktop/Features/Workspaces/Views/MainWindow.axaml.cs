@@ -54,6 +54,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Default true because Avalonia's Activated event may not fire before the first render
     // if the window opens focused (common case) — assuming true avoids a startup 1 fps spike.
     private bool _windowFocused = true;
+    // Set when an important stream transition (Streaming / AppFailed / Chromium ready)
+    // fires while the window is unfocused. Drives BackgroundAttentionBanner visibility.
+    // Cleared on Window.Activated.
+    private bool _pendingBackgroundAttention;
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
@@ -174,7 +178,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
         PortPane.SizeChanged += OnPortPaneSizeChanged;
-        Activated += (_, _) => { _windowFocused = true; UpdateAllViewerPresences(); };
+        Activated += (_, _) =>
+        {
+            _windowFocused = true;
+            _pendingBackgroundAttention = false;
+            UpdateBackgroundAttentionOverlay();
+            UpdateAllViewerPresences();
+        };
         Deactivated += (_, _) => { _windowFocused = false; UpdateAllViewerPresences(); };
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverBaseUrl = serverUrl;
@@ -785,9 +795,62 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Dispatcher.UIThread.Post(() =>
         {
             if (_isClosed) return;
+            var prevKind = _streamStates.GetValueOrDefault(snapshot.WorkspaceId)?.Kind;
+            var prevChromiumState = _streamStates.GetValueOrDefault(snapshot.WorkspaceId)?.ChromiumState;
             _streamStates[snapshot.WorkspaceId] = snapshot;
             RenderStreamState(snapshot.WorkspaceId);
+            MaybeNotifyBackgroundImportantEvent(snapshot, prevKind, prevChromiumState);
         });
+    }
+
+    // Fires when the user is not looking at the AgentUp window and something they'd want
+    // to know about happened. WebKit's compositor is likely frozen so the viewer canvas
+    // won't repaint until they re-focus; Avalonia's own render layer still paints, so we
+    // show a modal-style overlay (visible in window preview / on re-focus) AND kick the
+    // window's Activate() which most modern WMs translate into a taskbar/dock urgency
+    // hint (a "flash") rather than a focus-steal when the user is active elsewhere.
+    private void MaybeNotifyBackgroundImportantEvent(
+        StreamStateSnapshot snapshot,
+        StreamStateKind? prevKind,
+        string? prevChromiumState)
+    {
+        if (_isClosed || _windowFocused) return;
+
+        var kind = snapshot.Kind;
+        var chromiumJustReady =
+            kind == StreamStateKind.ChromiumDownloading == false
+            && string.Equals(prevChromiumState, "downloading", StringComparison.Ordinal)
+            && (snapshot.ChromiumState is "ready" or null);
+        var transitioningToStreaming = kind == StreamStateKind.Streaming && prevKind != StreamStateKind.Streaming;
+        var transitioningToAppFailed = kind == StreamStateKind.AppFailed && prevKind != StreamStateKind.AppFailed;
+
+        if (!(chromiumJustReady || transitioningToStreaming || transitioningToAppFailed)) return;
+
+        _pendingBackgroundAttention = true;
+        BackgroundAttentionText.Text = kind switch
+        {
+            StreamStateKind.Streaming => "AI browser updated",
+            StreamStateKind.AppFailed => "AI browser could not reach app",
+            _ => "AI browser ready",
+        };
+        UpdateBackgroundAttentionOverlay();
+        TryRequestUserAttention();
+    }
+
+    private void UpdateBackgroundAttentionOverlay()
+    {
+        if (_isClosed) return;
+        BackgroundAttentionBanner.IsVisible = _pendingBackgroundAttention && !_windowFocused;
+    }
+
+    // Attempt to flag the app in the OS taskbar/dock. On modern Linux WMs and macOS,
+    // Activate() on a background window is downgraded to an urgency hint (icon flash)
+    // rather than a focus-steal. Wrapped in try because there's no cross-platform
+    // "request attention" API in Avalonia 12 — if the platform rejects it, silently no-op.
+    private void TryRequestUserAttention()
+    {
+        try { Activate(); }
+        catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException) { }
     }
 
     // ────────────────────────────────────────────────────────────────

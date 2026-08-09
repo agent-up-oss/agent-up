@@ -799,6 +799,37 @@
                                                TextAlignment="Center"
                                                Text="Connecting to app… (1 / 30)"/>
                                 </Border>
+                                <!-- Shown when an important stream event fires while the app is
+                                     unfocused (WebKit compositor stops repainting when GTK loses
+                                     focus, so the viewer canvas would be stale until the user
+                                     re-focuses). Rendered by Avalonia itself so it appears even
+                                     when WebKit is frozen. -->
+                                <Border x:Name="BackgroundAttentionBanner"
+                                        IsVisible="False"
+                                        ZIndex="20"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        Background="#c8000000">
+                                    <Border HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Background="#0d0f14"
+                                            BorderBrush="#3d5b78"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="28,24">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock x:Name="BackgroundAttentionText"
+                                                       Foreground="#9ca8bb"
+                                                       FontSize="13"
+                                                       TextAlignment="Center"
+                                                       Text="AI browser updated"/>
+                                            <TextBlock Foreground="#5c6c7f"
+                                                       FontSize="11"
+                                                       TextAlignment="Center"
+                                                       Text="View refreshes when AgentUp is focused"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Border>
                             </Panel>
 
                             <!-- TCP port placeholder -->
