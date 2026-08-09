@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Browser.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -20,6 +22,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
     private readonly BrowserEventBus _eventBus;
     private readonly AppHealthController _healthChecks;
     private readonly WorkspaceQueryController _workspaceQuery;
+    private readonly AuditController _audit;
     private readonly ILogger<WorkspaceStreamStateService> _logger;
 
     private readonly Lock _lock = new();
@@ -38,11 +41,13 @@ public sealed class WorkspaceStreamStateService : IDisposable
         BrowserEventBus eventBus,
         AppHealthController healthChecks,
         WorkspaceQueryController workspaceQuery,
+        AuditController audit,
         ILogger<WorkspaceStreamStateService> logger)
     {
         _eventBus = eventBus;
         _healthChecks = healthChecks;
         _workspaceQuery = workspaceQuery;
+        _audit = audit;
         _logger = logger;
         _healthChecks.PortHealthChanged += HandlePortHealthChanged;
     }
@@ -214,18 +219,54 @@ public sealed class WorkspaceStreamStateService : IDisposable
     {
         StreamState next;
         StreamState? previous;
+        WorkspaceStreamInputs? snapshot;
         lock (_lock)
         {
+            _inputs.TryGetValue(workspaceId, out snapshot);
             // Removed workspaces publish one final WorkspaceStopped so any live UI clears.
-            next = _inputs.TryGetValue(workspaceId, out var inputs)
-                ? Compute(inputs)
-                : StreamState.Stopped();
+            next = snapshot is not null ? Compute(snapshot) : StreamState.Stopped();
             _lastPublished.TryGetValue(workspaceId, out previous);
             _lastPublished[workspaceId] = next;
         }
 
         if (previous is not null && previous == next) return;
         _eventBus.PublishStreamState(workspaceId, next);
+        AuditTransition(workspaceId, previous, next, snapshot);
+    }
+
+    // Persist every server-side state transition to the audit log. Paired with the
+    // desktop's `stream_state_changed` audit events, this gives a bidirectional trace:
+    // the server row shows what Compute() derived and from which inputs; the desktop
+    // row shows what the SSE consumer actually received and rendered.
+    private void AuditTransition(string workspaceId, StreamState? previous, StreamState next, WorkspaceStreamInputs? snapshot)
+    {
+        var details = new Dictionary<string, string>
+        {
+            ["fromKind"] = previous?.Kind.ToString() ?? "<initial>",
+            ["toKind"] = next.Kind.ToString(),
+            ["chromiumState"] = _chromium.State,
+            ["chromiumProgress"] = _chromium.Progress.ToString(),
+            ["isRunning"] = (snapshot?.IsRunning ?? false).ToString(),
+            ["sessionActive"] = (snapshot?.SessionActive ?? false).ToString(),
+            ["currentTargetUrl"] = snapshot?.CurrentTarget?.Url ?? string.Empty,
+            ["currentTargetPort"] = (snapshot?.CurrentTarget?.Port ?? 0).ToString(),
+            ["currentTargetHealthChecked"] = (snapshot?.CurrentTarget?.HealthChecked ?? false).ToString(),
+            ["portHealth"] = snapshot is null
+                ? string.Empty
+                : string.Join(",", snapshot.PortHealth.Select(kv => $"{kv.Key}={kv.Value}")),
+            ["probeAttempt"] = (snapshot?.StandaloneProbeAttempt ?? 0).ToString(),
+            ["probeReachable"] = (snapshot?.StandaloneProbeReachable ?? false).ToString(),
+            ["probeExhausted"] = (snapshot?.StandaloneProbeExhausted ?? false).ToString(),
+        };
+        _ = _audit.RecordAsync(
+            new AuditRecordRequest(
+                Kind: "stream",
+                Source: "server",
+                Action: "state_transition",
+                Outcome: next.Kind.ToString(),
+                WorkspaceId: workspaceId,
+                Details: details),
+            CancellationToken.None);
     }
 
     private StreamState Compute(WorkspaceStreamInputs inputs)

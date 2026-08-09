@@ -83,6 +83,7 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<AppHealthController>(),
             sp.GetRequiredService<WorkspaceQueryController>(),
+            sp.GetRequiredService<AuditController>(),
             sp.GetRequiredService<ILogger<WorkspaceStreamStateService>>()));
         builder.Services.AddSingleton<WorkspaceStreamStateController>();
         builder.Services.AddSingleton(sp => new HeadlessBrowserSessionManager(
@@ -395,6 +396,7 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<AppHealthController>(),
             sp.GetRequiredService<WorkspaceQueryController>(),
+            sp.GetRequiredService<AuditController>(),
             sp.GetRequiredService<ILogger<WorkspaceStreamStateService>>()));
         builder.Services.AddSingleton<WorkspaceStreamStateController>();
         builder.Services.AddSingleton(sp => new HeadlessBrowserSessionManager(

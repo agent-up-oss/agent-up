@@ -63,7 +63,7 @@ internal static class ServerTestComposition
             queryController, stateController, CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
         var healthChecks = new AppHealthController(healthCheckService);
         var streamState = new WorkspaceStreamStateService(
-            eventBus, healthChecks, queryController,
+            eventBus, healthChecks, queryController, CreateAuditController(),
             NullLogger<WorkspaceStreamStateService>.Instance);
         var sessions = new HeadlessBrowserSessionManager(
             Path.GetTempPath(), Path.GetTempPath(), display,
@@ -98,6 +98,7 @@ internal static class ServerTestComposition
             eventBus ?? new BrowserEventBus(),
             healthChecks,
             queryController,
+            CreateAuditController(),
             NullLogger<WorkspaceStreamStateService>.Instance);
     }
 

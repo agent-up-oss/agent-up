@@ -152,6 +152,7 @@ public static class ServiceRegistration
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<AppHealthController>(),
             sp.GetRequiredService<WorkspaceQueryController>(),
+            sp.GetRequiredService<AuditController>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WorkspaceStreamStateService>>()));
         builder.Services.AddSingleton<WorkspaceStreamStateController>();
         builder.Services.AddHostedService<StreamStateWorkspaceSubscriber>();

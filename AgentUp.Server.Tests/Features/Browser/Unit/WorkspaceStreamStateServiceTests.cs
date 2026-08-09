@@ -58,7 +58,7 @@ public sealed class WorkspaceStreamStateServiceTests
             query, state, ServerTestComposition.CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
         var health = new AppHealthController(healthService);
         var bus = new BrowserEventBus();
-        var svc = new WorkspaceStreamStateService(bus, health, query, NullLogger<WorkspaceStreamStateService>.Instance);
+        var svc = new WorkspaceStreamStateService(bus, health, query, ServerTestComposition.CreateAuditController(), NullLogger<WorkspaceStreamStateService>.Instance);
         return (svc, bus, health, registry);
     }
 

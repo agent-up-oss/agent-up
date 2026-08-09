@@ -25,6 +25,11 @@ internal static class RdpViewerPage
         <div id="ai-badge">AI</div>
         <script>
           const workspaceId = {{System.Text.Json.JsonSerializer.Serialize(workspaceId)}};
+          // Random per-page-load identifier so audit heartbeats can distinguish concurrent
+          // JS contexts (e.g. if the desktop has more than one viewer WebView loading this
+          // same URL, or if ReloadWebView leaks old pages).
+          const pageInstanceId = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+          const pageLoadedAt = Date.now();
           const canvas = document.getElementById('c');
           const ctx = canvas.getContext('2d');
 
@@ -33,7 +38,14 @@ internal static class RdpViewerPage
           let ws = null;
           let reconnectTimer = 0;
 
+          // Diagnostic state — sent to /api/audit/record every heartbeatMs so the audit
+          // trail shows whether frames are actually reaching the viewer's canvas. This is
+          // the only visibility we have into the WebKit-embedded viewer runtime.
+          let framesReceived = 0;
           let lastFrameAt = 0;
+          let lastPollStatus = '';
+          let lastPollError = '';
+          let lastWsEvent = 'none';
           let pollTimer = 0;
 
           function drawBlob(blob) {
@@ -44,6 +56,7 @@ internal static class RdpViewerPage
               if (canvas.height !== img.height) canvas.height = img.height;
               ctx.drawImage(img, 0, 0);
               lastFrameAt = Date.now();
+              framesReceived += 1;
               URL.revokeObjectURL(url);
             };
             img.onerror = () => URL.revokeObjectURL(url);
@@ -53,9 +66,14 @@ internal static class RdpViewerPage
           async function pollFrame() {
             try {
               const res = await fetch(`/api/browser/rdp/${encodeURIComponent(workspaceId)}/frame?t=${Date.now()}`, { cache: 'no-store' });
+              lastPollStatus = String(res.status);
+              lastPollError = '';
               if (!res.ok) return;
               drawBlob(await res.blob());
-            } catch (_) {}
+            } catch (err) {
+              lastPollStatus = 'error';
+              lastPollError = String((err && err.message) || err || '').slice(0, 200);
+            }
           }
 
           function startPolling() {
@@ -71,6 +89,7 @@ internal static class RdpViewerPage
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = () => {
+              lastWsEvent = 'open';
               if (reconnectTimer) {
                 clearTimeout(reconnectTimer);
                 reconnectTimer = 0;
@@ -80,8 +99,9 @@ internal static class RdpViewerPage
               if (typeof e.data !== 'string')
                 drawBlob(new Blob([e.data], { type: 'image/jpeg' }));
             };
-            ws.onerror = () => startPolling();
+            ws.onerror = () => { lastWsEvent = 'error'; startPolling(); };
             ws.onclose = () => {
+              lastWsEvent = 'close';
               startPolling();
               if (!reconnectTimer)
                 reconnectTimer = window.setTimeout(() => {
@@ -90,6 +110,54 @@ internal static class RdpViewerPage
                 }, 500);
             };
           }
+
+          const heartbeatMs = 3000;
+          function wsStateName(state) {
+            if (state === WebSocket.CONNECTING) return 'connecting';
+            if (state === WebSocket.OPEN) return 'open';
+            if (state === WebSocket.CLOSING) return 'closing';
+            if (state === WebSocket.CLOSED) return 'closed';
+            return 'none';
+          }
+          function sendHeartbeat() {
+            const now = Date.now();
+            const outcome = framesReceived > 0 && (now - lastFrameAt) < heartbeatMs * 2
+              ? 'streaming' : 'idle';
+            const payload = {
+              Kind: 'stream',
+              Source: 'viewer',
+              Action: 'heartbeat',
+              Outcome: outcome,
+              WorkspaceId: workspaceId,
+              Details: {
+                pageInstanceId: pageInstanceId,
+                pageAgeMs: String(now - pageLoadedAt),
+                documentVisibilityState: document.visibilityState || 'unknown',
+                framesReceived: String(framesReceived),
+                lastFrameAgoMs: lastFrameAt ? String(now - lastFrameAt) : '',
+                canvasWidth: String(canvas.width),
+                canvasHeight: String(canvas.height),
+                wsReadyState: wsStateName(ws && ws.readyState),
+                lastWsEvent: lastWsEvent,
+                lastPollStatus: lastPollStatus,
+                lastPollError: lastPollError,
+                streamUrl: streamUrl,
+                viewportWidth: String(window.innerWidth),
+                viewportHeight: String(window.innerHeight),
+              }
+            };
+            try {
+              fetch('/api/audit/record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                cache: 'no-store',
+                keepalive: true,
+              }).catch(() => {});
+            } catch (_) {}
+          }
+          window.setInterval(sendHeartbeat, heartbeatMs);
+          sendHeartbeat();
 
           connectStream();
           startPolling();
