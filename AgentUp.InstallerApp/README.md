@@ -20,10 +20,26 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using AgentUp.InstallerApp;
 using AgentUp.InstallerApp.Composition;
+using AgentUp.Installers.Composition;
+using AgentUp.Installers.Features.Installation.Models;
+
+var product = new ProductManifest("Acme Studio", "acme-studio", "ACMESTUDIO")
+{
+    Components = [ProductComponent.Cli, ProductComponent.Server, ProductComponent.Desktop]
+};
+
+AppComposition.ConfigureProduct(product, "ACMESTUDIO_INSTALLER_FAKE");
 
 var commandLine = AppComposition.CreateCommandLineController();
 if (commandLine.ShouldRunCommandLine(args))
-    return await commandLine.RunAsync(args, Console.Out, Console.Error);
+{
+    var adapter = InstallerPlatformAdapterFactory.Create(
+        product,
+        AppContext.BaseDirectory,
+        Environment.GetEnvironmentVariable("ACMESTUDIO_INSTALLER_FAKE"),
+        useNixOsLookupOnlyMode: false);
+    return await commandLine.RunAsync(adapter, product, args, Console.Out, Console.Error);
+}
 
 return AppBuilder.Configure<App>()
     .UsePlatformDetect()

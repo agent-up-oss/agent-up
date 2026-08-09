@@ -11,15 +11,16 @@ namespace AgentUp.InstallerApp.Composition;
 
 public static class InstallerViewModelFactory
 {
-    public static InstallerViewModel CreateDefault()
+    public static InstallerViewModel CreateDefault(InstallerProductRegistration? product = null)
     {
         var version = InstallerVersion();
-        var manifest = AgentUpManifest();
+        var registration = product ?? AgentUpRegistration();
+        var manifest = registration.Product;
         IInstallerPlatformAdapter adapter = InstallerPlatformAdapterFactory.Create(
             manifest,
             AppContext.BaseDirectory,
-            Environment.GetEnvironmentVariable(AgentUpProduct.FakeInstallerVariable),
-            Environment.GetEnvironmentVariable(AgentUpProduct.NixOsLookupOnlyVariable) == "1" || InstallerPlatformAdapterFactory.IsNixOsHost());
+            registration.FakeInstaller(),
+            registration.UseNixOsLookupOnlyMode());
         var model = new InstallerViewModel(
             InstallerSession.CreateDefault(manifest, version, manifest.DefaultInstallRoot(), PayloadSelection.Bundled(manifest.ProductName, version)),
             adapter,
@@ -63,4 +64,17 @@ public static class InstallerViewModelFactory
             Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli],
             WindowsUpgradeCode = AgentUpProduct.WindowsUpgradeCode
         };
+
+    private static InstallerProductRegistration AgentUpRegistration()
+        => new(AgentUpManifest(), AgentUpProduct.FakeInstallerVariable, AgentUpProduct.NixOsLookupOnlyVariable);
+
+    private static string? FakeInstaller(this InstallerProductRegistration registration)
+        => registration.FakeInstallerVariable is null
+            ? null
+            : Environment.GetEnvironmentVariable(registration.FakeInstallerVariable);
+
+    private static bool UseNixOsLookupOnlyMode(this InstallerProductRegistration registration)
+        => registration.NixOsLookupOnlyVariable is not null
+           && Environment.GetEnvironmentVariable(registration.NixOsLookupOnlyVariable) == "1"
+           || InstallerPlatformAdapterFactory.IsNixOsHost();
 }

@@ -259,6 +259,36 @@ public class InstallerWindowBehaviorTests
         Assert.That(xaml, Does.Contain("ColumnDefinitions=\"*,Auto,*\""));
     }
 
+    [Test]
+    public void InstallerViewModelFactory_usesConfiguredConsumerProduct()
+    {
+        const string fakeVariable = "LOCALINSTALLER_SAMPLE_INSTALLER_FAKE";
+        var previous = Environment.GetEnvironmentVariable(fakeVariable);
+        Environment.SetEnvironmentVariable(fakeVariable, "1");
+
+        try
+        {
+            var manifest = new ProductManifest("LocalInstaller Sample", "localinstaller-sample", "LOCALINSTALLERSAMPLE")
+            {
+                Components =
+                [
+                    ProductComponent.Cli,
+                    ProductComponent.Server,
+                    ProductComponent.Desktop,
+                    new ProductComponent("tray", "Tray", "Notification area app.")
+                ]
+            };
+
+            var model = InstallerViewModelFactory.CreateDefault(new InstallerProductRegistration(manifest, fakeVariable));
+
+            Assert.That(model.ComponentCards.Select(card => card.Target.Id), Is.EqualTo(new[] { "cli", "server", "desktop", "tray" }));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(fakeVariable, previous);
+        }
+    }
+
     private static async Task<InstallerWindow> LaunchAsync()
     {
         var window = new InstallerWindow { DataContext = InstallerViewModelFactory.CreateFakeForTests() };
