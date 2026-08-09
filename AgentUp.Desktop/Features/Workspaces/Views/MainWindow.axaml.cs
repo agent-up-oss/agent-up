@@ -355,6 +355,37 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         else
             f["webView.activeSourceUrl"] = string.Empty;
 
+        // Diagnostic fields so audit can distinguish "modal not firing" from "modal firing
+        // but hidden by native z-order". If windowFocused=false + streamState=Streaming +
+        // backgroundAttentionBannerVisible=true, and the user still reports no modal, the
+        // banner IS being drawn — it just can't beat the native GTK/WebKit subwindow to
+        // the compositor layer.
+        f["webView.windowFocused"] = _windowFocused.ToString();
+        f["webView.backgroundAttentionBannerVisible"] = BackgroundAttentionBanner.IsVisible.ToString();
+        f["webView.backgroundAttentionOverrideText"] = _backgroundAttentionOverrideText ?? string.Empty;
+        f["webView.browserConnectingBannerVisible"] = BrowserConnectingBanner.IsVisible.ToString();
+        f["webView.chromiumDownloadBannerVisible"] = ChromiumDownloadBanner.IsVisible.ToString();
+        if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var activeMarginWv))
+        {
+            f["webView.activeMargin"] = activeMarginWv.Margin.ToString();
+            f["webView.activeBounds"] = $"{activeMarginWv.Bounds.Width:F0}x{activeMarginWv.Bounds.Height:F0}";
+            f["webView.activeDesiredSize"] = $"{activeMarginWv.DesiredSize.Width:F0}x{activeMarginWv.DesiredSize.Height:F0}";
+            f["webView.activeIsHitTestVisible"] = activeMarginWv.IsHitTestVisible.ToString();
+            f["webView.activeMaxSize"] = $"{activeMarginWv.MaxWidth}x{activeMarginWv.MaxHeight}";
+        }
+        else
+        {
+            f["webView.activeMargin"] = "";
+            f["webView.activeBounds"] = "";
+            f["webView.activeDesiredSize"] = "";
+            f["webView.activeIsHitTestVisible"] = "";
+            f["webView.activeMaxSize"] = "";
+        }
+        if (_activeWorkspaceId is not null && _streamStates.TryGetValue(_activeWorkspaceId, out var activeSnap))
+            f["webView.activeStreamKind"] = activeSnap.Kind.ToString();
+        else
+            f["webView.activeStreamKind"] = "None";
+
         return f;
     }
 
@@ -463,7 +494,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         var previousWorkspaceId = _activeWorkspaceId;
         if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var previous))
-            previous.IsVisible = false;
+        {
+            // For viewer tabs occlude via 0×0 sizing (keeps WebKit mapped so its timers
+            // and compositor stay warm on switch-back). Other tabs (human direct port)
+            // can be flat-out hidden — they don't have the freeze problem.
+            var prevIsViewer = _activeTabKey.EndsWith(":viewer", StringComparison.Ordinal);
+            if (prevIsViewer) PositionWebView(previous, occlude: true);
+            else previous.IsVisible = false;
+        }
 
         _activeWorkspaceId = workspaceId;
         _activeTabKey = tabKey;
@@ -842,19 +880,22 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         TryRequestUserAttention();
     }
 
-    // Modal is visible whenever the window is unfocused AND the active workspace is one
-    // where WebKit *should* be repainting (Streaming, SessionLaunching, or Chromium is
-    // ready but connecting) — because in every one of those states, WebKit's compositor
-    // suspension while unfocused means what the user sees on the secondary monitor is
-    // stale relative to what the AI is actually doing. The modal is honest: "you're not
-    // seeing the current state; focus AgentUp to catch up."
+    // Modal is a *last-resort* escalation. Under normal circumstances the WebView is
+    // left at full size so WebKit can paint the stream even when the window is unfocused
+    // (many WMs cooperate — the OS keeps compositing background windows for thumbnails
+    // etc.). We only show the modal when we have specific reason to believe the user's
+    // stream is stale: either an important stream transition just fired while unfocused
+    // (see MaybeNotifyBackgroundImportantEvent) or — future work — a stale-heartbeat
+    // detector times out. Absent those signals, the modal stays hidden and the WebView
+    // gets a fair chance to render on its own.
     private void UpdateBackgroundAttentionOverlay()
     {
         if (_isClosed) return;
 
-        var shouldShow = !_windowFocused && ActiveWorkspaceViewIsLive();
+        var shouldShow = !_windowFocused && _backgroundAttentionOverrideText is not null;
         BackgroundAttentionText.Text = _backgroundAttentionOverrideText ?? "AI browser view may be stale";
         BackgroundAttentionBanner.IsVisible = shouldShow;
+        ApplyWebViewOcclusion();
     }
 
     private bool ActiveWorkspaceViewIsLive()
@@ -899,13 +940,16 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         // Visibility follows tab activation ONLY — never gated by stream state. If the
         // active viewer's stream flips to non-Streaming we keep the WebView mapped so
         // WebKit doesn't unmap the GTK widget (that unmap froze the compositor + timers
-        // for minutes on re-map, producing the "blank screen" bug). Banners with ZIndex
-        // overlay the WebView while non-Streaming.
+        // for minutes on re-map, producing the "blank screen" bug). When a banner should
+        // occlude the WebView we push it offscreen via Margin (see PositionWebView)
+        // because Linux/GTK renders native subwindows above Avalonia content regardless
+        // of ZIndex, so a straight overlay would be hidden behind the WebView surface.
         var showWebView = isAi && isActiveViewerTab && !tutorialVisible;
 
         if (_webViews.TryGetValue(viewerKey, out var viewer))
         {
             viewer.IsVisible = showWebView;
+            PositionWebView(viewer, occlude: showWebView && kind != StreamStateKind.Streaming);
             if (showWebView && kind == StreamStateKind.Streaming)
             {
                 var viewerUrl = BuildViewerUrl(workspaceId);
@@ -941,7 +985,69 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _lastRenderedKind[workspaceId] = kind;
         UpdateViewerPresence(workspaceId);
         if (workspaceId == _activeWorkspaceId)
+        {
             UpdateBackgroundAttentionOverlay();
+            ApplyWebViewOcclusion();
+        }
+    }
+
+    // Linux/GTK NativeControlHost: the WebView's native subwindow is composited by the
+    // OS window manager and sits above any Avalonia-drawn content in the same window.
+    // ZIndex on Avalonia banners does not help. To make a banner actually visible over
+    // the WebView we shrink the WebView to 0×0 via MaxWidth/MaxHeight — the widget
+    // stays IsVisible=true and mapped in GTK (so WebKit doesn't freeze its compositor/
+    // timers), but GTK allocates it 0×0 screen space so it paints nothing. We tried a
+    // large negative Margin first, but on our WM that leaked the WebView surface into
+    // the window chrome (title bar / min-max-close). Constraint-based hiding avoids the
+    // whole coordinate-clamping problem — GTK just gets a "size zero" allocation.
+    private void PositionWebView(NativeWebView webView, bool occlude)
+    {
+        // Belt-and-braces because Avalonia's NativeControlHost sometimes ignores a single
+        // constraint: set Width/Height/Min/Max all at once so the arrange pass has no
+        // room to give the native subwindow anything larger than 0×0. InvalidateMeasure
+        // forces a layout pass so the change takes effect this tick, not next dispatcher.
+        if (occlude)
+        {
+            webView.MinWidth = 0;
+            webView.MinHeight = 0;
+            webView.MaxWidth = 0;
+            webView.MaxHeight = 0;
+            webView.Width = 0;
+            webView.Height = 0;
+        }
+        else
+        {
+            webView.MinWidth = 0;
+            webView.MinHeight = 0;
+            webView.MaxWidth = double.PositiveInfinity;
+            webView.MaxHeight = double.PositiveInfinity;
+            webView.Width = double.NaN;
+            webView.Height = double.NaN;
+        }
+        // Prior build shipped a negative Margin approach that left the WebView invisible
+        // but still swallowing pointer input over the window chrome. Reset explicitly so
+        // any surviving state from that build doesn't linger for this user's session.
+        if (webView.Margin != default) webView.Margin = default;
+        webView.IsHitTestVisible = !occlude;
+        webView.InvalidateMeasure();
+    }
+
+    // Re-runs occlusion for the currently active viewer whenever the modal-overlay
+    // decision changes (window focus, stream state, etc.). Non-active viewers stay at
+    // whatever position their own RenderStreamState pass set them to. Occlusion is
+    // ONLY driven by stream state — we never take the WebView away from the user just
+    // because the window is unfocused, since that would defeat WebKit's chance to paint
+    // when the WM is willing to composite. If a modal is showing it will sit *behind*
+    // the WebView on Linux; that's acceptable because the WebView-showing state is
+    // itself informative (the user sees the last frame the compositor managed).
+    private void ApplyWebViewOcclusion()
+    {
+        if (_isClosed || _activeWorkspaceId is null || _activeTabKey is null) return;
+        if (!_activeTabKey.EndsWith(":viewer", StringComparison.Ordinal)) return;
+        if (!_webViews.TryGetValue(_activeTabKey, out var viewer)) return;
+        var kind = _streamStates.GetValueOrDefault(_activeWorkspaceId)?.Kind;
+        var occlude = kind != StreamStateKind.Streaming;
+        PositionWebView(viewer, occlude);
     }
 
     // Presence is "foreground" only if a human is actually watching THIS viewer right now:
