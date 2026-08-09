@@ -39,6 +39,14 @@ public sealed class WorkspaceLifecycleService
         if (workspace is null)
             return WorkspaceLifecycleResult.NotFound();
 
+        // Idempotent: if the workspace is already Running or in the middle of Starting,
+        // don't tear down the live browser session and re-launch processes. A double-Start
+        // click would otherwise dispose the session, reallocate ports, and spawn duplicate
+        // app processes — dropping the current stream and leaving zombie viewer pages.
+        // Callers who want a real restart must Stop first.
+        if (workspace.State is WorkspaceState.Running or WorkspaceState.Starting)
+            return WorkspaceLifecycleResult.Success();
+
         await _registry.UpdateStateAsync(id, WorkspaceState.Starting);
         foreach (var app in workspace.Applications)
             await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
@@ -75,6 +83,10 @@ public sealed class WorkspaceLifecycleService
         var workspace = _registry.GetById(id);
         if (workspace is null)
             return WorkspaceLifecycleResult.NotFound();
+
+        // Idempotent: a second Stop on an already-Stopped workspace is a no-op.
+        if (workspace.State is WorkspaceState.Stopped or WorkspaceState.Stopping)
+            return WorkspaceLifecycleResult.Success();
 
         await _registry.UpdateStateAsync(id, WorkspaceState.Stopping);
         foreach (var app in workspace.Applications)

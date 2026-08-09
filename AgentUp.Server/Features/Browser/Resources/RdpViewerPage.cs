@@ -112,6 +112,7 @@ internal static class RdpViewerPage
           }
 
           const heartbeatMs = 3000;
+          let heartbeatCount = 0;
           function wsStateName(state) {
             if (state === WebSocket.CONNECTING) return 'connecting';
             if (state === WebSocket.OPEN) return 'open';
@@ -119,7 +120,46 @@ internal static class RdpViewerPage
             if (state === WebSocket.CLOSED) return 'closed';
             return 'none';
           }
+
+          // Post a marker event to the audit trail. Used from lifecycle hooks (teardown,
+          // errors, visibility changes) so we can see WHY the heartbeat interval died.
+          function auditMarker(action, outcome, extra) {
+            try {
+              const details = Object.assign({
+                pageInstanceId: pageInstanceId,
+                pageAgeMs: String(Date.now() - pageLoadedAt),
+                heartbeatCount: String(heartbeatCount),
+              }, extra || {});
+              fetch('/api/audit/record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  Kind: 'stream', Source: 'viewer', Action: action,
+                  Outcome: outcome, WorkspaceId: workspaceId, Details: details,
+                }),
+                cache: 'no-store', keepalive: true,
+              }).catch(() => {});
+            } catch (_) {}
+          }
+
+          window.addEventListener('error', (e) => {
+            auditMarker('js_error', 'error', {
+              message: String(e && e.message || '').slice(0, 200),
+              filename: String(e && e.filename || '').slice(0, 200),
+              lineno: String(e && e.lineno || ''),
+            });
+          });
+          window.addEventListener('unhandledrejection', (e) => {
+            auditMarker('js_error', 'unhandled_rejection', {
+              reason: String((e && e.reason && e.reason.message) || e.reason || '').slice(0, 200),
+            });
+          });
+          document.addEventListener('visibilitychange', () => {
+            auditMarker('visibility_change', document.visibilityState || 'unknown');
+          });
+
           function sendHeartbeat() {
+            heartbeatCount += 1;
             const now = Date.now();
             const outcome = framesReceived > 0 && (now - lastFrameAt) < heartbeatMs * 2
               ? 'streaming' : 'idle';
@@ -156,12 +196,51 @@ internal static class RdpViewerPage
               }).catch(() => {});
             } catch (_) {}
           }
-          window.setInterval(sendHeartbeat, heartbeatMs);
+          // Chained setTimeout instead of setInterval — self-scheduling means throttling
+          // slows the cadence but can never fully stop the chain. If we see NO heartbeats
+          // after the immediate one, we know the JS context is truly gone or timers were
+          // suspended (rather than throttled).
+          let heartbeatChainAlive = true;
+          async function heartbeatLoop() {
+            while (heartbeatChainAlive) {
+              await new Promise((resolve) => window.setTimeout(resolve, heartbeatMs));
+              if (!heartbeatChainAlive) return;
+              sendHeartbeat();
+            }
+          }
+          const heartbeatHandle = 0; // legacy handle name, unused now
           sendHeartbeat();
+          heartbeatLoop();
 
           connectStream();
           startPolling();
           pollFrame();
+
+          // Explicit teardown only when the page is entering BFCache (event.persisted).
+          // For real unload the browser cleans up everything anyway, and firing teardown
+          // on every pagehide caused silent-death: some WebKit versions fire pagehide
+          // spuriously right after page load, killing our setInterval and leaving the
+          // canvas blank forever. Cache-Control: no-store on the response is what
+          // actually prevents BFCache; this handler is belt-and-braces for the case
+          // where the header is ignored.
+          function teardown(reason) {
+            auditMarker('teardown', reason || 'unknown');
+            heartbeatChainAlive = false;
+            try { if (pollTimer) window.clearInterval(pollTimer); pollTimer = 0; } catch (_) {}
+            try { if (reconnectTimer) window.clearTimeout(reconnectTimer); reconnectTimer = 0; } catch (_) {}
+            try {
+              if (ws && ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+                ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
+                ws.close();
+              }
+            } catch (_) {}
+          }
+          window.addEventListener('pagehide', (event) => {
+            auditMarker('pagehide', event && event.persisted ? 'persisted' : 'discarded', {
+              persisted: String(!!(event && event.persisted)),
+            });
+            if (event && event.persisted) teardown('pagehide_persisted');
+          });
         </script>
         </body>
         </html>

@@ -801,10 +801,24 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 var enteringStream = prevKind != StreamStateKind.Streaming;
                 if (enteringStream || !IsAtViewerUrl(viewer, viewerUrl))
                 {
-                    if (_viewerPagesLoaded.Contains(workspaceId))
-                        ReloadWebView(viewer, viewerUrl);    // reconnect the RDP WebSocket after restart
-                    else
-                        NavigateWebView(viewer, viewerUrl);  // first load
+                    // Defer the actual navigation to after Avalonia has finished the
+                    // visibility→layout→render cycle so WebKit sees the new page load
+                    // with visibilityState=visible already applied. Firing the reload
+                    // on the same tick as IsVisible=true races with GTK propagation
+                    // and WebKit freezes the newly-loaded page's JS timers (blank canvas
+                    // with no heartbeats). Loaded priority runs after layout+render but
+                    // before input — the WebKit process sees the visible state first.
+                    var pinnedViewer = viewer;
+                    var pinnedUrl = viewerUrl;
+                    var shouldReload = _viewerPagesLoaded.Contains(workspaceId);
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_isClosed) return;
+                        if (!_webViews.TryGetValue(viewerKey, out var current) || !ReferenceEquals(current, pinnedViewer))
+                            return;
+                        if (shouldReload) ReloadWebView(pinnedViewer, pinnedUrl);
+                        else NavigateWebView(pinnedViewer, pinnedUrl);
+                    }, DispatcherPriority.Loaded);
                 }
             }
         }
