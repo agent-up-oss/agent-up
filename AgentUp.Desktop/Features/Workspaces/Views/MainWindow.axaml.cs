@@ -54,10 +54,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Default true because Avalonia's Activated event may not fire before the first render
     // if the window opens focused (common case) — assuming true avoids a startup 1 fps spike.
     private bool _windowFocused = true;
-    // Set when an important stream transition (Streaming / AppFailed / Chromium ready)
-    // fires while the window is unfocused. Drives BackgroundAttentionBanner visibility.
-    // Cleared on Window.Activated.
-    private bool _pendingBackgroundAttention;
+    // Latest label to show inside BackgroundAttentionBanner. Updated when an important
+    // stream transition fires so the modal can tell the user *why* it wants attention,
+    // instead of always displaying the generic stale-view message.
+    private string? _backgroundAttentionOverrideText;
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
@@ -181,11 +181,16 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Activated += (_, _) =>
         {
             _windowFocused = true;
-            _pendingBackgroundAttention = false;
+            _backgroundAttentionOverrideText = null;
             UpdateBackgroundAttentionOverlay();
             UpdateAllViewerPresences();
         };
-        Deactivated += (_, _) => { _windowFocused = false; UpdateAllViewerPresences(); };
+        Deactivated += (_, _) =>
+        {
+            _windowFocused = false;
+            UpdateBackgroundAttentionOverlay();
+            UpdateAllViewerPresences();
+        };
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverBaseUrl = serverUrl;
         _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
@@ -477,6 +482,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             RenderStreamState(previousWorkspaceId);
         if (workspaceId is not null)
             RenderStreamState(workspaceId);
+        UpdateBackgroundAttentionOverlay();
     }
 
     private bool TryGetOrCreateWebView(
@@ -804,11 +810,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     }
 
     // Fires when the user is not looking at the AgentUp window and something they'd want
-    // to know about happened. WebKit's compositor is likely frozen so the viewer canvas
-    // won't repaint until they re-focus; Avalonia's own render layer still paints, so we
-    // show a modal-style overlay (visible in window preview / on re-focus) AND kick the
-    // window's Activate() which most modern WMs translate into a taskbar/dock urgency
-    // hint (a "flash") rather than a focus-steal when the user is active elsewhere.
+    // to know about happened. We use it to (a) update the modal text so it says WHY it's
+    // asking for attention, and (b) kick Window.Activate() which modern WMs translate to
+    // a taskbar/dock urgency hint (icon flash) rather than a focus-steal when the user
+    // is active elsewhere. The modal itself is always visible whenever the window is
+    // unfocused and a stream would be showing — see UpdateBackgroundAttentionOverlay.
     private void MaybeNotifyBackgroundImportantEvent(
         StreamStateSnapshot snapshot,
         StreamStateKind? prevKind,
@@ -826,8 +832,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         if (!(chromiumJustReady || transitioningToStreaming || transitioningToAppFailed)) return;
 
-        _pendingBackgroundAttention = true;
-        BackgroundAttentionText.Text = kind switch
+        _backgroundAttentionOverrideText = kind switch
         {
             StreamStateKind.Streaming => "AI browser updated",
             StreamStateKind.AppFailed => "AI browser could not reach app",
@@ -837,10 +842,29 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         TryRequestUserAttention();
     }
 
+    // Modal is visible whenever the window is unfocused AND the active workspace is one
+    // where WebKit *should* be repainting (Streaming, SessionLaunching, or Chromium is
+    // ready but connecting) — because in every one of those states, WebKit's compositor
+    // suspension while unfocused means what the user sees on the secondary monitor is
+    // stale relative to what the AI is actually doing. The modal is honest: "you're not
+    // seeing the current state; focus AgentUp to catch up."
     private void UpdateBackgroundAttentionOverlay()
     {
         if (_isClosed) return;
-        BackgroundAttentionBanner.IsVisible = _pendingBackgroundAttention && !_windowFocused;
+
+        var shouldShow = !_windowFocused && ActiveWorkspaceViewIsLive();
+        BackgroundAttentionText.Text = _backgroundAttentionOverrideText ?? "AI browser view may be stale";
+        BackgroundAttentionBanner.IsVisible = shouldShow;
+    }
+
+    private bool ActiveWorkspaceViewIsLive()
+    {
+        if (_activeWorkspaceId is null) return false;
+        if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") != "ai") return false;
+        if (!_streamStates.TryGetValue(_activeWorkspaceId, out var snap)) return false;
+        return snap.Kind is StreamStateKind.Streaming
+            or StreamStateKind.SessionLaunching
+            or StreamStateKind.AppConnecting;
     }
 
     // Attempt to flag the app in the OS taskbar/dock. On modern Linux WMs and macOS,
@@ -916,6 +940,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         _lastRenderedKind[workspaceId] = kind;
         UpdateViewerPresence(workspaceId);
+        if (workspaceId == _activeWorkspaceId)
+            UpdateBackgroundAttentionOverlay();
     }
 
     // Presence is "foreground" only if a human is actually watching THIS viewer right now:
