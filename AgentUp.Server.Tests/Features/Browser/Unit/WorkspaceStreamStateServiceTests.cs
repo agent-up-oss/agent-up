@@ -7,6 +7,7 @@ using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,6 +18,12 @@ namespace AgentUp.Server.Tests.Features.Browser.Unit;
 public sealed class WorkspaceStreamStateServiceTests
 {
     private static Workspace HealthCheckedWorkspace(string id, string appName, int port, string healthPath = "/health") =>
+        WorkspaceOfKind(id, appName, port, healthPath);
+
+    private static Workspace PlainWorkspace(string id, string appName, int port) =>
+        WorkspaceOfKind(id, appName, port, healthPath: null);
+
+    private static Workspace WorkspaceOfKind(string id, string appName, int port, string? healthPath) =>
         new()
         {
             Id = id,
@@ -35,9 +42,16 @@ public sealed class WorkspaceStreamStateServiceTests
             ]
         };
 
-    private static (WorkspaceStreamStateService Svc, BrowserEventBus Bus, AppHealthController Health, WorkspaceRegistry Registry) Build()
+    private static (WorkspaceStreamStateService Svc, BrowserEventBus Bus, AppHealthController Health, WorkspaceRegistry Registry) Build(params Workspace[] preseeded)
     {
-        var registry = ServerTestComposition.CreateRegistry();
+        var repo = new SeededRepository(preseeded);
+        var registry = new WorkspaceRegistry(
+            repo,
+            new AgentUp.Server.Features.Ports.Controllers.PortsController(new InMemoryPortAllocationService()),
+            new AgentUp.Server.Features.Capabilities.Controllers.CapabilitiesController(
+                new AgentUp.Server.Features.Capabilities.Services.CapabilityReconciliationService([])),
+            new WorkspaceEventBus());
+        registry.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
         var query = new WorkspaceQueryController(registry);
         var state = new WorkspaceStateController(registry, new WorkspaceEventBus());
         var healthService = new AppHealthCheckService(
@@ -46,6 +60,15 @@ public sealed class WorkspaceStreamStateServiceTests
         var bus = new BrowserEventBus();
         var svc = new WorkspaceStreamStateService(bus, health, query, NullLogger<WorkspaceStreamStateService>.Instance);
         return (svc, bus, health, registry);
+    }
+
+    private sealed class SeededRepository(IEnumerable<Workspace> seed) : IWorkspaceRepository
+    {
+        private readonly List<Workspace> _seed = [.. seed];
+        public Task<IReadOnlyList<Workspace>> LoadAllAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Workspace>>(_seed);
+        public Task SaveAllAsync(IReadOnlyList<Workspace> workspaces, CancellationToken ct = default) =>
+            Task.CompletedTask;
     }
 
     private static List<StreamStateEvent> Capture(BrowserEventBus bus, Action produce)
@@ -140,42 +163,53 @@ public sealed class WorkspaceStreamStateServiceTests
     public void OnSessionActive_Before_OnWorkspaceStarted_Is_Preserved_Not_Wiped()
     {
         // Regression: previously OnSessionActive was a NO-OP when _inputs was empty
-        // (e.g. viewer HTML JS reconnects its WebSocket on server restart, triggering
+        // (e.g. viewer HTML JS reconnects its viewer connection on server restart, triggering
         // EnsureSessionAsync before the user clicks Start). Then OnWorkspaceStarted
         // REPLACED _inputs, wiping SessionActive=false → EnsureSessionAsync's fast path
         // on the next navigate never re-fires OnSessionActive → stuck at SessionLaunching.
-        var (svc, bus, _, _) = Build();
         var id = Guid.NewGuid().ToString();
-        var workspace = HealthCheckedWorkspace(id, "api", 5010);
+        var workspace = PlainWorkspace(id, "api", 5010);
+        var (svc, bus, _, _) = Build(workspace);
         svc.OnChromiumStateChanged("ready", 100);
 
-        // 1. Session becomes active BEFORE workspace start (early WebSocket reconnect).
+        // 1. Session becomes active BEFORE workspace start (early viewer connection reconnect).
         svc.OnSessionActive(id);
 
         // 2. User then starts workspace.
         svc.OnWorkspaceStarted(workspace);
 
-        // 3. Desktop navigates.
-        var events = Capture(bus, () => svc.OnCurrentTargetChanged(id, "http://localhost:5010/", CancellationToken.None));
+        // 3. Desktop navigates → probe declared reachable → Streaming.
+        // Pass a pre-cancelled ct so no real HTTP probe task races with our test probe state.
+        var events = Capture(bus, () =>
+        {
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            svc.OnCurrentTargetChanged(id, "http://localhost:5010/", cancelled.Token);
+            svc.UpdateProbeState(id, attempt: 1, reachable: true, exhausted: false);
+        });
 
-        // SessionActive should have survived OnWorkspaceStarted → target set → Streaming.
+        // SessionActive should have survived OnWorkspaceStarted → target set + healthy → Streaming.
         Assert.That(events.Any(e => e.Kind == "streaming"), Is.True);
     }
+
 
     [Test]
     public void SessionLaunching_Before_Session_Active_Then_Streaming_When_Session_Up()
     {
-        var (svc, bus, _, _) = Build();
         var id = Guid.NewGuid().ToString();
-        var workspace = HealthCheckedWorkspace(id, "api", 5004);
+        var workspace = PlainWorkspace(id, "api", 5004);
+        var (svc, bus, _, _) = Build(workspace);
         svc.OnChromiumStateChanged("ready", 100);
         svc.OnWorkspaceStarted(workspace);
-        svc.OnCurrentTargetChanged(id, "http://localhost:5004/", CancellationToken.None);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        svc.OnCurrentTargetChanged(id, "http://localhost:5004/", cancelled.Token);
+        svc.UpdateProbeState(id, attempt: 1, reachable: true, exhausted: false);
 
-        // Without a session yet, state must be SessionLaunching (or app_connecting if health
-        // hasn't landed). Once session becomes active, state transitions to streaming — the
-        // RDP viewer HTML page is responsible for showing its own "connecting…" state until
-        // the first frame lands, so we don't gate Streaming on frame liveness (would deadlock).
+        // Health-checked port reports Healthy but session isn't up yet → SessionLaunching.
+        // Once session becomes active, state transitions to streaming — the RDP viewer HTML
+        // page is responsible for showing its own "connecting…" state until the first frame
+        // lands, so we don't gate Streaming on frame liveness (would deadlock).
         var events = Capture(bus, () => svc.OnSessionActive(id));
         Assert.That(events.Any(e => e.Kind == "streaming"), Is.True);
     }

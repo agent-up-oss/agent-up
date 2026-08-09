@@ -9,8 +9,14 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
 {
     private static readonly TimeSpan PollingViewerTtl = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ActiveInputTtl = TimeSpan.FromMilliseconds(1200);
+    // The display loop broadcasts at 50-200ms cadence when subscribers are active. If the
+    // cached frame is older than this, either the loop stalled (session died, workspace
+    // restart mid-flight, subscribers gone) or Chromium's screenshot is slow. Either way,
+    // the polling HTTP endpoint should force a fresh capture rather than serve stale bytes.
+    private static readonly TimeSpan CachedFrameFreshness = TimeSpan.FromMilliseconds(400);
     private readonly ConcurrentDictionary<string, WorkspaceSubscriberSet> _subscribers = new();
     private readonly ConcurrentDictionary<string, byte[]> _latestFrames = new();
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _latestFrameAt = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _pollingViewers = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _activeInput = new();
 
@@ -83,6 +89,7 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
     public async Task BroadcastFrameAsync(string workspaceId, byte[] frame, CancellationToken ct)
     {
         _latestFrames[workspaceId] = frame.ToArray();
+        _latestFrameAt[workspaceId] = DateTimeOffset.UtcNow;
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         var segment = new ArraySegment<byte>(frame);
         foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
@@ -103,6 +110,7 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         // Frame cache invalidated: next subscriber won't receive a stale frame, and stream
         // state stays SessionLaunching until a genuinely new frame is broadcast.
         _latestFrames.TryRemove(workspaceId, out _);
+        _latestFrameAt.TryRemove(workspaceId, out _);
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         foreach (var ws in subs.Snapshot().Where(ws => ws.State == WebSocketState.Open))
         {
@@ -132,9 +140,15 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         CancellationToken ct)
     {
         RegisterPollingViewer(workspaceId);
-        return TryGetLatestFrame(workspaceId, out var frame)
-            ? frame
-            : await captureFrame(ct);
+        // Fresh cached frame → serve it (the display loop is producing frames). Otherwise
+        // fall through to a live capture, which broadcasts and refreshes the cache. Serving
+        // an indefinitely-stale cached frame masks a stalled display loop and leaves the
+        // desktop showing an old "connection refused" or workspace-restart error frame.
+        if (TryGetLatestFrame(workspaceId, out var cached)
+            && _latestFrameAt.TryGetValue(workspaceId, out var at)
+            && DateTimeOffset.UtcNow - at < CachedFrameFreshness)
+            return cached;
+        return await captureFrame(ct);
     }
 
     private bool HasRecentPollingViewer(string workspaceId)

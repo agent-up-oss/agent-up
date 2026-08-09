@@ -94,6 +94,9 @@ public sealed class WorkspaceStreamStateService : IDisposable
                 IsRunning = true,
                 PortHealth = new Dictionary<string, string>(),
                 CurrentTarget = null,
+                StandaloneProbeAttempt = 0,
+                StandaloneProbeReachable = false,
+                StandaloneProbeExhausted = false,
             };
         }
         RecomputeAndPublish(workspace.Id);
@@ -111,6 +114,9 @@ public sealed class WorkspaceStreamStateService : IDisposable
                     PortHealth = new Dictionary<string, string>(),
                     SessionActive = false,
                     CurrentTarget = null,
+                    StandaloneProbeAttempt = 0,
+                    StandaloneProbeReachable = false,
+                    StandaloneProbeExhausted = false,
                 }
                 : new WorkspaceStreamInputs { IsRunning = false, PortHealth = new Dictionary<string, string>() };
         }
@@ -171,6 +177,12 @@ public sealed class WorkspaceStreamStateService : IDisposable
             _inputs[workspaceId] = current with
             {
                 CurrentTarget = new CurrentStreamTarget(appName, uri.Port, url, healthChecked),
+                // Reset probe state for the new target — otherwise Compute would return
+                // Streaming immediately if the previous target was Reachable, showing a
+                // WebView while the new URL hasn't been verified yet.
+                StandaloneProbeAttempt = 0,
+                StandaloneProbeReachable = false,
+                StandaloneProbeExhausted = false,
             };
         }
 
@@ -226,19 +238,28 @@ public sealed class WorkspaceStreamStateService : IDisposable
         // 2. Workspace lifecycle.
         if (!inputs.IsRunning) return StreamState.Stopped();
 
-        // 3. App reachability. If the current target has a health check, drive from that.
-        //    Otherwise the standalone probe loop publishes AppConnecting/AppFailed directly.
+        // 3. App reachability.
+        if (inputs.CurrentTarget is null)
+        {
+            // Waiting for the desktop to navigate to a URL. Show a benign "connecting" so
+            // the UI never renders a bare WebView while we have no target.
+            return StreamState.Connecting(attempt: 0, maxAttempts: 0);
+        }
         if (inputs.CurrentTarget is { HealthChecked: true, AppName: { } appName } target)
         {
             var key = HealthKey(appName, target.Port);
             var state = inputs.PortHealth.GetValueOrDefault(key, "Checking");
             if (state != "Healthy") return StreamState.Connecting(attempt: 0, maxAttempts: 0);
         }
-        else if (inputs.CurrentTarget is null)
+        else
         {
-            // Waiting for the desktop to navigate to a URL. Show a benign "connecting" so
-            // the UI never renders a bare WebView while we have no target.
-            return StreamState.Connecting(attempt: 0, maxAttempts: 0);
+            // Standalone (non-health-checked) target: probe state is authoritative. Compute
+            // reads the probe's last-observed fields so the probe cannot bypass IsRunning
+            // above and leak stale AppConnecting after a workspace stop.
+            if (inputs.StandaloneProbeExhausted)
+                return StreamState.Failed($"App unreachable after {StandaloneMaxAttempts} attempts.", StandaloneMaxAttempts);
+            if (!inputs.StandaloneProbeReachable)
+                return StreamState.Connecting(inputs.StandaloneProbeAttempt, StandaloneMaxAttempts);
         }
 
         // 4. Session liveness. Session must exist server-side — otherwise the viewer HTML
@@ -292,24 +313,27 @@ public sealed class WorkspaceStreamStateService : IDisposable
             {
                 if (await ProbeAsync(url, ct))
                 {
-                    UpdatePortHealth(workspaceId, url, healthy: true);
-                    break;
+                    UpdateProbeState(workspaceId, attempt, reachable: true, exhausted: false);
+                    goto steadyState;
                 }
-                PublishConnectingAttempt(workspaceId, attempt);
+                UpdateProbeState(workspaceId, attempt, reachable: false, exhausted: false);
                 if (attempt < StandaloneMaxAttempts)
                 {
                     if (!await Delay(StandaloneRetryIntervalMs, ct)) return;
                 }
-                else if (!ct.IsCancellationRequested) PublishFailed(workspaceId);
+                else if (!ct.IsCancellationRequested)
+                {
+                    UpdateProbeState(workspaceId, attempt, reachable: false, exhausted: true);
+                }
             }
 
-            // Loop: keep probing to detect the app going down after connecting.
+            steadyState:
             while (!ct.IsCancellationRequested)
             {
                 if (!await Delay(5000, ct)) return;
                 if (!await ProbeAsync(url, ct))
                 {
-                    UpdatePortHealth(workspaceId, url, healthy: false);
+                    UpdateProbeState(workspaceId, attempt: 1, reachable: false, exhausted: false);
                     break;
                 }
             }
@@ -329,35 +353,22 @@ public sealed class WorkspaceStreamStateService : IDisposable
         }
     }
 
-    private void UpdatePortHealth(string workspaceId, string url, bool healthy)
+    // Sole writer of probe fields. All probe-driven state transitions flow through
+    // RecomputeAndPublish so Compute is authoritative — after a workspace stop,
+    // IsRunning=false wins over any in-flight probe observation.
+    internal void UpdateProbeState(string workspaceId, int attempt, bool reachable, bool exhausted)
     {
-        // Standalone probes don't drive PortHealth (that map is only consulted for
-        // health-checked targets, and standalone targets carry HealthChecked=false).
-        // Reaching this point means the standalone probe transitioned to reachable —
-        // the state derives from session-liveness from here. Publish a recomputation
-        // so that transition surfaces immediately.
-        _ = url;
-        _ = healthy;
-        RecomputeAndPublish(workspaceId);
-    }
-
-    private void PublishConnectingAttempt(string workspaceId, int attempt)
-    {
-        var state = StreamState.Connecting(attempt, StandaloneMaxAttempts);
         lock (_lock)
         {
-            _lastPublished.TryGetValue(workspaceId, out var previous);
-            if (previous is not null && previous == state) return;
-            _lastPublished[workspaceId] = state;
+            if (!_inputs.TryGetValue(workspaceId, out var current)) return;
+            _inputs[workspaceId] = current with
+            {
+                StandaloneProbeAttempt = attempt,
+                StandaloneProbeReachable = reachable,
+                StandaloneProbeExhausted = exhausted,
+            };
         }
-        _eventBus.PublishStreamState(workspaceId, state);
-    }
-
-    private void PublishFailed(string workspaceId)
-    {
-        var state = StreamState.Failed($"App unreachable after {StandaloneMaxAttempts} attempts.", StandaloneMaxAttempts);
-        lock (_lock) _lastPublished[workspaceId] = state;
-        _eventBus.PublishStreamState(workspaceId, state);
+        RecomputeAndPublish(workspaceId);
     }
 
     private static async Task<bool> Delay(int ms, CancellationToken ct)

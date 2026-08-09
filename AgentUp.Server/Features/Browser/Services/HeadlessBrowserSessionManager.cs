@@ -406,12 +406,15 @@ public sealed class HeadlessBrowserSessionManager(
                 if (frame.Length > 0)
                     await display.BroadcastFrameAsync(session.WorkspaceId, frame, ct);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 return;
             }
-            catch (Exception ex) when (ex is PuppeteerException or InvalidOperationException)
+            catch (Exception ex) when (ex is PuppeteerException or InvalidOperationException or OperationCanceledException)
             {
+                // Transient Puppeteer errors (page navigating, target closed mid-screenshot,
+                // internal aborts) must NOT exit the loop — the loop is the only source of
+                // fresh frames, and if it dies the /frame polling fallback also serves stale.
                 logger.LogDebug(ex, "RDP bitmap frame error for workspace {WorkspaceId}.", Sanitize(session.WorkspaceId));
             }
 
