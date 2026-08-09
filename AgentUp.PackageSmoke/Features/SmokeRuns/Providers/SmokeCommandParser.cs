@@ -6,6 +6,13 @@ namespace AgentUp.PackageSmoke.Features.SmokeRuns.Providers;
 
 public sealed class SmokeCommandParser : ISmokeCommandParser
 {
+    private readonly SmokeProductManifest? _defaultProduct;
+
+    public SmokeCommandParser(SmokeProductManifest? defaultProduct = null)
+    {
+        _defaultProduct = defaultProduct;
+    }
+
     public static readonly string Usage = "Usage: AgentUp.PackageSmoke [--product-manifest <path>] <validate-package|validate-installed-service> <platform> <runtime-id> <artifact-dir> <work-dir>"
         + Environment.NewLine
         + "   or: AgentUp.PackageSmoke [--product-manifest <path>] validate-installer-flow <platform> <work-dir> [payload-root]"
@@ -22,7 +29,7 @@ public sealed class SmokeCommandParser : ISmokeCommandParser
             return new SmokeCommandParseResult(null, Usage);
 
         args = parse.Args;
-        var product = parse.ProductConfig;
+        var product = parse.ProductConfig ?? _defaultProduct;
 
         if (args.Length == 3 && args[0] == "validate-installer-flow")
             return Success(InstallerFlow(args[1], args[2], payloadRoot: null, product));

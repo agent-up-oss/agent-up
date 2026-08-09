@@ -17,12 +17,21 @@ dotnet add package LocalInstaller.Smoke
 ## Usage
 
 ```csharp
+using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
 using AgentUp.PackageSmoke.Shared.Factories;
 
-var controller = PackageSmokeServiceRegistry.CreateSmokeCommandController();
+var product = new SmokeProductManifest(
+    ServiceName: "acme-studio-server",
+    CliShimName: "acme-studio",
+    ArtifactBaseName: "acme-studio",
+    DisplayName: "Acme Studio",
+    InstallDirName: "Acme Studio",
+    WorkspaceConfigFileName: "acme-studio.json");
+
+var controller = PackageSmokeServiceRegistry.CreateSmokeCommandController(product);
 return await controller.ExecuteAsync(args, Console.Out, Console.Error);
 ```
 
-The smoke commands accept `--platform`, `--runtime-id`, `--artifact-directory`,
-`--service-name`, `--cli-shim`, and `--display-name` flags. Run with `--help` to
-see the full option reference.
+Consumers can pass the product manifest directly through the registry or override it
+per run with `--product-manifest <path>`. Run with `--help` to see the command
+reference.

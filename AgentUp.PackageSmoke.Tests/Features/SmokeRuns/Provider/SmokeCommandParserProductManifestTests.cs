@@ -42,6 +42,25 @@ public sealed class SmokeCommandParserProductManifestTests
     }
 
     [Test]
+    public void Parse_usesDefaultProductManifest_whenNoManifestFileIsSupplied()
+    {
+        var product = new SmokeProductManifest(
+            ServiceName: "sample-server",
+            CliShimName: "sample",
+            ArtifactBaseName: "sample",
+            DisplayName: "Sample Product",
+            InstallDirName: "Sample Product",
+            WorkspaceConfigFileName: "sample.json");
+
+        var result = new SmokeCommandParser(product).Parse(
+            ["validate-package", "ubuntu", "linux-x64", "artifacts", "work"]);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.Request!.Product.ServiceName, Is.EqualTo("sample-server"));
+        Assert.That(result.Request.Product.WorkspaceConfigFileName, Is.EqualTo("sample.json"));
+    }
+
+    [Test]
     public void Parse_rejectsMissingMalformedAndUnsafeProductManifests()
     {
         var root = TempRoot();

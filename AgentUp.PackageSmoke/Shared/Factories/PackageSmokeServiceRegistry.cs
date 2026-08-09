@@ -9,6 +9,7 @@ using AgentUp.PackageSmoke.Features.PackageValidation.Providers;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Providers;
 using AgentUp.PackageSmoke.Features.RuntimeSecurity.Services;
 using AgentUp.PackageSmoke.Features.SmokeRuns.Controllers;
+using AgentUp.PackageSmoke.Features.SmokeRuns.DTOs;
 using AgentUp.PackageSmoke.Features.SmokeRuns.Providers;
 using AgentUp.PackageSmoke.Features.SmokeRuns.Services;
 
@@ -16,7 +17,7 @@ namespace AgentUp.PackageSmoke.Shared.Factories;
 
 public static class PackageSmokeServiceRegistry
 {
-    public static SmokeCommandController CreateSmokeCommandController()
+    public static SmokeCommandController CreateSmokeCommandController(SmokeProductManifest? product = null)
     {
         var commands = new ProcessCommandRunner();
         var workDirectory = new SmokeWorkDirectoryProvider();
@@ -29,6 +30,6 @@ public static class PackageSmokeServiceRegistry
         var validation = new SmokeValidationProvider(packageValidation, installerFlow, installedService, workDirectory);
 
         return new SmokeCommandController(
-            new SmokeCommandService(validation, workDirectory, new SmokeCommandParser()));
+            new SmokeCommandService(validation, workDirectory, new SmokeCommandParser(product)));
     }
 }
