@@ -1,0 +1,20 @@
+using AgentUp.Installers.Composition;
+using AgentUp.Installers.Features.Installation.Interfaces;
+using AgentUp.Installers.Features.Installation.Models;
+
+namespace AgentUp.InstallerApp.Features.Installation.Factories;
+
+internal static class InstallerAdapterFactory
+{
+    public static IInstallerPlatformAdapter Create(ProductManifest product, string? fakeInstallerVariable = null, string? nixOsLookupOnlyVariable = null)
+        => InstallerPlatformAdapterFactory.Create(
+            product,
+            AppContext.BaseDirectory,
+            fakeInstallerVariable is null ? null : Environment.GetEnvironmentVariable(fakeInstallerVariable),
+            UseNixOsLookupOnlyMode(nixOsLookupOnlyVariable));
+
+    public static bool UseNixOsLookupOnlyMode(string? nixOsLookupOnlyVariable = null)
+        => nixOsLookupOnlyVariable is not null
+           && Environment.GetEnvironmentVariable(nixOsLookupOnlyVariable) == "1"
+           || InstallerPlatformAdapterFactory.IsNixOsHost();
+}
