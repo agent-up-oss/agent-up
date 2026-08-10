@@ -25,6 +25,25 @@ public class ProcessCommandRunnerTests
     }
 
     [Test]
+    public async Task RunAsync_allowsWindowsInstallCorePowerShellCommandShape()
+    {
+        var result = await new ProcessCommandRunner().RunAsync(
+            new CommandSpec("powershell.exe", [
+                "-NoProfile",
+                "-Command",
+                "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER_APP -ArgumentList @('--payload-root', $env:AGENTUP_SMOKE_PAYLOAD_ROOT, '--install-core') -Wait -PassThru; exit $process.ExitCode"
+            ], Environment: new Dictionary<string, string>
+            {
+                ["AGENTUP_SMOKE_INSTALLER_APP"] = @"C:\Program Files\Agent-Up\installer\AgentUp.InstallerApp.exe",
+                ["AGENTUP_SMOKE_PAYLOAD_ROOT"] = @"C:\Program Files\Agent-Up\installer\payload"
+            }));
+
+        Assert.That(result.ExitCode, Is.Not.EqualTo(126), result.Stderr);
+        Assert.That(result.Stderr, Does.Not.Contain("PowerShell arguments are not allowed"));
+        Assert.That(result.Stderr, Does.Not.Contain("Command executable paths are not allowed"));
+    }
+
+    [Test]
     public async Task RunAsync_rejectsUnsafeEnvironmentKeys()
     {
         var result = await new ProcessCommandRunner().RunAsync(

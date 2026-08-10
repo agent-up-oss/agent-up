@@ -402,6 +402,14 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
+        if (IsArguments(command, "-NoProfile", "-Command", "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER_APP -ArgumentList @('--payload-root', $env:AGENTUP_SMOKE_PAYLOAD_ROOT, '--install-core') -Wait -PassThru; exit $process.ExitCode"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
         if (IsArguments(command, "-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"))
         {
             startInfo.ArgumentList.Add("-NoProfile");

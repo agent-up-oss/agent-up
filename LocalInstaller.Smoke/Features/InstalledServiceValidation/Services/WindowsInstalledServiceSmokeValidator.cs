@@ -38,7 +38,11 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         var installedPayloadRoot = Path.Join(installDir, "installer", "payload");
         await RunRequiredAsync(
             assert,
-            new CommandSpec(installerApp, ["--payload-root", installedPayloadRoot, "--install-core"]),
+            new CommandSpec("powershell.exe", ["-NoProfile", "-Command", InstallCoreCommand], Environment: new Dictionary<string, string>
+            {
+                ["AGENTUP_SMOKE_INSTALLER_APP"] = installerApp,
+                ["AGENTUP_SMOKE_PAYLOAD_ROOT"] = installedPayloadRoot
+            }),
             "installed.windows.install-core",
             cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", product.ServiceName]), "installed.windows.service.start", cancellationToken);
@@ -123,4 +127,6 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
     private static string Window(string[] lines, int start, int end)
         => string.Join(Environment.NewLine, lines[start..end]);
+
+    private const string InstallCoreCommand = "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER_APP -ArgumentList @('--payload-root', $env:AGENTUP_SMOKE_PAYLOAD_ROOT, '--install-core') -Wait -PassThru; exit $process.ExitCode";
 }

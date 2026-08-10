@@ -216,10 +216,15 @@ public class WindowsInstalledServiceSmokeValidatorTests
            && workingDirectory.EndsWith(Path.Join("work", "example-workspace"), StringComparison.Ordinal);
 
     private static bool IsWindowsInstallCoreCommand(CommandSpec command)
-        => command.FileName == Path.Join(DefaultInstallDirectory(), "installer", "AgentUp.InstallerApp.exe")
+        => command.FileName == "powershell.exe"
            && command.Arguments.SequenceEqual([
-               "--payload-root",
-               Path.Join(DefaultInstallDirectory(), "installer", "payload"),
-               "--install-core"
-           ]);
+               "-NoProfile",
+               "-Command",
+               "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER_APP -ArgumentList @('--payload-root', $env:AGENTUP_SMOKE_PAYLOAD_ROOT, '--install-core') -Wait -PassThru; exit $process.ExitCode"
+           ])
+           && command.Environment is not null
+           && command.Environment.TryGetValue("AGENTUP_SMOKE_INSTALLER_APP", out var installerApp)
+           && installerApp == Path.Join(DefaultInstallDirectory(), "installer", "AgentUp.InstallerApp.exe")
+           && command.Environment.TryGetValue("AGENTUP_SMOKE_PAYLOAD_ROOT", out var payloadRoot)
+           && payloadRoot == Path.Join(DefaultInstallDirectory(), "installer", "payload");
 }
