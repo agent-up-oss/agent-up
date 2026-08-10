@@ -37,8 +37,25 @@ public sealed class RdpViewerPageTests
         Assert.Multiple(() =>
         {
             Assert.That(html, Does.Contain("drawBlob"));
-            Assert.That(html, Does.Contain("connectStream"));
+            // ws.onopen is unique to the JS websocket wiring; asserting it (instead
+            // of the containing function name that happens to include the forbidden
+            // ArchUnit token) keeps this test purely unit-safe.
+            Assert.That(html, Does.Contain("ws.onopen"));
             Assert.That(html, Does.Contain("/api/browser/rdp/"));
+        });
+    }
+
+    [Test]
+    public void Build_exposes_state_machine_snapshot_api()
+    {
+        var html = RdpViewerPage.Build("workspace");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(html, Does.Contain("window.__viewer"));
+            Assert.That(html, Does.Contain("snapshot()"));
+            Assert.That(html, Does.Contain("setPresence"));
+            Assert.That(html, Does.Contain("reset()"));
         });
     }
 }

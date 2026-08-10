@@ -47,13 +47,7 @@ internal sealed class WorkspaceSubscriberSet
 
     public bool HasForeground()
     {
-        lock (_lock)
-        {
-            foreach (var entry in _entries.Values)
-                if (entry.Presence == PresenceState.Foreground)
-                    return true;
-            return false;
-        }
+        lock (_lock) return _entries.Values.Any(entry => entry.Presence == PresenceState.Foreground);
     }
 
     public SubscriberEntry[] Snapshot()

@@ -105,13 +105,16 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         var segment = new ArraySegment<byte>(frame);
         var nowTicks = DateTimeOffset.UtcNow.UtcTicks;
         var backgroundIntervalTicks = BackgroundSubscriberInterval.Ticks;
-        foreach (var entry in subs.Snapshot().Where(e => e.Socket.State == WebSocketState.Open))
+        // Filter deliverable subscribers in one LINQ pass: WS must be open, AND either
+        // the subscriber is foreground OR its 1 fps window has elapsed. Background
+        // subscribers are capped independently of the capture cadence a foreground peer
+        // is driving.
+        var deliverable = subs.Snapshot().Where(e =>
+            e.Socket.State == WebSocketState.Open
+            && (e.Presence != PresenceState.Background
+                || nowTicks - e.LastFrameSentAtTicks >= backgroundIntervalTicks));
+        foreach (var entry in deliverable)
         {
-            // Background subscribers get at most one frame per BackgroundSubscriberInterval,
-            // independent of the capture cadence a foreground peer is driving.
-            if (entry.Presence == PresenceState.Background
-                && nowTicks - entry.LastFrameSentAtTicks < backgroundIntervalTicks)
-                continue;
             try
             {
                 await entry.Socket.SendAsync(segment, WebSocketMessageType.Binary, endOfMessage: true, ct);
@@ -133,6 +136,9 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
         foreach (var entry in subs.Snapshot().Where(e => e.Socket.State == WebSocketState.Open))
         {
+            // Tell the JS state machine we're pausing intentionally before we close, so
+            // it can distinguish "server said stop" from "network dropped".
+            await SendStreamStateAsync(entry.Socket, "paused", ct);
             try { await entry.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, ct); }
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
@@ -190,6 +196,11 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
     {
         var subs = _subscribers.GetOrAdd(workspaceId, _ => new WorkspaceSubscriberSet());
         subs.Add(subscriberId, ws);
+        // Give the JS state machine an explicit "server is streaming to you now" signal
+        // BEFORE the first frame. Protocol 1 message. JS uses it as an observable hint
+        // (serverReportedActive); combined with the arrival of the first binary frame
+        // it drives the open_no_frames → streaming transition deterministically.
+        await SendStreamStateAsync(ws, "active", ct);
         // Send the most recent cached frame immediately so the viewer isn't blank while
         // waiting for the display loop's next iteration (up to 200 ms on reconnect).
         if (_latestFrames.TryGetValue(workspaceId, out var snapshot) && ws.State == WebSocketState.Open)
@@ -212,6 +223,23 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
             subs.Remove(subscriberId);
             if (subs.IsEmpty)
                 _subscribers.TryRemove(workspaceId, out _);
+        }
+    }
+
+    // Server → JS Protocol 1 message. Best-effort — the WS may already be closing when
+    // this fires (session teardown races with viewer disconnect), so exceptions are
+    // swallowed at debug level.
+    private async Task SendStreamStateAsync(WebSocket ws, string state, CancellationToken ct)
+    {
+        if (ws.State != WebSocketState.Open) return;
+        var payload = Encoding.UTF8.GetBytes($$"""{"type":"stream","state":"{{state}}"}""");
+        try
+        {
+            await ws.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Text, endOfMessage: true, ct);
+        }
+        catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
+        {
+            logger.LogDebug(ex, "Failed to send stream-state control frame.");
         }
     }
 

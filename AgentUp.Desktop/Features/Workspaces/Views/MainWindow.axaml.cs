@@ -54,10 +54,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Default true because Avalonia's Activated event may not fire before the first render
     // if the window opens focused (common case) — assuming true avoids a startup 1 fps spike.
     private bool _windowFocused = true;
-    // Latest label to show inside BackgroundAttentionBanner. Updated when an important
-    // stream transition fires so the modal can tell the user *why* it wants attention,
-    // instead of always displaying the generic stale-view message.
-    private string? _backgroundAttentionOverrideText;
+    // Poll of window.__viewer.snapshot() on the active viewer WebView. See
+    // OnViewerSnapshotPollTick — this is the only bridge from the JS state machine into
+    // Avalonia's state machine. Every ~500 ms it reads the snapshot, updates
+    // _viewerSnapshots for the active workspace, and lets RenderStreamState react.
+    private readonly DispatcherTimer _viewerSnapshotPollTimer;
+    // Last-known JS state machine snapshot per workspace, keyed by workspaceId. Only
+    // the active workspace's snapshot is refreshed (that's the only viewer currently
+    // showing content to the user); non-active viewers are considered stale.
+    private readonly Dictionary<string, ViewerSnapshot> _viewerSnapshots = new();
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
@@ -177,11 +182,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
+        _viewerSnapshotPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _viewerSnapshotPollTimer.Tick += OnViewerSnapshotPollTick;
+        _viewerSnapshotPollTimer.Start();
         PortPane.SizeChanged += OnPortPaneSizeChanged;
         Activated += (_, _) =>
         {
             _windowFocused = true;
-            _backgroundAttentionOverrideText = null;
             UpdateBackgroundAttentionOverlay();
             UpdateAllViewerPresences();
         };
@@ -312,6 +319,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _serverHttp.Dispose();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
+        _viewerSnapshotPollTimer.Stop();
+        _viewerSnapshotPollTimer.Tick -= OnViewerSnapshotPollTick;
         _subscriptions.Dispose();
         DestroyWorkspaceWebViews();
         DestroyConsoleWebView();
@@ -362,9 +371,24 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         // the compositor layer.
         f["webView.windowFocused"] = _windowFocused.ToString();
         f["webView.backgroundAttentionBannerVisible"] = BackgroundAttentionBanner.IsVisible.ToString();
-        f["webView.backgroundAttentionOverrideText"] = _backgroundAttentionOverrideText ?? string.Empty;
         f["webView.browserConnectingBannerVisible"] = BrowserConnectingBanner.IsVisible.ToString();
         f["webView.chromiumDownloadBannerVisible"] = ChromiumDownloadBanner.IsVisible.ToString();
+        if (_activeWorkspaceId is not null && _viewerSnapshots.TryGetValue(_activeWorkspaceId, out var vs))
+        {
+            f["webView.jsSmState"] = vs.State;
+            f["webView.jsSmStateAgeMs"] = ((long)vs.StateAge.TotalMilliseconds).ToString();
+            f["webView.jsSmFramesReceived"] = vs.FramesReceived.ToString();
+            f["webView.jsSmWsReadyState"] = vs.WsReadyState;
+            f["webView.jsSmPresence"] = vs.Presence;
+        }
+        else
+        {
+            f["webView.jsSmState"] = "";
+            f["webView.jsSmStateAgeMs"] = "";
+            f["webView.jsSmFramesReceived"] = "";
+            f["webView.jsSmWsReadyState"] = "";
+            f["webView.jsSmPresence"] = "";
+        }
         if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var activeMarginWv))
         {
             f["webView.activeMargin"] = activeMarginWv.Margin.ToString();
@@ -494,14 +518,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         var previousWorkspaceId = _activeWorkspaceId;
         if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var previous))
-        {
-            // For viewer tabs occlude via 0×0 sizing (keeps WebKit mapped so its timers
-            // and compositor stay warm on switch-back). Other tabs (human direct port)
-            // can be flat-out hidden — they don't have the freeze problem.
-            var prevIsViewer = _activeTabKey.EndsWith(":viewer", StringComparison.Ordinal);
-            if (prevIsViewer) PositionWebView(previous, occlude: true);
-            else previous.IsVisible = false;
-        }
+            previous.IsVisible = false;
 
         _activeWorkspaceId = workspaceId;
         _activeTabKey = tabKey;
@@ -558,7 +575,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         var webView = WebViewFactory();
 
-        var firstNavDone = false;
         webView.NavigationCompleted += (_, e) =>
         {
             var url = e.Request?.ToString() ?? string.Empty;
@@ -608,9 +624,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             }
 
             _ = webView.InvokeScript(SelectionJs);
-            if (firstNavDone) return;
-            firstNavDone = true;
-            ForceFirstWebKitPaint(tabKey, webView);
         };
 
         return webView;
@@ -705,25 +718,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         webView.Source = new Uri("about:blank");
         Dispatcher.UIThread.Post(() => webView.Source = destination, DispatcherPriority.Background);
-    }
-
-    private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
-    {
-        // WebKit renders content into the native window but GTK only composites it when
-        // the embedded window receives an Expose event. A hide/show at separate dispatcher
-        // priorities forces the repaint after first navigation.
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (!CanTouchWebView(tabKey, webView) || !webView.IsVisible) return;
-            webView.IsVisible = false;
-            Dispatcher.UIThread.Post(
-                () =>
-                {
-                    if (CanTouchWebView(tabKey, webView))
-                        webView.IsVisible = true;
-                },
-                DispatcherPriority.Background);
-        });
     }
 
     private bool CanTouchWebView(string tabKey, NativeWebView webView)
@@ -839,84 +833,56 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Dispatcher.UIThread.Post(() =>
         {
             if (_isClosed) return;
-            var prevKind = _streamStates.GetValueOrDefault(snapshot.WorkspaceId)?.Kind;
-            var prevChromiumState = _streamStates.GetValueOrDefault(snapshot.WorkspaceId)?.ChromiumState;
             _streamStates[snapshot.WorkspaceId] = snapshot;
             RenderStreamState(snapshot.WorkspaceId);
-            MaybeNotifyBackgroundImportantEvent(snapshot, prevKind, prevChromiumState);
         });
     }
 
-    // Fires when the user is not looking at the AgentUp window and something they'd want
-    // to know about happened. We use it to (a) update the modal text so it says WHY it's
-    // asking for attention, and (b) kick Window.Activate() which modern WMs translate to
-    // a taskbar/dock urgency hint (icon flash) rather than a focus-steal when the user
-    // is active elsewhere. The modal itself is always visible whenever the window is
-    // unfocused and a stream would be showing — see UpdateBackgroundAttentionOverlay.
-    private void MaybeNotifyBackgroundImportantEvent(
-        StreamStateSnapshot snapshot,
-        StreamStateKind? prevKind,
-        string? prevChromiumState)
-    {
-        if (_isClosed || _windowFocused) return;
-
-        var kind = snapshot.Kind;
-        var chromiumJustReady =
-            kind == StreamStateKind.ChromiumDownloading == false
-            && string.Equals(prevChromiumState, "downloading", StringComparison.Ordinal)
-            && (snapshot.ChromiumState is "ready" or null);
-        var transitioningToStreaming = kind == StreamStateKind.Streaming && prevKind != StreamStateKind.Streaming;
-        var transitioningToAppFailed = kind == StreamStateKind.AppFailed && prevKind != StreamStateKind.AppFailed;
-
-        if (!(chromiumJustReady || transitioningToStreaming || transitioningToAppFailed)) return;
-
-        _backgroundAttentionOverrideText = kind switch
-        {
-            StreamStateKind.Streaming => "AI browser updated",
-            StreamStateKind.AppFailed => "AI browser could not reach app",
-            _ => "AI browser ready",
-        };
-        UpdateBackgroundAttentionOverlay();
-        TryRequestUserAttention();
-    }
-
-    // Modal is a *last-resort* escalation. Under normal circumstances the WebView is
-    // left at full size so WebKit can paint the stream even when the window is unfocused
-    // (many WMs cooperate — the OS keeps compositing background windows for thumbnails
-    // etc.). We only show the modal when we have specific reason to believe the user's
-    // stream is stale: either an important stream transition just fired while unfocused
-    // (see MaybeNotifyBackgroundImportantEvent) or — future work — a stale-heartbeat
-    // detector times out. Absent those signals, the modal stays hidden and the WebView
-    // gets a fair chance to render on its own.
+    // Modal is now purely derived from JS state machine snapshot + focus. Shown only
+    // when the JS SM says it has been stalled for a meaningful period AND the window
+    // is unfocused — the two conditions together mean: "the AI is expected to be doing
+    // something, WebKit isn't painting fresh frames, and the user isn't looking, so
+    // what they'd see if they glanced over is stale." Otherwise hidden.
+    private static readonly TimeSpan ModalStalledThreshold = TimeSpan.FromSeconds(5);
     private void UpdateBackgroundAttentionOverlay()
     {
         if (_isClosed) return;
 
-        var shouldShow = !_windowFocused && _backgroundAttentionOverrideText is not null;
-        BackgroundAttentionText.Text = _backgroundAttentionOverrideText ?? "AI browser view may be stale";
+        var snapshot = _activeWorkspaceId is not null
+            ? _viewerSnapshots.GetValueOrDefault(_activeWorkspaceId)
+            : null;
+        var stalledLongEnough = snapshot is not null
+            && string.Equals(snapshot.State, "stalled", StringComparison.Ordinal)
+            && DateTimeOffset.UtcNow - snapshot.ObservedAt < TimeSpan.FromSeconds(2)
+            && snapshot.StateAge >= ModalStalledThreshold;
+
+        var streamKind = _activeWorkspaceId is not null
+            ? _streamStates.GetValueOrDefault(_activeWorkspaceId)?.Kind
+            : null;
+        var streamWantsToRender = streamKind is StreamStateKind.Streaming
+            or StreamStateKind.SessionLaunching;
+
+        var shouldShow = !_windowFocused && streamWantsToRender && stalledLongEnough;
+        BackgroundAttentionText.Text = "AI browser view is stale";
         BackgroundAttentionBanner.IsVisible = shouldShow;
-        ApplyWebViewOcclusion();
-    }
 
-    private bool ActiveWorkspaceViewIsLive()
-    {
-        if (_activeWorkspaceId is null) return false;
-        if (_workspaceAuthority.GetValueOrDefault(_activeWorkspaceId, "ai") != "ai") return false;
-        if (!_streamStates.TryGetValue(_activeWorkspaceId, out var snap)) return false;
-        return snap.Kind is StreamStateKind.Streaming
-            or StreamStateKind.SessionLaunching
-            or StreamStateKind.AppConnecting;
+        // Best-effort taskbar-flash the first time we enter the "user should know" state
+        // while unfocused. Modern Linux/macOS WMs treat Activate() on a background
+        // window as an urgency hint rather than a focus-steal.
+        if (shouldShow && !_lastFrameAttentionShown)
+        {
+            try { Activate(); }
+            catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
+            {
+                // No cross-platform "request attention" API in Avalonia 12; if the
+                // platform rejects Activate() on a background window, silently no-op —
+                // the modal itself is still shown and is the primary user signal.
+                Trace.TraceWarning(ex.Message);
+            }
+        }
+        _lastFrameAttentionShown = shouldShow;
     }
-
-    // Attempt to flag the app in the OS taskbar/dock. On modern Linux WMs and macOS,
-    // Activate() on a background window is downgraded to an urgency hint (icon flash)
-    // rather than a focus-steal. Wrapped in try because there's no cross-platform
-    // "request attention" API in Avalonia 12 — if the platform rejects it, silently no-op.
-    private void TryRequestUserAttention()
-    {
-        try { Activate(); }
-        catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException) { }
-    }
+    private bool _lastFrameAttentionShown;
 
     // ────────────────────────────────────────────────────────────────
     // INVARIANT: this is the ONLY method that writes viewer.IsVisible
@@ -949,7 +915,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (_webViews.TryGetValue(viewerKey, out var viewer))
         {
             viewer.IsVisible = showWebView;
-            PositionWebView(viewer, occlude: showWebView && kind != StreamStateKind.Streaming);
             if (showWebView && kind == StreamStateKind.Streaming)
             {
                 var viewerUrl = BuildViewerUrl(workspaceId);
@@ -985,69 +950,46 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _lastRenderedKind[workspaceId] = kind;
         UpdateViewerPresence(workspaceId);
         if (workspaceId == _activeWorkspaceId)
-        {
             UpdateBackgroundAttentionOverlay();
-            ApplyWebViewOcclusion();
-        }
     }
 
-    // Linux/GTK NativeControlHost: the WebView's native subwindow is composited by the
-    // OS window manager and sits above any Avalonia-drawn content in the same window.
-    // ZIndex on Avalonia banners does not help. To make a banner actually visible over
-    // the WebView we shrink the WebView to 0×0 via MaxWidth/MaxHeight — the widget
-    // stays IsVisible=true and mapped in GTK (so WebKit doesn't freeze its compositor/
-    // timers), but GTK allocates it 0×0 screen space so it paints nothing. We tried a
-    // large negative Margin first, but on our WM that leaked the WebView surface into
-    // the window chrome (title bar / min-max-close). Constraint-based hiding avoids the
-    // whole coordinate-clamping problem — GTK just gets a "size zero" allocation.
-    private void PositionWebView(NativeWebView webView, bool occlude)
-    {
-        // Belt-and-braces because Avalonia's NativeControlHost sometimes ignores a single
-        // constraint: set Width/Height/Min/Max all at once so the arrange pass has no
-        // room to give the native subwindow anything larger than 0×0. InvalidateMeasure
-        // forces a layout pass so the change takes effect this tick, not next dispatcher.
-        if (occlude)
-        {
-            webView.MinWidth = 0;
-            webView.MinHeight = 0;
-            webView.MaxWidth = 0;
-            webView.MaxHeight = 0;
-            webView.Width = 0;
-            webView.Height = 0;
-        }
-        else
-        {
-            webView.MinWidth = 0;
-            webView.MinHeight = 0;
-            webView.MaxWidth = double.PositiveInfinity;
-            webView.MaxHeight = double.PositiveInfinity;
-            webView.Width = double.NaN;
-            webView.Height = double.NaN;
-        }
-        // Prior build shipped a negative Margin approach that left the WebView invisible
-        // but still swallowing pointer input over the window chrome. Reset explicitly so
-        // any surviving state from that build doesn't linger for this user's session.
-        if (webView.Margin != default) webView.Margin = default;
-        webView.IsHitTestVisible = !occlude;
-        webView.InvalidateMeasure();
-    }
-
-    // Re-runs occlusion for the currently active viewer whenever the modal-overlay
-    // decision changes (window focus, stream state, etc.). Non-active viewers stay at
-    // whatever position their own RenderStreamState pass set them to. Occlusion is
-    // ONLY driven by stream state — we never take the WebView away from the user just
-    // because the window is unfocused, since that would defeat WebKit's chance to paint
-    // when the WM is willing to composite. If a modal is showing it will sit *behind*
-    // the WebView on Linux; that's acceptable because the WebView-showing state is
-    // itself informative (the user sees the last frame the compositor managed).
-    private void ApplyWebViewOcclusion()
+    // Fires every 500 ms while the app is alive. Reads the JS state machine snapshot
+    // on the active viewer WebView and feeds it back into Avalonia's SM via
+    // OnViewerSnapshot. This is the ONLY bridge from JS → Avalonia — no ad-hoc pokes,
+    // no assumptions, one polling read per tick. Side-effect bonus: the InvokeScript
+    // call keeps WebKit's JS event loop ticking, so background-page throttling can't
+    // freeze the JS runtime the way it used to.
+    private async void OnViewerSnapshotPollTick(object? sender, EventArgs e)
     {
         if (_isClosed || _activeWorkspaceId is null || _activeTabKey is null) return;
         if (!_activeTabKey.EndsWith(":viewer", StringComparison.Ordinal)) return;
         if (!_webViews.TryGetValue(_activeTabKey, out var viewer)) return;
-        var kind = _streamStates.GetValueOrDefault(_activeWorkspaceId)?.Kind;
-        var occlude = kind != StreamStateKind.Streaming;
-        PositionWebView(viewer, occlude);
+        if (!_viewerPagesLoaded.Contains(_activeWorkspaceId)) return;
+
+        string? raw;
+        try
+        {
+            raw = await viewer.InvokeScript(
+                "(window.__viewer && window.__viewer.snapshot) ? JSON.stringify(window.__viewer.snapshot()) : null");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
+        {
+            return;
+        }
+        if (_isClosed) return;
+        var snapshot = ViewerSnapshot.TryParse(raw);
+        if (snapshot is null) return;
+        OnViewerSnapshot(_activeWorkspaceId, snapshot);
+    }
+
+    // Reducer that lets the JS SM feed the Avalonia SM. Called once per successful
+    // snapshot poll on the active viewer. Updates observable state and triggers the
+    // dependent UI refreshes.
+    private void OnViewerSnapshot(string workspaceId, ViewerSnapshot snapshot)
+    {
+        _viewerSnapshots[workspaceId] = snapshot;
+        if (workspaceId == _activeWorkspaceId)
+            UpdateBackgroundAttentionOverlay();
     }
 
     // Presence is "foreground" only if a human is actually watching THIS viewer right now:
@@ -1854,6 +1796,58 @@ code {
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
             Trace.TraceWarning(ex.Message);
+        }
+    }
+}
+
+// Immutable snapshot of the JS state machine, produced by parsing the JSON returned by
+// window.__viewer.snapshot(). Used as Avalonia's only input from the viewer JS layer.
+// ObservedAt is UTC-side and lets us tell how stale a snapshot is if polling stops.
+internal sealed record ViewerSnapshot(
+    string State,
+    long Since,
+    int FramesReceived,
+    long LastFrameAt,
+    string WsReadyState,
+    string Presence,
+    string PageInstanceId,
+    bool ServerReportedActive,
+    DateTimeOffset ObservedAt)
+{
+    // Age of the current JS SM state at the moment the snapshot was taken.
+    // JS reports `since` as Date.now() ms. We derive age from the JS-side clock so it's
+    // immune to clock skew between JS and Avalonia.
+    public TimeSpan StateAge { get; init; } = TimeSpan.FromMilliseconds(Math.Max(0, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - Since));
+
+    public static ViewerSnapshot? TryParse(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || raw == "null") return null;
+        try
+        {
+            // NativeWebView.InvokeScript often wraps the JSON in quotes (returning a
+            // literal string result). Handle both a bare JSON object and a JSON string
+            // containing JSON.
+            var text = raw.TrimStart();
+            if (text.StartsWith('"'))
+                text = System.Text.Json.JsonSerializer.Deserialize<string>(text) ?? "";
+            if (string.IsNullOrWhiteSpace(text) || text == "null") return null;
+            using var doc = System.Text.Json.JsonDocument.Parse(text);
+            var root = doc.RootElement;
+            var since = root.TryGetProperty("since", out var sinceEl) ? sinceEl.GetInt64() : 0L;
+            return new ViewerSnapshot(
+                State: root.TryGetProperty("state", out var s) ? s.GetString() ?? "" : "",
+                Since: since,
+                FramesReceived: root.TryGetProperty("framesReceived", out var fr) ? fr.GetInt32() : 0,
+                LastFrameAt: root.TryGetProperty("lastFrameAt", out var lfa) ? lfa.GetInt64() : 0L,
+                WsReadyState: root.TryGetProperty("wsReadyState", out var ws) ? ws.GetString() ?? "" : "",
+                Presence: root.TryGetProperty("presence", out var p) ? p.GetString() ?? "" : "",
+                PageInstanceId: root.TryGetProperty("pageInstanceId", out var pid) ? pid.GetString() ?? "" : "",
+                ServerReportedActive: root.TryGetProperty("serverReportedActive", out var sra) && sra.ValueKind == System.Text.Json.JsonValueKind.True,
+                ObservedAt: DateTimeOffset.UtcNow);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
         }
     }
 }

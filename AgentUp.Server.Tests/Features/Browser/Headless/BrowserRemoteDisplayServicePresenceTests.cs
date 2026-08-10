@@ -1,7 +1,7 @@
 using AgentUp.Server.Features.Browser.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace AgentUp.Server.Tests.Features.Browser.Unit;
+namespace AgentUp.Server.Tests.Features.Browser.Headless;
 
 [TestFixture]
 public sealed class BrowserRemoteDisplayServicePresenceTests
@@ -16,8 +16,6 @@ public sealed class BrowserRemoteDisplayServicePresenceTests
     [Test]
     public void HasForegroundSubscribers_true_when_polling_viewer_registered()
     {
-        // Polling viewers can't declare presence — they're driven by an HTTP fetch loop
-        // that only runs when the client is actively viewing, so they count as foreground.
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
         display.RegisterPollingViewer("workspace");
         Assert.That(display.HasForegroundSubscribers("workspace"), Is.True);

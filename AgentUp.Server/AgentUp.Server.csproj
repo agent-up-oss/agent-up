@@ -22,4 +22,8 @@
     <ProjectReference Include="..\AgentUp.Capabilities.Docker\AgentUp.Capabilities.Docker.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Features/Browser/Resources/rdp-viewer.js" />
+  </ItemGroup>
+
 </Project>
