@@ -26,7 +26,9 @@ public class WindowsInstalledServiceSmokeValidatorTests
         var commands = new RecordingCommandRunner((command, _) =>
         {
             if (command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
-                CreateWindowsInstall(DefaultInstallDirectory());
+                CreateWindowsPackageInstall(DefaultInstallDirectory());
+            if (IsWindowsInstallCoreCommand(command))
+                CreateWindowsCoreInstall(DefaultInstallDirectory());
             if (IsInstalledCliCommand(command, "start"))
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
             if (IsInstalledCliCommand(command, "status"))
@@ -44,6 +46,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.ServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Contains("/l*vx!", StringComparer.OrdinalIgnoreCase)), Is.True);
+            Assert.That(commands.Commands.Any(IsWindowsInstallCoreCommand), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failure", "agent-up-server", "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failureflag", "agent-up-server", "1"])), Is.True);
@@ -92,7 +95,9 @@ public class WindowsInstalledServiceSmokeValidatorTests
         var commands = new RecordingCommandRunner((command, _) =>
         {
             if (command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/i", productMsi, "/qn", "/norestart"]))
-                CreateWindowsInstall(DefaultInstallDirectory());
+                CreateWindowsPackageInstall(DefaultInstallDirectory());
+            if (IsWindowsInstallCoreCommand(command))
+                CreateWindowsCoreInstall(DefaultInstallDirectory());
             return new CommandResult(0, "", "");
         });
 
@@ -104,6 +109,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Findings.Any(finding => finding.Code == "installed.server.ready"), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Contains("/l*vx!", StringComparer.OrdinalIgnoreCase)), Is.True);
+            Assert.That(commands.Commands.Any(IsWindowsInstallCoreCommand), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "powershell.exe" && command.Arguments.Last().Contains("Get-Service", StringComparison.Ordinal)), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
@@ -162,7 +168,13 @@ public class WindowsInstalledServiceSmokeValidatorTests
         }
     }
 
-    private static void CreateWindowsInstall(string installDir)
+    private static void CreateWindowsPackageInstall(string installDir)
+    {
+        WriteText(Path.Join(installDir, "installer", "AgentUp.InstallerApp.exe"), "");
+        Directory.CreateDirectory(Path.Join(installDir, "installer", "payload"));
+    }
+
+    private static void CreateWindowsCoreInstall(string installDir)
     {
         WriteText(Path.Join(installDir, "bin", "agent-up.cmd"), "");
         WriteText(Path.Join(installDir, "cli", "AgentUp.CLI.exe"), "");
@@ -202,4 +214,12 @@ public class WindowsInstalledServiceSmokeValidatorTests
            && path.Split(Path.PathSeparator).Contains(Path.Join(DefaultInstallDirectory(), "bin"))
            && command.Environment.TryGetValue("AGENTUP_SMOKE_WORKING_DIRECTORY", out var workingDirectory)
            && workingDirectory.EndsWith(Path.Join("work", "example-workspace"), StringComparison.Ordinal);
+
+    private static bool IsWindowsInstallCoreCommand(CommandSpec command)
+        => command.FileName == Path.Join(DefaultInstallDirectory(), "installer", "AgentUp.InstallerApp.exe")
+           && command.Arguments.SequenceEqual([
+               "--payload-root",
+               Path.Join(DefaultInstallDirectory(), "installer", "payload"),
+               "--install-core"
+           ]);
 }

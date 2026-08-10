@@ -89,6 +89,15 @@ public sealed class InstalledServiceSmokeValidatorProductTests
                 "No command argument should reference 'agent-up' when running an Acme smoke");
             Assert.That(allArguments.Any(a => a.Contains("acme", StringComparison.Ordinal)), Is.True,
                 "Commands should reference the Acme CLI shim name");
+            Assert.That(commands.Commands.Any(command =>
+                    command.FileName == "sudo" &&
+                    command.Arguments.SequenceEqual([
+                        "bash",
+                        "-c",
+                        "/opt/acme/installer/Acme.InstallerApp --payload-root /opt/acme/installer/payload --install-core"
+                    ])),
+                Is.True,
+                "Ubuntu installed-service smoke must run the installed product installer app before runtime validation.");
         }
         finally
         {
@@ -400,6 +409,15 @@ public sealed class InstalledServiceSmokeValidatorProductTests
                 "Agent-Up CLI probe must check for 'agent-up'");
             Assert.That(commands.Commands.Any(c => c.FileName == "sudo" && c.Arguments.SequenceEqual(["apt-get", "purge", "-y", "agent-up"])), Is.True,
                 "Uninstall must purge 'agent-up' package");
+            Assert.That(commands.Commands.Any(c =>
+                    c.FileName == "sudo" &&
+                    c.Arguments.SequenceEqual([
+                        "bash",
+                        "-c",
+                        "/opt/agent-up/installer/AgentUp.InstallerApp --payload-root /opt/agent-up/installer/payload --install-core"
+                    ])),
+                Is.True,
+                "Agent-Up installed-service smoke must run the packaged installer app before service validation.");
             Assert.That(commands.Commands.Any(c => IsUnixCliCommand(c, "agent-up", "start")), Is.True,
                 "CLI workspace smoke must invoke agent-up start");
             Assert.That(commands.Commands.Any(c => IsUnixCliCommand(c, "agent-up", "status")), Is.True,
@@ -445,6 +463,43 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         Assert.That(agentUpServiceArg, Is.Not.EqualTo(acmeServiceArg));
         Assert.That(agentUpServiceArg, Does.Not.Contain(acme.ServiceName));
         Assert.That(acmeServiceArg, Does.Not.Contain(agentUp.ServiceName));
+    }
+
+    [Test]
+    public async Task ValidateAsync_macosRunsInstalledInstallerAppBeforeRuntimeValidation()
+    {
+        var root = TempRoot("macos-installer-app-install-core");
+        var artifactDir = Path.Join(root, "artifacts");
+        var workDir = Path.Join(root, "work");
+        Directory.CreateDirectory(artifactDir);
+        File.WriteAllText(Path.Join(artifactDir, "acme-macos-osx-x64.pkg"), "");
+        var commands = new RecordingCommandRunner((_, _) => new CommandResult(0, "", ""));
+
+        try
+        {
+            await new MacOsInstalledServiceSmokeValidator(commands, new FakeServerProbe(null), new NullRuntimeSecurityChecks())
+                .ValidateAsync(new InstalledServiceSmokeRequest(
+                    "macos",
+                    "osx-x64",
+                    artifactDir,
+                    workDir,
+                    ProductConfig: AcmeProduct));
+
+            Assert.That(commands.Commands.Any(command =>
+                    command.FileName == "sudo" &&
+                    command.Arguments.SequenceEqual([
+                        "/Applications/Acme Installer.app/Contents/MacOS/Acme.InstallerApp",
+                        "--payload-root",
+                        "/Applications/Acme Installer.app/Contents/MacOS/payload",
+                        "--install-core"
+                    ])),
+                Is.True,
+                "macOS installed-service smoke must run the installed product installer app before runtime validation.");
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
     }
 
     private static void SetupUbuntuSystemFiles(string systemRoot, string shimName)

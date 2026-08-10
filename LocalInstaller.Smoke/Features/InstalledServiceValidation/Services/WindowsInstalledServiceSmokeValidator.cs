@@ -34,6 +34,13 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
 
         var installLog = Path.Join(request.WorkDirectory, "windows-msi-install.log");
         await RunMsiAsync(assert, ["/i", productMsi, "/qn", "/norestart", "/l*vx!", installLog], installLog, "installed.windows.install", cancellationToken);
+        var installerApp = Path.Join(installDir, "installer", product.InstallerExecutableName + ".exe");
+        var installedPayloadRoot = Path.Join(installDir, "installer", "payload");
+        await RunRequiredAsync(
+            assert,
+            new CommandSpec(installerApp, ["--payload-root", installedPayloadRoot, "--install-core"]),
+            "installed.windows.install-core",
+            cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", product.ServiceName]), "installed.windows.service.start", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failure", product.ServiceName, "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"]), "installed.windows.service.recovery", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failureflag", product.ServiceName, "1"]), "installed.windows.service.recovery", cancellationToken);

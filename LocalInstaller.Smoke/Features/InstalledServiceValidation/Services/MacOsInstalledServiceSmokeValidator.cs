@@ -30,6 +30,13 @@ public sealed class MacOsInstalledServiceSmokeValidator : InstalledServiceSmokeV
             return null;
 
         await RunRequiredAsync(assert, new CommandSpec("sudo", ["installer", "-pkg", pkgPath, "-target", "/"]), "installed.macos.install", cancellationToken);
+        var installerApp = $"/Applications/{product.InstallDirName} Installer.app/Contents/MacOS/{product.InstallerExecutableName}";
+        var installedPayloadRoot = $"/Applications/{product.InstallDirName} Installer.app/Contents/MacOS/payload";
+        await RunRequiredAsync(
+            assert,
+            new CommandSpec("sudo", [installerApp, "--payload-root", installedPayloadRoot, "--install-core"]),
+            "installed.macos.install-core",
+            cancellationToken);
         assert.ExecutableExists($"/usr/local/bin/{product.CliShimName}", "installed.macos.cli");
         assert.ExecutableExists($"/usr/local/bin/{product.ServiceName}", "installed.macos.server");
         assert.ExecutableExists($"/usr/local/bin/{product.CliShimName}-desktop", "installed.macos.desktop");
