@@ -110,6 +110,39 @@ public class PackagePayloadStagerTests
         Assert.That(publisher.Copied.Any(c => c.Source == Path.Join(request.StageDirectory, "orbit-cli-admin") && c.Destination == "/stage/cli"), Is.True);
     }
 
+    [Test]
+    public async Task StageAsync_withManifestOptionsWhosePayloadNamesMatchLegacyTargets_doesNotSelfMirror()
+    {
+        var publisher = new RecordingPublisher();
+        var files = new RecordingPackageFileSystem();
+        var product = new PackageProductManifest("Agent-Up", "agent-up", "AGENTUP")
+        {
+            InstallerApplication = new PackageProductArtifact("agent-up-installer", "Installer", "", "AgentUp.InstallerApp", "AgentUp.InstallerApp/AgentUp.InstallerApp.csproj", "installer", LocalInstallerArtifactTarget.InstallerApp),
+            InstallerOptions =
+            [
+                new PackageProductArtifact("agent-up-cli", "CLI", "", "AgentUp.CLI", "AgentUp.CLI/AgentUp.CLI.csproj", "cli", LocalInstallerArtifactTarget.Cli),
+                new PackageProductArtifact("agent-up-server", "Server", "", "AgentUp.Server", "AgentUp.Server/AgentUp.Server.csproj", "server", LocalInstallerArtifactTarget.Server),
+                new PackageProductArtifact("agent-up-desktop", "Desktop", "", "AgentUp.Desktop", "AgentUp.Desktop/AgentUp.Desktop.csproj", "desktop", LocalInstallerArtifactTarget.Desktop),
+                new PackageProductArtifact("agent-up-tray", "Tray", "", "AgentUp.Tray", "AgentUp.Tray/AgentUp.Tray.csproj", "tray", LocalInstallerArtifactTarget.Tray)
+            ]
+        };
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", product);
+
+        await new PackagePayloadStager(publisher, files).StageAsync(new PayloadStagingRequest(
+            request,
+            Path.Join(request.StageDirectory, "installer"),
+            Path.Join(request.StageDirectory, "desktop"),
+            Path.Join(request.StageDirectory, "server"),
+            Path.Join(request.StageDirectory, "cli"),
+            Path.Join(request.StageDirectory, "tray")));
+
+        Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "desktop")));
+        Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "server")));
+        Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "cli")));
+        Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "tray")));
+        Assert.That(publisher.Copied.Any(c => Path.GetFullPath(c.Source).Equals(Path.GetFullPath(c.Destination), StringComparison.OrdinalIgnoreCase)), Is.False);
+    }
+
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)
     {
         var directory = Path.Join(payloadRoot, component);

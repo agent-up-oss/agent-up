@@ -151,7 +151,11 @@ public sealed class PackagePayloadStager
         if (option is null)
             return;
 
-        _publisher.CopyPrebuiltPayload(FlatStageDirectory(staging.Package, option), destination);
+        var source = FlatStageDirectory(staging.Package, option);
+        if (Path.GetFullPath(source).Equals(Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _publisher.CopyPrebuiltPayload(source, destination);
     }
 
     private static string FlatStageDirectory(PackageRequest request, PackageProductArtifact option)
