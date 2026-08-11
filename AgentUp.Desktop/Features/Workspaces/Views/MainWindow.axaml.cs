@@ -955,8 +955,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         // routes through ForceFirstWebKitPaint to kick off WebKit's paint pipeline.
         var wantWebView = isAi && isActiveViewerTab && !tutorialVisible && kind == StreamStateKind.Streaming;
         var haveWebView = _webViews.ContainsKey(viewerKey);
+        // Only destroy when the stream state is KNOWN and not Streaming. If kind is null
+        // (no SSE received yet — e.g. fresh app boot or tests that don't publish state),
+        // leave any existing WebView alone. Otherwise a WebView created by
+        // HandleHeadlessNavigation on user navigation would be destroyed the moment it's
+        // added, before NavigationCompleted can even fire.
+        var shouldDestroy = isAi && isActiveViewerTab && !tutorialVisible
+            && kind is not null && kind != StreamStateKind.Streaming;
 
-        if (!wantWebView && haveWebView)
+        if (shouldDestroy && haveWebView)
         {
             DestroyWorkspaceWebView(viewerKey);
             _viewerPagesLoaded.Remove(workspaceId);
@@ -965,13 +972,28 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         else if (wantWebView && !haveWebView)
         {
             // Create fresh WebView + navigate. TryGetOrCreateWebView starts it hidden;
-            // we make it visible below. The first NavigationCompleted triggers
-            // ForceFirstWebKitPaint which is what actually starts WebKit rendering.
+            // we make it visible below. Navigation is deferred one dispatcher tick past
+            // Loaded so Avalonia has time to lay out the freshly-added WebView and GTK
+            // has time to map its native subwindow. Without the defer, NavigationCompleted
+            // can fire against an unmapped widget — ForceFirstWebKitPaint's IsVisible
+            // toggle then has nothing to unmap/remap, and WebKit never gets its initial
+            // paint kick. First start works because it comes through HandleHeadlessNavigation
+            // which posts the navigate asynchronously; the second start (after our Stop
+            // disposed the WebView) has to route through this branch, which is why the
+            // problem was start→stop→start-specific.
             var viewerUrl = BuildViewerUrl(workspaceId);
             if (TryGetOrCreateWebView(viewerKey, workspaceId, viewerUrl.ToString(), out var created, out _))
             {
                 created.IsVisible = true;
-                NavigateWebView(created, viewerUrl);
+                var pinnedViewer = created;
+                var pinnedUrl = viewerUrl;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_isClosed) return;
+                    if (!_webViews.TryGetValue(viewerKey, out var current) || !ReferenceEquals(current, pinnedViewer))
+                        return;
+                    NavigateWebView(pinnedViewer, pinnedUrl);
+                }, DispatcherPriority.Loaded);
             }
         }
         else if (_webViews.TryGetValue(viewerKey, out var viewer))
@@ -1436,14 +1458,21 @@ code {
         var tabKey = $"{workspaceId}:viewer";
         ActivateTab(workspaceId, tabKey, tutorialVisible);
 
-        // Only create the viewer WebView when we actually have a URL to load. Otherwise
-        // the WebView stays absent and RenderStreamState shows a banner. This keeps the
-        // "no navigation yet" case free of any WebView instantiation (which can fail).
         if (url is not null
             && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
             && navUri.Scheme is "http" or "https")
         {
-            if (!_webViews.ContainsKey(tabKey))
+            // Only create the viewer WebView here when it's safe: we're either in
+            // Streaming state (RenderStreamState will keep the WebView alive) or we
+            // don't have any stream state yet (fresh app boot before SSE has told us
+            // anything). During transient stream states (AppConnecting, SessionLaunching,
+            // WorkspaceStopped, AppFailed) creating here would race with RenderStreamState's
+            // "destroy while non-Streaming" rule and produce a create/destroy churn that
+            // starves NavigationCompleted → ForceFirstWebKitPaint → black screen.
+            var currentKind = _streamStates.GetValueOrDefault(workspaceId)?.Kind;
+            var canCreateHere = currentKind is null or StreamStateKind.Streaming;
+
+            if (canCreateHere && !_webViews.ContainsKey(tabKey))
             {
                 var viewerUrl = BuildViewerUrl(workspaceId);
                 if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUrl.ToString(), out _, out _))
