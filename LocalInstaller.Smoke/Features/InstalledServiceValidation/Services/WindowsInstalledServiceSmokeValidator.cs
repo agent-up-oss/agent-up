@@ -128,5 +128,5 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
     private static string Window(string[] lines, int start, int end)
         => string.Join(Environment.NewLine, lines[start..end]);
 
-    private const string InstallCoreCommand = "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER_APP -ArgumentList @('--payload-root', $env:AGENTUP_SMOKE_PAYLOAD_ROOT, '--install-core') -Wait -PassThru; exit $process.ExitCode";
+    private const string InstallCoreCommand = "& $env:AGENTUP_SMOKE_INSTALLER_APP --payload-root $env:AGENTUP_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'Agent-Up\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit";
 }
