@@ -59,6 +59,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Avalonia's state machine. Every ~500 ms it reads the snapshot, updates
     // _viewerSnapshots for the active workspace, and lets RenderStreamState react.
     private readonly DispatcherTimer _viewerSnapshotPollTimer;
+    // Cross-platform adapter for prodding the OS compositor to re-blit the WebView
+    // surface. Noop on Windows/macOS; libX11 XClearArea on Linux/X11. Wayland falls
+    // back to noop until we add a dedicated adapter. See Compositor/ folder.
+    private readonly IViewerCompositorHint _compositorHint;
     // Last-known JS state machine snapshot per workspace, keyed by workspaceId. Only
     // the active workspace's snapshot is refreshed (that's the only viewer currently
     // showing content to the user); non-active viewers are considered stale.
@@ -185,6 +189,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _viewerSnapshotPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _viewerSnapshotPollTimer.Tick += OnViewerSnapshotPollTick;
         _viewerSnapshotPollTimer.Start();
+        _compositorHint = ViewerCompositorHintFactory.Create();
         PortPane.SizeChanged += OnPortPaneSizeChanged;
         Activated += (_, _) =>
         {
@@ -321,6 +326,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
         _viewerSnapshotPollTimer.Stop();
         _viewerSnapshotPollTimer.Tick -= OnViewerSnapshotPollTick;
+        (_compositorHint as IDisposable)?.Dispose();
         _subscriptions.Dispose();
         DestroyWorkspaceWebViews();
         DestroyConsoleWebView();
@@ -574,6 +580,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private NativeWebView CreateWorkspaceWebView(string tabKey, string workspaceId)
     {
         var webView = WebViewFactory();
+        // One-shot flag: WebKit's paint pipeline needs an explicit initial-map kick on
+        // the first navigation of every fresh WebView. Without it, WebKit runs JS but
+        // never composites its back buffer to the GTK surface — see screenshot from
+        // 2026-08-11 05:47 where canvas + AI badge + magenta diagnostic all invisible.
+        // We fire ForceFirstWebKitPaint exactly once. Subsequent stream-state changes
+        // do NOT re-toggle IsVisible (that's the RenderStreamState invariant we keep
+        // from the SM refactor — it was the *repeated* toggle that caused the freeze
+        // bug we've been fighting, not this one-shot).
+        var firstNavDone = false;
 
         webView.NavigationCompleted += (_, e) =>
         {
@@ -624,9 +639,36 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             }
 
             _ = webView.InvokeScript(SelectionJs);
+            if (firstNavDone) return;
+            firstNavDone = true;
+            ForceFirstWebKitPaint(tabKey, webView);
         };
 
         return webView;
+    }
+
+    // ONE-SHOT initial-paint kick for a freshly-created WebView. Toggles IsVisible
+    // false→true at DispatcherPriority.Background so GTK sends a fresh map event,
+    // which is the signal WebKitGTK uses to start its own paint pipeline. Without
+    // this, WebKit runs the page's JS but never composites anything (canvas + DOM
+    // both invisible on the user's screen). Called exactly ONCE per WebView instance
+    // — the SM refactor's real fix (removing per-stream-state IsVisible toggles from
+    // RenderStreamState) is untouched, so we don't reintroduce the repeated-toggle
+    // freeze pattern.
+    private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!CanTouchWebView(tabKey, webView) || !webView.IsVisible) return;
+            webView.IsVisible = false;
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (CanTouchWebView(tabKey, webView))
+                        webView.IsVisible = true;
+                },
+                DispatcherPriority.Background);
+        });
     }
 
     private async Task NavigatePortWebViewAsync(
@@ -956,15 +998,31 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Fires every 500 ms while the app is alive. Reads the JS state machine snapshot
     // on the active viewer WebView and feeds it back into Avalonia's SM via
     // OnViewerSnapshot. This is the ONLY bridge from JS → Avalonia — no ad-hoc pokes,
-    // no assumptions, one polling read per tick. Side-effect bonus: the InvokeScript
-    // call keeps WebKit's JS event loop ticking, so background-page throttling can't
-    // freeze the JS runtime the way it used to.
+    // no assumptions, one polling read per tick.
+    //
+    // We also unconditionally InvalidateVisual the WebView each tick. On Linux/GTK the
+    // WebKit surface is composited by the OS window manager independently of JS —
+    // frames drawn to the canvas element land in WebKit's back buffer but aren't
+    // guaranteed to reach the screen unless something asks Avalonia (and by extension
+    // the GTK compositor) to re-paint the WebView's Avalonia rect. When the app window
+    // is unfocused most WMs skip that repaint. InvalidateVisual is a request from OUR
+    // code, so it happens regardless of focus, and it's cheap when nothing changed.
     private async void OnViewerSnapshotPollTick(object? sender, EventArgs e)
     {
         if (_isClosed || _activeWorkspaceId is null || _activeTabKey is null) return;
         if (!_activeTabKey.EndsWith(":viewer", StringComparison.Ordinal)) return;
         if (!_webViews.TryGetValue(_activeTabKey, out var viewer)) return;
         if (!_viewerPagesLoaded.Contains(_activeWorkspaceId)) return;
+
+        // Ask Avalonia to re-composite the WebView's rectangle. Belt: cheap and works
+        // on all platforms when the compositor is willing.
+        viewer.InvalidateVisual();
+        // Braces: on Linux/X11 the OS compositor stops asking the WebView subwindow
+        // for its surface while the app is unfocused, so InvalidateVisual alone doesn't
+        // reach the screen. The X11 adapter sends an Expose event to the top-level
+        // window, which forces GTK to re-composite the WebView surface. Noop on
+        // Windows/macOS where the OS compositor already handles background windows.
+        _compositorHint.RequestRepaint(this);
 
         string? raw;
         try
@@ -1002,7 +1060,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (_isClosed) return;
         var viewerKey = $"{workspaceId}:viewer";
         if (!_webViews.TryGetValue(viewerKey, out var viewer)) return;
-        if (!_viewerPagesLoaded.Contains(workspaceId)) return;  // page's __setPresence hook not yet installed.
+        if (!_viewerPagesLoaded.Contains(workspaceId)) return;  // window.__viewer not yet installed.
 
         var isAi = _workspaceAuthority.GetValueOrDefault(workspaceId, "ai") == "ai";
         var isActiveViewerTab = _activeWorkspaceId == workspaceId && _activeTabKey == viewerKey;
@@ -1011,7 +1069,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var isForeground = _windowFocused && isAi && isActiveViewerTab && !tutorialVisible && streamStreaming;
 
         var state = isForeground ? "foreground" : "background";
-        _ = viewer.InvokeScript($"window.__setPresence && window.__setPresence('{state}')");
+        // Call the JS state machine's public API on window.__viewer, matching the shape
+        // exposed by rdp-viewer.js. Guarded so a mid-load call before the SM has been
+        // installed is a no-op instead of a thrown ReferenceError.
+        _ = viewer.InvokeScript($"window.__viewer && window.__viewer.setPresence && window.__viewer.setPresence('{state}')");
     }
 
     private void UpdateAllViewerPresences()
