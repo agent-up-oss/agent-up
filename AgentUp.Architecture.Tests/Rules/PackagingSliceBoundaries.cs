@@ -7,14 +7,14 @@ namespace AgentUp.Architecture.Tests.Rules;
 public sealed class PackagingSliceBoundaries
 {
     private static readonly Regex CrossSliceUsingPattern = new(
-        @"^using AgentUp\.Packaging\.Features\.(?<slice>[^.]+)\.(?<folder>Services|Models|Providers|Interfaces|Factories);$",
+        @"^using LocalInstaller\.Packaging\.Features\.(?<slice>[^.]+)\.(?<folder>Services|Models|Providers|Interfaces|Factories);$",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
     [Test]
     public void FeatureSlicesDoNotReachIntoOtherSlicesInternals()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var sourceRoot = Path.Join(root, "AgentUp.Packaging");
+        var sourceRoot = Path.Join(root, "LocalInstaller.Packaging");
         var violations = new List<string>();
 
         foreach (var file in Directory.EnumerateFiles(Path.Join(sourceRoot, "Features"), "*.cs", SearchOption.AllDirectories))
@@ -40,25 +40,19 @@ public sealed class PackagingSliceBoundaries
     }
 
     [Test]
-    public void ProgramUsesCompositionRootAndFeatureControllerEntrypoint()
+    public void PackagingLibraryDoesNotOwnAProductEntrypoint()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var sourceRoot = Path.Join(root, "AgentUp.Packaging");
-        var programSource = File.ReadAllText(Path.Join(sourceRoot, "Program.cs"));
-        var featureUsings = Regex.Matches(programSource, @"^using AgentUp\.Packaging\.Features\.[^;]+;$", RegexOptions.Multiline)
-            .Select(match => match.Value)
-            .ToArray();
+        var sourceRoot = Path.Join(root, "LocalInstaller.Packaging");
 
-        Assert.That(featureUsings, Is.Empty);
-        Assert.That(programSource, Does.Contain("using AgentUp.Packaging.Shared.Factories;"));
-        Assert.That(programSource, Does.Contain(".PackageCommands.ExecuteAsync(args)"));
+        Assert.That(File.Exists(Path.Join(sourceRoot, "Program.cs")), Is.False);
     }
 
     [Test]
     public void ControllersDoNotInstantiateDependencies()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var sourceRoot = Path.Join(root, "AgentUp.Packaging");
+        var sourceRoot = Path.Join(root, "LocalInstaller.Packaging");
         var violations = Directory
             .EnumerateFiles(Path.Join(sourceRoot, "Features"), "*.cs", SearchOption.AllDirectories)
             .Where(file => file.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Contains("Controllers"))

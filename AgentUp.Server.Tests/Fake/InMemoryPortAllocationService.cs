@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Ports.Interfaces;
 using AgentUp.Server.Features.Ports.Services;
 
 namespace AgentUp.Server.Tests.Fake;

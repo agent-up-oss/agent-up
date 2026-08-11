@@ -1,6 +1,7 @@
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
+using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Shared.Providers;
 using Microsoft.Extensions.Logging;

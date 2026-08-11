@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Repositories;
 
 namespace AgentUp.Server.Tests.Fake;

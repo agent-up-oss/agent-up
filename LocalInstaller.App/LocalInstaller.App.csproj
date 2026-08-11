@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AgentUp.InstallerApp</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>LocalInstaller.App</PackageId>
+    <Version>$(LocalInstallerVersion)</Version>
+    <Authors>themassiveone</Authors>
+    <Company>Agent-Up</Company>
+    <Description>Avalonia-based installer GUI and command-line interface built on LocalInstaller.Core.</Description>
+    <PackageTags>installer;gui;avalonia;cross-platform;localinstaller</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>logo.png</PackageIcon>
+    <Copyright>Copyright © 2025 themassiveone, Agent-Up</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>AgentUp.InstallerApp.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="\" />
+    <Content Include="../media/logo.png" Link="media/logo.png" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

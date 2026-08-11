@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 

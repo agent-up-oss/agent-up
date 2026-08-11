@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Repositories;
 
 namespace AgentUp.Server.Tests.Fake;

@@ -28,6 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AvaloniaResource Include="../media/logo.png" Link="media/logo.png" />
     <Content Include="../media/logo.png" Link="media/logo.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -1,4 +1,4 @@
-namespace AgentUp.Server.Features.Ports.Services;
+namespace AgentUp.Server.Features.Ports.Interfaces;
 
 public interface IPortAllocationService
 {

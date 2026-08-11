@@ -1,0 +1,30 @@
+using System.Xml.Linq;
+
+namespace LocalInstaller.Packaging.Features.MacOsPackages.Models;
+
+public static class MacOsDistributionGenerator
+{
+    public static string DistributionXml(MacOsPackageLayout layout, MacOsPackageManifest manifest)
+        => new XDocument(
+            new XDeclaration("1.0", "UTF-8", null),
+            new XElement("installer-gui-script",
+                new XAttribute("minSpecVersion", "1"),
+                new XElement("title", manifest.InstallerManifest.ProductName),
+                new XElement("options",
+                    new XAttribute("customize", "never"),
+                    new XAttribute("require-scripts", "false")),
+                PkgRef(manifest.InstallerManifest.InstallerBundleIdentifier, layout.InstallerPackagePath),
+                new XElement("choices-outline",
+                    new XElement("line", new XAttribute("choice", "installer"))),
+                Choice("installer", $"{manifest.InstallerManifest.ProductName} Installer", manifest.InstallerManifest.InstallerBundleIdentifier)))
+            + Environment.NewLine;
+
+    private static XElement PkgRef(string id, string path)
+        => new("pkg-ref", new XAttribute("id", id), new XAttribute("version", "0"), new XAttribute("onConclusion", "none"), Path.GetFileName(path));
+
+    private static XElement Choice(string id, string title, string pkgRef)
+        => new("choice",
+            new XAttribute("id", id),
+            new XAttribute("title", title),
+            new XElement("pkg-ref", new XAttribute("id", pkgRef)));
+}

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AgentUp.Desktop.Features.FirstRun.Interfaces;
 
 namespace AgentUp.Desktop.Features.FirstRun.Services;
 

@@ -4,18 +4,17 @@ title: Architecture
 
 # Architecture
 
-Agent-Up has seven major component areas:
+Agent-Up has core runtime component areas plus product-specific installer entrypoints:
 
 - `AgentUp.Server`
 - `AgentUp.Desktop`
 - `AgentUp.CLI`
-- `AgentUp.Installers`
 - `AgentUp.InstallerApp`
 - `AgentUp.Packaging`
 - `AgentUp.PackageSmoke`
 - MCP clients
 
-The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. Installer code owns machine installation planning and validation only; it does not own runtime state.
+The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. Product-neutral installer, packaging, and package-smoke infrastructure lives in `LocalInstaller.*`; the Agent-Up installer entrypoints only register Agent-Up product configuration and delegate to that infrastructure.
 
 ## Solution Layout
 
@@ -44,9 +43,6 @@ AgentUp.Desktop/
 
 AgentUp.CLI/
   AgentUp.CLI.csproj
-
-AgentUp.Installers/
-  AgentUp.Installers.csproj
 
 AgentUp.InstallerApp/
   AgentUp.InstallerApp.csproj
@@ -78,26 +74,38 @@ AgentUp.Desktop.Tests/
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
 
-AgentUp.Installers.Tests/
-  AgentUp.Installers.Tests.csproj
-
-AgentUp.InstallerApp.Tests/
-  AgentUp.InstallerApp.Tests.csproj
-
-AgentUp.Packaging.Tests/
-  AgentUp.Packaging.Tests.csproj
-
-AgentUp.PackageSmoke.Tests/
-  AgentUp.PackageSmoke.Tests.csproj
-
 AgentUp.Architecture.Tests/
   AgentUp.Architecture.Tests.csproj
 
 AgentUp.Tests/
   AgentUp.Tests.csproj
+
+LocalInstaller.Core/
+  LocalInstaller.Core.csproj
+
+LocalInstaller.App/
+  LocalInstaller.App.csproj
+
+LocalInstaller.Packaging/
+  LocalInstaller.Packaging.csproj
+
+LocalInstaller.Smoke/
+  LocalInstaller.Smoke.csproj
+
+LocalInstaller.Core.Tests/
+  LocalInstaller.Core.Tests.csproj
+
+LocalInstaller.App.Tests/
+  LocalInstaller.App.Tests.csproj
+
+LocalInstaller.Packaging.Tests/
+  LocalInstaller.Packaging.Tests.csproj
+
+LocalInstaller.Smoke.Tests/
+  LocalInstaller.Smoke.Tests.csproj
 ```
 
-The exact project list may evolve, but the ownership boundaries should remain stable.
+The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references Agent-Up projects and the LocalInstaller libraries/tests needed while they still live in this repository. `localinstaller.sln` references LocalInstaller libraries, LocalInstaller tests, and LocalInstaller sample applications only; it must not reference Agent-Up product projects.
 
 ## Code Organization
 
@@ -158,7 +166,7 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 `AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, and install planning. First-party adapters such as `AgentUp.Capabilities.Dotnet` and `AgentUp.Capabilities.Docker` own ecosystem discovery, version reconciliation, validation, and launch planning.
 
-`AgentUp.InstallerApp` is the Avalonia installer dashboard. It presents independent Desktop, Server, and CLI management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI. InstallerApp owns its installer-facing catalog and installed-module contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects.
+`LocalInstaller.App` is the product-neutral Avalonia installer dashboard. It presents independent component management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI. The app owns its installer-facing catalog and installed-module contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects. Product entrypoints such as `AgentUp.InstallerApp` register typed LocalInstaller manifests through the fluent API and should keep `Program.cs` limited to product and installer-option configuration.
 
 `AgentUp.Server` performs orchestration:
 
@@ -179,17 +187,19 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
 
-`AgentUp.Installers` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
+`LocalInstaller.Core` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 
-Generic installer code must stay product-neutral. Architecture tests scan `AgentUp.Installers` source and allow literal `agent-up`, `Agent-Up`, and `dev.agent-up` product identity strings only in explicitly `AgentUp*` configuration files. Generic component categories such as Desktop, Server, CLI, and Tray are permitted infrastructure concepts, but generic installer services/providers must derive product names, slugs, service names, package names, and module paths from the active product manifest.
+Generic installer code must stay product-neutral. Architecture tests scan `LocalInstaller.*` source and allow literal `agent-up`, `Agent-Up`, and `dev.agent-up` product identity strings only in explicitly `AgentUp*` configuration files. Generic component categories such as Desktop, Server, CLI, and Tray are permitted infrastructure concepts, but generic installer services/providers must derive product names, slugs, service names, package names, and module paths from the active product manifest.
 
-`AgentUp.InstallerApp` owns the shared Avalonia installer dashboard. It delegates platform-specific execution to installer adapters. On NixOS the adapter is lookup-only: Desktop, Server, CLI, and capability status can be inspected, but installs and version changes are made through NixOS or Home Manager configuration.
+`LocalInstaller.App` owns the shared Avalonia installer dashboard. It delegates platform-specific execution to installer adapters. On NixOS the adapter is lookup-only: components and capability status can be inspected, but installs and version changes are made through NixOS or Home Manager configuration.
 
-`AgentUp.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`.
+`LocalInstaller.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`. `AgentUp.Packaging` is a thin product entrypoint that registers the Agent-Up package manifest through the LocalInstaller API.
+
+Each installable executable owns a typed LocalInstaller artifact manifest in that executable project. InstallerApp, Packager, and Smoke entrypoints consume those manifests with `UseProductManifest<T>()`, `InstallerApplication<T>()`, and `InstallerOption*<T>()` calls. Multiple options may share a target category such as CLI or Server, but each option must have a globally unique artifact ID and payload directory; target aliases are only valid when they resolve to one registered option.
 
 Packaging must expose package-owned request and product DTOs. It may map those DTOs to explicit platform installer contracts, but it must not depend on installer workflow product/session internals. Product identity values that become artifact names, path components, filenames, WiX identity, service names, server URLs, or command arguments must be validated at request or path-construction boundaries. Installer GUID seeds for fixed components, shortcuts, and bundles must include product identity, with any legacy unscoped compatibility path made explicit and covered by architecture tests.
 
-`AgentUp.PackageSmoke` owns the shared package and installed-service smoke validator used by CI smoke scripts. It validates the same abstract package, service, CLI, and uninstall properties through platform adapters while keeping shell scripts focused on selecting arguments and runner setup.
+`LocalInstaller.Smoke` owns the shared package and installed-service smoke validator used by CI smoke scripts. It validates the same abstract package, service, CLI, and uninstall properties through platform adapters while keeping shell scripts focused on selecting arguments and runner setup. `AgentUp.PackageSmoke` is a thin product entrypoint that registers the Agent-Up smoke manifest through the LocalInstaller API.
 
 MCP clients are the primary automation clients. AI agents should use MCP directly instead of shelling through the CLI.
 

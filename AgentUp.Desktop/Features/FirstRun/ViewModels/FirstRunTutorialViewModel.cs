@@ -1,4 +1,5 @@
 using System.Reactive;
+using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using ReactiveUI;
 

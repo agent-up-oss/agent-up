@@ -1,0 +1,265 @@
+using LocalInstaller.Core.Features.Installation.DTOs;
+using LocalInstaller.Core.Features.Installation.Interfaces;
+using LocalInstaller.Core.Features.Installation.Models;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Interfaces;
+using LocalInstaller.Core.Features.PrerequisiteChecks.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.DTOs;
+using LocalInstaller.Core.Features.WindowsInstallation.Interfaces;
+using LocalInstaller.Core.Features.WindowsInstallation.Models;
+using LocalInstaller.Core.Features.WindowsInstallation.Services;
+
+namespace LocalInstaller.Core.Features.WindowsInstallation.Providers;
+
+public sealed class WindowsInstallerPlatformAdapter : IInstallerPlatformAdapter
+{
+    private readonly ICommandRunner _commands;
+    private readonly IWindowsInstallerFileSystem _files;
+    private readonly WindowsInstallerOptions _options;
+    private readonly IRequiredCommandRunner _requiredCommands;
+    private readonly DockerPrerequisite _dockerPrerequisite;
+
+    public WindowsInstallerPlatformAdapter(
+        ICommandRunner commands,
+        IWindowsInstallerFileSystem files,
+        WindowsInstallerOptions options,
+        IRequiredCommandRunner requiredCommands,
+        DockerPrerequisite dockerPrerequisite)
+    {
+        _commands = commands;
+        _files = files;
+        _options = options;
+        _requiredCommands = requiredCommands;
+        _dockerPrerequisite = dockerPrerequisite;
+    }
+
+    public string PlatformName => "Windows";
+
+    public bool SupportsInstallActions => true;
+
+    public async Task<DockerStatus> CheckDockerAsync(CancellationToken cancellationToken = default)
+        => await _dockerPrerequisite.CheckAsync(cancellationToken);
+
+    public async Task<InstallerComponentStatus> GetComponentStatusAsync(
+        ProductComponent component,
+        InstallerSession session,
+        CancellationToken cancellationToken = default)
+        => InstallerComponentOperations.StatusFromValidation(
+            component,
+            await ValidateInstalledStateAsync(session, cancellationToken),
+            session.Version);
+
+    public IReadOnlyList<InstallOperation> PlanComponentAction(
+        ProductComponent component,
+        InstallerComponentAction action,
+        InstallerSession session)
+        => InstallerComponentOperations.Plan(TargetFor(component), action, session, PlanInstall);
+
+    public IAsyncEnumerable<InstallProgress> ExecuteComponentActionAsync(
+        ProductComponent component,
+        InstallerComponentAction action,
+        InstallerSession session,
+        CancellationToken cancellationToken = default)
+    {
+        var target = TargetFor(component);
+        if (action == InstallerComponentAction.Uninstall)
+            return ExecuteComponentUninstallAsync(target, session, cancellationToken);
+
+        return InstallerComponentOperations.ExecuteInstallLikeAction(
+            target,
+            action,
+            session,
+            ExecuteInstallAsync,
+            ExecuteUninstallAsync,
+            cancellationToken);
+    }
+
+    private async IAsyncEnumerable<InstallProgress> ExecuteComponentUninstallAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, _ => []);
+        var progress = new InstallProgressTracker(operations);
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
+
+        switch (target)
+        {
+            case InstallerComponentTarget.Server:
+                await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.ServerDirectory);
+                await _requiredCommands.RunPowerShellAsync(WindowsTrayAutoStartProvider.StopPowerShell(_options.Paths), cancellationToken);
+                await _requiredCommands.RunPowerShellAsync(WindowsTrayAutoStartProvider.RemovePowerShell(manifest), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.TrayDirectory);
+                break;
+            case InstallerComponentTarget.Cli:
+                await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PathRemovePowerShell(_options.Paths.BinDirectory), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.CliDirectory);
+                _files.DeleteDirectory(_options.Paths.BinDirectory);
+                break;
+            case InstallerComponentTarget.Desktop:
+                _files.DeleteFile(_options.Paths.StartMenuShortcutPath);
+                _files.DeleteDirectory(_options.Paths.DesktopDirectory);
+                break;
+            case InstallerComponentTarget.Tray:
+                await _requiredCommands.RunPowerShellAsync(
+                    WindowsTrayAutoStartProvider.StopPowerShell(_options.Paths), cancellationToken);
+                await _requiredCommands.RunPowerShellAsync(
+                    WindowsTrayAutoStartProvider.RemovePowerShell(manifest), cancellationToken);
+                _files.DeleteDirectory(_options.Paths.TrayDirectory);
+                break;
+        }
+
+        yield return progress.Complete(operations[0].Kind);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
+
+    private async IAsyncEnumerable<InstallProgress> ExecuteUninstallAsync(
+        InstallerComponentTarget target,
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = InstallerComponentOperations.Plan(target, InstallerComponentAction.Uninstall, session, PlanInstall);
+        var progress = new InstallProgressTracker(operations);
+        yield return progress.Complete(InstallerComponentOperations.TargetOperationKind(target));
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
+
+    public IReadOnlyList<InstallOperation> PlanInstall(InstallerSession session)
+    {
+        var summary = session.Summary();
+        var operations = new List<InstallOperation>
+        {
+            new(InstallOperationKind.ValidatePrerequisites, "Validate Docker and Windows prerequisites", false),
+            new(InstallOperationKind.StagePayload, $"Use {session.Payload.Description}", false),
+            new(InstallOperationKind.InstallFiles, $"Install selected {session.ProductName} files", true)
+        };
+
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterService, $"Register and start {manifest.ServiceName} Windows Service", true));
+        if (summary.Includes(InstallerComponent.Cli))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterCli, $"Register {manifest.CliCommandName} CLI on machine PATH", true));
+        if (summary.Includes(InstallerComponent.Desktop))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterDesktop, $"Register {session.ProductName} Start Menu shortcut", true));
+        if (summary.Includes(InstallerComponent.Tray))
+            operations.Add(new InstallOperation(InstallOperationKind.RegisterAutoStart, $"Register {session.ProductName} Tray for login auto-start", true));
+
+        operations.Add(new InstallOperation(InstallOperationKind.RegisterUninstall, "Register native uninstall handoff", true));
+        operations.Add(new InstallOperation(InstallOperationKind.ValidateInstallation, "Validate Windows installed state", false));
+        return operations;
+    }
+
+    public async IAsyncEnumerable<InstallProgress> ExecuteInstallAsync(
+        InstallerSession session,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var operations = PlanInstall(session);
+        var progress = new InstallProgressTracker(operations);
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
+        var summary = session.Summary();
+
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+            await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PrepareExistingServicePowerShell(manifest), cancellationToken);
+        yield return progress.Complete(InstallOperationKind.ValidatePrerequisites);
+        yield return progress.Complete(InstallOperationKind.StagePayload);
+
+        if (summary.Includes(InstallerComponent.Desktop))
+        {
+            _files.ResetDirectory(_options.Paths.DesktopDirectory);
+            _files.CopyDirectory(_options.Payload.DesktopDirectory, _options.Paths.DesktopDirectory);
+        }
+
+        if (summary.Includes(InstallerComponent.Server))
+        {
+            _files.ResetDirectory(_options.Paths.ServerDirectory);
+            _files.CopyDirectory(_options.Payload.ServerDirectory, _options.Paths.ServerDirectory);
+        }
+
+        if (summary.Includes(InstallerComponent.Cli))
+        {
+            _files.ResetDirectory(_options.Paths.CliDirectory);
+            _files.CopyDirectory(_options.Payload.CliDirectory, _options.Paths.CliDirectory);
+            _files.CreateDirectory(_options.Paths.BinDirectory);
+            _files.WriteText(_options.Paths.CliShimPathFor(manifest.CliShimName), WindowsWixSourceGenerator.CliShimText());
+        }
+
+        if (summary.Includes(InstallerComponent.Tray))
+        {
+            _files.ResetDirectory(_options.Paths.TrayDirectory);
+            _files.CopyDirectory(_options.Payload.TrayDirectory, _options.Paths.TrayDirectory);
+        }
+        yield return progress.Complete(InstallOperationKind.InstallFiles);
+
+        if (summary.Includes(InstallerComponent.Server) || summary.Includes(InstallerComponent.NativeService))
+        {
+            await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceCreateArguments(manifest, _options.Paths), cancellationToken);
+            await _requiredCommands.RunAsync("sc.exe", WindowsInstallerCommands.ServiceFailureArguments(manifest), cancellationToken);
+            await _requiredCommands.RunAsync("sc.exe", ["start", manifest.ServiceName], cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterService);
+        }
+
+        if (summary.Includes(InstallerComponent.Cli))
+        {
+            await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.PathUpdatePowerShell(_options.Paths.BinDirectory), cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterCli);
+        }
+
+        if (summary.Includes(InstallerComponent.Desktop))
+        {
+            await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.ShortcutPowerShell(_options.Paths), cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterDesktop);
+        }
+
+        if (summary.Includes(InstallerComponent.Tray))
+        {
+            await _requiredCommands.RunPowerShellAsync(
+                WindowsTrayAutoStartProvider.RegisterPowerShell(manifest, _options.Paths), cancellationToken);
+            yield return progress.Complete(InstallOperationKind.RegisterAutoStart);
+        }
+
+        _files.WriteText(_options.Paths.UninstallScriptPath, WindowsInstallerCommands.UninstallScript(manifest, _options.Paths));
+        await _requiredCommands.RunPowerShellAsync(WindowsInstallerCommands.UninstallRegistryPowerShell(manifest, _options.Paths), cancellationToken);
+        yield return progress.Complete(InstallOperationKind.RegisterUninstall);
+        yield return progress.Complete(InstallOperationKind.ValidateInstallation);
+    }
+
+    private static InstallerComponentTarget TargetFor(ProductComponent component)
+        => component.Target
+           ?? (Enum.TryParse<InstallerComponentTarget>(component.Id, ignoreCase: true, out var t)
+            ? t
+            : throw new NotSupportedException($"Component '{component.Id}' is not supported by the Windows adapter."));
+
+    public async Task<ValidationReport> ValidateInstalledStateAsync(
+        InstallerSession session,
+        CancellationToken cancellationToken = default)
+    {
+        var manifest = WindowsInstallerManifest.From(session.Manifest, session.Version.ToString(), session.ServerUrl);
+        var summary = session.Summary();
+        var service = await _commands.RunAsync("sc.exe", ["query", manifest.ServiceName], cancellationToken);
+        var cli = await _commands.RunAsync(
+            "powershell.exe",
+            ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", WindowsInstallerCommands.FreshShellCliLookupPowerShell(manifest.CliCommandName)],
+            cancellationToken);
+        var trayAutoStart = await _commands.RunAsync(
+            "powershell.exe",
+            ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", WindowsTrayAutoStartProvider.CheckPowerShell(manifest, _options.Paths)],
+            cancellationToken);
+
+        return PostInstallValidation.Validate(new InstalledState(
+            ServiceRegistered: service.ExitCode == 0,
+            ServiceRunning: service.ExitCode == 0 && service.Stdout.Contains("RUNNING", StringComparison.OrdinalIgnoreCase),
+            CliAvailableFromFreshShell: cli.ExitCode == 0,
+            DesktopInstalled: _files.FileExists(_options.Paths.DesktopExecutable),
+            InstallerVersion: session.Version,
+            CliVersion: session.Version,
+            ServerVersion: session.Version,
+            DesktopVersion: session.Version)
+        {
+            TrayExpected = summary.Includes(InstallerComponent.Tray),
+            TrayInstalled = _files.FileExists(_options.Paths.TrayExecutable),
+            TrayAutoStartRegistered = trayAutoStart.ExitCode == 0,
+            TrayVersion = _files.FileExists(_options.Paths.TrayExecutable) ? session.Version : null,
+        }, session.Version);
+    }
+
+}

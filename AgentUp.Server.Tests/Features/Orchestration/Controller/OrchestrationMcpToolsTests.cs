@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Orchestration.Providers;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;

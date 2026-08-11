@@ -9,6 +9,7 @@ using AgentUp.Server.Features.Orchestration.Interfaces;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
