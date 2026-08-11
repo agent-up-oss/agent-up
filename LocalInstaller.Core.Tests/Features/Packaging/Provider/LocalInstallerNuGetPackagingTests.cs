@@ -46,7 +46,34 @@ public class LocalInstallerNuGetPackagingTests
     public void Cleanup()
     {
         if (Directory.Exists(_workDir))
+            DeleteWorkDirectory();
+    }
+
+    private void DeleteWorkDirectory()
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                Directory.Delete(_workDir, recursive: true);
+                return;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Thread.Sleep(TimeSpan.FromMilliseconds(200 * (attempt + 1)));
+            }
+        }
+
+        try
+        {
             Directory.Delete(_workDir, recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            TestContext.WriteLine($"Could not delete temporary packaging work directory '{_workDir}': {ex.Message}");
+        }
     }
 
     [Test]

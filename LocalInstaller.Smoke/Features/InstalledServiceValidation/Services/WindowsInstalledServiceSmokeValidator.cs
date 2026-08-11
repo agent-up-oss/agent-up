@@ -45,7 +45,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             }),
             "installed.windows.install-core",
             cancellationToken);
-        await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["start", product.ServiceName]), "installed.windows.service.start", cancellationToken);
+        await RunServiceStartAsync(assert, product.ServiceName, cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failure", product.ServiceName, "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"]), "installed.windows.service.recovery", cancellationToken);
         await RunRequiredAsync(assert, new CommandSpec("sc.exe", ["failureflag", product.ServiceName, "1"]), "installed.windows.service.recovery", cancellationToken);
 
@@ -129,4 +129,20 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
         => string.Join(Environment.NewLine, lines[start..end]);
 
     private const string InstallCoreCommand = "& $env:AGENTUP_SMOKE_INSTALLER_APP --payload-root $env:AGENTUP_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'Agent-Up\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit";
+
+    private async Task RunServiceStartAsync(FileAssertions assert, string serviceName, CancellationToken cancellationToken)
+    {
+        var command = new CommandSpec("sc.exe", ["start", serviceName]);
+        var result = await RunAsync(command, cancellationToken);
+        if (result.ExitCode == 0)
+            return;
+
+        if ((result.Stderr + result.Stdout).Contains("1056", StringComparison.Ordinal))
+        {
+            assert.Info("installed.windows.service.start", $"{serviceName} was already running.");
+            return;
+        }
+
+        assert.Error("installed.windows.service.start", $"{command.FileName} failed: {result.Stderr}{result.Stdout}");
+    }
 }

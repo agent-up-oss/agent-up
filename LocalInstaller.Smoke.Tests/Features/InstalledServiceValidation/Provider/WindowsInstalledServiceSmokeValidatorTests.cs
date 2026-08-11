@@ -29,6 +29,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
                 CreateWindowsPackageInstall(DefaultInstallDirectory());
             if (IsWindowsInstallCoreCommand(command))
                 CreateWindowsCoreInstall(DefaultInstallDirectory());
+            if (command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"]))
+                return new CommandResult(1056, "[SC] StartService FAILED 1056:\n\nAn instance of the service is already running.", "");
             if (IsInstalledCliCommand(command, "start"))
                 return new CommandResult(0, "Started workspace \"Installed Service Smoke Workspace\"", "");
             if (IsInstalledCliCommand(command, "status"))
@@ -48,6 +50,10 @@ public class WindowsInstalledServiceSmokeValidatorTests
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Contains("/l*vx!", StringComparer.OrdinalIgnoreCase)), Is.True);
             Assert.That(commands.Commands.Any(IsWindowsInstallCoreCommand), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["start", "agent-up-server"])), Is.True);
+            Assert.That(result.Findings.Any(finding =>
+                    finding.Code == "installed.windows.service.start" &&
+                    finding.Message.Contains("already running", StringComparison.OrdinalIgnoreCase)),
+                Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failure", "agent-up-server", "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/5000"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "sc.exe" && command.Arguments.SequenceEqual(["failureflag", "agent-up-server", "1"])), Is.True);
             Assert.That(commands.Commands.Any(command => command.FileName == "msiexec.exe" && command.Arguments.Take(4).SequenceEqual(["/x", productMsi, "/qn", "/norestart"])), Is.True);
