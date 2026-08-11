@@ -944,40 +944,40 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var tutorialVisible = IsTutorialVisible();
         _streamStates.TryGetValue(workspaceId, out var snap);
         var kind = snap?.Kind;
-        var prevKind = _lastRenderedKind.GetValueOrDefault(workspaceId);
-        // Visibility follows tab activation ONLY — never gated by stream state. If the
-        // active viewer's stream flips to non-Streaming we keep the WebView mapped so
-        // WebKit doesn't unmap the GTK widget (that unmap froze the compositor + timers
-        // for minutes on re-map, producing the "blank screen" bug). When a banner should
-        // occlude the WebView we push it offscreen via Margin (see PositionWebView)
-        // because Linux/GTK renders native subwindows above Avalonia content regardless
-        // of ZIndex, so a straight overlay would be hidden behind the WebView surface.
-        var showWebView = isAi && isActiveViewerTab && !tutorialVisible;
+        // Lifecycle rule: the viewer WebView exists ONLY while the server is Streaming.
+        // Any other state (WorkspaceStopped, AppConnecting, AppFailed, SessionLaunching,
+        // ChromiumDownloading) destroys the WebView so the Avalonia banner underneath
+        // takes over the pixel area — Linux/GTK's NativeControlHost renders the WebView
+        // subwindow above anything Avalonia draws in the same window regardless of
+        // ZIndex, so keeping the WebView around means the last-known Chromium content
+        // (typically "This site can't be reached" after a stop) bleeds through. Every
+        // fresh Streaming transition then creates a brand-new WebView, which naturally
+        // routes through ForceFirstWebKitPaint to kick off WebKit's paint pipeline.
+        var wantWebView = isAi && isActiveViewerTab && !tutorialVisible && kind == StreamStateKind.Streaming;
+        var haveWebView = _webViews.ContainsKey(viewerKey);
 
-        if (_webViews.TryGetValue(viewerKey, out var viewer))
+        if (!wantWebView && haveWebView)
         {
-            viewer.IsVisible = showWebView;
-            if (showWebView && kind == StreamStateKind.Streaming)
+            DestroyWorkspaceWebView(viewerKey);
+            _viewerPagesLoaded.Remove(workspaceId);
+            _viewerSnapshots.Remove(workspaceId);
+        }
+        else if (wantWebView && !haveWebView)
+        {
+            // Create fresh WebView + navigate. TryGetOrCreateWebView starts it hidden;
+            // we make it visible below. The first NavigationCompleted triggers
+            // ForceFirstWebKitPaint which is what actually starts WebKit rendering.
+            var viewerUrl = BuildViewerUrl(workspaceId);
+            if (TryGetOrCreateWebView(viewerKey, workspaceId, viewerUrl.ToString(), out var created, out _))
             {
-                var viewerUrl = BuildViewerUrl(workspaceId);
-                var enteringStream = prevKind != StreamStateKind.Streaming;
-                if (enteringStream || !IsAtViewerUrl(viewer, viewerUrl))
-                {
-                    // Defer navigation one dispatcher tick past Loaded so any layout the
-                    // banner-hide triggered has settled before WebKit's page-load runs.
-                    var pinnedViewer = viewer;
-                    var pinnedUrl = viewerUrl;
-                    var shouldReload = _viewerPagesLoaded.Contains(workspaceId);
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        if (_isClosed) return;
-                        if (!_webViews.TryGetValue(viewerKey, out var current) || !ReferenceEquals(current, pinnedViewer))
-                            return;
-                        if (shouldReload) ReloadWebView(pinnedViewer, pinnedUrl);
-                        else NavigateWebView(pinnedViewer, pinnedUrl);
-                    }, DispatcherPriority.Loaded);
-                }
+                created.IsVisible = true;
+                NavigateWebView(created, viewerUrl);
             }
+        }
+        else if (_webViews.TryGetValue(viewerKey, out var viewer))
+        {
+            // Existing WebView (Streaming state, unchanged). Keep it visible.
+            viewer.IsVisible = wantWebView;
         }
 
         // Banner state applies only when this workspace's viewer tab is currently active.
