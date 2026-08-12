@@ -46,7 +46,7 @@ public sealed class WindowsWixPackagingTool : IWindowsPackagingTool
 
     private Task<CommandResult> RunWixAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
-        var wixCommand = Environment.GetEnvironmentVariable("AGENTUP_WIX_COMMAND") ?? "wix";
+        var wixCommand = Environment.GetEnvironmentVariable("LOCALINSTALLER_WIX_COMMAND") ?? "wix";
         if (OperatingSystem.IsWindows())
             return _commands.RunAsync(new CommandSpec("cmd.exe", ["/c", wixCommand, .. arguments]), cancellationToken);
 

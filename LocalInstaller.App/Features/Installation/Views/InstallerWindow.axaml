@@ -1,10 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="AgentUp.InstallerApp.Features.Installation.Views.InstallerWindow"
+        x:Class="LocalInstaller.App.Features.Installation.Views.InstallerWindow"
         x:CompileBindings="False"
         Width="1040" Height="720"
         MinWidth="860" MinHeight="620"
-        Title="Agent-Up Installer"
+        Title="Local Installer"
         Background="#0b1114">
     <Window.Styles>
         <Style Selector="Border.card">
@@ -42,7 +42,7 @@
     <Grid Margin="26" RowDefinitions="Auto,*">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,*" Margin="0,0,0,22">
             <StackPanel Spacing="3">
-                <TextBlock Text="Agent-Up Installer"
+                <TextBlock Text="Local Installer"
                            Foreground="#8ee8bd"
                            FontSize="13"
                            FontWeight="Bold"/>

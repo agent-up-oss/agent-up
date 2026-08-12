@@ -1,6 +1,6 @@
 using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Features.Installation.Controllers;
+namespace LocalInstaller.App.Features.Installation.Controllers;
 
 internal static class InstallerCommandLineParser
 {

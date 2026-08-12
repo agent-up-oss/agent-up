@@ -16,7 +16,7 @@ dotnet add package LocalInstaller.App
 Wire `LocalInstallerApp` into a standard Avalonia `Program.cs`:
 
 ```csharp
-using AgentUp.InstallerApp.Composition;
+using LocalInstaller.App.Composition;
 using Acme.Studio.Cli;
 using Acme.Studio.Desktop;
 using Acme.Studio.Installer;

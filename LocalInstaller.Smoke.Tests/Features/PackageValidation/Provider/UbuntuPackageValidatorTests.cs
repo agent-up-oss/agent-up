@@ -51,7 +51,7 @@ public class UbuntuPackageValidatorTests
             "agent-up",
             "Agent-Up",
             "Agent-Up",
-            InstallerExecutableName: "AgentUp.InstallerApp",
+            InstallerExecutableName: "LocalInstaller.App",
             DesktopExecutableName: "AgentUp.Desktop",
             ServerExecutableName: "AgentUp.Server",
             CliExecutableName: "AgentUp.CLI",
@@ -59,13 +59,13 @@ public class UbuntuPackageValidatorTests
 
     private static void CreateUbuntuRoot(string root)
     {
-        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "AgentUp.InstallerApp"));
+        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "LocalInstaller.App"));
         WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "desktop", "AgentUp.Desktop"));
         WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "server", "AgentUp.Server"));
         WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "cli", "AgentUp.CLI"));
         WriteText(Path.Join(root, "opt", "agent-up", "installer", "payload", "service", "agent-up-server.service"),
             "ExecStart=/opt/agent-up/server/AgentUp.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/agent-up\nCacheDirectory=agent-up\nRestartSec=5\n");
-        WriteText(Path.Join(root, "opt", "agent-up", "installer", "payload", "icon", "Agent-Up.png"), "png");
+        WriteText(Path.Join(root, "opt", "agent-up", "installer", "payload", "icon", "agent-up.png"), "png");
         WriteText(Path.Join(root, "usr", "share", "applications", "agent-up-installer.desktop"), "[Desktop Entry]\nName=Agent-Up Installer\n");
         WriteText(Path.Join(root, "usr", "share", "metainfo", "agent-up-installer.desktop.metainfo.xml"), "<component><id>agent-up-installer.desktop</id><provides><pkgname>agent-up</pkgname></provides><releases><release version=\"1.0.0\" date=\"2026-01-01\"/></releases></component>\n");
         WriteText(Path.Join(root, "usr", "share", "pixmaps", "agent-up.png"), "png");
@@ -73,7 +73,7 @@ public class UbuntuPackageValidatorTests
 
     private static void CreateUbuntuControl(string control)
     {
-        WriteText(Path.Join(control, "postinst"), "#!/usr/bin/env bash\nchmod +x /opt/agent-up/installer/AgentUp.InstallerApp\n");
+        WriteText(Path.Join(control, "postinst"), "#!/usr/bin/env bash\nchmod +x /opt/agent-up/installer/LocalInstaller.App\n");
         WriteText(Path.Join(control, "prerm"), "#!/usr/bin/env bash\n");
     }
 

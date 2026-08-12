@@ -31,7 +31,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         DisplayName: "Agent-Up",
         InstallDirName: "Agent-Up",
         WorkspaceConfigFileName: "agent-up.json",
-        InstallerExecutableName: "AgentUp.InstallerApp",
+        InstallerExecutableName: "LocalInstaller.App",
         DesktopExecutableName: "AgentUp.Desktop",
         ServerExecutableName: "AgentUp.Server",
         CliExecutableName: "AgentUp.CLI",
@@ -68,11 +68,11 @@ public sealed class InstalledServiceSmokeValidatorProductTests
             return new CommandResult(0, "", "");
         });
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
-        var previousSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
+        var previousSkip = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL");
 
         try
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", "1");
             var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
                 ProductConfig: AcmeProduct, SystemRoot: systemRoot);
             using var validator = new UbuntuInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
@@ -101,7 +101,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
     }
@@ -252,11 +252,11 @@ public sealed class InstalledServiceSmokeValidatorProductTests
                 return new CommandResult(1, "", "acme: not found");
             return new CommandResult(0, "", "");
         });
-        var previousSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
+        var previousSkip = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL");
 
         try
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", "1");
             var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
                 ProductConfig: AcmeProduct, SystemRoot: systemRoot);
             using var validator = new UbuntuInstalledServiceSmokeValidator(commands, new FakeServerProbe("http://127.0.0.1:5000"),
@@ -274,7 +274,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
     }
@@ -392,11 +392,11 @@ public sealed class InstalledServiceSmokeValidatorProductTests
             return new CommandResult(0, "", "");
         });
         var probe = new FakeServerProbe("http://127.0.0.1:5000");
-        var previousSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
+        var previousSkip = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL");
 
         try
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", "1");
             var request = new InstalledServiceSmokeRequest("ubuntu", "linux-x64", artifactDir, workDir,
                 ProductConfig: AgentUpProduct, SystemRoot: systemRoot);
             using var validator = new UbuntuInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
@@ -414,7 +414,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
                     c.Arguments.SequenceEqual([
                         "bash",
                         "-c",
-                        "/opt/agent-up/installer/AgentUp.InstallerApp --payload-root /opt/agent-up/installer/payload --install-core"
+                        "/opt/agent-up/installer/LocalInstaller.App --payload-root /opt/agent-up/installer/payload --install-core"
                     ])),
                 Is.True,
                 "Agent-Up installed-service smoke must run the packaged installer app before service validation.");
@@ -425,7 +425,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
     }
@@ -532,7 +532,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         => command.FileName == "bash"
            && command.Arguments.Any(a => a.Contains($"{shimName} {argument}", StringComparison.Ordinal))
            && command.Environment is not null
-           && command.Environment.ContainsKey("AGENTUP_SMOKE_WORKING_DIRECTORY");
+           && command.Environment.ContainsKey("LOCALINSTALLER_SMOKE_WORKING_DIRECTORY");
 
     private static string TempRoot(string tag)
         => Path.Join(Path.GetTempPath(), $"AgentUp-SmokeProduct-{tag}", $"{Guid.NewGuid():N}");

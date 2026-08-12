@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("AgentUp.Installers.Tests")]
+[assembly: InternalsVisibleTo("LocalInstaller.Core.Tests")]

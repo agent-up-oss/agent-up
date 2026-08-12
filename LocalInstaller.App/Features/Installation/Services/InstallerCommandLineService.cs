@@ -1,11 +1,11 @@
-using AgentUp.InstallerApp.Features.Installation.Controllers;
-using AgentUp.InstallerApp.Features.Logging.Tools;
+using LocalInstaller.App.Features.Installation.Controllers;
+using LocalInstaller.App.Features.Logging.Tools;
 using LocalInstaller.Core.Features.Installation.DTOs;
 using LocalInstaller.Core.Features.Installation.Interfaces;
 using LocalInstaller.Core.Features.Installation.Models;
 using LocalInstaller.Core.Features.Installation.Services;
 
-namespace AgentUp.InstallerApp.Features.Installation.Services;
+namespace LocalInstaller.App.Features.Installation.Services;
 
 public sealed class InstallerCommandLineService
 {
@@ -37,7 +37,7 @@ public sealed class InstallerCommandLineService
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken = default)
-        => RunAsync(adapter, AgentUpManifest(), args, output, error, cancellationToken);
+        => RunAsync(adapter, DefaultManifest(), args, output, error, cancellationToken);
 
     public async Task<int> RunAsync(
         IInstallerPlatformAdapter adapter,
@@ -84,7 +84,7 @@ public sealed class InstallerCommandLineService
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken = default)
-        => RunInstallCoreAsync(adapter, AgentUpManifest(), output, error, cancellationToken);
+        => RunInstallCoreAsync(adapter, DefaultManifest(), output, error, cancellationToken);
 
     private static async Task<int> RunInstallCoreAsync(
         IInstallerPlatformAdapter adapter,
@@ -243,7 +243,7 @@ public sealed class InstallerCommandLineService
         return v is null || v == new Version(0, 0, 0, 0) ? new Version(0, 0, 0) : new Version(v.Major, v.Minor, v.Build);
     }
 
-    private static ProductManifest AgentUpManifest()
+    private static ProductManifest DefaultManifest()
         => new("LocalInstaller", "localinstaller", "LOCALINSTALLER")
         {
             Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]

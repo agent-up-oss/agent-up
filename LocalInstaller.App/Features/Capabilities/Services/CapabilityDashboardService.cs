@@ -1,8 +1,8 @@
-using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
-using AgentUp.InstallerApp.Features.Capabilities.Models;
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
+using LocalInstaller.App.Features.Capabilities.Interfaces;
+using LocalInstaller.App.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Providers;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Services;
+namespace LocalInstaller.App.Features.Capabilities.Services;
 
 public sealed class CapabilityDashboardService(
     ICapabilityCatalogProvider catalog,
@@ -31,7 +31,7 @@ public sealed class CapabilityDashboardService(
             entry.DisplayName,
             entry.Description,
             artifact.Version,
-            [new CapabilityInstalledVersion(entry.Id, artifact.Version, artifact.DownloadUrl.ToString(), CapabilityVersionSource.AgentUpManaged, true)]);
+            [new CapabilityInstalledVersion(entry.Id, artifact.Version, artifact.DownloadUrl.ToString(), CapabilityVersionSource.Managed, true)]);
 
         installed.Add(module);
         await store.SaveAsync(installed.OrderBy(module => module.DisplayName, StringComparer.OrdinalIgnoreCase).ToList(), cancellationToken);

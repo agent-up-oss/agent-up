@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Installation.Factories;
+using LocalInstaller.App.Features.Installation.Factories;
 using LocalInstaller.App.Tests.Support;
 using LocalInstaller.Core.Composition;
 using LocalInstaller.Core.Features.Installation.Models;

@@ -1,5 +1,5 @@
-using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
+using LocalInstaller.App.Features.Capabilities.Interfaces;
+using LocalInstaller.App.Features.Capabilities.Providers;
 
 namespace LocalInstaller.App.Tests.Features.Capabilities.Provider;
 
@@ -7,7 +7,7 @@ namespace LocalInstaller.App.Tests.Features.Capabilities.Provider;
 public sealed class OfficialCapabilityCatalogProviderTests
 {
     [Test]
-    public async Task AgentUpCatalogProvider_returnsBaselineModuleList()
+    public async Task OfficialCatalogProvider_returnsBaselineModuleList()
     {
         var previousCatalog = Environment.GetEnvironmentVariable(OfficialCapabilityCatalogProvider.CatalogUrlVariable);
         Environment.SetEnvironmentVariable(OfficialCapabilityCatalogProvider.CatalogUrlVariable, null);
@@ -31,18 +31,18 @@ public sealed class OfficialCapabilityCatalogProviderTests
                 {
                     Id = "dotnet",
                     DisplayName = ".NET",
-                    Description = "Discovers and manages .NET SDK versions for Agent-Up workspaces.",
+                    Description = "Discovers and manages .NET SDK versions.",
                     Version = "10.0.x",
-                    DownloadUrl = "https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-capability-dotnet.zip",
+                    DownloadUrl = "https://example.invalid/localinstaller/capability-dotnet.zip",
                     Sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
                 },
                 new
                 {
                     Id = "docker",
                     DisplayName = "Docker",
-                    Description = "Discovers Docker and manages Docker-backed workspace services.",
+                    Description = "Discovers Docker and manages Docker-backed services.",
                     Version = "27.x",
-                    DownloadUrl = "https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-capability-docker.zip",
+                    DownloadUrl = "https://example.invalid/localinstaller/capability-docker.zip",
                     Sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
                 }
             }));

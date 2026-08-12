@@ -102,7 +102,7 @@ public class InstallerLibraryContractTests
     public async Task AddingThirdProduct_requiresOnlyManifest_noLibraryCodeChangesNeeded()
     {
         // Arrange: define a brand-new product manifest entirely inline.
-        // No changes to the AgentUp.Installers library source are required.
+        // No changes to the LocalInstaller.Core library source are required.
         var galaxyCode = new ProductManifest("Galaxy Code", "galaxy-code", "GALAXYCODE")
         {
             Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli]

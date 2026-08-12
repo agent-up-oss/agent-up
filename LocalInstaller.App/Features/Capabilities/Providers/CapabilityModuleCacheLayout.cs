@@ -1,6 +1,6 @@
-using AgentUp.InstallerApp.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Models;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Providers;
+namespace LocalInstaller.App.Features.Capabilities.Providers;
 
 public sealed class CapabilityModuleCacheLayout
 {
@@ -28,7 +28,7 @@ public sealed class CapabilityModuleCacheLayout
             : _root + Path.DirectorySeparatorChar;
 
         if (!fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) && fullPath != _root)
-            throw new InvalidOperationException("Capability path escapes the Agent-Up tool cache.");
+            throw new InvalidOperationException("Capability path escapes the local installer tool cache.");
 
         return fullPath;
     }

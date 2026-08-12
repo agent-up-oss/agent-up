@@ -1,9 +1,9 @@
-using AgentUp.InstallerApp.Composition;
-using AgentUp.InstallerApp.Features.Capabilities.Controllers;
-using AgentUp.InstallerApp.Features.Capabilities.Factories;
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
-using AgentUp.InstallerApp.Features.Installation.ViewModels;
-using AgentUp.InstallerApp.Features.Installation.Views;
+using LocalInstaller.App.Composition;
+using LocalInstaller.App.Features.Capabilities.Controllers;
+using LocalInstaller.App.Features.Capabilities.Factories;
+using LocalInstaller.App.Features.Capabilities.Providers;
+using LocalInstaller.App.Features.Installation.ViewModels;
+using LocalInstaller.App.Features.Installation.Views;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using LocalInstaller.App.Tests.Support;

@@ -1,6 +1,6 @@
-using AgentUp.InstallerApp.Composition;
-using AgentUp.InstallerApp.Features.Installation.ViewModels;
-using AgentUp.InstallerApp.Features.Installation.Views;
+using LocalInstaller.App.Composition;
+using LocalInstaller.App.Features.Installation.ViewModels;
+using LocalInstaller.App.Features.Installation.Views;
 using Avalonia.Controls;
 using Avalonia.Threading;
 

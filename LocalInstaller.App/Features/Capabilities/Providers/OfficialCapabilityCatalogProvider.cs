@@ -1,11 +1,11 @@
-using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
-using AgentUp.InstallerApp.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Interfaces;
+using LocalInstaller.App.Features.Capabilities.Models;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Providers;
+namespace LocalInstaller.App.Features.Capabilities.Providers;
 
 public sealed class OfficialCapabilityCatalogProvider : ICapabilityCatalogProvider
 {
-    public const string CatalogUrlVariable = "AGENTUP_CAPABILITY_CATALOG_URL";
+    public const string CatalogUrlVariable = "LOCALINSTALLER_CAPABILITY_CATALOG_URL";
 
     private readonly CapabilityCatalogParser _parser = new();
 
@@ -50,12 +50,12 @@ public sealed class OfficialCapabilityCatalogProvider : ICapabilityCatalogProvid
         new(
             "dotnet",
             ".NET",
-            "Discovers and manages .NET SDK versions for Agent-Up workspaces.",
+            "Discovers and manages .NET SDK versions.",
             [DefaultArtifact("dotnet", "10.0.x")]),
         new(
             "docker",
             "Docker",
-            "Discovers Docker and manages Docker-backed workspace services.",
+            "Discovers Docker and manages Docker-backed services.",
             [DefaultArtifact("docker", "27.x")])
     ];
 
@@ -63,7 +63,7 @@ public sealed class OfficialCapabilityCatalogProvider : ICapabilityCatalogProvid
         new(
             capabilityId,
             version,
-            new Uri($"https://github.com/agent-up-oss/agent-up/releases/latest/download/agent-up-capability-{capabilityId}.zip"),
+            new Uri($"https://example.invalid/localinstaller/capability-{capabilityId}.zip"),
             "0000000000000000000000000000000000000000000000000000000000000000");
 
     private static string DisplayName(string id) =>

@@ -11,12 +11,16 @@ public sealed partial record WindowsInstallerPaths(
     string BinDirectory,
     string StartMenuShortcutPath,
     string CliShimName,
-    string UninstallScriptName)
+    string UninstallScriptName,
+    string DesktopExecutableName = "desktop.exe",
+    string ServerExecutableName = "server.exe",
+    string TrayExecutableName = "tray.exe",
+    string CliExecutableName = "cli.exe")
 {
-    public string DesktopExecutable => WindowsCombine(DesktopDirectory, "AgentUp.Desktop.exe");
-    public string ServerExecutable => WindowsCombine(ServerDirectory, "AgentUp.Server.exe");
-    public string TrayExecutable => WindowsCombine(TrayDirectory, "AgentUp.Tray.exe");
-    public string CliExecutable => WindowsCombine(CliDirectory, "AgentUp.CLI.exe");
+    public string DesktopExecutable => WindowsCombine(DesktopDirectory, DesktopExecutableName);
+    public string ServerExecutable => WindowsCombine(ServerDirectory, ServerExecutableName);
+    public string TrayExecutable => WindowsCombine(TrayDirectory, TrayExecutableName);
+    public string CliExecutable => WindowsCombine(CliDirectory, CliExecutableName);
     public string CliShimPath => CliShimPathFor(CliShimName);
     public string CliShimPathFor(string cliShimName)
         => WindowsCombine(BinDirectory, WindowsInstallerManifest.RequireSafeCliShimFileName(cliShimName));
@@ -37,7 +41,11 @@ public sealed partial record WindowsInstallerPaths(
             BinDirectory: WindowsCombine(root, "bin"),
             StartMenuShortcutPath: WindowsCombine(commonStartMenuRoot, "Programs", product.ProductName, $"{product.ProductName}.lnk"),
             CliShimName: $"{product.Slug}.cmd",
-            UninstallScriptName: $"uninstall-{product.Slug}.ps1");
+            UninstallScriptName: $"uninstall-{product.Slug}.ps1",
+            DesktopExecutableName: ExecutableName(product, InstallerComponentTarget.Desktop, "desktop"),
+            ServerExecutableName: ExecutableName(product, InstallerComponentTarget.Server, "server"),
+            TrayExecutableName: ExecutableName(product, InstallerComponentTarget.Tray, "tray"),
+            CliExecutableName: ExecutableName(product, InstallerComponentTarget.Cli, "cli"));
     }
 
     public static WindowsInstallerPaths ForProduct(ProductManifest product)
@@ -55,4 +63,10 @@ public sealed partial record WindowsInstallerPaths(
 
     public static string WindowsCombine(params string[] parts)
         => string.Join('\\', parts.Select(part => part.Trim('\\')).Where(part => !string.IsNullOrWhiteSpace(part)));
+
+    private static string ExecutableName(ProductManifest product, InstallerComponentTarget target, string fallback)
+    {
+        var name = product.InstallableComponents.FirstOrDefault(component => component.Target == target)?.ExecutableName ?? fallback;
+        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name : name + ".exe";
+    }
 }

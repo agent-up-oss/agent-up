@@ -1,7 +1,7 @@
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
-using AgentUp.InstallerApp.Features.Capabilities.Services;
+using LocalInstaller.App.Features.Capabilities.Providers;
+using LocalInstaller.App.Features.Capabilities.Services;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Factories;
+namespace LocalInstaller.App.Features.Capabilities.Factories;
 
 public static class CapabilityDashboardServiceFactory
 {
@@ -29,7 +29,7 @@ public static class CapabilityDashboardServiceFactory
 
     public static CapabilityDashboardService CreateFake()
     {
-        var root = Path.Join(Path.GetTempPath(), "AgentUp-InstallerApp-Tests", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "LocalInstaller-App-Tests", Guid.NewGuid().ToString());
         return new CapabilityDashboardService(
             new OfficialCapabilityCatalogProvider(),
             new InMemoryCapabilityModuleStore(),
@@ -38,7 +38,7 @@ public static class CapabilityDashboardServiceFactory
 
     public static CapabilityDashboardService CreateEmpty()
     {
-        var root = Path.Join(Path.GetTempPath(), "AgentUp-InstallerApp-Empty", Guid.NewGuid().ToString());
+        var root = Path.Join(Path.GetTempPath(), "LocalInstaller-App-Empty", Guid.NewGuid().ToString());
         return new CapabilityDashboardService(
             new EmptyCapabilityCatalogProvider(),
             new InMemoryCapabilityModuleStore(),
@@ -49,7 +49,7 @@ public static class CapabilityDashboardServiceFactory
     {
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return string.IsNullOrWhiteSpace(local)
-            ? Path.Join(Path.GetTempPath(), "AgentUp")
-            : Path.Join(local, "AgentUp", "Installer");
+            ? Path.Join(Path.GetTempPath(), "LocalInstaller")
+            : Path.Join(local, "LocalInstaller", "Installer");
     }
 }

@@ -11,11 +11,22 @@ public sealed record MacOsPackageManifest(MacOsInstallerManifest InstallerManife
     public static MacOsPackageManifest From(PackageRequest request, PackageProductManifest product)
     {
         PackageProductManifest.Validate(product);
-        return new(MacOsInstallerManifest.From(product.ProductName, product.Slug, request.NormalizedVersion));
+        return new(MacOsInstallerManifest.From(product.ProductName, product.Slug, request.NormalizedVersion) with
+        {
+            InstallerExecutableName = product.InstallerApplication?.ExecutableName ?? "installer",
+            DesktopExecutableName = ArtifactExecutableName(product, LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Desktop, "desktop"),
+            ServerExecutableName = ArtifactExecutableName(product, LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Server, "server")
+        });
     }
 
     public MacOsInstallerManifest ToInstallerManifest()
         => InstallerManifest;
+
+    private static string ArtifactExecutableName(
+        PackageProductManifest product,
+        LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget target,
+        string fallback)
+        => product.InstallerOptions.FirstOrDefault(option => option.Target == target)?.ExecutableName ?? fallback;
 }
 
 public sealed class MacOsPlistGenerator

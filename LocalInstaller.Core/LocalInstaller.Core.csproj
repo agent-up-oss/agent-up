@@ -8,13 +8,13 @@
     <PackageId>LocalInstaller.Core</PackageId>
     <Version>$(LocalInstallerVersion)</Version>
     <Authors>themassiveone</Authors>
-    <Company>Agent-Up</Company>
+    <Company>LocalInstaller</Company>
     <Description>Cross-platform installer library for Windows, macOS, Ubuntu, and NixOS.</Description>
     <PackageTags>installer;cross-platform;windows;macos;linux;localinstaller</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>logo.png</PackageIcon>
-    <Copyright>Copyright © 2025 themassiveone, Agent-Up</Copyright>
+    <Copyright>Copyright © 2025 themassiveone</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

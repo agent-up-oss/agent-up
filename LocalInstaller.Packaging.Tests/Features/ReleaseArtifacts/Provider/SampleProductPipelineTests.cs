@@ -20,7 +20,17 @@ namespace LocalInstaller.Packaging.Tests.Features.ReleaseArtifacts.Provider;
 public class SampleProductPipelineTests
 {
     private static readonly PackageProductManifest AcmeStudio =
-        new("Acme Studio", "acme-studio", "ACMESTUDIO");
+        new("Acme Studio", "acme-studio", "ACMESTUDIO")
+        {
+            InstallerApplication = new PackageProductArtifact("acme-studio-installer", "Installer", "", "installer", "Acme.Installer/Acme.Installer.csproj", "installer", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.InstallerApp),
+            InstallerOptions =
+            [
+                new PackageProductArtifact("acme-studio-cli", "CLI", "", "cli", "Acme.Cli/Acme.Cli.csproj", "cli", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Cli),
+                new PackageProductArtifact("acme-studio-server", "Server", "", "server", "Acme.Server/Acme.Server.csproj", "server", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Server),
+                new PackageProductArtifact("acme-studio-desktop", "Desktop", "", "desktop", "Acme.Desktop/Acme.Desktop.csproj", "desktop", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Desktop),
+                new PackageProductArtifact("acme-studio-tray", "Tray", "", "tray", "Acme.Tray/Acme.Tray.csproj", "tray", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Tray)
+            ]
+        };
 
     // Test 1a: Ubuntu full pipeline for SampleProduct — no "Agent-Up" or "agent-up" in any text artifact.
     [Test]

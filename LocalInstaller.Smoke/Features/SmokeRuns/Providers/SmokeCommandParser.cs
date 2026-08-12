@@ -13,9 +13,9 @@ public sealed class SmokeCommandParser : ISmokeCommandParser
         _defaultProduct = defaultProduct;
     }
 
-    public static readonly string Usage = "Usage: AgentUp.PackageSmoke [--product-manifest <path>] <validate-package|validate-installed-service> <platform> <runtime-id> <artifact-dir> <work-dir>"
+    public static readonly string Usage = "Usage: LocalInstaller.Smoke [--product-manifest <path>] <validate-package|validate-installed-service> <platform> <runtime-id> <artifact-dir> <work-dir>"
         + Environment.NewLine
-        + "   or: AgentUp.PackageSmoke [--product-manifest <path>] validate-installer-flow <platform> <work-dir> [payload-root]"
+        + "   or: LocalInstaller.Smoke [--product-manifest <path>] validate-installer-flow <platform> <work-dir> [payload-root]"
         + Environment.NewLine
         + "Product manifests use serviceName, cliShimName, artifactBaseName, displayName, installDirName, and optional workspaceConfigFileName.";
 

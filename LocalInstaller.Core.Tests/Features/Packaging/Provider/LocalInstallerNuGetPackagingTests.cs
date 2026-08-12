@@ -226,7 +226,7 @@ public class LocalInstallerNuGetPackagingTests
         // Each using / typeof() proves the type is accessible from the packed assembly
         File.WriteAllText(Path.Join(consumerDir, "Program.cs"),
             """
-            using AgentUp.InstallerApp.Features.Capabilities.Models;
+            using LocalInstaller.App.Features.Capabilities.Models;
             using LocalInstaller.Core.Features.Installation.Models;
             using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
             using LocalInstaller.Smoke.Features.SmokeRuns.DTOs;

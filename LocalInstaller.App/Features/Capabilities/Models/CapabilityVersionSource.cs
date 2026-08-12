@@ -1,8 +1,8 @@
-namespace AgentUp.InstallerApp.Features.Capabilities.Models;
+namespace LocalInstaller.App.Features.Capabilities.Models;
 
 public enum CapabilityVersionSource
 {
     System,
-    AgentUpManaged,
+    Managed,
     ManuallyAdded
 }

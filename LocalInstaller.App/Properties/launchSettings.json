@@ -1,16 +1,16 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "AgentUp.InstallerApp": {
+    "LocalInstaller.App": {
       "commandName": "Project"
     },
-    "AgentUp.InstallerApp (NixOS)": {
+    "LocalInstaller.App (NixOS)": {
       "commandName": "Executable",
       "executablePath": "bash",
       "commandLineArgs": "run-installer.sh",
       "workingDirectory": "$(SolutionDir)",
       "environmentVariables": {
-        "AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY": "1"
+        "LOCALINSTALLER_INSTALLER_NIXOS_LOOKUP_ONLY": "1"
       }
     }
   }

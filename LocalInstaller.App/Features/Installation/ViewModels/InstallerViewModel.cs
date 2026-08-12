@@ -2,13 +2,13 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using AgentUp.InstallerApp.Features.Capabilities.Controllers;
-using AgentUp.InstallerApp.Features.Capabilities.Models;
-using AgentUp.InstallerApp.Features.Logging.Tools;
+using LocalInstaller.App.Features.Capabilities.Controllers;
+using LocalInstaller.App.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Logging.Tools;
 using LocalInstaller.Core.Features.Installation.Interfaces;
 using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Features.Installation.ViewModels;
+namespace LocalInstaller.App.Features.Installation.ViewModels;
 
 public sealed class InstallerViewModel : INotifyPropertyChanged
 {

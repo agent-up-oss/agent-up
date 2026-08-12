@@ -49,7 +49,7 @@ public class MacOsPackagerTests
 
         try
         {
-            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp");
+            WritePayloadFile(payloadRoot, "installer", "LocalInstaller.App");
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
@@ -58,7 +58,7 @@ public class MacOsPackagerTests
             await new MacOsPackager(writer, CreatePayloads(commands, writer), packageTool).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "installer", "AgentUp.InstallerApp")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "installer", "LocalInstaller.App")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "macos-osx-arm64", "cli", "AgentUp.CLI")), Is.True);

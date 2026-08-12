@@ -8,7 +8,8 @@ public sealed partial record SmokeProductConfig
         string ArtifactBaseName,
         string DisplayName,
         string InstallDirName,
-        string WorkspaceConfigFileName = "agent-up.json",
+        string WorkspaceConfigFileName = "workspace.json",
+        string ServerUrlEnvironmentVariable = "LOCALINSTALLER_SERVER_URL",
         string InstallerExecutableName = "installer",
         string DesktopExecutableName = "desktop",
         string ServerExecutableName = "server",
@@ -21,6 +22,7 @@ public sealed partial record SmokeProductConfig
         ValidateDisplayName(DisplayName, nameof(DisplayName));
         ValidatePathComponent(InstallDirName, nameof(InstallDirName));
         ValidateConfigFileName(WorkspaceConfigFileName, nameof(WorkspaceConfigFileName));
+        ValidateEnvironmentVariableName(ServerUrlEnvironmentVariable, nameof(ServerUrlEnvironmentVariable));
 
         this.ServiceName = ServiceName;
         this.CliShimName = CliShimName;
@@ -28,6 +30,7 @@ public sealed partial record SmokeProductConfig
         this.DisplayName = DisplayName;
         this.InstallDirName = InstallDirName;
         this.WorkspaceConfigFileName = WorkspaceConfigFileName;
+        this.ServerUrlEnvironmentVariable = ServerUrlEnvironmentVariable;
         this.InstallerExecutableName = InstallerExecutableName;
         this.DesktopExecutableName = DesktopExecutableName;
         this.ServerExecutableName = ServerExecutableName;
@@ -46,6 +49,7 @@ public sealed partial record SmokeProductConfig
     public string InstallDirName { get; }
 
     public string WorkspaceConfigFileName { get; }
+    public string ServerUrlEnvironmentVariable { get; }
     public string InstallerExecutableName { get; }
     public string DesktopExecutableName { get; }
     public string ServerExecutableName { get; }
@@ -99,8 +103,20 @@ public sealed partial record SmokeProductConfig
             throw InvalidProductValue(parameterName, "lowercase ASCII letters, digits, hyphens, underscores, and periods only");
     }
 
+    private static void ValidateEnvironmentVariableName(string value, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value != value.Trim() || value[0] != '_' && !IsAsciiUppercaseLetter(value[0]))
+            throw InvalidProductValue(parameterName, "an uppercase environment variable name");
+
+        if (value.Any(character => character != '_' && !IsAsciiUppercaseLetter(character) && !char.IsAsciiDigit(character)))
+            throw InvalidProductValue(parameterName, "uppercase ASCII letters, digits, and underscores only");
+    }
+
     private static bool IsAsciiLowercaseLetter(char character)
         => character is >= 'a' and <= 'z';
+
+    private static bool IsAsciiUppercaseLetter(char character)
+        => character is >= 'A' and <= 'Z';
 
     private static ArgumentException InvalidProductValue(string parameterName, string expected)
         => new($"Smoke product {parameterName} must be {expected}.", parameterName);

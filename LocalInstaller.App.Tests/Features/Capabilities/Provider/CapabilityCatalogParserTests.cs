@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Capabilities.Providers;
+using LocalInstaller.App.Features.Capabilities.Providers;
 
 namespace LocalInstaller.App.Tests.Features.Capabilities.Provider;
 

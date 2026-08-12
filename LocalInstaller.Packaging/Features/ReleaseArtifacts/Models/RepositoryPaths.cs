@@ -6,7 +6,7 @@ public static class RepositoryPaths
 {
     public static string FindRepositoryRoot()
     {
-        var configuredRoot = Environment.GetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT");
+        var configuredRoot = Environment.GetEnvironmentVariable("LOCALINSTALLER_REPOSITORY_ROOT");
         if (!string.IsNullOrWhiteSpace(configuredRoot))
             return FindRepositoryRoot(configuredRoot);
 
@@ -25,7 +25,7 @@ public static class RepositoryPaths
         var directory = new DirectoryInfo(startDirectory);
         while (directory is not null)
         {
-            if (File.Exists(PackagePathValidator.CombineValidated(directory.FullName, "agent-up.sln", "agent-up.sln")))
+            if (File.Exists(Path.Join(directory.FullName, "localinstaller.sln")))
                 return directory.FullName;
 
             directory = directory.Parent;

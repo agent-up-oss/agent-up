@@ -1,7 +1,7 @@
 using System.Text.Json;
-using AgentUp.InstallerApp.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Models;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Providers;
+namespace LocalInstaller.App.Features.Capabilities.Providers;
 
 public sealed class CapabilityCatalogParser
 {

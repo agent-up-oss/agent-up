@@ -1,7 +1,7 @@
-using AgentUp.InstallerApp.Features.Capabilities.Models;
-using AgentUp.InstallerApp.Features.Capabilities.Services;
+using LocalInstaller.App.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Services;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Controllers;
+namespace LocalInstaller.App.Features.Capabilities.Controllers;
 
 public sealed class CapabilitiesController(CapabilityDashboardService service)
 {

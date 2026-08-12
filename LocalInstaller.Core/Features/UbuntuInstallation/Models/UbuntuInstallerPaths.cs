@@ -8,7 +8,11 @@ public sealed partial record UbuntuInstallerPaths(
     string IconPath,
     string DataDirectory,
     string LogPath,
-    string ErrorLogPath)
+    string ErrorLogPath,
+    string DesktopExecutableName,
+    string ServerExecutableName,
+    string CliExecutableName,
+    string TrayExecutableName)
 {
     public static UbuntuInstallerPaths ForProduct(UbuntuInstallerManifest manifest)
         => new(
@@ -19,16 +23,20 @@ public sealed partial record UbuntuInstallerPaths(
             IconPath: $"/usr/share/pixmaps/{manifest.PackageName}.png",
             DataDirectory: $"/var/lib/{manifest.PackageName}",
             LogPath: $"/var/log/{manifest.PackageName}-server.log",
-            ErrorLogPath: $"/var/log/{manifest.PackageName}-server.err.log");
+            ErrorLogPath: $"/var/log/{manifest.PackageName}-server.err.log",
+            DesktopExecutableName: manifest.DesktopExecutableName,
+            ServerExecutableName: manifest.ServerExecutableName,
+            CliExecutableName: manifest.CliExecutableName,
+            TrayExecutableName: manifest.TrayExecutableName);
 
     public string DesktopDirectory => System.IO.Path.Join(RootDirectory, "desktop");
     public string ServerDirectory => System.IO.Path.Join(RootDirectory, "server");
     public string CliDirectory => System.IO.Path.Join(RootDirectory, "cli");
     public string TrayDirectory => System.IO.Path.Join(RootDirectory, "tray");
-    public string DesktopExecutable => System.IO.Path.Join(DesktopDirectory, "AgentUp.Desktop");
-    public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");
-    public string CliExecutable => System.IO.Path.Join(CliDirectory, "AgentUp.CLI");
-    public string TrayExecutable => System.IO.Path.Join(TrayDirectory, "AgentUp.Tray");
+    public string DesktopExecutable => System.IO.Path.Join(DesktopDirectory, DesktopExecutableName);
+    public string ServerExecutable => System.IO.Path.Join(ServerDirectory, ServerExecutableName);
+    public string CliExecutable => System.IO.Path.Join(CliDirectory, CliExecutableName);
+    public string TrayExecutable => System.IO.Path.Join(TrayDirectory, TrayExecutableName);
     public string XdgAutostartPath => System.IO.Path.Join("/etc/xdg/autostart", $"{PackageName(DesktopEntryPath)}-tray.desktop");
 
     private static string PackageName(string desktopEntryPath)

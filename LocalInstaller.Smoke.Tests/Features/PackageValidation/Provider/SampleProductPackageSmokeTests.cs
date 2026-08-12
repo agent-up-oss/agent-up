@@ -104,8 +104,8 @@ public class SampleProductPackageSmokeTests
         {
             Assert.That(command.FileName, Is.EqualTo("powershell.exe"));
             Assert.That(command.Environment, Is.Not.Null);
-            Assert.That(command.Environment!["AGENTUP_SMOKE_INSTALLER"], Is.EqualTo(installer));
-            Assert.That(command.Environment["AGENTUP_SMOKE_LAYOUT"], Is.EqualTo(Path.Join(workDir, "layout")));
+            Assert.That(command.Environment!["LOCALINSTALLER_SMOKE_INSTALLER"], Is.EqualTo(installer));
+            Assert.That(command.Environment["LOCALINSTALLER_SMOKE_LAYOUT"], Is.EqualTo(Path.Join(workDir, "layout")));
             Directory.CreateDirectory(Path.Join(workDir, "layout"));
             return new CommandResult(0, "", "");
         });
@@ -134,7 +134,7 @@ public class SampleProductPackageSmokeTests
         WriteExecutable(Path.Join(root, "opt", "acme-studio", "installer", "payload", "cli", "AcmeStudio.CLI"));
         WriteText(Path.Join(root, "opt", "acme-studio", "installer", "payload", "service", "acme-studio-server.service"),
             "ExecStart=/opt/acme-studio/server/AcmeStudio.Server\nEnvironment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/acme-studio\nCacheDirectory=acme-studio\nRestartSec=5\n");
-        WriteText(Path.Join(root, "opt", "acme-studio", "installer", "payload", "icon", "Agent-Up.png"), "png");
+        WriteText(Path.Join(root, "opt", "acme-studio", "installer", "payload", "icon", "acme-studio.png"), "png");
         WriteText(Path.Join(root, "usr", "share", "applications", "acme-studio-installer.desktop"), "[Desktop Entry]\nName=Acme Studio Installer\n");
         WriteText(Path.Join(root, "usr", "share", "metainfo", "acme-studio-installer.desktop.metainfo.xml"), "<component><id>acme-studio-installer.desktop</id><provides><pkgname>acme-studio</pkgname></provides><releases><release version=\"1.0.0\" date=\"2026-01-01\"/></releases></component>\n");
         WriteText(Path.Join(root, "usr", "share", "pixmaps", "acme-studio.png"), "png");

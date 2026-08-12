@@ -24,8 +24,8 @@ public class UbuntuPackageStagerTests
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.InstallerPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "installer"))));
         Assert.That(writer.CopiedDirectories, Does.Contain((layout.CliPublishDirectory, Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "payload", "cli"))));
         Assert.That(writer.CopiedFiles, Does.Contain((Path.Join(Root, "packaging", "linux", "agent-up-server.service"), Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "payload", "service", "agent-up-server.service"))));
-        Assert.That(writer.ExecutablePaths, Does.Contain(Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "AgentUp.InstallerApp")));
-        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Contain("AgentUp.InstallerApp"));
+        Assert.That(writer.ExecutablePaths, Does.Contain(Path.Join(layout.DebRoot, "opt", "agent-up", "installer", "LocalInstaller.App")));
+        Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Contain("LocalInstaller.App"));
         Assert.That(writer.WrittenText[Path.Join(layout.DebRoot, "DEBIAN", "postinst")], Does.Not.Contain("--install-core"));
         Assert.That(writer.WrittenText, Contains.Key(Path.Join(layout.DebRoot, "usr", "share", "applications", "agent-up-installer.desktop")));
         Assert.That(writer.WrittenText, Contains.Key(Path.Join(layout.DebRoot, "usr", "share", "metainfo", "agent-up-installer.desktop.metainfo.xml")));

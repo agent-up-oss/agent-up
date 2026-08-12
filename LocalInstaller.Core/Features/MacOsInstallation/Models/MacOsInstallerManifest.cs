@@ -12,7 +12,10 @@ public sealed partial record MacOsInstallerManifest(
     string TrayLaunchAgentLabel,
     string BundleIconFile,
     string Version,
-    string ServerUrl)
+    string ServerUrl,
+    string DesktopExecutableName = "desktop",
+    string InstallerExecutableName = "installer",
+    string ServerExecutableName = "server")
 {
     private static readonly Regex SafeSlug = new(@"^[a-z][a-z0-9-]+$", RegexOptions.Compiled);
     private static readonly Regex SafeName = new(@"^[A-Za-z][A-Za-z0-9 -]*$", RegexOptions.Compiled);
@@ -21,7 +24,14 @@ public sealed partial record MacOsInstallerManifest(
         ProductManifest product,
         string version,
         string serverUrl = "http://127.0.0.1:5000")
-        => From(product.ProductName, product.Slug, version, serverUrl);
+    {
+        var manifest = From(product.ProductName, product.Slug, version, serverUrl);
+        return manifest with
+        {
+            DesktopExecutableName = ExecutableName(product, InstallerComponentTarget.Desktop, "desktop"),
+            ServerExecutableName = ExecutableName(product, InstallerComponentTarget.Server, "server")
+        };
+    }
 
     public static MacOsInstallerManifest From(
         string productName,
@@ -58,6 +68,9 @@ public sealed partial record MacOsInstallerManifest(
 
         return new(productName, slug, $"{productName.Replace(" ", "-")}.png");
     }
+
+    private static string ExecutableName(ProductManifest manifest, InstallerComponentTarget target, string fallback)
+        => manifest.InstallableComponents.FirstOrDefault(component => component.Target == target)?.ExecutableName ?? fallback;
 }
 
 internal sealed record MacOsProductIdentity(string ProductName, string Slug, string BundleIconFile);
@@ -76,7 +89,7 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("CFBundleName", _manifest.ProductName),
             KeyString("CFBundleDisplayName", _manifest.ProductName),
             KeyString("CFBundleIdentifier", _manifest.DesktopBundleIdentifier),
-            KeyString("CFBundleExecutable", "AgentUp.Desktop"),
+            KeyString("CFBundleExecutable", _manifest.DesktopExecutableName),
             KeyString("CFBundleIconFile", _manifest.BundleIconFile),
             KeyString("CFBundleVersion", _manifest.Version),
             KeyString("CFBundleShortVersionString", _manifest.Version),
@@ -87,7 +100,7 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("CFBundleIdentifier", _manifest.InstallerBundleIdentifier),
             KeyString("CFBundleName", $"{_manifest.ProductName} Installer"),
             KeyString("CFBundleDisplayName", $"{_manifest.ProductName} Installer"),
-            KeyString("CFBundleExecutable", "AgentUp.InstallerApp"),
+            KeyString("CFBundleExecutable", _manifest.InstallerExecutableName),
             KeyString("CFBundleIconFile", _manifest.BundleIconFile),
             KeyString("CFBundleVersion", _manifest.Version),
             KeyString("CFBundleShortVersionString", _manifest.Version),
@@ -110,7 +123,7 @@ public sealed class MacOsInstallerPlistGenerator
             KeyString("Label", _manifest.ServerLaunchDaemonLabel),
             new XElement("key", "ProgramArguments"),
             new XElement("array",
-                new XElement("string", $"/Library/Application Support/{_manifest.ProductName}/server/AgentUp.Server"),
+                new XElement("string", $"/Library/Application Support/{_manifest.ProductName}/server/{_manifest.ServerExecutableName}"),
                 new XElement("string", "--urls"),
                 new XElement("string", _manifest.ServerUrl)),
             new XElement("key", "EnvironmentVariables"),
@@ -140,4 +153,5 @@ public sealed class MacOsInstallerPlistGenerator
 
     private static object[] KeyString(string key, string value)
         => [new XElement("key", key), new XElement("string", value)];
+
 }

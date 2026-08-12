@@ -1,6 +1,6 @@
-using AgentUp.InstallerApp.Features.Logging.Tools;
+using LocalInstaller.App.Features.Logging.Tools;
 
-namespace AgentUp.InstallerApp.Features.Logging.Services;
+namespace LocalInstaller.App.Features.Logging.Services;
 
 public sealed class InstallerLoggingService
 {

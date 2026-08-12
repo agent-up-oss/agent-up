@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using AgentUp.InstallerApp.Composition;
-using AgentUp.InstallerApp.Features.Logging.Tools;
+using LocalInstaller.App.Composition;
+using LocalInstaller.App.Features.Logging.Tools;
 
-namespace AgentUp.InstallerApp;
+namespace LocalInstaller.App;
 
 public class App : Application
 {

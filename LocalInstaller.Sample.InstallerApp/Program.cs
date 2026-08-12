@@ -1,5 +1,5 @@
-using AgentUp.InstallerApp;
-using AgentUp.InstallerApp.Composition;
+using LocalInstaller.App;
+using LocalInstaller.App.Composition;
 using LocalInstaller.Sample.Cli;
 using LocalInstaller.Sample.Desktop;
 using LocalInstaller.Sample.Server;

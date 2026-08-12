@@ -15,8 +15,8 @@ dotnet add package LocalInstaller.Core
 ## Usage
 
 ```csharp
-using AgentUp.Installers.Composition;
-using AgentUp.Installers.Features.Installation.Models;
+using LocalInstaller.Core.Composition;
+using LocalInstaller.Core.Features.Installation.Models;
 
 var manifest = new ProductManifest("My Product", "my-product", "MY_PRODUCT")
 {

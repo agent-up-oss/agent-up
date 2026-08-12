@@ -22,9 +22,10 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider("agent-up.json", "AGENTUP_SERVER_URL"), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
+                "agent-up",
                 "http://localhost:5000",
                 assert,
                 CancellationToken.None);
@@ -45,7 +46,7 @@ public sealed class CapabilityLifecycleSmokeTests
     [Test]
     public async Task RunAsync_usesDockerImageOverrideWhenProvided()
     {
-        var previous = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
+        var previous = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE");
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
         var commands = new RecordingCommandRunner();
         using var http = new HttpClient(new SmokeHttpHandler());
@@ -53,10 +54,11 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", "example/smoke:windows");
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE", "example/smoke:windows");
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider("agent-up.json", "AGENTUP_SERVER_URL"), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
+                "agent-up",
                 "http://localhost:5000",
                 assert,
                 CancellationToken.None);
@@ -67,7 +69,7 @@ public sealed class CapabilityLifecycleSmokeTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", previous);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE", previous);
             if (Directory.Exists(workDir))
                 Directory.Delete(workDir, recursive: true);
         }
@@ -83,9 +85,10 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider("agent-up.json", "AGENTUP_SERVER_URL"), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
+                "agent-up",
                 "http://localhost:5000",
                 assert,
                 CancellationToken.None);
@@ -109,9 +112,10 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider("agent-up.json", "AGENTUP_SERVER_URL"), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
+                "agent-up",
                 "http://localhost:5000",
                 assert,
                 CancellationToken.None);
@@ -135,9 +139,10 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider("agent-up.json", "AGENTUP_SERVER_URL"), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
+                "agent-up",
                 "http://localhost:5000",
                 assert,
                 CancellationToken.None);
@@ -161,9 +166,10 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider(), new DotnetSmokeBuildProvider(commands), http).RunAsync(
+            await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider("agent-up.json", "AGENTUP_SERVER_URL"), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
+                "agent-up",
                 "http://localhost:5000",
                 assert,
                 CancellationToken.None);

@@ -56,13 +56,13 @@ public class WindowsPackagerTests
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop.exe");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server.exe");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI.exe");
-            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp.exe");
+            WritePayloadFile(payloadRoot, "installer", "LocalInstaller.App.exe");
             WritePayloadFile(payloadRoot, "tray", "AgentUp.Tray.exe");
 
             await new WindowsPackager(writer, CreatePayloads(commands, writer), packagingTool).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "installer", "AgentUp.InstallerApp.exe")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "installer", "LocalInstaller.App.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
@@ -93,7 +93,7 @@ public class WindowsPackagerTests
             "1.2.3",
             "out",
             "Release",
-            productManifest: new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
+            productManifest: OrbitDeskProduct());
 
         try
         {
@@ -118,6 +118,19 @@ public class WindowsPackagerTests
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Join(directory, fileName), "");
     }
+
+    private static PackageProductManifest OrbitDeskProduct()
+        => new("Orbit Desk", "orbit-desk", "ORBITDESK")
+        {
+            InstallerApplication = new PackageProductArtifact("orbit-installer", "Installer", "", "Orbit.Installer", "Orbit.Installer/Orbit.Installer.csproj", "installer", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.InstallerApp),
+            InstallerOptions =
+            [
+                new PackageProductArtifact("orbit-cli", "CLI", "", "Orbit.Cli", "Orbit.Cli/Orbit.Cli.csproj", "cli", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Cli),
+                new PackageProductArtifact("orbit-server", "Server", "", "Orbit.Server", "Orbit.Server/Orbit.Server.csproj", "server", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Server),
+                new PackageProductArtifact("orbit-desktop", "Desktop", "", "Orbit.Desktop", "Orbit.Desktop/Orbit.Desktop.csproj", "desktop", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Desktop),
+                new PackageProductArtifact("orbit-tray", "Tray", "", "Orbit.Tray", "Orbit.Tray/Orbit.Tray.csproj", "tray", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Tray)
+            ]
+        };
 
     private static PayloadStagingController CreatePayloads(ICommandRunner commands, IWindowsPackageWriter writer)
         => new(new PackagePayloadStager(new PackagePublisher(commands), writer));
@@ -146,7 +159,7 @@ public class WindowsPackagerTests
                     Directory.CreateDirectory(output);
                     var project = command.Arguments[1];
                     var fileName = project.Contains("InstallerApp", StringComparison.Ordinal)
-                        ? "AgentUp.InstallerApp.exe"
+                        ? "LocalInstaller.App.exe"
                         : project.Contains("Desktop", StringComparison.Ordinal)
                         ? "AgentUp.Desktop.exe"
                         : project.Contains("Server", StringComparison.Ordinal)

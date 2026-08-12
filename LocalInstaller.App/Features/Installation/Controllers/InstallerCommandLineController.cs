@@ -1,8 +1,8 @@
-using AgentUp.InstallerApp.Features.Installation.Services;
+using LocalInstaller.App.Features.Installation.Services;
 using LocalInstaller.Core.Features.Installation.Interfaces;
 using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Features.Installation.Controllers;
+namespace LocalInstaller.App.Features.Installation.Controllers;
 
 public sealed class InstallerCommandLineController
 {

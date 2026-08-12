@@ -9,18 +9,18 @@ public class RepositoryPathsTests
     public void FindRepositoryRoot_prefersConfiguredRepositoryRoot()
     {
         var root = CreateRepositoryRoot();
-        var previous = Environment.GetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT");
+        var previous = Environment.GetEnvironmentVariable("LOCALINSTALLER_REPOSITORY_ROOT");
 
         try
         {
-            Environment.SetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT", Path.Join(root, "nested"));
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_REPOSITORY_ROOT", Path.Join(root, "nested"));
             Directory.CreateDirectory(Path.Join(root, "nested"));
 
             Assert.That(RepositoryPaths.FindRepositoryRoot(), Is.EqualTo(root));
         }
         finally
         {
-            Environment.SetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT", previous);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_REPOSITORY_ROOT", previous);
             Directory.Delete(root, recursive: true);
         }
     }
@@ -30,11 +30,11 @@ public class RepositoryPathsTests
     {
         var root = CreateRepositoryRoot();
         var originalCurrentDirectory = Directory.GetCurrentDirectory();
-        var previous = Environment.GetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT");
+        var previous = Environment.GetEnvironmentVariable("LOCALINSTALLER_REPOSITORY_ROOT");
 
         try
         {
-            Environment.SetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT", null);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_REPOSITORY_ROOT", null);
             Directory.CreateDirectory(Path.Join(root, "nested"));
             Directory.SetCurrentDirectory(Path.Join(root, "nested"));
 
@@ -43,7 +43,7 @@ public class RepositoryPathsTests
         finally
         {
             Directory.SetCurrentDirectory(originalCurrentDirectory);
-            Environment.SetEnvironmentVariable("AGENTUP_REPOSITORY_ROOT", previous);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_REPOSITORY_ROOT", previous);
             Directory.Delete(root, recursive: true);
         }
     }
@@ -55,7 +55,7 @@ public class RepositoryPathsTests
         var saved = Directory.GetCurrentDirectory();
         try { Directory.SetCurrentDirectory(root); root = Directory.GetCurrentDirectory(); }
         finally { Directory.SetCurrentDirectory(saved); }
-        File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
+        File.WriteAllText(Path.Join(root, "localinstaller.sln"), "");
         return root;
     }
 }

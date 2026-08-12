@@ -48,7 +48,7 @@ public class UbuntuPackagerTests
 
         try
         {
-            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp");
+            WritePayloadFile(payloadRoot, "installer", "LocalInstaller.App");
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
@@ -57,7 +57,7 @@ public class UbuntuPackagerTests
             await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool, AgentUpPackageTestManifests.Product()).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "installer", "AgentUp.InstallerApp")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "installer", "LocalInstaller.App")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "cli", "AgentUp.CLI")), Is.True);

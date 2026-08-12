@@ -13,7 +13,13 @@ internal static class AgentUpTestManifests
     public static ProductManifest Product()
         => new(ProductName, ProductSlug, EnvironmentPrefix)
         {
-            Components = [ProductComponent.Desktop, ProductComponent.Server, ProductComponent.Cli, ProductComponent.Tray],
+            Components =
+            [
+                new("desktop", "Desktop", "Desktop app.", InstallerComponentTarget.Desktop, "AgentUp.Desktop", "desktop"),
+                new("server", "Server", "Server app.", InstallerComponentTarget.Server, "AgentUp.Server", "server"),
+                new("cli", "CLI", "CLI app.", InstallerComponentTarget.Cli, "AgentUp.CLI", "cli"),
+                new("tray", "Tray", "Tray app.", InstallerComponentTarget.Tray, "AgentUp.Tray", "tray")
+            ],
             WindowsUpgradeCode = WindowsUpgradeCode
         };
 

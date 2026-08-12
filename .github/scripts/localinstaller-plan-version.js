@@ -1,0 +1,45 @@
+'use strict';
+
+const fs = require('fs');
+
+async function main() {
+  const run = process.env.GITHUB_RUN_NUMBER || '0';
+  const fallbackVersion = `0.0.0-ci.${run}`;
+  const isMain = process.env.GITHUB_REF === 'refs/heads/main';
+
+  if (!isMain) {
+    emit(fallbackVersion, false);
+    return;
+  }
+
+  const semanticReleaseModule = require('semantic-release');
+  const semanticRelease = semanticReleaseModule.default || semanticReleaseModule;
+  const result = await semanticRelease({
+    dryRun: true,
+    ci: false,
+    tagFormat: 'localinstaller-v${version}',
+    branches: ['main'],
+    plugins: [
+      ['@semantic-release/commit-analyzer', { preset: 'conventionalcommits' }],
+    ],
+  });
+
+  if (result?.nextRelease?.version) {
+    emit(result.nextRelease.version, true);
+  } else {
+    emit(fallbackVersion, false);
+  }
+}
+
+function emit(version, publish) {
+  const outputFile = process.env.GITHUB_OUTPUT;
+  if (outputFile) {
+    fs.appendFileSync(outputFile, `version=${version}\npublish=${publish}\n`);
+  }
+  console.log(`version=${version} publish=${publish}`);
+}
+
+main().catch(err => {
+  console.error(err.message);
+  process.exit(1);
+});

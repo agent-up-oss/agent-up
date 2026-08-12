@@ -86,7 +86,7 @@ public sealed partial class PackageCommandService
                 await _macOs.PackageAsync(request, cancellationToken);
                 return new PackageCommandResult(0);
             default:
-                return new PackageCommandResult(78, $"Platform '{command.Platform}' is not yet implemented by AgentUp.Packaging.");
+                return new PackageCommandResult(78, $"Platform '{command.Platform}' is not yet implemented by LocalInstaller.Packaging.");
         }
     }
 }

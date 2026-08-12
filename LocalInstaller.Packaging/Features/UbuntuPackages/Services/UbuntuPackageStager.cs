@@ -40,12 +40,12 @@ public sealed class UbuntuPackageStager
             Path.Join(payloadDir, "service", manifest.ServiceName));
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "media", "logo.png"),
-            Path.Join(payloadDir, "icon", "Agent-Up.png"));
+            Path.Join(payloadDir, "icon", $"{pkg}.png"));
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "media", "logo.png"),
             Path.Join(layout.DebRoot, "usr", "share", "pixmaps", $"{pkg}.png"));
 
-        _writer.SetExecutable(Path.Join(installerDir, "AgentUp.InstallerApp"));
+        _writer.SetExecutable(Path.Join(installerDir, manifest.InstallerExecutableName));
 
         _writer.WriteText(
             Path.Join(layout.DebRoot, "usr", "share", "applications", $"{pkg}-installer.desktop"),

@@ -15,11 +15,11 @@ public class PackagePayloadStagerTests
     [Test]
     public async Task StageAsync_withoutPayloadRootPublishesInstallerDesktopServerCliAndTray()
     {
-        var commands = new RecordingCommandRunner();
+        var publisher = new RecordingPublisher();
         var files = new RecordingPackageFileSystem();
         var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
 
-        await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
+        await new PackagePayloadStager(publisher, files).StageAsync(new PayloadStagingRequest(
             request,
             "/stage/installer",
             "/stage/desktop",
@@ -29,12 +29,13 @@ public class PackagePayloadStagerTests
 
         Assert.That(files.ResetDirectories, Is.EqualTo(new[] { Path.Join(Root, "artifacts", "stage", "ubuntu-linux-x64") }));
         Assert.That(files.CreatedDirectories, Is.EqualTo(new[] { Path.Join(Root, "out") }));
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(5));
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Desktop", "AgentUp.Desktop.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Server", "AgentUp.Server.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.CLI", "AgentUp.CLI.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Tray", "AgentUp.Tray.csproj"))), Is.True);
+        Assert.That(publisher.Published, Has.Count.EqualTo(5));
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "LocalInstaller.App", "LocalInstaller.App.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.Desktop", "AgentUp.Desktop.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.Server", "AgentUp.Server.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.CLI", "AgentUp.CLI.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.Tray", "AgentUp.Tray.csproj")), Is.True);
+        Assert.That(publisher.Copied.Any(copy => copy.Source == Path.Join(request.StageDirectory, "desktop") && copy.Destination == "/stage/desktop"), Is.True);
     }
 
     [Test]
@@ -48,7 +49,7 @@ public class PackagePayloadStagerTests
 
         try
         {
-            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp");
+            WritePayloadFile(payloadRoot, "installer", "LocalInstaller.App");
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
@@ -63,7 +64,7 @@ public class PackagePayloadStagerTests
                 Path.Join(root, "stage", "tray")));
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Join(root, "stage", "installer", "AgentUp.InstallerApp")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "stage", "installer", "LocalInstaller.App")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "stage", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "stage", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "stage", "cli", "AgentUp.CLI")), Is.True);
@@ -117,7 +118,7 @@ public class PackagePayloadStagerTests
         var files = new RecordingPackageFileSystem();
         var product = new PackageProductManifest("Agent-Up", "agent-up", "AGENTUP")
         {
-            InstallerApplication = new PackageProductArtifact("agent-up-installer", "Installer", "", "AgentUp.InstallerApp", "AgentUp.InstallerApp/AgentUp.InstallerApp.csproj", "installer", LocalInstallerArtifactTarget.InstallerApp),
+            InstallerApplication = new PackageProductArtifact("agent-up-installer", "Installer", "", "LocalInstaller.App", "LocalInstaller.App/LocalInstaller.App.csproj", "installer", LocalInstallerArtifactTarget.InstallerApp),
             InstallerOptions =
             [
                 new PackageProductArtifact("agent-up-cli", "CLI", "", "AgentUp.CLI", "AgentUp.CLI/AgentUp.CLI.csproj", "cli", LocalInstallerArtifactTarget.Cli),

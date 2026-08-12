@@ -4,6 +4,19 @@ namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
 
 public sealed class CapabilityWorkspaceProvider
 {
+    public CapabilityWorkspaceProvider()
+        : this("workspace.json", "LOCALINSTALLER_SERVER_URL") { }
+
+    public CapabilityWorkspaceProvider(string workspaceConfigFileName, string serverUrlEnvironmentVariable)
+    {
+        WorkspaceConfigFileName = workspaceConfigFileName;
+        ServerUrlEnvironmentVariable = serverUrlEnvironmentVariable;
+    }
+
+    public string WorkspaceConfigFileName { get; }
+
+    public string ServerUrlEnvironmentVariable { get; }
+
     public string Prepare(string workDirectory)
     {
         var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
@@ -26,7 +39,7 @@ public sealed class CapabilityWorkspaceProvider
             var port = Environment.GetEnvironmentVariable("WEB_PORT") ?? "5000";
             app.Run($"http://127.0.0.1:{port}");
             """);
-        File.WriteAllText(SafeSmokePaths.Child(repo, "agent-up.json"), $$"""
+        File.WriteAllText(SafeSmokePaths.Child(repo, WorkspaceConfigFileName), $$"""
             {
               "name": "Capability Lifecycle Smoke Workspace",
               "dotnet": [
@@ -54,7 +67,7 @@ public sealed class CapabilityWorkspaceProvider
 
     private static string DockerSmokeImage()
     {
-        var image = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
+        var image = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE");
         return string.IsNullOrWhiteSpace(image) ? "nginx:alpine" : image;
     }
 }

@@ -17,7 +17,7 @@ public sealed class SmokeProductConfigTests
             ArtifactBaseName: "localinstaller",
             DisplayName: "LocalInstaller",
             InstallDirName: "LocalInstaller",
-            WorkspaceConfigFileName: "agent-up.json")));
+            WorkspaceConfigFileName: "workspace.json")));
     }
 
     [TestCase("ServiceName", "acme;rm")]

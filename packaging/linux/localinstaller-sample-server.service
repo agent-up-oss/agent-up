@@ -1,0 +1,22 @@
+[Unit]
+Description=LocalInstaller Sample Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/localinstaller-sample/server
+ExecStart=/opt/localinstaller-sample/server/LocalInstaller.Sample.Server --urls http://127.0.0.1:50241
+Environment=ASPNETCORE_URLS=http://127.0.0.1:50241
+Environment=Storage__DataDirectory=/var/lib/localinstaller-sample
+Environment=DOTNET_CONTENTROOT=/opt/localinstaller-sample/server
+Environment=ASPNETCORE_CONTENTROOT=/opt/localinstaller-sample/server
+Environment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/localinstaller-sample
+Environment=Logging__LogLevel__Default=Debug
+CacheDirectory=localinstaller-sample
+StandardOutput=append:/var/log/localinstaller-sample-server.log
+StandardError=append:/var/log/localinstaller-sample-server.err.log
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

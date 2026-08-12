@@ -25,72 +25,35 @@ public sealed class PackagePayloadStager
 
         if (request.PayloadRoot is null)
         {
-            if (request.ProductManifest.InstallerOptions.Count > 0)
-            {
-                if (request.ProductManifest.InstallerApplication is not null && staging.InstallerPublishDirectory is not null)
-                {
-                    await _publisher.PublishDotNetProjectAsync(
-                        Path.Join(request.RepositoryRoot, request.ProductManifest.InstallerApplication.SourceProjectPath!),
-                        request.RuntimeId,
-                        request.Configuration,
-                        request.Version,
-                        staging.InstallerPublishDirectory,
-                        cancellationToken);
-                }
+            if (request.ProductManifest.InstallerOptions.Count == 0)
+                throw new InvalidOperationException("LocalInstaller.Packaging requires installer options to publish payloads.");
 
-                await PublishManifestPayloadsAsync(staging, cancellationToken);
-                MirrorFirstTargetPayloads(staging);
-                return;
-            }
+            var installer = request.ProductManifest.InstallerApplication
+                ?? throw new InvalidOperationException("LocalInstaller.Packaging requires an installer application manifest.");
 
             if (staging.InstallerPublishDirectory is not null)
-            {
                 await _publisher.PublishDotNetProjectAsync(
-                    Path.Join(request.RepositoryRoot, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"),
+                    Path.Join(request.RepositoryRoot, installer.SourceProjectPath!),
                     request.RuntimeId,
                     request.Configuration,
                     request.Version,
                     staging.InstallerPublishDirectory,
                     cancellationToken);
-            }
 
-            await _publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.Desktop", "AgentUp.Desktop.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                staging.DesktopPublishDirectory,
-                cancellationToken);
-            await _publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.Server", "AgentUp.Server.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                staging.ServerPublishDirectory,
-                cancellationToken);
-            await _publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.CLI", "AgentUp.CLI.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                staging.CliPublishDirectory,
-                cancellationToken);
-            await _publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, "AgentUp.Tray", "AgentUp.Tray.csproj"),
-                request.RuntimeId,
-                request.Configuration,
-                request.Version,
-                staging.TrayPublishDirectory,
-                cancellationToken);
+            await PublishManifestPayloadsAsync(staging, cancellationToken);
+            MirrorFirstTargetPayloads(staging);
             return;
         }
 
         if (request.ProductManifest.InstallerOptions.Count > 0)
         {
-            if (request.ProductManifest.InstallerApplication is not null && staging.InstallerPublishDirectory is not null)
+            if (staging.InstallerPublishDirectory is not null)
             {
+                var installer = request.ProductManifest.InstallerApplication
+                    ?? throw new InvalidOperationException("LocalInstaller.Packaging requires an installer application manifest.");
+
                 _publisher.CopyPrebuiltPayload(
-                    Path.Join(request.PayloadRoot!, PayloadDirectoryName(request.ProductManifest.InstallerApplication)),
+                    Path.Join(request.PayloadRoot!, PayloadDirectoryName(installer)),
                     staging.InstallerPublishDirectory);
             }
 
@@ -99,13 +62,7 @@ public sealed class PackagePayloadStager
             return;
         }
 
-        if (staging.InstallerPublishDirectory is not null)
-            _publisher.CopyPrebuiltPayload(request.InstallerPayloadDirectory!, staging.InstallerPublishDirectory);
-
-        _publisher.CopyPrebuiltPayload(request.DesktopPayloadDirectory!, staging.DesktopPublishDirectory);
-        _publisher.CopyPrebuiltPayload(request.ServerPayloadDirectory!, staging.ServerPublishDirectory);
-        _publisher.CopyPrebuiltPayload(request.CliPayloadDirectory!, staging.CliPublishDirectory);
-        _publisher.CopyPrebuiltPayload(request.TrayPayloadDirectory!, staging.TrayPublishDirectory);
+        throw new InvalidOperationException("LocalInstaller.Packaging requires installer options to copy prebuilt payloads.");
     }
 
     private async Task PublishManifestPayloadsAsync(PayloadStagingRequest staging, CancellationToken cancellationToken)

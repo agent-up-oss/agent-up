@@ -8,13 +8,13 @@
     <PackageId>LocalInstaller.Packaging</PackageId>
     <Version>$(LocalInstallerVersion)</Version>
     <Authors>themassiveone</Authors>
-    <Company>Agent-Up</Company>
+    <Company>LocalInstaller</Company>
     <Description>Build pipeline for producing platform-specific installer packages (Windows MSI, macOS pkg, Ubuntu .deb).</Description>
     <PackageTags>installer;packaging;msi;deb;pkg;windows;macos;linux;localinstaller</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>logo.png</PackageIcon>
-    <Copyright>Copyright © 2025 themassiveone, Agent-Up</Copyright>
+    <Copyright>Copyright © 2025 themassiveone</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
