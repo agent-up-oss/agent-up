@@ -53,7 +53,7 @@ public sealed class UbuntuPackageValidator : IPackageValidator
         assert.Contains(serviceUnit, $"DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/{pkg}", "ubuntu.service.bundle.extract");
         assert.Contains(serviceUnit, $"CacheDirectory={pkg}", "ubuntu.service.cache");
 
-        assert.FileExists(SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "icon", $"{pkg}.png"), "ubuntu.payload.icon");
+        assert.FileExists(SafeSmokePaths.Child(root, "opt", pkg, "installer", "payload", "icon", $"{product.DisplayName}.png"), "ubuntu.payload.icon");
         assert.FileExists(SafeSmokePaths.Child(root, "usr", "share", "pixmaps", $"{pkg}.png"), "ubuntu.icon");
 
         var installerDesktop = SafeSmokePaths.Child(root, "usr", "share", "applications", $"{pkg}-installer.desktop");
