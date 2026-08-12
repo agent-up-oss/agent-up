@@ -1,4 +1,4 @@
-namespace AgentUp.InstallerApp.Features.Capabilities.Models;
+namespace LocalInstaller.App.Features.Capabilities.Models;
 
 public sealed record CapabilityCatalogEntry(
     string Id,

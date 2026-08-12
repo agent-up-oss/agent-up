@@ -15,11 +15,11 @@ public class PackagePayloadStagerTests
     [Test]
     public async Task StageAsync_withoutPayloadRootPublishesInstallerDesktopServerCliAndTray()
     {
-        var commands = new RecordingCommandRunner();
+        var publisher = new RecordingPublisher();
         var files = new RecordingPackageFileSystem();
         var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", AgentUpPackageTestManifests.Product());
 
-        await new PackagePayloadStager(new PackagePublisher(commands), files).StageAsync(new PayloadStagingRequest(
+        await new PackagePayloadStager(publisher, files).StageAsync(new PayloadStagingRequest(
             request,
             "/stage/installer",
             "/stage/desktop",
@@ -29,12 +29,13 @@ public class PackagePayloadStagerTests
 
         Assert.That(files.ResetDirectories, Is.EqualTo(new[] { Path.Join(Root, "artifacts", "stage", "ubuntu-linux-x64") }));
         Assert.That(files.CreatedDirectories, Is.EqualTo(new[] { Path.Join(Root, "out") }));
-        Assert.That(commands.Commands.Count(command => command.FileName == "dotnet" && command.Arguments.Contains("publish")), Is.EqualTo(5));
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Desktop", "AgentUp.Desktop.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Server", "AgentUp.Server.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.CLI", "AgentUp.CLI.csproj"))), Is.True);
-        Assert.That(commands.Commands.Any(command => command.Arguments.Contains(Path.Join(Root, "AgentUp.Tray", "AgentUp.Tray.csproj"))), Is.True);
+        Assert.That(publisher.Published, Has.Count.EqualTo(5));
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.InstallerApp", "AgentUp.InstallerApp.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.Desktop", "AgentUp.Desktop.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.Server", "AgentUp.Server.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.CLI", "AgentUp.CLI.csproj")), Is.True);
+        Assert.That(publisher.Published.Any(command => command.ProjectPath == Path.Join(Root, "AgentUp.Tray", "AgentUp.Tray.csproj")), Is.True);
+        Assert.That(publisher.Copied.Any(copy => copy.Source == Path.Join(request.StageDirectory, "desktop") && copy.Destination == "/stage/desktop"), Is.True);
     }
 
     [Test]
@@ -141,6 +142,28 @@ public class PackagePayloadStagerTests
         Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "cli")));
         Assert.That(publisher.Published.Select(p => p.OutputDirectory), Does.Contain(Path.Join(request.StageDirectory, "tray")));
         Assert.That(publisher.Copied.Any(c => Path.GetFullPath(c.Source).Equals(Path.GetFullPath(c.Destination), StringComparison.OrdinalIgnoreCase)), Is.False);
+    }
+
+    [Test]
+    public void StageAsync_withUnsafeSourceProjectPath_throwsArgumentException()
+    {
+        var product = new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+        {
+            InstallerApplication = new PackageProductArtifact("orbit-installer", "Installer", "", "Orbit.Installer", "../Orbit.Installer.csproj", "installer", LocalInstallerArtifactTarget.InstallerApp),
+            InstallerOptions =
+            [
+                new PackageProductArtifact("orbit-cli", "CLI", "", "Orbit.Cli", "Orbit.Cli/Orbit.Cli.csproj", "cli", LocalInstallerArtifactTarget.Cli)
+            ]
+        };
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", product);
+
+        Assert.ThrowsAsync<ArgumentException>(async () => await new PackagePayloadStager(new RecordingPublisher(), new RecordingPackageFileSystem()).StageAsync(new PayloadStagingRequest(
+            request,
+            "/stage/installer",
+            "/stage/desktop",
+            "/stage/server",
+            "/stage/cli",
+            "/stage/tray")));
     }
 
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)

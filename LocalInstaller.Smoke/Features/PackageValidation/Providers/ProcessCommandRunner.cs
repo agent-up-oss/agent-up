@@ -11,7 +11,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
         if (!TryNormalize(command, out var safeCommand, out var validationError))
             return new CommandResult(126, "", validationError);
 
-        var startInfo = CreateStartInfo(safeCommand.Executable);
+        var startInfo = CreateStartInfo(safeCommand.Executable, safeCommand.DisplayName);
 
         if (!TryAddAllowedArguments(startInfo, safeCommand, out validationError))
             return new CommandResult(126, "", validationError);
@@ -44,12 +44,12 @@ public sealed class ProcessCommandRunner : ICommandRunner
         }
     }
 
-    private static ProcessStartInfo CreateStartInfo(SmokeExecutable executable)
+    private static ProcessStartInfo CreateStartInfo(SmokeExecutable executable, string displayName)
     {
         var startInfo = executable switch
         {
-            SmokeExecutable.AgentUp => new ProcessStartInfo("agent-up"),
-            SmokeExecutable.AgentUpCmd => new ProcessStartInfo("agent-up.cmd"),
+            SmokeExecutable.ProductCli => new ProcessStartInfo(displayName),
+            SmokeExecutable.ProductCliCmd => new ProcessStartInfo(displayName),
             SmokeExecutable.Bash => new ProcessStartInfo("bash"),
             SmokeExecutable.Cmd => new ProcessStartInfo("cmd.exe"),
             SmokeExecutable.DpkgDeb => new ProcessStartInfo("dpkg-deb"),
@@ -76,62 +76,62 @@ public sealed class ProcessCommandRunner : ICommandRunner
     {
         error = "";
 
-        if (command.Executable == SmokeExecutable.AgentUp && IsArguments(command, "--version"))
+        if (command.Executable == SmokeExecutable.ProductCli && IsArguments(command, "--version"))
         {
             startInfo.ArgumentList.Add("--version");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.AgentUp && IsArguments(command, "start"))
+        if (command.Executable == SmokeExecutable.ProductCli && IsArguments(command, "start"))
         {
             startInfo.ArgumentList.Add("start");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.AgentUp && IsArguments(command, "status"))
+        if (command.Executable == SmokeExecutable.ProductCli && IsArguments(command, "status"))
         {
             startInfo.ArgumentList.Add("status");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.AgentUpCmd && IsArguments(command, "--version"))
+        if (command.Executable == SmokeExecutable.ProductCliCmd && IsArguments(command, "--version"))
         {
             startInfo.ArgumentList.Add("--version");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.AgentUpCmd && IsArguments(command, "start"))
+        if (command.Executable == SmokeExecutable.ProductCliCmd && IsArguments(command, "start"))
         {
             startInfo.ArgumentList.Add("start");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.AgentUpCmd && IsArguments(command, "status"))
+        if (command.Executable == SmokeExecutable.ProductCliCmd && IsArguments(command, "status"))
         {
             startInfo.ArgumentList.Add("status");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.Cmd && IsArguments(command, "/C", "agent-up.cmd", "--version"))
+        if (command.Executable == SmokeExecutable.Cmd && IsProductCliCmdInvocation(command, "--version"))
         {
             startInfo.ArgumentList.Add("/C");
-            startInfo.ArgumentList.Add("agent-up.cmd");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             startInfo.ArgumentList.Add("--version");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.Cmd && IsArguments(command, "/C", "agent-up.cmd", "start"))
+        if (command.Executable == SmokeExecutable.Cmd && IsProductCliCmdInvocation(command, "start"))
         {
             startInfo.ArgumentList.Add("/C");
-            startInfo.ArgumentList.Add("agent-up.cmd");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             startInfo.ArgumentList.Add("start");
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.Cmd && IsArguments(command, "/C", "agent-up.cmd", "status"))
+        if (command.Executable == SmokeExecutable.Cmd && IsProductCliCmdInvocation(command, "status"))
         {
             startInfo.ArgumentList.Add("/C");
-            startInfo.ArgumentList.Add("agent-up.cmd");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             startInfo.ArgumentList.Add("status");
             return true;
         }
@@ -154,10 +154,13 @@ public sealed class ProcessCommandRunner : ICommandRunner
         if (command.Executable == SmokeExecutable.PowerShell)
             return TryAddPowerShellArguments(startInfo, command, out error);
 
-        if (command.Executable == SmokeExecutable.Sc && IsArguments(command, "start", "agent-up-server"))
+        if (command.Executable == SmokeExecutable.Sc &&
+            command.Arguments.Count == 2 &&
+            command.Arguments[0] == "start" &&
+            IsSafeIdentifier(command.Arguments[1]))
         {
             startInfo.ArgumentList.Add("start");
-            startInfo.ArgumentList.Add("agent-up-server");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             return true;
         }
 
@@ -184,10 +187,14 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (command.Executable == SmokeExecutable.Bash && IsArguments(command, "-lc", "command -v agent-up"))
+        if (command.Executable == SmokeExecutable.Bash &&
+            command.Arguments.Count == 2 &&
+            command.Arguments[0] == "-lc" &&
+            command.Arguments[1].StartsWith("command -v ", StringComparison.Ordinal) &&
+            IsSafeIdentifier(command.Arguments[1]["command -v ".Length..]))
         {
             startInfo.ArgumentList.Add("-lc");
-            startInfo.ArgumentList.Add("command -v agent-up");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             return true;
         }
 
@@ -274,10 +281,12 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (IsArguments(command, "add", "agent-up.json"))
+        if (command.Arguments.Count == 2 &&
+            command.Arguments[0] == "add" &&
+            IsSafeWorkspaceConfigFileName(command.Arguments[1]))
         {
             startInfo.ArgumentList.Add("add");
-            startInfo.ArgumentList.Add("agent-up.json");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
             return true;
         }
 
@@ -394,15 +403,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (IsArguments(command, "-NoProfile", "-Command", "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode"))
-        {
-            startInfo.ArgumentList.Add("-NoProfile");
-            startInfo.ArgumentList.Add("-Command");
-            startInfo.ArgumentList.Add("$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode");
-            return true;
-        }
-
-        if (IsArguments(command, "-NoProfile", "-Command", "& $env:AGENTUP_SMOKE_INSTALLER_APP --payload-root $env:AGENTUP_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'Agent-Up\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"))
+        if (IsArguments(command, "-NoProfile", "-Command", "$process = Start-Process -FilePath $env:LOCALINSTALLER_SMOKE_INSTALLER -ArgumentList @('/layout', $env:LOCALINSTALLER_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode"))
         {
             startInfo.ArgumentList.Add("-NoProfile");
             startInfo.ArgumentList.Add("-Command");
@@ -410,15 +411,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (IsArguments(command, "-NoProfile", "-Command", "Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *"))
-        {
-            startInfo.ArgumentList.Add("-NoProfile");
-            startInfo.ArgumentList.Add("-Command");
-            startInfo.ArgumentList.Add("Get-Service agent-up-server -ErrorAction SilentlyContinue | Format-List *");
-            return true;
-        }
-
-        if (IsArguments(command, "-NoProfile", "-Command", "$displayName = $env:AGENTUP_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }"))
+        if (IsArguments(command, "-NoProfile", "-Command", "& $env:LOCALINSTALLER_SMOKE_INSTALLER_APP --payload-root $env:LOCALINSTALLER_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'LocalInstaller\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"))
         {
             startInfo.ArgumentList.Add("-NoProfile");
             startInfo.ArgumentList.Add("-Command");
@@ -426,7 +419,28 @@ public sealed class ProcessCommandRunner : ICommandRunner
             return true;
         }
 
-        if (IsArguments(command, "-NoProfile", "-Command", "$name = $env:AGENTUP_TRAY_AUTOSTART_NAME; $expected = $env:AGENTUP_TRAY_AUTOSTART_VALUE; $val = Get-ItemPropertyValue -Path 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name $name -ErrorAction SilentlyContinue; if (-not [string]::Equals($val, $expected, [System.StringComparison]::OrdinalIgnoreCase)) { throw \"$name tray autostart registry entry missing or incorrect\" }"))
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "-NoProfile" &&
+            command.Arguments[1] == "-Command" &&
+            command.Arguments[2].StartsWith("Get-Service ", StringComparison.Ordinal) &&
+            command.Arguments[2].EndsWith(" -ErrorAction SilentlyContinue | Format-List *", StringComparison.Ordinal) &&
+            IsSafeIdentifier(command.Arguments[2]["Get-Service ".Length..^" -ErrorAction SilentlyContinue | Format-List *".Length]))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        if (IsArguments(command, "-NoProfile", "-Command", "$displayName = $env:LOCALINSTALLER_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:LOCALINSTALLER_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        if (IsArguments(command, "-NoProfile", "-Command", "$name = $env:LOCALINSTALLER_TRAY_AUTOSTART_NAME; $expected = $env:LOCALINSTALLER_TRAY_AUTOSTART_VALUE; $val = Get-ItemPropertyValue -Path 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name $name -ErrorAction SilentlyContinue; if (-not [string]::Equals($val, $expected, [System.StringComparison]::OrdinalIgnoreCase)) { throw \"$name tray autostart registry entry missing or incorrect\" }"))
         {
             startInfo.ArgumentList.Add("-NoProfile");
             startInfo.ArgumentList.Add("-Command");
@@ -441,92 +455,71 @@ public sealed class ProcessCommandRunner : ICommandRunner
     private static bool TryAddSudoArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
     {
         error = "";
-        if (IsArguments(command, "apt-get", "purge", "-y", "agent-up"))
+        if (command.Arguments.Count == 4 &&
+            command.Arguments[0] == "apt-get" &&
+            command.Arguments[1] == "purge" &&
+            command.Arguments[2] == "-y" &&
+            IsSafeIdentifier(command.Arguments[3]))
         {
             startInfo.ArgumentList.Add("apt-get");
             startInfo.ArgumentList.Add("purge");
             startInfo.ArgumentList.Add("-y");
-            startInfo.ArgumentList.Add("agent-up");
+            startInfo.ArgumentList.Add(command.Arguments[3]);
             return true;
         }
 
-        if (IsArguments(command, "systemctl", "status", "agent-up-server.service", "--no-pager"))
+        if (command.Arguments.Count == 4 &&
+            command.Arguments[0] == "systemctl" &&
+            command.Arguments[1] == "status" &&
+            IsSafeServiceName(command.Arguments[2]) &&
+            command.Arguments[3] == "--no-pager")
         {
-            startInfo.ArgumentList.Add("systemctl");
-            startInfo.ArgumentList.Add("status");
-            startInfo.ArgumentList.Add("agent-up-server.service");
-            startInfo.ArgumentList.Add("--no-pager");
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
             return true;
         }
 
-        if (IsArguments(command, "journalctl", "-u", "agent-up-server.service", "--no-pager", "-n", "200"))
+        if (command.Arguments.Count == 6 &&
+            command.Arguments[0] == "journalctl" &&
+            command.Arguments[1] == "-u" &&
+            IsSafeServiceName(command.Arguments[2]) &&
+            command.Arguments[3] == "--no-pager" &&
+            command.Arguments[4] == "-n" &&
+            command.Arguments[5] == "200")
         {
-            startInfo.ArgumentList.Add("journalctl");
-            startInfo.ArgumentList.Add("-u");
-            startInfo.ArgumentList.Add("agent-up-server.service");
-            startInfo.ArgumentList.Add("--no-pager");
-            startInfo.ArgumentList.Add("-n");
-            startInfo.ArgumentList.Add("200");
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
             return true;
         }
 
-        if (IsArguments(command, "tail", "-n", "200", "/var/log/agent-up-server.log"))
+        if (command.Arguments.Count == 4 &&
+            command.Arguments[0] == "tail" &&
+            command.Arguments[1] == "-n" &&
+            command.Arguments[2] == "200" &&
+            IsSafeLogPath(command.Arguments[3]))
         {
-            startInfo.ArgumentList.Add("tail");
-            startInfo.ArgumentList.Add("-n");
-            startInfo.ArgumentList.Add("200");
-            startInfo.ArgumentList.Add("/var/log/agent-up-server.log");
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
             return true;
         }
 
-        if (IsArguments(command, "tail", "-n", "200", "/var/log/agent-up-server.err.log"))
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "ls" &&
+            command.Arguments[1] == "-la" &&
+            IsSafeDiagnosticsDirectory(command.Arguments[2]))
         {
-            startInfo.ArgumentList.Add("tail");
-            startInfo.ArgumentList.Add("-n");
-            startInfo.ArgumentList.Add("200");
-            startInfo.ArgumentList.Add("/var/log/agent-up-server.err.log");
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
             return true;
         }
 
-        if (IsArguments(command, "ls", "-la", "/var/lib/agent-up"))
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "launchctl" &&
+            command.Arguments[1] == "print" &&
+            IsSafeLaunchdTarget(command.Arguments[2]))
         {
-            startInfo.ArgumentList.Add("ls");
-            startInfo.ArgumentList.Add("-la");
-            startInfo.ArgumentList.Add("/var/lib/agent-up");
-            return true;
-        }
-
-        if (IsArguments(command, "launchctl", "print", "system/dev.agent-up.server"))
-        {
-            startInfo.ArgumentList.Add("launchctl");
-            startInfo.ArgumentList.Add("print");
-            startInfo.ArgumentList.Add("system/dev.agent-up.server");
-            return true;
-        }
-
-        if (IsArguments(command, "tail", "-n", "200", "/Library/Logs/Agent-Up/server.out.log"))
-        {
-            startInfo.ArgumentList.Add("tail");
-            startInfo.ArgumentList.Add("-n");
-            startInfo.ArgumentList.Add("200");
-            startInfo.ArgumentList.Add("/Library/Logs/Agent-Up/server.out.log");
-            return true;
-        }
-
-        if (IsArguments(command, "tail", "-n", "200", "/Library/Logs/Agent-Up/server.err.log"))
-        {
-            startInfo.ArgumentList.Add("tail");
-            startInfo.ArgumentList.Add("-n");
-            startInfo.ArgumentList.Add("200");
-            startInfo.ArgumentList.Add("/Library/Logs/Agent-Up/server.err.log");
-            return true;
-        }
-
-        if (IsArguments(command, "ls", "-la", "/Library/Application Support/Agent-Up"))
-        {
-            startInfo.ArgumentList.Add("ls");
-            startInfo.ArgumentList.Add("-la");
-            startInfo.ArgumentList.Add("/Library/Application Support/Agent-Up");
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
             return true;
         }
 
@@ -624,7 +617,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
             environment.Add(WorkingDirectoryEnvironmentKey, workingDirectory);
         }
 
-        safeCommand = new SafeCommandSpec(executable, DisplayName(executable), arguments, environment);
+        safeCommand = new SafeCommandSpec(executable, ProductDisplayName(command.FileName, executable), arguments, environment);
         error = "";
         return true;
     }
@@ -683,8 +676,6 @@ public sealed class ProcessCommandRunner : ICommandRunner
     {
         executable = fileName switch
         {
-            "agent-up" => SmokeExecutable.AgentUp,
-            "agent-up.cmd" => SmokeExecutable.AgentUpCmd,
             "bash" => SmokeExecutable.Bash,
             "cmd.exe" => SmokeExecutable.Cmd,
             "dpkg-deb" => SmokeExecutable.DpkgDeb,
@@ -698,6 +689,8 @@ public sealed class ProcessCommandRunner : ICommandRunner
             "sc.exe" => SmokeExecutable.Sc,
             "ss" => SmokeExecutable.Ss,
             "sudo" => SmokeExecutable.Sudo,
+            _ when IsSafeProductCliCommand(fileName) => SmokeExecutable.ProductCli,
+            _ when IsSafeProductCliCmdCommand(fileName) => SmokeExecutable.ProductCliCmd,
             _ => SmokeExecutable.Unknown
         };
 
@@ -714,8 +707,8 @@ public sealed class ProcessCommandRunner : ICommandRunner
     private static string DisplayName(SmokeExecutable executable)
         => executable switch
         {
-            SmokeExecutable.AgentUp => "agent-up",
-            SmokeExecutable.AgentUpCmd => "agent-up.cmd",
+            SmokeExecutable.ProductCli => throw new ArgumentException("Product CLI commands keep their original executable name.", nameof(executable)),
+            SmokeExecutable.ProductCliCmd => throw new ArgumentException("Product CLI commands keep their original executable name.", nameof(executable)),
             SmokeExecutable.Bash => "bash",
             SmokeExecutable.Cmd => "cmd.exe",
             SmokeExecutable.DpkgDeb => "dpkg-deb",
@@ -732,31 +725,109 @@ public sealed class ProcessCommandRunner : ICommandRunner
             _ => throw new ArgumentOutOfRangeException(nameof(executable), executable, "Unsupported smoke executable.")
         };
 
-    private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
+    private static string ProductDisplayName(string fileName, SmokeExecutable executable)
+        => executable is SmokeExecutable.ProductCli or SmokeExecutable.ProductCliCmd
+            ? fileName
+            : DisplayName(executable);
+
+    private const string WorkingDirectoryEnvironmentKey = "LOCALINSTALLER_SMOKE_WORKING_DIRECTORY";
 
     private static string? SelectUnixWorkingDirectoryCommand(string command)
         => command switch
         {
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up start" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up start",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up status" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up status",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json",
-            "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"" => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git init -q" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git init -q",
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local",
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"",
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
+            _ when TrySelectProductCliShellCommand(command, "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && ", out var selected) => selected,
+            _ when TrySelectGitAddShellCommand(command, "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git add ", out var selected) => selected,
             _ => null
         };
 
     private static string? SelectWindowsPowerShellWorkingDirectoryCommand(string command)
         => command switch
         {
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd start" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd start",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd status" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd status",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json",
-            "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"" => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git init -q" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git init -q",
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local",
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"",
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
+            _ when TrySelectProductCliShellCommand(command, "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; ", out var selected) => selected,
+            _ when TrySelectGitAddShellCommand(command, "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git add ", out var selected) => selected,
             _ => null
         };
+
+    private static bool IsProductCliCmdInvocation(SafeCommandSpec command, string argument)
+        => command.Arguments.Count == 3
+           && command.Arguments[0] == "/C"
+           && IsSafeProductCliCmdCommand(command.Arguments[1])
+           && command.Arguments[2] == argument;
+
+    private static bool IsSafeProductCliCommand(string value)
+        => IsSafeIdentifier(value) && !value.Contains('.', StringComparison.Ordinal);
+
+    private static bool IsSafeProductCliCmdCommand(string value)
+        => value.EndsWith(".cmd", StringComparison.Ordinal)
+           && IsSafeIdentifier(value[..^".cmd".Length]);
+
+    private static bool IsSafeWorkspaceConfigFileName(string value)
+        => value.EndsWith(".json", StringComparison.Ordinal)
+           && IsSafeIdentifier(value[..^".json".Length]);
+
+    private static bool IsSafeServiceName(string value)
+        => value.EndsWith(".service", StringComparison.Ordinal)
+           && IsSafeIdentifier(value[..^".service".Length]);
+
+    private static bool IsSafeLogPath(string value)
+        => (value.StartsWith("/var/log/", StringComparison.Ordinal) ||
+            value.StartsWith("/Library/Logs/", StringComparison.Ordinal))
+           && value.EndsWith(".log", StringComparison.Ordinal)
+           && !value.Contains("..", StringComparison.Ordinal)
+           && value.IndexOfAny(['\0', '\r', '\n']) < 0;
+
+    private static bool IsSafeDiagnosticsDirectory(string value)
+        => (value.StartsWith("/var/lib/", StringComparison.Ordinal) ||
+            value.StartsWith("/Library/Application Support/", StringComparison.Ordinal))
+           && !value.Contains("..", StringComparison.Ordinal)
+           && value.IndexOfAny(['\0', '\r', '\n']) < 0;
+
+    private static bool IsSafeLaunchdTarget(string value)
+        => value.StartsWith("system/", StringComparison.Ordinal)
+           && value.Length > "system/".Length
+           && value["system/".Length..].All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '.');
+
+    private static bool IsSafeIdentifier(string value)
+        => !string.IsNullOrWhiteSpace(value)
+           && value[0] is >= 'a' and <= 'z'
+           && (value[^1] is >= 'a' and <= 'z' or >= '0' and <= '9')
+           && value.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '.');
+
+    private static bool TrySelectProductCliShellCommand(string command, string prefix, out string? selected)
+    {
+        selected = null;
+        if (!command.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+
+        var parts = command[prefix.Length..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2 || parts[1] is not ("start" or "status"))
+            return false;
+
+        if (!IsSafeProductCliCommand(parts[0]) && !IsSafeProductCliCmdCommand(parts[0]))
+            return false;
+
+        selected = command;
+        return true;
+    }
+
+    private static bool TrySelectGitAddShellCommand(string command, string prefix, out string? selected)
+    {
+        selected = null;
+        if (!command.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+
+        if (!IsSafeWorkspaceConfigFileName(command[prefix.Length..]))
+            return false;
+
+        selected = command;
+        return true;
+    }
 }

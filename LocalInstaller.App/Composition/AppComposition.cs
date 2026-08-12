@@ -1,10 +1,10 @@
 using Avalonia.Controls;
-using AgentUp.InstallerApp.Features.Installation.Controllers;
-using AgentUp.InstallerApp.Features.Installation.Services;
-using AgentUp.InstallerApp.Features.Installation.Views;
+using LocalInstaller.App.Features.Installation.Controllers;
+using LocalInstaller.App.Features.Installation.Services;
+using LocalInstaller.App.Features.Installation.Views;
 using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Composition;
+namespace LocalInstaller.App.Composition;
 
 public static class AppComposition
 {

@@ -1,12 +1,12 @@
-using AgentUp.InstallerApp.Features.Capabilities.Controllers;
-using AgentUp.InstallerApp.Features.Capabilities.Factories;
-using AgentUp.InstallerApp.Features.Installation.ViewModels;
+using LocalInstaller.App.Features.Capabilities.Controllers;
+using LocalInstaller.App.Features.Capabilities.Factories;
+using LocalInstaller.App.Features.Installation.ViewModels;
 using LocalInstaller.Core.Composition;
 using LocalInstaller.Core.Features.Installation.DTOs;
 using LocalInstaller.Core.Features.Installation.Interfaces;
 using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Composition;
+namespace LocalInstaller.App.Composition;
 
 public static class InstallerViewModelFactory
 {

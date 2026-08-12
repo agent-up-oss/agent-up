@@ -14,11 +14,11 @@ public sealed class WindowsPackageArchiveProvider : IWindowsPackageArchiveProvid
 
     public async Task<PackageArchiveOperationResult> CreateLayoutAsync(string installer, string layoutDirectory, CancellationToken cancellationToken = default)
     {
-        const string layoutScript = "$process = Start-Process -FilePath $env:AGENTUP_SMOKE_INSTALLER -ArgumentList @('/layout', $env:AGENTUP_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode";
+        const string layoutScript = "$process = Start-Process -FilePath $env:LOCALINSTALLER_SMOKE_INSTALLER -ArgumentList @('/layout', $env:LOCALINSTALLER_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode";
         var environment = new Dictionary<string, string>
         {
-            ["AGENTUP_SMOKE_INSTALLER"] = installer,
-            ["AGENTUP_SMOKE_LAYOUT"] = layoutDirectory
+            ["LOCALINSTALLER_SMOKE_INSTALLER"] = installer,
+            ["LOCALINSTALLER_SMOKE_LAYOUT"] = layoutDirectory
         };
 
         var result = await _commands.RunAsync(new CommandSpec("powershell.exe", ["-NoProfile", "-Command", layoutScript], Environment: environment), cancellationToken);

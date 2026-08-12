@@ -1,7 +1,7 @@
-using AgentUp.InstallerApp.Features.Capabilities.Controllers;
-using AgentUp.InstallerApp.Features.Capabilities.Factories;
-using AgentUp.InstallerApp.Features.Capabilities.Models;
-using AgentUp.InstallerApp.Features.Installation.ViewModels;
+using LocalInstaller.App.Features.Capabilities.Controllers;
+using LocalInstaller.App.Features.Capabilities.Factories;
+using LocalInstaller.App.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Installation.ViewModels;
 using LocalInstaller.App.Tests.Support;
 using LocalInstaller.Core.Features.Installation.DTOs;
 using LocalInstaller.Core.Features.Installation.Interfaces;
@@ -150,7 +150,7 @@ public class ProductComponentCardTests
             ".NET",
             ".NET SDK capability.",
             "10.0.x",
-            [new CapabilityInstalledVersion("dotnet", "9.0.x", "/tool-cache/dotnet/9.0.x", CapabilityVersionSource.AgentUpManaged, true)]);
+            [new CapabilityInstalledVersion("dotnet", "9.0.x", "/tool-cache/dotnet/9.0.x", CapabilityVersionSource.Managed, true)]);
 
         var card = new CapabilityCardViewModel(module, model);
 
@@ -174,7 +174,7 @@ public class ProductComponentCardTests
             ".NET",
             ".NET SDK capability.",
             "9.0.x",
-            [new CapabilityInstalledVersion("dotnet", "9.0.x", "/tool-cache/dotnet/9.0.x", CapabilityVersionSource.AgentUpManaged, true)]);
+            [new CapabilityInstalledVersion("dotnet", "9.0.x", "/tool-cache/dotnet/9.0.x", CapabilityVersionSource.Managed, true)]);
         var existingCard = new CapabilityCardViewModel(existingModule, model);
         model.CapabilityCards.Add(existingCard);
         var catalogEntry = new CatalogCapabilityViewModel(

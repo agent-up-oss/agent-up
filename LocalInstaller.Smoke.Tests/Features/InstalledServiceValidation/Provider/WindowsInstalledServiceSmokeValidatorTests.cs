@@ -14,7 +14,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
     public async Task ValidateAsync_installsValidatesCliAndAlwaysUninstalls()
     {
         var root = Path.Join(Path.GetTempPath(), "AgentUp-InstalledSmoke-Windows", Guid.NewGuid().ToString());
-        var previousSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
+        var previousAgentUpSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
+        var previousSkip = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL");
         var artifactDir = Path.Join(root, "artifacts");
         var workDir = Path.Join(root, "work");
         Directory.CreateDirectory(artifactDir);
@@ -41,6 +42,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
         try
         {
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", null);
             using var validator = new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
                 new HttpClient(new FakeTraySessionHttpHandler()));
             var result = await validator.ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir, ProductConfig: AgentUpProduct()));
@@ -63,25 +65,26 @@ public class WindowsInstalledServiceSmokeValidatorTests
                     command.FileName == "powershell.exe" &&
                     command.Arguments.Last().Contains("DisplayName -eq $displayName", StringComparison.Ordinal) &&
                     command.Environment is not null &&
-                    command.Environment.TryGetValue("AGENTUP_PRODUCT_DISPLAY_NAME", out var displayName) &&
+                    command.Environment.TryGetValue("LOCALINSTALLER_PRODUCT_DISPLAY_NAME", out var displayName) &&
                     displayName == "Agent-Up"),
                 Is.True);
             Assert.That(commands.Commands.Any(command =>
                     command.FileName == "powershell.exe" &&
                     command.Arguments.Last().Contains("HKLM:", StringComparison.Ordinal) &&
-                    command.Arguments.Last().Contains("AGENTUP_TRAY_AUTOSTART_NAME", StringComparison.Ordinal) &&
-                    command.Arguments.Last().Contains("AGENTUP_TRAY_AUTOSTART_VALUE", StringComparison.Ordinal) &&
+                    command.Arguments.Last().Contains("LOCALINSTALLER_TRAY_AUTOSTART_NAME", StringComparison.Ordinal) &&
+                    command.Arguments.Last().Contains("LOCALINSTALLER_TRAY_AUTOSTART_VALUE", StringComparison.Ordinal) &&
                     command.Environment is not null &&
-                    command.Environment.TryGetValue("AGENTUP_TRAY_AUTOSTART_NAME", out var trayName) &&
+                    command.Environment.TryGetValue("LOCALINSTALLER_TRAY_AUTOSTART_NAME", out var trayName) &&
                     trayName == "Agent-Up" &&
-                    command.Environment.TryGetValue("AGENTUP_TRAY_AUTOSTART_VALUE", out var trayValue) &&
+                    command.Environment.TryGetValue("LOCALINSTALLER_TRAY_AUTOSTART_VALUE", out var trayValue) &&
                     trayValue == $"\"{Path.Join(DefaultInstallDirectory(), "tray", "AgentUp.Tray.exe")}\""),
                 Is.True);
             Assert.That(probe.Calls, Has.Count.EqualTo(2)); // initial ready check + post-restart ready check
         }
         finally
         {
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousAgentUpSkip);
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
             if (Directory.Exists(root))
                 Directory.Delete(root, recursive: true);
         }
@@ -214,11 +217,11 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
     private static bool IsInstalledCliCommand(CommandSpec command, string argument)
         => command.FileName == "powershell.exe"
-           && command.Arguments.SequenceEqual(["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd {argument}"])
+           && command.Arguments.SequenceEqual(["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; agent-up.cmd {argument}"])
            && command.Environment is not null
            && command.Environment.TryGetValue("PATH", out var path)
            && path.Split(Path.PathSeparator).Contains(Path.Join(DefaultInstallDirectory(), "bin"))
-           && command.Environment.TryGetValue("AGENTUP_SMOKE_WORKING_DIRECTORY", out var workingDirectory)
+           && command.Environment.TryGetValue("LOCALINSTALLER_SMOKE_WORKING_DIRECTORY", out var workingDirectory)
            && workingDirectory.EndsWith(Path.Join("work", "example-workspace"), StringComparison.Ordinal);
 
     private static bool IsWindowsInstallCoreCommand(CommandSpec command)
@@ -226,11 +229,11 @@ public class WindowsInstalledServiceSmokeValidatorTests
            && command.Arguments.SequenceEqual([
                "-NoProfile",
                "-Command",
-               "& $env:AGENTUP_SMOKE_INSTALLER_APP --payload-root $env:AGENTUP_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'Agent-Up\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"
+               "& $env:LOCALINSTALLER_SMOKE_INSTALLER_APP --payload-root $env:LOCALINSTALLER_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'LocalInstaller\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"
            ])
            && command.Environment is not null
-           && command.Environment.TryGetValue("AGENTUP_SMOKE_INSTALLER_APP", out var installerApp)
+           && command.Environment.TryGetValue("LOCALINSTALLER_SMOKE_INSTALLER_APP", out var installerApp)
            && installerApp == Path.Join(DefaultInstallDirectory(), "installer", "AgentUp.InstallerApp.exe")
-           && command.Environment.TryGetValue("AGENTUP_SMOKE_PAYLOAD_ROOT", out var payloadRoot)
+           && command.Environment.TryGetValue("LOCALINSTALLER_SMOKE_PAYLOAD_ROOT", out var payloadRoot)
            && payloadRoot == Path.Join(DefaultInstallDirectory(), "installer", "payload");
 }

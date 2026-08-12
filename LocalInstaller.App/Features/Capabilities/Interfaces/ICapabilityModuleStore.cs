@@ -1,6 +1,6 @@
-using AgentUp.InstallerApp.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Models;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Interfaces;
+namespace LocalInstaller.App.Features.Capabilities.Interfaces;
 
 public interface ICapabilityModuleStore
 {

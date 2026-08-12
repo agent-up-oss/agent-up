@@ -1,7 +1,7 @@
-using AgentUp.InstallerApp.Features.Capabilities.Interfaces;
-using AgentUp.InstallerApp.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Interfaces;
+using LocalInstaller.App.Features.Capabilities.Models;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Providers;
+namespace LocalInstaller.App.Features.Capabilities.Providers;
 
 public sealed class NixOsCapabilityModuleStore(CapabilityInventoryFileProvider inventory) : ICapabilityModuleStore
 {
@@ -22,7 +22,7 @@ public sealed class NixOsCapabilityModuleStore(CapabilityInventoryFileProvider i
                         entry.Id,
                         version,
                         source,
-                        CapabilityVersionSource.AgentUpManaged,
+                        CapabilityVersionSource.Managed,
                         version == entry.Versions[0]))
                     .ToList()))
             .OrderBy(module => module.DisplayName, StringComparer.OrdinalIgnoreCase)

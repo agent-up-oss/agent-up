@@ -39,7 +39,7 @@ public sealed class WindowsPackager
             Path.Join(
                 layout.InstallerSourceDirectory,
                 WindowsInstallerManifest.RequireSafeCliShimFileName(manifest.InstallerManifest.CliShimName)),
-            WindowsWixSourceGenerator.CliShimText());
+            generator.CliShimText());
         _writer.WriteText(layout.ProductWxsPath, generator.ProductWxs(layout));
         _writer.WriteText(layout.BundleWxsPath, generator.BundleWxs(layout));
         _writer.WriteText(layout.LicenseRtfPath, WindowsWixSourceGenerator.LicenseRtf(manifest.InstallerManifest.ProductName));

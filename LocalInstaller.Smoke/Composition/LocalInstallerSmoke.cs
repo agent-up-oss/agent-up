@@ -18,6 +18,7 @@ public sealed class LocalInstallerSmokeBuilder
     private string? _slug;
     private string? _environmentPrefix;
     private string? _workspaceConfigFileName;
+    private string? _serverUrlEnvironmentVariable;
 
     internal LocalInstallerSmokeBuilder(string[] args)
         => _args = args;
@@ -35,6 +36,12 @@ public sealed class LocalInstallerSmokeBuilder
     public LocalInstallerSmokeBuilder WorkspaceConfigFileName(string workspaceConfigFileName)
     {
         _workspaceConfigFileName = workspaceConfigFileName;
+        return this;
+    }
+
+    public LocalInstallerSmokeBuilder ServerUrlEnvironmentVariable(string serverUrlEnvironmentVariable)
+    {
+        _serverUrlEnvironmentVariable = serverUrlEnvironmentVariable;
         return this;
     }
 
@@ -89,6 +96,7 @@ public sealed class LocalInstallerSmokeBuilder
             DisplayName: _productName,
             InstallDirName: _productName,
             WorkspaceConfigFileName: _workspaceConfigFileName ?? _slug + ".json",
+            ServerUrlEnvironmentVariable: _serverUrlEnvironmentVariable ?? _environmentPrefix + "_SERVER_URL",
             InstallerExecutableName: installer.ExecutableName!,
             DesktopExecutableName: desktop.ExecutableName!,
             ServerExecutableName: server.ExecutableName!,

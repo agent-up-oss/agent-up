@@ -198,7 +198,7 @@ public class WindowsInstallerPlatformAdapterTests
                 TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
-            WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+            WritePublishedFile(layout.InstallerPublishDirectory, "installer.exe");
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Shared.dll");
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
@@ -229,7 +229,7 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(product, Does.Contain(@"Name=""Agent-Up"""));
             Assert.That(product, Does.Contain(@"Value=""&quot;[TrayDir]AgentUp.Tray.exe&quot;"""));
             Assert.That(product, Does.Contain("Agent-Up Installer"));
-            Assert.That(product, Does.Contain("AgentUp.InstallerApp.exe"));
+            Assert.That(product, Does.Contain("installer.exe"));
             Assert.That(product, Does.Contain("InstallerPayloadDesktop"));
             Assert.That(product, Does.Contain("InstallerPayloadServer"));
             Assert.That(product, Does.Contain("InstallerPayloadCli"));
@@ -237,7 +237,7 @@ public class WindowsInstallerPlatformAdapterTests
             Assert.That(ComponentGuids(product), Is.Unique);
             Assert.That(bundle, Does.Contain("WixStandardBootstrapperApplication"));
             Assert.That(bundle, Does.Contain("Theme=\"rtfLicense\""));
-            Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Agent-Up\installer\AgentUp.InstallerApp.exe"""));
+            Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Agent-Up\installer\installer.exe"""));
             Assert.That(bundle, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Agent-Up\installer"""));
             Assert.That(bundle, Does.Contain("MsiPackage"));
             Assert.That(bundle, Does.Contain("Product.msi"));
@@ -270,7 +270,7 @@ public class WindowsInstallerPlatformAdapterTests
                 TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
-            WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+            WritePublishedFile(layout.InstallerPublishDirectory, "installer.exe");
             WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
             WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
             WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
@@ -304,11 +304,11 @@ public class WindowsInstallerPlatformAdapterTests
                 TrayPublishDirectory: System.IO.Path.Join(root, "tray"),
                 LicenseRtfPath: System.IO.Path.Join(root, "wix", "License.rtf"),
                 ProductMsiPath: System.IO.Path.Join(root, "Product.msi"));
-            WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
-            WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
-            WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
-            WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
-            WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
+            WritePublishedFile(layout.InstallerPublishDirectory, "installer.exe");
+            WritePublishedFile(layout.DesktopPublishDirectory, "desktop.exe");
+            WritePublishedFile(layout.ServerPublishDirectory, "server.exe");
+            WritePublishedFile(layout.CliPublishDirectory, "cli.exe");
+            WritePublishedFile(layout.TrayPublishDirectory, "tray.exe");
             Directory.CreateDirectory(layout.InstallerSourceDirectory);
             File.WriteAllText(System.IO.Path.Join(layout.InstallerSourceDirectory, "acme-studio.cmd"), "");
             var manifest = WindowsInstallerManifest.From(AcmeStudio(), "1.2.3", "http://127.0.0.1:5001");
@@ -329,7 +329,7 @@ public class WindowsInstallerPlatformAdapterTests
                 Assert.That(product, Does.Contain("Software\\Acme Studio"));
                 Assert.That(RunRegistryValueName(product), Is.EqualTo("Acme Studio"));
                 Assert.That(product, Does.Contain("acme-studio.cmd"));
-                Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Acme Studio\installer\AgentUp.InstallerApp.exe"""));
+                Assert.That(bundle, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Acme Studio\installer\installer.exe"""));
                 Assert.That(bundle, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Acme Studio\installer"""));
                 Assert.That(output, Does.Not.Contain("Agent-Up"));
                 Assert.That(output, Does.Not.Contain("agent-up"));
@@ -356,6 +356,22 @@ public class WindowsInstallerPlatformAdapterTests
         var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
 
         Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
+    }
+
+    [TestCase(@"..\AgentUp.Tray.exe")]
+    [TestCase("AgentUp/Tray.exe")]
+    [TestCase("AgentUp.Tray")]
+    [TestCase("CON.exe")]
+    [TestCase("COM¹.exe")]
+    [TestCase("tray.exe.")]
+    [TestCase("tray.exe ")]
+    public void WindowsWixSourceGenerator_rejectsUnsafeExecutableNameBeforeBuildingSourcePath(string trayExecutableName)
+    {
+        var manifest = WindowsInstallerManifest.From(AgentUpTestManifests.Product(), "1.2.3", "http://127.0.0.1:6100") with { TrayExecutableName = trayExecutableName };
+
+        var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
+
+        Assert.That(exception!.ParamName, Is.EqualTo("executableName"));
     }
 
     [TestCase(@"..\outside.cmd")]
@@ -551,7 +567,11 @@ public class WindowsInstallerPlatformAdapterTests
                 BinDirectory: @"C:\Program Files\Agent-Up\bin",
                 StartMenuShortcutPath: @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Agent-Up\Agent-Up.lnk",
                 CliShimName: "agent-up.cmd",
-                UninstallScriptName: "uninstall-agent-up.ps1"));
+                UninstallScriptName: "uninstall-agent-up.ps1",
+                DesktopExecutableName: "AgentUp.Desktop.exe",
+                ServerExecutableName: "AgentUp.Server.exe",
+                TrayExecutableName: "AgentUp.Tray.exe",
+                CliExecutableName: "AgentUp.CLI.exe"));
 
     private static WindowsInstallerPlatformAdapter Adapter(
         RecordingCommandRunner commands,

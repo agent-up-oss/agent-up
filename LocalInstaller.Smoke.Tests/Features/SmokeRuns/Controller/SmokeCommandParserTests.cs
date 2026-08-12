@@ -59,7 +59,7 @@ public sealed class SmokeCommandParserTests
         var result = new SmokeCommandParser().Parse(["unknown"]);
 
         Assert.That(result.Succeeded, Is.False);
-        Assert.That(result.Usage, Does.Contain("AgentUp.PackageSmoke"));
+        Assert.That(result.Usage, Does.Contain("LocalInstaller.Smoke"));
     }
 
     private sealed class CapturingValidationProvider : ISmokeValidationProvider

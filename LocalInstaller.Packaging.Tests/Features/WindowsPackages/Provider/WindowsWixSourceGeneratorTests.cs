@@ -71,7 +71,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_whenTrayDirectoryExists_includesTrayAutoStartRegistryComponent()
     {
-        var layout = CreateLayoutWithPublishedFiles();
+        var layout = CreateAgentUpLayoutWithPublishedFiles();
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
 
         var xml = new WindowsWixSourceGenerator(WindowsPackageManifest.From(
@@ -122,6 +122,30 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Not.Contain("TrayAutoStartComponent"));
     }
 
+    [TestCase("..\\AgentUp.Tray.exe")]
+    [TestCase("AgentUp/Tray.exe")]
+    [TestCase("AgentUp.Tray")]
+    [TestCase("CON.exe")]
+    public void ProductWxs_withUnsafeTrayExecutableName_throwsArgumentException(string trayExecutableName)
+    {
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
+        var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+        WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
+        Directory.CreateDirectory(layout.InstallerSourceDirectory);
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+        var packageManifest = WindowsPackageManifest.From(request);
+        var manifest = packageManifest with
+        {
+            InstallerManifest = packageManifest.InstallerManifest with { TrayExecutableName = trayExecutableName }
+        };
+
+        Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest).ProductWxs(layout));
+    }
+
     [Test]
     public void BundleWxs_chainsProductMsiWithoutLaunchingInstallerApp()
     {
@@ -154,7 +178,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_forNonAgentUpManifestContainsOnlyProductBranding()
     {
-        var layout = CreateLayoutWithPublishedFiles();
+        var layout = CreateOrbitDeskLayoutWithPublishedFiles();
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "orbitctl.cmd"), "");
         var manifest = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
 
@@ -175,7 +199,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void ProductWxs_usesManifestUpgradeGuidSoDistinctProductsCannotUpgradeEachOther()
     {
-        var layout = CreateLayoutWithPublishedFiles();
+        var layout = CreateOrbitDeskLayoutWithPublishedFiles();
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "orbitctl.cmd"), "");
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "nova.cmd"), "");
         var orbit = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
@@ -254,7 +278,7 @@ public class WindowsWixSourceGeneratorTests
     [Test]
     public void BundleAndComponentGuids_areScopedToProductIdentity()
     {
-        var layout = CreateLayoutWithPublishedFiles();
+        var layout = CreateOrbitDeskLayoutWithPublishedFiles();
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "orbitctl.cmd"), "");
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "nova.cmd"), "");
         var orbit = OrbitDeskManifest("8F7D9E6B-1B58-4B28-9567-7B09D779B0AC");
@@ -286,7 +310,7 @@ public class WindowsWixSourceGeneratorTests
         WindowsInstallerManifest second,
         IReadOnlyCollection<string> secondIdentity)
     {
-        var layout = CreateLayoutWithPublishedFiles();
+        var layout = CreateOrbitDeskLayoutWithPublishedFiles();
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, first.CliShimName), "");
         File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, second.CliShimName), "");
 
@@ -315,7 +339,7 @@ public class WindowsWixSourceGeneratorTests
             .SetName("AgentUp_vs_OrbitDesk");
     }
 
-    private WindowsPackageLayout CreateLayoutWithPublishedFiles()
+    private WindowsPackageLayout CreateAgentUpLayoutWithPublishedFiles()
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
@@ -324,6 +348,19 @@ public class WindowsWixSourceGeneratorTests
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
         WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
+        Directory.CreateDirectory(layout.InstallerSourceDirectory);
+        return layout;
+    }
+
+    private WindowsPackageLayout CreateOrbitDeskLayoutWithPublishedFiles()
+    {
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release", new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
+        var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "installer.exe");
+        WritePublishedFile(layout.DesktopPublishDirectory, "desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "cli.exe");
+        WritePublishedFile(layout.TrayPublishDirectory, "tray.exe");
         Directory.CreateDirectory(layout.InstallerSourceDirectory);
         return layout;
     }

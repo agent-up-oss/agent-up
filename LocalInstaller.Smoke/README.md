@@ -17,7 +17,7 @@ dotnet add package LocalInstaller.Smoke
 ## Usage
 
 ```csharp
-using AgentUp.PackageSmoke.Composition;
+using LocalInstaller.Smoke.Composition;
 using Acme.Studio.Cli;
 using Acme.Studio.Desktop;
 using Acme.Studio.Installer;

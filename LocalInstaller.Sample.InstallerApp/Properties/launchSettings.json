@@ -6,7 +6,7 @@
     "LocalInstaller.Sample.InstallerApp (NixOS)": {
       "commandName": "Project",
       "environmentVariables": {
-        "AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY": "1"
+        "LOCALINSTALLERSAMPLE_INSTALLER_NIXOS_LOOKUP_ONLY": "1"
       }
     }
   }

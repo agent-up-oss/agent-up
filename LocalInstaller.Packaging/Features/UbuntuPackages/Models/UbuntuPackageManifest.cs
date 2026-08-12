@@ -11,7 +11,8 @@ public sealed record UbuntuPackageManifest(
     string Architecture,
     string Maintainer,
     string Description,
-    string ServiceName)
+    string ServiceName,
+    string InstallerExecutableName)
 {
     public static UbuntuPackageManifest From(PackageRequest request)
         => From(request, request.ProductManifest);
@@ -21,6 +22,10 @@ public sealed record UbuntuPackageManifest(
         PackageProductManifest.Validate(product);
         var packageName = PackagePathValidator.RequireSafePathComponent(product.Slug, nameof(PackageName));
         var serviceName = $"{packageName}-server.service";
+        var installerExecutableName = PackagePathValidator.RequireSafePathComponent(
+            product.InstallerApplication?.ExecutableName ?? "installer",
+            nameof(product.InstallerApplication.ExecutableName));
+
         return new UbuntuPackageManifest(
             PackageName: packageName,
             ApplicationName: product.ProductName,
@@ -28,7 +33,8 @@ public sealed record UbuntuPackageManifest(
             Architecture: "amd64",
             Maintainer: $"{product.ProductName} <ci@{product.Slug}.local>",
             Description: $"Local {product.ProductName} installer.",
-            ServiceName: serviceName);
+            ServiceName: serviceName,
+            InstallerExecutableName: installerExecutableName);
     }
 
     public string ControlFileText()
@@ -46,7 +52,7 @@ public sealed record UbuntuPackageManifest(
         => $"""
            #!/usr/bin/env bash
            set -e
-           chmod +x /opt/{PackageName}/installer/AgentUp.InstallerApp
+           chmod +x /opt/{PackageName}/installer/{InstallerExecutableName}
            if command -v update-desktop-database >/dev/null 2>&1; then
              update-desktop-database /usr/share/applications 2>/dev/null || true
            fi
@@ -57,21 +63,21 @@ public sealed record UbuntuPackageManifest(
            [Desktop Entry]
            Name={ApplicationName} Installer
            Comment={Description}
-           Exec=/opt/{PackageName}/installer/AgentUp.InstallerApp
+           Exec=/opt/{PackageName}/installer/{InstallerExecutableName}
            Icon={PackageName}
            Type=Application
            Categories=System;
            StartupNotify=true
-           StartupWMClass=AgentUp.InstallerApp
+           StartupWMClass={InstallerExecutableName}
            """ + Environment.NewLine;
 
     public string PreRemoveScript()
         => $"""
            #!/usr/bin/env bash
            set -e
-           /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component server 2>/dev/null || true
-           /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component cli 2>/dev/null || true
-           /opt/{PackageName}/installer/AgentUp.InstallerApp --uninstall-component desktop 2>/dev/null || true
+           /opt/{PackageName}/installer/{InstallerExecutableName} --uninstall-component server 2>/dev/null || true
+           /opt/{PackageName}/installer/{InstallerExecutableName} --uninstall-component cli 2>/dev/null || true
+           /opt/{PackageName}/installer/{InstallerExecutableName} --uninstall-component desktop 2>/dev/null || true
            """ + Environment.NewLine;
 
     public string MetainfoText()

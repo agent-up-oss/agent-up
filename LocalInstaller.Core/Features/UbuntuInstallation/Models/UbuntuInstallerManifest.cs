@@ -6,14 +6,22 @@ public sealed partial record UbuntuInstallerManifest(
     string PackageName,
     string ServiceUnitName,
     string CliCommandName,
-    string DesktopApplicationName)
+    string DesktopApplicationName,
+    string DesktopExecutableName,
+    string ServerExecutableName,
+    string CliExecutableName,
+    string TrayExecutableName)
 {
     public static UbuntuInstallerManifest ForProduct(ProductManifest manifest)
         => new(
             PackageName: manifest.Slug,
             ServiceUnitName: $"{manifest.ServiceName}.service",
             CliCommandName: manifest.CliCommandName,
-            DesktopApplicationName: manifest.ProductName);
+            DesktopApplicationName: manifest.ProductName,
+            DesktopExecutableName: ExecutableName(manifest, InstallerComponentTarget.Desktop, "desktop"),
+            ServerExecutableName: ExecutableName(manifest, InstallerComponentTarget.Server, "server"),
+            CliExecutableName: ExecutableName(manifest, InstallerComponentTarget.Cli, "cli"),
+            TrayExecutableName: ExecutableName(manifest, InstallerComponentTarget.Tray, "tray"));
 
     public string DesktopEntryText(string executablePath, string version)
     {
@@ -28,7 +36,7 @@ public sealed partial record UbuntuInstallerManifest(
                Terminal=false
                Categories=Development;
                StartupNotify=true
-               StartupWMClass=AgentUp.Desktop
+               StartupWMClass={DesktopExecutableName}
                X-{versionKey}-Version={version}
                """ + Environment.NewLine;
     }
@@ -39,7 +47,7 @@ public sealed partial record UbuntuInstallerManifest(
            set -e
            mkdir -p /var/lib/{PackageName}
            touch /var/log/{PackageName}-server.log /var/log/{PackageName}-server.err.log
-           chmod +x /opt/{PackageName}/desktop/AgentUp.Desktop /opt/{PackageName}/server/AgentUp.Server /opt/{PackageName}/cli/AgentUp.CLI
+           chmod +x /opt/{PackageName}/desktop/{DesktopExecutableName} /opt/{PackageName}/server/{ServerExecutableName} /opt/{PackageName}/cli/{CliExecutableName}
            systemctl daemon-reload
            systemctl enable --now {ServiceUnitName}
            if command -v update-desktop-database >/dev/null 2>&1; then
@@ -63,4 +71,7 @@ public sealed partial record UbuntuInstallerManifest(
              update-desktop-database /usr/share/applications || true
            fi
            """ + Environment.NewLine;
+
+    private static string ExecutableName(ProductManifest manifest, InstallerComponentTarget target, string fallback)
+        => manifest.InstallableComponents.FirstOrDefault(component => component.Target == target)?.ExecutableName ?? fallback;
 }

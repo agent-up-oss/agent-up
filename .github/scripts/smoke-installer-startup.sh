@@ -15,8 +15,9 @@ if [ "$platform" != "macos" ]; then
   exit 0
 fi
 
-LOG="$HOME/Library/Logs/Agent-Up/installer.log"
-PROCESS_LOG="$HOME/Library/Logs/Agent-Up/installer-startup-process.log"
+LOG="$HOME/Library/Logs/LocalInstaller/installer.log"
+PROCESS_LOG="$HOME/Library/Logs/LocalInstaller/installer-startup-process.log"
+mkdir -p "$(dirname "$LOG")"
 rm -f "$LOG"
 rm -f "$PROCESS_LOG"
 

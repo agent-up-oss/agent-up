@@ -12,7 +12,10 @@ async function main() {
       [
         '@semantic-release/github',
         {
-          assets: [{ path: 'nupkgs/*.nupkg', label: 'NuGet packages' }],
+          assets: [
+            { path: 'nupkgs/*.nupkg', label: 'NuGet packages' },
+            { path: 'release-artifacts/*', label: 'LocalInstaller sample installers' },
+          ],
         },
       ],
       [

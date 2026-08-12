@@ -2,7 +2,7 @@ using LocalInstaller.Core.Composition;
 using LocalInstaller.Core.Features.Installation.Interfaces;
 using LocalInstaller.Core.Features.Installation.Models;
 
-namespace AgentUp.InstallerApp.Features.Installation.Factories;
+namespace LocalInstaller.App.Features.Installation.Factories;
 
 internal static class InstallerAdapterFactory
 {

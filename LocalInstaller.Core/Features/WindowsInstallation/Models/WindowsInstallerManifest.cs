@@ -13,7 +13,12 @@ public sealed partial record WindowsInstallerManifest(
     string ServiceName,
     string CliShimName,
     string BundleName,
-    string ServerUrl)
+    string ServerUrl,
+    string InstallerExecutableName = "installer.exe",
+    string DesktopExecutableName = "desktop.exe",
+    string ServerExecutableName = "server.exe",
+    string CliExecutableName = "cli.exe",
+    string TrayExecutableName = "tray.exe")
 {
     private static readonly char[] WindowsInvalidFileNameChars = ['<', '>', '"', '|', '?', '*'];
     private static readonly string[] WindowsReservedDeviceNames =
@@ -63,7 +68,11 @@ public sealed partial record WindowsInstallerManifest(
             ServiceName: product.ServiceName,
             CliShimName: $"{product.Slug}.cmd",
             BundleName: product.ProductName,
-            ServerUrl: serverUrl);
+            ServerUrl: serverUrl,
+            DesktopExecutableName: WindowsExecutableName(product, InstallerComponentTarget.Desktop, "desktop"),
+            ServerExecutableName: WindowsExecutableName(product, InstallerComponentTarget.Server, "server"),
+            CliExecutableName: WindowsExecutableName(product, InstallerComponentTarget.Cli, "cli"),
+            TrayExecutableName: WindowsExecutableName(product, InstallerComponentTarget.Tray, "tray"));
 
     private static string StableUpgradeCode(string slug)
     {
@@ -96,6 +105,40 @@ public sealed partial record WindowsInstallerManifest(
     }
 
     public bool UsesLegacyGuidScope { get; init; }
+
+    private static string WindowsExecutableName(ProductManifest product, InstallerComponentTarget target, string fallback)
+    {
+        var name = product.InstallableComponents.FirstOrDefault(component => component.Target == target)?.ExecutableName ?? fallback;
+        var executableName = name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name : name + ".exe";
+        return RequireSafeExecutableFileName(executableName);
+    }
+
+    public static string RequireSafeExecutableFileName(string executableName)
+    {
+        if (string.IsNullOrWhiteSpace(executableName))
+            throw new ArgumentException("Executable name must not be empty.", nameof(executableName));
+
+        if (!executableName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Executable name must end with .exe.", nameof(executableName));
+
+        if (executableName is "." or ".."
+            || executableName.EndsWith(' ')
+            || executableName.EndsWith('.')
+            || executableName.Contains('/', StringComparison.Ordinal)
+            || executableName.Contains('\\', StringComparison.Ordinal)
+            || executableName.Contains(':', StringComparison.Ordinal)
+            || executableName.IndexOfAny(WindowsInvalidFileNameChars) >= 0
+            || executableName.Any(char.IsControl)
+            || System.IO.Path.IsPathFullyQualified(executableName)
+            || !System.IO.Path.GetFileName(executableName).Equals(executableName, StringComparison.Ordinal))
+            throw new ArgumentException("Executable name must be a safe .exe file name.", nameof(executableName));
+
+        var baseName = System.IO.Path.GetFileNameWithoutExtension(executableName);
+        if (WindowsReservedDeviceNames.Contains(baseName, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("Executable name must be a safe .exe file name.", nameof(executableName));
+
+        return executableName;
+    }
 }
 
 public sealed record WindowsInstallerLayout(
@@ -118,6 +161,11 @@ public sealed class WindowsWixSourceGenerator
     {
         _manifest = manifest;
         WindowsInstallerManifest.RequireSafeCliShimFileName(_manifest.CliShimName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.InstallerExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.DesktopExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.ServerExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.CliExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.TrayExecutableName);
     }
 
     public string ProductWxs(WindowsInstallerLayout layout)
@@ -217,7 +265,7 @@ public sealed class WindowsWixSourceGenerator
                 new XElement(Bal + "WixStandardBootstrapperApplication",
                     new XAttribute("Theme", "rtfLicense"),
                     new XAttribute("LicenseFile", layout.LicenseRtfPath),
-                    new XAttribute("LaunchTarget", $@"[ProgramFiles64Folder]{_manifest.ProductName}\installer\AgentUp.InstallerApp.exe"),
+                    new XAttribute("LaunchTarget", $@"[ProgramFiles64Folder]{_manifest.ProductName}\installer\{_manifest.InstallerExecutableName}"),
                     new XAttribute("LaunchWorkingFolder", $@"[ProgramFiles64Folder]{_manifest.ProductName}\installer"))),
             new XElement(Wix + "Chain",
                 new XElement(Wix + "MsiPackage",
@@ -230,8 +278,8 @@ public sealed class WindowsWixSourceGenerator
     public static string LicenseRtf(string productName)
         => $@"{{\rtf1\ansi {productName} installer. See the repository LICENSE file for license terms.}}" + Environment.NewLine;
 
-    public static string CliShimText()
-        => "@echo off\r\n\"%~dp0..\\cli\\AgentUp.CLI.exe\" %*\r\n";
+    public string CliShimText()
+        => $"@echo off\r\n\"%~dp0..\\cli\\{_manifest.CliExecutableName}\" %*\r\n";
 
     private IEnumerable<(string Id, XElement Element)> Components(WindowsInstallerLayout layout)
     {
@@ -247,11 +295,11 @@ public sealed class WindowsWixSourceGenerator
         foreach (var file in Directory.EnumerateFiles(layout.ServerPublishDirectory, "*", SearchOption.AllDirectories))
         {
             var component = FileComponent("Server", "ServerDir", layout.ServerPublishDirectory, file);
-            if (System.IO.Path.GetFileName(file).Equals("AgentUp.Server.exe", StringComparison.OrdinalIgnoreCase))
+            if (System.IO.Path.GetFileName(file).Equals(_manifest.ServerExecutableName, StringComparison.OrdinalIgnoreCase))
             {
                 component.Element.Add(
                     new XElement(Wix + "ServiceInstall",
-                        new XAttribute("Id", "AgentUpServerService"),
+                        new XAttribute("Id", "ProductServerService"),
                         new XAttribute("Type", "ownProcess"),
                         new XAttribute("Name", _manifest.ServiceName),
                         new XAttribute("DisplayName", _manifest.ServiceDisplayName),
@@ -260,7 +308,7 @@ public sealed class WindowsWixSourceGenerator
                         new XAttribute("ErrorControl", "normal"),
                         new XAttribute("Arguments", $"--urls {_manifest.ServerUrl}")),
                     new XElement(Wix + "ServiceControl",
-                        new XAttribute("Id", "StartAgentUpServerService"),
+                        new XAttribute("Id", "StartProductServerService"),
                         new XAttribute("Name", _manifest.ServiceName),
                         new XAttribute("Stop", "uninstall"),
                         new XAttribute("Remove", "uninstall"),
@@ -279,13 +327,14 @@ public sealed class WindowsWixSourceGenerator
 
         if (Directory.Exists(layout.TrayPublishDirectory))
         {
+            var trayExecutableName = WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.TrayExecutableName);
             foreach (var file in Directory.EnumerateFiles(layout.TrayPublishDirectory, "*", SearchOption.AllDirectories))
             {
                 yield return FileComponent("Tray", "TrayDir", layout.TrayPublishDirectory, file);
                 yield return FileComponent("InstallerPayloadTray", "InstallerPayloadTrayDir", layout.TrayPublishDirectory, file);
             }
 
-            if (File.Exists(System.IO.Path.Join(layout.TrayPublishDirectory, "AgentUp.Tray.exe")))
+            if (File.Exists(System.IO.Path.Join(layout.TrayPublishDirectory, trayExecutableName)))
             {
                 var trayAutoStart = new XElement(Wix + "Component",
                     new XAttribute("Id", "TrayAutoStartComponent"),
@@ -296,7 +345,7 @@ public sealed class WindowsWixSourceGenerator
                         new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Run"),
                         new XAttribute("Name", _manifest.ProductName),
                         new XAttribute("Type", "string"),
-                        new XAttribute("Value", "\"[TrayDir]AgentUp.Tray.exe\""),
+                        new XAttribute("Value", $"\"[TrayDir]{trayExecutableName}\""),
                         new XAttribute("KeyPath", "yes")));
                 yield return ("TrayAutoStartComponent", trayAutoStart);
             }
@@ -329,7 +378,7 @@ public sealed class WindowsWixSourceGenerator
             new XElement(Wix + "Shortcut",
                 new XAttribute("Id", "ApplicationStartMenuShortcut"),
                 new XAttribute("Name", _manifest.ProductName),
-                new XAttribute("Target", "[DesktopDir]AgentUp.Desktop.exe"),
+                new XAttribute("Target", $"[DesktopDir]{_manifest.DesktopExecutableName}"),
                 new XAttribute("WorkingDirectory", "DesktopDir")),
             new XElement(Wix + "RemoveFolder",
                 new XAttribute("Id", "RemoveApplicationProgramsFolder"),
@@ -350,7 +399,7 @@ public sealed class WindowsWixSourceGenerator
             new XElement(Wix + "Shortcut",
                 new XAttribute("Id", "InstallerStartMenuShortcut"),
                 new XAttribute("Name", $"{_manifest.ProductName} Installer"),
-                new XAttribute("Target", "[InstallerDir]AgentUp.InstallerApp.exe"),
+                new XAttribute("Target", $"[InstallerDir]{_manifest.InstallerExecutableName}"),
                 new XAttribute("WorkingDirectory", "InstallerDir")),
             new XElement(Wix + "RegistryValue",
                 new XAttribute("Root", "HKCU"),
@@ -390,4 +439,5 @@ public sealed class WindowsWixSourceGenerator
         var bytes = MD5.HashData(Encoding.UTF8.GetBytes(seed));
         return new Guid(bytes).ToString("D").ToUpperInvariant();
     }
+
 }

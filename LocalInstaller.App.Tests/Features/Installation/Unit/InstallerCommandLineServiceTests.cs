@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Installation.Services;
+using LocalInstaller.App.Features.Installation.Services;
 
 namespace LocalInstaller.App.Tests.Features.Installation.Unit;
 

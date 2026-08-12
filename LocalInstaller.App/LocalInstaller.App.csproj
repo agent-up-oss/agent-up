@@ -4,23 +4,23 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>AgentUp.InstallerApp</RootNamespace>
+    <RootNamespace>LocalInstaller.App</RootNamespace>
     <IsPackable>true</IsPackable>
     <PackageId>LocalInstaller.App</PackageId>
     <Version>$(LocalInstallerVersion)</Version>
     <Authors>themassiveone</Authors>
-    <Company>Agent-Up</Company>
+    <Company>LocalInstaller</Company>
     <Description>Avalonia-based installer GUI and command-line interface built on LocalInstaller.Core.</Description>
     <PackageTags>installer;gui;avalonia;cross-platform;localinstaller</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>logo.png</PackageIcon>
-    <Copyright>Copyright © 2025 themassiveone, Agent-Up</Copyright>
+    <Copyright>Copyright © 2025 themassiveone</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>AgentUp.InstallerApp.Tests</_Parameter1>
+      <_Parameter1>LocalInstaller.App.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 

@@ -1,5 +1,5 @@
 using System.Xml.Linq;
-using AgentUp.InstallerApp.Features.Installation.Views;
+using LocalInstaller.App.Features.Installation.Views;
 
 namespace LocalInstaller.App.Tests.Features.Installation.Provider;
 

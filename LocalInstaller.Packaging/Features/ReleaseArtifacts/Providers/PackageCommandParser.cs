@@ -5,7 +5,7 @@ namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Providers;
 
 public sealed class PackageCommandParser : IPackageCommandParser
 {
-    public const string Usage = "Usage: AgentUp.Packaging package <platform> <runtime-id> <version> [output-dir] [--payload-root <path>]";
+    public const string Usage = "Usage: LocalInstaller.Packaging package <platform> <runtime-id> <version> [output-dir] [--payload-root <path>]";
 
     private readonly IEnvironmentVariableProvider _environment;
 
@@ -20,7 +20,7 @@ public sealed class PackageCommandParser : IPackageCommandParser
             return PackageCommandParseResult.Failure(Usage);
 
         var outputDirectory = "artifacts";
-        var payloadRoot = _environment.Get("AGENTUP_PACKAGE_PAYLOAD_ROOT");
+        var payloadRoot = _environment.Get("LOCALINSTALLER_PACKAGE_PAYLOAD_ROOT");
         var index = 4;
 
         if (index < args.Length && args[index] != "--payload-root")

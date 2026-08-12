@@ -31,11 +31,11 @@ public class ProcessCommandRunnerTests
             new CommandSpec("powershell.exe", [
                 "-NoProfile",
                 "-Command",
-                "& $env:AGENTUP_SMOKE_INSTALLER_APP --payload-root $env:AGENTUP_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'Agent-Up\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"
+                "& $env:LOCALINSTALLER_SMOKE_INSTALLER_APP --payload-root $env:LOCALINSTALLER_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'LocalInstaller\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"
             ], Environment: new Dictionary<string, string>
             {
-                ["AGENTUP_SMOKE_INSTALLER_APP"] = @"C:\Program Files\Agent-Up\installer\AgentUp.InstallerApp.exe",
-                ["AGENTUP_SMOKE_PAYLOAD_ROOT"] = @"C:\Program Files\Agent-Up\installer\payload"
+                ["LOCALINSTALLER_SMOKE_INSTALLER_APP"] = @"C:\Program Files\Agent-Up\installer\AgentUp.InstallerApp.exe",
+                ["LOCALINSTALLER_SMOKE_PAYLOAD_ROOT"] = @"C:\Program Files\Agent-Up\installer\payload"
             }));
 
         Assert.That(result.ExitCode, Is.Not.EqualTo(126), result.Stderr);

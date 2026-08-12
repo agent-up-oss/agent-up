@@ -1,11 +1,11 @@
 using System.Text.Json;
-using AgentUp.InstallerApp.Features.Capabilities.Models;
+using LocalInstaller.App.Features.Capabilities.Models;
 
-namespace AgentUp.InstallerApp.Features.Capabilities.Providers;
+namespace LocalInstaller.App.Features.Capabilities.Providers;
 
 public sealed class CapabilityInventoryFileProvider
 {
-    public const string InventoryPathVariable = "AGENTUP_CAPABILITY_INVENTORY_PATH";
+    public const string InventoryPathVariable = "LOCALINSTALLER_CAPABILITY_INVENTORY_PATH";
 
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
@@ -25,11 +25,11 @@ public sealed class CapabilityInventoryFileProvider
     {
         var candidates = new List<string>();
         AddCandidate(candidates, Environment.GetEnvironmentVariable(InventoryPathVariable));
-        AddCandidate(candidates, "/etc/agent-up/capabilities.json");
+        AddCandidate(candidates, "/etc/localinstaller/capabilities.json");
 
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!string.IsNullOrWhiteSpace(home))
-            AddCandidate(candidates, Path.Join(home, ".config", "agent-up", "capabilities.json"));
+            AddCandidate(candidates, Path.Join(home, ".config", "localinstaller", "capabilities.json"));
 
         return candidates;
     }

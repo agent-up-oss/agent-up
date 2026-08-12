@@ -23,7 +23,7 @@ public class PackageCommandControllerTests
             environment: name => name switch
             {
                 "CONFIGURATION" => "Debug",
-                "AGENTUP_PACKAGE_PAYLOAD_ROOT" => "/payload",
+                "LOCALINSTALLER_PACKAGE_PAYLOAD_ROOT" => "/payload",
                 _ => null,
             });
 
@@ -43,7 +43,7 @@ public class PackageCommandControllerTests
         var calls = new List<(string Target, PackageRequest Request)>();
         var controller = CreateController(
             calls,
-            environment: name => name == "AGENTUP_PACKAGE_PAYLOAD_ROOT" ? "/env-payload" : null);
+            environment: name => name == "LOCALINSTALLER_PACKAGE_PAYLOAD_ROOT" ? "/env-payload" : null);
 
         using var error = new StringWriter();
         var exitCode = await controller.ExecuteAsync(
@@ -82,7 +82,7 @@ public class PackageCommandControllerTests
 
         Assert.That(exitCode, Is.EqualTo(78));
         Assert.That(calls, Is.Empty);
-        Assert.That(error.ToString(), Does.Contain("Platform 'nixos' is not yet implemented by AgentUp.Packaging."));
+        Assert.That(error.ToString(), Does.Contain("Platform 'nixos' is not yet implemented by LocalInstaller.Packaging."));
     }
 
     [Test]
@@ -94,7 +94,7 @@ public class PackageCommandControllerTests
         var exitCode = await controller.ExecuteAsync(["package", "ubuntu"], error);
 
         Assert.That(exitCode, Is.EqualTo(2));
-        Assert.That(error.ToString(), Is.EqualTo("Usage: AgentUp.Packaging package <platform> <runtime-id> <version> [output-dir] [--payload-root <path>]" + Environment.NewLine));
+        Assert.That(error.ToString(), Is.EqualTo("Usage: LocalInstaller.Packaging package <platform> <runtime-id> <version> [output-dir] [--payload-root <path>]" + Environment.NewLine));
     }
 
     [Test]

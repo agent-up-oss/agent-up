@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace AgentUp.InstallerApp.Features.Logging.Tools;
+namespace LocalInstaller.App.Features.Logging.Tools;
 
 public static class InstallerLog
 {
@@ -58,7 +58,7 @@ public static class InstallerLog
     public static void WriteError(string message)
     {
         Write(message);
-        try { Console.Error.WriteLine($"[Agent-Up Installer] {message}"); }
+        try { Console.Error.WriteLine($"[LocalInstaller] {message}"); }
         catch (IOException ex) { Trace.TraceWarning(ex.Message); }
     }
 
@@ -73,11 +73,11 @@ public static class InstallerLog
         if (OperatingSystem.IsWindows())
             return Path.Join(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Agent-Up", "Logs", "installer.log");
+                "LocalInstaller", "Logs", "installer.log");
 
         return Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".local", "share", "agent-up", "installer.log");
+            ".local", "share", "localinstaller", "installer.log");
     }
 
     internal static string ResolveMacOsLogPath(bool? isPrivileged = null, bool? systemDirExists = null)
@@ -86,8 +86,8 @@ public static class InstallerLog
         // and the user GUI process both write to the same file.
         // Use it only when accessible: we're root, or a prior root run already created the directory.
         // Falls back to ~/Library/Logs when neither condition holds (fresh launch, CI, etc.).
-        const string SystemLogPath = "/Library/Logs/Agent-Up/installer.log";
-        if ((isPrivileged ?? Environment.IsPrivilegedProcess) || (systemDirExists ?? Directory.Exists("/Library/Logs/Agent-Up")))
+        const string SystemLogPath = "/Library/Logs/LocalInstaller/installer.log";
+        if ((isPrivileged ?? Environment.IsPrivilegedProcess) || (systemDirExists ?? Directory.Exists("/Library/Logs/LocalInstaller")))
             return SystemLogPath;
 
         return UserMacOsLogPath();
@@ -96,5 +96,5 @@ public static class InstallerLog
     private static string UserMacOsLogPath()
         => Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "Library", "Logs", "Agent-Up", "installer.log");
+            "Library", "Logs", "LocalInstaller", "installer.log");
 }

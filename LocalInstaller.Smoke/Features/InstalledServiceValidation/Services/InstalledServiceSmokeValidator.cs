@@ -60,13 +60,13 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             await SmokeTraySessionAsync(readyUrl, assert, cancellationToken);
             readyUrl = await SmokeServiceRestartAsync(request, readyUrl, assert, cancellationToken) ?? readyUrl;
             await SmokeCliWorkspaceAsync(request, context.CliCommand, context.CliEnvironment, readyUrl, assert, request.Product.CliShimName, cancellationToken);
-            if (Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL") != "1")
+            if (!SkipRealCapabilitySmoke())
             {
                 using var capabilitySmoke = new CapabilityLifecycleSmoke(
                     _commands,
-                    new CapabilityWorkspaceProvider(),
+                    new CapabilityWorkspaceProvider(request.Product.WorkspaceConfigFileName, request.Product.ServerUrlEnvironmentVariable),
                     new DotnetSmokeBuildProvider(_commands));
-                await capabilitySmoke.RunAsync(request.WorkDirectory, context, readyUrl, assert, cancellationToken);
+                await capabilitySmoke.RunAsync(request.WorkDirectory, context, request.Product.CliShimName, readyUrl, assert, cancellationToken);
             }
 
             return new InstalledServiceSmokeResult(readyUrl, assert.Findings);
@@ -77,6 +77,10 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
                 await UninstallAsync(request, context, assert, cancellationToken);
         }
     }
+
+    private static bool SkipRealCapabilitySmoke()
+        => Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL") == "1"
+           || Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL") == "1";
 
     protected abstract Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,
@@ -168,7 +172,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         await RunRequiredAsync(assert, GitCommand(repo, GitSmokeCommand.Add, configFileName), "installed.git.add", cancellationToken);
         await RunRequiredAsync(assert, GitCommand(repo, GitSmokeCommand.Commit, configFileName), "installed.git.commit", cancellationToken);
 
-        var environment = MergeEnvironment(cliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
+        var environment = MergeEnvironment(cliEnvironment, request.Product.ServerUrlEnvironmentVariable, serverUrl);
         var start = await _commands.RunAsync(CliCommand(cliCommand, shimName, "start", repo, environment), cancellationToken);
         await File.WriteAllTextAsync(SafeSmokePaths.Child(request.WorkDirectory, "cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains("Started workspace \"Installed Service Smoke Workspace\"", StringComparison.Ordinal))
@@ -216,8 +220,8 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
         {
             var shellCommand = argument switch
             {
-                "start" => $"Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; {shimName}.cmd start",
-                "status" => $"Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; {shimName}.cmd status",
+                "start" => $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; {shimName}.cmd start",
+                "status" => $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; {shimName}.cmd status",
                 _ => throw new ArgumentOutOfRangeException(nameof(argument), argument, "Unsupported CLI smoke command.")
             };
 
@@ -226,8 +230,8 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
 
         var unixShellCommand = argument switch
         {
-            "start" => $"cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && {shimName} start",
-            "status" => $"cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && {shimName} status",
+            "start" => $"cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && {shimName} start",
+            "status" => $"cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && {shimName} status",
             _ => throw new ArgumentOutOfRangeException(nameof(argument), argument, "Unsupported CLI smoke command.")
         };
 
@@ -284,22 +288,22 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
     private static string UnixGitCommand(GitSmokeCommand command, string configFileName)
         => command switch
         {
-            GitSmokeCommand.Init => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q",
-            GitSmokeCommand.Email => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local",
-            GitSmokeCommand.Name => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"",
-            GitSmokeCommand.Add => $"cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add {configFileName}",
-            GitSmokeCommand.Commit => "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
+            GitSmokeCommand.Init => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git init -q",
+            GitSmokeCommand.Email => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local",
+            GitSmokeCommand.Name => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"",
+            GitSmokeCommand.Add => $"cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git add {configFileName}",
+            GitSmokeCommand.Commit => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported git smoke command.")
         };
 
     private static string WindowsGitCommand(GitSmokeCommand command, string configFileName)
         => command switch
         {
-            GitSmokeCommand.Init => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q",
-            GitSmokeCommand.Email => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local",
-            GitSmokeCommand.Name => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"",
-            GitSmokeCommand.Add => $"Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add {configFileName}",
-            GitSmokeCommand.Commit => "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
+            GitSmokeCommand.Init => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git init -q",
+            GitSmokeCommand.Email => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local",
+            GitSmokeCommand.Name => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"",
+            GitSmokeCommand.Add => $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git add {configFileName}",
+            GitSmokeCommand.Commit => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported git smoke command.")
         };
 
@@ -334,6 +338,6 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             disposable.Dispose();
     }
 
-    private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
+    private const string WorkingDirectoryEnvironmentKey = "LOCALINSTALLER_SMOKE_WORKING_DIRECTORY";
 
 }

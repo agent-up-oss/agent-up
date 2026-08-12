@@ -9,7 +9,7 @@ public class PackageCommandParserTests
     [Test]
     public void Parse_withMinimalPackageCommandUsesDefaults()
     {
-        var parser = new PackageCommandParser(new RecordingEnvironment(name => name == "AGENTUP_PACKAGE_PAYLOAD_ROOT" ? "/payload" : null));
+        var parser = new PackageCommandParser(new RecordingEnvironment(name => name == "LOCALINSTALLER_PACKAGE_PAYLOAD_ROOT" ? "/payload" : null));
 
         var result = parser.Parse(["package", "ubuntu", "linux-x64", "1.2.3"]);
 

@@ -20,6 +20,7 @@ public class UbuntuPackageManifestTests
         Assert.That(manifest.PackageName, Is.EqualTo("agent-up"));
         Assert.That(manifest.ApplicationName, Is.EqualTo("Agent-Up"));
         Assert.That(manifest.ServiceName, Is.EqualTo("agent-up-server.service"));
+        Assert.That(manifest.InstallerExecutableName, Is.EqualTo("AgentUp.InstallerApp"));
     }
 
     [Test]
@@ -70,5 +71,27 @@ public class UbuntuPackageManifestTests
 
         Assert.That(text, Does.Contain("Icon=agent-up"));
         Assert.That(text, Does.Contain("StartupWMClass=AgentUp.InstallerApp"));
+    }
+
+    [Test]
+    public void From_usesRegisteredInstallerApplicationExecutable()
+    {
+        var product = new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+        {
+            InstallerApplication = new PackageProductArtifact(
+                "orbit-installer",
+                "Installer",
+                "",
+                "Orbit.Installer",
+                "Orbit.Installer/Orbit.Installer.csproj",
+                "installer",
+                LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.InstallerApp)
+        };
+        var manifest = UbuntuPackageManifest.From(new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "artifacts", "Release", product));
+
+        Assert.That(manifest.InstallerExecutableName, Is.EqualTo("Orbit.Installer"));
+        Assert.That(manifest.PostInstallScript(), Does.Contain("chmod +x /opt/orbit-desk/installer/Orbit.Installer"));
+        Assert.That(manifest.InstallerDesktopEntryText(), Does.Contain("Exec=/opt/orbit-desk/installer/Orbit.Installer"));
+        Assert.That(manifest.InstallerDesktopEntryText(), Does.Contain("StartupWMClass=Orbit.Installer"));
     }
 }

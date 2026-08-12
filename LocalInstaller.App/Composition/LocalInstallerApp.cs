@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Text;
-using AgentUp.InstallerApp.Features.Logging.Tools;
+using LocalInstaller.App.Features.Logging.Tools;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using LocalInstaller.Core.Composition;
@@ -8,7 +8,7 @@ using LocalInstaller.Core.Features.Installation.Models;
 using LocalInstaller.Core.Features.WindowsInstallation.Models;
 using LocalInstaller.Core.Shared.Models;
 
-namespace AgentUp.InstallerApp.Composition;
+namespace LocalInstaller.App.Composition;
 
 public static class LocalInstallerApp
 {

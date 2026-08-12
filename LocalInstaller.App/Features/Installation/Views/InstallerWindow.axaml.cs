@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
-using AgentUp.InstallerApp.Features.Installation.ViewModels;
-using AgentUp.InstallerApp.Features.Logging.Tools;
+using LocalInstaller.App.Features.Installation.ViewModels;
+using LocalInstaller.App.Features.Logging.Tools;
 
-namespace AgentUp.InstallerApp.Features.Installation.Views;
+namespace LocalInstaller.App.Features.Installation.Views;
 
 public partial class InstallerWindow : Window
 {

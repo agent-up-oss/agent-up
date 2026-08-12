@@ -1,5 +1,5 @@
-using AgentUp.InstallerApp.Features.Installation.Controllers;
-using AgentUp.InstallerApp.Features.Installation.Services;
+using LocalInstaller.App.Features.Installation.Controllers;
+using LocalInstaller.App.Features.Installation.Services;
 using LocalInstaller.Core.Features.Installation.DTOs;
 using LocalInstaller.Core.Features.Installation.Interfaces;
 using LocalInstaller.Core.Features.Installation.Models;

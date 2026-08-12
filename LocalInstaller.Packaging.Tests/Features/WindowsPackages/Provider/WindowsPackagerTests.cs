@@ -93,7 +93,7 @@ public class WindowsPackagerTests
             "1.2.3",
             "out",
             "Release",
-            productManifest: new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK"));
+            productManifest: OrbitDeskProduct());
 
         try
         {
@@ -118,6 +118,19 @@ public class WindowsPackagerTests
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Join(directory, fileName), "");
     }
+
+    private static PackageProductManifest OrbitDeskProduct()
+        => new("Orbit Desk", "orbit-desk", "ORBITDESK")
+        {
+            InstallerApplication = new PackageProductArtifact("orbit-installer", "Installer", "", "Orbit.Installer", "Orbit.Installer/Orbit.Installer.csproj", "installer", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.InstallerApp),
+            InstallerOptions =
+            [
+                new PackageProductArtifact("orbit-cli", "CLI", "", "Orbit.Cli", "Orbit.Cli/Orbit.Cli.csproj", "cli", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Cli),
+                new PackageProductArtifact("orbit-server", "Server", "", "Orbit.Server", "Orbit.Server/Orbit.Server.csproj", "server", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Server),
+                new PackageProductArtifact("orbit-desktop", "Desktop", "", "Orbit.Desktop", "Orbit.Desktop/Orbit.Desktop.csproj", "desktop", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Desktop),
+                new PackageProductArtifact("orbit-tray", "Tray", "", "Orbit.Tray", "Orbit.Tray/Orbit.Tray.csproj", "tray", LocalInstaller.Core.Shared.Models.LocalInstallerArtifactTarget.Tray)
+            ]
+        };
 
     private static PayloadStagingController CreatePayloads(ICommandRunner commands, IWindowsPackageWriter writer)
         => new(new PackagePayloadStager(new PackagePublisher(commands), writer));

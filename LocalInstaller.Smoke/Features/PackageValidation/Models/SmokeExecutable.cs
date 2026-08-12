@@ -3,8 +3,8 @@ namespace LocalInstaller.Smoke.Features.PackageValidation.Models;
 internal enum SmokeExecutable
 {
     Unknown,
-    AgentUp,
-    AgentUpCmd,
+    ProductCli,
+    ProductCliCmd,
     Bash,
     Cmd,
     DpkgDeb,

@@ -40,8 +40,8 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             assert,
             new CommandSpec("powershell.exe", ["-NoProfile", "-Command", InstallCoreCommand], Environment: new Dictionary<string, string>
             {
-                ["AGENTUP_SMOKE_INSTALLER_APP"] = installerApp,
-                ["AGENTUP_SMOKE_PAYLOAD_ROOT"] = installedPayloadRoot
+                ["LOCALINSTALLER_SMOKE_INSTALLER_APP"] = installerApp,
+                ["LOCALINSTALLER_SMOKE_PAYLOAD_ROOT"] = installedPayloadRoot
             }),
             "installed.windows.install-core",
             cancellationToken);
@@ -60,14 +60,14 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
             "installed.windows.tray.autostart",
             cancellationToken);
 
-        const string pathCheck = "$displayName = $env:AGENTUP_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:AGENTUP_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }";
+        const string pathCheck = "$displayName = $env:LOCALINSTALLER_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:LOCALINSTALLER_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }";
 
         await RunRequiredAsync(
             assert,
             new CommandSpec("powershell.exe", ["-NoProfile", "-Command", pathCheck], Environment: new Dictionary<string, string>
             {
-                ["AGENTUP_INSTALL_DIR"] = installDir,
-                ["AGENTUP_PRODUCT_DISPLAY_NAME"] = product.DisplayName
+                ["LOCALINSTALLER_INSTALL_DIR"] = installDir,
+                ["LOCALINSTALLER_PRODUCT_DISPLAY_NAME"] = product.DisplayName
             }),
             "installed.windows.registration",
             cancellationToken);
@@ -128,7 +128,7 @@ public sealed class WindowsInstalledServiceSmokeValidator : InstalledServiceSmok
     private static string Window(string[] lines, int start, int end)
         => string.Join(Environment.NewLine, lines[start..end]);
 
-    private const string InstallCoreCommand = "& $env:AGENTUP_SMOKE_INSTALLER_APP --payload-root $env:AGENTUP_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'Agent-Up\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit";
+    private const string InstallCoreCommand = "& $env:LOCALINSTALLER_SMOKE_INSTALLER_APP --payload-root $env:LOCALINSTALLER_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'LocalInstaller\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit";
 
     private async Task RunServiceStartAsync(FileAssertions assert, string serviceName, CancellationToken cancellationToken)
     {

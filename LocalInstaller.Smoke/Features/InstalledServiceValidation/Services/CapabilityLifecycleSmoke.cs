@@ -13,7 +13,7 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
     private const string WorkspaceName = "Capability Lifecycle Smoke Workspace";
     private const string DotnetAppName = "SmokeDotnet";
     private const string DockerAppName = "SmokeDocker";
-    private const string WorkingDirectoryEnvironmentKey = "AGENTUP_SMOKE_WORKING_DIRECTORY";
+    private const string WorkingDirectoryEnvironmentKey = "LOCALINSTALLER_SMOKE_WORKING_DIRECTORY";
     private static readonly TimeSpan StateWaitTimeout = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan StatePollDelay = TimeSpan.FromMilliseconds(500);
 
@@ -39,6 +39,7 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
     public async Task RunAsync(
         string workDirectory,
         InstalledServiceContext context,
+        string cliShimName,
         string serverUrl,
         FileAssertions assert,
         CancellationToken cancellationToken)
@@ -48,8 +49,8 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         await BuildDotnetSmokeAppAsync(repo, assert, cancellationToken);
         await GitCommitConfigAsync(repo, assert, cancellationToken);
 
-        var environment = MergeEnvironment(context.CliEnvironment, "AGENTUP_SERVER_URL", serverUrl);
-        var start = await _commands.RunAsync(CliCommand(context.CliCommand, "start", repo, environment), cancellationToken);
+        var environment = MergeEnvironment(context.CliEnvironment, _workspace.ServerUrlEnvironmentVariable, serverUrl);
+        var start = await _commands.RunAsync(CliCommand(context.CliCommand, cliShimName, "start", repo, environment), cancellationToken);
         await File.WriteAllTextAsync(SafeSmokePaths.Child(safeWorkDirectory, "capability-cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
         if (start.ExitCode != 0 || !start.Stdout.Contains($"Started workspace \"{WorkspaceName}\"", StringComparison.Ordinal))
         {
@@ -301,7 +302,7 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         return !string.IsNullOrWhiteSpace(value);
     }
 
-    private static IReadOnlyList<(CommandSpec Spec, string Code)> GitCommands(string repo)
+    private IReadOnlyList<(CommandSpec Spec, string Code)> GitCommands(string repo)
     {
         var environment = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -311,32 +312,33 @@ public sealed class CapabilityLifecycleSmoke : IDisposable
         return OperatingSystem.IsWindows()
             ?
             [
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git init -q"], Environment: environment), "capability.git.init"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git add agent-up.json"], Environment: environment), "capability.git.add"),
-                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git init -q"], Environment: environment), "capability.git.init"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git add {_workspace.WorkspaceConfigFileName}"], Environment: environment), "capability.git.add"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
             ]
             :
             [
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git init -q"], Environment: environment), "capability.git.init"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git add agent-up.json"], Environment: environment), "capability.git.add"),
-                (new CommandSpec("bash", ["-lc", "cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git init -q"], Environment: environment), "capability.git.init"),
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("bash", ["-lc", $"cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git add {_workspace.WorkspaceConfigFileName}"], Environment: environment), "capability.git.add"),
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
             ];
     }
 
     private static CommandSpec CliCommand(
         string command,
+        string shimName,
         string argument,
         string workingDirectory,
         IReadOnlyDictionary<string, string>? environment)
     {
         var workingEnvironment = MergeEnvironment(environment, WorkingDirectoryEnvironmentKey, workingDirectory);
         return command == "cmd.exe"
-            ? new CommandSpec("powershell.exe", ["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:AGENTUP_SMOKE_WORKING_DIRECTORY; agent-up.cmd {argument}"], Environment: workingEnvironment)
-            : new CommandSpec("bash", ["-lc", $"cd \"$AGENTUP_SMOKE_WORKING_DIRECTORY\" && agent-up {argument}"], Environment: workingEnvironment);
+            ? new CommandSpec("powershell.exe", ["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; {shimName}.cmd {argument}"], Environment: workingEnvironment)
+            : new CommandSpec("bash", ["-lc", $"cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && {shimName} {argument}"], Environment: workingEnvironment);
     }
 
     private static Dictionary<string, string> MergeEnvironment(

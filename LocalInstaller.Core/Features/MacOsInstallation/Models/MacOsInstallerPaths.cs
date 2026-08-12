@@ -13,7 +13,11 @@ public sealed partial record MacOsInstallerPaths(
     string CliSymlinkPath,
     string ServerSymlinkPath,
     string DesktopSymlinkPath,
-    string BundleIconFile)
+    string BundleIconFile,
+    string DesktopExecutableName,
+    string ServerExecutableName,
+    string TrayExecutableName,
+    string CliExecutableName)
 {
     public static MacOsInstallerPaths From(ProductManifest product)
     {
@@ -40,7 +44,11 @@ public sealed partial record MacOsInstallerPaths(
             CliSymlinkPath: cliSymlinkPath,
             ServerSymlinkPath: serverSymlinkPath,
             DesktopSymlinkPath: desktopSymlinkPath,
-            BundleIconFile: identity.BundleIconFile);
+            BundleIconFile: identity.BundleIconFile,
+            DesktopExecutableName: ExecutableName(product, InstallerComponentTarget.Desktop, "desktop"),
+            ServerExecutableName: ExecutableName(product, InstallerComponentTarget.Server, "server"),
+            TrayExecutableName: ExecutableName(product, InstallerComponentTarget.Tray, "tray"),
+            CliExecutableName: ExecutableName(product, InstallerComponentTarget.Cli, "cli"));
     }
 
     private static string Under(string root, params string[] segments)
@@ -56,11 +64,14 @@ public sealed partial record MacOsInstallerPaths(
         return path;
     }
 
-    public string DesktopExecutable => System.IO.Path.Join(AppBundleDirectory, "Contents", "MacOS", "AgentUp.Desktop");
-    public string ServerExecutable => System.IO.Path.Join(ServerDirectory, "AgentUp.Server");
-    public string TrayExecutable => System.IO.Path.Join(TrayDirectory, "AgentUp.Tray");
-    public string CliExecutable => System.IO.Path.Join(CliDirectory, "AgentUp.CLI");
+    public string DesktopExecutable => System.IO.Path.Join(AppBundleDirectory, "Contents", "MacOS", DesktopExecutableName);
+    public string ServerExecutable => System.IO.Path.Join(ServerDirectory, ServerExecutableName);
+    public string TrayExecutable => System.IO.Path.Join(TrayDirectory, TrayExecutableName);
+    public string CliExecutable => System.IO.Path.Join(CliDirectory, CliExecutableName);
     public string DesktopInfoPlistPath => System.IO.Path.Join(AppBundleDirectory, "Contents", "Info.plist");
     public string DesktopResourcesDirectory => System.IO.Path.Join(AppBundleDirectory, "Contents", "Resources");
     public string DesktopIconPath => System.IO.Path.Join(DesktopResourcesDirectory, BundleIconFile);
+
+    private static string ExecutableName(ProductManifest product, InstallerComponentTarget target, string fallback)
+        => product.InstallableComponents.FirstOrDefault(component => component.Target == target)?.ExecutableName ?? fallback;
 }

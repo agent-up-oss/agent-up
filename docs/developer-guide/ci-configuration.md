@@ -82,6 +82,8 @@ The release job uses `GITHUB_TOKEN`, which GitHub provides automatically. No set
 
 Releases only run on `main` when semantic-release determines a new version is warranted based on [Conventional Commits](https://www.conventionalcommits.org/).
 
+LocalInstaller NuGet publishing is optional. Add `NUGET_API_KEY` to publish `LocalInstaller.*` packages from the `localinstaller.yml` release job; when the secret is absent, the GitHub release still publishes the NuGet package files and sample installer assets.
+
 ## JetBrains Marketplace
 
 JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry in JetBrains Marketplace once, then add a Marketplace token from the vendor profile. The release job publishes `Plugins/Jetbrains` through Gradle after the GitHub release succeeds, using the same planned release version that was injected into the release ZIP.

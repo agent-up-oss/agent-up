@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Logging.Tools;
+using LocalInstaller.App.Features.Logging.Tools;
 
 namespace LocalInstaller.App.Tests.Features.Logging.Provider;
 
@@ -10,7 +10,7 @@ public class InstallerLogTests
     {
         Assert.That(
             InstallerLog.ResolveMacOsLogPath(isPrivileged: true, systemDirExists: false),
-            Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
+            Is.EqualTo("/Library/Logs/LocalInstaller/installer.log"));
     }
 
     [Test]
@@ -18,7 +18,7 @@ public class InstallerLogTests
     {
         Assert.That(
             InstallerLog.ResolveMacOsLogPath(isPrivileged: false, systemDirExists: true),
-            Is.EqualTo("/Library/Logs/Agent-Up/installer.log"));
+            Is.EqualTo("/Library/Logs/LocalInstaller/installer.log"));
     }
 
     [Test]
@@ -27,16 +27,16 @@ public class InstallerLogTests
         var path = InstallerLog.ResolveMacOsLogPath(isPrivileged: false, systemDirExists: false);
         Assert.That(path, Does.StartWith(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
             "Must fall back to the user home directory when non-root and system dir absent");
-        Assert.That(path, Does.Contain("Agent-Up"));
+        Assert.That(path, Does.Contain("LocalInstaller"));
         Assert.That(path, Does.EndWith("installer.log"));
         Assert.That(path, Does.Not.StartWith("/Library/Logs"),
-            "Must not use system path — non-root cannot create /Library/Logs/Agent-Up/");
+            "Must not use system path because non-root cannot create the shared log directory.");
     }
 
     [Test]
-    public void FilePath_isFullyQualifiedAgentUpInstallerLogPath()
+    public void FilePath_isFullyQualifiedLocalInstallerLogPath()
     {
-        Assert.That(InstallerLog.FilePath, Does.Contain("agent-up").IgnoreCase);
+        Assert.That(InstallerLog.FilePath, Does.Contain("localinstaller").IgnoreCase);
         Assert.That(InstallerLog.FilePath, Does.EndWith("installer.log"));
         Assert.That(Path.IsPathFullyQualified(InstallerLog.FilePath), Is.True);
     }

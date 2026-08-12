@@ -1,4 +1,4 @@
-using AgentUp.InstallerApp.Features.Installation.Controllers;
+using LocalInstaller.App.Features.Installation.Controllers;
 using LocalInstaller.Core.Features.Installation.Models;
 
 namespace LocalInstaller.App.Tests.Features.Installation.Controller;

@@ -171,12 +171,9 @@ public class NixPackagingWrapperTests
     public void InstallerApp_declaresNixOsLaunchProfile()
     {
         var launchSettings = Path.Join(Root, "LocalInstaller.Sample.InstallerApp", "Properties", "launchSettings.json");
-        var runScript = Path.Join(Root, "run-installer.sh");
 
         Assert.That(File.ReadAllText(launchSettings), Does.Contain("LocalInstaller.Sample.InstallerApp (NixOS)"));
-        Assert.That(File.ReadAllText(launchSettings), Does.Contain("AGENTUP_INSTALLER_NIXOS_LOOKUP_ONLY"));
-        Assert.That(File.ReadAllText(runScript), Does.Contain("AgentUp.InstallerApp/AgentUp.InstallerApp.csproj"));
-        Assert.That(File.ReadAllText(runScript), Does.Contain("nix-shell"));
+        Assert.That(File.ReadAllText(launchSettings), Does.Contain("LOCALINSTALLERSAMPLE_INSTALLER_NIXOS_LOOKUP_ONLY"));
     }
 
     [Test]

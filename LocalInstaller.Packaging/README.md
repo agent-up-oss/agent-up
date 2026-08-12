@@ -15,7 +15,7 @@ dotnet add package LocalInstaller.Packaging
 ## Usage
 
 ```csharp
-using AgentUp.Packaging.Composition;
+using LocalInstaller.Packaging.Composition;
 using Acme.Studio.Cli;
 using Acme.Studio.Desktop;
 using Acme.Studio.Installer;
