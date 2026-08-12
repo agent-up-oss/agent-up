@@ -1,5 +1,6 @@
 using LocalInstaller.App;
 using LocalInstaller.App.Composition;
+using LocalInstaller.Sample;
 using LocalInstaller.Sample.Cli;
 using LocalInstaller.Sample.Desktop;
 using LocalInstaller.Sample.Server;
@@ -11,4 +12,6 @@ return await LocalInstallerApp.Create(args)
     .InstallerOptionServer<SampleServerManifest>()
     .InstallerOptionDesktop<SampleDesktopManifest>()
     .InstallerOptionTray<SampleTrayManifest>()
+    .FakeInstallerVariable(SampleProduct.FakeInstallerVariable)
+    .NixOsLookupOnlyVariable(SampleProduct.NixOsLookupOnlyVariable)
     .RunAsync<App>();
