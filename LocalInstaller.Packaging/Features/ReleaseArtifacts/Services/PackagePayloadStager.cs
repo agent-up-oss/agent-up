@@ -2,6 +2,7 @@ using LocalInstaller.Core.Shared.Models;
 using LocalInstaller.Packaging.Features.ReleaseArtifacts.DTOs;
 using LocalInstaller.Packaging.Features.ReleaseArtifacts.Interfaces;
 using LocalInstaller.Packaging.Shared.Interfaces;
+using LocalInstaller.Packaging.Shared.Providers;
 
 namespace LocalInstaller.Packaging.Features.ReleaseArtifacts.Services;
 
@@ -33,7 +34,7 @@ public sealed class PackagePayloadStager
 
             if (staging.InstallerPublishDirectory is not null)
                 await _publisher.PublishDotNetProjectAsync(
-                    Path.Join(request.RepositoryRoot, installer.SourceProjectPath!),
+                    SourceProjectPath(request, installer),
                     request.RuntimeId,
                     request.Configuration,
                     request.Version,
@@ -74,7 +75,7 @@ public sealed class PackagePayloadStager
                 throw new InvalidOperationException($"Installer option '{option.Id}' must provide a source project path for local publishing.");
 
             await _publisher.PublishDotNetProjectAsync(
-                Path.Join(request.RepositoryRoot, option.SourceProjectPath),
+                SourceProjectPath(request, option),
                 request.RuntimeId,
                 request.Configuration,
                 request.Version,
@@ -120,6 +121,9 @@ public sealed class PackagePayloadStager
 
     private static string PayloadDirectoryName(PackageProductArtifact option)
         => string.IsNullOrWhiteSpace(option.PayloadDirectoryName) ? option.Id : option.PayloadDirectoryName;
+
+    private static string SourceProjectPath(PackageRequest request, PackageProductArtifact option)
+        => PackagePathValidator.ResolveRelativeUnderRoot(request.RepositoryRoot, option.SourceProjectPath, nameof(option.SourceProjectPath));
 
     private static LocalInstallerArtifactTarget ComponentTarget(PackageProductArtifact component)
         => component.Target;

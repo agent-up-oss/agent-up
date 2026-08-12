@@ -144,6 +144,28 @@ public class PackagePayloadStagerTests
         Assert.That(publisher.Copied.Any(c => Path.GetFullPath(c.Source).Equals(Path.GetFullPath(c.Destination), StringComparison.OrdinalIgnoreCase)), Is.False);
     }
 
+    [Test]
+    public void StageAsync_withUnsafeSourceProjectPath_throwsArgumentException()
+    {
+        var product = new PackageProductManifest("Orbit Desk", "orbit-desk", "ORBITDESK")
+        {
+            InstallerApplication = new PackageProductArtifact("orbit-installer", "Installer", "", "Orbit.Installer", "../Orbit.Installer.csproj", "installer", LocalInstallerArtifactTarget.InstallerApp),
+            InstallerOptions =
+            [
+                new PackageProductArtifact("orbit-cli", "CLI", "", "Orbit.Cli", "Orbit.Cli/Orbit.Cli.csproj", "cli", LocalInstallerArtifactTarget.Cli)
+            ]
+        };
+        var request = new PackageRequest(Root, "ubuntu", "linux-x64", "1.2.3", "out", "Release", product);
+
+        Assert.ThrowsAsync<ArgumentException>(async () => await new PackagePayloadStager(new RecordingPublisher(), new RecordingPackageFileSystem()).StageAsync(new PayloadStagingRequest(
+            request,
+            "/stage/installer",
+            "/stage/desktop",
+            "/stage/server",
+            "/stage/cli",
+            "/stage/tray")));
+    }
+
     private static void WritePayloadFile(string payloadRoot, string component, string fileName)
     {
         var directory = Path.Join(payloadRoot, component);
