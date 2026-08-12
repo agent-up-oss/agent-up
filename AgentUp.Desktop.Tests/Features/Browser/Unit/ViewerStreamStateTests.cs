@@ -225,7 +225,7 @@ public sealed class ViewerStreamStateTests
         {
             var d = MainWindow.ResolveBannerDecision(snap);
             Assert.That(d.ShowConnecting && d.ShowDownload, Is.False,
-                $"Both banners visible for snap={snap?.Kind.ToString() ?? "null"}");
+                $"Both banners visible for snap={(snap is null ? "null" : $"{snap.Kind}")}");
         }
     }
 }
