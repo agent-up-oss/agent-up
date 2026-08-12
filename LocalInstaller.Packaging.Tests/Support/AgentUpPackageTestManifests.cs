@@ -21,7 +21,7 @@ internal static class AgentUpPackageTestManifests
         {
             Manufacturer = ProductName,
             WindowsUpgradeCode = WindowsUpgradeCode,
-            InstallerApplication = new PackageProductArtifact("agent-up-installer", "Installer", "", "LocalInstaller.App", "LocalInstaller.App/LocalInstaller.App.csproj", "installer", LocalInstallerArtifactTarget.InstallerApp),
+            InstallerApplication = new PackageProductArtifact("agent-up-installer", "Installer", "", "AgentUp.InstallerApp", "AgentUp.InstallerApp/AgentUp.InstallerApp.csproj", "installer", LocalInstallerArtifactTarget.InstallerApp),
             InstallerOptions =
             [
                 new PackageProductArtifact("agent-up-cli", "CLI", "", "AgentUp.CLI", "AgentUp.CLI/AgentUp.CLI.csproj", "cli", LocalInstallerArtifactTarget.Cli),
