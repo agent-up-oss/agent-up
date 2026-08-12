@@ -49,10 +49,12 @@ public sealed class HeadlessEndpointTests
         Assert.Multiple(() =>
         {
             Assert.That(body, Does.Contain("<canvas"));
-            Assert.That(body, Does.Contain("test-ws"));
+            // workspaceId is NOT interpolated into the HTML; the JS reads it from location.search.
+            Assert.That(body, Does.Contain("location.search"));
             Assert.That(body, Does.Contain("/api/browser/rdp/"));
             Assert.That(body, Does.Contain("id=\"ai-badge\""));
-            Assert.That(body, Does.Contain("connectStream()"));
+            // connectStream() was replaced by the JS state machine (window.__viewer).
+            Assert.That(body, Does.Contain("window.__viewer"));
             Assert.That(body, Does.Contain("setTimeout"));
         });
     }

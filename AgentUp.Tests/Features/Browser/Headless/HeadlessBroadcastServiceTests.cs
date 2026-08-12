@@ -91,7 +91,13 @@ public sealed class HeadlessBroadcastServiceTests
         var frameA = new byte[] { 0xFF, 0xD8, 0xCA, 0xFE };
         var display = _factory.Services.GetRequiredService<BrowserRemoteDisplayService>();
 
+        // Drain the "active" TEXT control frames that SubscribeAsync sends on connect
+        // for both sockets before checking isolation. Without this, the wsB receive below
+        // would immediately return the queued "active" frame rather than timing out.
         await Task.Delay(50, ct);
+        await DrainTextFramesAsync(wsA, ct);
+        await DrainTextFramesAsync(wsB, ct);
+
         await display.BroadcastFrameAsync("ws-room-a", frameA, ct);
 
         var received = await ReceiveFrameAsync(wsA, ct);
@@ -107,6 +113,27 @@ public sealed class HeadlessBroadcastServiceTests
             await receiveTask; // re-throws so an unexpected server-side fault fails the test
     }
 
+    // Drains any queued TEXT control frames (e.g. "active") without blocking on binary frames.
+    private static async Task DrainTextFramesAsync(WebSocket ws, CancellationToken ct)
+    {
+        var buffer = new byte[1024];
+        while (true)
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromMilliseconds(100));
+            try
+            {
+                var result = await ws.ReceiveAsync(buffer, timeout.Token);
+                if (result.MessageType != WebSocketMessageType.Text)
+                    return; // unexpected non-text; stop draining to avoid eating binary frames
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return; // 100ms passed with no more text frames
+            }
+        }
+    }
+
     private async Task<WebSocket> ConnectAsync(string workspaceId, CancellationToken ct)
     {
         var wsClient = _factory.Server.CreateWebSocketClient();
@@ -114,10 +141,14 @@ public sealed class HeadlessBroadcastServiceTests
         return await wsClient.ConnectAsync(uri, ct);
     }
 
+    // SubscribeAsync sends a TEXT "active" control frame on connect before any binary frames.
+    // Skip text control frames so tests receive the next binary frame.
     private static async Task<byte[]> ReceiveFrameAsync(WebSocket ws, CancellationToken ct)
     {
         var buffer = new byte[65536];
-        var result = await ws.ReceiveAsync(buffer, ct);
+        WebSocketReceiveResult result;
+        do { result = await ws.ReceiveAsync(buffer, ct); }
+        while (result.MessageType == WebSocketMessageType.Text);
         Assert.That(result.MessageType, Is.EqualTo(WebSocketMessageType.Binary));
         return buffer[..result.Count];
     }

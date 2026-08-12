@@ -190,10 +190,14 @@ public sealed class HeadlessE2ETests
         return await wsClient.ConnectAsync(uri, ct);
     }
 
+    // SubscribeAsync sends a TEXT "active" control frame on connect before any binary frames.
+    // Skip text control frames so tests receive the next binary frame.
     private static async Task<byte[]> ReceiveFrameAsync(WebSocket ws, CancellationToken ct)
     {
         var buffer = new byte[256 * 1024];
-        var result = await ws.ReceiveAsync(buffer, ct);
+        WebSocketReceiveResult result;
+        do { result = await ws.ReceiveAsync(buffer, ct); }
+        while (result.MessageType == WebSocketMessageType.Text);
         Assert.That(result.MessageType, Is.EqualTo(WebSocketMessageType.Binary),
             "RDP display frames must be binary WebSocket messages");
         return buffer[..result.Count];
