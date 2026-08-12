@@ -40,7 +40,7 @@ public sealed class UbuntuPackageStager
             Path.Join(payloadDir, "service", manifest.ServiceName));
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "media", "logo.png"),
-            Path.Join(payloadDir, "icon", $"{pkg}.png"));
+            Path.Join(payloadDir, "icon", $"{request.ProductManifest.ProductName}.png"));
         _writer.CopyFile(
             Path.Join(request.RepositoryRoot, "media", "logo.png"),
             Path.Join(layout.DebRoot, "usr", "share", "pixmaps", $"{pkg}.png"));

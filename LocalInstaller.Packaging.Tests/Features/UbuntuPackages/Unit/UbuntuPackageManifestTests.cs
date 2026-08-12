@@ -20,7 +20,7 @@ public class UbuntuPackageManifestTests
         Assert.That(manifest.PackageName, Is.EqualTo("agent-up"));
         Assert.That(manifest.ApplicationName, Is.EqualTo("Agent-Up"));
         Assert.That(manifest.ServiceName, Is.EqualTo("agent-up-server.service"));
-        Assert.That(manifest.InstallerExecutableName, Is.EqualTo("LocalInstaller.App"));
+        Assert.That(manifest.InstallerExecutableName, Is.EqualTo("AgentUp.InstallerApp"));
     }
 
     [Test]
@@ -59,7 +59,7 @@ public class UbuntuPackageManifestTests
 
         Assert.That(text, Does.Contain("update-desktop-database"));
         Assert.That(text, Does.Not.Contain("su \"$SUDO_USER\""));
-        Assert.That(text, Does.Not.Contain("LocalInstaller.App &"));
+        Assert.That(text, Does.Not.Contain("AgentUp.InstallerApp &"));
     }
 
     [Test]
@@ -70,7 +70,7 @@ public class UbuntuPackageManifestTests
         var text = manifest.InstallerDesktopEntryText();
 
         Assert.That(text, Does.Contain("Icon=agent-up"));
-        Assert.That(text, Does.Contain("StartupWMClass=LocalInstaller.App"));
+        Assert.That(text, Does.Contain("StartupWMClass=AgentUp.InstallerApp"));
     }
 
     [Test]

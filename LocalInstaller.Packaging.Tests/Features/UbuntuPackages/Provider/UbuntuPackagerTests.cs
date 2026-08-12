@@ -34,6 +34,12 @@ public class UbuntuPackagerTests
         Assert.That(publishCommands, Has.All.Matches<CommandSpec>(command => command.Arguments.Contains("-p:IncludeAllContentForSelfExtract=true")));
         Assert.That(packageTool.Layouts.Single().DebOutputPath, Is.EqualTo(Path.Join(Root, "out", "agent-up-ubuntu-linux-x64.deb")));
         Assert.That(writer.CreatedDirectories, Does.Contain(Path.Join(Root, "out")));
+        Assert.That(writer.CopiedFiles, Does.Contain((
+            Path.Join(Root, "media", "logo.png"),
+            Path.Join(request.StageDirectory, "deb-root", "opt", "agent-up", "installer", "payload", "icon", "Agent-Up.png"))));
+        Assert.That(writer.CopiedFiles, Does.Contain((
+            Path.Join(Root, "media", "logo.png"),
+            Path.Join(request.StageDirectory, "deb-root", "usr", "share", "pixmaps", "agent-up.png"))));
     }
 
     [Test]
@@ -48,7 +54,7 @@ public class UbuntuPackagerTests
 
         try
         {
-            WritePayloadFile(payloadRoot, "installer", "LocalInstaller.App");
+            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp");
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI");
@@ -57,7 +63,7 @@ public class UbuntuPackagerTests
             await new UbuntuPackager(writer, CreatePayloads(commands, writer), packageTool, AgentUpPackageTestManifests.Product()).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "installer", "LocalInstaller.App")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "installer", "AgentUp.InstallerApp")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "desktop", "AgentUp.Desktop")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "server", "AgentUp.Server")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "ubuntu-linux-x64", "cli", "AgentUp.CLI")), Is.True);
@@ -95,11 +101,12 @@ public class UbuntuPackagerTests
     private sealed class RecordingPackageWriter : IPackageWriter
     {
         public List<string> CreatedDirectories { get; } = [];
+        public List<(string Source, string Destination)> CopiedFiles { get; } = [];
 
         public void ResetDirectory(string path) => CreatedDirectories.Add(path);
         public void CreateDirectory(string path) => CreatedDirectories.Add(path);
         public void CopyDirectory(string source, string destination) { }
-        public void CopyFile(string source, string destination) { }
+        public void CopyFile(string source, string destination) => CopiedFiles.Add((source, destination));
         public void WriteText(string path, string text) { }
         public void CreateSymbolicLink(string linkPath, string targetPath) { }
         public void SetExecutable(string path) { }
