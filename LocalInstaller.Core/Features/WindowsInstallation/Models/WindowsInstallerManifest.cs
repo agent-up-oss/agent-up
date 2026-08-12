@@ -109,7 +109,35 @@ public sealed partial record WindowsInstallerManifest(
     private static string WindowsExecutableName(ProductManifest product, InstallerComponentTarget target, string fallback)
     {
         var name = product.InstallableComponents.FirstOrDefault(component => component.Target == target)?.ExecutableName ?? fallback;
-        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name : name + ".exe";
+        var executableName = name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name : name + ".exe";
+        return RequireSafeExecutableFileName(executableName);
+    }
+
+    public static string RequireSafeExecutableFileName(string executableName)
+    {
+        if (string.IsNullOrWhiteSpace(executableName))
+            throw new ArgumentException("Executable name must not be empty.", nameof(executableName));
+
+        if (!executableName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Executable name must end with .exe.", nameof(executableName));
+
+        if (executableName is "." or ".."
+            || executableName.EndsWith(' ')
+            || executableName.EndsWith('.')
+            || executableName.Contains('/', StringComparison.Ordinal)
+            || executableName.Contains('\\', StringComparison.Ordinal)
+            || executableName.Contains(':', StringComparison.Ordinal)
+            || executableName.IndexOfAny(WindowsInvalidFileNameChars) >= 0
+            || executableName.Any(char.IsControl)
+            || System.IO.Path.IsPathFullyQualified(executableName)
+            || !System.IO.Path.GetFileName(executableName).Equals(executableName, StringComparison.Ordinal))
+            throw new ArgumentException("Executable name must be a safe .exe file name.", nameof(executableName));
+
+        var baseName = System.IO.Path.GetFileNameWithoutExtension(executableName);
+        if (WindowsReservedDeviceNames.Contains(baseName, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("Executable name must be a safe .exe file name.", nameof(executableName));
+
+        return executableName;
     }
 }
 
@@ -133,6 +161,11 @@ public sealed class WindowsWixSourceGenerator
     {
         _manifest = manifest;
         WindowsInstallerManifest.RequireSafeCliShimFileName(_manifest.CliShimName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.InstallerExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.DesktopExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.ServerExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.CliExecutableName);
+        WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.TrayExecutableName);
     }
 
     public string ProductWxs(WindowsInstallerLayout layout)
@@ -294,13 +327,14 @@ public sealed class WindowsWixSourceGenerator
 
         if (Directory.Exists(layout.TrayPublishDirectory))
         {
+            var trayExecutableName = WindowsInstallerManifest.RequireSafeExecutableFileName(_manifest.TrayExecutableName);
             foreach (var file in Directory.EnumerateFiles(layout.TrayPublishDirectory, "*", SearchOption.AllDirectories))
             {
                 yield return FileComponent("Tray", "TrayDir", layout.TrayPublishDirectory, file);
                 yield return FileComponent("InstallerPayloadTray", "InstallerPayloadTrayDir", layout.TrayPublishDirectory, file);
             }
 
-            if (File.Exists(System.IO.Path.Join(layout.TrayPublishDirectory, _manifest.TrayExecutableName)))
+            if (File.Exists(System.IO.Path.Join(layout.TrayPublishDirectory, trayExecutableName)))
             {
                 var trayAutoStart = new XElement(Wix + "Component",
                     new XAttribute("Id", "TrayAutoStartComponent"),
@@ -311,7 +345,7 @@ public sealed class WindowsWixSourceGenerator
                         new XAttribute("Key", @"Software\Microsoft\Windows\CurrentVersion\Run"),
                         new XAttribute("Name", _manifest.ProductName),
                         new XAttribute("Type", "string"),
-                        new XAttribute("Value", $"\"[TrayDir]{_manifest.TrayExecutableName}\""),
+                        new XAttribute("Value", $"\"[TrayDir]{trayExecutableName}\""),
                         new XAttribute("KeyPath", "yes")));
                 yield return ("TrayAutoStartComponent", trayAutoStart);
             }

@@ -358,6 +358,22 @@ public class WindowsInstallerPlatformAdapterTests
         Assert.That(exception!.ParamName, Is.EqualTo("cliShimName"));
     }
 
+    [TestCase(@"..\AgentUp.Tray.exe")]
+    [TestCase("AgentUp/Tray.exe")]
+    [TestCase("AgentUp.Tray")]
+    [TestCase("CON.exe")]
+    [TestCase("COM¹.exe")]
+    [TestCase("tray.exe.")]
+    [TestCase("tray.exe ")]
+    public void WindowsWixSourceGenerator_rejectsUnsafeExecutableNameBeforeBuildingSourcePath(string trayExecutableName)
+    {
+        var manifest = WindowsInstallerManifest.From(AgentUpTestManifests.Product(), "1.2.3", "http://127.0.0.1:6100") with { TrayExecutableName = trayExecutableName };
+
+        var exception = Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest));
+
+        Assert.That(exception!.ParamName, Is.EqualTo("executableName"));
+    }
+
     [TestCase(@"..\outside.cmd")]
     [TestCase("orbit?.cmd")]
     [TestCase("CON.cmd")]
