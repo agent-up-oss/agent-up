@@ -1,28 +1,9 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using AgentUp.Desktop.Features.Browser.Models;
 
 namespace AgentUp.Desktop.Features.Workspaces.Providers;
-
-// Wire kinds match StreamStateEvent on the server (kebab-cased type + snake_case kind).
-internal enum StreamStateKind
-{
-    ChromiumDownloading,
-    WorkspaceStopped,
-    AppConnecting,
-    AppFailed,
-    SessionLaunching,
-    Streaming,
-}
-
-internal sealed record StreamStateSnapshot(
-    string WorkspaceId,
-    StreamStateKind Kind,
-    string? ChromiumState,
-    int ChromiumProgress,
-    int Attempt,
-    int MaxAttempts,
-    string? Reason);
 
 internal sealed class BrowserEventClient(HttpClient http) : IDisposable
 {
