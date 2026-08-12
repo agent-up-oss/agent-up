@@ -518,6 +518,51 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static bool IsBrowserViewerRequest(Uri? request)
         => request?.AbsolutePath == "/api/browser/rdp-viewer";
 
+    internal static bool WantsViewerWebView(StreamStateSnapshot? snap, bool isAi, bool isActiveViewerTab, bool tutorialVisible)
+        => isAi && isActiveViewerTab && !tutorialVisible && snap?.Kind == StreamStateKind.Streaming;
+
+    internal static bool ShouldDestroyViewerWebView(StreamStateSnapshot? snap, bool isAi, bool isActiveViewerTab, bool tutorialVisible)
+        => isAi && isActiveViewerTab && !tutorialVisible && snap?.Kind is not null && snap.Kind != StreamStateKind.Streaming;
+
+    internal static BannerDecision ResolveBannerDecision(StreamStateSnapshot? snap)
+    {
+        if (snap is null)
+            return new BannerDecision(ShowConnecting: true, ConnectingText: "Connecting…",
+                ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
+
+        switch (snap.Kind)
+        {
+            case StreamStateKind.ChromiumDownloading:
+                var failed = string.Equals(snap.ChromiumState, "failed", StringComparison.Ordinal);
+                var downloadText = failed
+                    ? "Chromium download failed. AI mode unavailable."
+                    : snap.ChromiumProgress > 0
+                        ? $"Downloading Chromium… {snap.ChromiumProgress}%"
+                        : "Downloading Chromium…";
+                return new BannerDecision(ShowConnecting: false, ConnectingText: "",
+                    ShowDownload: true, DownloadText: downloadText,
+                    DownloadFailed: failed, DownloadProgress: snap.ChromiumProgress);
+            case StreamStateKind.WorkspaceStopped:
+                return new BannerDecision(ShowConnecting: true, ConnectingText: "Workspace stopped.",
+                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
+            case StreamStateKind.AppConnecting:
+                var connectingText = snap.MaxAttempts > 0 && snap.Attempt > 0
+                    ? $"Connecting to app… ({snap.Attempt} / {snap.MaxAttempts})"
+                    : "Connecting to app…";
+                return new BannerDecision(ShowConnecting: true, ConnectingText: connectingText,
+                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
+            case StreamStateKind.AppFailed:
+                return new BannerDecision(ShowConnecting: true, ConnectingText: snap.Reason ?? "Could not reach app.",
+                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
+            case StreamStateKind.SessionLaunching:
+                return new BannerDecision(ShowConnecting: true, ConnectingText: "Preparing browser session…",
+                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
+            default:
+                return new BannerDecision(ShowConnecting: false, ConnectingText: "",
+                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
+        }
+    }
+
     private void ActivateTab(string? workspaceId, string? tabKey, bool tutorialVisible)
     {
         if (workspaceId == _activeWorkspaceId && tabKey == _activeTabKey) return;
@@ -953,15 +998,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         // (typically "This site can't be reached" after a stop) bleeds through. Every
         // fresh Streaming transition then creates a brand-new WebView, which naturally
         // routes through ForceFirstWebKitPaint to kick off WebKit's paint pipeline.
-        var wantWebView = isAi && isActiveViewerTab && !tutorialVisible && kind == StreamStateKind.Streaming;
+        var wantWebView = WantsViewerWebView(snap, isAi, isActiveViewerTab, tutorialVisible);
         var haveWebView = _webViews.ContainsKey(viewerKey);
         // Only destroy when the stream state is KNOWN and not Streaming. If kind is null
         // (no SSE received yet — e.g. fresh app boot or tests that don't publish state),
         // leave any existing WebView alone. Otherwise a WebView created by
         // HandleHeadlessNavigation on user navigation would be destroyed the moment it's
         // added, before NavigationCompleted can even fire.
-        var shouldDestroy = isAi && isActiveViewerTab && !tutorialVisible
-            && kind is not null && kind != StreamStateKind.Streaming;
+        var shouldDestroy = ShouldDestroyViewerWebView(snap, isAi, isActiveViewerTab, tutorialVisible);
 
         if (shouldDestroy && haveWebView)
         {
@@ -1109,55 +1153,17 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void ApplyBanners(StreamStateSnapshot? snap)
     {
-        if (snap is null)
+        var decision = ResolveBannerDecision(snap);
+        BrowserConnectingBanner.IsVisible = decision.ShowConnecting;
+        if (decision.ShowConnecting)
+            BrowserConnectingText.Text = decision.ConnectingText;
+        ChromiumDownloadBanner.IsVisible = decision.ShowDownload;
+        if (decision.ShowDownload)
         {
-            ChromiumDownloadBanner.IsVisible = false;
-            BrowserConnectingBanner.IsVisible = true;
-            BrowserConnectingText.Text = "Connecting…";
-            return;
-        }
-
-        switch (snap.Kind)
-        {
-            case StreamStateKind.ChromiumDownloading:
-                BrowserConnectingBanner.IsVisible = false;
-                ChromiumDownloadBanner.IsVisible = true;
-                var failed = string.Equals(snap.ChromiumState, "failed", StringComparison.Ordinal);
-                ChromiumDownloadText.Text = failed
-                    ? "Chromium download failed. AI mode unavailable."
-                    : snap.ChromiumProgress > 0
-                        ? $"Downloading Chromium… {snap.ChromiumProgress}%"
-                        : "Downloading Chromium…";
-                ChromiumDownloadProgress.IsIndeterminate = !failed && snap.ChromiumProgress == 0;
-                ChromiumDownloadProgress.Value = snap.ChromiumProgress;
-                ChromiumDownloadProgress.IsVisible = !failed;
-                break;
-            case StreamStateKind.WorkspaceStopped:
-                ChromiumDownloadBanner.IsVisible = false;
-                BrowserConnectingBanner.IsVisible = true;
-                BrowserConnectingText.Text = "Workspace stopped.";
-                break;
-            case StreamStateKind.AppConnecting:
-                ChromiumDownloadBanner.IsVisible = false;
-                BrowserConnectingBanner.IsVisible = true;
-                BrowserConnectingText.Text = snap.MaxAttempts > 0 && snap.Attempt > 0
-                    ? $"Connecting to app… ({snap.Attempt} / {snap.MaxAttempts})"
-                    : "Connecting to app…";
-                break;
-            case StreamStateKind.AppFailed:
-                ChromiumDownloadBanner.IsVisible = false;
-                BrowserConnectingBanner.IsVisible = true;
-                BrowserConnectingText.Text = snap.Reason ?? "Could not reach app.";
-                break;
-            case StreamStateKind.SessionLaunching:
-                ChromiumDownloadBanner.IsVisible = false;
-                BrowserConnectingBanner.IsVisible = true;
-                BrowserConnectingText.Text = "Preparing browser session…";
-                break;
-            case StreamStateKind.Streaming:
-                ChromiumDownloadBanner.IsVisible = false;
-                BrowserConnectingBanner.IsVisible = false;
-                break;
+            ChromiumDownloadText.Text = decision.DownloadText;
+            ChromiumDownloadProgress.IsVisible = !decision.DownloadFailed;
+            ChromiumDownloadProgress.Value = decision.DownloadProgress;
+            ChromiumDownloadProgress.IsIndeterminate = !decision.DownloadFailed && decision.DownloadProgress == 0;
         }
     }
 
@@ -1941,3 +1947,13 @@ internal sealed record ViewerSnapshot(
         }
     }
 }
+
+// Decision produced by ResolveBannerDecision. Fully describes which banners to show
+// and their content — no Avalonia control references, so it can be tested without a UI tree.
+internal sealed record BannerDecision(
+    bool ShowConnecting,
+    string ConnectingText,
+    bool ShowDownload,
+    string DownloadText,
+    bool DownloadFailed,
+    int DownloadProgress);
