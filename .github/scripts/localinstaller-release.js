@@ -13,8 +13,15 @@ async function main() {
         '@semantic-release/github',
         {
           assets: [
-            { path: 'nupkgs/*.nupkg', label: 'NuGet packages' },
-            { path: 'release-artifacts/*', label: 'LocalInstaller sample installers' },
+            { path: 'nupkgs/LocalInstaller.Core.*.nupkg', label: 'LocalInstaller.Core NuGet package' },
+            { path: 'nupkgs/LocalInstaller.App.*.nupkg', label: 'LocalInstaller.App NuGet package' },
+            { path: 'nupkgs/LocalInstaller.Packaging.*.nupkg', label: 'LocalInstaller.Packaging NuGet package' },
+            { path: 'nupkgs/LocalInstaller.Smoke.*.nupkg', label: 'LocalInstaller.Smoke NuGet package' },
+            { path: 'release-artifacts/localinstaller-sample-ubuntu-linux-x64.deb', label: 'LocalInstaller sample Ubuntu (x64) .deb' },
+            { path: 'release-artifacts/localinstaller-sample-macos-osx-arm64.pkg', label: 'LocalInstaller sample macOS Apple Silicon .pkg' },
+            { path: 'release-artifacts/localinstaller-sample-macos-osx-x64.pkg', label: 'LocalInstaller sample macOS Intel .pkg' },
+            { path: 'release-artifacts/localinstaller-sample-windows-win-x64.exe', label: 'LocalInstaller sample Windows (x64) installer' },
+            { path: 'release-artifacts/localinstaller-sample-windows-win-x64.msi', label: 'LocalInstaller sample Windows (x64) MSI sidecar' },
           ],
         },
       ],
