@@ -30,7 +30,7 @@ public class WindowsWixSourceGeneratorTests
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "0.0.0-ci.149", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
-        WritePublishedFile(layout.InstallerPublishDirectory, "LocalInstaller.App.exe");
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
@@ -58,7 +58,7 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Contain("AgentUp.Server.exe"));
         Assert.That(xml, Does.Contain("AgentUp.CLI.exe"));
         Assert.That(xml, Does.Contain("AgentUp.Tray.exe"));
-        Assert.That(xml, Does.Contain("LocalInstaller.App.exe"));
+        Assert.That(xml, Does.Contain("AgentUp.InstallerApp.exe"));
         Assert.That(xml, Does.Contain("InstallerPayloadDesktop"));
         Assert.That(xml, Does.Contain("InstallerPayloadServer"));
         Assert.That(xml, Does.Contain("InstallerPayloadCli"));
@@ -92,7 +92,7 @@ public class WindowsWixSourceGeneratorTests
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
-        WritePublishedFile(layout.InstallerPublishDirectory, "LocalInstaller.App.exe");
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
@@ -109,7 +109,7 @@ public class WindowsWixSourceGeneratorTests
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
-        WritePublishedFile(layout.InstallerPublishDirectory, "LocalInstaller.App.exe");
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
@@ -122,12 +122,36 @@ public class WindowsWixSourceGeneratorTests
         Assert.That(xml, Does.Not.Contain("TrayAutoStartComponent"));
     }
 
+    [TestCase("..\\AgentUp.Tray.exe")]
+    [TestCase("AgentUp/Tray.exe")]
+    [TestCase("AgentUp.Tray")]
+    [TestCase("CON.exe")]
+    public void ProductWxs_withUnsafeTrayExecutableName_throwsArgumentException(string trayExecutableName)
+    {
+        var request = new PackageRequest(_root, "windows", "win-x64", "1.0.0", "artifacts", "Release", AgentUpPackageTestManifests.Product());
+        var layout = WindowsPackageLayout.From(request);
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
+        WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
+        WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
+        WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");
+        WritePublishedFile(layout.TrayPublishDirectory, "AgentUp.Tray.exe");
+        Directory.CreateDirectory(layout.InstallerSourceDirectory);
+        File.WriteAllText(Path.Join(layout.InstallerSourceDirectory, "agent-up.cmd"), "");
+        var packageManifest = WindowsPackageManifest.From(request);
+        var manifest = packageManifest with
+        {
+            InstallerManifest = packageManifest.InstallerManifest with { TrayExecutableName = trayExecutableName }
+        };
+
+        Assert.Throws<ArgumentException>(() => new WindowsWixSourceGenerator(manifest).ProductWxs(layout));
+    }
+
     [Test]
     public void BundleWxs_chainsProductMsiWithoutLaunchingInstallerApp()
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
-        WritePublishedFile(layout.InstallerPublishDirectory, "LocalInstaller.App.exe");
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.InstallerPublishDirectory, "support.dll");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
@@ -137,7 +161,7 @@ public class WindowsWixSourceGeneratorTests
 
         Assert.That(xml, Does.Contain("WixStandardBootstrapperApplication"));
         Assert.That(xml, Does.Contain("Theme=\"rtfLicense\""));
-        Assert.That(xml, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Agent-Up\installer\LocalInstaller.App.exe"""));
+        Assert.That(xml, Does.Contain(@"LaunchTarget=""[ProgramFiles64Folder]Agent-Up\installer\AgentUp.InstallerApp.exe"""));
         Assert.That(xml, Does.Contain(@"LaunchWorkingFolder=""[ProgramFiles64Folder]Agent-Up\installer"""));
         Assert.That(xml, Does.Contain("MsiPackage"));
         Assert.That(xml, Does.Contain("Product.msi"));
@@ -319,7 +343,7 @@ public class WindowsWixSourceGeneratorTests
     {
         var request = new PackageRequest(_root, "windows", "win-x64", "1.2.3", "artifacts", "Release", AgentUpPackageTestManifests.Product());
         var layout = WindowsPackageLayout.From(request);
-        WritePublishedFile(layout.InstallerPublishDirectory, "LocalInstaller.App.exe");
+        WritePublishedFile(layout.InstallerPublishDirectory, "AgentUp.InstallerApp.exe");
         WritePublishedFile(layout.DesktopPublishDirectory, "AgentUp.Desktop.exe");
         WritePublishedFile(layout.ServerPublishDirectory, "AgentUp.Server.exe");
         WritePublishedFile(layout.CliPublishDirectory, "AgentUp.CLI.exe");

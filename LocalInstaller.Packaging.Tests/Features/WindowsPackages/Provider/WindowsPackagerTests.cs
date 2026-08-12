@@ -56,13 +56,13 @@ public class WindowsPackagerTests
             WritePayloadFile(payloadRoot, "desktop", "AgentUp.Desktop.exe");
             WritePayloadFile(payloadRoot, "server", "AgentUp.Server.exe");
             WritePayloadFile(payloadRoot, "cli", "AgentUp.CLI.exe");
-            WritePayloadFile(payloadRoot, "installer", "LocalInstaller.App.exe");
+            WritePayloadFile(payloadRoot, "installer", "AgentUp.InstallerApp.exe");
             WritePayloadFile(payloadRoot, "tray", "AgentUp.Tray.exe");
 
             await new WindowsPackager(writer, CreatePayloads(commands, writer), packagingTool).PackageAsync(request);
 
             Assert.That(commands.Commands.Any(command => command.FileName == "dotnet"), Is.False);
-            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "installer", "LocalInstaller.App.exe")), Is.True);
+            Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "installer", "AgentUp.InstallerApp.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "desktop", "AgentUp.Desktop.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "server", "AgentUp.Server.exe")), Is.True);
             Assert.That(File.Exists(Path.Join(root, "artifacts", "stage", "windows-win-x64", "cli", "AgentUp.CLI.exe")), Is.True);
@@ -159,7 +159,7 @@ public class WindowsPackagerTests
                     Directory.CreateDirectory(output);
                     var project = command.Arguments[1];
                     var fileName = project.Contains("InstallerApp", StringComparison.Ordinal)
-                        ? "LocalInstaller.App.exe"
+                        ? "AgentUp.InstallerApp.exe"
                         : project.Contains("Desktop", StringComparison.Ordinal)
                         ? "AgentUp.Desktop.exe"
                         : project.Contains("Server", StringComparison.Ordinal)
