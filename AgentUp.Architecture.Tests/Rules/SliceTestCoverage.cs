@@ -33,6 +33,7 @@ public sealed class SliceTestCoverage
         "AgentUp.Desktop/Features/Console/Controllers requires AgentUp.Desktop.Tests/Features/Console/Controller/*Tests.cs",
         "AgentUp.Desktop/Features/Console/Services requires AgentUp.Desktop.Tests/Features/Console/Unit/*Tests.cs",
         "AgentUp.Desktop/Features/Console/Providers requires AgentUp.Desktop.Tests/Features/Console/Provider/*Tests.cs",
+        "AgentUp.Desktop/Features/Browser/Controllers requires AgentUp.Desktop.Tests/Features/Browser/Controller/*Tests.cs",
         "AgentUp.Desktop/Features/Workspaces/Controllers requires AgentUp.Desktop.Tests/Features/Workspaces/Controller/*Tests.cs",
         "AgentUp.Desktop/Features/Ports/Controllers requires AgentUp.Desktop.Tests/Features/Ports/Controller/*Tests.cs",
         "AgentUp.Desktop/Features/Ports/Services requires AgentUp.Desktop.Tests/Features/Ports/Unit/*Tests.cs",
