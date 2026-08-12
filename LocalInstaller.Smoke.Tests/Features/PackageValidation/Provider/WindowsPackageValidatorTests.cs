@@ -52,7 +52,7 @@ public class WindowsPackageValidatorTests
             "agent-up",
             "Agent-Up",
             "Agent-Up",
-            InstallerExecutableName: "LocalInstaller.App",
+            InstallerExecutableName: "AgentUp.InstallerApp",
             DesktopExecutableName: "AgentUp.Desktop",
             ServerExecutableName: "AgentUp.Server",
             CliExecutableName: "AgentUp.CLI",

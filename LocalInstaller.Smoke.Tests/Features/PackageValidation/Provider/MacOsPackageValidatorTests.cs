@@ -47,7 +47,7 @@ public class MacOsPackageValidatorTests
             "agent-up",
             "Agent-Up",
             "Agent-Up",
-            InstallerExecutableName: "LocalInstaller.App",
+            InstallerExecutableName: "AgentUp.InstallerApp",
             DesktopExecutableName: "AgentUp.Desktop",
             ServerExecutableName: "AgentUp.Server",
             CliExecutableName: "AgentUp.CLI",
@@ -55,7 +55,7 @@ public class MacOsPackageValidatorTests
 
     private static void CreateExpandedPackage(string root)
     {
-        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "LocalInstaller.App"));
+        WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "AgentUp.InstallerApp"));
         WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "Info.plist"), "CFBundleIconFile\nAgent-Up.png\n");
         WriteText(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "Resources", "Agent-Up.png"), "");
         WriteExecutable(Path.Join(root, "InstallerApp.pkg", "Payload", "Applications", "Agent-Up Installer.app", "Contents", "MacOS", "payload", "desktop", "AgentUp.Desktop"));

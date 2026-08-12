@@ -34,7 +34,7 @@ public class ProcessCommandRunnerTests
                 "& $env:LOCALINSTALLER_SMOKE_INSTALLER_APP --payload-root $env:LOCALINSTALLER_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'LocalInstaller\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"
             ], Environment: new Dictionary<string, string>
             {
-                ["LOCALINSTALLER_SMOKE_INSTALLER_APP"] = @"C:\Program Files\Agent-Up\installer\LocalInstaller.App.exe",
+                ["LOCALINSTALLER_SMOKE_INSTALLER_APP"] = @"C:\Program Files\Agent-Up\installer\AgentUp.InstallerApp.exe",
                 ["LOCALINSTALLER_SMOKE_PAYLOAD_ROOT"] = @"C:\Program Files\Agent-Up\installer\payload"
             }));
 

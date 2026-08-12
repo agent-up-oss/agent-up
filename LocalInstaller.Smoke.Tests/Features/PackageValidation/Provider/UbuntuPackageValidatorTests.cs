@@ -51,7 +51,7 @@ public class UbuntuPackageValidatorTests
             "agent-up",
             "Agent-Up",
             "Agent-Up",
-            InstallerExecutableName: "LocalInstaller.App",
+            InstallerExecutableName: "AgentUp.InstallerApp",
             DesktopExecutableName: "AgentUp.Desktop",
             ServerExecutableName: "AgentUp.Server",
             CliExecutableName: "AgentUp.CLI",
@@ -59,7 +59,7 @@ public class UbuntuPackageValidatorTests
 
     private static void CreateUbuntuRoot(string root)
     {
-        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "LocalInstaller.App"));
+        WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "AgentUp.InstallerApp"));
         WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "desktop", "AgentUp.Desktop"));
         WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "server", "AgentUp.Server"));
         WriteExecutable(Path.Join(root, "opt", "agent-up", "installer", "payload", "cli", "AgentUp.CLI"));
@@ -73,7 +73,7 @@ public class UbuntuPackageValidatorTests
 
     private static void CreateUbuntuControl(string control)
     {
-        WriteText(Path.Join(control, "postinst"), "#!/usr/bin/env bash\nchmod +x /opt/agent-up/installer/LocalInstaller.App\n");
+        WriteText(Path.Join(control, "postinst"), "#!/usr/bin/env bash\nchmod +x /opt/agent-up/installer/AgentUp.InstallerApp\n");
         WriteText(Path.Join(control, "prerm"), "#!/usr/bin/env bash\n");
     }
 
