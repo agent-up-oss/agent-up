@@ -31,7 +31,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
         DisplayName: "Agent-Up",
         InstallDirName: "Agent-Up",
         WorkspaceConfigFileName: "agent-up.json",
-        InstallerExecutableName: "LocalInstaller.App",
+        InstallerExecutableName: "AgentUp.InstallerApp",
         DesktopExecutableName: "AgentUp.Desktop",
         ServerExecutableName: "AgentUp.Server",
         CliExecutableName: "AgentUp.CLI",
@@ -414,7 +414,7 @@ public sealed class InstalledServiceSmokeValidatorProductTests
                     c.Arguments.SequenceEqual([
                         "bash",
                         "-c",
-                        "/opt/agent-up/installer/LocalInstaller.App --payload-root /opt/agent-up/installer/payload --install-core"
+                        "/opt/agent-up/installer/AgentUp.InstallerApp --payload-root /opt/agent-up/installer/payload --install-core"
                     ])),
                 Is.True,
                 "Agent-Up installed-service smoke must run the packaged installer app before service validation.");

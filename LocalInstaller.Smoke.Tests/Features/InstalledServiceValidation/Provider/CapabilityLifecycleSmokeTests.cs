@@ -46,6 +46,7 @@ public sealed class CapabilityLifecycleSmokeTests
     [Test]
     public async Task RunAsync_usesDockerImageOverrideWhenProvided()
     {
+        var previousAgentUp = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
         var previous = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE");
         var workDir = Path.Join(Path.GetTempPath(), "AgentUp-CapabilityLifecycleSmoke", $"{Guid.NewGuid():N}");
         var commands = new RecordingCommandRunner();
@@ -54,7 +55,8 @@ public sealed class CapabilityLifecycleSmokeTests
 
         try
         {
-            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE", "example/smoke:windows");
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", "example/smoke:windows");
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE", "ignored/smoke:legacy");
             await new CapabilityLifecycleSmoke(commands, new CapabilityWorkspaceProvider("agent-up.json", "AGENTUP_SERVER_URL"), new DotnetSmokeBuildProvider(commands), http).RunAsync(
                 workDir,
                 new InstalledServiceContext("agent-up", null, [], []),
@@ -69,6 +71,7 @@ public sealed class CapabilityLifecycleSmokeTests
         }
         finally
         {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE", previousAgentUp);
             Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE", previous);
             if (Directory.Exists(workDir))
                 Directory.Delete(workDir, recursive: true);

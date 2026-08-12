@@ -14,6 +14,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
     public async Task ValidateAsync_installsValidatesCliAndAlwaysUninstalls()
     {
         var root = Path.Join(Path.GetTempPath(), "AgentUp-InstalledSmoke-Windows", Guid.NewGuid().ToString());
+        var previousAgentUpSkip = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL");
         var previousSkip = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL");
         var artifactDir = Path.Join(root, "artifacts");
         var workDir = Path.Join(root, "work");
@@ -40,7 +41,8 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
         try
         {
-            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", "1");
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", "1");
+            Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", null);
             using var validator = new WindowsInstalledServiceSmokeValidator(commands, probe, new NullRuntimeSecurityChecks(),
                 new HttpClient(new FakeTraySessionHttpHandler()));
             var result = await validator.ValidateAsync(new InstalledServiceSmokeRequest("windows", "win-x64", artifactDir, workDir, ProductConfig: AgentUpProduct()));
@@ -81,6 +83,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
         }
         finally
         {
+            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL", previousAgentUpSkip);
             Environment.SetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL", previousSkip);
             if (Directory.Exists(root))
                 Directory.Delete(root, recursive: true);
@@ -176,7 +179,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
 
     private static void CreateWindowsPackageInstall(string installDir)
     {
-        WriteText(Path.Join(installDir, "installer", "LocalInstaller.App.exe"), "");
+        WriteText(Path.Join(installDir, "installer", "AgentUp.InstallerApp.exe"), "");
         Directory.CreateDirectory(Path.Join(installDir, "installer", "payload"));
     }
 
@@ -194,7 +197,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
             ArtifactBaseName: "agent-up",
             DisplayName: "Agent-Up",
             InstallDirName: "Agent-Up",
-            InstallerExecutableName: "LocalInstaller.App",
+            InstallerExecutableName: "AgentUp.InstallerApp",
             DesktopExecutableName: "AgentUp.Desktop",
             ServerExecutableName: "AgentUp.Server",
             CliExecutableName: "AgentUp.CLI",
@@ -230,7 +233,7 @@ public class WindowsInstalledServiceSmokeValidatorTests
            ])
            && command.Environment is not null
            && command.Environment.TryGetValue("LOCALINSTALLER_SMOKE_INSTALLER_APP", out var installerApp)
-           && installerApp == Path.Join(DefaultInstallDirectory(), "installer", "LocalInstaller.App.exe")
+           && installerApp == Path.Join(DefaultInstallDirectory(), "installer", "AgentUp.InstallerApp.exe")
            && command.Environment.TryGetValue("LOCALINSTALLER_SMOKE_PAYLOAD_ROOT", out var payloadRoot)
            && payloadRoot == Path.Join(DefaultInstallDirectory(), "installer", "payload");
 }

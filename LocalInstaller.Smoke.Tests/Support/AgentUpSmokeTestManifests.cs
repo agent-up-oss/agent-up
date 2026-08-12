@@ -16,7 +16,7 @@ internal static class AgentUpSmokeTestManifests
             InstallDirName: ProductName,
             WorkspaceConfigFileName: "agent-up.json",
             ServerUrlEnvironmentVariable: "AGENTUP_SERVER_URL",
-            InstallerExecutableName: "LocalInstaller.App",
+            InstallerExecutableName: "AgentUp.InstallerApp",
             DesktopExecutableName: "AgentUp.Desktop",
             ServerExecutableName: "AgentUp.Server",
             CliExecutableName: "AgentUp.CLI",

@@ -67,7 +67,10 @@ public sealed class CapabilityWorkspaceProvider
 
     private static string DockerSmokeImage()
     {
-        var image = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE");
+        var image = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE");
+        if (string.IsNullOrWhiteSpace(image))
+            image = Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_DOCKER_IMAGE");
+
         return string.IsNullOrWhiteSpace(image) ? "nginx:alpine" : image;
     }
 }

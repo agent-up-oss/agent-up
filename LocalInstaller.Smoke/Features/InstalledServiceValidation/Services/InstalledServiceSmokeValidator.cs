@@ -60,7 +60,7 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
             await SmokeTraySessionAsync(readyUrl, assert, cancellationToken);
             readyUrl = await SmokeServiceRestartAsync(request, readyUrl, assert, cancellationToken) ?? readyUrl;
             await SmokeCliWorkspaceAsync(request, context.CliCommand, context.CliEnvironment, readyUrl, assert, request.Product.CliShimName, cancellationToken);
-            if (Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL") != "1")
+            if (!SkipRealCapabilitySmoke())
             {
                 using var capabilitySmoke = new CapabilityLifecycleSmoke(
                     _commands,
@@ -77,6 +77,10 @@ public abstract class InstalledServiceSmokeValidator : IInstalledServiceSmokeVal
                 await UninstallAsync(request, context, assert, cancellationToken);
         }
     }
+
+    private static bool SkipRealCapabilitySmoke()
+        => Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_SMOKE_SKIP_REAL") == "1"
+           || Environment.GetEnvironmentVariable("LOCALINSTALLER_CAPABILITY_SMOKE_SKIP_REAL") == "1";
 
     protected abstract Task<InstalledServiceContext?> InstallAsync(
         InstalledServiceSmokeRequest request,
