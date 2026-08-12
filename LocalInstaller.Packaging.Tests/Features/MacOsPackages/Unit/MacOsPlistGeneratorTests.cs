@@ -33,7 +33,7 @@ public class MacOsPlistGeneratorTests
         var plist = new MacOsPlistGenerator(manifest).InstallerInfoPlist();
 
         Assert.That(plist, Does.Contain("dev.agent-up.installer"));
-        Assert.That(plist, Does.Contain("LocalInstaller.App"));
+        Assert.That(plist, Does.Contain("AgentUp.InstallerApp"));
         Assert.That(plist, Does.Contain("CFBundleIconFile"));
         Assert.That(plist, Does.Contain("Agent-Up.png"));
         Assert.That(plist, Does.Contain("1.2.3"));

@@ -10,7 +10,7 @@ public static class MacOsScriptGenerator
             CONSOLE_USER=$(stat -f %Su /dev/console 2>/dev/null || true)
             if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ] && \
                [[ "$CONSOLE_USER" =~ ^[a-zA-Z0-9._-]+$ ]]; then
-                rm -rf "/Users/$CONSOLE_USER/.net/LocalInstaller.App" 2>/dev/null || true
+                rm -rf "/Users/$CONSOLE_USER/.net/AgentUp.InstallerApp" 2>/dev/null || true
             fi
             """ + Environment.NewLine;
 

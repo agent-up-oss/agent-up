@@ -31,7 +31,7 @@ public class MacOsPackageStagerTests
         Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("Agent-Up.app")), Is.False);
         Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("usr/local/agent-up")), Is.False);
         Assert.That(writer.CopiedDirectories.Any(copy => copy.Destination.Contains("Library/Application Support/Agent-Up")), Is.False);
-        Assert.That(writer.WrittenText[layout.InstallerInfoPlistPath], Does.Contain("LocalInstaller.App"));
+        Assert.That(writer.WrittenText[layout.InstallerInfoPlistPath], Does.Contain("AgentUp.InstallerApp"));
         var installerPreInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "preinstall");
         var installerPostInstallScriptPath = Path.Join(layout.InstallerScriptsDirectory, "postinstall");
         Assert.That(writer.WrittenText[installerPreInstallScriptPath], Does.Contain("rm -rf \"/Applications/Agent-Up Installer.app\""));

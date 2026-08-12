@@ -18,7 +18,7 @@ public class MacOsScriptGeneratorTests
     {
         var script = MacOsScriptGenerator.InstallerPreInstallScript("Agent-Up Installer");
 
-        Assert.That(script, Does.Contain(".net/LocalInstaller.App"));
+        Assert.That(script, Does.Contain(".net/AgentUp.InstallerApp"));
         Assert.That(script, Does.Contain("CONSOLE_USER"));
     }
 
