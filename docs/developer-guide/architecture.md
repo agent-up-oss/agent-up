@@ -79,33 +79,9 @@ AgentUp.Architecture.Tests/
 
 AgentUp.Tests/
   AgentUp.Tests.csproj
-
-LocalInstaller.Core/
-  LocalInstaller.Core.csproj
-
-LocalInstaller.App/
-  LocalInstaller.App.csproj
-
-LocalInstaller.Packaging/
-  LocalInstaller.Packaging.csproj
-
-LocalInstaller.Smoke/
-  LocalInstaller.Smoke.csproj
-
-LocalInstaller.Core.Tests/
-  LocalInstaller.Core.Tests.csproj
-
-LocalInstaller.App.Tests/
-  LocalInstaller.App.Tests.csproj
-
-LocalInstaller.Packaging.Tests/
-  LocalInstaller.Packaging.Tests.csproj
-
-LocalInstaller.Smoke.Tests/
-  LocalInstaller.Smoke.Tests.csproj
 ```
 
-The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references Agent-Up projects and the LocalInstaller libraries/tests needed while they still live in this repository. `localinstaller.sln` references LocalInstaller libraries, LocalInstaller tests, and LocalInstaller sample applications only; it must not reference Agent-Up product projects.
+The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. `localinstaller.sln` references LocalInstaller libraries, LocalInstaller tests, and LocalInstaller sample applications only; it must not reference Agent-Up product projects.
 
 ## Code Organization
 
