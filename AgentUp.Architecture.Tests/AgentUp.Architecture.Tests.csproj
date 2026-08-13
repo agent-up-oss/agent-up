@@ -14,6 +14,10 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.2.0" />
+    <PackageReference Include="LocalInstaller.App" Version="1.0.0" />
+    <PackageReference Include="LocalInstaller.Core" Version="1.0.0" />
+    <PackageReference Include="LocalInstaller.Packaging" Version="1.0.0" />
+    <PackageReference Include="LocalInstaller.Smoke" Version="1.0.0" />
     <PackageReference Include="TngTech.ArchUnitNET.NUnit" Version="0.13.3" />
   </ItemGroup>
 
@@ -22,10 +26,6 @@
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
     <ProjectReference Include="..\AgentUp.InstallerApp\AgentUp.InstallerApp.csproj" />
-    <ProjectReference Include="..\LocalInstaller.App\LocalInstaller.App.csproj" />
-    <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
-    <ProjectReference Include="..\LocalInstaller.Packaging\LocalInstaller.Packaging.csproj" />
-    <ProjectReference Include="..\LocalInstaller.Smoke\LocalInstaller.Smoke.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
     <ProjectReference Include="..\AgentUp.Tray\AgentUp.Tray.csproj" />
   </ItemGroup>

@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="LocalInstaller.Core" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.10" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.1.0" />
@@ -19,7 +20,6 @@
     <ProjectReference Include="..\AgentUp.Capabilities.Dotnet\AgentUp.Capabilities.Dotnet.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Docker\AgentUp.Capabilities.Docker.csproj" />
     <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
-    <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
   </ItemGroup>
 
 </Project>
