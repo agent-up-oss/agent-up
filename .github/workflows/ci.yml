@@ -58,15 +58,6 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Verify installer app capability independence
-        run: |
-          if grep -q 'AgentUp.Capabilities' LocalInstaller.App/LocalInstaller.App.csproj AgentUp.InstallerApp/AgentUp.InstallerApp.csproj; then
-            echo "Installer apps must not reference AgentUp.Capabilities.* projects."
-            exit 1
-          fi
-          dotnet build "LocalInstaller.App/LocalInstaller.App.csproj" --configuration Release
-          dotnet build "AgentUp.InstallerApp/AgentUp.InstallerApp.csproj" --configuration Release
-
       - name: Build
         run: |
           dotnet build "agent-up.sln" --configuration Release

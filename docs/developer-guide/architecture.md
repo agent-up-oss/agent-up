@@ -81,7 +81,7 @@ AgentUp.Tests/
   AgentUp.Tests.csproj
 ```
 
-The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. `localinstaller.sln` references LocalInstaller libraries, LocalInstaller tests, and LocalInstaller sample applications only; it must not reference Agent-Up product projects.
+The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
 
 ## Code Organization
 
