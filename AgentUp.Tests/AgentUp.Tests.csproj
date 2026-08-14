@@ -14,7 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-<PackageReference Include="coverlet.collector" Version="10.0.1" />
+    <PackageReference Include="coverlet.collector" Version="10.0.1" />
+    <PackageReference Include="LocalInstaller.App" Version="1.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.2.0" />
@@ -23,7 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
-    <ProjectReference Include="..\LocalInstaller.App\LocalInstaller.App.csproj" />
   </ItemGroup>
 
 </Project>

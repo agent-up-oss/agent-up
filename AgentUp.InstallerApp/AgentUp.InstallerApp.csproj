@@ -8,12 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="LocalInstaller.App" Version="1.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AgentUp.CLI\AgentUp.CLI.csproj" />
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
     <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
     <ProjectReference Include="..\AgentUp.Tray\AgentUp.Tray.csproj" />
-    <ProjectReference Include="..\LocalInstaller.App\LocalInstaller.App.csproj" />
   </ItemGroup>
 
 </Project>

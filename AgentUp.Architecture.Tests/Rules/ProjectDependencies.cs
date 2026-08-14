@@ -20,34 +20,6 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions"));
-        AssertDoesNotDependOn("LocalInstaller.Core", Except("LocalInstaller.Core"));
-        AssertDoesNotDependOn("LocalInstaller.App", Except("LocalInstaller.App", "LocalInstaller.Core"));
-        AssertDoesNotDependOn("LocalInstaller.Packaging", Except("LocalInstaller.Packaging", "LocalInstaller.Core"));
-        AssertDoesNotDependOn("LocalInstaller.Smoke", Except("LocalInstaller.Smoke", "LocalInstaller.Core"));
-    }
-
-    [Test]
-    public void InstallerApp_nonAgentUpTypes_do_not_reference_capabilities_namespace()
-    {
-        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.App")
-            .SelectMany(path => CapabilityReferencesFromNonAgentUpTypes(root, path))
-            .ToArray();
-
-        Assert.That(violations, Is.Empty,
-            "InstallerApp product-generic types must use InstallerApp-owned capability catalog contracts instead of compile-time references to AgentUp.Capabilities.");
-    }
-
-    [Test]
-    public void Generic_installer_types_do_not_reference_capabilities_namespace()
-    {
-        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.Core")
-            .SelectMany(path => CapabilityReferencesFromNonAgentUpTypes(root, path))
-            .ToArray();
-
-        Assert.That(violations, Is.Empty,
-            "Generic installer types must not take compile-time references to AgentUp.Capabilities.*; product-specific AgentUp configuration types are the only installer layer allowed to know Agent-Up identity.");
     }
 
     private static void AssertDoesNotDependOn(string sourceAssembly, IReadOnlyCollection<string> allowedAssemblies)

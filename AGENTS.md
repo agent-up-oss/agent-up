@@ -102,33 +102,9 @@ AgentUp.Architecture.Tests/
 
 AgentUp.Tests/
   AgentUp.Tests.csproj
-
-LocalInstaller.Core/
-  LocalInstaller.Core.csproj
-
-LocalInstaller.App/
-  LocalInstaller.App.csproj
-
-LocalInstaller.Packaging/
-  LocalInstaller.Packaging.csproj
-
-LocalInstaller.Smoke/
-  LocalInstaller.Smoke.csproj
-
-LocalInstaller.Core.Tests/
-  LocalInstaller.Core.Tests.csproj
-
-LocalInstaller.App.Tests/
-  LocalInstaller.App.Tests.csproj
-
-LocalInstaller.Packaging.Tests/
-  LocalInstaller.Packaging.Tests.csproj
-
-LocalInstaller.Smoke.Tests/
-  LocalInstaller.Smoke.Tests.csproj
 ```
 
-Project directories live directly at the repository root and are included in the appropriate solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere. `agent-up.sln` references Agent-Up product projects and the LocalInstaller libraries/tests while they still live in this repository. `localinstaller.sln` references LocalInstaller libraries, tests, and samples, and must not reference Agent-Up product projects.
+Project directories live directly at the repository root and are included in the appropriate solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere. `agent-up.sln` references only Agent-Up product and test projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
 
 The exact project list may evolve, but ownership must not drift:
 
@@ -533,7 +509,7 @@ This applies to every production/test project pair once created:
 | `LocalInstaller.Packaging` | `LocalInstaller.Packaging.Tests` |
 | `LocalInstaller.Smoke` | `LocalInstaller.Smoke.Tests` |
 
-`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. Keep architecture and generic source hygiene rules there instead of burying them in product E2E tests.
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
@@ -788,13 +764,15 @@ Scope commit messages to the queued slice, for example `fix(UbuntuInstallation):
 
 Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, and PackageSmoke artifacts from the Ubuntu build job so native release runners do not restore, build, or test product .NET projects. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
 
-`localinstaller.yml` is the standalone LocalInstaller release workflow while the libraries still live in this repository. It plans versions with semantic-release using `localinstaller-v${version}` tags, builds/tests/packs `localinstaller.sln` with the planned `LocalInstallerVersion`, publishes self-contained `LocalInstaller.Sample.*` payloads from the Ubuntu build leg, packages those sample payloads on native Ubuntu, macOS, and Windows runners through `LocalInstaller.Sample.Packager`, smoke-validates them through `LocalInstaller.Sample.Smoke`, and creates a `main`-only GitHub release containing `LocalInstaller.*.nupkg` plus sample native installer assets. NuGet publishing is optional and must run only when `NUGET_API_KEY` is configured.
+The standalone LocalInstaller repository owns the LocalInstaller release workflow. It plans versions with semantic-release using `localinstaller-v${version}` tags, builds/tests/packs `localinstaller.sln` with the planned `LocalInstallerVersion`, publishes self-contained `LocalInstaller.Sample.*` payloads from the Ubuntu build leg, packages those sample payloads on native Ubuntu, macOS, and Windows runners through `LocalInstaller.Sample.Packager`, smoke-validates them through `LocalInstaller.Sample.Smoke`, and creates a `main`-only GitHub release containing `LocalInstaller.*.nupkg` plus sample native installer assets. NuGet publishing is optional and must run only when `NUGET_API_KEY` is configured.
 
 Windows package product identity must come from the product manifest: WiX product and bundle metadata, service name, safe CLI shim filename, registry keys, shortcuts, upgrade GUID, product-scoped component and bundle GUIDs, MSI sidecar name, and bootstrapper name are product-branded. The Agent-Up manifest must continue to produce the existing `agent-up-windows-<rid>` artifact names and WiX command shape.
 
 Packaging request/product DTOs belong to `LocalInstaller.Packaging`; packaging code may map them to explicit platform installer contracts but must not depend on installer workflow product/session internals. Package request boundaries must validate the complete product manifest before artifact names, install paths, WiX identity, service names, shim filenames, server URLs, or command arguments are generated.
 
 All `LocalInstaller.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative and must remain under the repository root; prebuilt payload roots may be absolute CI-provided paths or repository-relative paths normalized under the repository root.
+
+Product packaging wrappers must set `LOCALINSTALLER_REPOSITORY_ROOT` to the product repository root before invoking a published packaging entrypoint, because self-contained executables run from their extraction directory.
 
 All `LocalInstaller.Smoke` process execution must pass through validated command providers. Smoke validation may execute native package managers, service tools, installed CLIs, Git, and capability-backed sample app lifecycle commands, but execution must choose from allowlisted command names before `ProcessStartInfo` is created. Artifact paths, installed executable paths, working directories, arguments, product metadata, and environment keys stay data and must be validated before use.
 
