@@ -155,6 +155,8 @@ public static class ServiceRegistration
             sp.GetRequiredService<WorkspaceQueryController>(),
             sp.GetRequiredService<AuditController>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WorkspaceStreamStateService>>()));
+        builder.Services.AddSingleton<IStreamSessionEventSink>(sp =>
+            sp.GetRequiredService<WorkspaceStreamStateService>());
         builder.Services.AddSingleton<WorkspaceStreamStateController>();
         builder.Services.AddHostedService<StreamStateWorkspaceSubscriber>();
         builder.Services.AddSingleton(sp =>
