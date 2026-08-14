@@ -7,6 +7,7 @@ using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
