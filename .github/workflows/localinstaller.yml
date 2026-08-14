@@ -5,14 +5,48 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: >-
+    ${{ github.ref == 'refs/heads/main'
+      && format('{0}-main-release', github.workflow)
+      || format('{0}-{1}-{2}', github.workflow, github.ref, github.run_id) }}
+
 permissions:
   contents: read
   checks: write
 
 jobs:
+  version:
+    name: Determine LocalInstaller version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install release tooling
+        run: npm install
+
+      - name: Plan version
+        id: plan
+        run: node .github/scripts/localinstaller-plan-version.js
+
   build-test-pack:
-    name: Build, test, and pack (${{ matrix.os }})
+    name: Build, test, pack, and publish sample payloads (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: version
+    permissions:
+      contents: read
+      checks: write
     strategy:
       fail-fast: false
       matrix:
@@ -37,7 +71,12 @@ jobs:
           --logger "trx;LogFileName=test-results.trx"
 
       - name: Pack
-        run: dotnet pack localinstaller.sln --configuration Release --no-build --output nupkgs
+        run: >
+          dotnet pack localinstaller.sln
+          --configuration Release
+          --no-build
+          --output nupkgs
+          -p:LocalInstallerVersion=${{ needs.version.outputs.version }}
 
       - uses: actions/upload-artifact@v7
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -47,6 +86,63 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Publish sample CI artifacts
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        shell: bash
+        run: ./.github/scripts/publish-localinstaller-sample-artifacts.sh "${{ needs.version.outputs.version }}" "artifacts/localinstaller-sample-ci"
+
+      - name: Prepare per-platform sample CI artifacts
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        shell: bash
+        run: |
+          rm -rf artifacts/localinstaller-sample-transfer
+          for entry in \
+            ubuntu-linux-x64:linux-x64 \
+            macos-osx-arm64:osx-arm64 \
+            macos-osx-x64:osx-x64 \
+            windows-win-x64:win-x64
+          do
+            platform_rid="${entry%%:*}"
+            rid="${entry##*:}"
+            target="artifacts/localinstaller-sample-transfer/$platform_rid/sample-ci"
+            mkdir -p "$target/tools/$rid" "$target/payloads"
+            cp -a "artifacts/localinstaller-sample-ci/tools/$rid/packager" "$target/tools/$rid/"
+            cp -a "artifacts/localinstaller-sample-ci/tools/$rid/smoke" "$target/tools/$rid/"
+            cp -a "artifacts/localinstaller-sample-ci/payloads/$rid" "$target/payloads/"
+          done
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: localinstaller-sample-ci-ubuntu-linux-x64
+          path: artifacts/localinstaller-sample-transfer/ubuntu-linux-x64/sample-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: localinstaller-sample-ci-macos-osx-arm64
+          path: artifacts/localinstaller-sample-transfer/macos-osx-arm64/sample-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: localinstaller-sample-ci-macos-osx-x64
+          path: artifacts/localinstaller-sample-transfer/macos-osx-x64/sample-ci
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: localinstaller-sample-ci-windows-win-x64
+          path: artifacts/localinstaller-sample-transfer/windows-win-x64/sample-ci
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Test Report
         uses: dorny/test-reporter@v3
         if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
@@ -54,3 +150,163 @@ jobs:
           name: .NET Tests (LocalInstaller - ${{ matrix.os }})
           path: "**/test-results.trx"
           reporter: dotnet-trx
+
+  package-sample:
+    name: Sample package (${{ matrix.platform }}/${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    needs: [build-test-pack, version]
+    permissions:
+      contents: read
+      actions: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu
+            rid: linux-x64
+            os: ubuntu-latest
+          - platform: macos
+            rid: osx-arm64
+            os: macos-latest
+          - platform: macos
+            rid: osx-x64
+            os: macos-15-intel
+          - platform: windows
+            rid: win-x64
+            os: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: localinstaller-sample-ci-${{ matrix.platform }}-${{ matrix.rid }}
+          path: sample-ci
+
+      - name: Delete consumed sample CI artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          artifact_name="localinstaller-sample-ci-${{ matrix.platform }}-${{ matrix.rid }}"
+          artifact_id="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id" 2>/dev/null | head -n 1)"
+          if [ -n "$artifact_id" ]; then
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
+          fi
+
+      - name: Mark downloaded tools executable
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            chmod +x "sample-ci/tools/${{ matrix.rid }}/packager/LocalInstaller.Sample.Packager" || true
+            chmod +x "sample-ci/tools/${{ matrix.rid }}/smoke/LocalInstaller.Sample.Smoke" || true
+            chmod +x "sample-ci/payloads/${{ matrix.rid }}/installer/LocalInstaller.Sample.InstallerApp" || true
+            chmod +x "sample-ci/payloads/${{ matrix.rid }}/sample-desktop/LocalInstaller.Sample.Desktop" || true
+            chmod +x "sample-ci/payloads/${{ matrix.rid }}/sample-server/LocalInstaller.Sample.Server" || true
+            chmod +x "sample-ci/payloads/${{ matrix.rid }}/sample-cli/LocalInstaller.Sample.Cli" || true
+            chmod +x "sample-ci/payloads/${{ matrix.rid }}/sample-tray/LocalInstaller.Sample.Tray" || true
+          fi
+
+      - name: Package sample installer
+        shell: bash
+        run: |
+          tool_suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tool_suffix=".exe"
+          fi
+          export AGENTUP_PACKAGING_COMMAND="$PWD/sample-ci/tools/${{ matrix.rid }}/packager/LocalInstaller.Sample.Packager$tool_suffix"
+          ./scripts/package-release.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "${{ needs.version.outputs.version }}" "release-artifacts" \
+            --payload-root "$PWD/sample-ci/payloads/${{ matrix.rid }}"
+
+      - name: Smoke test sample package
+        shell: bash
+        run: |
+          tool_suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tool_suffix=".exe"
+          fi
+          "$PWD/sample-ci/tools/${{ matrix.rid }}/smoke/LocalInstaller.Sample.Smoke$tool_suffix" \
+            validate-package "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts" \
+            "$PWD/artifacts/package-smoke/${{ matrix.platform }}-${{ matrix.rid }}"
+
+      - name: Smoke test sample installer flow
+        shell: bash
+        run: |
+          tool_suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            tool_suffix=".exe"
+          fi
+          export LOCALINSTALLERSAMPLE_INSTALLER_FAKE=1
+          "$PWD/sample-ci/payloads/${{ matrix.rid }}/installer/LocalInstaller.Sample.InstallerApp$tool_suffix" \
+            --smoke-installer-operations \
+            --payload-root "$PWD/sample-ci/payloads/${{ matrix.rid }}"
+          "$PWD/sample-ci/tools/${{ matrix.rid }}/smoke/LocalInstaller.Sample.Smoke$tool_suffix" \
+            validate-installer-flow "${{ matrix.platform }}" \
+            "$PWD/artifacts/installer-flow/${{ matrix.platform }}-${{ matrix.rid }}" \
+            "$PWD/sample-ci/payloads/${{ matrix.rid }}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sample-package-${{ matrix.platform }}-${{ matrix.rid }}
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Release LocalInstaller
+    runs-on: ubuntu-latest
+    needs: [package-sample, version]
+    if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install release tooling
+        run: npm install
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: localinstaller-nupkgs
+          path: nupkgs
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: sample-package-*
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Delete consumed release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select((.name | startswith("sample-package-")) or .name == "localinstaller-nupkgs") | .id' |
+            while IFS= read -r artifact_id; do
+              if [ -n "$artifact_id" ]; then
+                gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
+              fi
+            done
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: node .github/scripts/localinstaller-release.js

@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using Microsoft.Extensions.Hosting;

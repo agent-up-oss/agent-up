@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "LocalInstaller.App": {
+      "commandName": "Project"
+    },
+    "LocalInstaller.App (NixOS)": {
+      "commandName": "Executable",
+      "executablePath": "bash",
+      "commandLineArgs": "run-installer.sh",
+      "workingDirectory": "$(SolutionDir)",
+      "environmentVariables": {
+        "LOCALINSTALLER_INSTALLER_NIXOS_LOOKUP_ONLY": "1"
+      }
+    }
+  }
+}

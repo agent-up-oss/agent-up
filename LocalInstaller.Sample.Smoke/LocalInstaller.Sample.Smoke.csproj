@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LocalInstaller.Sample.Cli\LocalInstaller.Sample.Cli.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Sample.Desktop\LocalInstaller.Sample.Desktop.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Sample.InstallerApp\LocalInstaller.Sample.InstallerApp.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Sample.Server\LocalInstaller.Sample.Server.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Sample.Shared\LocalInstaller.Sample.Shared.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Sample.Tray\LocalInstaller.Sample.Tray.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Smoke\LocalInstaller.Smoke.csproj" />
+  </ItemGroup>
+
+</Project>

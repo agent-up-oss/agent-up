@@ -20,17 +20,17 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions"));
-        AssertDoesNotDependOn("AgentUp.Installers", Except("AgentUp.Installers"));
-        AssertDoesNotDependOn("AgentUp.InstallerApp", Except("AgentUp.InstallerApp", "AgentUp.Installers"));
-        AssertDoesNotDependOn("AgentUp.Packaging", Except("AgentUp.Packaging", "AgentUp.Installers"));
-        AssertDoesNotDependOn("AgentUp.PackageSmoke", Except("AgentUp.PackageSmoke", "AgentUp.Installers"));
+        AssertDoesNotDependOn("LocalInstaller.Core", Except("LocalInstaller.Core"));
+        AssertDoesNotDependOn("LocalInstaller.App", Except("LocalInstaller.App", "LocalInstaller.Core"));
+        AssertDoesNotDependOn("LocalInstaller.Packaging", Except("LocalInstaller.Packaging", "LocalInstaller.Core"));
+        AssertDoesNotDependOn("LocalInstaller.Smoke", Except("LocalInstaller.Smoke", "LocalInstaller.Core"));
     }
 
     [Test]
     public void InstallerApp_nonAgentUpTypes_do_not_reference_capabilities_namespace()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.InstallerApp")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.App")
             .SelectMany(path => CapabilityReferencesFromNonAgentUpTypes(root, path))
             .ToArray();
 
@@ -42,7 +42,7 @@ public sealed class ProjectDependencies
     public void Generic_installer_types_do_not_reference_capabilities_namespace()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var violations = ArchitectureFixture.ProjectSourceFiles(root, "AgentUp.Installers")
+        var violations = ArchitectureFixture.ProjectSourceFiles(root, "LocalInstaller.Core")
             .SelectMany(path => CapabilityReferencesFromNonAgentUpTypes(root, path))
             .ToArray();
 

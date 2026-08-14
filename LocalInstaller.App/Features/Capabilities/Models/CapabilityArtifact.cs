@@ -1,0 +1,8 @@
+namespace LocalInstaller.App.Features.Capabilities.Models;
+
+public sealed record CapabilityArtifact(
+    string CapabilityId,
+    string Version,
+    Uri DownloadUrl,
+    string Sha256,
+    string? Signature = null);

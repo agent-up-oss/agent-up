@@ -18,10 +18,10 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Docker",
         "AgentUp.Desktop",
         "AgentUp.CLI",
-        "AgentUp.Installers",
-        "AgentUp.InstallerApp",
-        "AgentUp.Packaging",
-        "AgentUp.PackageSmoke"
+        "LocalInstaller.Core",
+        "LocalInstaller.App",
+        "LocalInstaller.Packaging",
+        "LocalInstaller.Smoke"
     ];
 
     public static readonly string[] TestProjects =
@@ -34,10 +34,10 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Docker.Tests",
         "AgentUp.Desktop.Tests",
         "AgentUp.CLI.Tests",
-        "AgentUp.Installers.Tests",
-        "AgentUp.InstallerApp.Tests",
-        "AgentUp.Packaging.Tests",
-        "AgentUp.PackageSmoke.Tests",
+        "LocalInstaller.Core.Tests",
+        "LocalInstaller.App.Tests",
+        "LocalInstaller.Packaging.Tests",
+        "LocalInstaller.Smoke.Tests",
         "AgentUp.Tests",
         "AgentUp.Architecture.Tests"
     ];

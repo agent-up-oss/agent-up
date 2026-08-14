@@ -1,4 +1,6 @@
-namespace AgentUp.Desktop.Features.FirstRun.Services;
+using AgentUp.Desktop.Features.FirstRun.Services;
+
+namespace AgentUp.Desktop.Features.FirstRun.Interfaces;
 
 public interface IFirstRunTutorialChecks
 {

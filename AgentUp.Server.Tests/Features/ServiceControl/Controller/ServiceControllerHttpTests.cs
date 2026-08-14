@@ -1,12 +1,12 @@
 using System.Net;
 using System.Net.Sockets;
-using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.ServiceControl.Controllers;
+using AgentUp.Server.Features.ServiceControl.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace AgentUp.Server.Tests.Features.ServiceControl.HTTP;
+namespace AgentUp.Server.Tests.Features.ServiceControl.Controller;
 
 [TestFixture]
 public class ServiceControlHttpTests

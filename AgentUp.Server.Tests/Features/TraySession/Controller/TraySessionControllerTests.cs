@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace AgentUp.Server.Tests.Features.TraySession.HTTP;
+namespace AgentUp.Server.Tests.Features.TraySession.Controller;
 
 [TestFixture]
 public class TraySessionHttpTests

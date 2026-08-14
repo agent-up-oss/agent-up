@@ -1,0 +1,19 @@
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Interfaces;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.RuntimeSecurity.Interfaces;
+
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Factories;
+
+public static class InstalledServiceSmokeValidatorFactory
+{
+    public static IInstalledServiceSmokeValidator Create(string platform, ICommandRunner commands, IServerProbe serverProbe, IRuntimeSecurityChecks securityChecks)
+        => platform switch
+        {
+            "ubuntu" => new UbuntuInstalledServiceSmokeValidator(commands, serverProbe, securityChecks),
+            "macos" => new SkippedInstalledServiceSmokeValidator("Skipping installed-service smoke for macOS because the .pkg installs only the installer dashboard; real service validation requires a noninteractive installer app install mode."),
+            "windows" => new WindowsInstalledServiceSmokeValidator(commands, serverProbe, securityChecks),
+            "nixos" => new SkippedInstalledServiceSmokeValidator("Skipping installed-service smoke for NixOS because this CI job runs on Ubuntu with Nix, not a booted NixOS systemd host."),
+            _ => throw new ArgumentException($"Unsupported platform: {platform}", nameof(platform))
+        };
+}

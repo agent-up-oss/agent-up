@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
+using AgentUp.Tests;
 
 namespace AgentUp.Tests.Fixtures;
 
@@ -32,6 +33,6 @@ public static class DesktopFixtureAdapter
             .UseReactiveUI()
             .AfterSetup(_ =>
             {
-                Avalonia.Threading.Dispatcher.UIThread.Post(AgentUp.Tests.DesktopFixtureHost.MarkAvaloniaReady);
+                Avalonia.Threading.Dispatcher.UIThread.Post(DesktopFixtureHost.MarkAvaloniaReady);
             });
 }

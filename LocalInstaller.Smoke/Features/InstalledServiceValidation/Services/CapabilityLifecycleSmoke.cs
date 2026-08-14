@@ -1,0 +1,364 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.DTOs;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Models;
+using LocalInstaller.Smoke.Features.InstalledServiceValidation.Providers;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Shared.Providers;
+
+namespace LocalInstaller.Smoke.Features.InstalledServiceValidation.Services;
+
+public sealed class CapabilityLifecycleSmoke : IDisposable
+{
+    private const string WorkspaceName = "Capability Lifecycle Smoke Workspace";
+    private const string DotnetAppName = "SmokeDotnet";
+    private const string DockerAppName = "SmokeDocker";
+    private const string WorkingDirectoryEnvironmentKey = "LOCALINSTALLER_SMOKE_WORKING_DIRECTORY";
+    private static readonly TimeSpan StateWaitTimeout = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan StatePollDelay = TimeSpan.FromMilliseconds(500);
+
+    private readonly ICommandRunner _commands;
+    private readonly CapabilityWorkspaceProvider _workspace;
+    private readonly DotnetSmokeBuildProvider _dotnetBuild;
+    private readonly HttpClient _http;
+    private readonly bool _ownsHttp;
+
+    public CapabilityLifecycleSmoke(
+        ICommandRunner commands,
+        CapabilityWorkspaceProvider workspace,
+        DotnetSmokeBuildProvider dotnetBuild,
+        HttpClient? http = null)
+    {
+        _commands = commands;
+        _workspace = workspace;
+        _dotnetBuild = dotnetBuild;
+        _http = http ?? new HttpClient();
+        _ownsHttp = http is null;
+    }
+
+    public async Task RunAsync(
+        string workDirectory,
+        InstalledServiceContext context,
+        string cliShimName,
+        string serverUrl,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var safeWorkDirectory = SafeSmokePaths.Root(workDirectory, nameof(workDirectory));
+        var repo = _workspace.Prepare(safeWorkDirectory);
+        await BuildDotnetSmokeAppAsync(repo, assert, cancellationToken);
+        await GitCommitConfigAsync(repo, assert, cancellationToken);
+
+        var environment = MergeEnvironment(context.CliEnvironment, _workspace.ServerUrlEnvironmentVariable, serverUrl);
+        var start = await _commands.RunAsync(CliCommand(context.CliCommand, cliShimName, "start", repo, environment), cancellationToken);
+        await File.WriteAllTextAsync(SafeSmokePaths.Child(safeWorkDirectory, "capability-cli-start.log"), start.Stdout + start.Stderr, cancellationToken);
+        if (start.ExitCode != 0 || !start.Stdout.Contains($"Started workspace \"{WorkspaceName}\"", StringComparison.Ordinal))
+        {
+            assert.Error("capability.cli.start", $"Capability workspace start failed: {start.Stderr}{start.Stdout}");
+            return;
+        }
+
+        var workspace = await FindWorkspaceAsync(serverUrl, cancellationToken);
+        if (workspace is null)
+        {
+            assert.Error("capability.workspace.find", "Capability smoke workspace was not returned by the Server.");
+            return;
+        }
+
+        AssertApplication(workspace.Value, DotnetAppName, "dotnet", assert);
+        AssertApplication(workspace.Value, DockerAppName, "docker", assert);
+        await AssertStateAsync(serverUrl, workspace.Value.Id, DotnetAppName, "Running", assert, cancellationToken);
+        await AssertStateAsync(serverUrl, workspace.Value.Id, DockerAppName, "Running", assert, cancellationToken);
+
+        await StopApplicationAsync(serverUrl, workspace.Value.Id, DotnetAppName, assert, cancellationToken);
+        await AssertStateAsync(serverUrl, workspace.Value.Id, DotnetAppName, "Stopped", assert, cancellationToken);
+        await AssertStateAsync(serverUrl, workspace.Value.Id, DockerAppName, "Running", assert, cancellationToken);
+
+        await StartApplicationAsync(serverUrl, workspace.Value.Id, DotnetAppName, assert, cancellationToken);
+        await AssertStateAsync(serverUrl, workspace.Value.Id, DotnetAppName, "Running", assert, cancellationToken);
+
+        await StopApplicationAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
+        await AssertStoppedOrStoppingAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
+
+        await StopWorkspaceAsync(serverUrl, workspace.Value.Id, assert, cancellationToken);
+        await AssertInactiveAfterWorkspaceStopAsync(serverUrl, workspace.Value.Id, DotnetAppName, assert, cancellationToken);
+        await AssertInactiveAfterWorkspaceStopAsync(serverUrl, workspace.Value.Id, DockerAppName, assert, cancellationToken);
+    }
+
+    private async Task GitCommitConfigAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
+    {
+        foreach (var command in GitCommands(repo))
+        {
+            var result = await _commands.RunAsync(command.Spec, cancellationToken);
+            if (result.ExitCode != 0)
+                assert.Error(command.Code, $"{command.Spec.FileName} failed: {result.Stderr}{result.Stdout}");
+        }
+    }
+
+    private async Task BuildDotnetSmokeAppAsync(string repo, FileAssertions assert, CancellationToken cancellationToken)
+    {
+        foreach (var finding in await _dotnetBuild.BuildAsync(repo, cancellationToken))
+            assert.Error(finding.Code, finding.Message);
+    }
+
+    private async Task<WorkspaceSnapshot?> FindWorkspaceAsync(string serverUrl, CancellationToken cancellationToken)
+    {
+        var workspaces = await _http.GetFromJsonAsync<JsonElement[]>(Endpoint(serverUrl, "/api/workspaces"), cancellationToken);
+        if (workspaces is null)
+            return null;
+
+        var matchingWorkspaces = workspaces.Where(workspace =>
+            TryGetString(workspace, "displayName", out var name) && name == WorkspaceName);
+        foreach (var workspace in matchingWorkspaces)
+        {
+            if (!TryGetString(workspace, "id", out var id))
+                return null;
+            return new WorkspaceSnapshot(id, workspace);
+        }
+
+        return null;
+    }
+
+    private static void AssertApplication(WorkspaceSnapshot workspace, string appName, string capabilityId, FileAssertions assert)
+    {
+        var app = FindApplication(workspace.Json, appName);
+        if (app is null)
+        {
+            assert.Error($"capability.{capabilityId}.registered", $"{appName} was not registered.");
+            return;
+        }
+
+        if (!TryGetString(app.Value, "capabilityId", out var actualCapability) || actualCapability != capabilityId)
+            assert.Error($"capability.{capabilityId}.id", $"{appName} did not report capability id '{capabilityId}'.");
+
+        if (app.Value.TryGetProperty("capabilityStatus", out var status)
+            && status.TryGetProperty("canRun", out var canRun)
+            && canRun.ValueKind == JsonValueKind.False)
+            assert.Error($"capability.{capabilityId}.canRun", $"{appName} capability status cannot run.");
+    }
+
+    private async Task AssertStateAsync(
+        string serverUrl,
+        string workspaceId,
+        string appName,
+        string expected,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow + StateWaitTimeout;
+        var actual = "<missing>";
+
+        while (true)
+        {
+            var app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            actual = app is null ? "<missing>" : ReadState(app.Value);
+            if (actual == expected)
+                return;
+
+            if (DateTimeOffset.UtcNow >= deadline)
+                break;
+
+            await Task.Delay(StatePollDelay, cancellationToken);
+        }
+
+        assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected {expected}, got {actual}.");
+    }
+
+    private async Task AssertStoppedOrStoppingAsync(
+        string serverUrl,
+        string workspaceId,
+        string appName,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow + StateWaitTimeout;
+        var actual = "<missing>";
+
+        while (true)
+        {
+            var app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            actual = app is null ? "<missing>" : ReadState(app.Value);
+            if (actual is "Stopped" or "Stopping")
+                return;
+
+            if (DateTimeOffset.UtcNow >= deadline)
+                break;
+
+            await Task.Delay(StatePollDelay, cancellationToken);
+        }
+
+        assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected Stopped or Stopping, got {actual}.");
+    }
+
+    private async Task AssertInactiveAfterWorkspaceStopAsync(
+        string serverUrl,
+        string workspaceId,
+        string appName,
+        FileAssertions assert,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow + StateWaitTimeout;
+        var actual = "<missing>";
+
+        while (true)
+        {
+            JsonElement? app;
+            try
+            {
+                app = await GetApplicationAsync(serverUrl, workspaceId, appName, cancellationToken);
+            }
+            catch (HttpRequestException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+            catch (JsonException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+            catch (NotSupportedException ex)
+            {
+                assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} post-stop state poll failed: {ex.Message}");
+                return;
+            }
+
+            actual = app is null ? "<missing>" : ReadState(app.Value);
+            if (actual is "Stopped" or "Stopping" or "Failed")
+                return;
+
+            if (DateTimeOffset.UtcNow >= deadline)
+                break;
+
+            await Task.Delay(StatePollDelay, cancellationToken);
+        }
+
+        assert.Error($"capability.{appName.ToLowerInvariant()}.state", $"{appName} expected Stopped, Stopping, or Failed after workspace stop, got {actual}.");
+    }
+
+    private async Task StartApplicationAsync(string serverUrl, string workspaceId, string appName, FileAssertions assert, CancellationToken cancellationToken)
+    {
+        var response = await _http.PostAsync(Endpoint(serverUrl, $"/api/workspaces/{workspaceId}/applications/{Uri.EscapeDataString(appName)}/start"), null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            assert.Error($"capability.{appName.ToLowerInvariant()}.start", $"{appName} start failed with HTTP {(int)response.StatusCode}.");
+    }
+
+    private async Task StopApplicationAsync(string serverUrl, string workspaceId, string appName, FileAssertions assert, CancellationToken cancellationToken)
+    {
+        var response = await _http.PostAsync(Endpoint(serverUrl, $"/api/workspaces/{workspaceId}/applications/{Uri.EscapeDataString(appName)}/stop"), null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            assert.Error($"capability.{appName.ToLowerInvariant()}.stop", $"{appName} stop failed with HTTP {(int)response.StatusCode}.");
+    }
+
+    private async Task StopWorkspaceAsync(string serverUrl, string workspaceId, FileAssertions assert, CancellationToken cancellationToken)
+    {
+        var response = await _http.PostAsync(Endpoint(serverUrl, $"/api/workspaces/{workspaceId}/stop"), null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            assert.Error("capability.workspace.stop", $"Workspace stop failed with HTTP {(int)response.StatusCode}.");
+    }
+
+    private async Task<JsonElement?> GetApplicationAsync(string serverUrl, string workspaceId, string appName, CancellationToken cancellationToken)
+    {
+        var workspace = await _http.GetFromJsonAsync<JsonElement>(Endpoint(serverUrl, $"/api/workspaces/{workspaceId}"), cancellationToken);
+        return FindApplication(workspace, appName);
+    }
+
+    private static JsonElement? FindApplication(JsonElement workspace, string appName)
+    {
+        if (!workspace.TryGetProperty("applications", out var apps) || apps.ValueKind != JsonValueKind.Array)
+            return null;
+
+        return apps.EnumerateArray()
+            .Where(app => TryGetString(app, "name", out var name) && name == appName)
+            .Select<JsonElement, JsonElement?>(app => app)
+            .FirstOrDefault();
+    }
+
+    private static string ReadState(JsonElement app)
+    {
+        if (!app.TryGetProperty("state", out var state))
+            return "<missing>";
+        if (state.ValueKind == JsonValueKind.String)
+            return state.GetString() ?? "<missing>";
+        if (state.ValueKind == JsonValueKind.Number && state.TryGetInt32(out var value))
+            return value switch
+            {
+                0 => "Stopped",
+                1 => "Starting",
+                2 => "Running",
+                3 => "Stopping",
+                4 => "Failed",
+                _ => value.ToString()
+            };
+        return state.ToString();
+    }
+
+    private static bool TryGetString(JsonElement element, string propertyName, out string value)
+    {
+        value = "";
+        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
+            return false;
+        value = property.GetString() ?? "";
+        return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private IReadOnlyList<(CommandSpec Spec, string Code)> GitCommands(string repo)
+    {
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [WorkingDirectoryEnvironmentKey] = repo
+        };
+
+        return OperatingSystem.IsWindows()
+            ?
+            [
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git init -q"], Environment: environment), "capability.git.init"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git add {_workspace.WorkspaceConfigFileName}"], Environment: environment), "capability.git.add"),
+                (new CommandSpec("powershell.exe", ["-NoProfile", "-Command", "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
+            ]
+            :
+            [
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git init -q"], Environment: environment), "capability.git.init"),
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local"], Environment: environment), "capability.git.email"),
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\""], Environment: environment), "capability.git.name"),
+                (new CommandSpec("bash", ["-lc", $"cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git add {_workspace.WorkspaceConfigFileName}"], Environment: environment), "capability.git.add"),
+                (new CommandSpec("bash", ["-lc", "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\""], Environment: environment), "capability.git.commit")
+            ];
+    }
+
+    private static CommandSpec CliCommand(
+        string command,
+        string shimName,
+        string argument,
+        string workingDirectory,
+        IReadOnlyDictionary<string, string>? environment)
+    {
+        var workingEnvironment = MergeEnvironment(environment, WorkingDirectoryEnvironmentKey, workingDirectory);
+        return command == "cmd.exe"
+            ? new CommandSpec("powershell.exe", ["-NoProfile", "-Command", $"Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; {shimName}.cmd {argument}"], Environment: workingEnvironment)
+            : new CommandSpec("bash", ["-lc", $"cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && {shimName} {argument}"], Environment: workingEnvironment);
+    }
+
+    private static Dictionary<string, string> MergeEnvironment(
+        IReadOnlyDictionary<string, string>? source,
+        string key,
+        string value)
+    {
+        var environment = source is null
+            ? []
+            : new Dictionary<string, string>(source, StringComparer.Ordinal);
+        environment[key] = value;
+        return environment;
+    }
+
+    private static string Endpoint(string serverUrl, string path)
+        => serverUrl.TrimEnd('/') + path;
+
+    public void Dispose()
+    {
+        if (_ownsHttp)
+            _http.Dispose();
+    }
+}

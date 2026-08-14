@@ -10,8 +10,7 @@
     <PackageReference Include="Devolutions.IronRdp" Version="2025.12.4" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.10" />
-    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.0.0" />
-    <PackageReference Include="PuppeteerSharp" Version="25.4.0" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 
@@ -21,6 +20,8 @@
     <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Dotnet\AgentUp.Capabilities.Dotnet.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Docker\AgentUp.Capabilities.Docker.csproj" />
+    <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
+    <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

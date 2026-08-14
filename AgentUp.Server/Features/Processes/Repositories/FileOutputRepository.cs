@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using AgentUp.Server.Features.Processes.Interfaces;
 
 namespace AgentUp.Server.Features.Processes.Repositories;
 

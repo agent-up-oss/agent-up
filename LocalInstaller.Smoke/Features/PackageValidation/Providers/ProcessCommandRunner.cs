@@ -1,0 +1,833 @@
+using System.Diagnostics;
+using LocalInstaller.Smoke.Features.PackageValidation.Interfaces;
+using LocalInstaller.Smoke.Features.PackageValidation.Models;
+
+namespace LocalInstaller.Smoke.Features.PackageValidation.Providers;
+
+public sealed class ProcessCommandRunner : ICommandRunner
+{
+    public async Task<CommandResult> RunAsync(CommandSpec command, CancellationToken cancellationToken = default)
+    {
+        if (!TryNormalize(command, out var safeCommand, out var validationError))
+            return new CommandResult(126, "", validationError);
+
+        var startInfo = CreateStartInfo(safeCommand.Executable, safeCommand.DisplayName);
+
+        if (!TryAddAllowedArguments(startInfo, safeCommand, out validationError))
+            return new CommandResult(126, "", validationError);
+
+        if (safeCommand.Environment is not null)
+        {
+            foreach (var (key, value) in safeCommand.Environment)
+                startInfo.Environment[key] = value;
+        }
+
+        Process? process;
+        try
+        {
+            process = Process.Start(startInfo);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or FileNotFoundException)
+        {
+            return new CommandResult(127, "", ex.Message);
+        }
+
+        if (process is null)
+            return new CommandResult(127, "", $"Failed to start {safeCommand.DisplayName}.");
+
+        using (process)
+        {
+            var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            return new CommandResult(process.ExitCode, await stdout, await stderr);
+        }
+    }
+
+    private static ProcessStartInfo CreateStartInfo(SmokeExecutable executable, string displayName)
+    {
+        var startInfo = executable switch
+        {
+            SmokeExecutable.ProductCli => new ProcessStartInfo(displayName),
+            SmokeExecutable.ProductCliCmd => new ProcessStartInfo(displayName),
+            SmokeExecutable.Bash => new ProcessStartInfo("bash"),
+            SmokeExecutable.Cmd => new ProcessStartInfo("cmd.exe"),
+            SmokeExecutable.DpkgDeb => new ProcessStartInfo("dpkg-deb"),
+            SmokeExecutable.Dotnet => new ProcessStartInfo("dotnet"),
+            SmokeExecutable.Git => new ProcessStartInfo("git"),
+            SmokeExecutable.Lsof => new ProcessStartInfo("lsof"),
+            SmokeExecutable.Msiexec => new ProcessStartInfo("msiexec.exe"),
+            SmokeExecutable.Pkgutil => new ProcessStartInfo("pkgutil"),
+            SmokeExecutable.PowerShell => new ProcessStartInfo("powershell.exe"),
+            SmokeExecutable.Ps => new ProcessStartInfo("ps"),
+            SmokeExecutable.Sc => new ProcessStartInfo("sc.exe"),
+            SmokeExecutable.Ss => new ProcessStartInfo("ss"),
+            SmokeExecutable.Sudo => new ProcessStartInfo("sudo"),
+            _ => throw new ArgumentOutOfRangeException(nameof(executable), executable, "Unsupported smoke executable.")
+        };
+
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        return startInfo;
+    }
+
+    private static bool TryAddAllowedArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+
+        if (command.Executable == SmokeExecutable.ProductCli && IsArguments(command, "--version"))
+        {
+            startInfo.ArgumentList.Add("--version");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.ProductCli && IsArguments(command, "start"))
+        {
+            startInfo.ArgumentList.Add("start");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.ProductCli && IsArguments(command, "status"))
+        {
+            startInfo.ArgumentList.Add("status");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.ProductCliCmd && IsArguments(command, "--version"))
+        {
+            startInfo.ArgumentList.Add("--version");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.ProductCliCmd && IsArguments(command, "start"))
+        {
+            startInfo.ArgumentList.Add("start");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.ProductCliCmd && IsArguments(command, "status"))
+        {
+            startInfo.ArgumentList.Add("status");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Cmd && IsProductCliCmdInvocation(command, "--version"))
+        {
+            startInfo.ArgumentList.Add("/C");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add("--version");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Cmd && IsProductCliCmdInvocation(command, "start"))
+        {
+            startInfo.ArgumentList.Add("/C");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add("start");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Cmd && IsProductCliCmdInvocation(command, "status"))
+        {
+            startInfo.ArgumentList.Add("/C");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add("status");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Git)
+            return TryAddGitArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Dotnet)
+            return TryAddDotnetArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.DpkgDeb)
+            return TryAddDpkgDebArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Pkgutil)
+            return TryAddPkgutilArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Msiexec)
+            return TryAddMsiexecArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.PowerShell)
+            return TryAddPowerShellArguments(startInfo, command, out error);
+
+        if (command.Executable == SmokeExecutable.Sc &&
+            command.Arguments.Count == 2 &&
+            command.Arguments[0] == "start" &&
+            IsSafeIdentifier(command.Arguments[1]))
+        {
+            startInfo.ArgumentList.Add("start");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Sc &&
+            command.Arguments.Count == 6 &&
+            command.Arguments[0] == "failure" &&
+            command.Arguments[2] == "reset=" &&
+            command.Arguments[3] == "86400" &&
+            command.Arguments[4] == "actions=" &&
+            command.Arguments[5] == "restart/5000/restart/5000/restart/5000")
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Sc &&
+            command.Arguments.Count == 3 &&
+            command.Arguments[0] == "failureflag" &&
+            command.Arguments[2] == "1")
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Bash &&
+            command.Arguments.Count == 2 &&
+            command.Arguments[0] == "-lc" &&
+            command.Arguments[1].StartsWith("command -v ", StringComparison.Ordinal) &&
+            IsSafeIdentifier(command.Arguments[1]["command -v ".Length..]))
+        {
+            startInfo.ArgumentList.Add("-lc");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Bash && TryAddAllowedShellCommand(startInfo, command, "-lc", SelectUnixWorkingDirectoryCommand, out error))
+            return true;
+
+        if (command.Executable == SmokeExecutable.Ps && IsArguments(command, "-ef"))
+        {
+            startInfo.ArgumentList.Add("-ef");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Ps && IsArguments(command, "aux"))
+        {
+            startInfo.ArgumentList.Add("aux");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Ss && IsArguments(command, "-ltnp"))
+        {
+            startInfo.ArgumentList.Add("-ltnp");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Lsof && IsArguments(command, "-nP", "-iTCP", "-sTCP:LISTEN"))
+        {
+            startInfo.ArgumentList.Add("-nP");
+            startInfo.ArgumentList.Add("-iTCP");
+            startInfo.ArgumentList.Add("-sTCP:LISTEN");
+            return true;
+        }
+
+        if (command.Executable == SmokeExecutable.Sudo)
+            return TryAddSudoArguments(startInfo, command, out error);
+
+        error = $"Command arguments are not allowed for {command.DisplayName}.";
+        return false;
+    }
+
+    private static bool TryAddAllowedShellCommand(
+        ProcessStartInfo startInfo,
+        SafeCommandSpec command,
+        string shellFlag,
+        Func<string, string?> selectAllowedCommand,
+        out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 2 &&
+            command.Arguments[0] == shellFlag &&
+            selectAllowedCommand(command.Arguments[1]) is { } shellCommand)
+        {
+            startInfo.ArgumentList.Add(shellFlag);
+            startInfo.ArgumentList.Add(shellCommand);
+            return true;
+        }
+
+        error = "Shell command arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddGitArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (IsArguments(command, "init", "-q"))
+        {
+            startInfo.ArgumentList.Add("init");
+            startInfo.ArgumentList.Add("-q");
+            return true;
+        }
+
+        if (IsArguments(command, "config", "user.email", "smoke@ci.local"))
+        {
+            startInfo.ArgumentList.Add("config");
+            startInfo.ArgumentList.Add("user.email");
+            startInfo.ArgumentList.Add("smoke@ci.local");
+            return true;
+        }
+
+        if (IsArguments(command, "config", "user.name", "Smoke CI"))
+        {
+            startInfo.ArgumentList.Add("config");
+            startInfo.ArgumentList.Add("user.name");
+            startInfo.ArgumentList.Add("Smoke CI");
+            return true;
+        }
+
+        if (command.Arguments.Count == 2 &&
+            command.Arguments[0] == "add" &&
+            IsSafeWorkspaceConfigFileName(command.Arguments[1]))
+        {
+            startInfo.ArgumentList.Add("add");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            return true;
+        }
+
+        if (IsArguments(command, "commit", "-q", "-m", "Add service smoke workspace"))
+        {
+            startInfo.ArgumentList.Add("commit");
+            startInfo.ArgumentList.Add("-q");
+            startInfo.ArgumentList.Add("-m");
+            startInfo.ArgumentList.Add("Add service smoke workspace");
+            return true;
+        }
+
+        error = "Git arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddDotnetArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 2 &&
+            command.Arguments[0] == "restore" &&
+            IsSmokeDotnetProject(command.Arguments[1]))
+        {
+            startInfo.ArgumentList.Add("restore");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "build" &&
+            IsSmokeDotnetProject(command.Arguments[1]) &&
+            command.Arguments[2] == "--no-restore")
+        {
+            startInfo.ArgumentList.Add("build");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add("--no-restore");
+            return true;
+        }
+
+        error = "dotnet arguments are not allowed.";
+        return false;
+    }
+
+    private static bool IsSmokeDotnetProject(string value)
+    {
+        var fullPath = Path.GetFullPath(value);
+        return Path.IsPathFullyQualified(value)
+               && fullPath.EndsWith(Path.Join("SmokeDotnet", "SmokeDotnet.csproj"), StringComparison.Ordinal);
+    }
+
+    private static bool TryAddDpkgDebArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 3 && command.Arguments[0] is "-x" or "-e")
+        {
+            startInfo.ArgumentList.Add(command.Arguments[0]);
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "dpkg-deb arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddPkgutilArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 3 && command.Arguments[0] == "--expand-full")
+        {
+            startInfo.ArgumentList.Add("--expand-full");
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "pkgutil arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddMsiexecArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 6 &&
+            command.Arguments[0] is "/i" or "/x" &&
+            command.Arguments[2] == "/qn" &&
+            command.Arguments[3] == "/norestart" &&
+            command.Arguments[4] == "/l*vx!")
+        {
+            startInfo.ArgumentList.Add(command.Arguments[0]);
+            startInfo.ArgumentList.Add(command.Arguments[1]);
+            startInfo.ArgumentList.Add("/qn");
+            startInfo.ArgumentList.Add("/norestart");
+            startInfo.ArgumentList.Add("/l*vx!");
+            startInfo.ArgumentList.Add(command.Arguments[5]);
+            return true;
+        }
+
+        error = "msiexec arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddPowerShellArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "-NoProfile" &&
+            command.Arguments[1] == "-Command" &&
+            SelectWindowsPowerShellWorkingDirectoryCommand(command.Arguments[2]) is { } workingDirectoryCommand)
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(workingDirectoryCommand);
+            return true;
+        }
+
+        if (IsArguments(command, "-NoProfile", "-Command", "$process = Start-Process -FilePath $env:LOCALINSTALLER_SMOKE_INSTALLER -ArgumentList @('/layout', $env:LOCALINSTALLER_SMOKE_LAYOUT, '/quiet') -Wait -PassThru; exit $process.ExitCode"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        if (IsArguments(command, "-NoProfile", "-Command", "& $env:LOCALINSTALLER_SMOKE_INSTALLER_APP --payload-root $env:LOCALINSTALLER_SMOKE_PAYLOAD_ROOT --install-core; $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }; if ($exit -ne 0) { $log = Join-Path $env:LOCALAPPDATA 'LocalInstaller\\Logs\\installer.log'; if (Test-Path $log) { Get-Content -Tail 120 $log | Write-Error } }; exit $exit"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "-NoProfile" &&
+            command.Arguments[1] == "-Command" &&
+            command.Arguments[2].StartsWith("Get-Service ", StringComparison.Ordinal) &&
+            command.Arguments[2].EndsWith(" -ErrorAction SilentlyContinue | Format-List *", StringComparison.Ordinal) &&
+            IsSafeIdentifier(command.Arguments[2]["Get-Service ".Length..^" -ErrorAction SilentlyContinue | Format-List *".Length]))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        if (IsArguments(command, "-NoProfile", "-Command", "$displayName = $env:LOCALINSTALLER_PRODUCT_DISPLAY_NAME; $installDir = [System.IO.Path]::GetFullPath($env:LOCALINSTALLER_INSTALL_DIR); $uninstallRoots = @('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'); $registration = $uninstallRoots | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ } | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq $displayName -or $_.DisplayName -eq \"$displayName Setup\" } | Select-Object -First 1; if (-not $registration) { throw \"$displayName uninstall registration missing\" }; $path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $bin = [System.IO.Path]::GetFullPath((Join-Path $installDir 'bin')).TrimEnd('\\'); $entries = ($path -split ';' | Where-Object { $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') }); if (-not ($entries | Where-Object { [string]::Equals($_, $bin, [System.StringComparison]::OrdinalIgnoreCase) })) { throw \"$displayName PATH entry missing: $bin\" }"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        if (IsArguments(command, "-NoProfile", "-Command", "$name = $env:LOCALINSTALLER_TRAY_AUTOSTART_NAME; $expected = $env:LOCALINSTALLER_TRAY_AUTOSTART_VALUE; $val = Get-ItemPropertyValue -Path 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name $name -ErrorAction SilentlyContinue; if (-not [string]::Equals($val, $expected, [System.StringComparison]::OrdinalIgnoreCase)) { throw \"$name tray autostart registry entry missing or incorrect\" }"))
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "PowerShell arguments are not allowed.";
+        return false;
+    }
+
+    private static bool TryAddSudoArguments(ProcessStartInfo startInfo, SafeCommandSpec command, out string error)
+    {
+        error = "";
+        if (command.Arguments.Count == 4 &&
+            command.Arguments[0] == "apt-get" &&
+            command.Arguments[1] == "purge" &&
+            command.Arguments[2] == "-y" &&
+            IsSafeIdentifier(command.Arguments[3]))
+        {
+            startInfo.ArgumentList.Add("apt-get");
+            startInfo.ArgumentList.Add("purge");
+            startInfo.ArgumentList.Add("-y");
+            startInfo.ArgumentList.Add(command.Arguments[3]);
+            return true;
+        }
+
+        if (command.Arguments.Count == 4 &&
+            command.Arguments[0] == "systemctl" &&
+            command.Arguments[1] == "status" &&
+            IsSafeServiceName(command.Arguments[2]) &&
+            command.Arguments[3] == "--no-pager")
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Arguments.Count == 6 &&
+            command.Arguments[0] == "journalctl" &&
+            command.Arguments[1] == "-u" &&
+            IsSafeServiceName(command.Arguments[2]) &&
+            command.Arguments[3] == "--no-pager" &&
+            command.Arguments[4] == "-n" &&
+            command.Arguments[5] == "200")
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Arguments.Count == 4 &&
+            command.Arguments[0] == "tail" &&
+            command.Arguments[1] == "-n" &&
+            command.Arguments[2] == "200" &&
+            IsSafeLogPath(command.Arguments[3]))
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "ls" &&
+            command.Arguments[1] == "-la" &&
+            IsSafeDiagnosticsDirectory(command.Arguments[2]))
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 &&
+            command.Arguments[0] == "launchctl" &&
+            command.Arguments[1] == "print" &&
+            IsSafeLaunchdTarget(command.Arguments[2]))
+        {
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+            return true;
+        }
+
+        if (command.Arguments.Count == 5 &&
+            command.Arguments[0] == "installer" &&
+            command.Arguments[1] == "-pkg" &&
+            command.Arguments[3] == "-target" &&
+            command.Arguments[4] == "/")
+        {
+            startInfo.ArgumentList.Add("installer");
+            startInfo.ArgumentList.Add("-pkg");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            startInfo.ArgumentList.Add("-target");
+            startInfo.ArgumentList.Add("/");
+            return true;
+        }
+
+        if (command.Arguments.Count == 4 && command.Arguments[0] == "apt-get" && command.Arguments[1] == "install" && command.Arguments[2] == "-y")
+        {
+            startInfo.ArgumentList.Add("apt-get");
+            startInfo.ArgumentList.Add("install");
+            startInfo.ArgumentList.Add("-y");
+            startInfo.ArgumentList.Add(command.Arguments[3]);
+            return true;
+        }
+
+        if (command.Arguments.Count == 3 && command.Arguments[0] == "bash" && command.Arguments[1] == "-c")
+        {
+            startInfo.ArgumentList.Add("bash");
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add(command.Arguments[2]);
+            return true;
+        }
+
+        error = "sudo arguments are not allowed.";
+        return false;
+    }
+
+    private static bool IsArguments(SafeCommandSpec command, params string[] arguments)
+        => command.Arguments.Count == arguments.Length && command.Arguments.SequenceEqual(arguments);
+
+    private static bool TryNormalize(CommandSpec command, out SafeCommandSpec safeCommand, out string error)
+    {
+        safeCommand = default;
+
+        if (!TryNormalizeFileName(command.FileName, out var executable, out error))
+            return false;
+
+        if (!TryNormalizeWorkingDirectory(command.WorkingDirectory, out var workingDirectory, out error))
+            return false;
+
+        var arguments = new List<string>(command.Arguments.Count);
+        foreach (var argument in command.Arguments)
+        {
+            if (argument.IndexOfAny(['\0', '\r', '\n']) >= 0)
+            {
+                error = "Command arguments must not contain control characters.";
+                return false;
+            }
+
+            arguments.Add(argument);
+        }
+
+        Dictionary<string, string>? environment = null;
+        if (command.Environment is not null)
+        {
+            environment = [];
+            foreach (var (key, value) in command.Environment)
+            {
+                if (!IsSafeEnvironmentKey(key))
+                {
+                    error = $"Environment variable name '{key}' is not allowed.";
+                    return false;
+                }
+
+                if (value.IndexOfAny(['\0', '\r', '\n']) >= 0)
+                {
+                    error = $"Environment variable '{key}' must not contain control characters.";
+                    return false;
+                }
+
+                environment.Add(key, value);
+            }
+        }
+
+        if (workingDirectory is not null)
+        {
+            environment ??= [];
+            if (environment.ContainsKey(WorkingDirectoryEnvironmentKey))
+            {
+                error = $"Environment variable name '{WorkingDirectoryEnvironmentKey}' is reserved.";
+                return false;
+            }
+
+            environment.Add(WorkingDirectoryEnvironmentKey, workingDirectory);
+        }
+
+        safeCommand = new SafeCommandSpec(executable, ProductDisplayName(command.FileName, executable), arguments, environment);
+        error = "";
+        return true;
+    }
+
+    private static bool TryNormalizeFileName(string fileName, out SmokeExecutable executable, out string error)
+    {
+        executable = default;
+
+        if (string.IsNullOrWhiteSpace(fileName) || fileName.IndexOfAny(['\0', '\r', '\n', '"']) >= 0)
+        {
+            error = "Command executable name is not allowed.";
+            return false;
+        }
+
+        if (Path.GetFileName(fileName) != fileName)
+        {
+            error = "Command executable paths are not allowed.";
+            return false;
+        }
+
+        return TryGetAllowedCommandName(fileName, out executable, out error);
+    }
+
+    private static bool TryNormalizeWorkingDirectory(string? workingDirectory, out string? safeWorkingDirectory, out string error)
+    {
+        if (workingDirectory is null)
+        {
+            safeWorkingDirectory = null;
+            error = "";
+            return true;
+        }
+
+        if (workingDirectory.IndexOfAny(['\0', '\r', '\n']) >= 0 ||
+            !Path.IsPathFullyQualified(workingDirectory) ||
+            !Directory.Exists(workingDirectory))
+        {
+            safeWorkingDirectory = "";
+            error = "Command working directory must be an absolute existing directory.";
+            return false;
+        }
+
+        safeWorkingDirectory = Path.GetFullPath(workingDirectory);
+        error = "";
+        return true;
+    }
+
+    private static bool IsSafeEnvironmentKey(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key) || key[0] != '_' && !char.IsAsciiLetter(key[0]))
+            return false;
+
+        return key.All(character => character == '_' || char.IsAsciiLetterOrDigit(character));
+    }
+
+    private static bool TryGetAllowedCommandName(string fileName, out SmokeExecutable executable, out string error)
+    {
+        executable = fileName switch
+        {
+            "bash" => SmokeExecutable.Bash,
+            "cmd.exe" => SmokeExecutable.Cmd,
+            "dpkg-deb" => SmokeExecutable.DpkgDeb,
+            "dotnet" => SmokeExecutable.Dotnet,
+            "git" => SmokeExecutable.Git,
+            "lsof" => SmokeExecutable.Lsof,
+            "msiexec.exe" => SmokeExecutable.Msiexec,
+            "pkgutil" => SmokeExecutable.Pkgutil,
+            "powershell.exe" => SmokeExecutable.PowerShell,
+            "ps" => SmokeExecutable.Ps,
+            "sc.exe" => SmokeExecutable.Sc,
+            "ss" => SmokeExecutable.Ss,
+            "sudo" => SmokeExecutable.Sudo,
+            _ when IsSafeProductCliCommand(fileName) => SmokeExecutable.ProductCli,
+            _ when IsSafeProductCliCmdCommand(fileName) => SmokeExecutable.ProductCliCmd,
+            _ => SmokeExecutable.Unknown
+        };
+
+        if (executable != SmokeExecutable.Unknown)
+        {
+            error = "";
+            return true;
+        }
+
+        error = "Command executable name is not allowed.";
+        return false;
+    }
+
+    private static string DisplayName(SmokeExecutable executable)
+        => executable switch
+        {
+            SmokeExecutable.ProductCli => throw new ArgumentException("Product CLI commands keep their original executable name.", nameof(executable)),
+            SmokeExecutable.ProductCliCmd => throw new ArgumentException("Product CLI commands keep their original executable name.", nameof(executable)),
+            SmokeExecutable.Bash => "bash",
+            SmokeExecutable.Cmd => "cmd.exe",
+            SmokeExecutable.DpkgDeb => "dpkg-deb",
+            SmokeExecutable.Dotnet => "dotnet",
+            SmokeExecutable.Git => "git",
+            SmokeExecutable.Lsof => "lsof",
+            SmokeExecutable.Msiexec => "msiexec.exe",
+            SmokeExecutable.Pkgutil => "pkgutil",
+            SmokeExecutable.PowerShell => "powershell.exe",
+            SmokeExecutable.Ps => "ps",
+            SmokeExecutable.Sc => "sc.exe",
+            SmokeExecutable.Ss => "ss",
+            SmokeExecutable.Sudo => "sudo",
+            _ => throw new ArgumentOutOfRangeException(nameof(executable), executable, "Unsupported smoke executable.")
+        };
+
+    private static string ProductDisplayName(string fileName, SmokeExecutable executable)
+        => executable is SmokeExecutable.ProductCli or SmokeExecutable.ProductCliCmd
+            ? fileName
+            : DisplayName(executable);
+
+    private const string WorkingDirectoryEnvironmentKey = "LOCALINSTALLER_SMOKE_WORKING_DIRECTORY";
+
+    private static string? SelectUnixWorkingDirectoryCommand(string command)
+        => command switch
+        {
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git init -q" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git init -q",
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.email smoke@ci.local",
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git config user.name \"Smoke CI\"",
+            "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"" => "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git commit -q -m \"Add service smoke workspace\"",
+            _ when TrySelectProductCliShellCommand(command, "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && ", out var selected) => selected,
+            _ when TrySelectGitAddShellCommand(command, "cd \"$LOCALINSTALLER_SMOKE_WORKING_DIRECTORY\" && git add ", out var selected) => selected,
+            _ => null
+        };
+
+    private static string? SelectWindowsPowerShellWorkingDirectoryCommand(string command)
+        => command switch
+        {
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git init -q" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git init -q",
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.email smoke@ci.local",
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git config user.name \"Smoke CI\"",
+            "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"" => "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git commit -q -m \"Add service smoke workspace\"",
+            _ when TrySelectProductCliShellCommand(command, "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; ", out var selected) => selected,
+            _ when TrySelectGitAddShellCommand(command, "Set-Location -LiteralPath $env:LOCALINSTALLER_SMOKE_WORKING_DIRECTORY; git add ", out var selected) => selected,
+            _ => null
+        };
+
+    private static bool IsProductCliCmdInvocation(SafeCommandSpec command, string argument)
+        => command.Arguments.Count == 3
+           && command.Arguments[0] == "/C"
+           && IsSafeProductCliCmdCommand(command.Arguments[1])
+           && command.Arguments[2] == argument;
+
+    private static bool IsSafeProductCliCommand(string value)
+        => IsSafeIdentifier(value) && !value.Contains('.', StringComparison.Ordinal);
+
+    private static bool IsSafeProductCliCmdCommand(string value)
+        => value.EndsWith(".cmd", StringComparison.Ordinal)
+           && IsSafeIdentifier(value[..^".cmd".Length]);
+
+    private static bool IsSafeWorkspaceConfigFileName(string value)
+        => value.EndsWith(".json", StringComparison.Ordinal)
+           && IsSafeIdentifier(value[..^".json".Length]);
+
+    private static bool IsSafeServiceName(string value)
+        => value.EndsWith(".service", StringComparison.Ordinal)
+           && IsSafeIdentifier(value[..^".service".Length]);
+
+    private static bool IsSafeLogPath(string value)
+        => (value.StartsWith("/var/log/", StringComparison.Ordinal) ||
+            value.StartsWith("/Library/Logs/", StringComparison.Ordinal))
+           && value.EndsWith(".log", StringComparison.Ordinal)
+           && !value.Contains("..", StringComparison.Ordinal)
+           && value.IndexOfAny(['\0', '\r', '\n']) < 0;
+
+    private static bool IsSafeDiagnosticsDirectory(string value)
+        => (value.StartsWith("/var/lib/", StringComparison.Ordinal) ||
+            value.StartsWith("/Library/Application Support/", StringComparison.Ordinal))
+           && !value.Contains("..", StringComparison.Ordinal)
+           && value.IndexOfAny(['\0', '\r', '\n']) < 0;
+
+    private static bool IsSafeLaunchdTarget(string value)
+        => value.StartsWith("system/", StringComparison.Ordinal)
+           && value.Length > "system/".Length
+           && value["system/".Length..].All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '.');
+
+    private static bool IsSafeIdentifier(string value)
+        => !string.IsNullOrWhiteSpace(value)
+           && value[0] is >= 'a' and <= 'z'
+           && (value[^1] is >= 'a' and <= 'z' or >= '0' and <= '9')
+           && value.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '.');
+
+    private static bool TrySelectProductCliShellCommand(string command, string prefix, out string? selected)
+    {
+        selected = null;
+        if (!command.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+
+        var parts = command[prefix.Length..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2 || parts[1] is not ("start" or "status"))
+            return false;
+
+        if (!IsSafeProductCliCommand(parts[0]) && !IsSafeProductCliCmdCommand(parts[0]))
+            return false;
+
+        selected = command;
+        return true;
+    }
+
+    private static bool TrySelectGitAddShellCommand(string command, string prefix, out string? selected)
+    {
+        selected = null;
+        if (!command.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+
+        if (!IsSafeWorkspaceConfigFileName(command[prefix.Length..]))
+            return false;
+
+        selected = command;
+        return true;
+    }
+}
