@@ -57,6 +57,8 @@ On Windows, the default adapter installs the staged Desktop, Server, CLI, and tr
 
 All `LocalInstaller.Packaging` filesystem access must pass through shared path validation in `Shared/Providers/PackagePathValidator` before reading, writing, copying, deleting, or creating directories. Package output directories are repository-relative paths and must remain under the repository root. Prebuilt payload roots may be absolute CI-provided paths or repository-relative paths; repository-relative payload roots are normalized under the repository root.
 
+Packaging wrappers set `LOCALINSTALLER_REPOSITORY_ROOT` to the product repository root before invoking a published packaging entrypoint, because a self-contained executable runs from its extraction directory rather than the product checkout.
+
 The packaging command entrypoint builds the project composition root and delegates into feature controllers. Controllers are constructor-injected and thin; packaging services own lifecycle orchestration, and low-level command, filesystem, repository-path, environment, parser, archive, and native-tool behavior stays behind providers. Platform packaging slices may coordinate shared release artifact staging through the ReleaseArtifacts controller, but they must not fetch another slice's services, models, providers, or interfaces directly.
 
 Packaging services must not construct native tool commands such as `dpkg-deb`, `wix`, `pkgbuild`, `productbuild`, `dotnet publish`, package archive expansion, or raw CLI argument parsing. Use capability-named providers such as `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageTool`, `PackagePublisher`, and `PackageCommandParser`; test exact command shapes at the provider level.
