@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
 using AgentUp.Server;
-using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Browser.Streaming;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;

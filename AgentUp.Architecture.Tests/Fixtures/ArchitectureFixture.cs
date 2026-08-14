@@ -10,6 +10,7 @@ internal static class ArchitectureFixture
     public static readonly string[] ProductionProjects =
     [
         "AgentUp.Server",
+        "AgentUp.Browser.Streaming",
         "AgentUp.CommitPolicy",
         "AgentUp.Capabilities.Abstractions",
         "AgentUp.Capabilities.Common",

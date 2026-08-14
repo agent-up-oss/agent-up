@@ -1,5 +1,5 @@
 using AgentUp.Server.Features.Browser.Controllers;
-using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

@@ -1,8 +1,9 @@
 using System.Collections.Concurrent;
+using AgentUp.Browser.Streaming;
+using AgentUp.Browser.Streaming.Models;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
-using AgentUp.Server.Features.Browser.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using Microsoft.Extensions.Logging;
@@ -14,9 +15,8 @@ namespace AgentUp.Server.Features.Browser.Services;
 // liveness) collapse into one derived StreamState per workspace, published as a
 // single SSE event kind. Cache is cleared on workspace stop/remove — no stale
 // "connected" surviving a lifecycle transition.
-public sealed class WorkspaceStreamStateService : IDisposable
+public sealed class WorkspaceStreamStateService : IDisposable, IStreamSessionEventSink
 {
-    private const int StandaloneMaxAttempts = 30;
     private const int StandaloneRetryIntervalMs = 2000;
 
     private readonly BrowserEventBus _eventBus;
@@ -139,7 +139,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
         _eventBus.RemoveWorkspaceStreamStateCache(workspaceId);
     }
 
-    // ── Browser session signals ───────────────────────────────────────
+    // ── Browser session signals (IStreamSessionEventSink) ────────────
 
     public void OnSessionActive(string workspaceId)
     {
@@ -164,7 +164,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
         RecomputeAndPublish(workspaceId);
     }
 
-    // ── Navigation target (replaces BrowserConnectivityService.StartProbe) ─
+    // ── Navigation target (IStreamSessionEventSink) ──────────────────
 
     public void OnCurrentTargetChanged(string workspaceId, string url, CancellationToken serverStopped)
     {
@@ -201,7 +201,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
 
     private void HandlePortHealthChanged(string workspaceId, string appName, int port, bool isHealthy)
     {
-        var key = HealthKey(appName, port);
+        var key = StreamStateDerivation.HealthKey(appName, port);
         var state = isHealthy ? "Healthy" : "Unhealthy";
 
         lock (_lock)
@@ -224,7 +224,10 @@ public sealed class WorkspaceStreamStateService : IDisposable
         {
             _inputs.TryGetValue(workspaceId, out snapshot);
             // Removed workspaces publish one final WorkspaceStopped so any live UI clears.
-            next = snapshot is not null ? Compute(snapshot) : StreamState.Stopped();
+            var (chromiumState, chromiumProgress) = _chromium;
+            next = snapshot is not null
+                ? StreamStateDerivation.Compute(snapshot, chromiumState, chromiumProgress)
+                : StreamState.Stopped();
             _lastPublished.TryGetValue(workspaceId, out previous);
             _lastPublished[workspaceId] = next;
         }
@@ -240,12 +243,13 @@ public sealed class WorkspaceStreamStateService : IDisposable
     // row shows what the SSE consumer actually received and rendered.
     private void AuditTransition(string workspaceId, StreamState? previous, StreamState next, WorkspaceStreamInputs? snapshot)
     {
+        var (chromiumState, chromiumProgress) = _chromium;
         var details = new Dictionary<string, string>
         {
             ["fromKind"] = previous?.Kind.ToString() ?? "<initial>",
             ["toKind"] = next.Kind.ToString(),
-            ["chromiumState"] = _chromium.State,
-            ["chromiumProgress"] = _chromium.Progress.ToString(),
+            ["chromiumState"] = chromiumState,
+            ["chromiumProgress"] = chromiumProgress.ToString(),
             ["isRunning"] = (snapshot?.IsRunning ?? false).ToString(),
             ["sessionActive"] = (snapshot?.SessionActive ?? false).ToString(),
             ["currentTargetUrl"] = snapshot?.CurrentTarget?.Url ?? string.Empty,
@@ -267,52 +271,6 @@ public sealed class WorkspaceStreamStateService : IDisposable
                 WorkspaceId: workspaceId,
                 Details: details),
             CancellationToken.None);
-    }
-
-    private StreamState Compute(WorkspaceStreamInputs inputs)
-    {
-        // 1. Chromium precedence: if the binary isn't ready, nothing else matters.
-        var (chromiumState, chromiumProgress) = _chromium;
-        if (chromiumState is "not_started" or "downloading" or "failed")
-            return StreamState.Chromium(chromiumState, chromiumProgress);
-
-        // 2. Workspace lifecycle.
-        if (!inputs.IsRunning) return StreamState.Stopped();
-
-        // 3. App reachability.
-        if (inputs.CurrentTarget is null)
-        {
-            // Waiting for the desktop to navigate to a URL. Show a benign "connecting" so
-            // the UI never renders a bare WebView while we have no target.
-            return StreamState.Connecting(attempt: 0, maxAttempts: 0);
-        }
-        if (inputs.CurrentTarget is { HealthChecked: true, AppName: { } appName } target)
-        {
-            var key = HealthKey(appName, target.Port);
-            var state = inputs.PortHealth.GetValueOrDefault(key, "Checking");
-            if (state != "Healthy") return StreamState.Connecting(attempt: 0, maxAttempts: 0);
-        }
-        else
-        {
-            // Standalone (non-health-checked) target: probe state is authoritative. Compute
-            // reads the probe's last-observed fields so the probe cannot bypass IsRunning
-            // above and leak stale AppConnecting after a workspace stop.
-            if (inputs.StandaloneProbeExhausted)
-                return StreamState.Failed($"App unreachable after {StandaloneMaxAttempts} attempts.", StandaloneMaxAttempts);
-            if (!inputs.StandaloneProbeReachable)
-                return StreamState.Connecting(inputs.StandaloneProbeAttempt, StandaloneMaxAttempts);
-        }
-
-        // 4. Session liveness. Session must exist server-side — otherwise the viewer HTML
-        //    page opens a WebSocket to nothing. First-frame liveness is intentionally NOT
-        //    tracked here: the RDP display loop only broadcasts frames when a subscriber
-        //    exists, and the viewer HTML page only subscribes once the desktop shows the
-        //    WebView. Gating Streaming on "first frame received" would deadlock. The viewer
-        //    HTML has its own "connecting…" spinner shown until the first frame lands, so
-        //    the "bare WebView" invariant is upheld by the viewer page itself, not by us.
-        if (!inputs.SessionActive) return StreamState.Launching();
-
-        return StreamState.Streaming();
     }
 
     // ── Standalone probe (non-health-checked ports) ───────────────────
@@ -350,7 +308,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
     {
         while (!ct.IsCancellationRequested)
         {
-            for (var attempt = 1; attempt <= StandaloneMaxAttempts && !ct.IsCancellationRequested; attempt++)
+            for (var attempt = 1; attempt <= StreamStateDerivation.StandaloneMaxAttempts && !ct.IsCancellationRequested; attempt++)
             {
                 if (await ProbeAsync(url, ct))
                 {
@@ -358,7 +316,7 @@ public sealed class WorkspaceStreamStateService : IDisposable
                     goto steadyState;
                 }
                 UpdateProbeState(workspaceId, attempt, reachable: false, exhausted: false);
-                if (attempt < StandaloneMaxAttempts)
+                if (attempt < StreamStateDerivation.StandaloneMaxAttempts)
                 {
                     if (!await Delay(StandaloneRetryIntervalMs, ct)) return;
                 }
@@ -417,6 +375,4 @@ public sealed class WorkspaceStreamStateService : IDisposable
         try { await Task.Delay(ms, ct); return true; }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { return false; }
     }
-
-    private static string HealthKey(string appName, int port) => $"{appName}:{port}";
 }

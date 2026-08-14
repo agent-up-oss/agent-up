@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AgentUp.Browser.Streaming\AgentUp.Browser.Streaming.csproj" />
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Dotnet\AgentUp.Capabilities.Dotnet.csproj" />
@@ -23,7 +24,22 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Features/Browser/Resources/rdp-viewer.js" />
+    <Compile Remove="Features/Browser/Models/**" />
+    <Compile Remove="Features/Browser/DTOs/**" />
+    <Compile Remove="Features/Browser/Interfaces/**" />
+    <Compile Remove="Features/Browser/Resources/RdpViewerPage.cs" />
+    <Compile Remove="Features/Browser/Services/BrowserEventBus.cs" />
+    <Compile Remove="Features/Browser/Services/BrowserInputDispatcher.cs" />
+    <Compile Remove="Features/Browser/Services/BrowserRemoteDisplayService.cs" />
+    <Compile Remove="Features/Browser/Services/BrowserRemoteSessionService.cs" />
+    <Compile Remove="Features/Browser/Services/BrowserScriptProvider.cs" />
+    <Compile Remove="Features/Browser/Services/BrowserSessionStore.cs" />
+    <Compile Remove="Features/Browser/Services/CdpBrowserExecutor.cs" />
+    <Compile Remove="Features/Browser/Services/HeadlessBrowserCommandDispatcher.cs" />
+    <Compile Remove="Features/Browser/Services/HeadlessBrowserSessionAccessor.cs" />
+    <Compile Remove="Features/Browser/Services/HeadlessBrowserSessionManager.cs" />
+    <Compile Remove="Features/Browser/Services/WorkspaceSubscriberSet.cs" />
+    <EmbeddedResource Remove="Features/Browser/Resources/rdp-viewer.js" />
   </ItemGroup>
 
 </Project>

@@ -22,6 +22,7 @@ using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Builder;

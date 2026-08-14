@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
 using System.Text;
-using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Browser.Streaming;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Browser.Headless;

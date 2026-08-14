@@ -1,4 +1,4 @@
-using AgentUp.Server.Features.Browser.Models;
+using AgentUp.Browser.Streaming.Models;
 
 namespace AgentUp.Server.Tests.Features.Browser.Unit;
 

@@ -1,4 +1,4 @@
-using AgentUp.Server.Features.Browser.Resources;
+using AgentUp.Browser.Streaming.Resources;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentUp.Server.Features.Browser.Controllers;

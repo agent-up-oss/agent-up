@@ -1,3 +1,4 @@
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 
 namespace AgentUp.Server.Features.Browser.Controllers;

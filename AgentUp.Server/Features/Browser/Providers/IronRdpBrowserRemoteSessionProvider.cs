@@ -1,6 +1,6 @@
-using AgentUp.Server.Features.Browser.DTOs;
-using AgentUp.Server.Features.Browser.Interfaces;
-using AgentUp.Server.Features.Browser.Models;
+using AgentUp.Browser.Streaming.DTOs;
+using AgentUp.Browser.Streaming.Interfaces;
+using AgentUp.Browser.Streaming.Models;
 using Devolutions.IronRdp;
 
 namespace AgentUp.Server.Features.Browser.Providers;

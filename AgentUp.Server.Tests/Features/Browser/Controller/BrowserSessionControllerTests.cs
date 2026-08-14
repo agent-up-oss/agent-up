@@ -1,6 +1,6 @@
 using AgentUp.Server.Features.Browser.Controllers;
-using AgentUp.Server.Features.Browser.Models;
-using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Browser.Streaming.Models;
+using AgentUp.Browser.Streaming;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentUp.Server.Tests.Features.Browser.Controller;

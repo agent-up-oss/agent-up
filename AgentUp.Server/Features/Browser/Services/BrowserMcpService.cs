@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
-using AgentUp.Server.Features.Browser.Models;
+using AgentUp.Browser.Streaming;
+using AgentUp.Browser.Streaming.Models;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;

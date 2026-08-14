@@ -1,4 +1,5 @@
 using System.Net.WebSockets;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using Microsoft.AspNetCore.Mvc;
 

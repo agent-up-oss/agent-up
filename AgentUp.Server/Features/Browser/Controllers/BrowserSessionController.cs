@@ -1,4 +1,5 @@
-using AgentUp.Server.Features.Browser.Models;
+using AgentUp.Browser.Streaming.Models;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using Microsoft.AspNetCore.Mvc;
 
