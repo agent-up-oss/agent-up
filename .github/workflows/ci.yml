@@ -179,6 +179,11 @@ jobs:
           else
             echo "Running HeadlessE2E tests with $chromium_exe"
             PUPPETEER_EXECUTABLE_PATH="$chromium_exe" \
+            LIBGL_ALWAYS_SOFTWARE=1 \
+            GALLIUM_DRIVER=llvmpipe \
+            WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+            WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 \
+            dbus-run-session xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" \
             dotnet test "AgentUp.Tests/AgentUp.Tests.csproj" \
               --configuration Release \
               --no-build \
