@@ -24,23 +24,5 @@
     <ProjectReference Include="..\LocalInstaller.Core\LocalInstaller.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Features/Browser/Models/**" />
-    <Compile Remove="Features/Browser/DTOs/**" />
-    <Compile Remove="Features/Browser/Interfaces/**" />
-    <Compile Remove="Features/Browser/Resources/RdpViewerPage.cs" />
-    <Compile Remove="Features/Browser/Services/BrowserEventBus.cs" />
-    <Compile Remove="Features/Browser/Services/BrowserInputDispatcher.cs" />
-    <Compile Remove="Features/Browser/Services/BrowserRemoteDisplayService.cs" />
-    <Compile Remove="Features/Browser/Services/BrowserRemoteSessionService.cs" />
-    <Compile Remove="Features/Browser/Services/BrowserScriptProvider.cs" />
-    <Compile Remove="Features/Browser/Services/BrowserSessionStore.cs" />
-    <Compile Remove="Features/Browser/Services/CdpBrowserExecutor.cs" />
-    <Compile Remove="Features/Browser/Services/HeadlessBrowserCommandDispatcher.cs" />
-    <Compile Remove="Features/Browser/Services/HeadlessBrowserSessionAccessor.cs" />
-    <Compile Remove="Features/Browser/Services/HeadlessBrowserSessionManager.cs" />
-    <Compile Remove="Features/Browser/Services/WorkspaceSubscriberSet.cs" />
-    <EmbeddedResource Remove="Features/Browser/Resources/rdp-viewer.js" />
-  </ItemGroup>
 
 </Project>
