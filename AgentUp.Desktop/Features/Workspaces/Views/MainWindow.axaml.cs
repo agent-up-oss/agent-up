@@ -913,7 +913,19 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             if (_isClosed) return;
             _viewerState.SetStreamState(snapshot);
             RenderStreamState(snapshot.WorkspaceId);
+            if (snapshot.CurrentUrl is { Length: > 0 } url)
+                ApplyAgentUrlChange(snapshot.WorkspaceId, url);
         });
+    }
+
+    private void ApplyAgentUrlChange(string workspaceId, string url)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        if (_activeWorkspaceId != workspaceId) return;
+        if (_viewerState.GetAuthority(workspaceId) != "ai") return;
+        _lastKnownBrowserUrls[$"{workspaceId}:viewer"] = url;
+        vm.SelectApplicationForUrl(workspaceId, url);
+        vm.UpdateAddressFromBrowser(workspaceId, url);
     }
 
     // Modal is now purely derived from JS state machine snapshot + focus. Shown only

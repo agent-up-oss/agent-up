@@ -18,4 +18,5 @@ internal sealed record StreamStateSnapshot(
     int ChromiumProgress,
     int Attempt,
     int MaxAttempts,
-    string? Reason);
+    string? Reason,
+    string? CurrentUrl);

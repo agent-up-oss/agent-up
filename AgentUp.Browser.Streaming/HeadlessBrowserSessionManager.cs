@@ -392,6 +392,7 @@ public sealed class HeadlessBrowserSessionManager(
 
     private async Task RunRemoteDisplayLoopAsync(BrowserSessionState session, CancellationToken ct)
     {
+        var lastNotifiedUrl = string.Empty;
         while (!ct.IsCancellationRequested && session.Browser.IsConnected)
         {
             if (!display.HasSubscribers(session.WorkspaceId))
@@ -405,7 +406,21 @@ public sealed class HeadlessBrowserSessionManager(
             {
                 var frame = await session.Page.ScreenshotDataAsync(DisplayScreenshotOptions);
                 if (frame.Length > 0)
+                {
                     await display.BroadcastFrameAsync(session.WorkspaceId, frame, ct);
+
+                    // Detect cross-origin navigations triggered by JS clicks (not explicit browser_navigate).
+                    // browser_navigate already calls OnCurrentTargetChanged directly; this catches the rest.
+                    var currentUrl = session.Page.Url;
+                    if (!string.IsNullOrEmpty(currentUrl)
+                        && !currentUrl.StartsWith("about:", StringComparison.Ordinal)
+                        && !currentUrl.StartsWith("chrome-error://", StringComparison.Ordinal)
+                        && currentUrl != lastNotifiedUrl)
+                    {
+                        lastNotifiedUrl = currentUrl;
+                        streamState.OnCurrentTargetChanged(session.WorkspaceId, currentUrl, ct);
+                    }
+                }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {

@@ -343,6 +343,9 @@ public sealed class MainViewModel : ReactiveObject
         if (matchingApp is null)
             return false;
 
+        // Pre-seed _lastSelectedHttpPortKey so the reactive tab-navigation observer does not
+        // emit a redundant headless browser_navigate when SelectedSubTab changes below.
+        _lastSelectedHttpPortKey = $"{workspaceId}:{targetPort}";
         PreloadPortUrl(url);
 
         if (Applications.SelectedApplication != matchingApp)

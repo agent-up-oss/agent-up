@@ -49,6 +49,7 @@ internal static class ServerTestComposition
             new WorkspaceQueryController(registry),
             new WorkspaceStateController(registry, new WorkspaceEventBus()),
             CreateProcessesController(processes),
+            CreateStreamStateController(registry: registry),
             configuration,
             identity));
 
@@ -83,6 +84,11 @@ internal static class ServerTestComposition
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
         => new(registry, new WorkspaceEventBus());
+
+    public static WorkspaceStreamStateController CreateStreamStateController(
+        BrowserEventBus? eventBus = null,
+        WorkspaceRegistry? registry = null)
+        => new(CreateStreamState(eventBus, registry));
 
     public static WorkspaceStreamStateService CreateStreamState(
         BrowserEventBus? eventBus = null,

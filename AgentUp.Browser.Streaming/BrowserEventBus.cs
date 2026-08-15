@@ -44,9 +44,9 @@ public sealed class BrowserEventBus
         }
     }
 
-    public void PublishStreamState(string workspaceId, StreamState state)
+    public void PublishStreamState(string workspaceId, StreamState state, string? currentUrl = null)
     {
-        var json = StreamStateEvent.From(workspaceId, state).Serialize();
+        var json = StreamStateEvent.From(workspaceId, state, currentUrl).Serialize();
         lock (_lock)
         {
             _latestStreamStates[workspaceId] = json;

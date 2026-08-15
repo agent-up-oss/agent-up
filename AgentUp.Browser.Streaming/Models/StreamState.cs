@@ -60,18 +60,20 @@ public sealed record StreamStateEvent(
     [property: JsonPropertyName("chromiumProgress")] int ChromiumProgress,
     [property: JsonPropertyName("attempt")] int Attempt,
     [property: JsonPropertyName("maxAttempts")] int MaxAttempts,
-    [property: JsonPropertyName("reason")] string? Reason)
+    [property: JsonPropertyName("reason")] string? Reason,
+    [property: JsonPropertyName("currentUrl")] string? CurrentUrl)
 {
     [JsonPropertyName("type")] public string Type => "stream-state";
 
-    public static StreamStateEvent From(string workspaceId, StreamState state) => new(
+    public static StreamStateEvent From(string workspaceId, StreamState state, string? currentUrl = null) => new(
         WorkspaceId: workspaceId,
         Kind: KindToWire(state.Kind),
         ChromiumState: state.Kind == StreamKind.ChromiumDownloading ? state.ChromiumState : null,
         ChromiumProgress: state.Kind == StreamKind.ChromiumDownloading ? state.ChromiumProgress : 0,
         Attempt: state.Kind == StreamKind.AppConnecting ? state.Attempt : 0,
         MaxAttempts: state.MaxAttempts,
-        Reason: state.Reason);
+        Reason: state.Reason,
+        CurrentUrl: currentUrl);
 
     public string Serialize() => JsonSerializer.Serialize(this, EventJsonOptions);
 

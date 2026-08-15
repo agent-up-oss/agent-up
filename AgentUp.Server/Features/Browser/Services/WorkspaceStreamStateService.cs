@@ -29,6 +29,7 @@ public sealed class WorkspaceStreamStateService : IDisposable, IStreamSessionEve
     private (string State, int Progress) _chromium = ("not_started", 0);
     private readonly Dictionary<string, WorkspaceStreamInputs> _inputs = [];
     private readonly Dictionary<string, StreamState> _lastPublished = [];
+    private readonly Dictionary<string, string?> _lastPublishedUrls = [];
 
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _standaloneProbes = new();
     private readonly HttpClient _http = new()
@@ -135,6 +136,7 @@ public sealed class WorkspaceStreamStateService : IDisposable, IStreamSessionEve
         {
             _inputs.Remove(workspaceId);
             _lastPublished.Remove(workspaceId);
+            _lastPublishedUrls.Remove(workspaceId);
         }
         _eventBus.RemoveWorkspaceStreamStateCache(workspaceId);
     }
@@ -219,6 +221,8 @@ public sealed class WorkspaceStreamStateService : IDisposable, IStreamSessionEve
     {
         StreamState next;
         StreamState? previous;
+        string? currentUrl;
+        string? previousUrl;
         WorkspaceStreamInputs? snapshot;
         lock (_lock)
         {
@@ -230,10 +234,14 @@ public sealed class WorkspaceStreamStateService : IDisposable, IStreamSessionEve
                 : StreamState.Stopped();
             _lastPublished.TryGetValue(workspaceId, out previous);
             _lastPublished[workspaceId] = next;
+            currentUrl = snapshot?.CurrentTarget?.Url;
+            _lastPublishedUrls.TryGetValue(workspaceId, out previousUrl);
+            _lastPublishedUrls[workspaceId] = currentUrl;
         }
 
-        if (previous is not null && previous == next) return;
-        _eventBus.PublishStreamState(workspaceId, next);
+        if (previous is not null && previous == next
+            && string.Equals(currentUrl, previousUrl, StringComparison.Ordinal)) return;
+        _eventBus.PublishStreamState(workspaceId, next, currentUrl);
         AuditTransition(workspaceId, previous, next, snapshot);
     }
 

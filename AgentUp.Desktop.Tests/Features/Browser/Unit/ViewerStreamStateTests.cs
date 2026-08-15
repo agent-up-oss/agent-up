@@ -13,7 +13,7 @@ public sealed class ViewerStreamStateTests
         int attempt = 0,
         int maxAttempts = 0,
         string? reason = null)
-        => new("ws-1", kind, chromiumState, chromiumProgress, attempt, maxAttempts, reason);
+        => new("ws-1", kind, chromiumState, chromiumProgress, attempt, maxAttempts, reason, null);
 
     // ── WantsViewerWebView ────────────────────────────────────────────────────
 

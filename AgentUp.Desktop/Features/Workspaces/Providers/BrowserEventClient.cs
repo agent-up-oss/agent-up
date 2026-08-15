@@ -129,7 +129,8 @@ internal sealed class BrowserEventClient(HttpClient http) : IDisposable
             ChromiumProgress: TryInt(root, "chromiumProgress"),
             Attempt: TryInt(root, "attempt"),
             MaxAttempts: TryInt(root, "maxAttempts"),
-            Reason: TryStr(root, "reason"));
+            Reason: TryStr(root, "reason"),
+            CurrentUrl: TryStr(root, "currentUrl"));
     }
 
     private static string? TryStr(JsonElement root, string name) =>
