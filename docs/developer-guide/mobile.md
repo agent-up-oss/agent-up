@@ -43,6 +43,10 @@ supported desktop operating system:
 npm run web
 ```
 
+The start, Android, iOS, and web scripts use Expo's LAN mode. Metro listens on
+all network interfaces and advertises the machine's LAN address so physical
+devices can connect.
+
 The same development server can open the app through Expo Go on a physical
 Android or iOS device:
 
@@ -71,5 +75,8 @@ npm run typecheck
 npm run build:web
 ```
 
-Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata
-is defined in `public/manifest.json` and linked from `src/app/+html.tsx`.
+Expo writes the static web output to `AgentUp.Mobile/dist/`, then Workbox
+generates `dist/sw.js` and its precache manifest. The PWA metadata and install
+icons live under `public/`; `src/app/+html.tsx` links the manifest and registers
+the service worker only in production exports. Service workers require HTTPS
+in deployment, except for browser-supported localhost development.
