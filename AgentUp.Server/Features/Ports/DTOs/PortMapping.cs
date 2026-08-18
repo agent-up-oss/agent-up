@@ -4,4 +4,5 @@ public record PortMapping(
     string? Variable,
     int DefaultPort,
     int AllocatedPort,
-    string Protocol = "http");
+    string Protocol = "http",
+    string? HealthCheckPath = null);

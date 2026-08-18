@@ -1,6 +1,8 @@
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using System.Reactive.Linq;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 
@@ -33,6 +35,30 @@ public class WorkspaceItemViewModelTests
     {
         var vm = new WorkspaceItemViewModel("id", "App", "main", "/repo", "/worktree", state);
         Assert.That(vm.StateColor, Is.EqualTo(expectedColor));
+    }
+
+    [Test]
+    public async Task ToggleControlCommand_restores_last_ai_preset_when_returning_from_human_mode()
+    {
+        var requests = new List<(string Authority, string? Preset)>();
+        var vm = new WorkspaceItemViewModel(
+            "id", "App", "main", "/repo", "/worktree", "Running",
+            toggleControlMode: (authority, preset) =>
+            {
+                requests.Add((authority, preset));
+                return Task.CompletedTask;
+            });
+
+        vm.ApplyControlMode("ai", 1440, 900);
+        await vm.ToggleControlCommand.Execute().FirstAsync();
+        vm.ApplyControlMode("human", 0, 0);
+        await vm.ToggleControlCommand.Execute().FirstAsync();
+
+        Assert.That(requests, Is.EqualTo(new[]
+        {
+            ("human", (string?)null),
+            ("ai", (string?)"wide")
+        }));
     }
 
     [Test]
@@ -149,7 +175,7 @@ public class WorkspaceItemViewModelTests
         var applicationChangeEvents = 0;
         vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
 
-        vm.ApplyStateChange("Running", [("Worker", "Running")]);
+        vm.ApplyStateChange("Running", [new AppStateChangeDto("Worker", "Running")]);
 
         Assert.Multiple(() =>
         {
@@ -163,7 +189,7 @@ public class WorkspaceItemViewModelTests
     {
         var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");
 
-        vm.ApplyStateChange("Running", [("Worker", "Running")]);
+        vm.ApplyStateChange("Running", [new AppStateChangeDto("Worker", "Running")]);
 
         Assert.Multiple(() =>
         {

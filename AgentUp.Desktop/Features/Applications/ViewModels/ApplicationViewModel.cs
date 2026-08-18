@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using ReactiveUI;
 
@@ -29,20 +30,13 @@ public sealed class ApplicationViewModel : ReactiveObject
         Name = name;
         Command = command;
         _state = state;
-        _stateColor = ResolveStateColor(state);
+        _stateColor = AppHealthLedRules.StateColor(state);
         AllocatedPorts = allocatedPorts ?? [];
     }
 
     public void UpdateState(string newState)
     {
         State = newState;
-        StateColor = ResolveStateColor(newState);
+        StateColor = AppHealthLedRules.StateColor(newState);
     }
-
-    private static string ResolveStateColor(string state) => state switch
-    {
-        "Running" => "#00d66b",
-        "Failed" => "#b85a5a",
-        _ => "#5a5a72"
-    };
 }

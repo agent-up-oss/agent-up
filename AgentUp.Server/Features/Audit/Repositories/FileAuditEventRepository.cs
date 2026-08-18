@@ -15,22 +15,23 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
         Converters = { new JsonStringEnumConverter() }
     };
 
-    private readonly string _path;
+    private readonly string _dir;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public FileAuditEventRepository(string dataDir)
     {
-        _path = Path.GetFullPath(Path.Join(dataDir, "audit", "events.jsonl"));
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+        _dir = Path.GetFullPath(Path.Join(dataDir, "audit"));
+        Directory.CreateDirectory(_dir);
     }
 
     public async Task AppendAsync(AuditEvent evt, CancellationToken cancellationToken)
     {
+        var file = DailyFile(DateTimeOffset.UtcNow);
         var json = JsonSerializer.Serialize(evt, Options);
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            await File.AppendAllTextAsync(_path, json + Environment.NewLine, cancellationToken);
+            await File.AppendAllTextAsync(file, json + Environment.NewLine, cancellationToken);
         }
         finally
         {
@@ -40,7 +41,7 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
 
     public async Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditEventQuery query, CancellationToken cancellationToken)
     {
-        var events = await LoadAsync(cancellationToken);
+        var events = await LoadRangeAsync(query.From, query.To, cancellationToken);
         return events
             .Where(evt => Matches(query, evt))
             .OrderByDescending(evt => evt.Timestamp)
@@ -49,38 +50,77 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
     }
 
     public async Task<AuditEvent?> GetAsync(string eventId, CancellationToken cancellationToken)
-        => (await LoadAsync(cancellationToken))
+        => (await LoadRangeAsync(null, null, cancellationToken))
             .FirstOrDefault(evt => string.Equals(evt.EventId, eventId, StringComparison.Ordinal));
 
-    private async Task<IReadOnlyList<AuditEvent>> LoadAsync(CancellationToken cancellationToken)
+    private string DailyFile(DateTimeOffset date)
+        => Path.Join(_dir, $"events-{date.UtcDateTime:yyyy-MM-dd}.jsonl");
+
+    private async Task<List<AuditEvent>> LoadRangeAsync(
+        DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            if (!File.Exists(_path))
-                return [];
-
             var events = new List<AuditEvent>();
-            await foreach (var line in File.ReadLinesAsync(_path, cancellationToken)
-                               .Where(line => !string.IsNullOrWhiteSpace(line)))
-            {
-                try
-                {
-                    var evt = JsonSerializer.Deserialize<AuditEvent>(line, Options);
-                    if (evt is not null)
-                        events.Add(evt);
-                }
-                catch (JsonException ex)
-                {
-                    Trace.TraceWarning($"[FileAuditEventRepository] Skipped malformed audit event line: {ex.Message}");
-                }
-            }
-
+            foreach (var file in GetRelevantFiles(from, to))
+                await AppendFromFileAsync(file, events, cancellationToken);
             return events;
         }
         finally
         {
             _gate.Release();
+        }
+    }
+
+    private IEnumerable<string> GetRelevantFiles(DateTimeOffset? from, DateTimeOffset? to)
+    {
+        // Backward compat: monolithic legacy file
+        var legacy = Path.Join(_dir, "events.jsonl");
+        if (File.Exists(legacy))
+            yield return legacy;
+
+        var fromDate = from.HasValue ? DateOnly.FromDateTime(from.Value.UtcDateTime) : (DateOnly?)null;
+        var toDate = to.HasValue ? DateOnly.FromDateTime(to.Value.UtcDateTime) : (DateOnly?)null;
+
+        var dated = Directory.GetFiles(_dir, "events-????-??-??.jsonl")
+            .Order()
+            .Select(file => (file, parsed: TryGetFileDate(file, out var d), date: d))
+            .Where(x => x.parsed)
+            .Where(x => !fromDate.HasValue || x.date >= fromDate.Value)
+            .Where(x => !toDate.HasValue || x.date <= toDate.Value);
+        foreach (var (file, _, _) in dated)
+            yield return file;
+    }
+
+    private static bool TryGetFileDate(string path, out DateOnly date)
+    {
+        var stem = Path.GetFileNameWithoutExtension(path);
+        const string prefix = "events-";
+        if (!stem.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            date = default;
+            return false;
+        }
+        return DateOnly.TryParseExact(stem[prefix.Length..], "yyyy-MM-dd", out date);
+    }
+
+    private static async Task AppendFromFileAsync(string path, List<AuditEvent> events, CancellationToken ct)
+    {
+        if (!File.Exists(path)) return;
+        await foreach (var line in File.ReadLinesAsync(path, ct)
+                           .Where(line => !string.IsNullOrWhiteSpace(line)))
+        {
+            try
+            {
+                var evt = JsonSerializer.Deserialize<AuditEvent>(line, Options);
+                if (evt is not null)
+                    events.Add(evt);
+            }
+            catch (JsonException ex)
+            {
+                Trace.TraceWarning($"[FileAuditEventRepository] Skipped malformed audit event line: {ex.Message}");
+            }
         }
     }
 

@@ -277,6 +277,7 @@ public sealed class OrchestrationMcpToolsTests
             new AgentUp.Server.Features.Workspaces.Controllers.WorkspaceQueryController(registry),
             ServerTestComposition.CreateWorkspaceStateController(registry),
             processes,
+            ServerTestComposition.CreateStreamStateController(registry: registry),
             configuration,
             identity));
 

@@ -9,6 +9,7 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 public sealed class WorkspaceListViewModel : ReactiveObject
 {
     private readonly WorkspacesController _workspaces;
+    private readonly Func<string, string, string?, Task>? _toggleControlMode;
     private WorkspaceItemViewModel? _selectedWorkspace;
     private bool _isCollapsed;
     private bool _isLoading;
@@ -77,21 +78,32 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
 
-    public WorkspaceListViewModel(WorkspacesController workspaces)
+    public WorkspaceListViewModel(WorkspacesController workspaces, Func<string, string, string?, Task>? toggleControlMode = null)
     {
         _workspaces = workspaces;
+        _toggleControlMode = toggleControlMode;
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
+    }
+
+    public void ApplyControlMode(string workspaceId, string authority, int width, int height)
+    {
+        var item = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+        item?.ApplyControlMode(authority, width, height);
     }
 
     // Applies a state-change event from the server in-place, updating only the mutable state
     // fields on existing workspace and application view models. Does not clear or rebuild the
     // Workspaces collection, so SelectedWorkspace stays the same reference and no navigation
     // or browser-session reset is triggered.
-    public void ApplyEvent(string workspaceId, string newState, IReadOnlyList<(string Name, string State)> appChanges)
+    internal void ApplyEvent(
+        string workspaceId,
+        string newState,
+        IReadOnlyList<AppStateChangeDto> appChanges,
+        string? healthState)
     {
         var item = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
-        item?.ApplyStateChange(newState, appChanges);
+        item?.ApplyStateChange(newState, appChanges, healthState);
     }
 
     public async Task RefreshWorkspaceAsync(string workspaceId, CancellationToken ct = default)
@@ -122,7 +134,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject
 
             var added = new WorkspaceItemViewModel(
                 dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
-                dto.State, dto.Applications);
+                dto.State, dto.Applications,
+                toggleControlMode: _toggleControlMode is null ? null : (authority, preset) => _toggleControlMode(dto.Id, authority, preset));
             Workspaces.Add(added);
             if (SelectedWorkspace is null)
                 SelectedWorkspace = added;
@@ -170,7 +183,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject
                 {
                     Workspaces.Add(new WorkspaceItemViewModel(
                         dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
-                        dto.State, dto.Applications));
+                        dto.State, dto.Applications,
+                        toggleControlMode: _toggleControlMode is null ? null : (authority, preset) => _toggleControlMode(dto.Id, authority, preset)));
                 }
             }
 

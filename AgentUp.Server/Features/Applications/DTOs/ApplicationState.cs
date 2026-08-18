@@ -6,5 +6,7 @@ public enum ApplicationState
     Starting,
     Running,
     Stopping,
-    Failed
+    Failed,
+    Checking,
+    Unhealthy
 }

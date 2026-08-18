@@ -201,6 +201,38 @@
             <Setter Property="Background" Value="#0f7a45"/>
         </Style>
 
+        <!-- iOS-style toggle -->
+        <Style Selector="ToggleButton.iosToggle">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="#444"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border CornerRadius="11"
+                                Background="{TemplateBinding Background}"
+                                Width="40" Height="22">
+                            <Border x:Name="Thumb"
+                                    CornerRadius="9"
+                                    Width="18" Height="18"
+                                    Background="#e0e0e0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="2,0,0,0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.iosToggle:checked">
+            <Setter Property="Background" Value="#00d66b"/>
+        </Style>
+        <Style Selector="ToggleButton.iosToggle:checked /template/ Border#Thumb">
+            <Setter Property="Margin" Value="20,0,0,0"/>
+        </Style>
+
         <!-- First-run tutorial -->
         <Style Selector="Border.tutorialButton">
             <Setter Property="CornerRadius" Value="7"/>
@@ -409,6 +441,19 @@
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"
                                                        Margin="13,0,0,0"/>
+                                            <DockPanel Margin="13,6,0,0"
+                                                       HorizontalAlignment="Stretch"
+                                                       LastChildFill="False">
+                                                <TextBlock DockPanel.Dock="Left"
+                                                           Text="View AI Browser"
+                                                           Foreground="#9fb2a8"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center"/>
+                                                <ToggleButton DockPanel.Dock="Right"
+                                                              Classes="iosToggle"
+                                                              IsChecked="{Binding IsAiMode, Mode=OneWay}"
+                                                              Command="{Binding ToggleControlCommand}"/>
+                                            </DockPanel>
                                         </StackPanel>
                                     </Border>
                                 </Border>
@@ -575,6 +620,7 @@
                                 <Button Grid.Column="0"
                                         x:Name="BrowserBackButton"
                                         Command="{Binding BrowserBackCommand}"
+                                        IsVisible="{Binding IsActiveWorkspaceHumanMode}"
                                         ToolTip.Tip="Back">
                                     <Border Classes="browserButton">
                                         <TextBlock Text="‹"
@@ -587,6 +633,7 @@
                                 <Button Grid.Column="1"
                                         x:Name="BrowserForwardButton"
                                         Command="{Binding BrowserForwardCommand}"
+                                        IsVisible="{Binding IsActiveWorkspaceHumanMode}"
                                         ToolTip.Tip="Forward">
                                     <Border Classes="browserButton">
                                         <TextBlock Text="›"
@@ -599,6 +646,7 @@
                                 <Button Grid.Column="2"
                                         x:Name="BrowserReloadButton"
                                         Command="{Binding BrowserReloadCommand}"
+                                        IsVisible="{Binding IsActiveWorkspaceHumanMode}"
                                         ToolTip.Tip="Reload">
                                     <Border Classes="browserButton">
                                         <TextBlock Text="↺"
@@ -611,6 +659,7 @@
                                 <TextBox Grid.Column="3"
                                          x:Name="AddressBar"
                                          Classes="addressBar"
+                                         IsReadOnly="{Binding IsActiveWorkspaceAiMode}"
                                          Text="{Binding AddressBarUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          HorizontalAlignment="Stretch">
                                     <TextBox.KeyBindings>
@@ -677,6 +726,7 @@
                                 <!-- Shown only when NativeWebView creation fails for the active workspace -->
                                 <Border x:Name="WebViewErrorBanner"
                                         IsVisible="False"
+                                        ZIndex="10"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Background="#140f0f"
@@ -689,6 +739,96 @@
                                                FontSize="13"
                                                TextWrapping="Wrap"
                                                MaxWidth="400"/>
+                                </Border>
+                                <!-- Shown while Chromium is being downloaded on first run (AI mode only) -->
+                                <Border x:Name="ChromiumDownloadBanner"
+                                        IsVisible="False"
+                                        ZIndex="10"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#0d0f14"
+                                        BorderBrush="#252d3a"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="28,24">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock x:Name="ChromiumDownloadText"
+                                                   Foreground="#9ca8bb"
+                                                   FontSize="13"
+                                                   TextAlignment="Center"
+                                                   Text="Downloading Chromium…"/>
+                                        <ProgressBar x:Name="ChromiumDownloadProgress"
+                                                     Minimum="0"
+                                                     Maximum="100"
+                                                     Value="0"
+                                                     Width="260"
+                                                     Height="4"
+                                                     IsIndeterminate="True"/>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Shown when the server SSE stream drops (environment downed) -->
+                                <Border x:Name="ConnectionLostBanner"
+                                        IsVisible="False"
+                                        ZIndex="10"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#0f0a0a"
+                                        BorderBrush="#3d1a1a"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="28,24">
+                                    <TextBlock Foreground="#c97070"
+                                               FontSize="13"
+                                               TextAlignment="Center"
+                                               Text="Connection to AI browser lost.&#x0a;The environment may be down."/>
+                                </Border>
+                                <!-- Shown while Chromium is probing the workspace app (connecting/reconnecting) -->
+                                <Border x:Name="BrowserConnectingBanner"
+                                        IsVisible="False"
+                                        ZIndex="10"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#0d0f14"
+                                        BorderBrush="#252d3a"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="28,24">
+                                    <TextBlock x:Name="BrowserConnectingText"
+                                               Foreground="#9ca8bb"
+                                               FontSize="13"
+                                               TextAlignment="Center"
+                                               Text="Connecting to app… (1 / 30)"/>
+                                </Border>
+                                <!-- Shown when an important stream event fires while the app is
+                                     unfocused (WebKit compositor stops repainting when GTK loses
+                                     focus, so the viewer canvas would be stale until the user
+                                     re-focuses). Rendered by Avalonia itself so it appears even
+                                     when WebKit is frozen. -->
+                                <Border x:Name="BackgroundAttentionBanner"
+                                        IsVisible="False"
+                                        ZIndex="20"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        Background="#c8000000">
+                                    <Border HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Background="#0d0f14"
+                                            BorderBrush="#3d5b78"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="28,24">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock x:Name="BackgroundAttentionText"
+                                                       Foreground="#9ca8bb"
+                                                       FontSize="13"
+                                                       TextAlignment="Center"
+                                                       Text="AI browser updated"/>
+                                            <TextBlock Foreground="#5c6c7f"
+                                                       FontSize="11"
+                                                       TextAlignment="Center"
+                                                       Text="View refreshes when AgentUp is focused"/>
+                                        </StackPanel>
+                                    </Border>
                                 </Border>
                             </Panel>
 

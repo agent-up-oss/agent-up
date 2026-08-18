@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Devolutions.IronRdp" Version="2025.12.4" />
     <PackageReference Include="LocalInstaller.Core" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.10" />
@@ -15,11 +16,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AgentUp.Browser.Streaming\AgentUp.Browser.Streaming.csproj" />
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Dotnet\AgentUp.Capabilities.Dotnet.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Docker\AgentUp.Capabilities.Docker.csproj" />
     <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
   </ItemGroup>
+
 
 </Project>
