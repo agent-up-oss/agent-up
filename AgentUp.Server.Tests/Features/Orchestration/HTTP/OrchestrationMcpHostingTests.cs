@@ -190,6 +190,7 @@ public sealed class OrchestrationMcpHostingTests
             sp.GetRequiredService<BrowserRemoteDisplayService>(),
             sp.GetRequiredService<WorkspaceStreamStateService>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
+        builder.Services.AddSingleton<WorkspaceStreamStateController>();
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
