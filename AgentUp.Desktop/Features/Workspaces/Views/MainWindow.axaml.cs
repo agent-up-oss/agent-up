@@ -1523,9 +1523,8 @@ code {
     {
         if (_viewerState.GetAuthority(workspaceId) == "human")
         {
-            // In human mode read the URL directly from the native WebView source.
-            var humanTabKey = _webViews.Keys
-                .FirstOrDefault(k => k.StartsWith($"{workspaceId}:") && k != $"{workspaceId}:viewer");
+            // In human mode read the URL from the currently active (visible) WebView.
+            var humanTabKey = _activeTabKey != $"{workspaceId}:viewer" ? _activeTabKey : null;
             if (humanTabKey is not null && _webViews.TryGetValue(humanTabKey, out var humanWv))
             {
                 var src = humanWv.Source?.ToString();

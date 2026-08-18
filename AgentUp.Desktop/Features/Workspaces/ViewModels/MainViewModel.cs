@@ -303,6 +303,13 @@ public sealed class MainViewModel : ReactiveObject
     {
         if (Sidebar.SelectedWorkspace?.Id != workspaceId) return;
         if (!ShowPortView) return;
+        // Only update the address bar if the URL belongs to the currently visible port tab.
+        // Without this guard the 500ms address-poll timer overwrites the bar with a URL from
+        // a different app (e.g. the headless browser is still on port 11300 while the user
+        // switched the Desktop tab to port 11301).
+        if (SelectedSubTab is not PortSubTabViewModel { IsHttp: true } currentTab) return;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var incomingUri)) return;
+        if (incomingUri.Port != currentTab.AllocatedPort) return;
 
         AddressBarUrl = url;
 
