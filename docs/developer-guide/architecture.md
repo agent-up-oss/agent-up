@@ -8,6 +8,7 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 
 - `AgentUp.Server`
 - `AgentUp.Desktop`
+- `AgentUp.Mobile`
 - `AgentUp.CLI`
 - `AgentUp.InstallerApp`
 - `AgentUp.Packaging`
@@ -40,6 +41,9 @@ AgentUp.Capabilities.Docker/
 
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
+
+AgentUp.Mobile/
+  package.json
 
 AgentUp.CLI/
   AgentUp.CLI.csproj
@@ -160,6 +164,12 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 - REST API.
 
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
+
+`AgentUp.Mobile/` is an Expo and React Native client outside the .NET solution. One TypeScript codebase targets Android, iOS, and an installable web PWA. Like the Desktop, it displays Server-owned state and must not own orchestration.
+
+Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and client behavior live in feature-oriented slices under `AgentUp.Mobile/src/features/`, following the same capability-oriented organization used by the .NET clients.
+
+Mobile development environment and platform commands are documented in [Mobile development](mobile.md).
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
 

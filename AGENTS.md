@@ -58,6 +58,9 @@ AgentUp.Capabilities.Docker/
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
+AgentUp.Mobile/
+  package.json
+
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
@@ -116,6 +119,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
 | `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
+| `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -188,6 +192,11 @@ AgentUp.Desktop/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
       DTOs/
       ViewModels/
+
+AgentUp.Mobile/
+  src/
+    app/               (Expo Router entrypoints only)
+    features/          (product-meaningful React Native client slices)
 
 AgentUp.CLI/
   Features/
@@ -405,6 +414,14 @@ The CLI is a thin developer convenience wrapper over Server capabilities.
 
 It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/cli.md`.
 
+## Mobile
+
+The mobile client is a single Expo and React Native TypeScript project that targets Android, iOS, and an installable web PWA. It lives in `AgentUp.Mobile/` at the repository root and is not part of `agent-up.sln`.
+
+Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. The mobile client displays Server-owned state and must not own orchestration.
+
+Developer guide: `docs/developer-guide/mobile.md`.
+
 ## MCP
 
 MCP is the primary automation interface for AI agents.
@@ -522,6 +539,10 @@ dotnet test AgentUp.Architecture.Tests/AgentUp.Architecture.Tests.csproj
 ```
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+
+Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:web` from that directory. Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
+
+Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`. Do not add duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
 Forbidden:
 

@@ -1,0 +1,19 @@
+{
+  "short_name": "Agent-Up",
+  "name": "Agent-Up",
+  "description": "Manage Agent-Up development workspaces from your device.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/agent-up-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
