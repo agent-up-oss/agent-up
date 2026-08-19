@@ -542,7 +542,7 @@ All architecture rules must pass. Fix any violation before considering the task 
 
 Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:web` from that directory. Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
-Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`. Do not add duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
+Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
 Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest, install icons, production-only service-worker registration, and stable updater service worker synchronized. Ticket-number-prefixed branches are mobile release channels; their immutable GitHub pre-releases contain the complete Metro payload and metadata, while the updater service worker changes only when its bootstrap protocol changes.
 

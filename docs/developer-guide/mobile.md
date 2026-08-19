@@ -83,6 +83,21 @@ protocol, rather than being generated from each application payload. Service
 workers require HTTPS in deployment, except for browser-supported localhost
 development.
 
+Cloudflare Pages must use `AgentUp.Mobile/` as its root directory, run
+`npm run build:cloudflare` as the build command, and publish `dist/`. This is
+the sole public mobile npm script that does not enter `shell.nix`, because the
+Cloudflare build image supplies Node.js but does not supply Nix. The
+export entrypoint reads `CF_PAGES_BRANCH` and `CF_PAGES_COMMIT_SHA`, derives a
+numeric ticket channel from branch names such as `235-description`, and embeds
+the channel, full commit SHA, and commit timestamp into the Metro bundle.
+`main` identifies as the `main` channel. Non-matching branches identify as
+development builds and are not presented as installed release channels.
+
+The same entrypoint falls back to GitHub Actions variables and then local Git,
+so local, channel-release, and Cloudflare exports use one version-identification
+path. Do not append Workbox generation to the Cloudflare command: `public/sw.js`
+is the stable updater and Expo copies it into `dist/`.
+
 ## Branch release channels
 
 Branches whose names begin with a ticket number and hyphen, such as

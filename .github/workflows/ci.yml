@@ -513,7 +513,7 @@ jobs:
           EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT: ${{ github.event.head_commit.timestamp }}
         run: |
           npm ci
-          npx expo export --platform web
+          node scripts/export-web.mjs
           rm dist/sw.js
           printf '{"channel":"%s","sha":"%s","publishedAt":"%s","requiredFiles":["index.html","_expo/"]}\n' \
             "$EXPO_PUBLIC_AGENT_UP_CHANNEL" "$EXPO_PUBLIC_AGENT_UP_SHA" "$EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT" > dist/release.json
