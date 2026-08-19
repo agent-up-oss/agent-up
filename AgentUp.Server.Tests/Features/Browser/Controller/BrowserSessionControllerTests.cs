@@ -1,6 +1,6 @@
 using AgentUp.Server.Features.Browser.Controllers;
-using AgentUp.Server.Features.Browser.Models;
-using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Browser.Streaming.Models;
+using AgentUp.Browser.Streaming;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentUp.Server.Tests.Features.Browser.Controller;
@@ -9,73 +9,93 @@ namespace AgentUp.Server.Tests.Features.Browser.Controller;
 public sealed class BrowserSessionControllerTests
 {
     [Test]
-    public async Task GetPendingCommand_ReturnsBadRequest_WhenWorkspaceIdsAreMissing()
+    public void GetCurrentUrl_ReturnsNotFound_WhenNoActiveSession()
     {
-        var store = new BrowserSessionStore();
-        var controller = new BrowserSessionController(
-            store,
-            new BrowserPendingCommandService(store, new BrowserWorkspaceIdParser()));
+        var result = MakeController().GetCurrentUrl("ws-1");
 
-        var result = await controller.GetPendingCommand(null);
-
-        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
 
     [Test]
-    public async Task GetPendingCommand_ReturnsNoContent_WhenNoCommandIsPending()
+    public async Task Navigate_ReturnsNoContent_WhenDispatchSucceeds()
     {
-        var controller = Controller();
+        var store = new BrowserSessionStore();
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
 
-        var result = await controller.GetPendingCommand("workspace", timeoutMs: 1);
+        var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", true, CancellationToken.None);
+        var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
+        store.CompleteCommand(new BrowserCommandResultDto(command!.CommandId, true, null, null));
+        var result = await navigateTask;
 
         Assert.That(result, Is.InstanceOf<NoContentResult>());
     }
 
     [Test]
-    public async Task GetPendingCommand_ReturnsOk_WhenCommandIsPending()
+    public async Task Navigate_PreservesReloadIfSameUrlFlag()
     {
         var store = new BrowserSessionStore();
-        var controller = Controller(store);
-        var command = Command(Guid.NewGuid());
-        var dispatch = store.DispatchAsync(command, TimeSpan.FromSeconds(1), CancellationToken.None);
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
 
-        var result = await controller.GetPendingCommand("workspace", timeoutMs: 1000);
+        var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", false, CancellationToken.None);
+        var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
+        store.CompleteCommand(new BrowserCommandResultDto(command!.CommandId, true, null, null));
+        await navigateTask;
 
-        Assert.That(result, Is.InstanceOf<OkObjectResult>());
-        Assert.That(((OkObjectResult)result).Value, Is.EqualTo(command));
-
-        store.CompleteCommand(new BrowserCommandResultDto(command.CommandId, true, null, null));
-        await dispatch;
+        Assert.That(command.ReloadIfSameUrl, Is.False);
     }
 
     [Test]
-    public async Task PostCommandResult_CompletesPendingCommand()
+    public async Task Navigate_ReturnsBadRequest_WhenRequestIsCancelled()
     {
         var store = new BrowserSessionStore();
-        var controller = Controller(store);
-        var command = Command(Guid.NewGuid());
-        var dispatch = store.DispatchAsync(command, TimeSpan.FromSeconds(1), CancellationToken.None);
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
 
-        await store.TryDequeueAsync(["workspace"], TimeSpan.FromSeconds(1), CancellationToken.None);
-        var result = controller.PostCommandResult(new BrowserCommandResultDto(command.CommandId, true, "{}", null));
-        var completed = await dispatch;
+        var result = await controller.Navigate("ws-1", "http://localhost:3000", true, cts.Token);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(result, Is.InstanceOf<NoContentResult>());
-            Assert.That(completed.Success, Is.True);
-            Assert.That(completed.Data, Is.EqualTo("{}"));
-        });
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
 
-    private static BrowserSessionController Controller(BrowserSessionStore? store = null)
+    [Test]
+    public async Task Navigate_ReturnsBadRequest_WithDispatcherError_WhenDispatchFails()
     {
-        store ??= new BrowserSessionStore();
-        return new BrowserSessionController(
-            store,
-            new BrowserPendingCommandService(store, new BrowserWorkspaceIdParser()));
+        var store = new BrowserSessionStore();
+        var controller = new BrowserSessionController(store, new HeadlessBrowserSessionAccessor(null));
+
+        var navigateTask = controller.Navigate("ws-1", "http://localhost:3000", true, CancellationToken.None);
+        var command = await store.TryDequeueAsync(["ws-1"], TimeSpan.FromSeconds(1), CancellationToken.None);
+        store.CompleteCommand(new BrowserCommandResultDto(command!.CommandId, false, null, "Browser command execution failed."));
+        var result = await navigateTask;
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result).Value, Is.EqualTo("Browser command execution failed."));
     }
 
-    private static BrowserCommandDto Command(Guid id) =>
-        new(id, "workspace", BrowserCommandKind.Click, null, "#save", null, null, 100);
+    [Test]
+    public async Task NavigateBack_ReturnsNotFound_WhenNoActiveSession()
+    {
+        var result = await MakeController().NavigateBack("ws-1", CancellationToken.None);
+
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+
+    [Test]
+    public async Task NavigateForward_ReturnsNotFound_WhenNoActiveSession()
+    {
+        var result = await MakeController().NavigateForward("ws-1", CancellationToken.None);
+
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+
+    [Test]
+    public async Task Reload_ReturnsNotFound_WhenNoActiveSession()
+    {
+        var result = await MakeController().Reload("ws-1", CancellationToken.None);
+
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+
+    private static BrowserSessionController MakeController()
+        => new(new BrowserSessionStore(), new HeadlessBrowserSessionAccessor(null));
 }

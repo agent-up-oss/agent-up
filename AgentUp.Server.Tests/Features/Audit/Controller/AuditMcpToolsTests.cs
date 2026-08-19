@@ -40,7 +40,7 @@ public sealed class AuditMcpToolsTests
             new AuditRecordRequest("workspace", "server", "workspace_state_changed", "success", "other"),
             CancellationToken.None);
 
-        var result = await tools.Query(workspaceId: "workspace", kind: "browser");
+        var result = await tools.Query(workspaceId: "workspace", kind: "browser", compact: false);
         var data = (IReadOnlyList<AuditEvent>)result.Data!;
 
         Assert.Multiple(() =>

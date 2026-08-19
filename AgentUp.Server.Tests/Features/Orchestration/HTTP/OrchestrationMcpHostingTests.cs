@@ -1,8 +1,13 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
+using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
@@ -30,6 +35,7 @@ using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Server;
@@ -164,6 +170,27 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<BrowserSessionStore>();
+        builder.Services.AddSingleton<BrowserRemoteDisplayService>();
+        builder.Services.AddSingleton<BrowserEventBus>();
+        builder.Services.AddSingleton<AppHealthCheckService>();
+        builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<IAuditEventRepository, InMemoryAuditEventRepository>();
+        builder.Services.AddSingleton<IAuditArtifactRepository, InMemoryAuditArtifactRepository>();
+        builder.Services.AddSingleton<IAuditIdentityProvider, FakeAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditService>();
+        builder.Services.AddSingleton<AuditController>();
+        builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
+            sp.GetRequiredService<BrowserEventBus>(),
+            sp.GetRequiredService<AppHealthController>(),
+            sp.GetRequiredService<WorkspaceQueryController>(),
+            sp.GetRequiredService<AuditController>(),
+            sp.GetRequiredService<ILogger<WorkspaceStreamStateService>>()));
+        builder.Services.AddSingleton(sp => new HeadlessBrowserSessionManager(
+            Path.GetTempPath(), Path.GetTempPath(),
+            sp.GetRequiredService<BrowserRemoteDisplayService>(),
+            sp.GetRequiredService<WorkspaceStreamStateService>(),
+            sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
+        builder.Services.AddSingleton<WorkspaceStreamStateController>();
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();

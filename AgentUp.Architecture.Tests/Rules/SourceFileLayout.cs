@@ -29,6 +29,8 @@ public sealed class SourceFileLayout
     private static bool HasAllowedSourceRoot(string root, string path)
     {
         var parts = ArchitectureFixture.Parts(root, path);
+        // Bare classlibs (no vertical-slice layout) are exempt from this rule.
+        if (parts[0] == "AgentUp.Browser.Streaming") return true;
         return parts.Length >= 3 && parts[1] is "Features" or "Shared" or "Composition";
     }
 }
