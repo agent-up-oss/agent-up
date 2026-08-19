@@ -481,6 +481,58 @@ jobs:
           npm --prefix docs ci
           npm --prefix docs run build
 
+  pre-release-channel:
+    name: Pre-Release-Channel
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_type == 'branch' && github.ref_name != 'main' }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Identify ticket channel
+        id: channel
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" =~ ^([0-9]+)- ]]; then
+            echo "name=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "tag=rc-${BASH_REMATCH[1]}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        if: ${{ steps.channel.outputs.name != '' }}
+        with:
+          node-version: 22
+
+      - name: Build immutable mobile release
+        if: ${{ steps.channel.outputs.name != '' }}
+        working-directory: AgentUp.Mobile
+        env:
+          EXPO_PUBLIC_AGENT_UP_CHANNEL: ${{ steps.channel.outputs.name }}
+          EXPO_PUBLIC_AGENT_UP_SHA: ${{ github.sha }}
+          EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT: ${{ github.event.head_commit.timestamp }}
+        run: |
+          npm ci
+          npx expo export --platform web
+          rm dist/sw.js
+          printf '{"channel":"%s","sha":"%s","publishedAt":"%s","requiredFiles":["index.html","_expo/"]}\n' \
+            "$EXPO_PUBLIC_AGENT_UP_CHANNEL" "$EXPO_PUBLIC_AGENT_UP_SHA" "$EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT" > dist/release.json
+          tar -czf agent-up-mobile-web.tar.gz -C dist .
+
+      - name: Publish channel pre-release
+        if: ${{ steps.channel.outputs.name != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.channel.outputs.tag }}
+          CHANNEL: ${{ steps.channel.outputs.name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            AgentUp.Mobile/agent-up-mobile-web.tar.gz \
+            AgentUp.Mobile/dist/release.json \
+            --prerelease \
+            --title "$CHANNEL @ ${GITHUB_SHA::7}" \
+            --notes "Immutable AgentUp.Mobile web build for channel $CHANNEL at commit $GITHUB_SHA."
+
   release:
     name: Release
     runs-on: ubuntu-latest

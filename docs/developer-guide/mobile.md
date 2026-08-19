@@ -75,8 +75,25 @@ npm run typecheck
 npm run build:web
 ```
 
-Expo writes the static web output to `AgentUp.Mobile/dist/`, then Workbox
-generates `dist/sw.js` and its precache manifest. The PWA metadata and install
-icons live under `public/`; `src/app/+html.tsx` links the manifest and registers
-the service worker only in production exports. Service workers require HTTPS
-in deployment, except for browser-supported localhost development.
+Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata,
+install icons, and stable updater service worker live under `public/`;
+`src/app/+html.tsx` links the manifest and registers the service worker only in
+production exports. The service worker changes only with the bootstrap/update
+protocol, rather than being generated from each application payload. Service
+workers require HTTPS in deployment, except for browser-supported localhost
+development.
+
+## Branch release channels
+
+Branches whose names begin with a ticket number and hyphen, such as
+`235-avalonia-mobile-client`, publish mobile pre-releases. CI exports the Metro
+web build with its channel, full commit SHA, and publication timestamp, then
+creates an immutable `rc-<channel>-<sha>` GitHub pre-release containing
+`agent-up-mobile-web.tar.gz` and `release.json`. Non-matching branches are not
+channels, and `main` remains the stable/default channel.
+
+The installed PWA queries GitHub Releases from its Settings screen. It can
+upgrade the active channel or switch to another channel by downloading and
+caching the complete archive before atomically changing the active-cache
+marker and reloading. A release older than the installed release on the same
+channel is not offered, so the UI cannot downgrade a channel.
