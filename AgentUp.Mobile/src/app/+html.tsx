@@ -11,13 +11,13 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
-        <meta name="theme-color" content="#111827" />
+        <meta name="theme-color" content="#000000" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/agent-up-icon-192.png" />
         <script dangerouslySetInnerHTML={{ __html: serviceWorkerRegistration }} />
         <ScrollViewStyleReset />
       </head>
-      <body>{children}</body>
+      <body style={{ backgroundColor: '#000000' }}>{children}</body>
     </html>
   );
 }

@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function WelcomeScreen() {
   return (
@@ -24,28 +25,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#111827',
+    backgroundColor: '#000000',
   },
   card: {
     width: '100%',
     maxWidth: 560,
     gap: 12,
     padding: 32,
-    borderRadius: 24,
-    backgroundColor: '#1f2937',
+    borderWidth: 1,
+    borderColor: '#287038',
+    borderRadius: 8,
+    backgroundColor: '#050505',
   },
   title: {
-    color: '#f9fafb',
+    color: '#f5fbf7',
     fontSize: 36,
     fontWeight: '700',
   },
   subtitle: {
-    color: '#d1d5db',
+    color: '#f5fbf7',
     fontSize: 20,
     lineHeight: 28,
   },
   detail: {
-    color: '#9ca3af',
+    color: '#aebcb3',
     fontSize: 15,
     lineHeight: 22,
   },

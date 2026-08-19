@@ -12,6 +12,12 @@ The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
 orchestration must remain in `AgentUp.Server`.
 
+Mobile surfaces follow the docs site's black, green, off-white, and muted
+gray-green visual system, including its compact 8px card and control radii.
+Use Expo-compatible native controls for platform interactions such as channel
+selection. Root application surfaces remain black through device safe areas so
+iOS status-bar and Dynamic Island insets do not expose a different background.
+
 ## Project structure
 
 Use Expo Router for route entrypoints under `src/app/`. Put client behavior and
