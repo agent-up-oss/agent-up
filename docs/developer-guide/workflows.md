@@ -44,7 +44,7 @@ GitHub Actions runs the Agent-Up CI workflow on push. The version job uses seman
 
 On non-`main` branches beginning with a ticket number and hyphen, the
 `Pre-Release-Channel` job exports the mobile web client and publishes an
-immutable `rc-<ticket>-<commit-sha>` GitHub pre-release. The archive excludes
+immutable `rc-<ticket>-<seven-character-sha>` GitHub pre-release. The archive excludes
 the stable service worker and includes release metadata used by the installed
 PWA's channel updater. Other branch names do not publish mobile channels.
 

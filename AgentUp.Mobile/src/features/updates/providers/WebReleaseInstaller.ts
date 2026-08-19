@@ -5,7 +5,10 @@ const storageKey = 'agent-up-active-release';
 export function getInstalledRelease(): InstalledRelease {
   if (typeof localStorage !== 'undefined') {
     const saved = localStorage.getItem(storageKey);
-    if (saved) return JSON.parse(saved) as InstalledRelease;
+    if (saved) {
+      const release = JSON.parse(saved) as InstalledRelease;
+      return { ...release, sha: release.sha.slice(0, 7) };
+    }
   }
   return {
     channel: process.env.EXPO_PUBLIC_AGENT_UP_CHANNEL ?? 'development',

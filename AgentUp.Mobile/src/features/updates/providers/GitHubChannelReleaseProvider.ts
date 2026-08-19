@@ -23,7 +23,7 @@ export async function getChannelReleases(): Promise<ChannelRelease[]> {
     if (!release.prerelease || !match || !asset) return [];
     return [{
       channel: match[1],
-      sha: match[2].toLowerCase(),
+      sha: match[2].slice(0, 7).toLowerCase(),
       publishedAt: release.published_at,
       assetUrl: `https://api.github.com/repos/agent-up-oss/agent-up/releases/assets/${asset.id}`,
     }];

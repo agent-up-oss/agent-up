@@ -496,7 +496,8 @@ jobs:
         run: |
           if [[ "${GITHUB_REF_NAME}" =~ ^([0-9]+)- ]]; then
             echo "name=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-            echo "tag=rc-${BASH_REMATCH[1]}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "tag=rc-${BASH_REMATCH[1]}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: actions/setup-node@v7
@@ -509,7 +510,7 @@ jobs:
         working-directory: AgentUp.Mobile
         env:
           EXPO_PUBLIC_AGENT_UP_CHANNEL: ${{ steps.channel.outputs.name }}
-          EXPO_PUBLIC_AGENT_UP_SHA: ${{ github.sha }}
+          EXPO_PUBLIC_AGENT_UP_SHA: ${{ steps.channel.outputs.sha }}
           EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT: ${{ github.event.head_commit.timestamp }}
         run: |
           npm ci
@@ -530,8 +531,8 @@ jobs:
             AgentUp.Mobile/agent-up-mobile-web.tar.gz \
             AgentUp.Mobile/dist/release.json \
             --prerelease \
-            --title "$CHANNEL @ ${GITHUB_SHA::7}" \
-            --notes "Immutable AgentUp.Mobile web build for channel $CHANNEL at commit $GITHUB_SHA."
+            --title "$RELEASE_TAG" \
+            --notes "Immutable AgentUp.Mobile web build for $RELEASE_TAG."
 
   release:
     name: Release

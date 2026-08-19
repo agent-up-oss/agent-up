@@ -41,7 +41,7 @@ export function ChannelSettingsScreen() {
       <View style={styles.card}>
         <Text style={styles.heading}>Release channel</Text>
         <Text style={styles.meta}>
-          {isSourceBuild ? 'Running from source (not an installed release)' : `Installed: ${installed.channel} @ ${installed.sha.slice(0, 7)}`}
+          {isSourceBuild ? 'Running from source (not an installed release)' : `Installed: rc-${installed.channel}-${installed.sha}`}
         </Text>
         <Text style={styles.label}>Channel</Text>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: channelMenuOpen }}
@@ -61,7 +61,7 @@ export function ChannelSettingsScreen() {
         </View>}
         {busy && <ActivityIndicator color="#60a5fa" />}
         {!busy && releases.length === 0 && <Text style={styles.meta}>No published release channels found yet.</Text>}
-        {latest && <Text style={styles.meta}>Available: {latest.channel} @ {latest.sha.slice(0, 7)}</Text>}
+        {latest && <Text style={styles.meta}>Available: rc-{latest.channel}-{latest.sha}</Text>}
         {!!status && <Text accessibilityRole="alert" style={styles.status}>{status}</Text>}
         <Pressable accessibilityRole="button" disabled={busy || !latest || !isUpgrade(installed, latest)}
           onPress={update} style={[styles.button, (busy || !latest || !isUpgrade(installed, latest)) && styles.disabled]}>
