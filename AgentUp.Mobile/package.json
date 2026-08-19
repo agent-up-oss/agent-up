@@ -10,6 +10,7 @@
     "web": "nix-shell ../shell.nix --run 'expo start --web --lan'",
     "build:web": "nix-shell ../shell.nix --run 'node scripts/export-web.mjs'",
     "build:cloudflare": "node scripts/export-web.mjs",
+    "test": "nix-shell ../shell.nix --run 'tsc --noEmit -p tsconfig.test.json && tsx --test src/features/updates/providers/*.test.ts'",
     "typecheck": "nix-shell ../shell.nix --run 'tsc --noEmit'"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
     "expo-linking": "~57.0.6",
     "expo-router": "~57.0.14",
     "expo-status-bar": "~57.0.1",
+    "fflate": "^0.8.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.2",
@@ -27,7 +29,9 @@
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
     "@types/react": "~19.2.2",
+    "tsx": "^4.23.12",
     "typescript": "~6.0.3"
   }
 }

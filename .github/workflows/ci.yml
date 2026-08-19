@@ -489,6 +489,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Identify ticket channel
         id: channel
@@ -511,14 +513,16 @@ jobs:
         env:
           EXPO_PUBLIC_AGENT_UP_CHANNEL: ${{ steps.channel.outputs.name }}
           EXPO_PUBLIC_AGENT_UP_SHA: ${{ steps.channel.outputs.sha }}
-          EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT: ${{ github.event.head_commit.timestamp }}
         run: |
           npm ci
+          EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          export EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT
           node scripts/export-web.mjs
           rm dist/sw.js
-          printf '{"channel":"%s","sha":"%s","publishedAt":"%s","requiredFiles":["index.html","_expo/"]}\n' \
-            "$EXPO_PUBLIC_AGENT_UP_CHANNEL" "$EXPO_PUBLIC_AGENT_UP_SHA" "$EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT" > dist/release.json
-          tar -czf agent-up-mobile-web.tar.gz -C dist .
+          (cd dist && zip -qr ../agent-up-mobile-web.zip .)
+          archive_sha256="$(sha256sum agent-up-mobile-web.zip | cut -d ' ' -f 1)"
+          printf '{"channel":"%s","sha":"%s","publishedAt":"%s","archiveSha256":"%s","requiredFiles":["index.html","_expo/.routes.json"]}\n' \
+            "$EXPO_PUBLIC_AGENT_UP_CHANNEL" "$EXPO_PUBLIC_AGENT_UP_SHA" "$EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT" "$archive_sha256" > release.json
 
       - name: Publish channel pre-release
         if: ${{ steps.channel.outputs.name != '' }}
@@ -528,8 +532,8 @@ jobs:
           CHANNEL: ${{ steps.channel.outputs.name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            AgentUp.Mobile/agent-up-mobile-web.tar.gz \
-            AgentUp.Mobile/dist/release.json \
+            AgentUp.Mobile/agent-up-mobile-web.zip \
+            AgentUp.Mobile/release.json \
             --prerelease \
             --title "$RELEASE_TAG" \
             --notes "Immutable AgentUp.Mobile web build for $RELEASE_TAG."

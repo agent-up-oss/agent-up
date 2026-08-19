@@ -15,6 +15,10 @@ self.addEventListener('message', event => {
       }))));
       const marker = await caches.open(markerCache);
       await marker.put(markerUrl, new Response(cacheName));
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames
+        .filter(name => name.startsWith('agent-up-release-') && name !== markerCache && name !== cacheName)
+        .map(name => caches.delete(name)));
       event.ports[0]?.postMessage({ ok: true });
     } catch (error) {
       await caches.delete(cacheName);
@@ -26,6 +30,11 @@ self.addEventListener('message', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith((async () => {
+    const requestUrl = new URL(event.request.url);
+    if (requestUrl.searchParams.has('agent-up-recovery')) {
+      await clearActiveRelease();
+      return fetch(event.request);
+    }
     const marker = await caches.open(markerCache);
     const active = await marker.match(markerUrl);
     if (active) {
@@ -44,7 +53,15 @@ self.addEventListener('fetch', event => {
 function contentType(path) {
   const extension = path.split('.').pop()?.toLowerCase();
   return ({
-    css: 'text/css', html: 'text/html', js: 'text/javascript', json: 'application/json',
+    css: 'text/css; charset=utf-8', html: 'text/html; charset=utf-8',
+    js: 'text/javascript; charset=utf-8', json: 'application/json; charset=utf-8',
     png: 'image/png', svg: 'image/svg+xml', ttf: 'font/ttf', woff: 'font/woff', woff2: 'font/woff2',
   })[extension] ?? 'application/octet-stream';
+}
+
+async function clearActiveRelease() {
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames
+    .filter(name => name === markerCache || name.startsWith('agent-up-release-'))
+    .map(name => caches.delete(name)));
 }

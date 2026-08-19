@@ -110,7 +110,9 @@ Branches whose names begin with a ticket number and hyphen, such as
 `235-avalonia-mobile-client`, publish mobile pre-releases. CI exports the Metro
 web build with its channel, seven-character commit SHA, and publication timestamp, then
 creates an immutable `rc-<channel>-<sha>` GitHub pre-release containing
-`agent-up-mobile-web.tar.gz` and `release.json`. Non-matching branches are not
+`agent-up-mobile-web.zip` and `release.json`. Metadata includes the archive's
+SHA-256 digest and required-file list, both of which are validated before a
+release is cached. Non-matching branches are not
 channels, and `main` remains the stable/default channel.
 
 The installed PWA queries GitHub Releases from its Settings screen. It can
@@ -118,3 +120,8 @@ upgrade the active channel or switch to another channel by downloading and
 caching the complete archive before atomically changing the active-cache
 marker and reloading. A release older than the installed release on the same
 channel is not offered, so the UI cannot downgrade a channel.
+
+After activation, the service worker deletes superseded release caches. Opening
+the installed PWA with `?agent-up-recovery=1` clears the active release marker
+and caches before loading the stable network shell, providing an escape hatch
+when a channel payload is broken.

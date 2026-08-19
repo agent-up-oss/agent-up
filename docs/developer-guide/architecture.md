@@ -42,9 +42,6 @@ AgentUp.Capabilities.Docker/
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
-AgentUp.Mobile/
-  package.json
-
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
@@ -84,6 +81,9 @@ AgentUp.Architecture.Tests/
 AgentUp.Tests/
   AgentUp.Tests.csproj
 ```
+
+`AgentUp.Mobile/` also lives at the repository root, but it is an Expo project
+and is not referenced by `agent-up.sln`.
 
 The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
 
