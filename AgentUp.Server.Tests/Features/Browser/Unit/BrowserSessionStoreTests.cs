@@ -1,5 +1,5 @@
-using AgentUp.Server.Features.Browser.Models;
-using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Browser.Streaming.Models;
+using AgentUp.Browser.Streaming;
 
 namespace AgentUp.Server.Tests.Features.Browser.Unit;
 
@@ -37,7 +37,7 @@ public sealed class BrowserSessionStoreTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Success, Is.False);
-            Assert.That(result.Error, Does.Contain("timeout"));
+            Assert.That(result.Error, Does.Contain("timed out"));
         });
     }
 

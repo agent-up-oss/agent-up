@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
@@ -24,6 +25,8 @@ public sealed class MainViewModel : ReactiveObject
     // Used to restore the exact page when the user switches away and back to an HTTP tab.
     private readonly Dictionary<string, string> _portUrls = new();
     private WorkspaceItemViewModel? _workspaceApplicationSubscription;
+    private string? _lastSelectedHttpPortKey;
+    private bool _isActiveWorkspaceAiMode = true;
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -48,6 +51,18 @@ public sealed class MainViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _addressBarUrl, value);
     }
 
+    public bool IsActiveWorkspaceAiMode
+    {
+        get => _isActiveWorkspaceAiMode;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isActiveWorkspaceAiMode, value);
+            this.RaisePropertyChanged(nameof(IsActiveWorkspaceHumanMode));
+        }
+    }
+
+    public bool IsActiveWorkspaceHumanMode => !IsActiveWorkspaceAiMode;
+
     public ReactiveCommand<Unit, Unit> NavigateAddressCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserBackCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserForwardCommand { get; }
@@ -56,6 +71,7 @@ public sealed class MainViewModel : ReactiveObject
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
     public IObservable<(string? WorkspaceId, string? Url)> BrowserNavigation { get; }
+    public IObservable<(string? WorkspaceId, string? Url)> BrowserTabNavigation { get; }
     public IObservable<BrowserCommand> BrowserCommands => _browserCommands;
 
     public MainViewModel(
@@ -84,9 +100,19 @@ public sealed class MainViewModel : ReactiveObject
         SubscribeSubTabSelection();
         SubscribeTutorialSteps();
         SubscribeSelectedPortProbe(selectedPortTab);
+        SubscribeWorkspaceAuthorityTracking();
 
+        BrowserTabNavigation = CreateBrowserTabNavigation();
         BrowserNavigation = CreateBrowserNavigation(selectedPortTab);
     }
+
+    private void SubscribeWorkspaceAuthorityTracking()
+        => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
+            .Select(ws => ws is null
+                ? Observable.Return(true)
+                : ws.WhenAnyValue(w => w.ControlAuthority).Select(auth => auth != "human"))
+            .Switch()
+            .Subscribe(isAi => IsActiveWorkspaceAiMode = isAi);
 
     private void SubscribeWorkspaceSelection()
         => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
@@ -112,6 +138,22 @@ public sealed class MainViewModel : ReactiveObject
     {
         if (!ReferenceEquals(sender, Sidebar.SelectedWorkspace)) return;
         UpdateApplicationsFromWorkspace(Sidebar.SelectedWorkspace, preserveSelection: true);
+
+        var selectedAppName = Applications.SelectedApplication?.Name;
+        if (selectedAppName is not null)
+        {
+            var wsApp = Sidebar.SelectedWorkspace?.Applications
+                .FirstOrDefault(a => string.Equals(a.Name, selectedAppName, StringComparison.Ordinal));
+            if (wsApp is not null)
+                ApplyPortHealthToSubTabs(wsApp);
+        }
+
+        // Navigate even when the console or TCP tab is active so the headless browser reconnects
+        // when the workspace starts remotely while the user is viewing a non-port tab.
+        var pt = SelectedSubTab as PortSubTabViewModel
+            ?? SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.IsHttp);
+        if (pt is { IsHttp: true })
+            _addressNavigations.OnNext((Sidebar.SelectedWorkspace?.Id, GetPortNavigationUrl(pt)));
     }
 
     private void UpdateApplicationsFromWorkspace(WorkspaceItemViewModel? workspace, bool preserveSelection)
@@ -136,6 +178,7 @@ public sealed class MainViewModel : ReactiveObject
                 if (workspaceId is not null)
                     _ = Console.LoadAsync(workspaceId, app.Name);
             });
+
 
     private void SubscribeSubTabSelection()
         => this.WhenAnyValue(x => x.SelectedSubTab)
@@ -179,20 +222,40 @@ public sealed class MainViewModel : ReactiveObject
         var workspaceChanged = Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
             .Select(ws => (WorkspaceId: ws?.Id, Url: (string?)null));
 
-        var tabChanged = this.WhenAnyValue(x => x.SelectedSubTab)
-            .Select(CreateTabNavigation);
-
         var portOpenChanged = selectedPortTab
             .Select(CreatePortOpenNavigation)
             .Switch();
 
-        return workspaceChanged.Merge(tabChanged).Merge(portOpenChanged).Merge(_addressNavigations);
+        return workspaceChanged.Merge(portOpenChanged).Merge(_addressNavigations);
     }
 
-    private (string? WorkspaceId, string? Url) CreateTabNavigation(SubTabViewModel? tab)
-        => tab is PortSubTabViewModel { IsHttp: true } pt
-            ? (Sidebar.SelectedWorkspace?.Id, GetPortNavigationUrl(pt))
-            : (Sidebar.SelectedWorkspace?.Id, null);
+    private IObservable<(string? WorkspaceId, string? Url)> CreateBrowserTabNavigation()
+        => this.WhenAnyValue(x => x.SelectedSubTab)
+            .Select(CreateTabNavigation)
+            .Where(nav => nav.HasValue)
+            .Select(nav => nav!.Value);
+
+    private (string? WorkspaceId, string? Url)? CreateTabNavigation(SubTabViewModel? tab)
+    {
+        if (tab is null)
+        {
+            _lastSelectedHttpPortKey = null;
+            return (Sidebar.SelectedWorkspace?.Id, null);
+        }
+
+        if (tab is not PortSubTabViewModel { IsHttp: true } pt)
+        {
+            return (Sidebar.SelectedWorkspace?.Id, null);
+        }
+
+        var workspaceId = Sidebar.SelectedWorkspace?.Id;
+        var portKey = $"{workspaceId}:{pt.AllocatedPort}";
+        if (string.Equals(_lastSelectedHttpPortKey, portKey, StringComparison.Ordinal))
+            return null;
+
+        _lastSelectedHttpPortKey = portKey;
+        return (workspaceId, GetPortNavigationUrl(pt));
+    }
 
     private static IObservable<PortSubTabViewModel> CreatePortProbeTimer(PortSubTabViewModel? pt)
         => pt is null
@@ -210,7 +273,15 @@ public sealed class MainViewModel : ReactiveObject
                 .Select(_ => ((string?)Sidebar.SelectedWorkspace?.Id, (string?)GetPortNavigationUrl(pt)));
 
     private string GetPortNavigationUrl(PortSubTabViewModel pt)
-        => pt.IsHttp ? AddressBarUrl ?? pt.Url : pt.Url;
+    {
+        if (!pt.IsHttp) return pt.Url;
+        var address = AddressBarUrl;
+        return address is not null
+               && (address.StartsWith("http://", StringComparison.Ordinal)
+                   || address.StartsWith("https://", StringComparison.Ordinal))
+            ? address
+            : pt.Url;
+    }
 
     private async Task ReloadWorkspaceBehindTutorialAsync()
     {
@@ -232,6 +303,13 @@ public sealed class MainViewModel : ReactiveObject
     {
         if (Sidebar.SelectedWorkspace?.Id != workspaceId) return;
         if (!ShowPortView) return;
+        // Only update the address bar if the URL belongs to the currently visible port tab.
+        // Without this guard the 500ms address-poll timer overwrites the bar with a URL from
+        // a different app (e.g. the headless browser is still on port 11300 while the user
+        // switched the Desktop tab to port 11301).
+        if (SelectedSubTab is not PortSubTabViewModel { IsHttp: true } currentTab) return;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var incomingUri)) return;
+        if (incomingUri.Port != currentTab.AllocatedPort) return;
 
         AddressBarUrl = url;
 
@@ -272,6 +350,9 @@ public sealed class MainViewModel : ReactiveObject
         if (matchingApp is null)
             return false;
 
+        // Pre-seed _lastSelectedHttpPortKey so the reactive tab-navigation observer does not
+        // emit a redundant headless browser_navigate when SelectedSubTab changes below.
+        _lastSelectedHttpPortKey = $"{workspaceId}:{targetPort}";
         PreloadPortUrl(url);
 
         if (Applications.SelectedApplication != matchingApp)
@@ -314,6 +395,29 @@ public sealed class MainViewModel : ReactiveObject
 
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
             _ = portTab.ProbeAsync();
+
+        var wsApp = Sidebar.SelectedWorkspace?.Applications
+            .FirstOrDefault(a => string.Equals(a.Name, app.Name, StringComparison.Ordinal));
+        if (wsApp is not null)
+            ApplyPortHealthToSubTabs(wsApp);
+    }
+
+    private void ApplyPortHealthToSubTabs(WorkspaceApplicationViewModel app)
+    {
+        var byPort = app.PortHealth?.ToDictionary(p => p.AllocatedPort, p => p.HealthState) ?? [];
+        foreach (var tab in SubTabs.OfType<PortSubTabViewModel>())
+        {
+            var ledState = byPort.TryGetValue(tab.AllocatedPort, out var hs)
+                ? hs switch
+                {
+                    "Healthy"   => PortLedState.Healthy,
+                    "Checking"  => PortLedState.Checking,
+                    "Unhealthy" => PortLedState.Unhealthy,
+                    _           => PortLedState.Probing
+                }
+                : PortLedState.Probing;
+            tab.SetLedState(ledState);
+        }
     }
 
     private static ApplicationViewModel CreateApplicationViewModel(WorkspaceApplicationViewModel app) =>

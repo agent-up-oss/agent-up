@@ -121,10 +121,23 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
         try
         {
-            // Remove any stale container with this name
+            // Remove any stale container with this name. rm -f is a no-op if none exists.
             await _docker.RunAsync("rm", "-f", containerName);
 
-            var run = await _docker.RunAsync([.. _docker.CreateRunArguments(containerName, workspace, app)]);
+            var runArgs = _docker.CreateRunArguments(containerName, workspace, app).ToArray();
+            var run = await _docker.RunAsync(runArgs);
+
+            // Docker daemon occasionally still holds the name for a moment after an
+            // rm -f — a subsequent run then fails with "already in use". Force-remove
+            // one more time and retry the run so the user doesn't see a confusing
+            // conflict message caused by daemon-side timing.
+            if (run.ExitCode != 0
+                && run.Stderr.Contains("is already in use", StringComparison.OrdinalIgnoreCase))
+            {
+                await _docker.RunAsync("rm", "-f", containerName);
+                run = await _docker.RunAsync(runArgs);
+            }
+
             if (run.ExitCode != 0)
             {
                 await AppendDockerErrorAsync(workspaceId, app.Name, run.Stderr);

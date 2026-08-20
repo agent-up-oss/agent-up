@@ -1,4 +1,4 @@
-using AgentUp.Server.Features.Browser.Models;
+using AgentUp.Browser.Streaming.Models;
 
 namespace AgentUp.Server.Tests.Features.Browser.Unit;
 
@@ -29,6 +29,7 @@ public sealed class BrowserCommandDtoTests
             Assert.That(command.Text, Is.EqualTo("Ada"));
             Assert.That(command.Key, Is.EqualTo("Enter"));
             Assert.That(command.TimeoutMs, Is.EqualTo(123));
+            Assert.That(command.ReloadIfSameUrl, Is.True);
         });
     }
 }

@@ -78,6 +78,22 @@ jobs:
             sudo ldconfig
           fi
 
+          # Use the pre-installed Chrome if available; otherwise kick off Chromium in the
+          # background so it installs in parallel with the non-E2E test run below.
+          chromium_exe="$(command -v google-chrome-stable 2>/dev/null \
+            || command -v google-chrome 2>/dev/null \
+            || command -v chromium 2>/dev/null \
+            || command -v chromium-browser 2>/dev/null \
+            || true)"
+          if [ -n "$chromium_exe" ]; then
+            echo "PUPPETEER_EXECUTABLE_PATH=$chromium_exe" >> "$GITHUB_ENV"
+            echo "Found pre-installed Chromium: $chromium_exe"
+          else
+            echo "No pre-installed Chromium found — installing in background"
+            sudo apt-get install -y --no-install-recommends chromium > /tmp/chromium-install.log 2>&1 &
+            printf '%s' "$!" > /tmp/chromium-install.pid
+          fi
+
       - name: Run tests
         shell: bash
         run: |
@@ -96,10 +112,11 @@ jobs:
             )
 
             if [ "$test_project_name" = "AgentUp.Tests" ]; then
-              test_command+=(--blame-hang --blame-hang-timeout 120s)
+              # Exclude HeadlessE2E — those run after Chromium is confirmed ready below.
+              test_command+=(--blame-hang --blame-hang-timeout 120s --filter "Category!=HeadlessE2E")
               test_status=1
               for attempt in 1 2; do
-                echo "Running AgentUp.Tests on Ubuntu attempt $attempt/2"
+                echo "Running AgentUp.Tests (non-E2E) on Ubuntu attempt $attempt/2"
                 if LIBGL_ALWAYS_SOFTWARE=1 \
                   GALLIUM_DRIVER=llvmpipe \
                   WEBKIT_DISABLE_COMPOSITING_MODE=1 \
@@ -130,6 +147,43 @@ jobs:
           if [ "$found_tests" = false ]; then
             echo "No test projects found"
             exit 1
+          fi
+
+          # If Chromium was being installed in the background, wait for it now.
+          if [ -f /tmp/chromium-install.pid ]; then
+            chromium_pid="$(cat /tmp/chromium-install.pid)"
+            echo "Waiting for background Chromium installation (PID $chromium_pid)…"
+            while kill -0 "$chromium_pid" 2>/dev/null; do sleep 2; done
+            echo "Chromium installation finished. Log:"
+            cat /tmp/chromium-install.log || true
+            chromium_exe="$(command -v chromium 2>/dev/null || command -v chromium-browser 2>/dev/null || true)"
+            if [ -n "$chromium_exe" ]; then
+              export PUPPETEER_EXECUTABLE_PATH="$chromium_exe"
+            fi
+          fi
+
+          # Run HeadlessE2E tests now that Chromium is confirmed available.
+          chromium_exe="${PUPPETEER_EXECUTABLE_PATH:-}"
+          if [ -z "$chromium_exe" ]; then
+            echo "No Chromium binary found — HeadlessE2E tests cannot run"
+            exit 1
+          else
+            echo "Running HeadlessE2E tests with $chromium_exe"
+            PUPPETEER_EXECUTABLE_PATH="$chromium_exe" \
+            LIBGL_ALWAYS_SOFTWARE=1 \
+            GALLIUM_DRIVER=llvmpipe \
+            WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+            WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 \
+            dbus-run-session xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" \
+            dotnet test "AgentUp.Tests/AgentUp.Tests.csproj" \
+              --configuration Release \
+              --no-build \
+              --settings "coverlet.runsettings" \
+              --logger "trx;LogFileName=e2e-results.trx" \
+              --collect:"XPlat Code Coverage" \
+              --filter "Category=HeadlessE2E" \
+              --blame-hang \
+              --blame-hang-timeout 300s
           fi
 
       - name: Generate SBOM
@@ -210,7 +264,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: .NET Tests (Agent-Up)
-          path: "**/test-results.trx"
+          path: "**/test-results.trx,**/e2e-results.trx"
           reporter: dotnet-trx
 
   jetbrains-plugin:

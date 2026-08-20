@@ -105,7 +105,11 @@ For applications with configured ports, the second row starts with ports in `age
 
 For applications without configured ports, Console is selected by default.
 
-When the selected tab is an HTTP port, the Desktop shows a third row with back, forward, and reload controls followed by an editable browser address field. The field contains the full URL, such as `http://localhost:3000/`, for the selected port. Pressing Enter in the field navigates the workspace WebView to that URL, and successful HTTP/HTTPS WebView navigations update the field to the current page URL. Non-HTTP ports do not show the address row.
+When the selected tab is an HTTP port, the Desktop shows a third row with back, forward, and reload controls followed by an editable browser address field. The field contains the full URL, such as `http://localhost:3000/`, for the selected port. Pressing Enter requests navigation through the Server-owned browser session, and successful HTTP/HTTPS browser navigations update the field to the current page URL. Non-HTTP ports do not show the address row.
+
+Switching from an HTTP port tab to Console, TCP info, or another non-browser surface must hide and restore the existing remote browser viewer without reloading or re-navigating when the Server browser is already at the requested URL. Switching to a different application URL may request Server-owned navigation, but duplicate same-URL tab-return navigation is forbidden because it resets scroll position, JavaScript memory, and open UI state.
+
+Same-URL navigation is still required for reconnect paths such as application state changes after a restart. Desktop tab-selection navigation must request non-reloading activation of an existing Server page, while app-state wake, address-bar, reload, and explicit navigation paths must keep reload-on-same-URL behavior.
 
 Because the native WebView does not always raise managed navigation updates for in-page link clicks, the Desktop also polls `window.location.href` for the active HTTP WebView and mirrors HTTP/HTTPS changes into the address field.
 
@@ -113,13 +117,13 @@ Reloading workspaces keeps the selected workspace by ID but rebinds it to the re
 
 Workspace event invalidations are scoped to the event workspace ID. Desktop refreshes only that workspace from the Server and must not rebuild or navigate unrelated workspace browser sessions when another workspace changes ports or state.
 
-## Browser Profile Isolation
+## Browser Remote Sessions
 
-Each workspace gets its own `NativeWebView` instance and platform-native profile storage. The `EnvironmentRequested` handler maps `BrowserUrlStore.ProfilePath(workspaceId)` to GTK/WPE data and cache directories on Linux, WebView2 user data folders on Windows, and WKWebView data store identifiers on macOS.
+Desktop displays the Server-owned browser session through the RDP viewer page at `/api/browser/rdp-viewer`. The Browser slice exposes remote-session metadata at `/api/browser/remote-session/{workspaceId}` so Desktop and future clients can discover the active transport, RDP display WebSocket path, fallback frame path, control authority, viewport preset, and touch capability without owning browser lifecycle.
 
 Cookies, local storage, cache, and navigation state must be shared by applications within the same workspace and isolated from every other workspace.
 
-Browser implementations must stay behind narrow host abstractions so platform WebView differences do not leak into workspace or automation logic. Browser automation and inspection should expose navigation, reload, semantic interaction, HTML/DOM capture, accessibility data, screenshots, history, and page metadata through Server-owned contracts. Prefer structured inspection and accessibility data over raw HTML when generating diagnostics or automation.
+Browser implementations must stay behind Server-owned provider boundaries so platform WebView and remote-display differences do not leak into workspace or automation logic. Browser automation and inspection should expose navigation, reload, semantic interaction, HTML/DOM capture, accessibility data, screenshots, history, and page metadata through Server-owned contracts. Prefer structured inspection and accessibility data over raw HTML when generating diagnostics or automation.
 
 ## Thin Client Rule
 

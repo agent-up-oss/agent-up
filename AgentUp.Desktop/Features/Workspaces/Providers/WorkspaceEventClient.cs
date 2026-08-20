@@ -108,16 +108,12 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
             var evt = JsonSerializer.Deserialize<WorkspaceStateChangedEventDto>(json, JsonOptions);
             if (evt is null) continue;
 
-            var appChanges = evt.Applications
-                .Select(a => (a.Name, a.State))
-                .ToList();
-
             Dispatcher.UIThread.Post(() =>
             {
                 if (!IsStarted())
                     return;
 
-                sidebar.ApplyEvent(evt.WorkspaceId, evt.State, appChanges);
+                sidebar.ApplyEvent(evt.WorkspaceId, evt.State, evt.Applications, evt.HealthState);
                 ScheduleWorkspaceRefresh(evt.WorkspaceId);
             });
         }

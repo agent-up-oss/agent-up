@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Orchestration.DTOs;
 using AgentUp.Server.Features.Orchestration.Interfaces;
 using AgentUp.Server.Features.Processes.Controllers;
@@ -17,6 +18,7 @@ public sealed class OrchestrationWorkspaceService
     private readonly WorkspaceQueryController _workspaces;
     private readonly WorkspaceStateController _states;
     private readonly ProcessesController _processes;
+    private readonly WorkspaceStreamStateController _streamState;
     private readonly IAgentUpConfigurationProvider _configuration;
     private readonly IWorkspaceIdentityProvider _identity;
 
@@ -24,12 +26,14 @@ public sealed class OrchestrationWorkspaceService
         WorkspaceQueryController workspaces,
         WorkspaceStateController states,
         ProcessesController processes,
+        WorkspaceStreamStateController streamState,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
     {
         _workspaces = workspaces;
         _states = states;
         _processes = processes;
+        _streamState = streamState;
         _configuration = configuration;
         _identity = identity;
     }
@@ -104,6 +108,8 @@ public sealed class OrchestrationWorkspaceService
         foreach (var app in workspace.Applications)
             await _states.UpdateApplicationStateAsync(workspace.Id, app.Name, ApplicationState.Stopping);
 
+        _streamState.OnWorkspaceStopped(workspace.Id);
+
         try
         {
             await _processes.KillWorkspaceAsync(workspace.Id);
@@ -156,6 +162,9 @@ public sealed class OrchestrationWorkspaceService
             await _states.UpdateWorkspaceStateAsync(id, WorkspaceState.Running);
             foreach (var app in workspace.Applications)
                 await _states.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
+
+            var started = _workspaces.GetById(id);
+            if (started is not null) _streamState.OnWorkspaceStarted(started);
 
             return new McpToolResult(true, $"Started workspace \"{workspace.DisplayName}\".");
         }

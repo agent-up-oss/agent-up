@@ -136,8 +136,16 @@ public sealed class AuditService(
             .Where(pair => !IsSensitive(pair.Key))
             .ToDictionary(
                 pair => pair.Key,
-                pair => pair.Value.Length > 1000 ? pair.Value[..1000] : pair.Value,
+                pair => Truncate(pair.Value),
                 StringComparer.Ordinal);
+    }
+
+    private static string Truncate(string? value)
+    {
+        // Callers may pass a Dictionary<string,string> with nulls after JSON deserialization —
+        // treat them as empty rather than NRE'ing during persistence.
+        if (value is null) return string.Empty;
+        return value.Length > 1000 ? value[..1000] : value;
     }
 
     private static bool IsSensitive(string key)

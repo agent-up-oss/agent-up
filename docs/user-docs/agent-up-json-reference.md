@@ -163,6 +163,7 @@ Used in `applications[].ports`, `dotnet[].ports`, `docker[].ports`, and `service
 | `variable` | string or null | No | `null` | Environment variable that receives the Server-allocated host port. Omit or set to `null` when no environment variable should be injected. |
 | `defaultPort` | integer | Yes | none | Preferred or conventional port for the application/container. Agent-Up uses this as allocation intent and container target port for Docker mappings. |
 | `protocol` | string | No | `http` | Protocol label for the port, usually `http` or `tcp`. |
+| `healthCheck` | string or null | No | `null` | HTTP path the Server probes every 5 seconds to determine port health (e.g. `"/health"`). When set, the port LED shows amber (Checking) until the path responds with a non-5xx status, then green (Healthy); red (Unhealthy) if it later fails. Omitting this field falls back to a client-side TCP probe. |
 
 For local processes, every application receives the full workspace port map. For Docker containers, Agent-Up publishes each declared port as `allocatedHostPort:defaultPort` and adds the `host.agent-up` hostname for reaching host-run workspace applications from inside the container when those applications listen on an address reachable from Docker's host gateway. Loopback-only host listeners are not reachable from containers through this alias.
 
