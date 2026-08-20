@@ -17,6 +17,7 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseCors(AgentUp.Server.Shared.Providers.LoopbackClientOriginProvider.PolicyName);
 app.MapControllers();
 app.MapMcp("/mcp/commits");
 app.MapMcp("/mcp/orchestration");

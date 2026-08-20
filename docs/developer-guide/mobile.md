@@ -12,6 +12,12 @@ The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
 orchestration must remain in `AgentUp.Server`.
 
+The Servers client slice stores configured HTTP or HTTPS Server base URLs and
+the active selection in PWA local storage. Only one Server is active at a time;
+selecting another sidebar icon changes the client target and does not copy or
+own Server runtime state. A URL is saved only after the existing workspaces API
+responds successfully. Authentication credentials are not currently stored.
+
 Mobile surfaces follow the docs site's black, green, off-white, and muted
 gray-green visual system, including its compact 8px card and control radii.
 Use Expo-compatible native controls for platform interactions such as channel
@@ -52,6 +58,9 @@ npm run web
 The start, Android, iOS, and web scripts use Expo's LAN mode. Metro listens on
 all network interfaces and advertises the machine's LAN address so physical
 devices can connect.
+
+The web script passes the Server-allocated `WEB_PORT` to Expo when Mobile is
+launched from `agent-up.json`; otherwise it uses Expo's default port 8081.
 
 The same development server can open the app through Expo Go on a physical
 Android or iOS device:

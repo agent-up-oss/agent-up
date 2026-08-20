@@ -84,7 +84,7 @@ export function ChannelSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000000' }, content: { padding: 20, paddingBottom: 32, gap: 20 },
+  screen: { flex: 1, backgroundColor: '#000000' }, content: { padding: 20, paddingTop: 78, paddingBottom: 32, gap: 20 },
   title: { color: '#f5fbf7', fontSize: 36, lineHeight: 40, fontWeight: '800' },
   card: { padding: 20, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 16 },
   heading: { color: '#f5fbf7', fontSize: 20, fontWeight: '700' }, meta: { color: '#aebcb3', lineHeight: 21 },

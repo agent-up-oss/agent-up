@@ -2,12 +2,14 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ServerSidebar } from '@/features/servers/components/ServerSidebar';
+import { ServersProvider } from '@/features/servers/controllers/ServersContext';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider style={styles.safeArea}>
       <StatusBar style="light" />
-      <View style={styles.app}>
+      <ServersProvider><ServerSidebar><View style={styles.app}>
         <Tabs
           screenOptions={{
             headerShown: false,
@@ -26,7 +28,7 @@ export default function RootLayout() {
             options={{ title: 'Settings', tabBarIcon: ({ color }) => <Text style={{ color }}>⚙</Text> }}
           />
         </Tabs>
-      </View>
+      </View></ServerSidebar></ServersProvider>
     </SafeAreaProvider>
   );
 }

@@ -4,7 +4,8 @@
     "types": ["node"]
   },
   "include": [
-    "src/features/updates/**/*.ts"
+    "src/features/updates/**/*.ts",
+    "src/features/servers/**/*.ts"
   ],
   "exclude": []
 }

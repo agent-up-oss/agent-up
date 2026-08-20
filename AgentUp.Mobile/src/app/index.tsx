@@ -1,5 +1,5 @@
-import { WelcomeScreen } from '@/features/welcome/components/WelcomeScreen';
+import { ServerSetupScreen } from '@/features/servers/components/ServerSetupScreen';
 
 export default function Index() {
-  return <WelcomeScreen />;
+  return <ServerSetupScreen />;
 }
