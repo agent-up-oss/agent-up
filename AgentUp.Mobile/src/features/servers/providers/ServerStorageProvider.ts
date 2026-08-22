@@ -30,9 +30,18 @@ export function loadServerSelection(storage: KeyValueStorage | null): ServerSele
 }
 
 export function saveServerSelection(storage: KeyValueStorage | null, selection: ServerSelection): void {
-  storage?.setItem(storageKey, JSON.stringify(selection));
+  try {
+    storage?.setItem(storageKey, JSON.stringify(selection));
+  } catch {
+    // Storage can be denied or exhausted; keep the in-memory provider usable.
+  }
 }
 
 export function browserServerStorage(): KeyValueStorage | null {
-  return typeof window === 'undefined' ? null : window.localStorage;
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }

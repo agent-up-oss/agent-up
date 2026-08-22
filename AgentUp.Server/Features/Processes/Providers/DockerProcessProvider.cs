@@ -105,7 +105,7 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
     private void AddDockerEnvironmentArgs(List<string> runArgs, Workspace workspace, ApplicationInstance app)
     {
         var portVariables = CreateWorkspacePortVariableMap(workspace);
-        AddEnvironment(runArgs, "AGENT_UP_AUDIT_ENDPOINT", _auditEndpoint);
+        AddEnvironment(runArgs, "AGENT_UP_AUDIT_ENDPOINT", GetContainerAuditEndpoint(_auditEndpoint));
         AddEnvironment(runArgs, "AGENT_UP_WORKSPACE_ID", workspace.Id);
         AddEnvironment(runArgs, "AGENT_UP_APPLICATION", app.Name);
         foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
@@ -116,6 +116,12 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
     {
         runArgs.Add("-e");
         runArgs.Add($"{key}={value}");
+    }
+
+    private static string GetContainerAuditEndpoint(string endpoint)
+    {
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || !uri.IsLoopback) return endpoint;
+        return new UriBuilder(uri) { Host = "host.agent-up" }.Uri.AbsoluteUri;
     }
 
     private static Dictionary<string, string> CreateWorkspacePortVariableMap(Workspace workspace)

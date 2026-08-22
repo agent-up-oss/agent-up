@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useServers } from '../controllers/ServersContext';
@@ -10,8 +10,11 @@ export function ServerSetupScreen() {
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  const connectionInFlight = useRef(false);
 
   const tryAndSave = async () => {
+    if (connectionInFlight.current) return;
+    connectionInFlight.current = true;
     setBusy(true); setStatus('Trying server…');
     try {
       const normalized = normalizeServerUrl(url);
@@ -22,7 +25,7 @@ export function ServerSetupScreen() {
       const candidate = tryNormalize(url);
       if (candidate) void recordServerConnectionAudit(candidate, 'failure', error instanceof Error ? error.message : String(error));
       setStatus(error instanceof Error ? error.message : 'Could not connect to the server.');
-    } finally { setBusy(false); }
+    } finally { connectionInFlight.current = false; setBusy(false); }
   };
 
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -34,7 +37,7 @@ export function ServerSetupScreen() {
       <Text style={styles.label}>Server URL</Text>
       <TextInput accessibilityLabel="Server URL" autoCapitalize="none" autoCorrect={false} keyboardType="url"
         placeholder="http://192.168.1.10:5000" placeholderTextColor="#718077" value={url} onChangeText={setUrl}
-        onSubmitEditing={() => void tryAndSave()} style={styles.input} />
+        editable={!busy} onSubmitEditing={() => void tryAndSave()} style={styles.input} />
       <Pressable accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void tryAndSave()}
         style={[styles.button, (busy || !url.trim()) && styles.disabled]}>
         {busy ? <ActivityIndicator color="#000000" /> : <Text style={styles.buttonText}>Try and save</Text>}

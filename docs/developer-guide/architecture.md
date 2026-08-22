@@ -89,6 +89,9 @@ and is not referenced by `agent-up.sln`.
 `AgentUp.WebAudit/` is the separately publishable `@agent-up/audit` TypeScript
 browser client and is also outside `agent-up.sln`. It submits events only; the
 Server remains the owner of audit identity, persistence, and queries.
+Managed user applications remain package-independent. The first-party Mobile
+client is the sole explicit exception and may consume this state-free transport
+because it is an Agent-Up product client.
 
 The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
 

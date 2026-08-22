@@ -388,7 +388,7 @@ public class WorkspaceProcessManagerTests
             Assert.That(args, Does.Contain(Path.Join(worktreePath, ".env.database")));
             Assert.That(args, Does.Contain("-e"));
             Assert.That(args, Does.Contain("POSTGRES_USER=user"));
-            Assert.That(args, Does.Contain("AGENT_UP_AUDIT_ENDPOINT=http://127.0.0.1:5000/api/audit/record"));
+            Assert.That(args, Does.Contain("AGENT_UP_AUDIT_ENDPOINT=http://host.agent-up:5000/api/audit/record"));
             Assert.That(args, Does.Contain($"AGENT_UP_WORKSPACE_ID={workspace.Id}"));
             Assert.That(args, Does.Contain("AGENT_UP_APPLICATION=Database"));
         }

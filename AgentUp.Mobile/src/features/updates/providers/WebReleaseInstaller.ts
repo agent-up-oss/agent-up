@@ -1,4 +1,4 @@
-import { unzipSync } from 'fflate';
+import { Unzip, UnzipInflate } from 'fflate';
 import type { ChannelRelease, InstalledRelease } from '../models/ChannelRelease';
 
 const storageKey = 'agent-up-active-release';
@@ -62,17 +62,47 @@ export async function installRelease(release: ChannelRelease): Promise<void> {
 }
 
 export function parseReleaseZip(bytes: Uint8Array, requiredFiles: string[]): { path: string; body: ArrayBuffer }[] {
-  const entries = unzipSync(bytes);
-  const names = Object.keys(entries);
-  if (names.length > maximumFileCount) throw new Error('Release contains too many files.');
+  const files: { path: string; body: ArrayBuffer }[] = [];
   let expandedBytes = 0;
-  const files = names.map(name => {
-    const path = validateReleasePath(name);
-    const contents = entries[name];
-    expandedBytes += contents.byteLength;
-    if (expandedBytes > maximumExpandedBytes) throw new Error('Expanded release exceeds the size limit.');
-    return { path: `/${path}`, body: contents.slice().buffer };
+  let fileCount = 0;
+  let extractionError: Error | null = null;
+  const archive = new Unzip(file => {
+    if (extractionError || file.name.endsWith('/')) return;
+    try {
+      fileCount += 1;
+      if (fileCount > maximumFileCount) throw new Error('Release contains too many files.');
+      const path = validateReleasePath(file.name);
+      if (file.originalSize !== undefined && expandedBytes + file.originalSize > maximumExpandedBytes) {
+        throw new Error('Expanded release exceeds the size limit.');
+      }
+      const chunks: Uint8Array[] = [];
+      let fileBytes = 0;
+      file.ondata = (error, chunk, final) => {
+        if (error) { extractionError = error; return; }
+        fileBytes += chunk.byteLength;
+        if (expandedBytes + fileBytes > maximumExpandedBytes) {
+          extractionError = new Error('Expanded release exceeds the size limit.');
+          file.terminate();
+          return;
+        }
+        chunks.push(chunk);
+        if (final) {
+          const contents = new Uint8Array(fileBytes);
+          let offset = 0;
+          for (const part of chunks) { contents.set(part, offset); offset += part.byteLength; }
+          expandedBytes += fileBytes;
+          files.push({ path: `/${path}`, body: contents.buffer });
+        }
+      };
+      file.start();
+    } catch (error) {
+      extractionError = error instanceof Error ? error : new Error(String(error));
+      file.terminate();
+    }
   });
+  archive.register(UnzipInflate);
+  archive.push(bytes, true);
+  if (extractionError) throw extractionError;
   for (const required of requiredFiles) {
     if (!files.some(file => file.path === `/${required}`)) throw new Error(`Release is missing ${required}.`);
   }

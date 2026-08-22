@@ -18,11 +18,13 @@ selecting another sidebar icon changes the client target and does not copy or
 own Server runtime state. A URL is saved only after the existing workspaces API
 responds successfully. Authentication credentials are not currently stored.
 
+As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose
 the injected workspace and application identity to Expo. Server connection
 attempts record best-effort success or failure events at the orchestrating
-Server's injected audit endpoint, independently of the Server URL being tested;
+Server's injected audit endpoint. Outside a managed launch, audit delivery
+falls back to the Server URL being tested;
 audit delivery must never replace the connection result shown to the user.
 
 Mobile surfaces follow the docs site's black, green, off-white, and muted
@@ -49,7 +51,7 @@ cd AgentUp.Mobile
 nix-shell ../shell.nix --run 'npm ci'
 ```
 
-Every public npm script enters the repository `shell.nix` automatically. The
+Every public npm script except `build:cloudflare` enters the repository `shell.nix` automatically. The
 shell is a development requirement and supplies Node.js and the native
 Linux libraries required by Expo's downloaded React Native DevTools binary on
 NixOS. It also fetches the DotSlash-managed binary when needed and patches its

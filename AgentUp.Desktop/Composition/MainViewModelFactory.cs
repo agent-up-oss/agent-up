@@ -23,6 +23,11 @@ namespace AgentUp.Desktop.Composition;
 
 public static class MainViewModelFactory
 {
+    private static readonly HttpClient DefaultAuditHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
@@ -35,7 +40,7 @@ public static class MainViewModelFactory
         var console = new ConsoleController(new ConsoleOutputService(consoleClient));
         var ports = new PortsController(new PortTabService());
         var audit = new ApplicationAuditController(new ApplicationAuditService(
-            auditClient ?? new ApplicationAuditApiClient(new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") })));
+            auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces, toggleControlMode),

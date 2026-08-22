@@ -27,7 +27,7 @@ public sealed class AuditController(AuditService audit)
     {
         var events = await audit.QueryAsync(query, cancellationToken);
         var items = events.Select(ToDto).ToList();
-        return new AuditEventPageDto(items, items.Count == query.Limit ? items[^1].Timestamp : null);
+        return AuditEventPageDto.Create(items, query.Limit);
     }
 
     public Task<AuditEvent?> GetEventAsync(string eventId, CancellationToken cancellationToken)

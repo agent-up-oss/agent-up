@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using AgentUp.Server.Features.Audit.DTOs;
 using AgentUp.Server.Features.Audit.Models;
+using AgentUp.Server.Features.Audit.Repositories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -17,7 +18,8 @@ public sealed class ApplicationAuditHttpTests
     public void SetUp()
     {
         _dataDirectory = Path.Join(Path.GetTempPath(), $"agent-up-audit-http-{Guid.NewGuid():N}");
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        using var factory = new WebApplicationFactory<Program>();
+        _factory = factory.WithWebHostBuilder(builder =>
             builder.UseSetting("Storage:DataDirectory", _dataDirectory));
     }
 
@@ -49,6 +51,32 @@ public sealed class ApplicationAuditHttpTests
         using var response = await client.GetAsync("/api/audit/workspaces/ws-1/applications/web?limit=101");
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
+
+    [Test]
+    public async Task ApplicationQuery_CompositeCursorDoesNotSkipEqualTimestamps()
+    {
+        var timestamp = DateTimeOffset.Parse("2026-08-22T12:00:00Z");
+        var repository = new FileAuditEventRepository(_dataDirectory);
+        await repository.AppendAsync(CreateEvent("event-b", timestamp), CancellationToken.None);
+        await repository.AppendAsync(CreateEvent("event-a", timestamp), CancellationToken.None);
+        using var client = _factory.CreateClient();
+
+        var first = await client.GetFromJsonAsync<AuditEventPageDto>(
+            "/api/audit/workspaces/ws-1/applications/web?limit=1");
+        var second = await client.GetFromJsonAsync<AuditEventPageDto>(
+            $"/api/audit/workspaces/ws-1/applications/web?limit=1&before={Uri.EscapeDataString(first!.NextBefore!.Value.ToString("O"))}&beforeEventId={first.NextBeforeEventId}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.Items.Single().EventId, Is.EqualTo("event-b"));
+            Assert.That(second!.Items.Single().EventId, Is.EqualTo("event-a"));
+        });
+    }
+
+    private static AuditEvent CreateEvent(string eventId, DateTimeOffset timestamp)
+        => new(eventId, timestamp, "frontend", "web", "load", "success", "ws-1",
+            null, null, null, null, null, null,
+            new Dictionary<string, string> { ["application"] = "web" }, []);
 
     private static async Task RecordAsync(HttpClient client, string application, string action)
     {

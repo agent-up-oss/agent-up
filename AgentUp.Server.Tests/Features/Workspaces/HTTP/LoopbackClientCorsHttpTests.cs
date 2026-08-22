@@ -14,7 +14,8 @@ public sealed class LoopbackClientCorsHttpTests
     public void SetUp()
     {
         _dataDirectory = Path.Join(Path.GetTempPath(), $"agent-up-cors-{Guid.NewGuid():N}");
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        using var factory = new WebApplicationFactory<Program>();
+        _factory = factory.WithWebHostBuilder(builder =>
             builder.UseSetting("Storage:DataDirectory", _dataDirectory));
     }
 

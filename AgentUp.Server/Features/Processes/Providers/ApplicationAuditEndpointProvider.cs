@@ -11,11 +11,15 @@ public sealed class ApplicationAuditEndpointProvider
 
     public string GetRecordEndpoint()
     {
-        var configured = _configuration["AgentUp:PublicUrl"]
-            ?? _configuration["urls"]
-            ?? _configuration["ASPNETCORE_URLS"]
-            ?? "http://127.0.0.1:5000";
-        var baseUrl = configured.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[0];
+        var configured = new[]
+        {
+            _configuration["AgentUp:PublicUrl"],
+            _configuration["urls"],
+            _configuration["ASPNETCORE_URLS"]
+        }.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "http://127.0.0.1:5000";
+        var baseUrl = configured
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault() ?? "http://127.0.0.1:5000";
         return $"{baseUrl.TrimEnd('/')}/api/audit/record";
     }
 }

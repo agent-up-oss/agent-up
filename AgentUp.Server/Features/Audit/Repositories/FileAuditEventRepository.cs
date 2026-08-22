@@ -41,10 +41,14 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
 
     public async Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditEventQuery query, CancellationToken cancellationToken)
     {
-        var events = await LoadRangeAsync(query.From, query.To, cancellationToken);
+        var upperBound = query.Before is null || (query.To is not null && query.To <= query.Before)
+            ? query.To
+            : query.Before;
+        var events = await LoadRangeAsync(query.From, upperBound, cancellationToken);
         return events
             .Where(evt => Matches(query, evt))
             .OrderByDescending(evt => evt.Timestamp)
+            .ThenByDescending(evt => evt.EventId, StringComparer.Ordinal)
             .Take(query.Limit <= 0 ? 100 : Math.Min(query.Limit, 500))
             .ToList();
     }
@@ -136,7 +140,14 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
            && MatchesApplication(query.Application, evt)
            && (query.From is null || evt.Timestamp >= query.From)
            && (query.To is null || evt.Timestamp <= query.To)
-           && (query.Before is null || evt.Timestamp < query.Before);
+           && IsBeforeCursor(query, evt);
+
+    private static bool IsBeforeCursor(AuditEventQuery query, AuditEvent evt)
+        => query.Before is null
+           || evt.Timestamp < query.Before
+           || (query.BeforeEventId is not null
+               && evt.Timestamp == query.Before
+               && string.CompareOrdinal(evt.EventId, query.BeforeEventId) < 0);
 
     private static bool MatchesApplication(string? application, AuditEvent evt)
         => string.IsNullOrWhiteSpace(application)

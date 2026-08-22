@@ -26,8 +26,13 @@ test('invalid stored release state is cleared without throwing', () => {
 });
 
 test('release ZIP accepts required files and rejects traversal paths', () => {
-  const valid = zipSync({ 'index.html': new TextEncoder().encode('ok'), '_expo/.routes.json': new Uint8Array() });
+  const valid = zipSync({ 'index.html': new TextEncoder().encode('ok'), '_expo/': new Uint8Array(), '_expo/.routes.json': new Uint8Array() });
   assert.equal(parseReleaseZip(valid, ['index.html', '_expo/.routes.json']).length, 2);
   const traversal = zipSync({ '../index.html': new Uint8Array() });
   assert.throws(() => parseReleaseZip(traversal, ['index.html']), /invalid path/);
+});
+
+test('release ZIP rejects expanded payloads over the limit', () => {
+  const oversized = zipSync({ 'index.html': new Uint8Array(50 * 1024 * 1024 + 1) });
+  assert.throws(() => parseReleaseZip(oversized, ['index.html']), /Expanded release exceeds/);
 });
