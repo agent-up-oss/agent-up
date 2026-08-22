@@ -415,7 +415,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         if (_isClosed) return;
 
-        if (e.Action == NotifyCollectionChangedAction.Reset)
+        if (e.Action == NotifyCollectionChangedAction.Reset
+            || sender is System.Collections.ICollection { Count: 0 })
         {
             DestroyWorkspaceWebViews();
             return;
@@ -466,6 +467,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private void HandleNavigation(string? workspaceId, string? url, bool reloadIfSameUrl)
     {
         if (_isClosed || workspaceId is null) return;
+        if (DataContext is MainViewModel vm && vm.Sidebar.Workspaces.All(workspace => workspace.Id != workspaceId))
+            return;
         var authority = _viewerState.GetAuthority(workspaceId);
         if (authority == "human")
             HandleDirectNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
@@ -1891,4 +1894,3 @@ code {
         }
     }
 }
-

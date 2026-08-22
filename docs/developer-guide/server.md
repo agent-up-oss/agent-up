@@ -39,6 +39,11 @@ Packaged installations run `AgentUp.Server` as the local `agent-up-server` servi
 
 Packaged services bind to `http://127.0.0.1:5000` by default. Service definitions that automatically restart the Server must throttle restart attempts to at least 5 seconds so a bind failure, such as another process already using port 5000, cannot create a tight restart loop.
 
+The REST API permits cross-origin browser requests only from HTTP or HTTPS
+loopback origins, including development PWAs hosted on another localhost port.
+Non-loopback website origins do not receive CORS access to the local
+orchestration API.
+
 This service shape is packaging and lifecycle behavior only. Runtime ownership remains unchanged: all orchestration stays in `AgentUp.Server`, and Desktop stays a client.
 
 This rule keeps concurrent agents, human developers, and automation clients aligned around the same running environment.
@@ -52,6 +57,14 @@ If a feature starts, stops, restarts, navigates, records, allocates, diagnoses, 
 When the Server launches a local application process, it injects the workspace's full allocated port map into the process environment. This lets sibling applications discover each other through declared variables such as `WEB_PORT`, `API_PORT`, and `POSTGRES_PORT` without coupling application source code to Agent-Up APIs.
 
 Local application commands are parsed as an executable plus arguments and launched with `ProcessStartInfo.ArgumentList`. The Server rejects shell expressions such as pipes, redirects, variable expansion, command chaining, and subshells before process start.
+
+Managed local application processes also receive `AGENT_UP_AUDIT_ENDPOINT`,
+`AGENT_UP_WORKSPACE_ID`, and `AGENT_UP_APPLICATION`. Browser builds can expose
+these values to `@agent-up/audit`. The audit endpoint is derived from the
+orchestrating Server's configured public/listen URL, including the development
+port, rather than assuming the packaged port. The Server accepts frontend events into its
+existing audit store and provides bounded, cursor-paginated queries scoped to a
+workspace and application.
 
 Process output storage must not use workspace IDs or application names as raw path segments. Repositories that persist process logs must encode or canonicalize those identifiers and verify the resolved path stays under the Server-owned output root before reading, writing, or deleting files.
 

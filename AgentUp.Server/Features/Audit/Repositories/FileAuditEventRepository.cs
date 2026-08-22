@@ -41,10 +41,14 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
 
     public async Task<IReadOnlyList<AuditEvent>> QueryAsync(AuditEventQuery query, CancellationToken cancellationToken)
     {
-        var events = await LoadRangeAsync(query.From, query.To, cancellationToken);
+        var upperBound = query.Before is null || (query.To is not null && query.To <= query.Before)
+            ? query.To
+            : query.Before;
+        var events = await LoadRangeAsync(query.From, upperBound, cancellationToken);
         return events
             .Where(evt => Matches(query, evt))
             .OrderByDescending(evt => evt.Timestamp)
+            .ThenByDescending(evt => evt.EventId, StringComparer.Ordinal)
             .Take(query.Limit <= 0 ? 100 : Math.Min(query.Limit, 500))
             .ToList();
     }
@@ -133,8 +137,22 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
            && Matches(query.Kind, evt.Kind)
            && Matches(query.Source, evt.Source)
            && Matches(query.Outcome, evt.Outcome)
+           && MatchesApplication(query.Application, evt)
            && (query.From is null || evt.Timestamp >= query.From)
-           && (query.To is null || evt.Timestamp <= query.To);
+           && (query.To is null || evt.Timestamp <= query.To)
+           && IsBeforeCursor(query, evt);
+
+    private static bool IsBeforeCursor(AuditEventQuery query, AuditEvent evt)
+        => query.Before is null
+           || evt.Timestamp < query.Before
+           || (query.BeforeEventId is not null
+               && evt.Timestamp == query.Before
+               && string.CompareOrdinal(evt.EventId, query.BeforeEventId) < 0);
+
+    private static bool MatchesApplication(string? application, AuditEvent evt)
+        => string.IsNullOrWhiteSpace(application)
+           || (evt.Details.TryGetValue("application", out var actual)
+               && string.Equals(application, actual, StringComparison.Ordinal));
 
     private static bool Matches(string? expected, string? actual)
         => string.IsNullOrWhiteSpace(expected)

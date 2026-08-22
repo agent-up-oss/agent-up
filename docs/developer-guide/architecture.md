@@ -8,6 +8,8 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 
 - `AgentUp.Server`
 - `AgentUp.Desktop`
+- `AgentUp.Mobile`
+- `AgentUp.WebAudit`
 - `AgentUp.CLI`
 - `AgentUp.InstallerApp`
 - `AgentUp.Packaging`
@@ -80,6 +82,16 @@ AgentUp.Architecture.Tests/
 AgentUp.Tests/
   AgentUp.Tests.csproj
 ```
+
+`AgentUp.Mobile/` also lives at the repository root, but it is an Expo project
+and is not referenced by `agent-up.sln`.
+
+`AgentUp.WebAudit/` is the separately publishable `@agent-up/audit` TypeScript
+browser client and is also outside `agent-up.sln`. It submits events only; the
+Server remains the owner of audit identity, persistence, and queries.
+Managed user applications remain package-independent. The first-party Mobile
+client is the sole explicit exception and may consume this state-free transport
+because it is an Agent-Up product client.
 
 The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
 
@@ -160,6 +172,12 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 - REST API.
 
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
+
+`AgentUp.Mobile/` is an Expo and React Native client outside the .NET solution. One TypeScript codebase targets Android, iOS, and an installable web PWA. Like the Desktop, it displays Server-owned state and must not own orchestration.
+
+Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and client behavior live in feature-oriented slices under `AgentUp.Mobile/src/features/`, following the same capability-oriented organization used by the .NET clients.
+
+Mobile development environment and platform commands are documented in [Mobile development](mobile.md).
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
 

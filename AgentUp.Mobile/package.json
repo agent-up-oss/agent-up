@@ -1,0 +1,38 @@
+{
+  "name": "agent-up-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "nix-shell ../shell.nix --run 'expo start --lan'",
+    "android": "nix-shell ../shell.nix --run 'expo start --android --lan'",
+    "ios": "nix-shell ../shell.nix --run 'expo start --ios --lan'",
+    "web": "nix-shell ../shell.nix --run 'node scripts/start-web.mjs'",
+    "build:web": "nix-shell ../shell.nix --run 'node scripts/export-web.mjs'",
+    "build:cloudflare": "node scripts/export-web.mjs",
+    "test": "nix-shell ../shell.nix --run 'tsc --noEmit -p tsconfig.test.json && tsx --test src/features/updates/providers/*.test.ts src/features/servers/providers/*.test.ts && node --test scripts/*.test.mjs'",
+    "typecheck": "nix-shell ../shell.nix --run 'tsc --noEmit'"
+  },
+  "dependencies": {
+    "@agent-up/audit": "file:../AgentUp.WebAudit",
+    "@react-native-picker/picker": "2.11.4",
+    "expo": "~57.0.14",
+    "expo-constants": "~57.0.12",
+    "expo-linking": "~57.0.6",
+    "expo-router": "~57.0.14",
+    "expo-status-bar": "~57.0.1",
+    "fflate": "^0.8.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-web": "~0.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "~19.2.2",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.3"
+  }
+}

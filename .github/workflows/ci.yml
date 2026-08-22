@@ -535,6 +535,63 @@ jobs:
           npm --prefix docs ci
           npm --prefix docs run build
 
+  pre-release-channel:
+    name: Pre-Release-Channel
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_type == 'branch' && github.ref_name != 'main' }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Identify ticket channel
+        id: channel
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" =~ ^([0-9]+)- ]]; then
+            echo "name=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "tag=rc-${BASH_REMATCH[1]}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        if: ${{ steps.channel.outputs.name != '' }}
+        with:
+          node-version: 22
+
+      - name: Build immutable mobile release
+        if: ${{ steps.channel.outputs.name != '' }}
+        working-directory: AgentUp.Mobile
+        env:
+          EXPO_PUBLIC_AGENT_UP_CHANNEL: ${{ steps.channel.outputs.name }}
+          EXPO_PUBLIC_AGENT_UP_SHA: ${{ steps.channel.outputs.sha }}
+        run: |
+          npm ci
+          EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          export EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT
+          node scripts/export-web.mjs
+          rm dist/sw.js
+          (cd dist && zip -qr ../agent-up-mobile-web.zip .)
+          archive_sha256="$(sha256sum agent-up-mobile-web.zip | cut -d ' ' -f 1)"
+          printf '{"channel":"%s","sha":"%s","publishedAt":"%s","archiveSha256":"%s","requiredFiles":["index.html","_expo/.routes.json"]}\n' \
+            "$EXPO_PUBLIC_AGENT_UP_CHANNEL" "$EXPO_PUBLIC_AGENT_UP_SHA" "$EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT" "$archive_sha256" > release.json
+
+      - name: Publish channel pre-release
+        if: ${{ steps.channel.outputs.name != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.channel.outputs.tag }}
+          CHANNEL: ${{ steps.channel.outputs.name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            AgentUp.Mobile/agent-up-mobile-web.zip \
+            AgentUp.Mobile/release.json \
+            --prerelease \
+            --title "$RELEASE_TAG" \
+            --notes "Immutable AgentUp.Mobile web build for $RELEASE_TAG."
+
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -553,6 +610,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
 
       - name: Install release tooling
         run: npm install
@@ -591,6 +649,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      - name: Publish browser audit client to npm
+        working-directory: AgentUp.WebAudit
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "Skipping npm publish because NPM_TOKEN is not configured."
+            exit 0
+          fi
+
+          npm ci
+          npm test
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+
+          if npm view "@agent-up-oss/audit@$RELEASE_VERSION" version >/dev/null 2>&1; then
+            echo "@agent-up-oss/audit@$RELEASE_VERSION is already published; skipping."
+            exit 0
+          fi
+
+          npm publish --access public
 
       - name: Publish JetBrains plugin to Marketplace
         working-directory: Plugins/Jetbrains

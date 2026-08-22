@@ -1,0 +1,17 @@
+{
+  "name": "@agent-up/audit",
+  "version": "0.1.0",
+  "description": "Browser audit client for Agent-Up managed applications",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" } },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test test/*.test.mjs"
+  },
+  "publishConfig": { "access": "public" },
+  "devDependencies": { "typescript": "~6.0.3" },
+  "license": "MIT"
+}

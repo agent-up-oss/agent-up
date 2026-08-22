@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Audit.Models;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentUp.Server.Features.Audit.Controllers;
@@ -16,5 +17,19 @@ public sealed class AuditHttpController(AuditController audit) : ControllerBase
     {
         await audit.RecordAsync(request, ct);
         return NoContent();
+    }
+
+    [HttpGet("workspaces/{workspaceId}/applications/{application}")]
+    public async Task<ActionResult<DTOs.AuditEventPageDto>> QueryApplication(
+        string workspaceId,
+        string application,
+        [FromQuery] DateTimeOffset? before,
+        [FromQuery] string? beforeEventId,
+        [FromQuery, Range(1, 100)] int limit = 50,
+        CancellationToken ct = default)
+    {
+        var query = new DTOs.AuditEventQuery(
+            workspaceId, null, null, null, null, "frontend", null, null, null, null, limit, application, before, beforeEventId);
+        return Ok(await audit.QueryPageAsync(query, ct));
     }
 }
