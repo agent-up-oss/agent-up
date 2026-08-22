@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { writeBootstrapManifest } from './bootstrap-manifest.mjs';
 
 const git = (...args) => {
   try {
@@ -44,4 +45,7 @@ const result = spawnSync(expo, ['export', '--platform', 'web'], {
 });
 
 if (result.error) throw result.error;
+if (result.status === 0) {
+  writeBootstrapManifest('dist', channel, sha);
+}
 process.exitCode = result.status ?? 1;

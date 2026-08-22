@@ -1,7 +1,24 @@
 const markerCache = 'agent-up-release-marker';
 const markerUrl = '/__agent-up-active-release';
 
-self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
+self.addEventListener('install', event => event.waitUntil((async () => {
+  const marker = await caches.open(markerCache);
+  if (!await marker.match(markerUrl)) {
+    const response = await fetch('/bootstrap-manifest.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Bootstrap manifest returned ${response.status}.`);
+    const bootstrap = await response.json();
+    if (!isBootstrapManifest(bootstrap)) throw new Error('Bootstrap manifest is invalid.');
+    const cache = await caches.open(bootstrap.cacheName);
+    try {
+      await cache.addAll(bootstrap.files);
+      await marker.put(markerUrl, new Response(bootstrap.cacheName));
+    } catch (error) {
+      await caches.delete(bootstrap.cacheName);
+      throw error;
+    }
+  }
+  await self.skipWaiting();
+})()));
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 
 self.addEventListener('message', event => {
@@ -57,6 +74,14 @@ function contentType(path) {
     js: 'text/javascript; charset=utf-8', json: 'application/json; charset=utf-8',
     png: 'image/png', svg: 'image/svg+xml', ttf: 'font/ttf', woff: 'font/woff', woff2: 'font/woff2',
   })[extension] ?? 'application/octet-stream';
+}
+
+function isBootstrapManifest(value) {
+  return typeof value?.cacheName === 'string'
+    && value.cacheName.startsWith('agent-up-release-bootstrap-')
+    && Array.isArray(value.files)
+    && value.files.includes('/index.html')
+    && value.files.every(path => typeof path === 'string' && path.startsWith('/') && !path.startsWith('//'));
 }
 
 async function clearActiveRelease() {

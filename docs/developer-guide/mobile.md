@@ -130,6 +130,12 @@ caching the complete archive before atomically changing the active-cache
 marker and reloading. A release older than the installed release on the same
 channel is not offered, so the UI cannot downgrade a channel.
 
+The web export also writes a bootstrap manifest for the initial installation.
+On first activation, the service worker caches that complete exported payload
+and records it as the active release. Later deployments to the installation
+URL must not change an installed PWA; only an explicit Settings update or
+channel switch replaces the active release cache.
+
 After activation, the service worker deletes superseded release caches. Opening
 the installed PWA with `?agent-up-recovery=1` clears the active release marker
 and caches before loading the stable network shell, providing an escape hatch
