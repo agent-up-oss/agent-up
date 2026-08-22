@@ -42,6 +42,8 @@ Because humans and AI agents share the same browser session inside a workspace, 
 
 GitHub Actions runs the Agent-Up CI workflow on push. The version job uses semantic-release in dry-run mode on `main`, so it needs `contents: write` permission for semantic-release's repository push permission check even though it does not publish the release itself. The Ubuntu build job builds `agent-up.sln`, runs every `*Tests.csproj` project in deterministic path order, publishes TRX test results, collects Cobertura coverage through `coverlet.runsettings`, and publishes reusable .NET payloads for native package jobs. The native-display `AgentUp.Tests` project may retry once on Ubuntu, but failed attempts must preserve the failing test process exit code so aborted WebView runs cannot be reported as successful. Native release runners download those payloads, run platform packaging and smoke validation, and avoid restoring, building, or broadly testing product .NET projects.
 
+When the `main` release job publishes a new semantic-release version, it uses that same version for `@agent-up/audit`, tests the package, and publishes it publicly to npm. Add an npm automation or granular access token as the `NPM_TOKEN` repository secret; when the secret is absent, npm publication is skipped without blocking the other release outputs.
+
 On non-`main` branches beginning with a ticket number and hyphen, the
 `Pre-Release-Channel` job exports the mobile web client and publishes an
 immutable `rc-<ticket>-<seven-character-sha>` GitHub pre-release. The archive excludes

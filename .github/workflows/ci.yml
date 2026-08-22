@@ -610,6 +610,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
 
       - name: Install release tooling
         run: npm install
@@ -648,6 +649,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      - name: Publish browser audit client to npm
+        working-directory: AgentUp.WebAudit
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "Skipping npm publish because NPM_TOKEN is not configured."
+            exit 0
+          fi
+
+          npm ci
+          npm test
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+
+          if npm view "@agent-up-oss/audit@$RELEASE_VERSION" version >/dev/null 2>&1; then
+            echo "@agent-up-oss/audit@$RELEASE_VERSION is already published; skipping."
+            exit 0
+          fi
+
+          npm publish --access public
 
       - name: Publish JetBrains plugin to Marketplace
         working-directory: Plugins/Jetbrains
