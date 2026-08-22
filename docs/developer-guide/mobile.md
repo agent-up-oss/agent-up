@@ -103,7 +103,9 @@ Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata,
 install icons, and stable updater service worker live under `public/`;
 `src/app/+html.tsx` links the manifest and registers the service worker only in
 production exports. The service worker changes only with the bootstrap/update
-protocol, rather than being generated from each application payload. Service
+protocol, rather than being generated from each application payload. Bootstrap
+assets and cached navigation responses must be reconstructed without redirect
+metadata because Safari rejects redirected responses returned by a service worker. Service
 workers require HTTPS in deployment, except for browser-supported localhost
 development.
 

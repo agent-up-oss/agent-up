@@ -10,7 +10,11 @@ self.addEventListener('install', event => event.waitUntil((async () => {
     if (!isBootstrapManifest(bootstrap)) throw new Error('Bootstrap manifest is invalid.');
     const cache = await caches.open(bootstrap.cacheName);
     try {
-      await cache.addAll(bootstrap.files);
+      await Promise.all(bootstrap.files.map(async path => {
+        const asset = await fetch(path);
+        if (!asset.ok) throw new Error(`Bootstrap asset ${path} returned ${asset.status}.`);
+        await cache.put(path, await withoutRedirectMetadata(asset));
+      }));
       await marker.put(markerUrl, new Response(bootstrap.cacheName));
     } catch (error) {
       await caches.delete(bootstrap.cacheName);
@@ -61,7 +65,7 @@ self.addEventListener('fetch', event => {
       const cached = await cache.match(path)
         ?? (event.request.mode === 'navigate' ? await cache.match(`${path}.html`) : undefined)
         ?? (event.request.mode === 'navigate' ? await cache.match('/index.html') : undefined);
-      if (cached) return cached;
+      if (cached) return withoutRedirectMetadata(cached);
     }
     return fetch(event.request);
   })());
@@ -89,4 +93,13 @@ async function clearActiveRelease() {
   await Promise.all(cacheNames
     .filter(name => name === markerCache || name.startsWith('agent-up-release-'))
     .map(name => caches.delete(name)));
+}
+
+async function withoutRedirectMetadata(response) {
+  if (!response.redirected) return response;
+  return new Response(await response.arrayBuffer(), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
 }
