@@ -31,6 +31,12 @@ export async function probeServer(url: string, request: typeof fetch = fetch): P
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError')
       throw new Error('The server did not respond in time.');
+    if (error instanceof TypeError) {
+      const target = new URL(url);
+      if (typeof location !== 'undefined' && location.protocol === 'https:' && target.protocol === 'http:')
+        throw new Error('The browser blocked this HTTP server from the HTTPS app. Use a loopback-hosted HTTP build or an HTTPS Agent-Up endpoint.');
+      throw new Error(`Could not reach ${target.origin}. Check that Agent-Up Server is running and that this app is hosted on localhost.`);
+    }
     throw error instanceof Error ? error : new Error('Could not connect to the server.');
   } finally {
     clearTimeout(timeout);

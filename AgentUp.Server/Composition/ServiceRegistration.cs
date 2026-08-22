@@ -119,6 +119,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<CapabilityReconciliationService>();
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<ConsoleSecretRedactor>();
+        builder.Services.AddSingleton<ApplicationAuditEndpointProvider>();
         builder.Services.AddSingleton<ILocalProcessProvider, LocalProcessProvider>();
         builder.Services.AddSingleton<IDockerProcessProvider, DockerProcessProvider>();
         builder.Services.AddSingleton<ProcessOutputService>();

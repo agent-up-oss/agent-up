@@ -22,6 +22,12 @@
             </Border>
         </DataTemplate>
 
+        <DataTemplate DataType="portVm:AuditSubTabViewModel">
+            <Border Classes="subTab" Padding="13,7">
+                <TextBlock Text="Audit" Foreground="#c2d2ca" FontSize="12" FontWeight="Bold"/>
+            </Border>
+        </DataTemplate>
+
         <!-- Port sub-tab -->
         <DataTemplate DataType="portVm:PortSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
@@ -718,6 +724,28 @@
                                             Cursor="Hand"
                                             Content="Show all"/>
                                 </StackPanel>
+                            </Grid>
+
+                            <Grid x:Name="AuditPanel" IsVisible="{Binding ShowAudit}" RowDefinitions="*,Auto">
+                                <ListBox x:Name="AuditEventList" Grid.Row="0" ItemsSource="{Binding Audit.Events}" Margin="16,12">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="#163923" BorderThickness="0,0,0,1" Padding="10,9">
+                                                <Grid ColumnDefinitions="150,150,*" ColumnSpacing="12">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Timestamp}" Foreground="#789085" FontSize="11"/>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding Action}" Foreground="#f5fbf7" FontWeight="Bold" FontSize="12"/>
+                                                        <TextBlock Text="{Binding Outcome}" Foreground="#00b850" FontSize="11"/>
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#aebcb3" FontSize="11" TextWrapping="Wrap"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <Button x:Name="AuditLoadMoreButton" Grid.Row="1" IsVisible="{Binding Audit.HasMore}" Command="{Binding Audit.LoadMoreCommand}" Margin="20,8" HorizontalAlignment="Left">
+                                    <Border Classes="tutorialSecondaryButton"><TextBlock Text="Load older events" Foreground="#f5fbf7" FontSize="11"/></Border>
+                                </Button>
                             </Grid>
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->

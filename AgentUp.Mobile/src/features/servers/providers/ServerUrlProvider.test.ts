@@ -19,3 +19,10 @@ test('probes the workspace API', async () => {
   }) as typeof fetch);
   assert.equal(requested, 'https://agent-up.example/api/workspaces');
 });
+
+test('turns opaque browser load failures into an actionable connection error', async () => {
+  await assert.rejects(
+    () => probeServer('http://localhost:5000', (async () => { throw new TypeError('Load failed'); }) as typeof fetch),
+    /Could not reach http:\/\/localhost:5000/,
+  );
+});

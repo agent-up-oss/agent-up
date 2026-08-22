@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useServers } from '../controllers/ServersContext';
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
+import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
 
 export function ServerSetupScreen() {
   const { activeServer, saveServer } = useServers();
@@ -15,8 +16,11 @@ export function ServerSetupScreen() {
     try {
       const normalized = normalizeServerUrl(url);
       await probeServer(normalized);
+      void recordServerConnectionAudit(normalized, 'success');
       saveServer(normalized); setUrl(''); setStatus(`Connected to ${normalized}`);
     } catch (error) {
+      const candidate = tryNormalize(url);
+      if (candidate) void recordServerConnectionAudit(candidate, 'failure', error instanceof Error ? error.message : String(error));
       setStatus(error instanceof Error ? error.message : 'Could not connect to the server.');
     } finally { setBusy(false); }
   };
@@ -40,6 +44,14 @@ export function ServerSetupScreen() {
     <View style={styles.current}><Text style={styles.currentLabel}>Current server</Text>
       <Text style={styles.currentUrl}>{activeServer?.url ?? 'No server selected'}</Text></View>
   </ScrollView></SafeAreaView>;
+}
+
+function tryNormalize(value: string): string | null {
+  try { return normalizeServerUrl(value); }
+  catch (error) {
+    if (error instanceof Error) return null;
+    throw error;
+  }
 }
 
 const styles = StyleSheet.create({

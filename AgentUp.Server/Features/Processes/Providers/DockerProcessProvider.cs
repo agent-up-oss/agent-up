@@ -8,6 +8,13 @@ namespace AgentUp.Server.Features.Processes.Providers;
 
 public sealed partial class DockerProcessProvider : IDockerProcessProvider
 {
+    private readonly string _auditEndpoint;
+
+    public DockerProcessProvider(ApplicationAuditEndpointProvider? auditEndpoint = null)
+    {
+        _auditEndpoint = auditEndpoint?.GetRecordEndpoint() ?? "http://127.0.0.1:5000/api/audit/record";
+    }
+
     public string GetContainerName(string workspaceId, string appName)
     {
         var safeId = workspaceId[..Math.Min(8, workspaceId.Length)];
@@ -95,14 +102,20 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         runArgs.Add("host.agent-up:host-gateway");
     }
 
-    private static void AddDockerEnvironmentArgs(List<string> runArgs, Workspace workspace, ApplicationInstance app)
+    private void AddDockerEnvironmentArgs(List<string> runArgs, Workspace workspace, ApplicationInstance app)
     {
         var portVariables = CreateWorkspacePortVariableMap(workspace);
+        AddEnvironment(runArgs, "AGENT_UP_AUDIT_ENDPOINT", _auditEndpoint);
+        AddEnvironment(runArgs, "AGENT_UP_WORKSPACE_ID", workspace.Id);
+        AddEnvironment(runArgs, "AGENT_UP_APPLICATION", app.Name);
         foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
-        {
-            runArgs.Add("-e");
-            runArgs.Add($"{key}={InterpolateWorkspacePorts(value, portVariables)}");
-        }
+            AddEnvironment(runArgs, key, InterpolateWorkspacePorts(value, portVariables));
+    }
+
+    private static void AddEnvironment(List<string> runArgs, string key, string value)
+    {
+        runArgs.Add("-e");
+        runArgs.Add($"{key}={value}");
     }
 
     private static Dictionary<string, string> CreateWorkspacePortVariableMap(Workspace workspace)

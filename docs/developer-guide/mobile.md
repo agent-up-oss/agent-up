@@ -18,6 +18,13 @@ selecting another sidebar icon changes the client target and does not copy or
 own Server runtime state. A URL is saved only after the existing workspaces API
 responds successfully. Authentication credentials are not currently stored.
 
+Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
+until registry publication is enabled. Agent-Up-managed web launches expose
+the injected workspace and application identity to Expo. Server connection
+attempts record best-effort success or failure events at the orchestrating
+Server's injected audit endpoint, independently of the Server URL being tested;
+audit delivery must never replace the connection result shown to the user.
+
 Mobile surfaces follow the docs site's black, green, off-white, and muted
 gray-green visual system, including its compact 8px card and control radii.
 Use Expo-compatible native controls for platform interactions such as channel

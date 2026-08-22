@@ -61,6 +61,9 @@ AgentUp.Desktop/
 AgentUp.Mobile/
   package.json
 
+AgentUp.WebAudit/
+  package.json
+
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
@@ -120,6 +123,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
+| `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -480,6 +484,14 @@ Developer guides:
 Diagnostics are collected continuously by the Server and exposed to Desktop, CLI, and MCP clients.
 
 Diagnostics include console output, JavaScript exceptions, failed network requests, performance timings, health information, and process status.
+
+Managed application processes receive `AGENT_UP_AUDIT_ENDPOINT`,
+`AGENT_UP_WORKSPACE_ID`, and `AGENT_UP_APPLICATION`. Frontend builds may expose
+those values to `@agent-up/audit`; the endpoint must identify the orchestrating
+Server's configured URL rather than assuming a fixed development or packaged port.
+The Server owns ingestion, identity enrichment,
+storage, and paginated per-application queries. Desktop renders that audit trail
+with native Avalonia controls next to each application's Console tab.
 
 Full guide: `docs/developer-guide/diagnostics.md`.
 

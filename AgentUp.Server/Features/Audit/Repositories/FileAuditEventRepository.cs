@@ -133,8 +133,15 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
            && Matches(query.Kind, evt.Kind)
            && Matches(query.Source, evt.Source)
            && Matches(query.Outcome, evt.Outcome)
+           && MatchesApplication(query.Application, evt)
            && (query.From is null || evt.Timestamp >= query.From)
-           && (query.To is null || evt.Timestamp <= query.To);
+           && (query.To is null || evt.Timestamp <= query.To)
+           && (query.Before is null || evt.Timestamp < query.Before);
+
+    private static bool MatchesApplication(string? application, AuditEvent evt)
+        => string.IsNullOrWhiteSpace(application)
+           || (evt.Details.TryGetValue("application", out var actual)
+               && string.Equals(application, actual, StringComparison.Ordinal));
 
     private static bool Matches(string? expected, string? actual)
         => string.IsNullOrWhiteSpace(expected)

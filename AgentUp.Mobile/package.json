@@ -14,6 +14,7 @@
     "typecheck": "nix-shell ../shell.nix --run 'tsc --noEmit'"
   },
   "dependencies": {
+    "@agent-up/audit": "file:../AgentUp.WebAudit",
     "@react-native-picker/picker": "2.11.4",
     "expo": "~57.0.14",
     "expo-constants": "~57.0.12",

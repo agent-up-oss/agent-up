@@ -10,6 +10,13 @@ namespace AgentUp.Server.Features.Processes.Providers;
 
 public sealed partial class LocalProcessProvider : ILocalProcessProvider
 {
+    private readonly string _auditEndpoint;
+
+    public LocalProcessProvider(ApplicationAuditEndpointProvider? auditEndpoint = null)
+    {
+        _auditEndpoint = auditEndpoint?.GetRecordEndpoint() ?? "http://127.0.0.1:5000/api/audit/record";
+    }
+
     public Process CreateApplicationProcess(Workspace workspace, ApplicationInstance app)
         => new()
         {
@@ -20,7 +27,7 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
     public void Kill(Process process)
         => process.Kill(entireProcessTree: true);
 
-    internal static ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
+    internal ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
     {
         var workingDirectory = WorkspacePathProvider.ResolveWorkspacePath(
             workspace.WorktreePath,
@@ -36,6 +43,10 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
 
         foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts).Where(mapping => mapping.Variable is not null))
             startInfo.Environment[mapping.Variable!] = mapping.AllocatedPort.ToString();
+
+        startInfo.Environment["AGENT_UP_AUDIT_ENDPOINT"] = _auditEndpoint;
+        startInfo.Environment["AGENT_UP_WORKSPACE_ID"] = workspace.Id;
+        startInfo.Environment["AGENT_UP_APPLICATION"] = app.Name;
 
         return startInfo;
     }

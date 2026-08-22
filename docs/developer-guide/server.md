@@ -58,6 +58,14 @@ When the Server launches a local application process, it injects the workspace's
 
 Local application commands are parsed as an executable plus arguments and launched with `ProcessStartInfo.ArgumentList`. The Server rejects shell expressions such as pipes, redirects, variable expansion, command chaining, and subshells before process start.
 
+Managed local application processes also receive `AGENT_UP_AUDIT_ENDPOINT`,
+`AGENT_UP_WORKSPACE_ID`, and `AGENT_UP_APPLICATION`. Browser builds can expose
+these values to `@agent-up/audit`. The audit endpoint is derived from the
+orchestrating Server's configured public/listen URL, including the development
+port, rather than assuming the packaged port. The Server accepts frontend events into its
+existing audit store and provides bounded, cursor-paginated queries scoped to a
+workspace and application.
+
 Process output storage must not use workspace IDs or application names as raw path segments. Repositories that persist process logs must encode or canonicalize those identifiers and verify the resolved path stays under the Server-owned output root before reading, writing, or deleting files.
 
 ## Tutorial Cleanup

@@ -41,6 +41,9 @@ const result = spawnSync(expo, ['export', '--platform', 'web'], {
     EXPO_PUBLIC_AGENT_UP_CHANNEL: channel,
     EXPO_PUBLIC_AGENT_UP_SHA: sha,
     EXPO_PUBLIC_AGENT_UP_PUBLISHED_AT: publishedAt,
+    EXPO_PUBLIC_AGENT_UP_WORKSPACE_ID: process.env.AGENT_UP_WORKSPACE_ID,
+    EXPO_PUBLIC_AGENT_UP_APPLICATION: process.env.AGENT_UP_APPLICATION,
+    EXPO_PUBLIC_AGENT_UP_AUDIT_ENDPOINT: process.env.AGENT_UP_AUDIT_ENDPOINT,
   },
 });
 

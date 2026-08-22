@@ -23,6 +23,13 @@ public sealed class AuditController(AuditService audit)
         return events.Select(ToDto).ToList();
     }
 
+    public async Task<AuditEventPageDto> QueryPageAsync(AuditEventQuery query, CancellationToken cancellationToken)
+    {
+        var events = await audit.QueryAsync(query, cancellationToken);
+        var items = events.Select(ToDto).ToList();
+        return new AuditEventPageDto(items, items.Count == query.Limit ? items[^1].Timestamp : null);
+    }
+
     public Task<AuditEvent?> GetEventAsync(string eventId, CancellationToken cancellationToken)
         => audit.GetEventAsync(eventId, cancellationToken);
 

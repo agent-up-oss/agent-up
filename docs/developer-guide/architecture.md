@@ -9,6 +9,7 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 - `AgentUp.Server`
 - `AgentUp.Desktop`
 - `AgentUp.Mobile`
+- `AgentUp.WebAudit`
 - `AgentUp.CLI`
 - `AgentUp.InstallerApp`
 - `AgentUp.Packaging`
@@ -84,6 +85,10 @@ AgentUp.Tests/
 
 `AgentUp.Mobile/` also lives at the repository root, but it is an Expo project
 and is not referenced by `agent-up.sln`.
+
+`AgentUp.WebAudit/` is the separately publishable `@agent-up/audit` TypeScript
+browser client and is also outside `agent-up.sln`. It submits events only; the
+Server remains the owner of audit identity, persistence, and queries.
 
 The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
 

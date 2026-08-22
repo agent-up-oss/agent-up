@@ -1,6 +1,10 @@
 using AgentUp.Desktop.Features.Applications.Controllers;
 using AgentUp.Desktop.Features.Applications.Services;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Audit.Controllers;
+using AgentUp.Desktop.Features.Audit.Providers;
+using AgentUp.Desktop.Features.Audit.Services;
+using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Console.Controllers;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Console.Services;
@@ -22,6 +26,7 @@ public static class MainViewModelFactory
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
+        ApplicationAuditApiClient? auditClient = null,
         Func<string, string, string?, Task>? toggleControlMode = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
@@ -29,11 +34,14 @@ public static class MainViewModelFactory
         var applications = new ApplicationsController(new ApplicationSelectionService());
         var console = new ConsoleController(new ConsoleOutputService(consoleClient));
         var ports = new PortsController(new PortTabService());
+        var audit = new ApplicationAuditController(new ApplicationAuditService(
+            auditClient ?? new ApplicationAuditApiClient(new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") })));
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces, toggleControlMode),
             new ApplicationListViewModel(applications),
             new ConsoleViewModel(console),
+            new ApplicationAuditViewModel(audit),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
@@ -46,6 +54,7 @@ public static class MainViewModelFactory
         return Create(
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),
+            new ApplicationAuditApiClient(http),
             toggleControlMode: async (workspaceId, authority, preset) =>
             {
                 var presetQuery = string.IsNullOrWhiteSpace(preset)

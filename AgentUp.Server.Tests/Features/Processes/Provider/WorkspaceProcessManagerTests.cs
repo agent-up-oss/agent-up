@@ -78,7 +78,7 @@ public class WorkspaceProcessManagerTests
             var web = workspace.Applications.Single(app => app.Name == "Web");
             var api = workspace.Applications.Single(app => app.Name == "Api");
 
-            var startInfo = LocalProcessProvider.CreateStartInfo(workspace, web);
+            var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, web);
 
             Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
@@ -86,6 +86,9 @@ public class WorkspaceProcessManagerTests
                 Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));
             Assert.That(startInfo.Environment["API_PORT"], Is.EqualTo(api.AllocatedPorts.Single().AllocatedPort.ToString()));
+            Assert.That(startInfo.Environment["AGENT_UP_AUDIT_ENDPOINT"], Is.EqualTo("http://127.0.0.1:5000/api/audit/record"));
+            Assert.That(startInfo.Environment["AGENT_UP_WORKSPACE_ID"], Is.EqualTo(workspace.Id));
+            Assert.That(startInfo.Environment["AGENT_UP_APPLICATION"], Is.EqualTo("Web"));
         }
         finally
         {
@@ -128,7 +131,7 @@ public class WorkspaceProcessManagerTests
             });
 
             var app = workspace.Applications.Single();
-            var startInfo = LocalProcessProvider.CreateStartInfo(workspace, app);
+            var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, app);
 
             Assert.That(startInfo.Environment["SECRET_PASSWORD"], Is.EqualTo("from-file"));
             Assert.That(startInfo.Environment["SHARED_VALUE"], Is.EqualTo("from-inline"));
@@ -160,7 +163,7 @@ public class WorkspaceProcessManagerTests
                 ]
             });
 
-            var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
+            var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
 
             Assert.That(startInfo.FileName, Is.EqualTo("node"));
             Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
@@ -186,7 +189,7 @@ public class WorkspaceProcessManagerTests
             ]
         });
 
-        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
+        var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
 
         Assert.That(startInfo.FileName, Is.EqualTo("npm"));
         Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
@@ -207,7 +210,7 @@ public class WorkspaceProcessManagerTests
             ]
         });
 
-        var startInfo = LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single());
+        var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
 
         Assert.That(startInfo.FileName, Is.EqualTo("dotnet"));
         Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
@@ -233,7 +236,7 @@ public class WorkspaceProcessManagerTests
         });
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single()));
+            new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single()));
 
         Assert.That(ex!.Message, Does.Contain("not a shell expression"));
     }
@@ -256,7 +259,7 @@ public class WorkspaceProcessManagerTests
         });
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            LocalProcessProvider.CreateStartInfo(workspace, workspace.Applications.Single()));
+            new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single()));
 
         Assert.That(ex!.Message, Does.Contain("must stay under the workspace root"));
     }
@@ -385,6 +388,9 @@ public class WorkspaceProcessManagerTests
             Assert.That(args, Does.Contain(Path.Join(worktreePath, ".env.database")));
             Assert.That(args, Does.Contain("-e"));
             Assert.That(args, Does.Contain("POSTGRES_USER=user"));
+            Assert.That(args, Does.Contain("AGENT_UP_AUDIT_ENDPOINT=http://127.0.0.1:5000/api/audit/record"));
+            Assert.That(args, Does.Contain($"AGENT_UP_WORKSPACE_ID={workspace.Id}"));
+            Assert.That(args, Does.Contain("AGENT_UP_APPLICATION=Database"));
         }
         finally
         {
