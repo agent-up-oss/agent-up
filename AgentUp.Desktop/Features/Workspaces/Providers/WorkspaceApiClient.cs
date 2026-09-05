@@ -25,9 +25,49 @@ public sealed class WorkspaceApiClient(HttpClient http) : IWorkspaceApiProvider
         return await response.Content.ReadFromJsonAsync<WorkspaceDto>(Options, ct);
     }
 
+    public async Task StartAsync(string workspaceId, CancellationToken ct = default)
+    {
+        using var response = await http.PostAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/start", null, ct);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+    }
+
+    public async Task StopAsync(string workspaceId, CancellationToken ct = default)
+    {
+        using var response = await http.PostAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/stop", null, ct);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+    }
+
+    public async Task DeleteAsync(string workspaceId, CancellationToken ct = default)
+    {
+        using var response = await http.DeleteAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}", ct);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+    }
+
     public async Task CleanupTutorialWorkspacesAsync(CancellationToken ct = default)
     {
         using var response = await http.PostAsync("/api/workspaces/tutorial/cleanup", null, ct);
         response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<string> ReadProblemDetailAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("detail", out var detail))
+                return detail.GetString() ?? body;
+            return body;
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            return $"HTTP {(int)response.StatusCode}";
+        }
     }
 }

@@ -201,6 +201,43 @@
             <Setter Property="Background" Value="#0f7a45"/>
         </Style>
 
+        <Style Selector="Button.wsDeleteButton">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Opacity" Value="0.55"/>
+        </Style>
+        <Style Selector="Button.wsDeleteButton:pointerover">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+
+        <Style Selector="Border.wsLifecycleButton">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Background" Value="#080808"/>
+            <Setter Property="BorderBrush" Value="#147346"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.wsLifecycleButton">
+            <Setter Property="Background" Value="#0d4f32"/>
+        </Style>
+        <Style Selector="Button:disabled Border.wsLifecycleButton">
+            <Setter Property="Opacity" Value="0.45"/>
+        </Style>
+        <Style Selector="TextBlock.wsLifecycleIcon">
+            <Setter Property="Foreground" Value="#f5fbf7"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.wsLifecycleIconPlay">
+            <Setter Property="Margin" Value="1,0,0,0"/>
+        </Style>
+
         <!-- iOS-style toggle -->
         <Style Selector="ToggleButton.iosToggle">
             <Setter Property="Width" Value="40"/>
@@ -418,30 +455,69 @@
                                         HorizontalAlignment="Stretch">
                                     <Border Classes="wsEntry"
                                             CornerRadius="8"
-                                            Padding="14,10"
+                                            Padding="10,10,14,10"
                                             HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding RepositoryToolTip}">
-                                        <StackPanel Spacing="3">
-                                            <DockPanel>
-                                                <Border DockPanel.Dock="Left"
-                                                        Width="6" Height="6"
-                                                        CornerRadius="3"
-                                                        Background="{Binding StateColor}"
-                                                        VerticalAlignment="Center"
-                                                        Margin="0,0,7,0"/>
-                                                <TextBlock Text="{Binding DisplayName}"
-                                                           Foreground="#f5fbf7"
-                                                           FontSize="15"
-                                                           FontWeight="Medium"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           VerticalAlignment="Center"/>
-                                            </DockPanel>
-                                            <TextBlock Text="{Binding Branch}"
-                                                       Foreground="#9fb2a8"
-                                                       FontSize="12"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       Margin="13,0,0,0"/>
-                                        </StackPanel>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                            <Button Grid.Column="0"
+                                                    Command="{Binding StartCommand}"
+                                                    IsVisible="{Binding ShowStartButton}"
+                                                    IsEnabled="{Binding !IsLifecycleBusy}"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip.Tip="Start workspace">
+                                                <Border Classes="wsLifecycleButton">
+                                                    <TextBlock Classes="wsLifecycleIcon wsLifecycleIconPlay"
+                                                               Text="▶"/>
+                                                </Border>
+                                            </Button>
+                                            <Button Grid.Column="0"
+                                                    Command="{Binding StopCommand}"
+                                                    IsVisible="{Binding ShowStopButton}"
+                                                    IsEnabled="{Binding !IsLifecycleBusy}"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip.Tip="Stop workspace">
+                                                <Border Classes="wsLifecycleButton">
+                                                    <TextBlock Classes="wsLifecycleIcon" Text="■"/>
+                                                </Border>
+                                            </Button>
+                                            <Grid Grid.Column="1">
+                                                <StackPanel Spacing="3">
+                                                    <DockPanel LastChildFill="True">
+                                                        <Border DockPanel.Dock="Left"
+                                                                Width="6" Height="6"
+                                                                CornerRadius="3"
+                                                                Background="{Binding StateColor}"
+                                                                VerticalAlignment="Center"
+                                                                Margin="0,0,7,0"/>
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   Foreground="#f5fbf7"
+                                                                   FontSize="15"
+                                                                   FontWeight="Medium"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,8,0"/>
+                                                    </DockPanel>
+                                                    <TextBlock Text="{Binding Branch}"
+                                                               Foreground="#9fb2a8"
+                                                               FontSize="12"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Margin="13,0,0,0"/>
+                                                </StackPanel>
+                                                <Button Classes="wsDeleteButton"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Top"
+                                                        Margin="0,-2,-2,0"
+                                                        Command="{Binding RequestDeleteCommand}"
+                                                        ToolTip.Tip="Remove workspace">
+                                                    <TextBlock Text="✕"
+                                                               Foreground="#d84f4f"
+                                                               FontSize="11"
+                                                               FontWeight="Bold"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
                                     </Border>
                                 </Border>
                             </DataTemplate>
@@ -1168,6 +1244,70 @@
             </Border>
             </Grid>
         </Panel>
+
+        <Grid Grid.Row="1"
+              ZIndex="100"
+              x:Name="WorkspaceDeleteOverlay"
+              IsVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}"
+              IsHitTestVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}">
+            <Border Background="#CC020806"/>
+            <Border Background="#6607110f">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,8*,*"
+                  ColumnDefinitions="*,8*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        MinWidth="420"
+                        MaxWidth="560"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Background="#050505"
+                        BorderBrush="#00b850"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="28">
+                    <StackPanel Spacing="18">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Remove workspace"
+                                       Foreground="#f5fbf7"
+                                       FontSize="22"
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Sidebar.DeleteConfirmation.Message}"
+                                       Foreground="#c6ddd2"
+                                       FontSize="14"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <CheckBox x:Name="WorkspaceDeleteConfirmCheckbox"
+                                  Content="I understand this removes the workspace from Agent-Up"
+                                  Foreground="#c6ddd2"
+                                  FontSize="13"
+                                  IsChecked="{Binding Sidebar.DeleteConfirmation.ConfirmChecked}"/>
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <Button Grid.Column="1"
+                                    x:Name="WorkspaceDeleteCancelButton"
+                                    Command="{Binding Sidebar.DeleteConfirmation.CancelCommand}">
+                                <Border Classes="tutorialSecondaryButton">
+                                    <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
+                                </Border>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    x:Name="WorkspaceDeleteConfirmButton"
+                                    Command="{Binding Sidebar.DeleteConfirmation.ConfirmCommand}">
+                                <Border Classes="tutorialButton">
+                                    <TextBlock Classes="tutorialButtonText" Text="Delete"/>
+                                </Border>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
     </Border>
 </Window>

@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Reactive;
+using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using ReactiveUI;
@@ -7,6 +9,7 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 public sealed class WorkspaceItemViewModel : ReactiveObject
 {
+    private IWorkspaceItemHost? _host;
     private string _state;
     private string _stateColor;
 
@@ -22,7 +25,14 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public string State
     {
         get => _state;
-        private set => this.RaiseAndSetIfChanged(ref _state, value);
+        private set
+        {
+            if (_state == value)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _state, value);
+            RaiseLifecyclePropertiesChanged();
+        }
     }
 
     public string StateColor
@@ -31,8 +41,16 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
     }
 
+    public bool ShowStartButton => State is "Stopped" or "Failed" or "Stopping";
+    public bool ShowStopButton => State is "Running" or "Starting";
+    public bool IsLifecycleBusy => State is "Starting" or "Stopping";
+
     public ObservableCollection<WorkspaceApplicationViewModel> Applications { get; } = [];
     public event EventHandler? ApplicationsChanged;
+
+    public ReactiveCommand<Unit, Unit> StartCommand { get; }
+    public ReactiveCommand<Unit, Unit> StopCommand { get; }
+    public ReactiveCommand<Unit, Unit> RequestDeleteCommand { get; }
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
@@ -53,7 +71,15 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         _stateColor = AppHealthLedRules.StateColor(state);
         foreach (var app in applications ?? [])
             Applications.Add(CreateApplication(app));
+
+        var canStart = this.WhenAnyValue(x => x.ShowStartButton, x => x.IsLifecycleBusy, (show, busy) => show && !busy);
+        var canStop = this.WhenAnyValue(x => x.ShowStopButton, x => x.IsLifecycleBusy, (show, busy) => show && !busy);
+        StartCommand = ReactiveCommand.CreateFromTask(StartAsync, canStart);
+        StopCommand = ReactiveCommand.CreateFromTask(StopAsync, canStop);
+        RequestDeleteCommand = ReactiveCommand.Create(RequestDelete);
     }
+
+    internal void SetHost(IWorkspaceItemHost host) => _host = host;
 
     // Updates workspace and application state in-place without triggering the SelectedWorkspace
     // change notification, so existing browser sessions and navigation state are undisturbed.
@@ -115,6 +141,22 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
 
         if (applicationsChanged)
             ApplicationsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private Task StartAsync()
+        => _host?.StartWorkspaceAsync(Id) ?? Task.CompletedTask;
+
+    private Task StopAsync()
+        => _host?.StopWorkspaceAsync(Id) ?? Task.CompletedTask;
+
+    private void RequestDelete()
+        => _host?.RequestDeleteWorkspace(Id, DisplayName);
+
+    private void RaiseLifecyclePropertiesChanged()
+    {
+        this.RaisePropertyChanged(nameof(ShowStartButton));
+        this.RaisePropertyChanged(nameof(ShowStopButton));
+        this.RaisePropertyChanged(nameof(IsLifecycleBusy));
     }
 
     private static WorkspaceApplicationViewModel CreateApplication(ApplicationDto app) =>
