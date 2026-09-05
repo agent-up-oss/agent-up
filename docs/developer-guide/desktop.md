@@ -119,9 +119,13 @@ Workspace event invalidations are scoped to the event workspace ID. Desktop refr
 
 ## Browser Sessions
 
-Desktop displays each workspace application through a direct embedded WebView connection to the allocated HTTP port. The Server still owns browser profiles, headless automation sessions, and MCP browser tools; Desktop does not stream or mirror the headless session.
+Desktop displays each workspace application through a direct embedded WebView connection to the allocated HTTP port. Desktop owns those WebView instances and their browser state on the workstation.
 
-Cookies, local storage, cache, and navigation state must be shared by applications within the same workspace and isolated from every other workspace.
+The Server owns a separate headless Chromium profile per workspace under `browser-profiles/{workspaceId}`. MCP browser tools use that headless profile for automation. Desktop does not stream, mirror, or read from the headless session.
+
+Desktop WebViews and Server headless profiles do not share cookies, local storage, session storage, IndexedDB, cache, or navigation state. Treat them as two independent browsers for the same workspace.
+
+Within Desktop, each HTTP port tab keeps its own WebView state when switching tabs or applications. Within the Server headless profile, MCP browser actions share one automation session per workspace. Across workspaces, both surfaces remain isolated.
 
 Browser automation and inspection for agents should expose navigation, reload, semantic interaction, HTML/DOM capture, accessibility data, screenshots, history, and page metadata through Server-owned MCP contracts. Prefer structured inspection and accessibility data over raw HTML when generating diagnostics or automation.
 
