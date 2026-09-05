@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace AgentUp.Server.Tests.Features.Workspaces.HTTP;
 
 [TestFixture]
-public sealed class LoopbackClientCorsHttpTests
+public sealed class WebClientCorsHttpTests
 {
     private string _dataDirectory = null!;
     private WebApplicationFactory<Program> _factory = null!;
@@ -29,7 +29,9 @@ public sealed class LoopbackClientCorsHttpTests
     [TestCase("http://localhost:8081")]
     [TestCase("https://localhost:8443")]
     [TestCase("http://127.0.0.1:8081")]
-    public async Task Workspaces_AllowsLoopbackWebClientOrigins(string origin)
+    [TestCase("http://192.168.1.10:8081")]
+    [TestCase("https://agent-up-app.pages.dev")]
+    public async Task Workspaces_AllowsHttpAndHttpsWebClientOrigins(string origin)
     {
         using var client = _factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/workspaces");
@@ -42,11 +44,11 @@ public sealed class LoopbackClientCorsHttpTests
     }
 
     [Test]
-    public async Task Workspaces_DoesNotAllowNonLoopbackWebClientOrigins()
+    public async Task Workspaces_DoesNotAllowNonHttpOrigins()
     {
         using var client = _factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/workspaces");
-        request.Headers.Add("Origin", "https://untrusted.example");
+        request.Headers.Add("Origin", "file://untrusted");
 
         using var response = await client.SendAsync(request);
 

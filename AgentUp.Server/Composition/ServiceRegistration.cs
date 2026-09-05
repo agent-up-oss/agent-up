@@ -59,9 +59,9 @@ public static class ServiceRegistration
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddCors(options => options.AddPolicy(
-            LoopbackClientOriginProvider.PolicyName,
+            WebClientOriginProvider.PolicyName,
             policy => policy
-                .SetIsOriginAllowed(LoopbackClientOriginProvider.IsAllowed)
+                .SetIsOriginAllowed(WebClientOriginProvider.IsAllowed)
                 .AllowAnyHeader()
                 .AllowAnyMethod()));
 #pragma warning disable MCP9004 // Legacy SSE is intentionally enabled for trusted local compatibility clients.

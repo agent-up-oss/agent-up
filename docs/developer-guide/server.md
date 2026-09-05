@@ -39,10 +39,13 @@ Packaged installations run `AgentUp.Server` as the local `agent-up-server` servi
 
 Packaged services bind to `http://127.0.0.1:5000` by default. Service definitions that automatically restart the Server must throttle restart attempts to at least 5 seconds so a bind failure, such as another process already using port 5000, cannot create a tight restart loop.
 
-The REST API permits cross-origin browser requests only from HTTP or HTTPS
-loopback origins, including development PWAs hosted on another localhost port.
-Non-loopback website origins do not receive CORS access to the local
-orchestration API.
+The REST API permits cross-origin browser requests from any HTTP or HTTPS
+origin, so the Mobile web/PWA client can reach a Server the user points it at
+regardless of where that client is hosted (a local dev port, an installed
+PWA, or a deployed preview build). The browser's own mixed-content policy
+still applies: a client served over HTTPS cannot fetch a plain-HTTP Server
+unless that Server is loopback-hosted, so a remote Server should be reachable
+over HTTPS.
 
 This service shape is packaging and lifecycle behavior only. Runtime ownership remains unchanged: all orchestration stays in `AgentUp.Server`, and Desktop stays a client.
 
