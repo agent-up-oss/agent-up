@@ -43,6 +43,21 @@ public sealed class FileAuditRepositoryTests
     }
 
     [Test]
+    public async Task EventRepository_FiltersByScope()
+    {
+        var repository = new FileAuditEventRepository(_dir);
+        await repository.AppendAsync(Event("workspace-a", "main", scope: null), CancellationToken.None);
+        await repository.AppendAsync(Event("workspace-a", "main", scope: "host-server"), CancellationToken.None);
+        await repository.AppendAsync(Event("workspace-a", "main", scope: "application"), CancellationToken.None);
+
+        var hostEvents = await repository.QueryAsync(
+            new AuditEventQuery(null, null, null, null, null, null, null, null, null, null, 10, "host-server"),
+            CancellationToken.None);
+
+        Assert.That(hostEvents.Select(evt => evt.Scope), Is.EqualTo(["host-server"]));
+    }
+
+    [Test]
     public async Task ArtifactRepository_SavesAndLoadsBytes()
     {
         var repository = new FileAuditArtifactRepository(_dir);
@@ -59,7 +74,7 @@ public sealed class FileAuditRepositoryTests
         });
     }
 
-    private static AuditEvent Event(string workspaceId, string branch) =>
+    private static AuditEvent Event(string workspaceId, string branch, string? scope = null) =>
         new(
             Guid.NewGuid().ToString("N"),
             DateTimeOffset.UtcNow,
@@ -75,5 +90,6 @@ public sealed class FileAuditRepositoryTests
             "abc123",
             false,
             new Dictionary<string, string>(),
-            []);
+            [],
+            scope);
 }

@@ -63,7 +63,7 @@ public sealed class WorkspaceRegistry : IHostedService
         var portCounter = basePort;
 
         IReadOnlyList<PortMapping> AllocatePorts(IReadOnlyList<PortDeclaration>? declarations) =>
-            (declarations ?? []).Select(d => new PortMapping(d.Variable, d.DefaultPort, portCounter++, d.Protocol, d.HealthCheckPath)).ToList();
+            (declarations ?? []).Select(d => new PortMapping(d.Variable, d.DefaultPort, portCounter++, d.Protocol, d.HealthCheckPath, d.MetricsPath)).ToList();
 
         var typedDotnetApplications = new List<ApplicationInstance>();
         foreach (var dotnet in request.Dotnet)
@@ -166,7 +166,7 @@ public sealed class WorkspaceRegistry : IHostedService
 
         foreach (var app in workspace.Applications)
             app.AllocatedPorts = app.Ports
-                .Select(p => new PortMapping(p.Variable, p.DefaultPort, portCounter++, p.Protocol, p.HealthCheckPath))
+                .Select(p => new PortMapping(p.Variable, p.DefaultPort, portCounter++, p.Protocol, p.HealthCheckPath, p.MetricsPath))
                 .ToList();
 
         await _repository.SaveAllAsync(GetAll());

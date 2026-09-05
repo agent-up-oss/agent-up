@@ -65,6 +65,8 @@ internal static class ServerTestComposition
         var healthCheckService = new AppHealthCheckService(
             queryController, stateController, CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
         var healthChecks = new AppHealthController(healthCheckService);
+        var metricsPulls = new AppMetricsController(new AppMetricsPullService(
+            CreateAuditController(), NullLogger<AppMetricsPullService>.Instance));
         var streamState = new WorkspaceStreamStateService(
             eventBus, healthChecks, queryController, CreateAuditController(),
             NullLogger<WorkspaceStreamStateService>.Instance);
@@ -78,6 +80,7 @@ internal static class ServerTestComposition
             CreateProcessesController(processes),
             browser,
             healthChecks,
+            metricsPulls,
             new WorkspaceStreamStateController(streamState),
             NullLogger<WorkspaceLifecycleService>.Instance);
     }

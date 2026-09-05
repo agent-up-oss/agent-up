@@ -15,4 +15,5 @@ public sealed record AuditEvent(
     string? Commit,
     bool? Dirty,
     IReadOnlyDictionary<string, string> Details,
-    IReadOnlyList<string> ArtifactIds);
+    IReadOnlyList<string> ArtifactIds,
+    string? Scope = null);

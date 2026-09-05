@@ -14,6 +14,7 @@ public sealed class WorkspaceLifecycleService
     private readonly ProcessesController _processes;
     private readonly BrowserLifecycleController _browser;
     private readonly AppHealthController _healthChecks;
+    private readonly AppMetricsController _metricsPulls;
     private readonly WorkspaceStreamStateController _streamState;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
 
@@ -22,6 +23,7 @@ public sealed class WorkspaceLifecycleService
         ProcessesController processes,
         BrowserLifecycleController browser,
         AppHealthController healthChecks,
+        AppMetricsController metricsPulls,
         WorkspaceStreamStateController streamState,
         ILogger<WorkspaceLifecycleService> logger)
     {
@@ -29,6 +31,7 @@ public sealed class WorkspaceLifecycleService
         _processes = processes;
         _browser = browser;
         _healthChecks = healthChecks;
+        _metricsPulls = metricsPulls;
         _streamState = streamState;
         _logger = logger;
     }
@@ -66,6 +69,7 @@ public sealed class WorkspaceLifecycleService
 
             _streamState.OnWorkspaceStarted(workspace);
             _healthChecks.StartForWorkspace(workspace);
+            _metricsPulls.StartForWorkspace(workspace);
 
             return WorkspaceLifecycleResult.Success();
         }
@@ -98,6 +102,7 @@ public sealed class WorkspaceLifecycleService
             // and show the correct banner before we start tearing down the session.
             _streamState.OnWorkspaceStopped(id);
             _healthChecks.StopForWorkspace(id);
+            _metricsPulls.StopForWorkspace(id);
             await _processes.KillWorkspaceAsync(id);
             await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);
             foreach (var app in workspace.Applications)

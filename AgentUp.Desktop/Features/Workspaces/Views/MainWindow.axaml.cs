@@ -17,6 +17,7 @@ using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Audit.Controllers;
+using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
@@ -48,6 +49,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private Panel? _consoleOverlay;
     private bool _consoleSelecting;
     private ViewModelAuditController? _auditController;
+    private HostMetricsController? _hostMetricsController;
     private const int ConsoleDefaultDisplayLines = 2_000;
     private static readonly HttpClient PortProbeHttpClient = new()
     {
@@ -150,7 +152,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
-        _addressPollTimer.Start();
         PortPane.SizeChanged += OnPortPaneSizeChanged;
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverBaseUrl = serverUrl;
@@ -243,6 +244,21 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Where(show => show)
             .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveWebView))
             .DisposeWith(_subscriptions);
+        vm.WhenAnyValue(v => v.ShowPortView)
+            .Subscribe(show => Dispatcher.UIThread.Post(() =>
+            {
+                if (show)
+                    _addressPollTimer.Start();
+                else
+                    _addressPollTimer.Stop();
+            }))
+            .DisposeWith(_subscriptions);
+        if (vm.ShowPortView)
+            _addressPollTimer.Start();
+
+        _hostMetricsController?.Dispose();
+        _hostMetricsController = new HostMetricsController(_serverHttp);
+        _hostMetricsController.Start();
 
         _auditController ??= new ViewModelAuditController(_serverHttp);
         _auditController.Attach(vm, CaptureViewState);
@@ -253,6 +269,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _isClosed = true;
         _workspaceEventClient?.Dispose();
         _auditController?.Dispose();
+        _hostMetricsController?.Dispose();
         _serverHttp.Dispose();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;

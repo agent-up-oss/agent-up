@@ -27,6 +27,7 @@ using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Features.Metrics.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
 using AgentUp.Server.Features.Orchestration.Providers;
@@ -157,6 +158,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserInputDispatcher>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<AppMetricsPullService>();
+        builder.Services.AddSingleton<AppMetricsController>();
+        builder.Services.AddHostedService<HostMetricsService>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<AppHealthController>(),

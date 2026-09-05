@@ -138,6 +138,7 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
            && Matches(query.Source, evt.Source)
            && Matches(query.Outcome, evt.Outcome)
            && MatchesApplication(query.Application, evt)
+           && MatchesScope(query.Scope, evt.Scope)
            && (query.From is null || evt.Timestamp >= query.From)
            && (query.To is null || evt.Timestamp <= query.To)
            && IsBeforeCursor(query, evt);
@@ -153,6 +154,15 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
         => string.IsNullOrWhiteSpace(application)
            || (evt.Details.TryGetValue("application", out var actual)
                && string.Equals(application, actual, StringComparison.Ordinal));
+
+    private static bool MatchesScope(string? expected, string? actual)
+    {
+        if (string.IsNullOrWhiteSpace(expected))
+            return true;
+
+        var normalizedActual = string.IsNullOrWhiteSpace(actual) ? AuditScope.Workspace : actual;
+        return string.Equals(expected, normalizedActual, StringComparison.OrdinalIgnoreCase);
+    }
 
     private static bool Matches(string? expected, string? actual)
         => string.IsNullOrWhiteSpace(expected)

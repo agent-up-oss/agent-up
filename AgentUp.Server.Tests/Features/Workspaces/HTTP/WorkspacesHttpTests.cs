@@ -83,6 +83,8 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<AppMetricsPullService>();
+        builder.Services.AddSingleton<AppMetricsController>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<AppHealthController>(),
@@ -396,6 +398,8 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<AppMetricsPullService>();
+        builder.Services.AddSingleton<AppMetricsController>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<AppHealthController>(),

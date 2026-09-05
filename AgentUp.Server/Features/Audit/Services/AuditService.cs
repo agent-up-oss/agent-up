@@ -124,7 +124,8 @@ public sealed class AuditService(
             identity.Commit,
             identity.Dirty,
             SanitizeDetails(request.Details),
-            artifactIds);
+            artifactIds,
+            request.Scope);
 
     private static IReadOnlyDictionary<string, string> SanitizeDetails(
         IReadOnlyDictionary<string, string>? details)
