@@ -12,5 +12,6 @@ public class Workspace
     public required string Commit { get; init; }
     public WorkspaceState State { get; set; } = WorkspaceState.Stopped;
     public string? LastError { get; set; }
+    public DateTimeOffset LastActivityAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<ApplicationInstance> Applications { get; init; } = [];
 }

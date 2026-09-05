@@ -181,6 +181,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     {
         var item = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
         item?.ApplyStateChange(newState, appChanges, healthState);
+        if (item is not null && !string.Equals(newState, "Removed", StringComparison.Ordinal))
+            ResortWorkspaces(workspaceId);
     }
 
     public async Task RefreshWorkspaceAsync(string workspaceId, CancellationToken ct = default)
@@ -205,6 +207,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             if (existing is not null)
             {
                 existing.UpdateFrom(dto.State, dto.Applications);
+                ResortWorkspaces(workspaceId);
                 ErrorMessage = null;
                 return;
             }
@@ -259,6 +262,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
                 }
             }
 
+            ApplyWorkspaceOrder(dtos);
+
             if (SelectedWorkspace is null || !Workspaces.Any(w => w.Id == SelectedWorkspace.Id))
                 SelectedWorkspace = Workspaces.FirstOrDefault();
         }
@@ -270,5 +275,60 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         {
             IsLoading = false;
         }
+    }
+
+    private void ApplyWorkspaceOrder(IReadOnlyList<WorkspaceDto> orderedDtos)
+    {
+        var itemsById = Workspaces.ToDictionary(w => w.Id);
+        var orderedItems = orderedDtos
+            .OrderByDescending(dto => WorkspaceListOrdering.ActivePriority(dto.State))
+            .ThenByDescending(dto => dto.LastActivityAtUtc)
+            .ThenBy(dto => dto.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(dto => itemsById.GetValueOrDefault(dto.Id))
+            .Where(item => item is not null)
+            .Cast<WorkspaceItemViewModel>()
+            .ToList();
+
+        if (orderedItems.Count != Workspaces.Count)
+            return;
+
+        Workspaces.Clear();
+        foreach (var item in orderedItems)
+            Workspaces.Add(item);
+    }
+
+    private void ResortWorkspaces(string? preferWithinTierId = null)
+    {
+        if (Workspaces.Count <= 1)
+            return;
+
+        var items = Workspaces.ToList();
+        var active = items.Where(w => WorkspaceListOrdering.IsActive(w.State)).ToList();
+        var inactive = items.Where(w => !WorkspaceListOrdering.IsActive(w.State)).ToList();
+
+        PromoteWithinTier(active, preferWithinTierId);
+        PromoteWithinTier(inactive, preferWithinTierId);
+
+        var ordered = active.Concat(inactive).ToList();
+        if (ordered.Select(w => w.Id).SequenceEqual(items.Select(w => w.Id)))
+            return;
+
+        Workspaces.Clear();
+        foreach (var item in ordered)
+            Workspaces.Add(item);
+    }
+
+    private static void PromoteWithinTier(List<WorkspaceItemViewModel> tier, string? workspaceId)
+    {
+        if (workspaceId is null)
+            return;
+
+        var index = tier.FindIndex(w => w.Id == workspaceId);
+        if (index <= 0)
+            return;
+
+        var item = tier[index];
+        tier.RemoveAt(index);
+        tier.Insert(0, item);
     }
 }

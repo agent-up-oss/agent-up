@@ -31,6 +31,9 @@ internal sealed class SidebarDriver(MainWindow window)
             .ToList()
         ?? [];
 
+    public IReadOnlyList<string> WorkspaceIds =>
+        Vm.Sidebar.Workspaces.Select(workspace => workspace.Id).ToList();
+
     public async Task CollapseAsync()
     {
         if (Vm.Sidebar.IsCollapsed) return;
