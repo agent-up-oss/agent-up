@@ -12,16 +12,13 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Input.Platform;
-using Avalonia.Platform;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
-using AgentUp.Desktop.Features.Browser.Models;
 using AgentUp.Desktop.Features.Ports.ViewModels;
-using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using ReactiveUI;
@@ -30,7 +27,7 @@ namespace AgentUp.Desktop.Features.Workspaces.Views;
 
 public partial class MainWindow : ReactiveWindow<MainViewModel>
 {
-    // One NativeWebView per tab — keyed by "workspaceId:viewer" (AI stream) or "workspaceId:{port}" (human direct).
+    // One NativeWebView per HTTP port tab — keyed by "workspaceId:{port}".
     // Switching between workspace tabs only toggles IsVisible; the WebView is never navigated away,
     // preserving full page state (scroll position, open accordions, JS memory, auth session).
     private readonly Dictionary<string, NativeWebView> _webViews = new();
@@ -39,33 +36,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Last successfully navigated http URL per tabKey; absent means tab is in error state.
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
     private readonly Dictionary<string, int> _navigationVersions = new();
-    // Per-workspace viewer/stream state owned by the Browser slice.
-    private readonly ViewerStateStore _viewerState = new();
-    private DateTimeOffset _lastHeadlessRetry = DateTimeOffset.MinValue;
-    // Tracks OS-window focus. Drives per-viewer presence: an unfocused window means the
-    // user isn't looking, so every viewer drops to background (1 fps) on the server side.
-    // Default true because Avalonia's Activated event may not fire before the first render
-    // if the window opens focused (common case) — assuming true avoids a startup 1 fps spike.
-    private bool _windowFocused = true;
-    // Poll of window.__viewer.snapshot() on the active viewer WebView. See
-    // OnViewerSnapshotPollTick — this is the only bridge from the JS state machine into
-    // Avalonia's state machine. Every ~500 ms it reads the snapshot, updates the viewer
-    // snapshot in _viewerState, and lets RenderStreamState react.
-    private readonly DispatcherTimer _viewerSnapshotPollTimer;
-    // Cross-platform adapter for prodding the OS compositor to re-blit the WebView
-    // surface. Noop on Windows/macOS; libX11 XClearArea on Linux/X11. Wayland falls
-    // back to noop until we add a dedicated adapter. See Compositor/ folder.
-    private readonly IViewerCompositorHint _compositorHint;
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
     private readonly string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
-    private BrowserEventClient? _browserEventClient;
-    private bool _hadBrowserEventsConnection;
-    private bool _browserEventsConnected;
     private string? _activeWorkspaceId;
-    private string? _activeTabKey;   // tabKey of the currently visible WebView
+    private string? _activeTabKey;
     private bool _isClosed;
     private NativeWebView? _consoleWebView;
     private Panel? _consoleOverlay;
@@ -77,12 +54,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Timeout = TimeSpan.FromSeconds(2)
     };
 
-    // Overrideable in tests to inject a factory that throws without needing GTK.
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
-    // Overrideable in tests to bypass HTTP probing.
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
-    // Public slice boundary: other Desktop slices navigate the browser through this controller
-    // rather than importing MainWindow directly.
     internal BrowserViewportController BrowserViewport { get; }
     internal bool HasBrowserResourcesForTests =>
         _addressPollTimer.IsEnabled
@@ -92,7 +65,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _webViews.Count > 0
         || _webViewErrors.Count > 0
         || _lastKnownBrowserUrls.Count > 0
-        || !_viewerState.IsEmpty
         || _activeWorkspaceId is not null
         || _activeTabKey is not null;
 
@@ -179,23 +151,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         _addressPollTimer.Start();
-        _viewerSnapshotPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _viewerSnapshotPollTimer.Tick += OnViewerSnapshotPollTick;
-        _viewerSnapshotPollTimer.Start();
-        _compositorHint = ViewerCompositorHintFactory.Create();
         PortPane.SizeChanged += OnPortPaneSizeChanged;
-        Activated += (_, _) =>
-        {
-            _windowFocused = true;
-            UpdateBackgroundAttentionOverlay();
-            UpdateAllViewerPresences();
-        };
-        Deactivated += (_, _) =>
-        {
-            _windowFocused = false;
-            UpdateBackgroundAttentionOverlay();
-            UpdateAllViewerPresences();
-        };
         var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
         _serverBaseUrl = serverUrl;
         _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
@@ -240,8 +196,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         _workspaceEventClient?.Dispose();
         _workspaceEventClient = null;
-        _browserEventClient?.Dispose();
-        _browserEventClient = null;
 
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
@@ -249,13 +203,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
         _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
         _workspaceEventClient.Start();
-
-        var browserEventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
-        _browserEventClient = new BrowserEventClient(browserEventHttp);
-        _browserEventClient.Connected += OnBrowserEventsConnected;
-        _browserEventClient.Disconnected += OnBrowserEventsDisconnected;
-        _browserEventClient.StreamStateChanged += OnStreamStateChanged;
-        _browserEventClient.Start();
 
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
@@ -294,14 +241,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Skip(1)
             .DistinctUntilChanged()
             .Where(show => show)
-            .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveViewer))
-            .DisposeWith(_subscriptions);
-        // Sub-tab changes (viewer ↔ console ↔ port) flip which viewer is user-visible,
-        // so every viewer needs its presence recomputed — the one becoming active goes
-        // foreground, the one leaving goes background.
-        vm.WhenAnyValue(v => v.SelectedSubTab)
-            .Skip(1)
-            .Subscribe(_ => Dispatcher.UIThread.Post(UpdateAllViewerPresences))
+            .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveWebView))
             .DisposeWith(_subscriptions);
 
         _auditController ??= new ViewModelAuditController(_serverHttp);
@@ -312,14 +252,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         _isClosed = true;
         _workspaceEventClient?.Dispose();
-        _browserEventClient?.Dispose();
         _auditController?.Dispose();
         _serverHttp.Dispose();
         _addressPollTimer.Stop();
         _addressPollTimer.Tick -= OnAddressPollTimerTick;
-        _viewerSnapshotPollTimer.Stop();
-        _viewerSnapshotPollTimer.Tick -= OnViewerSnapshotPollTick;
-        (_compositorHint as IDisposable)?.Dispose();
         _subscriptions.Dispose();
         DestroyWorkspaceWebViews();
         DestroyConsoleWebView();
@@ -363,32 +299,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         else
             f["webView.activeSourceUrl"] = string.Empty;
 
-        // Diagnostic fields so audit can distinguish "modal not firing" from "modal firing
-        // but hidden by native z-order". If windowFocused=false + streamState=Streaming +
-        // backgroundAttentionBannerVisible=true, and the user still reports no modal, the
-        // banner IS being drawn — it just can't beat the native GTK/WebKit subwindow to
-        // the compositor layer.
-        f["webView.windowFocused"] = _windowFocused.ToString();
-        f["webView.backgroundAttentionBannerVisible"] = BackgroundAttentionBanner.IsVisible.ToString();
-        f["webView.browserConnectingBannerVisible"] = BrowserConnectingBanner.IsVisible.ToString();
-        f["webView.chromiumDownloadBannerVisible"] = ChromiumDownloadBanner.IsVisible.ToString();
-        var vs = _activeWorkspaceId is not null ? _viewerState.GetViewerSnapshot(_activeWorkspaceId) : null;
-        if (vs is not null)
-        {
-            f["webView.jsSmState"] = vs.State;
-            f["webView.jsSmStateAgeMs"] = ((long)vs.StateAge.TotalMilliseconds).ToString();
-            f["webView.jsSmFramesReceived"] = vs.FramesReceived.ToString();
-            f["webView.jsSmWsReadyState"] = vs.WsReadyState;
-            f["webView.jsSmPresence"] = vs.Presence;
-        }
-        else
-        {
-            f["webView.jsSmState"] = "";
-            f["webView.jsSmStateAgeMs"] = "";
-            f["webView.jsSmFramesReceived"] = "";
-            f["webView.jsSmWsReadyState"] = "";
-            f["webView.jsSmPresence"] = "";
-        }
         if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var activeMarginWv))
         {
             f["webView.activeMargin"] = activeMarginWv.Margin.ToString();
@@ -405,8 +315,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             f["webView.activeIsHitTestVisible"] = "";
             f["webView.activeMaxSize"] = "";
         }
-        var activeSnap = _activeWorkspaceId is not null ? _viewerState.GetStreamState(_activeWorkspaceId) : null;
-        f["webView.activeStreamKind"] = activeSnap is not null ? activeSnap.Kind.ToString() : "None";
 
         return f;
     }
@@ -428,7 +336,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal void NavigateTo(string workspaceId, string? url) => HandleNavigation(workspaceId, url, reloadIfSameUrl: true);
 
-    // Evaluates a script in the tab the agent last navigated to for the given workspace.
     internal async Task<string?> EvalAsync(string workspaceId, string script)
     {
         var result = await Dispatcher.UIThread.InvokeAsync(async () =>
@@ -466,11 +373,20 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private void HandleNavigation(string? workspaceId, string? url, bool reloadIfSameUrl)
     {
         if (_isClosed || workspaceId is null) return;
-        var authority = _viewerState.GetAuthority(workspaceId);
-        if (authority == "human")
-            HandleDirectNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
-        else
-            HandleHeadlessNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
+        if (url is null)
+        {
+            if (workspaceId == _activeWorkspaceId) return;
+
+            if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var previous))
+                previous.IsVisible = false;
+
+            _activeWorkspaceId = workspaceId;
+            _activeTabKey = null;
+            UpdateErrorDisplay(workspaceId);
+            return;
+        }
+
+        HandleDirectNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
     }
 
     private void HandleDirectNavigation(string? workspaceId, string? url, bool tutorialVisible, bool reloadIfSameUrl)
@@ -504,83 +420,20 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
 
-    internal static bool ShouldReclaimViewerUrl(string? currentSource, string viewerUrl)
-        => !string.Equals(currentSource, viewerUrl, StringComparison.Ordinal);
-
-    internal static bool IsBrowserViewerRequest(Uri? request)
-        => request?.AbsolutePath == "/api/browser/rdp-viewer";
-
-    internal static bool WantsViewerWebView(StreamStateSnapshot? snap, bool isAi, bool isActiveViewerTab, bool tutorialVisible)
-        => isAi && isActiveViewerTab && !tutorialVisible && snap?.Kind == StreamStateKind.Streaming;
-
-    internal static bool ShouldDestroyViewerWebView(StreamStateSnapshot? snap, bool isAi, bool isActiveViewerTab, bool tutorialVisible)
-        => isAi && isActiveViewerTab && !tutorialVisible && snap?.Kind is not null && snap.Kind != StreamStateKind.Streaming;
-
-    internal static BannerDecision ResolveBannerDecision(StreamStateSnapshot? snap)
-    {
-        if (snap is null)
-            return new BannerDecision(ShowConnecting: true, ConnectingText: "Connecting…",
-                ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
-
-        switch (snap.Kind)
-        {
-            case StreamStateKind.ChromiumDownloading:
-                var failed = string.Equals(snap.ChromiumState, "failed", StringComparison.Ordinal);
-                var downloadText = failed
-                    ? "Chromium download failed. AI mode unavailable."
-                    : snap.ChromiumProgress > 0
-                        ? $"Downloading Chromium… {snap.ChromiumProgress}%"
-                        : "Downloading Chromium…";
-                return new BannerDecision(ShowConnecting: false, ConnectingText: "",
-                    ShowDownload: true, DownloadText: downloadText,
-                    DownloadFailed: failed, DownloadProgress: snap.ChromiumProgress);
-            case StreamStateKind.WorkspaceStopped:
-                return new BannerDecision(ShowConnecting: true, ConnectingText: "Workspace stopped.",
-                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
-            case StreamStateKind.AppConnecting:
-                var connectingText = snap.MaxAttempts > 0 && snap.Attempt > 0
-                    ? $"Connecting to app… ({snap.Attempt} / {snap.MaxAttempts})"
-                    : "Connecting to app…";
-                return new BannerDecision(ShowConnecting: true, ConnectingText: connectingText,
-                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
-            case StreamStateKind.AppFailed:
-                return new BannerDecision(ShowConnecting: true, ConnectingText: snap.Reason ?? "Could not reach app.",
-                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
-            case StreamStateKind.SessionLaunching:
-                return new BannerDecision(ShowConnecting: true, ConnectingText: "Preparing browser session…",
-                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
-            default:
-                return new BannerDecision(ShowConnecting: false, ConnectingText: "",
-                    ShowDownload: false, DownloadText: "", DownloadFailed: false, DownloadProgress: 0);
-        }
-    }
-
     private void ActivateTab(string? workspaceId, string? tabKey, bool tutorialVisible)
     {
         if (workspaceId == _activeWorkspaceId && tabKey == _activeTabKey) return;
 
-        var previousWorkspaceId = _activeWorkspaceId;
         if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var previous))
             previous.IsVisible = false;
 
         _activeWorkspaceId = workspaceId;
         _activeTabKey = tabKey;
 
-        // For viewer tabs, visibility is decided by RenderStreamState — NOT unconditionally
-        // shown. Only human-mode direct-port tabs get their WebView shown here directly.
-        var isViewerTab = tabKey is not null && tabKey.EndsWith(":viewer", StringComparison.Ordinal);
-        if (!tutorialVisible && !isViewerTab && tabKey is not null && _webViews.TryGetValue(tabKey, out var next))
+        if (!tutorialVisible && tabKey is not null && _webViews.TryGetValue(tabKey, out var next))
             next.IsVisible = true;
 
         UpdateErrorDisplay(workspaceId);
-
-        // Refresh stream-state rendering: the previously-active viewer needs its banner cleared,
-        // and the newly-active viewer's WebView/banner needs to match the current stream state.
-        if (previousWorkspaceId is not null && previousWorkspaceId != workspaceId)
-            RenderStreamState(previousWorkspaceId);
-        if (workspaceId is not null)
-            RenderStreamState(workspaceId);
-        UpdateBackgroundAttentionOverlay();
     }
 
     private bool TryGetOrCreateWebView(
@@ -599,8 +452,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             webView = CreateWorkspaceWebView(tabKey, workspaceId);
             _webViews[tabKey] = webView;
             _webViewErrors.Remove(workspaceId);
-
-            // Start hidden; HandleNavigation makes it visible as needed.
             webView.IsVisible = false;
             PortPane.Children.Add(webView);
             UpdateErrorDisplay(workspaceId);
@@ -617,14 +468,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private NativeWebView CreateWorkspaceWebView(string tabKey, string workspaceId)
     {
         var webView = WebViewFactory();
-        // One-shot flag: WebKit's paint pipeline needs an explicit initial-map kick on
-        // the first navigation of every fresh WebView. Without it, WebKit runs JS but
-        // never composites its back buffer to the GTK surface — see screenshot from
-        // 2026-08-11 05:47 where canvas + AI badge + magenta diagnostic all invisible.
-        // We fire ForceFirstWebKitPaint exactly once. Subsequent stream-state changes
-        // do NOT re-toggle IsVisible (that's the RenderStreamState invariant we keep
-        // from the SM refactor — it was the *repeated* toggle that caused the freeze
-        // bug we've been fighting, not this one-shot).
         var firstNavDone = false;
 
         webView.NavigationCompleted += (_, e) =>
@@ -636,18 +479,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 {
                     ["tabKey"] = tabKey,
                     ["url"] = url,
-                    ["streamKind"] = _viewerState.GetStreamState(workspaceId)?.Kind.ToString() ?? "unknown",
                     ["isVisible"] = webView.IsVisible.ToString(),
                 });
 
                 if (e.Request is { } failedUri && failedUri.Scheme is "http" or "https")
                 {
-                    if (IsBrowserViewerRequest(failedUri))
-                    {
-                        RetryViewerNavigation(tabKey, workspaceId, webView, failedUri);
-                        return;
-                    }
-
                     ShowBrowserErrorPage(
                         tabKey,
                         workspaceId,
@@ -666,15 +502,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 ["isVisible"] = webView.IsVisible.ToString(),
             });
 
-            if (e.Request is { } successUri && IsBrowserViewerRequest(successUri))
-            {
-                _viewerState.MarkViewerPageLoaded(workspaceId);
-                // Page's __setPresence hook now exists — push the desktop's current view
-                // of foreground/background so the fresh JS doesn't default-report itself
-                // as foreground when the user is actually elsewhere.
-                UpdateViewerPresence(workspaceId);
-            }
-
             _ = webView.InvokeScript(SelectionJs);
             if (firstNavDone) return;
             firstNavDone = true;
@@ -684,14 +511,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         return webView;
     }
 
-    // ONE-SHOT initial-paint kick for a freshly-created WebView. Toggles IsVisible
-    // false→true at DispatcherPriority.Background so GTK sends a fresh map event,
-    // which is the signal WebKitGTK uses to start its own paint pipeline. Without
-    // this, WebKit runs the page's JS but never composites anything (canvas + DOM
-    // both invisible on the user's screen). Called exactly ONCE per WebView instance
-    // — the SM refactor's real fix (removing per-stream-state IsVisible toggles from
-    // RenderStreamState) is untouched, so we don't reintroduce the repeated-toggle
-    // freeze pattern.
     private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
     {
         Dispatcher.UIThread.Post(() =>
@@ -727,8 +546,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             }
             else
             {
-                // Evict cached URL so the next tab-switch triggers a real navigation attempt
-                // rather than assuming the browser is still at the previous http URL.
                 _lastKnownBrowserUrls.Remove(tabKey);
                 NavigateWebView(webView, WriteBrowserErrorPage(workspaceId, errorHtml));
             }
@@ -817,44 +634,30 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (tutorialVisible)
         {
             WebViewErrorBanner.IsVisible = false;
-            ChromiumDownloadBanner.IsVisible = false;
-            BrowserConnectingBanner.IsVisible = false;
             return;
         }
+
         UpdateErrorDisplay(_activeWorkspaceId);
         if (_activeTabKey is null) return;
         if (!_webViews.TryGetValue(_activeTabKey, out var active)) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
-
-        // For viewer tabs, defer to RenderStreamState (invariant: sole writer of viewer.IsVisible).
-        var isViewerTab = _activeTabKey.EndsWith(":viewer", StringComparison.Ordinal);
-        if (isViewerTab && _activeWorkspaceId is not null)
-            RenderStreamState(_activeWorkspaceId);
-        else
-            active.IsVisible = true;
+        active.IsVisible = true;
     }
 
     private void HandleBrowserCommand(BrowserCommand command)
     {
         if (_isClosed || _activeWorkspaceId is null) return;
-
-        if (_viewerState.GetAuthority(_activeWorkspaceId) == "human")
+        if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var wv))
         {
-            if (_activeTabKey is not null && _webViews.TryGetValue(_activeTabKey, out var wv))
+            switch (command)
             {
-                switch (command)
-                {
-                    case BrowserCommand.Back: wv.GoBack(); break;
-                    case BrowserCommand.Forward: wv.GoForward(); break;
-                    case BrowserCommand.Reload:
-                        if (wv.Source is { } src) ReloadWebView(wv, src);
-                        break;
-                }
+                case BrowserCommand.Back: wv.GoBack(); break;
+                case BrowserCommand.Forward: wv.GoForward(); break;
+                case BrowserCommand.Reload:
+                    if (wv.Source is { } src) ReloadWebView(wv, src);
+                    break;
             }
-            return;
         }
-
-        _ = PostHeadlessBrowserCommandAsync(command, _activeWorkspaceId);
     }
 
     private async Task PollActiveBrowserAddressAsync()
@@ -862,314 +665,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (_isClosed) return;
         if (_activeWorkspaceId is null) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
-        await PollHeadlessAddressAsync(_activeWorkspaceId);
-        await PollControlModeAsync(_activeWorkspaceId);
+
+        if (_activeTabKey is null || !_webViews.TryGetValue(_activeTabKey, out var webView)) return;
+        var src = webView.Source?.ToString();
+        if (string.IsNullOrWhiteSpace(src)) return;
+
+        _lastKnownBrowserUrls[_activeTabKey] = src;
+        if (DataContext is MainViewModel vm && !AddressBar.IsFocused)
+            vm.UpdateAddressFromBrowser(_activeWorkspaceId, src);
     }
-
-    private void OnBrowserEventsConnected()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_isClosed) return;
-            _hadBrowserEventsConnection = true;
-            _browserEventsConnected = true;
-            ConnectionLostBanner.IsVisible = false;
-        });
-    }
-
-    private void OnBrowserEventsDisconnected()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_isClosed) return;
-            _browserEventsConnected = false;
-            if (!_hadBrowserEventsConnection) return;
-            ConnectionLostBanner.IsVisible = true;
-            ChromiumDownloadBanner.IsVisible = false;
-            BrowserConnectingBanner.IsVisible = false;
-            // SSE stream is down — server-side truth is stale. Purge cached state so
-            // RenderStreamState hides the WebView until reconnection replays the events.
-            _viewerState.ClearStreamStates();
-            var viewerKey = _activeWorkspaceId is not null ? $"{_activeWorkspaceId}:viewer" : null;
-            if (viewerKey is not null && _webViews.TryGetValue(viewerKey, out var viewer))
-                viewer.IsVisible = false;
-        });
-    }
-
-    private void OnStreamStateChanged(StreamStateSnapshot snapshot)
-    {
-        RecordWebViewEvent(snapshot.WorkspaceId, "stream_state_changed", snapshot.Kind.ToString(), new()
-        {
-            ["kind"] = snapshot.Kind.ToString(),
-            ["chromiumState"] = snapshot.ChromiumState ?? string.Empty,
-            ["chromiumProgress"] = snapshot.ChromiumProgress.ToString(),
-            ["attempt"] = snapshot.Attempt.ToString(),
-            ["maxAttempts"] = snapshot.MaxAttempts.ToString(),
-            ["isActiveWorkspace"] = (_activeWorkspaceId == snapshot.WorkspaceId).ToString(),
-        });
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_isClosed) return;
-            _viewerState.SetStreamState(snapshot);
-            RenderStreamState(snapshot.WorkspaceId);
-            if (snapshot.CurrentUrl is { Length: > 0 } url)
-                ApplyAgentUrlChange(snapshot.WorkspaceId, url);
-        });
-    }
-
-    private void ApplyAgentUrlChange(string workspaceId, string url)
-    {
-        if (DataContext is not MainViewModel vm) return;
-        if (_activeWorkspaceId != workspaceId) return;
-        if (_viewerState.GetAuthority(workspaceId) != "ai") return;
-        _lastKnownBrowserUrls[$"{workspaceId}:viewer"] = url;
-        vm.SelectApplicationForUrl(workspaceId, url);
-        vm.UpdateAddressFromBrowser(workspaceId, url);
-    }
-
-    // Modal is now purely derived from JS state machine snapshot + focus. Shown only
-    // when the JS SM says it has been stalled for a meaningful period AND the window
-    // is unfocused — the two conditions together mean: "the AI is expected to be doing
-    // something, WebKit isn't painting fresh frames, and the user isn't looking, so
-    // what they'd see if they glanced over is stale." Otherwise hidden.
-    private static readonly TimeSpan ModalStalledThreshold = TimeSpan.FromSeconds(5);
-    private void UpdateBackgroundAttentionOverlay()
-    {
-        if (_isClosed) return;
-
-        var snapshot = _activeWorkspaceId is not null
-            ? _viewerState.GetViewerSnapshot(_activeWorkspaceId)
-            : null;
-        var stalledLongEnough = snapshot is not null
-            && string.Equals(snapshot.State, "stalled", StringComparison.Ordinal)
-            && DateTimeOffset.UtcNow - snapshot.ObservedAt < TimeSpan.FromSeconds(2)
-            && snapshot.StateAge >= ModalStalledThreshold;
-
-        var streamKind = _activeWorkspaceId is not null
-            ? _viewerState.GetStreamState(_activeWorkspaceId)?.Kind
-            : null;
-        var streamWantsToRender = streamKind is StreamStateKind.Streaming
-            or StreamStateKind.SessionLaunching;
-
-        var shouldShow = !_windowFocused && streamWantsToRender && stalledLongEnough;
-        BackgroundAttentionText.Text = "AI browser view is stale";
-        BackgroundAttentionBanner.IsVisible = shouldShow;
-
-        // Best-effort taskbar-flash the first time we enter the "user should know" state
-        // while unfocused. Modern Linux/macOS WMs treat Activate() on a background
-        // window as an urgency hint rather than a focus-steal.
-        if (shouldShow && !_lastFrameAttentionShown)
-        {
-            try { Activate(); }
-            catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
-            {
-                // No cross-platform "request attention" API in Avalonia 12; if the
-                // platform rejects Activate() on a background window, silently no-op —
-                // the modal itself is still shown and is the primary user signal.
-                Trace.TraceWarning(ex.Message);
-            }
-        }
-        _lastFrameAttentionShown = shouldShow;
-    }
-    private bool _lastFrameAttentionShown;
-
-    // ────────────────────────────────────────────────────────────────
-    // INVARIANT: this is the ONLY method that writes viewer.IsVisible
-    // for the AI-stream WebView, and the only method that toggles the
-    // ChromiumDownloadBanner or BrowserConnectingBanner. Any change to
-    // "when do we show the WebView vs a banner" must live here.
-    // Callers: OnStreamStateChanged (SSE), ActivateTab, tutorial-visibility
-    // change, workspace destroy, SwitchWebViewMode.
-    // ────────────────────────────────────────────────────────────────
-    private void RenderStreamState(string workspaceId)
-    {
-        if (_isClosed) return;
-
-        var viewerKey = $"{workspaceId}:viewer";
-        var isAi = _viewerState.GetAuthority(workspaceId) == "ai";
-        var isActiveViewerTab = _activeWorkspaceId == workspaceId && _activeTabKey == viewerKey;
-        var tutorialVisible = IsTutorialVisible();
-        var snap = _viewerState.GetStreamState(workspaceId);
-        var kind = snap?.Kind;
-        // Lifecycle rule: the viewer WebView exists ONLY while the server is Streaming.
-        // Any other state (WorkspaceStopped, AppConnecting, AppFailed, SessionLaunching,
-        // ChromiumDownloading) destroys the WebView so the Avalonia banner underneath
-        // takes over the pixel area — Linux/GTK's NativeControlHost renders the WebView
-        // subwindow above anything Avalonia draws in the same window regardless of
-        // ZIndex, so keeping the WebView around means the last-known Chromium content
-        // (typically "This site can't be reached" after a stop) bleeds through. Every
-        // fresh Streaming transition then creates a brand-new WebView, which naturally
-        // routes through ForceFirstWebKitPaint to kick off WebKit's paint pipeline.
-        var wantWebView = WantsViewerWebView(snap, isAi, isActiveViewerTab, tutorialVisible);
-        var haveWebView = _webViews.ContainsKey(viewerKey);
-        // Only destroy when the stream state is KNOWN and not Streaming. If kind is null
-        // (no SSE received yet — e.g. fresh app boot or tests that don't publish state),
-        // leave any existing WebView alone. Otherwise a WebView created by
-        // HandleHeadlessNavigation on user navigation would be destroyed the moment it's
-        // added, before NavigationCompleted can even fire.
-        var shouldDestroy = ShouldDestroyViewerWebView(snap, isAi, isActiveViewerTab, tutorialVisible);
-
-        if (shouldDestroy && haveWebView)
-        {
-            DestroyWorkspaceWebView(viewerKey);
-            _viewerState.UnmarkViewerPageLoaded(workspaceId);
-            _viewerState.RemoveViewerSnapshot(workspaceId);
-        }
-        else if (wantWebView && !haveWebView)
-        {
-            // Create fresh WebView + navigate. TryGetOrCreateWebView starts it hidden;
-            // we make it visible below. Navigation is deferred one dispatcher tick past
-            // Loaded so Avalonia has time to lay out the freshly-added WebView and GTK
-            // has time to map its native subwindow. Without the defer, NavigationCompleted
-            // can fire against an unmapped widget — ForceFirstWebKitPaint's IsVisible
-            // toggle then has nothing to unmap/remap, and WebKit never gets its initial
-            // paint kick. First start works because it comes through HandleHeadlessNavigation
-            // which posts the navigate asynchronously; the second start (after our Stop
-            // disposed the WebView) has to route through this branch, which is why the
-            // problem was start→stop→start-specific.
-            var viewerUrl = BuildViewerUrl(workspaceId);
-            if (TryGetOrCreateWebView(viewerKey, workspaceId, viewerUrl.ToString(), out var created, out _))
-            {
-                created.IsVisible = true;
-                var pinnedViewer = created;
-                var pinnedUrl = viewerUrl;
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (_isClosed) return;
-                    if (!_webViews.TryGetValue(viewerKey, out var current) || !ReferenceEquals(current, pinnedViewer))
-                        return;
-                    NavigateWebView(pinnedViewer, pinnedUrl);
-                }, DispatcherPriority.Loaded);
-            }
-        }
-        else if (_webViews.TryGetValue(viewerKey, out var viewer))
-        {
-            // Existing WebView (Streaming state, unchanged). Keep it visible.
-            viewer.IsVisible = wantWebView;
-        }
-
-        // Banner state applies only when this workspace's viewer tab is currently active.
-        if (isAi && isActiveViewerTab && !tutorialVisible)
-            ApplyBanners(snap);
-        else if (_activeWorkspaceId == workspaceId)
-        {
-            ChromiumDownloadBanner.IsVisible = false;
-            BrowserConnectingBanner.IsVisible = false;
-        }
-
-        _viewerState.SetLastRenderedKind(workspaceId, kind);
-        UpdateViewerPresence(workspaceId);
-        if (workspaceId == _activeWorkspaceId)
-            UpdateBackgroundAttentionOverlay();
-    }
-
-    // Fires every 500 ms while the app is alive. Reads the JS state machine snapshot
-    // on the active viewer WebView and feeds it back into Avalonia's SM via
-    // OnViewerSnapshot. This is the ONLY bridge from JS → Avalonia — no ad-hoc pokes,
-    // no assumptions, one polling read per tick.
-    //
-    // We also unconditionally InvalidateVisual the WebView each tick. On Linux/GTK the
-    // WebKit surface is composited by the OS window manager independently of JS —
-    // frames drawn to the canvas element land in WebKit's back buffer but aren't
-    // guaranteed to reach the screen unless something asks Avalonia (and by extension
-    // the GTK compositor) to re-paint the WebView's Avalonia rect. When the app window
-    // is unfocused most WMs skip that repaint. InvalidateVisual is a request from OUR
-    // code, so it happens regardless of focus, and it's cheap when nothing changed.
-    private async void OnViewerSnapshotPollTick(object? sender, EventArgs e)
-    {
-        if (_isClosed || _activeWorkspaceId is null || _activeTabKey is null) return;
-        if (!_activeTabKey.EndsWith(":viewer", StringComparison.Ordinal)) return;
-        if (!_webViews.TryGetValue(_activeTabKey, out var viewer)) return;
-        if (!_viewerState.IsViewerPageLoaded(_activeWorkspaceId)) return;
-
-        // Ask Avalonia to re-composite the WebView's rectangle. Belt: cheap and works
-        // on all platforms when the compositor is willing.
-        viewer.InvalidateVisual();
-        // Braces: on Linux/X11 the OS compositor stops asking the WebView subwindow
-        // for its surface while the app is unfocused, so InvalidateVisual alone doesn't
-        // reach the screen. The X11 adapter sends an Expose event to the top-level
-        // window, which forces GTK to re-composite the WebView surface. Noop on
-        // Windows/macOS where the OS compositor already handles background windows.
-        _compositorHint.RequestRepaint(this);
-
-        string? raw;
-        try
-        {
-            raw = await viewer.InvokeScript(
-                "(window.__viewer && window.__viewer.snapshot) ? JSON.stringify(window.__viewer.snapshot()) : null");
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
-        {
-            return;
-        }
-        if (_isClosed) return;
-        var snapshot = ViewerSnapshot.TryParse(raw);
-        if (snapshot is null) return;
-        OnViewerSnapshot(_activeWorkspaceId, snapshot);
-    }
-
-    // Reducer that lets the JS SM feed the Avalonia SM. Called once per successful
-    // snapshot poll on the active viewer. Updates observable state and triggers the
-    // dependent UI refreshes.
-    private void OnViewerSnapshot(string workspaceId, ViewerSnapshot snapshot)
-    {
-        _viewerState.SetViewerSnapshot(workspaceId, snapshot);
-        if (workspaceId == _activeWorkspaceId)
-            UpdateBackgroundAttentionOverlay();
-    }
-
-    // Presence is "foreground" only if a human is actually watching THIS viewer right now:
-    // window has focus, viewer tab is the active sub-tab, workspace is the active workspace,
-    // AI mode, no tutorial in the way, AND stream state is Streaming (non-Streaming means
-    // banner is covering it or content is stale, no point burning CPU sending frames).
-    // Anything else → background → server caps this subscriber at 1 fps.
-    private void UpdateViewerPresence(string workspaceId)
-    {
-        if (_isClosed) return;
-        var viewerKey = $"{workspaceId}:viewer";
-        if (!_webViews.TryGetValue(viewerKey, out var viewer)) return;
-        if (!_viewerState.IsViewerPageLoaded(workspaceId)) return;  // window.__viewer not yet installed.
-
-        var isAi = _viewerState.GetAuthority(workspaceId) == "ai";
-        var isActiveViewerTab = _activeWorkspaceId == workspaceId && _activeTabKey == viewerKey;
-        var tutorialVisible = IsTutorialVisible();
-        var streamStreaming = _viewerState.GetStreamState(workspaceId)?.Kind == StreamStateKind.Streaming;
-        var isForeground = _windowFocused && isAi && isActiveViewerTab && !tutorialVisible && streamStreaming;
-
-        var state = isForeground ? "foreground" : "background";
-        // Call the JS state machine's public API on window.__viewer, matching the shape
-        // exposed by rdp-viewer.js. Guarded so a mid-load call before the SM has been
-        // installed is a no-op instead of a thrown ReferenceError.
-        _ = viewer.InvokeScript($"window.__viewer && window.__viewer.setPresence && window.__viewer.setPresence('{state}')");
-    }
-
-    private void UpdateAllViewerPresences()
-    {
-        if (_isClosed) return;
-        foreach (var workspaceId in _webViews.Keys
-                     .Where(k => k.EndsWith(":viewer", StringComparison.Ordinal))
-                     .Select(k => k[..^":viewer".Length])
-                     .ToList())
-            UpdateViewerPresence(workspaceId);
-    }
-
-    private void ApplyBanners(StreamStateSnapshot? snap)
-    {
-        var decision = ResolveBannerDecision(snap);
-        BrowserConnectingBanner.IsVisible = decision.ShowConnecting;
-        if (decision.ShowConnecting)
-            BrowserConnectingText.Text = decision.ConnectingText;
-        ChromiumDownloadBanner.IsVisible = decision.ShowDownload;
-        if (decision.ShowDownload)
-        {
-            ChromiumDownloadText.Text = decision.DownloadText;
-            ChromiumDownloadProgress.IsVisible = !decision.DownloadFailed;
-            ChromiumDownloadProgress.Value = decision.DownloadProgress;
-            ChromiumDownloadProgress.IsIndeterminate = !decision.DownloadFailed && decision.DownloadProgress == 0;
-        }
-    }
-
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
@@ -1397,7 +901,6 @@ code {
         _webViewErrors.Clear();
         _lastKnownBrowserUrls.Clear();
         _navigationVersions.Clear();
-        _viewerState.ClearAll();
         _activeWorkspaceId = null;
         _activeTabKey = null;
     }
@@ -1408,7 +911,6 @@ code {
             DestroyWorkspaceWebView(tabKey);
 
         _webViewErrors.Remove(workspaceId);
-        _viewerState.RemoveWorkspace(workspaceId);
         DeleteBrowserErrorPage(workspaceId);
 
         if (_activeWorkspaceId != workspaceId)
@@ -1456,286 +958,22 @@ code {
         }
     }
 
-    private void HandleHeadlessNavigation(string workspaceId, string? url, bool tutorialVisible, bool reloadIfSameUrl)
-    {
-        var tabKey = $"{workspaceId}:viewer";
-        ActivateTab(workspaceId, tabKey, tutorialVisible);
-
-        if (url is not null
-            && Uri.TryCreate(url, UriKind.Absolute, out var navUri)
-            && navUri.Scheme is "http" or "https")
-        {
-            // Only create the viewer WebView here when it's safe: we're either in
-            // Streaming state (RenderStreamState will keep the WebView alive) or we
-            // don't have any stream state yet (fresh app boot before SSE has told us
-            // anything). During transient stream states (AppConnecting, SessionLaunching,
-            // WorkspaceStopped, AppFailed) creating here would race with RenderStreamState's
-            // "destroy while non-Streaming" rule and produce a create/destroy churn that
-            // starves NavigationCompleted → ForceFirstWebKitPaint → black screen.
-            var currentKind = _viewerState.GetStreamState(workspaceId)?.Kind;
-            var canCreateHere = currentKind is null or StreamStateKind.Streaming;
-
-            if (canCreateHere && !_webViews.ContainsKey(tabKey))
-            {
-                var viewerUrl = BuildViewerUrl(workspaceId);
-                if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUrl.ToString(), out _, out _))
-                    return;
-            }
-
-            _lastKnownBrowserUrls[tabKey] = url;
-            RecordWebViewEvent(workspaceId, "headless_navigate", "info", new()
-            {
-                ["url"] = url,
-                ["reloadIfSameUrl"] = reloadIfSameUrl.ToString(),
-                ["viewerTabKey"] = tabKey,
-            });
-            _ = PostHeadlessNavigateAndRememberAsync(tabKey, workspaceId, url, reloadIfSameUrl);
-        }
-
-        RenderStreamState(workspaceId);
-    }
-
-    // Called when ShowPortView transitions false→true (e.g. switching from a TCP tab back to an HTTP tab).
-    private void WakeActiveViewer()
+    private void WakeActiveWebView()
     {
         if (_isClosed || _activeTabKey is null || _activeWorkspaceId is null) return;
+        if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
 
-        if (_viewerState.GetAuthority(_activeWorkspaceId) == "human")
+        if (_lastKnownBrowserUrls.TryGetValue(_activeTabKey, out var lastUrl)
+            && Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)
+            && !string.Equals(webView.Source?.ToString(), lastUrl, StringComparison.Ordinal))
         {
-            if (!_webViews.TryGetValue(_activeTabKey, out var webView)) return;
-            // Human mode: navigate the direct port WebView to the last known URL if needed.
-            if (_lastKnownBrowserUrls.TryGetValue(_activeTabKey, out var lastUrl)
-                && Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)
-                && !string.Equals(webView.Source?.ToString(), lastUrl, StringComparison.Ordinal))
-            {
-                var ver = _navigationVersions.GetValueOrDefault(_activeTabKey) + 1;
-                _navigationVersions[_activeTabKey] = ver;
-                _ = NavigatePortWebViewAsync(_activeTabKey, _activeWorkspaceId, webView, lastUri, ver);
-            }
-            return;
-        }
-
-        // AI mode: RenderStreamState decides visibility + performs navigate/reload as needed.
-        RenderStreamState(_activeWorkspaceId);
-    }
-
-    private async Task PollHeadlessAddressAsync(string workspaceId)
-    {
-        if (_viewerState.GetAuthority(workspaceId) == "human")
-        {
-            // In human mode read the URL from the currently active (visible) WebView.
-            var humanTabKey = _activeTabKey != $"{workspaceId}:viewer" ? _activeTabKey : null;
-            if (humanTabKey is not null && _webViews.TryGetValue(humanTabKey, out var humanWv))
-            {
-                var src = humanWv.Source?.ToString();
-                if (!string.IsNullOrWhiteSpace(src))
-                {
-                    _lastKnownBrowserUrls[humanTabKey] = src;
-                    // Don't overwrite the address bar while the user is typing in it.
-                    if (DataContext is MainViewModel vm && !AddressBar.IsFocused)
-                        vm.UpdateAddressFromBrowser(workspaceId, src);
-                }
-            }
-            return;
-        }
-
-        try
-        {
-            var url = await _serverHttp.GetStringAsync(
-                $"/api/browser/current-url/{Uri.EscapeDataString(workspaceId)}");
-            if (string.IsNullOrWhiteSpace(url)) return;
-
-            var trimmed = url.Trim();
-            var tabKey = $"{workspaceId}:viewer";
-            if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
-            {
-                _lastKnownBrowserUrls[tabKey] = trimmed;
-                if (DataContext is MainViewModel vm)
-                    vm.UpdateAddressFromBrowser(workspaceId, trimmed);
-            }
-            else
-            {
-                _lastKnownBrowserUrls.Remove(tabKey);
-                // Chromium is on an error or blank page. Retry navigation to the intended URL
-                // so the display recovers automatically once the app is reachable again.
-                if (DateTimeOffset.UtcNow - _lastHeadlessRetry >= TimeSpan.FromSeconds(5))
-                {
-                    var intendedUrl = (DataContext as MainViewModel)?.AddressBarUrl;
-                    if (!string.IsNullOrWhiteSpace(intendedUrl)
-                        && intendedUrl.StartsWith("http", StringComparison.Ordinal))
-                    {
-                        _lastHeadlessRetry = DateTimeOffset.UtcNow;
-                        _ = PostHeadlessNavigateAsync(workspaceId, intendedUrl, reloadIfSameUrl: true);
-                    }
-                }
-            }
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
-    }
-
-    private async Task PollControlModeAsync(string workspaceId)
-    {
-        try
-        {
-            var json = await _serverHttp.GetStringAsync(
-                $"/api/browser/input/control-mode/{Uri.EscapeDataString(workspaceId)}");
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var authority = root.GetProperty("authority").GetString() ?? "ai";
-            var width = root.GetProperty("width").GetInt32();
-            var height = root.GetProperty("height").GetInt32();
-
-            var oldAuthority = _viewerState.GetAuthority(workspaceId);
-            _viewerState.SetAuthority(workspaceId, authority);
-
-            if (DataContext is MainViewModel vm)
-                vm.Sidebar.ApplyControlMode(workspaceId, authority, width, height);
-
-            if (oldAuthority != authority)
-                SwitchWebViewMode(workspaceId, authority);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
-    }
-
-    private void SwitchWebViewMode(string workspaceId, string authority)
-    {
-        var tutorialVisible = IsTutorialVisible();
-        var vm = DataContext as MainViewModel;
-
-        if (authority == "human")
-        {
-            ChromiumDownloadBanner.IsVisible = false;
-            ConnectionLostBanner.IsVisible = false;
-            // Activate the direct port WebView; navigate to the last URL the headless browser was at,
-            // or fall back to the address bar URL (e.g. when the app is offline and never loaded).
-            var viewerTabKey = $"{workspaceId}:viewer";
-            if (!_lastKnownBrowserUrls.TryGetValue(viewerTabKey, out var lastUrl))
-                lastUrl = vm?.AddressBarUrl;
-            if (lastUrl is null) return;
-            if (!Uri.TryCreate(lastUrl, UriKind.Absolute, out var lastUri)) return;
-
-            var tabKey = TabKey(workspaceId, lastUri);
-            ActivateTab(workspaceId, tabKey, tutorialVisible);
-
-            // Restore human-mode address bar state (prefer where human was last, else AI's URL).
-            if (vm is not null)
-                vm.AddressBarUrl = _lastKnownBrowserUrls.GetValueOrDefault(tabKey) ?? lastUrl;
-
-            if (_webViews.TryGetValue(tabKey, out var existingWv))
-            {
-                existingWv.IsVisible = !tutorialVisible;
-                return;
-            }
-
-            if (!TryGetOrCreateWebView(tabKey, workspaceId, lastUrl, out var wv, out var dest)) return;
-            wv.IsVisible = !tutorialVisible;
-            var ver = _navigationVersions.GetValueOrDefault(tabKey) + 1;
-            _navigationVersions[tabKey] = ver;
-            _ = NavigatePortWebViewAsync(tabKey, workspaceId, wv, new Uri(dest), ver);
-        }
-        else
-        {
-            // Activate the AI stream viewer tab.
-            var tabKey = $"{workspaceId}:viewer";
-            ActivateTab(workspaceId, tabKey, tutorialVisible);
-
-            // If the server SSE stream is down, show the connection lost banner instead of the viewer.
-            if (_hadBrowserEventsConnection && !_browserEventsConnected)
-                ConnectionLostBanner.IsVisible = true;
-            else
-                WakeActiveViewer();
-
-            // Restore AI-mode address bar state.
-            if (vm is not null && _lastKnownBrowserUrls.TryGetValue(tabKey, out var aiUrl))
-                vm.AddressBarUrl = aiUrl;
+            var ver = _navigationVersions.GetValueOrDefault(_activeTabKey) + 1;
+            _navigationVersions[_activeTabKey] = ver;
+            _ = NavigatePortWebViewAsync(_activeTabKey, _activeWorkspaceId, webView, lastUri, ver);
         }
     }
 
     private void OnPortPaneSizeChanged(object? sender, SizeChangedEventArgs e) { }
-
-    private async Task PostHeadlessNavigateAndRememberAsync(
-        string tabKey,
-        string workspaceId,
-        string url,
-        bool reloadIfSameUrl)
-    {
-        if (await PostHeadlessNavigateAsync(workspaceId, url, reloadIfSameUrl))
-        {
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                if (!_isClosed && _webViews.ContainsKey(tabKey))
-                    _lastKnownBrowserUrls[tabKey] = url;
-            });
-        }
-    }
-
-    private async Task<bool> PostHeadlessNavigateAsync(string workspaceId, string url, bool reloadIfSameUrl)
-    {
-        try
-        {
-            using var response = await _serverHttp.PostAsync(
-                $"/api/browser/navigate/{Uri.EscapeDataString(workspaceId)}?url={Uri.EscapeDataString(url)}&reloadIfSameUrl={(reloadIfSameUrl ? "true" : "false")}",
-                null);
-            response.EnsureSuccessStatusCode();
-            return true;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            Trace.TraceWarning(ex.Message);
-            return false;
-        }
-    }
-
-    private async Task PostHeadlessBrowserCommandAsync(BrowserCommand command, string workspaceId)
-    {
-        var endpoint = command switch
-        {
-            BrowserCommand.Back => $"/api/browser/navigate-back/{Uri.EscapeDataString(workspaceId)}",
-            BrowserCommand.Forward => $"/api/browser/navigate-forward/{Uri.EscapeDataString(workspaceId)}",
-            BrowserCommand.Reload => $"/api/browser/reload/{Uri.EscapeDataString(workspaceId)}",
-            _ => null
-        };
-        if (endpoint is null) return;
-        try
-        {
-            using var response = await _serverHttp.PostAsync(endpoint, null);
-            response.EnsureSuccessStatusCode();
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
-    }
-
-    private Uri BuildViewerUrl(string workspaceId)
-        => new(_serverHttp.BaseAddress!, $"/api/browser/rdp-viewer?workspaceId={Uri.EscapeDataString(workspaceId)}");
-
-    private static bool IsAtViewerUrl(NativeWebView webView, Uri viewerUrl)
-        => !ShouldReclaimViewerUrl(webView.Source?.AbsoluteUri, viewerUrl.AbsoluteUri);
-
-    private void RetryViewerNavigation(string tabKey, string workspaceId, NativeWebView webView, Uri viewerUrl)
-    {
-        RecordWebViewEvent(workspaceId, "viewer_retry", "info", new()
-        {
-            ["tabKey"] = tabKey,
-            ["url"] = viewerUrl.ToString(),
-            ["currentSource"] = webView.Source?.ToString() ?? string.Empty,
-            ["streamKind"] = _viewerState.GetStreamState(workspaceId)?.Kind.ToString() ?? "unknown",
-        });
-        Dispatcher.UIThread.Post(
-            () =>
-            {
-                if (CanTouchWebView(tabKey, webView))
-                    ReloadWebView(webView, viewerUrl);
-            },
-            DispatcherPriority.Background);
-    }
 
     private static readonly JsonSerializerOptions _auditJsonOptions = new()
     {
@@ -1759,7 +997,6 @@ code {
             }
         });
     }
-
 
     private void OnConsoleOverlayPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -1891,4 +1128,3 @@ code {
         }
     }
 }
-

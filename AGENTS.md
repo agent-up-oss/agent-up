@@ -624,7 +624,7 @@ Read: `docs/developer-guide/server.md`.
 
 The Desktop is the Avalonia UI for humans. It presents Server-owned state and shared browser sessions.
 
-**Per-workspace browser isolation:** Each workspace gets a Server-owned browser profile and RDP remote browser session. Desktop displays the Server RDP viewer page for the selected workspace and must not own browser lifecycle, profile storage, input policy, or viewport policy. Human mode follows the Desktop viewer dimensions; AI mode uses the last selected standardized viewport preset.
+**Per-workspace browser isolation:** Each workspace gets a Server-owned browser profile and headless automation session for MCP tools. Desktop displays running applications through a direct embedded WebView connection to the allocated HTTP port and must not own browser lifecycle, profile storage, or automation viewport policy.
 
 Read: `docs/developer-guide/desktop.md`.
 

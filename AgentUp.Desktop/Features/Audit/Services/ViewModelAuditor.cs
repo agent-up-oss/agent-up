@@ -171,19 +171,6 @@ public class ViewModelAuditor : IDisposable
             .Subscribe(v => _ = RecordFieldAsync(ws.Id, "workspace.stateColor", v))
             .DisposeWith(inner);
 
-        ws.WhenAnyValue(x => x.ControlAuthority)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(ws.Id, "workspace.controlAuthority", v))
-            .DisposeWith(inner);
-
-        // ControlLabel encodes both authority and viewport dimensions (e.g. "AI · 1280×720").
-        ws.WhenAnyValue(x => x.ControlLabel)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(ws.Id, "workspace.controlLabel", v))
-            .DisposeWith(inner);
-
         void OnAppsChanged(object? _, EventArgs __)
         {
             _ = RecordFieldAsync(ws.Id, "workspace.applicationCount", ws.Applications.Count.ToString());
@@ -452,8 +439,6 @@ public class ViewModelAuditor : IDisposable
             f["workspace.worktreePath"] = ws.WorktreePath;
             f["workspace.state"] = ws.State;
             f["workspace.stateColor"] = ws.StateColor;
-            f["workspace.controlAuthority"] = ws.ControlAuthority;
-            f["workspace.controlLabel"] = ws.ControlLabel;
             f["workspace.initials"] = ws.Initials;
             f["workspace.applicationCount"] = ws.Applications.Count.ToString();
 

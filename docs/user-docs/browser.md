@@ -4,7 +4,7 @@ title: Browser
 
 # Browser
 
-Every workspace owns an isolated browser profile. The Server manages browser instances, RDP remote display, and input ownership. The Desktop displays the Server-owned session.
+Every workspace owns an isolated browser profile. The Server manages browser lifecycle, profiles, and automation sessions. The Desktop connects directly to each application's allocated HTTP port in an embedded WebView.
 
 Browser state includes:
 
@@ -14,11 +14,11 @@ Browser state includes:
 - IndexedDB.
 - Cache.
 
-Changing workspaces restores browser state. Restarting applications should reload the existing browser session instead of creating new tabs.
+Changing workspaces restores browser state. Restarting applications should reload the existing workspace browser session instead of creating new tabs.
 
-## Human And AI Control
+## Desktop And Agent Browsing
 
-Browser control can move between humans and AI agents. Human mode follows the Desktop viewer size so pointer, wheel, and keyboard input align with what is visible. AI mode uses a standardized viewport preset so automation returns to a predictable browser size.
+Developers use the Desktop embedded browser to interact with running applications on their allocated HTTP ports. AI agents use the Server headless browser through MCP automation tools. The Desktop does not stream or mirror the headless session.
 
 ## Structured Inspection
 
