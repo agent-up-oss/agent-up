@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
@@ -30,6 +31,7 @@ public sealed class MainViewModel : ReactiveObject
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
     public ConsoleViewModel Console { get; }
+    public ApplicationAuditViewModel Audit { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
 
     public ObservableCollection<SubTabViewModel> SubTabs { get; } = [];
@@ -41,6 +43,7 @@ public sealed class MainViewModel : ReactiveObject
     }
 
     public bool ShowConsole => SelectedSubTab is ConsoleSubTabViewModel;
+    public bool ShowAudit => SelectedSubTab is AuditSubTabViewModel;
     public bool ShowPortView => SelectedSubTab is PortSubTabViewModel { IsHttp: true };
     public bool ShowTcpInfo => SelectedSubTab is PortSubTabViewModel { IsHttp: false };
 
@@ -65,12 +68,14 @@ public sealed class MainViewModel : ReactiveObject
         WorkspaceListViewModel sidebar,
         ApplicationListViewModel applications,
         ConsoleViewModel console,
+        ApplicationAuditViewModel audit,
         FirstRunTutorialViewModel tutorial,
         PortsController ports)
     {
         Sidebar = sidebar;
         Applications = applications;
         Console = console;
+        Audit = audit;
         Tutorial = tutorial;
         _ports = ports;
 
@@ -163,6 +168,7 @@ public sealed class MainViewModel : ReactiveObject
             .Subscribe(tab =>
             {
                 this.RaisePropertyChanged(nameof(ShowConsole));
+                this.RaisePropertyChanged(nameof(ShowAudit));
                 this.RaisePropertyChanged(nameof(ShowPortView));
                 this.RaisePropertyChanged(nameof(ShowTcpInfo));
                 if (tab is PortSubTabViewModel { IsHttp: true } portTab)
@@ -179,6 +185,10 @@ public sealed class MainViewModel : ReactiveObject
                 }
                 if (tab is PortSubTabViewModel selectedPort)
                     _ = selectedPort.ProbeAsync();
+                if (tab is AuditSubTabViewModel
+                    && Sidebar.SelectedWorkspace?.Id is { } workspaceId
+                    && Applications.SelectedApplication?.Name is { } application)
+                    _ = Audit.LoadAsync(workspaceId, application);
             });
 
     private void SubscribeTutorialSteps()
@@ -359,13 +369,18 @@ public sealed class MainViewModel : ReactiveObject
     private void RebuildSubTabs(ApplicationViewModel? app)
     {
         SubTabs.Clear();
-        if (app is null) return;
+        if (app is null)
+        {
+            SelectedSubTab = null;
+            return;
+        }
 
         var ports = app.AllocatedPorts
             .Select(port => new PortTabRequest(port.Variable ?? string.Empty, port.DefaultPort, port.AllocatedPort, port.Protocol))
             .ToList();
         foreach (var tab in _ports.CreateTabs(ports))
             SubTabs.Add(tab);
+        SubTabs.Add(new AuditSubTabViewModel());
 
         SelectedSubTab = SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault()
             ?? (SubTabViewModel)SubTabs[0];

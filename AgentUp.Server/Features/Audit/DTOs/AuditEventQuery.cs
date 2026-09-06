@@ -11,4 +11,7 @@ public sealed record AuditEventQuery(
     string? Outcome,
     DateTimeOffset? From,
     DateTimeOffset? To,
-    int Limit);
+    int Limit,
+    string? Application = null,
+    DateTimeOffset? Before = null,
+    string? BeforeEventId = null);

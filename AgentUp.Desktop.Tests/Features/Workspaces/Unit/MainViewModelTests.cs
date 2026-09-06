@@ -110,7 +110,7 @@ public class MainViewModelTests
 
         await vm.InitializeAsync();
 
-        Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["3000:5100", "5000:5101", "Console"]));
+        Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["3000:5100", "5000:5101", "Console", "Audit"]));
         Assert.That(vm.SelectedSubTab, Is.TypeOf<PortSubTabViewModel>());
         Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5100));
         Assert.That(vm.ShowPortView, Is.True);
@@ -366,7 +366,7 @@ public class MainViewModelTests
 
         await vm.InitializeAsync();
 
-        Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["Console"]));
+        Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["Console", "Audit"]));
         Assert.That(vm.SelectedSubTab, Is.TypeOf<ConsoleSubTabViewModel>());
         Assert.That(vm.ShowConsole, Is.True);
         Assert.That(vm.AddressBarUrl, Is.Null);

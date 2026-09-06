@@ -37,6 +37,7 @@ The Desktop displays:
 - Diagnostics.
 - Health.
 - Running processes.
+- A paginated frontend audit trail for each selected application.
 
 It connects to the Server and renders server-owned state.
 

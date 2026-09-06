@@ -19,6 +19,9 @@ Diagnostics include:
 
 Diagnostics are exposed through MCP and displayed by the Desktop.
 Orchestration MCP exposes `get_workspace_console` for a bounded live snapshot of application console output and the recent durable console audit trail for a workspace.
+Per-application audit pages use a composite timestamp and event-ID cursor so
+events sharing a timestamp are neither skipped nor repeated. Repository queries
+use the cursor timestamp to avoid loading newer daily audit files on later pages.
 
 ## Purpose
 

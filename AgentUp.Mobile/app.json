@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Agent-Up",
+    "slug": "agent-up",
+    "version": "0.1.0",
+    "scheme": "agent-up",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

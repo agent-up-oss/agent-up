@@ -8,6 +8,14 @@
       "ports": [
         { "variable": "PORT", "defaultPort": 3000 }
       ]
+    },
+    {
+      "name": "Mobile",
+      "command": "npm run web",
+      "path": "AgentUp.Mobile",
+      "ports": [
+        { "variable": "WEB_PORT", "defaultPort": 8081, "protocol": "http" }
+      ]
     }
   ],
   "services": [

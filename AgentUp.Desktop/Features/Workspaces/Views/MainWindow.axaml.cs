@@ -323,7 +323,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         if (_isClosed) return;
 
-        if (e.Action == NotifyCollectionChangedAction.Reset)
+        if (e.Action == NotifyCollectionChangedAction.Reset
+            || sender is System.Collections.ICollection { Count: 0 })
         {
             DestroyWorkspaceWebViews();
             return;

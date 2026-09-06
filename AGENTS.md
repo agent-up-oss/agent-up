@@ -58,6 +58,12 @@ AgentUp.Capabilities.Docker/
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
+AgentUp.Mobile/
+  package.json
+
+AgentUp.WebAudit/
+  package.json
+
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
@@ -116,6 +122,8 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
 | `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
+| `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
+| `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -188,6 +196,11 @@ AgentUp.Desktop/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
       DTOs/
       ViewModels/
+
+AgentUp.Mobile/
+  src/
+    app/               (Expo Router entrypoints only)
+    features/          (product-meaningful React Native client slices)
 
 AgentUp.CLI/
   Features/
@@ -405,6 +418,14 @@ The CLI is a thin developer convenience wrapper over Server capabilities.
 
 It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/cli.md`.
 
+## Mobile
+
+The mobile client is a single Expo and React Native TypeScript project that targets Android, iOS, and an installable web PWA. It lives in `AgentUp.Mobile/` at the repository root and is not part of `agent-up.sln`.
+
+Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. The mobile client displays Server-owned state and must not own orchestration.
+
+Developer guide: `docs/developer-guide/mobile.md`.
+
 ## MCP
 
 MCP is the primary automation interface for AI agents.
@@ -417,7 +438,7 @@ Agent-Up MCP initialization instructions must tell clients to use `start_workspa
 
 Every managed repository is described declaratively with `agent-up.json`.
 
-Applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration.
+Managed applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration. The first-party AgentUp.Mobile client is an explicit exception and may consume the state-free `@agent-up/audit` browser transport because it is itself an Agent-Up product client.
 
 Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
@@ -463,6 +484,14 @@ Developer guides:
 Diagnostics are collected continuously by the Server and exposed to Desktop, CLI, and MCP clients.
 
 Diagnostics include console output, JavaScript exceptions, failed network requests, performance timings, health information, and process status.
+
+Managed application processes receive `AGENT_UP_AUDIT_ENDPOINT`,
+`AGENT_UP_WORKSPACE_ID`, and `AGENT_UP_APPLICATION`. Frontend builds may expose
+those values to `@agent-up/audit`; the endpoint must identify the orchestrating
+Server's configured URL rather than assuming a fixed development or packaged port.
+The Server owns ingestion, identity enrichment,
+storage, and paginated per-application queries. Desktop renders that audit trail
+with native Avalonia controls next to each application's Console tab.
 
 Full guide: `docs/developer-guide/diagnostics.md`.
 
@@ -522,6 +551,12 @@ dotnet test AgentUp.Architecture.Tests/AgentUp.Architecture.Tests.csproj
 ```
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+
+Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:web` from that directory. Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
+
+Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
+
+Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest, install icons, production-only service-worker registration, and stable updater service worker synchronized. Ticket-number-prefixed branches are mobile release channels; their immutable GitHub pre-releases contain the complete Metro ZIP payload plus metadata with its SHA-256 digest and required files. The client must validate that metadata, digest, archive paths, and size limits before caching a release. The updater service worker changes only when its bootstrap protocol changes, never returns cached redirect responses, deletes superseded release caches after activation, and preserves the documented network recovery query path.
 
 Forbidden:
 
@@ -761,6 +796,8 @@ Use the correct prefix — the choice signals intent to reviewers and changelog 
 Scope commit messages to the queued slice, for example `fix(UbuntuInstallation): cover tray autostart boundary`. **Never use `feat` for internal fixes**, even when the fix introduces a new guard, method, or type. Production changes in Server, CLI, Tray, InstallerApp, Installers, or Desktop are customer-facing and should be `fix` or `feat` unless they are true no-behavior source refactors. Test-only changes and PackageSmoke changes use `test` unless they accompany same-slice `feat` or `fix` production changes in the same queued entry. When in doubt, choose the prefix by user-visible intent first and file type second.
 
 ## Packaging And Installers
+
+The Agent-Up main release workflow publishes `@agent-up/audit` to npm with the planned release version when `NPM_TOKEN` is configured.
 
 Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, and PackageSmoke artifacts from the Ubuntu build job so native release runners do not restore, build, or test product .NET projects. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
 
