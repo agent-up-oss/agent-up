@@ -22,10 +22,13 @@
     {
       "name": "Database",
       "image": "postgres:16",
+      "database": true,
       "ports": [
         { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
       ],
       "environment": {
+        "POSTGRES_DB": "agent_up",
+        "POSTGRES_USER": "agent_up",
         "POSTGRES_PASSWORD": "not-a-real-value"
       },
       "volumes": ["pgdata:/var/lib/postgresql/data"]
