@@ -74,4 +74,7 @@ public static class MainViewModelFactory
             new MetricsApiClient(http),
             new ApplicationAuditApiClient(http));
     }
+
+    public static HostMetricsController CreateHostMetricsController(HttpClient http) =>
+        new(new HostMetricsReporter(new HostMetricsApiClient(http)));
 }

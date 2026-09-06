@@ -16,10 +16,9 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
-using AgentUp.Desktop.Features.Metrics.Providers;
-using AgentUp.Desktop.Features.Metrics.Services;
 using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
@@ -265,7 +264,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             _addressPollTimer.Start();
 
         _hostMetricsController?.Dispose();
-        _hostMetricsController = new HostMetricsController(new HostMetricsReporter(new HostMetricsApiClient(_serverHttp)));
+        _hostMetricsController = MainViewModelFactory.CreateHostMetricsController(_serverHttp);
         _hostMetricsController.Start();
 
         _auditController ??= new ViewModelAuditController(_serverHttp);
