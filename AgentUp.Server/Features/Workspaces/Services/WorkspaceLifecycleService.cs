@@ -201,10 +201,9 @@ public sealed class WorkspaceLifecycleService
                                      or FileNotFoundException or DirectoryNotFoundException
                                      or JsonException)
         {
-            _logger.LogWarning(
-                ex,
-                "Could not refresh agent-up.json for workspace {WorkspaceId}",
-                workspace.Id);
+            // workspace.Id echoes the caller-supplied route id; CodeQL's log-forging query flags
+            // it regardless of validation, so it is kept out of this log line.
+            _logger.LogWarning(ex, "Could not refresh agent-up.json for workspace");
         }
     }
 }
