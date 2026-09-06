@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
@@ -88,6 +89,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<AppMetricsHttpClient>();
         builder.Services.AddSingleton<AppMetricsPullService>();
         builder.Services.AddSingleton<AppMetricsController>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
@@ -403,6 +405,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<AppMetricsHttpClient>();
         builder.Services.AddSingleton<AppMetricsPullService>();
         builder.Services.AddSingleton<AppMetricsController>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
