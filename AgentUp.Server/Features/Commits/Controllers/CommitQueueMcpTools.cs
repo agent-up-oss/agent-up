@@ -15,7 +15,7 @@ public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
         [Description("Short slice label identifying the logical unit of change, e.g. 'Commits' or 'UbuntuInstallation'.")] string slice,
         [Description("Conventional commit message scoped to the queued slice, e.g. fix(Commits): validate queue metadata. Use feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, chore for maintenance/packaging/CI/tooling with no customer runtime effect, refactor for internal no-behavior source changes, style for CSS/HTML only, and docs for documentation only.")] string message,
         [Description("Repo-relative file paths to include in this commit entry. At least one required.")] IReadOnlyList<string> files,
-        [Description("Optional test commands to attach to this entry, e.g. 'dotnet test'. The developer sees these as a checklist before committing.")] IReadOnlyList<string>? tests,
+        [Description("Optional test commands to attach to this entry, e.g. 'dotnet test'. The developer sees these as a checklist before committing. Merged with any build/test commands agent-up.json's commits configuration resolves for these files, including transitively dependent projects.")] IReadOnlyList<string>? tests,
         CancellationToken cancellationToken)
         => service.EnqueueCommit(worktreePath, slice, message, files, tests, cancellationToken);
 

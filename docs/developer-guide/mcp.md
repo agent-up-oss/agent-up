@@ -49,7 +49,7 @@ Initial `/mcp/orchestration` tools:
 
 Initial `/mcp/commits` tools:
 
-- `enqueue_commit`: saves a vertical-slice patch in the commit queue and restores the tracked files to their pre-change state for `agentup commits next`.
+- `enqueue_commit`: saves a vertical-slice patch in the commit queue and restores the tracked files to their pre-change state for `agentup commits next`. Merges any explicitly requested test commands with build/test commands resolved from `agent-up.json`'s `commits` configuration for the entry's files, including transitively dependent projects.
 - `enqueue_review_fix_commit`: saves one review issue violation fix with a required `reviewIssueId`; do not combine multiple review issues in one entry.
 - `get_commits_status`: returns queued entries, unassigned modified files, any active commit edit session, and active Git operation state.
 - `guard_commits`: blocks new work while queued entries, active edit sessions, staged changes, unassigned modified files, or active Git merge/rebase/cherry-pick/revert/bisect operations exist.

@@ -87,6 +87,8 @@ agentup commits enqueue \
 | `--files` | yes | One or more file paths to stage (space-separated, until next `--` flag) |
 | `--tests` | no | One or more test commands to run before committing (space-separated) |
 
+`--tests` is merged with any build and test commands `agent-up.json`'s `commits` configuration resolves for `--files`, including commands for projects that transitively depend on a touched project. See the [agent-up.json reference](agent-up-json-reference.md#commits-object). When `agent-up.json` has no `commits` configuration, only the explicitly passed `--tests` are recorded.
+
 #### commits status
 
 Shows the current queue. Warns about modified files in the working tree that are not assigned to any queued entry.
