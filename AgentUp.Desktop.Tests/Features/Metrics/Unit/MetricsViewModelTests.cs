@@ -38,7 +38,7 @@ public sealed class MetricsViewModelTests
                     ])
             ]);
 
-        var http = new HttpClient(new MetricsHttpHandler(timeline))
+        using var http = new HttpClient(new MetricsHttpHandler(timeline))
         {
             BaseAddress = new Uri("http://localhost:5000")
         };
@@ -82,7 +82,7 @@ public sealed class MetricsViewModelTests
                     ])
             ]);
 
-        var http = new HttpClient(new MetricsHttpHandler(timeline))
+        using var http = new HttpClient(new MetricsHttpHandler(timeline))
         {
             BaseAddress = new Uri("http://localhost:5000")
         };

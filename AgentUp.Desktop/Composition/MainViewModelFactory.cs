@@ -32,6 +32,11 @@ public static class MainViewModelFactory
         BaseAddress = new Uri("http://127.0.0.1:5000")
     };
 
+    private static readonly HttpClient DefaultMetricsHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
@@ -43,7 +48,7 @@ public static class MainViewModelFactory
         var applications = new ApplicationsController(new ApplicationSelectionService());
         var console = new ConsoleController(new ConsoleOutputService(consoleClient));
         var metrics = new MetricsController(new MetricsTimelineService(
-            metricsClient ?? new MetricsApiClient(new HttpClient { BaseAddress = new Uri("http://localhost:0") })));
+            metricsClient ?? new MetricsApiClient(DefaultMetricsHttpClient)));
         var ports = new PortsController(new PortTabService());
         var audit = new ApplicationAuditController(new ApplicationAuditService(
             auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));

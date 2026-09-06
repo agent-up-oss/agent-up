@@ -12,4 +12,5 @@ public sealed record WorkspaceDto(
     string State)
 {
     public List<ApplicationDto> Applications { get; init; } = [];
+    public DateTimeOffset LastActivityAtUtc { get; init; }
 }

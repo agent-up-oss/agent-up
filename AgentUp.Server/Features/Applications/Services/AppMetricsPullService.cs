@@ -87,7 +87,10 @@ public sealed class AppMetricsPullService(
                 {
                     logger.LogDebug(
                         "App metrics pull failed: {WorkspaceId}/{AppName}:{Port} → HTTP {StatusCode}",
-                        workspaceId, appName, allocatedPort, (int)response.StatusCode);
+                        SanitizeForLog(workspaceId),
+                        SanitizeForLog(appName),
+                        allocatedPort,
+                        (int)response.StatusCode);
                     continue;
                 }
 
@@ -103,7 +106,9 @@ public sealed class AppMetricsPullService(
                 logger.LogDebug(
                     ex,
                     "App metrics pull failed: {WorkspaceId}/{AppName}:{Port}",
-                    workspaceId, appName, allocatedPort);
+                    SanitizeForLog(workspaceId),
+                    SanitizeForLog(appName),
+                    allocatedPort);
                 continue;
             }
 
@@ -127,4 +132,8 @@ public sealed class AppMetricsPullService(
                 Scope: AuditScope.Application), CancellationToken.None);
         }
     }
+
+    private static string SanitizeForLog(string value) =>
+        value.Replace("\r", string.Empty, StringComparison.Ordinal)
+             .Replace("\n", string.Empty, StringComparison.Ordinal);
 }

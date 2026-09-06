@@ -99,7 +99,7 @@ public sealed class MetricsViewModel : ReactiveObject
             var points = series.Points
                 .Select(point => new MetricsPointViewModel(point.Timestamp, point.Value))
                 .ToList();
-            if (points.Count == 0 || points.All(point => point.Value == 0))
+            if (points.Count == 0 || points.All(point => point.Value <= 0))
                 continue;
 
             var latest = points[^1].Value;

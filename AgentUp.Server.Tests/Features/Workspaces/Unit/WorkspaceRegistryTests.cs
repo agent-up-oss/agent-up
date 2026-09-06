@@ -103,6 +103,25 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task GetAll_OrdersActiveWorkspacesBeforeInactiveOnes()
+    {
+        var first = await _registry.RegisterAsync(new RegisterWorkspaceRequest("Alpha", "/r", "/r/a", "main", "c1"));
+        var second = await _registry.RegisterAsync(new RegisterWorkspaceRequest("Beta", "/r", "/r/b", "main", "c2"));
+
+        await _registry.UpdateStateAsync(second.Id, WorkspaceState.Running);
+        await _registry.UpdateStateAsync(first.Id, WorkspaceState.Stopped);
+
+        var ordered = _registry.GetAll();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ordered, Has.Count.EqualTo(2));
+            Assert.That(ordered[0].Id, Is.EqualTo(second.Id));
+            Assert.That(ordered[1].Id, Is.EqualTo(first.Id));
+        });
+    }
+
+    [Test]
     public async Task GetAll_ReturnsAllRegisteredWorkspaces()
     {
         await _registry.RegisterAsync(new RegisterWorkspaceRequest("Alpha", "/r", "/r/a", "main", "c1"));

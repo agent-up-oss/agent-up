@@ -38,6 +38,8 @@ public sealed class WorkspaceRegistry : IHostedService
         {
             workspace.State = WorkspaceState.Stopped;
             workspace.LastError = null;
+            if (workspace.LastActivityAtUtc == default)
+                workspace.LastActivityAtUtc = DateTimeOffset.UtcNow;
             foreach (var app in workspace.Applications)
                 app.State = ApplicationState.Stopped;
             _workspaces[workspace.Id] = workspace;
@@ -47,7 +49,11 @@ public sealed class WorkspaceRegistry : IHostedService
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public IReadOnlyList<Workspace> GetAll() =>
-        _workspaces.Values.OrderBy(w => w.DisplayName).ToList();
+        _workspaces.Values
+            .OrderByDescending(w => WorkspaceListOrdering.ActivePriority(w.State))
+            .ThenByDescending(w => w.LastActivityAtUtc)
+            .ThenBy(w => w.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     public Workspace? GetById(string id) =>
         _workspaces.GetValueOrDefault(id);
@@ -88,6 +94,7 @@ public sealed class WorkspaceRegistry : IHostedService
             Branch = request.Branch,
             Commit = request.Commit,
             State = WorkspaceState.Stopped,
+            LastActivityAtUtc = DateTimeOffset.UtcNow,
             Applications = request.Applications
                 .Select(d => new ApplicationInstance
                 {
@@ -126,6 +133,7 @@ public sealed class WorkspaceRegistry : IHostedService
             return false;
 
         workspace.State = state;
+        TouchActivity(workspace);
         await _repository.SaveAllAsync(GetAll());
         _bus.PublishWorkspaceChange(workspace);
         return true;
@@ -150,6 +158,7 @@ public sealed class WorkspaceRegistry : IHostedService
             return false;
 
         app.State = state;
+        TouchActivity(workspace);
         await _repository.SaveAllAsync(GetAll());
         _bus.PublishWorkspaceChange(workspace);
         return true;
@@ -182,4 +191,7 @@ public sealed class WorkspaceRegistry : IHostedService
         _bus.Publish(new WorkspaceStateChangedEvent(id, "Removed", []));
         return true;
     }
+
+    private static void TouchActivity(Workspace workspace) =>
+        workspace.LastActivityAtUtc = DateTimeOffset.UtcNow;
 }

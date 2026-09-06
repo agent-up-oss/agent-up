@@ -16,7 +16,7 @@ public sealed class MetricsControllerTests
         var timeline = new ApplicationMetricsTimelineDto(
             [new MetricsSummaryCardDto("Latency", "120ms", "ms")],
             []);
-        var http = new HttpClient(new MetricsHttpHandler(timeline))
+        using var http = new HttpClient(new MetricsHttpHandler(timeline))
         {
             BaseAddress = new Uri("http://localhost:5000")
         };

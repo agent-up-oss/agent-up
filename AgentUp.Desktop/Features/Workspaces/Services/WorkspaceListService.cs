@@ -18,6 +18,15 @@ public sealed class WorkspaceListService
     public async Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _client.GetByIdAsync(workspaceId, cancellationToken);
 
+    public async Task StartAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => await _client.StartAsync(workspaceId, cancellationToken);
+
+    public async Task StopAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => await _client.StopAsync(workspaceId, cancellationToken);
+
+    public async Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => await _client.DeleteAsync(workspaceId, cancellationToken);
+
     public async Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
         => await _client.CleanupTutorialWorkspacesAsync(cancellationToken);
 }

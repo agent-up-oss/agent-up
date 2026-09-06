@@ -37,6 +37,28 @@ public class WorkspaceItemViewModelTests
     }
 
     [Test]
+    [TestCase("Stopped", true, false, false)]
+    [TestCase("Failed", true, false, false)]
+    [TestCase("Stopping", true, false, true)]
+    [TestCase("Running", false, true, false)]
+    [TestCase("Starting", false, true, true)]
+    public void LifecycleButtons_reflectWorkspaceState(
+        string state,
+        bool showStart,
+        bool showStop,
+        bool isBusy)
+    {
+        var vm = new WorkspaceItemViewModel("id", "App", "main", "/repo", "/worktree", state);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.ShowStartButton, Is.EqualTo(showStart));
+            Assert.That(vm.ShowStopButton, Is.EqualTo(showStop));
+            Assert.That(vm.IsLifecycleBusy, Is.EqualTo(isBusy));
+        });
+    }
+
+    [Test]
     public void Properties_matchConstructorArguments()
     {
         var vm = new WorkspaceItemViewModel("ws-1", "My Workspace", "feat/foo", "/repo", "/worktree", "Running");
