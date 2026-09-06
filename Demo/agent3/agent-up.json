@@ -18,7 +18,7 @@
     {
       "name": "Payments",
       "command": "node payments/server.mjs",
-      "ports": [{ "variable": "PAYMENTS_PORT", "defaultPort": 5302, "protocol": "http" }]
+      "ports": [{ "variable": "PAYMENTS_PORT", "defaultPort": 5302, "protocol": "http", "healthCheck": "/health", "metrics": "/metrics" }]
     },
     {
       "name": "Postgres",

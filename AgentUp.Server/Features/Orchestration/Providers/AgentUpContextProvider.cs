@@ -101,6 +101,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         ports[].defaultPort: Preferred/default port used to derive allocation intent.
         ports[].protocol: Protocol label, usually http or tcp.
         ports[].healthCheck: Optional HTTP path the server probes every 5 seconds (e.g. "/health"). When present the port LED shows Checking (amber) until the path responds, then Healthy (green). Absence means the desktop uses a local TCP probe instead.
+        ports[].metrics: Optional HTTP path the server pulls every 30 seconds for application metrics (e.g. "/metrics"). The app exposes JSON metrics; Agent-Up records them in the application audit trail without the app depending on Agent-Up.
 
         If agent-up.json is missing, inspect docs/user-docs/agent-up-json.md, search the repository for an existing agent-up.json, or ask the user before creating one.
         """;

@@ -512,7 +512,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
               "command": "rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev",
               "path": "api",
               "ports": [
-                { "variable": "API_PORT", "defaultPort": 3001, "protocol": "http" }
+                { "variable": "API_PORT", "defaultPort": 3001, "protocol": "http", "healthCheck": "/health", "metrics": "/metrics" }
               ]
             },
             {
@@ -1011,6 +1011,44 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         const postgresHost = process.env.POSTGRES_HOST || 'localhost';
         const postgresPort = Number(process.env.POSTGRES_PORT || 5432);
         let productsReady = false;
+        const runtimeMetrics = (() => {
+          const startedAt = Date.now();
+          let totalRequests = 0;
+          let errorsTotal = 0;
+          const recent = [];
+          const prune = () => {
+            const cutoff = Date.now() - 60_000;
+            while (recent.length > 0 && recent[0].at < cutoff) recent.shift();
+          };
+          return {
+            record(durationMs, statusCode) {
+              totalRequests += 1;
+              if (statusCode >= 400) errorsTotal += 1;
+              recent.push({ at: Date.now(), durationMs });
+              prune();
+            },
+            snapshot() {
+              prune();
+              const requestsPerMinute = recent.length;
+              const latencyMs = requestsPerMinute === 0
+                ? 0
+                : Math.round(recent.reduce((sum, entry) => sum + entry.durationMs, 0) / requestsPerMinute);
+              const successRate = totalRequests === 0
+                ? 100
+                : Math.round(((totalRequests - errorsTotal) / totalRequests) * 1000) / 10;
+              return {
+                latency_ms: latencyMs,
+                requests_per_minute: requestsPerMinute,
+                errors_total: errorsTotal,
+                success_rate: successRate,
+                uptime_percent: 100,
+                requests_total: totalRequests,
+                uptime_seconds: Math.round((Date.now() - startedAt) / 1000),
+                heap_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+              };
+            }
+          };
+        })();
         const pool = new Pool({
           host: postgresHost,
           port: postgresPort,
@@ -1020,6 +1058,11 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         });
 
         app.use(express.json());
+        app.use((req, res, next) => {
+          const started = Date.now();
+          res.on('finish', () => runtimeMetrics.record(Date.now() - started, res.statusCode));
+          next();
+        });
         app.use((_req, res, next) => {
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -1249,6 +1292,23 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
           } catch (error) {
             console.error(`Postgres health check failed: ${error.message}`);
             res.status(503).json({ ok: false, database: error.message });
+          }
+        });
+
+        app.get('/metrics', async (_req, res) => {
+          try {
+            await ensureProducts();
+            const { rows } = await pool.query('select count(*)::int as product_count from products');
+            const productCount = rows[0]?.product_count ?? 0;
+            res.json({
+              metrics: {
+                ...runtimeMetrics.snapshot(),
+                product_count: productCount
+              }
+            });
+          } catch (error) {
+            console.error(`Metrics query failed: ${error.message}`);
+            res.status(503).json({ error: error.message });
           }
         });
 

@@ -18,7 +18,7 @@
     {
       "name": "Fulfillment",
       "command": "node fulfillment/server.mjs",
-      "ports": [{ "variable": "FULFILLMENT_PORT", "defaultPort": 5402, "protocol": "http" }]
+      "ports": [{ "variable": "FULFILLMENT_PORT", "defaultPort": 5402, "protocol": "http", "healthCheck": "/health", "metrics": "/metrics" }]
     },
     {
       "name": "Postgres",

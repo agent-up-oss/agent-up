@@ -196,6 +196,7 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
         builder.Services.AddSingleton<OrchestrationContextService>();
+        builder.Services.AddWorkspaceLifecycleSupport();
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
         builder.Services.AddSingleton<ConsoleSecretRedactor>();
         builder.Services.AddSingleton<OrchestrationConsoleService>();

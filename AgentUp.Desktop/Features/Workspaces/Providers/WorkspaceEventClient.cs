@@ -113,8 +113,10 @@ internal sealed class WorkspaceEventClient(HttpClient http, WorkspaceListViewMod
                 if (!IsStarted())
                     return;
 
-                sidebar.ApplyEvent(evt.WorkspaceId, evt.State, evt.Applications, evt.HealthState);
-                ScheduleWorkspaceRefresh(evt.WorkspaceId);
+                var applied = sidebar.ApplyEvent(evt.WorkspaceId, evt.State, evt.Applications, evt.HealthState);
+                var hasPortHealth = evt.Applications.Any(app => app.PortHealth is { Count: > 0 });
+                if (!applied || !hasPortHealth)
+                    ScheduleWorkspaceRefresh(evt.WorkspaceId);
             });
         }
     }

@@ -1,5 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
@@ -11,6 +12,7 @@ using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
+using AgentUp.Server.Features.Orchestration.Providers;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
@@ -20,12 +22,27 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Fake;
 
 internal static class ServerTestComposition
 {
+    public static IServiceCollection AddWorkspaceLifecycleSupport(this IServiceCollection services)
+    {
+        services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
+        services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
+        services.AddSingleton<OrchestrationRegistrationService>();
+        services.AddSingleton<OrchestrationRegistrationController>();
+        services.AddSingleton<AppMetricsHttpClient>();
+        services.AddSingleton<AppMetricsPullService>();
+        services.AddSingleton<AppMetricsController>();
+        services.AddSingleton<BrowserLifecycleController>();
+        services.AddSingleton<WorkspaceLifecycleService>();
+        services.AddSingleton<WorkspaceLifecycleController>();
+        return services;
+    }
     public static WorkspaceRegistry CreateRegistry(
         IReadOnlyList<ICapabilityAdapter>? adapters = null,
         WorkspaceEventBus? bus = null)
@@ -48,14 +65,23 @@ internal static class ServerTestComposition
         => new(new OrchestrationWorkspaceService(
             new WorkspaceQueryController(registry),
             new WorkspaceStateController(registry, new WorkspaceEventBus()),
-            CreateProcessesController(processes),
-            CreateStreamStateController(registry: registry),
-            configuration,
-            identity));
+            new WorkspaceLifecycleController(CreateWorkspaceLifecycleService(registry, processes, configuration, identity)),
+            new OrchestrationRegistrationService(
+                configuration,
+                identity)));
+
+    public static WorkspaceLifecycleController CreateWorkspaceLifecycleController(
+        WorkspaceRegistry registry,
+        IWorkspaceProcessManager processes,
+        IAgentUpConfigurationProvider? configuration = null,
+        IWorkspaceIdentityProvider? identity = null)
+        => new(CreateWorkspaceLifecycleService(registry, processes, configuration, identity));
 
     public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
         WorkspaceRegistry registry,
-        IWorkspaceProcessManager processes)
+        IWorkspaceProcessManager processes,
+        IAgentUpConfigurationProvider? configuration = null,
+        IWorkspaceIdentityProvider? identity = null)
     {
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
         var eventBus = new BrowserEventBus();
@@ -65,6 +91,8 @@ internal static class ServerTestComposition
         var healthCheckService = new AppHealthCheckService(
             queryController, stateController, CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
         var healthChecks = new AppHealthController(healthCheckService);
+        var metricsPulls = new AppMetricsController(new AppMetricsPullService(
+            new AppMetricsHttpClient(), CreateAuditController(), NullLogger<AppMetricsPullService>.Instance));
         var streamState = new WorkspaceStreamStateService(
             eventBus, healthChecks, queryController, CreateAuditController(),
             NullLogger<WorkspaceStreamStateService>.Instance);
@@ -73,12 +101,17 @@ internal static class ServerTestComposition
             streamState,
             NullLogger<HeadlessBrowserSessionManager>.Instance);
         var browser = new BrowserLifecycleController(sessions, display);
+        var registration = new OrchestrationRegistrationService(
+            configuration ?? new AgentUpConfigurationProvider(),
+            identity ?? new GitWorkspaceIdentityProvider());
         return new WorkspaceLifecycleService(
             registry,
             CreateProcessesController(processes),
             browser,
             healthChecks,
+            metricsPulls,
             new WorkspaceStreamStateController(streamState),
+            new OrchestrationRegistrationController(registration),
             NullLogger<WorkspaceLifecycleService>.Instance);
     }
 

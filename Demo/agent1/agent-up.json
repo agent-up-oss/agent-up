@@ -18,7 +18,7 @@
     {
       "name": "Backend",
       "command": "node backend/server.mjs",
-      "ports": [{ "variable": "API_PORT", "defaultPort": 5102, "protocol": "http" }]
+      "ports": [{ "variable": "API_PORT", "defaultPort": 5102, "protocol": "http", "healthCheck": "/health", "metrics": "/metrics" }]
     },
     {
       "name": "Postgres",

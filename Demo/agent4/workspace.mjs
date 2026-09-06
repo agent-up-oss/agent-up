@@ -104,6 +104,12 @@ export const apps = {
     name: 'Fulfillment',
     portVariable: 'FULFILLMENT_PORT',
     defaultPort: 5402,
+    health: {
+      ok: true,
+      status: 'healthy',
+      service: 'Fulfillment',
+      checks: { warehouse: 'ready', shipments: 'ready', returns: 'ready' }
+    },
     routes: [
       {
         path: '/',

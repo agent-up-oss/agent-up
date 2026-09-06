@@ -18,7 +18,7 @@
     {
       "name": "Worker",
       "command": "node worker/server.mjs",
-      "ports": [{ "variable": "WORKER_PORT", "defaultPort": 5202, "protocol": "http" }]
+      "ports": [{ "variable": "WORKER_PORT", "defaultPort": 5202, "protocol": "http", "healthCheck": "/health", "metrics": "/metrics" }]
     },
     {
       "name": "Postgres",

@@ -3,6 +3,8 @@
         xmlns:vm="using:AgentUp.Desktop.Features.Workspaces.ViewModels"
         xmlns:appVm="using:AgentUp.Desktop.Features.Applications.ViewModels"
         xmlns:portVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
+        xmlns:metricsVm="using:AgentUp.Desktop.Features.Metrics.ViewModels"
+        xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
         Width="1100" Height="700"
@@ -22,9 +24,64 @@
             </Border>
         </DataTemplate>
 
+        <!-- Metrics sub-tab -->
+        <DataTemplate DataType="portVm:MetricsSubTabViewModel">
+            <Border Classes="subTab" Padding="13,7">
+                <TextBlock Text="Metrics"
+                           Foreground="#c2d2ca"
+                           FontSize="12"
+                           FontWeight="Bold"/>
+            </Border>
+        </DataTemplate>
+
+        <!-- Audit sub-tab -->
         <DataTemplate DataType="portVm:AuditSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
                 <TextBlock Text="Audit" Foreground="#c2d2ca" FontSize="12" FontWeight="Bold"/>
+            </Border>
+        </DataTemplate>
+
+        <!-- Metrics chart card -->
+        <DataTemplate DataType="metricsVm:MetricsChartViewModel">
+            <Border Classes="metricsChartCard" Margin="0,0,0,16">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding Title}"
+                                       Foreground="#d8eadf"
+                                       FontSize="14"
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Unit}"
+                                       Foreground="#6f857a"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding LatestDisplay}"
+                                   Foreground="#22c55e"
+                                   FontSize="22"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                    <metricsViews:MetricsTimeSeriesChart Grid.Row="1"
+                                                         Points="{Binding Points}"
+                                                         Unit="{Binding Unit}"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Metrics summary card -->
+        <DataTemplate DataType="metricsVm:MetricsSummaryCardViewModel">
+            <Border Classes="metricsSummaryCard">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{Binding Label}"
+                               Foreground="#6f857a"
+                               FontSize="11"
+                               FontWeight="Medium"/>
+                    <TextBlock Text="{Binding Value}"
+                               Foreground="#f5fbf7"
+                               FontSize="24"
+                               FontWeight="Bold"/>
+                </StackPanel>
             </Border>
         </DataTemplate>
 
@@ -183,6 +240,22 @@
         </Style>
         <Style Selector="Button:pointerover Border.browserButton">
             <Setter Property="Background" Value="#0d4f32"/>
+        </Style>
+
+        <Style Selector="Border.metricsSummaryCard">
+            <Setter Property="Background" Value="#060806"/>
+            <Setter Property="BorderBrush" Value="#184820"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="MinHeight" Value="92"/>
+        </Style>
+        <Style Selector="Border.metricsChartCard">
+            <Setter Property="Background" Value="#040604"/>
+            <Setter Property="BorderBrush" Value="#184820"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16,14"/>
         </Style>
 
         <!-- Workspace entry: normal / hover / selected -->
@@ -844,6 +917,67 @@
                                            FontSize="11"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
+
+                            <!-- Metrics dashboard -->
+                            <Grid IsVisible="{Binding ShowMetrics}"
+                                  RowDefinitions="Auto,*">
+                                <DockPanel Grid.Row="0" Margin="20,14,20,0" LastChildFill="False">
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Text="{Binding Metrics.LastUpdated}"
+                                               Foreground="#52685d"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="Application metrics"
+                                               Foreground="#8aa497"
+                                               FontSize="12"
+                                               FontWeight="Medium"
+                                               VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <ScrollViewer Grid.Row="1"
+                                              Margin="20,12,20,20"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Spacing="18">
+                                        <ItemsControl ItemsSource="{Binding Metrics.SummaryCards}"
+                                                      IsVisible="{Binding Metrics.HasSummary}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="4" Rows="1"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+
+                                        <ItemsControl ItemsSource="{Binding Metrics.Charts}"
+                                                      IsVisible="{Binding Metrics.HasCharts}"/>
+
+                                        <StackPanel IsVisible="{Binding Metrics.IsLoading}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Spacing="8"
+                                                    Margin="0,40,0,0">
+                                            <TextBlock Text="Loading metrics..."
+                                                       Foreground="#6f857a"
+                                                       FontSize="13"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <StackPanel IsVisible="{Binding Metrics.ShowEmptyState}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Spacing="8"
+                                                    Margin="0,40,0,0">
+                                            <TextBlock Text="{Binding Metrics.EmptyMessage}"
+                                                       Foreground="#6f857a"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap"
+                                                       TextAlignment="Center"
+                                                       MaxWidth="420"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
 
                         </Panel>
 

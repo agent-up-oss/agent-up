@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using AgentUp.Server.Features.Audit.DTOs;
+using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Shared.Interfaces;
 using ModelContextProtocol.Server;
 
@@ -9,7 +10,7 @@ namespace AgentUp.Server.Features.Audit.Controllers;
 public sealed class AuditMcpTools(AuditController audit)
 {
     [McpServerTool(Name = "audit_query", Title = "Query Audit Events")]
-    [Description("Query durable Agent-Up audit events by workspace, workdir, repository, branch, commit, kind, source, outcome, and time range. Returns compact summaries by default (no Details); set compact=false to include Details, or call audit_get_event with an eventId for a single full record.")]
+    [Description("Query durable Agent-Up audit events by workspace, workdir, repository, branch, commit, kind, source, outcome, scope, and time range. Scope values: workspace (default), application, host-server, host-desktop. Returns compact summaries by default (no Details); set compact=false to include Details, or call audit_get_event with an eventId for a single full record.")]
     public async Task<McpToolResult> Query(
         string? workspaceId = null,
         string? workdirId = null,
@@ -19,6 +20,7 @@ public sealed class AuditMcpTools(AuditController audit)
         string? kind = null,
         string? source = null,
         string? outcome = null,
+        string? scope = null,
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
         int limit = 100,
@@ -26,7 +28,7 @@ public sealed class AuditMcpTools(AuditController audit)
         CancellationToken cancellationToken = default)
     {
         var events = await audit.QueryAsync(
-            new AuditEventQuery(workspaceId, workdirId, repositoryPath, branch, commit, kind, source, outcome, from, to, limit),
+            new AuditEventQuery(workspaceId, workdirId, repositoryPath, branch, commit, kind, source, outcome, from, to, limit, scope ?? AuditScope.Workspace),
             cancellationToken);
 
         if (compact)
@@ -39,6 +41,7 @@ public sealed class AuditMcpTools(AuditController audit)
                 e.Source,
                 e.Action,
                 e.Outcome,
+                e.Scope,
                 e.WorkspaceId,
                 e.WorkdirId,
                 e.Branch,

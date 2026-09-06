@@ -6,6 +6,8 @@ public sealed record AgentUpConfiguration(
     string Name,
     IReadOnlyList<ApplicationDefinition>? Applications = null,
     IReadOnlyList<DockerServiceDefinition>? Services = null,
+    IReadOnlyList<DotnetApplicationDefinition>? Dotnet = null,
+    IReadOnlyList<DockerCapabilityDefinition>? Docker = null,
     AgentPromptConfiguration? Prompts = null,
     WorkspaceDisplayConfiguration? Display = null);
 

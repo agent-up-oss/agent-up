@@ -112,6 +112,12 @@ export const apps = {
     name: 'Worker',
     portVariable: 'WORKER_PORT',
     defaultPort: 5202,
+    health: {
+      ok: true,
+      status: 'healthy',
+      service: 'Worker',
+      checks: { queue: 'ready', workers: 'ready' }
+    },
     routes: [
       {
         path: '/',
@@ -134,6 +140,17 @@ export const apps = {
           ['1044', 'invoice.created', '201ms', 'done'],
           ['1045', 'plan.changed', '234ms', 'done'],
           ['1046', 'trial.expiring', 'queued', 'pending']
+        ]
+      },
+      {
+        path: '/health',
+        label: 'Health',
+        heading: 'Worker healthy',
+        body: 'Background job workers and queue consumers are running.',
+        cards: [
+          { title: 'Queue', detail: 'ready' },
+          { title: 'Workers', detail: '4 active' },
+          { title: 'Failures', detail: '0' }
         ]
       },
       {

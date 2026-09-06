@@ -16,6 +16,9 @@ public sealed class WorkspaceQueryController
 
     public Workspace? GetById(string id) => _registry.GetById(id);
 
+    public bool HasApplication(string id, string applicationName) =>
+        _registry.GetById(id)?.Applications.Any(app => string.Equals(app.Name, applicationName, StringComparison.Ordinal)) ?? false;
+
     public async Task<Workspace> RegisterAsync(RegisterWorkspaceRequest request)
         => await _registry.RegisterAsync(request);
 

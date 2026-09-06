@@ -7,4 +7,5 @@ public sealed record AuditRecordRequest(
     string Outcome,
     string? WorkspaceId,
     IReadOnlyDictionary<string, string>? Details = null,
-    IReadOnlyList<string>? ArtifactIds = null);
+    IReadOnlyList<string>? ArtifactIds = null,
+    string? Scope = null);

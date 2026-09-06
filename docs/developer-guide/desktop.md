@@ -102,7 +102,9 @@ The left side shows workspace selection, health, branch, and running state. Runn
 
 The first tab row lists the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application.
 
-For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console remains available after the port tabs.
+For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console and Metrics remain available after the port tabs.
+
+The Metrics tab shows a vertically scrollable dashboard of summary cards and time-series charts built from Server-pulled application metrics (`ports[].metrics` in `agent-up.json`). Data refreshes every 30 seconds while the tab is selected.
 
 For applications without configured ports, Console is selected by default.
 
@@ -112,7 +114,9 @@ Switching from an HTTP port tab to Console, TCP info, or another non-browser sur
 
 Same-URL navigation is still required for reconnect paths such as application state changes after a restart. Desktop tab-selection navigation must request non-reloading activation of an existing WebView page, while app-state wake, address-bar, reload, and explicit navigation paths must keep reload-on-same-URL behavior.
 
-Because the native WebView does not always raise managed navigation updates for in-page link clicks, the Desktop polls the active HTTP WebView source URL and mirrors HTTP/HTTPS changes into the address field.
+Because the native WebView does not always raise managed navigation updates for in-page link clicks, the Desktop polls the active HTTP WebView source URL and mirrors HTTP/HTTPS changes into the address field. The poll timer runs only while an HTTP port tab is visible.
+
+Health-check SSE events that include port health are applied in-place; the Desktop skips the follow-up workspace refresh for those events to avoid redundant HTTP traffic and UI cascades.
 
 Reloading workspaces keeps the selected workspace by ID but rebinds it to the refreshed Server state, so the selected application's active HTTP port is navigated again after a sidebar reload.
 

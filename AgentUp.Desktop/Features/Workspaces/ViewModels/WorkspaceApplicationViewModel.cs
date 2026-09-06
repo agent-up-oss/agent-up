@@ -73,12 +73,23 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
 
     internal bool UpdateState(string newState, IReadOnlyList<PortHealthChangeDto>? portHealth = null)
     {
-        PortHealth = portHealth;
-        if (string.Equals(State, newState, StringComparison.Ordinal) && portHealth is null)
+        var stateUnchanged = string.Equals(State, newState, StringComparison.Ordinal);
+        if (stateUnchanged && PortHealthEquivalent(PortHealth, portHealth))
             return false;
 
+        PortHealth = portHealth;
         State = newState;
         StateColor = AppHealthLedRules.StateColor(newState);
         return true;
+    }
+
+    private static bool PortHealthEquivalent(
+        IReadOnlyList<PortHealthChangeDto>? left,
+        IReadOnlyList<PortHealthChangeDto>? right)
+    {
+        static IEnumerable<PortHealthChangeDto> Ordered(IReadOnlyList<PortHealthChangeDto>? items)
+            => (items ?? []).OrderBy(p => p.AllocatedPort);
+
+        return Ordered(left).SequenceEqual(Ordered(right));
     }
 }
