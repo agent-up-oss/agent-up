@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
@@ -8,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Applications.Services;
 
-public sealed partial class AppMetricsPullService(
+public sealed class AppMetricsPullService(
     AppMetricsHttpClient http,
     AuditController audit,
     ILogger<AppMetricsPullService> logger) : IDisposable
@@ -83,11 +82,10 @@ public sealed partial class AppMetricsPullService(
                 metrics = await http.FetchAsync(allocatedPort, path, ct);
                 if (metrics is null)
                 {
-                    logger.LogDebug(
-                        "App metrics pull failed: {WorkspaceId}/{AppName}:{Port}",
-                        SanitizeForLog(workspaceId),
-                        SanitizeForLog(appName),
-                        allocatedPort);
+                    // Workspace id and app name are workspace-supplied configuration; CodeQL's
+                    // log-forging query flags them as tainted regardless of sanitization, so
+                    // they are deliberately kept out of this log line rather than included.
+                    logger.LogDebug("App metrics pull failed for port {Port}", allocatedPort);
                     continue;
                 }
             }
@@ -97,12 +95,7 @@ public sealed partial class AppMetricsPullService(
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
             {
-                logger.LogDebug(
-                    ex,
-                    "App metrics pull failed: {WorkspaceId}/{AppName}:{Port}",
-                    SanitizeForLog(workspaceId),
-                    SanitizeForLog(appName),
-                    allocatedPort);
+                logger.LogDebug(ex, "App metrics pull failed for port {Port}", allocatedPort);
                 continue;
             }
 
@@ -126,12 +119,4 @@ public sealed partial class AppMetricsPullService(
                 Scope: AuditScope.Application), CancellationToken.None);
         }
     }
-
-    // CodeQL's log-forging query does not recognize ad-hoc string replacement as clearing taint,
-    // so this restricts logged identifiers to a known-safe allowlist instead of stripping characters.
-    private static string SanitizeForLog(string value) =>
-        SafeLogToken().IsMatch(value) ? value : "invalid";
-
-    [GeneratedRegex(@"^[A-Za-z0-9 _.-]+$")]
-    private static partial Regex SafeLogToken();
 }
