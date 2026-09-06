@@ -6,18 +6,21 @@ namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
 [TestFixture]
 public class WorkspaceLifecycleTests
 {
+    // WorkspaceFixtures.Multiple() sorts to [API Gateway (Running), My App (Running), Auth Service (Stopped)]
+    // once loaded: active workspaces first, ties broken alphabetically.
+
     [AvaloniaTest]
     public async Task StartButton_startsStoppedWorkspace()
     {
         var workspaces = WorkspaceFixtures.Multiple();
         var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
-        await app.Sidebar.ClickStartOnWorkspaceAtIndexAsync(1);
+        await app.Sidebar.ClickStartOnWorkspaceAtIndexAsync(2);
 
         Assert.Multiple(() =>
         {
             Assert.That(handler.RequestPaths, Does.Contain("/api/workspaces/ws-2/start"));
-            Assert.That(app.Sidebar.WorkspaceStateAtIndex(1), Is.EqualTo("Running"));
+            Assert.That(app.Sidebar.WorkspaceStateAtIndex(0), Is.EqualTo("Running"));
         });
     }
 
@@ -27,12 +30,12 @@ public class WorkspaceLifecycleTests
         var workspaces = WorkspaceFixtures.Multiple();
         var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
-        await app.Sidebar.ClickStopOnWorkspaceAtIndexAsync(0);
+        await app.Sidebar.ClickStopOnWorkspaceAtIndexAsync(1);
 
         Assert.Multiple(() =>
         {
             Assert.That(handler.RequestPaths, Does.Contain("/api/workspaces/ws-1/stop"));
-            Assert.That(app.Sidebar.WorkspaceStateAtIndex(0), Is.EqualTo("Stopped"));
+            Assert.That(app.Sidebar.WorkspaceStateAtIndex(1), Is.EqualTo("Stopped"));
         });
     }
 
@@ -42,7 +45,7 @@ public class WorkspaceLifecycleTests
         var workspaces = WorkspaceFixtures.Multiple();
         var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
-        await app.Sidebar.ClickDeleteOnWorkspaceAtIndexAsync(1);
+        await app.Sidebar.ClickDeleteOnWorkspaceAtIndexAsync(2);
 
         Assert.Multiple(() =>
         {

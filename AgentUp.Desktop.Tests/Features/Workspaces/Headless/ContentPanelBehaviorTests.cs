@@ -42,9 +42,10 @@ public class ContentPanelBehaviorTests
         var workspaces = WorkspaceFixtures.Multiple();
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 
+        // Sidebar order after load is Running-first then alphabetical: API Gateway, My App, Auth Service.
         await app.Sidebar.SelectWorkspaceAtIndexAsync(1);
 
-        Assert.That(app.Content.DisplayedWorkspaceName, Is.EqualTo(workspaces[1].DisplayName));
+        Assert.That(app.Content.DisplayedWorkspaceName, Is.EqualTo(workspaces[0].DisplayName));
     }
 
     [AvaloniaTest]
@@ -64,8 +65,9 @@ public class ContentPanelBehaviorTests
         var workspaces = WorkspaceFixtures.Multiple();
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 
+        // Sidebar order after load is Running-first then alphabetical: API Gateway, My App, Auth Service.
         Assert.That(app.Content.ShowsWorkspaceDetail, Is.True);
-        Assert.That(app.Content.DisplayedWorkspaceName, Is.EqualTo(workspaces[0].DisplayName));
+        Assert.That(app.Content.DisplayedWorkspaceName, Is.EqualTo(workspaces[2].DisplayName));
     }
 
     [AvaloniaTest]
