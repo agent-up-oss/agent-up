@@ -10,6 +10,7 @@ public class ApplicationInstance
 
     // Process fields
     public string? Command { get; init; }
+    public string? Install { get; init; }
     public string? Path { get; init; }
     public IReadOnlyList<string>? EnvironmentFiles { get; init; }
 

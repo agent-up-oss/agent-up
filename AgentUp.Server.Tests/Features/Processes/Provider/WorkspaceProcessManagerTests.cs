@@ -225,6 +225,110 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task CreateInstallStartInfo_ReturnsNull_WhenInstallNotConfigured()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Web", "npm run dev", null)]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo, Is.Null);
+    }
+
+    [Test]
+    public async Task CreateInstallStartInfo_UsesSameWorkingDirectoryAndAllowlistAsCommand()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Web", "npm run dev", "web", Install: "npm install")]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo, Is.Not.Null);
+        Assert.That(startInfo!.FileName, Is.EqualTo("npm"));
+        Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
+        Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
+            Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+        Assert.That(startInfo.ArgumentList.Skip(2), Is.EqualTo(new[] { "install" }));
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_RunsInstallStepBeforeCommand_AndPrefixesInstallOutput()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "python3 -c \"print('started')\"",
+                        null,
+                        Install: "python3 -c \"print('installed')\"")
+                ]
+            });
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+
+            await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
+            var lines = (await _output.GetAsync(workspace.Id, "Web")).ToList();
+
+            var installIndex = lines.IndexOf("[install] installed");
+            var startedIndex = lines.IndexOf("started");
+            Assert.That(installIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(startedIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(installIndex, Is.LessThan(startedIndex));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_FailsWithoutLaunchingCommand_WhenInstallExitsNonZero()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "python3 -c \"print('should not run')\"",
+                        null,
+                        Install: "python3 -c \"import sys; sys.exit(1)\"")
+                ]
+            });
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
+
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
+            Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+
+            var lines = await _output.GetAsync(workspace.Id, "Web");
+            Assert.That(lines, Has.None.EqualTo("should not run"));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task CreateLocalProcessStartInfo_RejectsShellExpressions()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")

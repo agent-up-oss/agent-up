@@ -7,5 +7,6 @@ namespace AgentUp.Server.Features.Processes.Interfaces;
 public interface ILocalProcessProvider
 {
     Process CreateApplicationProcess(Workspace workspace, ApplicationInstance app);
+    Process? CreateInstallProcess(Workspace workspace, ApplicationInstance app);
     void Kill(Process process);
 }

@@ -45,6 +45,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
             {
               "name": "Frontend",
               "command": "npm run dev",
+              "install": "npm install",
               "path": "/",
               "ports": [
                 {
@@ -88,6 +89,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         applications: Local application processes the Server can launch.
         applications[].name: Display name for the application.
         applications[].command: Opaque shell command used to start the application.
+        applications[].install: Optional executable-plus-arguments command (e.g. "npm install", "dotnet restore") run to completion in the same path before every start of command. It runs unconditionally on every start/restart with no separate "already installed" tracking, so it must be idempotent; a non-zero exit fails the start without launching command.
         applications[].path: Browser path to open for the application.
         applications[].ports: Port declarations for the application.
         services: Docker services the Server can start for the workspace.

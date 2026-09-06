@@ -66,6 +66,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
+        await RunInstallStepAsync(workspace, app);
+
         var process = _localProcesses.CreateApplicationProcess(workspace, app);
         var workspaceId = workspace.Id;
 
@@ -111,6 +113,59 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         }
 
         _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);
+    }
+
+    // Install commands (npm install, dotnet restore, etc.) are idempotent by design, so
+    // running them unconditionally before every launch keeps dependencies current without
+    // needing a completion marker to decide whether a run is "needed".
+    private async Task RunInstallStepAsync(Workspace workspace, ApplicationInstance app)
+    {
+        var install = _localProcesses.CreateInstallProcess(workspace, app);
+        if (install is null)
+            return;
+
+        var workspaceId = workspace.Id;
+        var appName = app.Name;
+
+        install.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data is not null)
+                _ = _output.AppendAsync(workspaceId, appName, "[install] " + e.Data);
+        };
+
+        install.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data is not null)
+                _ = _output.AppendAsync(workspaceId, appName, "[install] [err] " + e.Data, ProcessOutputStream.Stderr);
+        };
+
+        int exitCode;
+        try
+        {
+            install.Start();
+            install.BeginOutputReadLine();
+            install.BeginErrorReadLine();
+            await install.WaitForExitAsync();
+            exitCode = install.ExitCode;
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            await _output.AppendAsync(workspaceId, appName, "[install] [err] " + ex.Message, ProcessOutputStream.Stderr);
+            await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
+            throw new InvalidOperationException($"Install step failed for '{appName}': {ex.Message}", ex);
+        }
+        finally
+        {
+            install.Dispose();
+        }
+
+        if (exitCode != 0)
+        {
+            await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
+            throw new InvalidOperationException($"Install step for '{appName}' exited with code {exitCode}.");
+        }
+
+        _logger.LogInformation("Install step for workspace application completed");
     }
 
     private async Task LaunchDockerServiceAsync(Workspace workspace, ApplicationInstance app)

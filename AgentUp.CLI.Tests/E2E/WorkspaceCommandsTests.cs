@@ -210,6 +210,22 @@ public class WorkspaceCommandsTests
     }
 
     [Test]
+    public async Task Start_PushesInstallCommand_ToServer()
+    {
+        await WriteAgentUpJsonAsync(_workspaceDir, "My App",
+        [
+            new { name = "Frontend", command = "npm run dev", path = "./ui", install = "npm install" }
+        ]);
+
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.That(workspaces![0].Applications[0].Install, Is.EqualTo("npm install"));
+    }
+
+    [Test]
     public async Task Start_ListsApplications_InOutput()
     {
         await WriteAgentUpJsonAsync(_workspaceDir, "My App",

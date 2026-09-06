@@ -6,7 +6,8 @@ public record ApplicationDefinition(
     string? Path,
     IReadOnlyList<PortDeclaration>? Ports = null,
     IReadOnlyDictionary<string, string>? Environment = null,
-    IReadOnlyList<string>? EnvironmentFiles = null)
+    IReadOnlyList<string>? EnvironmentFiles = null,
+    string? Install = null)
 {
     public string? State { get; init; }
 }
