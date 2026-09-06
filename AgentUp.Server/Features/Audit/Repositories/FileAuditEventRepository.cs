@@ -26,7 +26,7 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
 
     public async Task AppendAsync(AuditEvent evt, CancellationToken cancellationToken)
     {
-        var file = DailyFile(DateTimeOffset.UtcNow);
+        var file = DailyFile(evt.Timestamp);
         var json = JsonSerializer.Serialize(evt, Options);
         await _gate.WaitAsync(cancellationToken);
         try
