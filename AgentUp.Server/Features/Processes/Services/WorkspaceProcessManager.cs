@@ -120,12 +120,29 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     // needing a completion marker to decide whether a run is "needed".
     private async Task RunInstallStepAsync(Workspace workspace, ApplicationInstance app)
     {
-        var install = _localProcesses.CreateInstallProcess(workspace, app);
-        if (install is null)
-            return;
-
         var workspaceId = workspace.Id;
         var appName = app.Name;
+        var key = (workspaceId, appName);
+
+        // CreateInstallProcess parses and validates app.Install (allowlist, shell-expression
+        // rejection) before any process exists, so a bad command must be treated as an install
+        // failure here too, not left to surface as an unhandled exception with no app state update.
+        Process? created;
+        try
+        {
+            created = _localProcesses.CreateInstallProcess(workspace, app);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await _output.AppendAsync(workspaceId, appName, "[install] [err] " + ex.Message, ProcessOutputStream.Stderr);
+            await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
+            throw;
+        }
+
+        if (created is null)
+            return;
+
+        using var install = created;
 
         install.OutputDataReceived += (_, e) =>
         {
@@ -139,6 +156,12 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 _ = _output.AppendAsync(workspaceId, appName, "[install] [err] " + e.Data, ProcessOutputStream.Stderr);
         };
 
+        // Registering under the same key the application process later uses lets a concurrent
+        // KillApplicationAsync (a Stop while this Start is still installing) actually terminate
+        // the install, instead of leaving it to finish unsupervised and launch the application
+        // command anyway.
+        _processes[key] = install;
+
         int exitCode;
         try
         {
@@ -150,14 +173,17 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
+            _processes.TryRemove(key, out _);
             await _output.AppendAsync(workspaceId, appName, "[install] [err] " + ex.Message, ProcessOutputStream.Stderr);
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
             throw new InvalidOperationException($"Install step failed for '{appName}': {ex.Message}", ex);
         }
-        finally
-        {
-            install.Dispose();
-        }
+
+        // If KillApplicationAsync already claimed this key, it owns the resulting application
+        // state (and disposal) for this Stop; don't overwrite that with Failed or proceed to
+        // launch the application command behind its back.
+        if (!_processes.TryRemove(key, out var owned) || !ReferenceEquals(owned, install))
+            throw new InvalidOperationException($"Application '{appName}' was stopped before its install step finished.");
 
         if (exitCode != 0)
         {

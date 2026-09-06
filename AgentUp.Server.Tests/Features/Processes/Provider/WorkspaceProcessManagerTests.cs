@@ -329,6 +329,70 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task LaunchApplicationAsync_MarksApplicationFailed_WhenInstallCommandIsInvalid()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Web",
+                    "python3 -c \"print('should not run')\"",
+                    null,
+                    Install: "npm install; rm -rf /")
+            ]
+        });
+
+        Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
+
+        var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
+        Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+
+        var lines = await _output.GetAsync(workspace.Id, "Web");
+        Assert.That(lines, Has.Some.Contains("not a shell expression"));
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_DoesNotLaunchCommand_WhenKilledDuringInstall()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "python3 -c \"print('should not run')\"",
+                        null,
+                        Install: "python3 -c \"import time; time.sleep(5)\"")
+                ]
+            });
+
+            var launchTask = _manager.LaunchApplicationAsync(workspace, "Web");
+            await Task.Delay(500);
+            await _manager.KillApplicationAsync(workspace.Id, "Web");
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await launchTask);
+
+            // Give the application command a window in which it would have started if the
+            // kill had not actually stopped the install.
+            await Task.Delay(1000);
+
+            var lines = await _output.GetAsync(workspace.Id, "Web");
+            Assert.That(lines, Has.None.EqualTo("should not run"));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task CreateLocalProcessStartInfo_RejectsShellExpressions()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
