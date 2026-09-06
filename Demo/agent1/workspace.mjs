@@ -111,6 +111,12 @@ export const apps = {
     name: 'Backend',
     portVariable: 'API_PORT',
     defaultPort: 5102,
+    health: {
+      ok: true,
+      status: 'healthy',
+      service: 'Backend',
+      checks: { api: 'ready', sessions: 'ready', database: 'ready' }
+    },
     routes: [
       {
         path: '/openapi',

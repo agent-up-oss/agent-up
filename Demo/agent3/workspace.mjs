@@ -101,6 +101,12 @@ export const apps = {
     name: 'Payments',
     portVariable: 'PAYMENTS_PORT',
     defaultPort: 5302,
+    health: {
+      ok: true,
+      status: 'healthy',
+      service: 'Payments',
+      checks: { stripe: 'ready', webhooks: 'ready', subscriptions: 'ready' }
+    },
     routes: [
       {
         path: '/openapi',

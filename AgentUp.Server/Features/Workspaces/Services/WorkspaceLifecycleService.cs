@@ -2,6 +2,7 @@ using System.Diagnostics;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ public sealed class WorkspaceLifecycleService
     private readonly AppHealthController _healthChecks;
     private readonly AppMetricsController _metricsPulls;
     private readonly WorkspaceStreamStateController _streamState;
+    private readonly OrchestrationRegistrationController _registration;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
 
     public WorkspaceLifecycleService(
@@ -25,6 +27,7 @@ public sealed class WorkspaceLifecycleService
         AppHealthController healthChecks,
         AppMetricsController metricsPulls,
         WorkspaceStreamStateController streamState,
+        OrchestrationRegistrationController registration,
         ILogger<WorkspaceLifecycleService> logger)
     {
         _registry = registry;
@@ -33,6 +36,7 @@ public sealed class WorkspaceLifecycleService
         _healthChecks = healthChecks;
         _metricsPulls = metricsPulls;
         _streamState = streamState;
+        _registration = registration;
         _logger = logger;
     }
 
@@ -50,6 +54,10 @@ public sealed class WorkspaceLifecycleService
         if (workspace.State is WorkspaceState.Running or WorkspaceState.Starting)
             return WorkspaceLifecycleResult.Success();
 
+        await TryRefreshWorkspaceDefinitionAsync(workspace);
+
+        workspace = _registry.GetById(id)!;
+
         await _registry.UpdateStateAsync(id, WorkspaceState.Starting);
         foreach (var app in workspace.Applications)
             await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
@@ -61,6 +69,7 @@ public sealed class WorkspaceLifecycleService
         try
         {
             await _registry.ReallocatePortsAsync(id);
+            workspace = _registry.GetById(id)!;
             await _processes.LaunchWorkspaceAsync(workspace);
             await _registry.UpdateStateAsync(id, WorkspaceState.Running);
             await _registry.UpdateLastErrorAsync(id, null);
@@ -118,7 +127,7 @@ public sealed class WorkspaceLifecycleService
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return WorkspaceLifecycleResult.Failed("Workspace could not be stopped.");
+            return WorkspaceLifecycleResult.Failed(ex.Message);
         }
     }
 
@@ -142,13 +151,27 @@ public sealed class WorkspaceLifecycleService
 
         return workspaces.Count;
     }
-}
 
-public sealed record WorkspaceLifecycleResult(bool Found, bool Succeeded, string? Error)
-{
-    public static WorkspaceLifecycleResult NotFound() => new(false, false, null);
+    private async Task TryRefreshWorkspaceDefinitionAsync(Workspace workspace)
+    {
+        if (string.IsNullOrWhiteSpace(workspace.WorktreePath))
+            return;
 
-    public static WorkspaceLifecycleResult Success() => new(true, true, null);
+        try
+        {
+            var request = await _registration.BuildAsync(workspace.WorktreePath, CancellationToken.None);
+            if (request is null)
+                return;
 
-    public static WorkspaceLifecycleResult Failed(string error) => new(true, false, error);
+            await _registry.RegisterAsync(request);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException
+                                     or FileNotFoundException or DirectoryNotFoundException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Could not refresh agent-up.json for workspace {WorkspaceId}",
+                workspace.Id);
+        }
+    }
 }

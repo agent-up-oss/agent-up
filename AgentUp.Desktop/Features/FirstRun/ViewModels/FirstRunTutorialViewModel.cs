@@ -24,7 +24,7 @@ public sealed class FirstRunTutorialViewModel : ReactiveObject
               "command": "rm -rf node_modules package-lock.json && npm install --package-lock=false && npm run dev",
               "path": "api",
               "ports": [
-                { "variable": "API_PORT", "defaultPort": 3001, "protocol": "http" }
+                { "variable": "API_PORT", "defaultPort": 3001, "protocol": "http", "healthCheck": "/health", "metrics": "/metrics" }
               ]
             },
             {

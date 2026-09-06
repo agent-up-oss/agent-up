@@ -58,6 +58,77 @@ const renderBody = (app, route, path) => {
     </footer>`;
 };
 
+const wantsHtml = (request) => {
+  const accept = request.headers.accept ?? '';
+  return accept.includes('text/html');
+};
+
+const createRuntimeMetrics = () => {
+  const startedAt = Date.now();
+  let totalRequests = 0;
+  let errorsTotal = 0;
+  const recent = [];
+
+  const prune = () => {
+    const cutoff = Date.now() - 60_000;
+    while (recent.length > 0 && recent[0].at < cutoff) recent.shift();
+  };
+
+  return {
+    record(durationMs, statusCode) {
+      totalRequests += 1;
+      if (statusCode >= 400) errorsTotal += 1;
+      recent.push({ at: Date.now(), durationMs });
+      prune();
+    },
+    buildHealthPayload(app) {
+      prune();
+      return {
+        ...(app.health ?? {}),
+        ok: true,
+        status: 'healthy',
+        uptime_seconds: Math.round((Date.now() - startedAt) / 1000),
+        requests_total: totalRequests,
+        errors_total: errorsTotal
+      };
+    },
+    buildMetricsPayload() {
+      prune();
+      const requestsPerMinute = recent.length;
+      const latencyMs = requestsPerMinute === 0
+        ? 0
+        : Math.round(recent.reduce((sum, entry) => sum + entry.durationMs, 0) / requestsPerMinute);
+      const successRate = totalRequests === 0
+        ? 0
+        : Math.round(((totalRequests - errorsTotal) / totalRequests) * 1000) / 10;
+
+      return {
+        latency_ms: latencyMs,
+        requests_per_minute: requestsPerMinute,
+        errors_total: errorsTotal,
+        uptime_percent: successRate,
+        requests_total: totalRequests,
+        uptime_seconds: Math.round(process.uptime()),
+        heap_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+      };
+    }
+  };
+};
+
+const attachRequestMetrics = (request, response, runtime) => {
+  const started = Date.now();
+  let recorded = false;
+  const record = () => {
+    if (recorded) return;
+    recorded = true;
+    runtime.record(Date.now() - started, response.statusCode || 200);
+  };
+  response.on('finish', record);
+  response.on('close', () => {
+    if (!response.writableFinished) record();
+  });
+};
+
 const renderPage = (app, route, path) => `
 <!doctype html>
 <html lang="en">
@@ -153,9 +224,26 @@ const renderPage = (app, route, path) => `
 export function startDemoApp(app) {
   const port = Number.parseInt(process.env[app.portVariable] ?? `${app.defaultPort}`, 10);
   const routes = new Map(app.routes.map((route) => [route.path, route]));
+  const runtime = app.health ? createRuntimeMetrics() : null;
   const server = http.createServer((request, response) => {
+    if (runtime) attachRequestMetrics(request, response, runtime);
+
     const url = new URL(request.url ?? '/', `http://localhost:${port}`);
-    const route = routes.get(url.pathname);
+    const pathname = url.pathname;
+
+    if (runtime && app.health && pathname === '/health' && !wantsHtml(request)) {
+      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+      response.end(JSON.stringify(runtime.buildHealthPayload(app)));
+      return;
+    }
+
+    if (runtime && app.health && pathname === '/metrics' && !wantsHtml(request)) {
+      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+      response.end(JSON.stringify({ metrics: runtime.buildMetricsPayload() }));
+      return;
+    }
+
+    const route = routes.get(pathname);
     if (!route) {
       response.writeHead(404, { 'content-type': 'text/html; charset=utf-8' });
       response.end(renderPage(app, {

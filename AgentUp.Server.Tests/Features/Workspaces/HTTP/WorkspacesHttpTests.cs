@@ -21,6 +21,11 @@ using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
+using AgentUp.Server.Features.Orchestration.Controllers;
+using AgentUp.Server.Features.Orchestration.Interfaces;
+using AgentUp.Server.Features.Orchestration.Providers;
+using AgentUp.Server.Features.Orchestration.Services;
+using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
@@ -99,6 +104,11 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
+        builder.Services.AddSingleton<WorkspaceLifecycleController>();
+        builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
+        builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
+        builder.Services.AddSingleton<OrchestrationRegistrationService>();
+        builder.Services.AddSingleton<OrchestrationRegistrationController>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
@@ -414,6 +424,11 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
+        builder.Services.AddSingleton<WorkspaceLifecycleController>();
+        builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
+        builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
+        builder.Services.AddSingleton<OrchestrationRegistrationService>();
+        builder.Services.AddSingleton<OrchestrationRegistrationController>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.None);
         var app = builder.Build();
@@ -485,6 +500,74 @@ public class WorkspacesHttpTests
 
         var all = await _client.GetFromJsonAsync<List<Workspace>>("/api/workspaces", JsonOptions);
         Assert.That(all, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task PostStart_RefreshesHealthAndMetricsFromAgentUpJsonOnDisk()
+    {
+        var worktree = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(worktree);
+
+        const string initialJson = """
+            {
+              "name": "Metrics refresh test",
+              "applications": [
+                {
+                  "name": "Api",
+                  "command": "echo",
+                  "ports": [
+                    { "variable": "API_PORT", "defaultPort": 8080, "protocol": "http" }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        const string updatedJson = """
+            {
+              "name": "Metrics refresh test",
+              "applications": [
+                {
+                  "name": "Api",
+                  "command": "echo",
+                  "ports": [
+                    {
+                      "variable": "API_PORT",
+                      "defaultPort": 8080,
+                      "protocol": "http",
+                      "healthCheck": "/health",
+                      "metrics": "/metrics"
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        await File.WriteAllTextAsync(Path.Join(worktree, "agent-up.json"), initialJson);
+
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("Metrics refresh test", worktree, worktree, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition("Api", "echo", null, [new PortDeclaration("API_PORT", 8080)])
+                ]
+            })).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        await File.WriteAllTextAsync(Path.Join(worktree, "agent-up.json"), updatedJson);
+        await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+
+        var workspace = await _client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}", JsonOptions);
+        var api = workspace!.Applications.Single(app => app.Name == "Api");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(api.Ports[0].HealthCheckPath, Is.EqualTo("/health"));
+            Assert.That(api.Ports[0].MetricsPath, Is.EqualTo("/metrics"));
+            Assert.That(api.AllocatedPorts[0].HealthCheckPath, Is.EqualTo("/health"));
+            Assert.That(api.AllocatedPorts[0].MetricsPath, Is.EqualTo("/metrics"));
+        });
     }
 
     private sealed class KillFailingWorkspaceProcessManager : IWorkspaceProcessManager

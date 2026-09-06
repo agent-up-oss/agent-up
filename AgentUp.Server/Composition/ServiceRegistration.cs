@@ -131,11 +131,14 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IWorkspaceProcessManager>(sp => sp.GetRequiredService<WorkspaceProcessManager>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceProcessManager>());
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
+        builder.Services.AddSingleton<WorkspaceLifecycleController>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();
         builder.Services.AddSingleton<OrchestrationContextService>();
+        builder.Services.AddSingleton<OrchestrationRegistrationService>();
+        builder.Services.AddSingleton<OrchestrationRegistrationController>();
         builder.Services.AddSingleton<OrchestrationWorkspaceService>();
         builder.Services.AddSingleton<OrchestrationConsoleService>();
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
@@ -160,6 +163,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AppHealthController>();
         builder.Services.AddSingleton<AppMetricsPullService>();
         builder.Services.AddSingleton<AppMetricsController>();
+        builder.Services.AddSingleton<ApplicationMetricsService>();
         builder.Services.AddHostedService<HostMetricsService>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
             sp.GetRequiredService<BrowserEventBus>(),

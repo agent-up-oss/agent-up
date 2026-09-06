@@ -11,6 +11,7 @@ using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
+using AgentUp.Server.Features.Orchestration.Providers;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
@@ -48,14 +49,23 @@ internal static class ServerTestComposition
         => new(new OrchestrationWorkspaceService(
             new WorkspaceQueryController(registry),
             new WorkspaceStateController(registry, new WorkspaceEventBus()),
-            CreateProcessesController(processes),
-            CreateStreamStateController(registry: registry),
-            configuration,
-            identity));
+            new WorkspaceLifecycleController(CreateWorkspaceLifecycleService(registry, processes, configuration, identity)),
+            new OrchestrationRegistrationService(
+                configuration,
+                identity)));
+
+    public static WorkspaceLifecycleController CreateWorkspaceLifecycleController(
+        WorkspaceRegistry registry,
+        IWorkspaceProcessManager processes,
+        IAgentUpConfigurationProvider? configuration = null,
+        IWorkspaceIdentityProvider? identity = null)
+        => new(CreateWorkspaceLifecycleService(registry, processes, configuration, identity));
 
     public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
         WorkspaceRegistry registry,
-        IWorkspaceProcessManager processes)
+        IWorkspaceProcessManager processes,
+        IAgentUpConfigurationProvider? configuration = null,
+        IWorkspaceIdentityProvider? identity = null)
     {
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
         var eventBus = new BrowserEventBus();
@@ -75,6 +85,9 @@ internal static class ServerTestComposition
             streamState,
             NullLogger<HeadlessBrowserSessionManager>.Instance);
         var browser = new BrowserLifecycleController(sessions, display);
+        var registration = new OrchestrationRegistrationService(
+            configuration ?? new AgentUpConfigurationProvider(),
+            identity ?? new GitWorkspaceIdentityProvider());
         return new WorkspaceLifecycleService(
             registry,
             CreateProcessesController(processes),
@@ -82,6 +95,7 @@ internal static class ServerTestComposition
             healthChecks,
             metricsPulls,
             new WorkspaceStreamStateController(streamState),
+            new OrchestrationRegistrationController(registration),
             NullLogger<WorkspaceLifecycleService>.Instance);
     }
 

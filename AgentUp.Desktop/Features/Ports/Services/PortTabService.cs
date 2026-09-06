@@ -15,6 +15,7 @@ public sealed class PortTabService
                 port.Protocol))
             .ToList();
         tabs.Add(new ConsoleSubTabViewModel());
+        tabs.Add(new MetricsSubTabViewModel());
         return tabs;
     }
 }

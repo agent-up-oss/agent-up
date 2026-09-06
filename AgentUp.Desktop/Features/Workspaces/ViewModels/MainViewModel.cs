@@ -7,6 +7,7 @@ using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
+using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
@@ -31,6 +32,7 @@ public sealed class MainViewModel : ReactiveObject
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
     public ConsoleViewModel Console { get; }
+    public MetricsViewModel Metrics { get; }
     public ApplicationAuditViewModel Audit { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
 
@@ -43,6 +45,7 @@ public sealed class MainViewModel : ReactiveObject
     }
 
     public bool ShowConsole => SelectedSubTab is ConsoleSubTabViewModel;
+    public bool ShowMetrics => SelectedSubTab is MetricsSubTabViewModel;
     public bool ShowAudit => SelectedSubTab is AuditSubTabViewModel;
     public bool ShowPortView => SelectedSubTab is PortSubTabViewModel { IsHttp: true };
     public bool ShowTcpInfo => SelectedSubTab is PortSubTabViewModel { IsHttp: false };
@@ -68,6 +71,7 @@ public sealed class MainViewModel : ReactiveObject
         WorkspaceListViewModel sidebar,
         ApplicationListViewModel applications,
         ConsoleViewModel console,
+        MetricsViewModel metrics,
         ApplicationAuditViewModel audit,
         FirstRunTutorialViewModel tutorial,
         PortsController ports)
@@ -75,6 +79,7 @@ public sealed class MainViewModel : ReactiveObject
         Sidebar = sidebar;
         Applications = applications;
         Console = console;
+        Metrics = metrics;
         Audit = audit;
         Tutorial = tutorial;
         _ports = ports;
@@ -90,6 +95,7 @@ public sealed class MainViewModel : ReactiveObject
         SubscribeWorkspaceSelection();
         SubscribeApplicationSelection();
         SubscribeSubTabSelection();
+        SubscribeMetricsRefresh();
         SubscribeTutorialSteps();
         SubscribeSelectedPortProbe(selectedPortTab);
 
@@ -102,6 +108,7 @@ public sealed class MainViewModel : ReactiveObject
             .Subscribe(ws =>
             {
                 Console.Clear();
+                Metrics.Clear();
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
             });
@@ -159,8 +166,30 @@ public sealed class MainViewModel : ReactiveObject
                 if (app is null) return;
                 var workspaceId = Sidebar.SelectedWorkspace?.Id;
                 if (workspaceId is not null)
+                {
                     _ = Console.LoadAsync(workspaceId, app.Name);
+                    if (SelectedSubTab is MetricsSubTabViewModel)
+                        LoadMetricsIfPossible();
+                }
             });
+
+    private void SubscribeMetricsRefresh()
+        => this.WhenAnyValue(x => x.SelectedSubTab)
+            .Select(tab => tab is MetricsSubTabViewModel
+                ? Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(30), RxApp.TaskpoolScheduler)
+                : Observable.Empty<long>())
+            .Switch()
+            .Subscribe(_ => LoadMetricsIfPossible());
+
+    private void LoadMetricsIfPossible()
+    {
+        var workspaceId = Sidebar.SelectedWorkspace?.Id;
+        var appName = Applications.SelectedApplication?.Name;
+        if (workspaceId is null || appName is null)
+            return;
+
+        _ = Metrics.LoadAsync(workspaceId, appName);
+    }
 
 
     private void SubscribeSubTabSelection()
@@ -168,6 +197,7 @@ public sealed class MainViewModel : ReactiveObject
             .Subscribe(tab =>
             {
                 this.RaisePropertyChanged(nameof(ShowConsole));
+                this.RaisePropertyChanged(nameof(ShowMetrics));
                 this.RaisePropertyChanged(nameof(ShowAudit));
                 this.RaisePropertyChanged(nameof(ShowPortView));
                 this.RaisePropertyChanged(nameof(ShowTcpInfo));

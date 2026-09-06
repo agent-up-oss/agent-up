@@ -9,6 +9,10 @@ using AgentUp.Desktop.Features.Console.Controllers;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Console.Services;
 using AgentUp.Desktop.Features.Console.ViewModels;
+using AgentUp.Desktop.Features.Metrics.Controllers;
+using AgentUp.Desktop.Features.Metrics.Providers;
+using AgentUp.Desktop.Features.Metrics.Services;
+using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.Providers;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
@@ -31,12 +35,15 @@ public static class MainViewModelFactory
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
+        MetricsApiClient? metricsClient = null,
         ApplicationAuditApiClient? auditClient = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var applications = new ApplicationsController(new ApplicationSelectionService());
         var console = new ConsoleController(new ConsoleOutputService(consoleClient));
+        var metrics = new MetricsController(new MetricsTimelineService(
+            metricsClient ?? new MetricsApiClient(new HttpClient { BaseAddress = new Uri("http://localhost:0") })));
         var ports = new PortsController(new PortTabService());
         var audit = new ApplicationAuditController(new ApplicationAuditService(
             auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));
@@ -45,6 +52,7 @@ public static class MainViewModelFactory
             new WorkspaceListViewModel(workspaces),
             new ApplicationListViewModel(applications),
             new ConsoleViewModel(console),
+            new MetricsViewModel(metrics),
             new ApplicationAuditViewModel(audit),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
@@ -58,6 +66,7 @@ public static class MainViewModelFactory
         return Create(
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),
+            new MetricsApiClient(http),
             new ApplicationAuditApiClient(http));
     }
 }

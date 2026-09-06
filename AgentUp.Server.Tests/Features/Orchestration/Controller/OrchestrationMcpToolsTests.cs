@@ -48,7 +48,7 @@ public sealed class OrchestrationMcpToolsTests
         _tools = new OrchestrationMcpTools(
             CreateWorkspaceController(
                 _registry,
-                processes,
+                new NullWorkspaceProcessManager(),
                 _configuration,
                 new FakeWorkspaceIdentityProvider()),
             new OrchestrationContextController(new OrchestrationContextService(new AgentUpContextProvider())),
@@ -205,7 +205,7 @@ public sealed class OrchestrationMcpToolsTests
         var tools = new OrchestrationMcpTools(
             CreateWorkspaceController(
                 _registry,
-                ServerTestComposition.CreateProcessesController(new FailingWorkspaceProcessManager()),
+                new FailingWorkspaceProcessManager(),
                 _configuration,
                 new FakeWorkspaceIdentityProvider()),
             new OrchestrationContextController(new OrchestrationContextService(new AgentUpContextProvider())),
@@ -270,16 +270,10 @@ public sealed class OrchestrationMcpToolsTests
 
     private static OrchestrationWorkspaceController CreateWorkspaceController(
         WorkspaceRegistry registry,
-        ProcessesController processes,
+        IWorkspaceProcessManager processManager,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
-        => new(new OrchestrationWorkspaceService(
-            new AgentUp.Server.Features.Workspaces.Controllers.WorkspaceQueryController(registry),
-            ServerTestComposition.CreateWorkspaceStateController(registry),
-            processes,
-            ServerTestComposition.CreateStreamStateController(registry: registry),
-            configuration,
-            identity));
+        => ServerTestComposition.CreateOrchestrationWorkspaceController(registry, processManager, configuration, identity);
 
     private OrchestrationConsoleController CreateConsoleController(
         ProcessesController processes,
