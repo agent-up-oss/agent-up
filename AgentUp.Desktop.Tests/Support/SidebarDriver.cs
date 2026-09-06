@@ -131,7 +131,8 @@ internal sealed class SidebarDriver(MainWindow window)
         await window.ClickControlAsync(button);
     }
 
-    public string? WorkspaceStateAtIndex(int index) => Vm.Sidebar.Workspaces[index].State;
+    public string? WorkspaceStateById(string id) =>
+        Vm.Sidebar.Workspaces.FirstOrDefault(w => w.Id == id)?.State;
 
     public bool ArePortWebViewsHidden =>
         window.ArePortWebViewsHiddenForTests;

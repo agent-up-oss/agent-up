@@ -20,7 +20,7 @@ public class WorkspaceLifecycleTests
         Assert.Multiple(() =>
         {
             Assert.That(handler.RequestPaths, Does.Contain("/api/workspaces/ws-2/start"));
-            Assert.That(app.Sidebar.WorkspaceStateAtIndex(0), Is.EqualTo("Running"));
+            Assert.That(app.Sidebar.WorkspaceStateById("ws-2"), Is.EqualTo("Running"));
         });
     }
 
@@ -35,7 +35,7 @@ public class WorkspaceLifecycleTests
         Assert.Multiple(() =>
         {
             Assert.That(handler.RequestPaths, Does.Contain("/api/workspaces/ws-1/stop"));
-            Assert.That(app.Sidebar.WorkspaceStateAtIndex(1), Is.EqualTo("Stopped"));
+            Assert.That(app.Sidebar.WorkspaceStateById("ws-1"), Is.EqualTo("Stopped"));
         });
     }
 
