@@ -146,6 +146,29 @@ public class WorkspaceItemViewModelTests
     }
 
     [Test]
+    public void UpdateFrom_RaisesApplicationsChanged_WhenDatabaseFlagChanges()
+    {
+        var vm = new WorkspaceItemViewModel(
+            "ws-1",
+            "App",
+            "main",
+            "/repo",
+            "/worktree",
+            "Stopped",
+            [new ApplicationDto("Database", "postgres", null, "Running")]);
+        var applicationChangeEvents = 0;
+        vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
+
+        vm.UpdateFrom("Running", [new ApplicationDto("Database", "postgres", null, "Running") { Database = true }]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Applications.Single().Database, Is.True);
+            Assert.That(applicationChangeEvents, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void UpdateFrom_TreatsNullAllocatedPortsAsEmptyForNewApplication()
     {
         var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");

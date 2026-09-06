@@ -4,6 +4,8 @@
         xmlns:appVm="using:AgentUp.Desktop.Features.Applications.ViewModels"
         xmlns:portVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         xmlns:metricsVm="using:AgentUp.Desktop.Features.Metrics.ViewModels"
+        xmlns:databaseVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
+        xmlns:databaseViewsVm="using:AgentUp.Desktop.Features.Database.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
@@ -18,6 +20,16 @@
         <DataTemplate DataType="portVm:ConsoleSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
                 <TextBlock Text="Console"
+                           Foreground="#c2d2ca"
+                           FontSize="12"
+                           FontWeight="Bold"/>
+            </Border>
+        </DataTemplate>
+
+        <!-- Database sub-tab -->
+        <DataTemplate DataType="databaseVm:DatabaseSubTabViewModel">
+            <Border Classes="subTab" Padding="13,7">
+                <TextBlock Text="Database"
                            Foreground="#c2d2ca"
                            FontSize="12"
                            FontWeight="Bold"/>
@@ -917,6 +929,135 @@
                                            FontSize="11"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
+
+                            <!-- Database explorer -->
+                            <Grid IsVisible="{Binding ShowDatabase}"
+                                  ColumnDefinitions="220,*"
+                                  Margin="16,12">
+                                <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,*" RowSpacing="8" Margin="0,0,12,0">
+                                    <TextBlock Grid.Row="0"
+                                               Text="Databases"
+                                               Foreground="#8aa497"
+                                               FontSize="12"
+                                               FontWeight="Medium"/>
+                                    <ListBox Grid.Row="1"
+                                             ItemsSource="{Binding Database.Databases}"
+                                             SelectedItem="{Binding Database.SelectedDatabase}"
+                                             Background="#050505"
+                                             BorderBrush="#2b2b2b"
+                                             BorderThickness="1"/>
+                                    <TextBlock Grid.Row="2"
+                                               Text="Tables"
+                                               Foreground="#8aa497"
+                                               FontSize="12"
+                                               FontWeight="Medium"/>
+                                    <ListBox Grid.Row="3"
+                                             ItemsSource="{Binding Database.Tables}"
+                                             SelectedItem="{Binding Database.SelectedTable}"
+                                             Background="#050505"
+                                             BorderBrush="#2b2b2b"
+                                             BorderThickness="1"/>
+                                </Grid>
+
+                                <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+                                    <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,8">
+                                        <Button DockPanel.Dock="Right"
+                                                Content="Run"
+                                                Command="{Binding Database.RunQueryCommand}"
+                                                Margin="8,0,0,0"
+                                                Padding="14,8"/>
+                                        <TextBox Text="{Binding Database.SqlQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 MinHeight="72"
+                                                 PlaceholderText="SQL query"/>
+                                    </DockPanel>
+
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding Database.ErrorMessage}"
+                                               Foreground="#d17b7b"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,0,8"/>
+
+                                    <ScrollViewer Grid.Row="2"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Spacing="0">
+                                            <ItemsControl ItemsSource="{Binding Database.Columns}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border BorderBrush="#2b2b2b"
+                                                                BorderThickness="1"
+                                                                Padding="8,6"
+                                                                MinWidth="120"
+                                                                Background="#101010">
+                                                            <TextBlock Text="{Binding}"
+                                                                       Foreground="#d3eadf"
+                                                                       FontWeight="Bold"
+                                                                       FontSize="11"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <ItemsControl ItemsSource="{Binding Database.Rows}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="databaseViewsVm:DatabaseRowViewModel">
+                                                        <ItemsControl ItemsSource="{Binding Cells}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel Orientation="Horizontal"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border BorderBrush="#2b2b2b"
+                                                                            BorderThickness="1"
+                                                                            Padding="8,6"
+                                                                            MinWidth="120"
+                                                                            Background="#050505">
+                                                                        <TextBlock Text="{Binding}"
+                                                                                   Foreground="#c2d2ca"
+                                                                                   FontSize="11"
+                                                                                   TextWrapping="Wrap"/>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </ScrollViewer>
+
+                                    <StackPanel Grid.Row="2"
+                                                IsVisible="{Binding Database.ShowEmptyState}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Spacing="8">
+                                        <TextBlock Text="Select a table or run a query."
+                                                   Foreground="#6f857a"
+                                                   FontSize="13"
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2"
+                                                IsVisible="{Binding Database.IsLoading}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Spacing="8">
+                                        <TextBlock Text="Loading database..."
+                                                   Foreground="#6f857a"
+                                                   FontSize="13"
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
 
                             <!-- Metrics dashboard -->
                             <Grid IsVisible="{Binding ShowMetrics}"

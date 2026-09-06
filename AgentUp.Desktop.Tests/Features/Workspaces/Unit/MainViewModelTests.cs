@@ -5,6 +5,7 @@ using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
+using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Composition;
@@ -655,6 +656,32 @@ public class MainViewModelTests
             Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
             Assert.That(vm.Applications.SelectedApplication!.Name, Is.EqualTo("Web"));
             Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:5101/"));
+        });
+    }
+
+    [Test]
+    public async Task RebuildSubTabs_AddsDatabaseTabFirst_WhenApplicationHasDatabaseFlag()
+    {
+        var workspace = new WorkspaceDto("ws-1", "Demo", "/repo", "/repo", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Database", "docker", null, "Running")
+                {
+                    Database = true,
+                    AllocatedPorts = [new PortMappingDto("POSTGRES_PORT", 5432, 10602, "tcp")]
+                }
+            ]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([workspace]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.SubTabs[0], Is.TypeOf<DatabaseSubTabViewModel>());
+            Assert.That(vm.SelectedSubTab, Is.TypeOf<DatabaseSubTabViewModel>());
+            Assert.That(vm.ShowDatabase, Is.True);
         });
     }
 

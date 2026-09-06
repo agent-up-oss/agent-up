@@ -51,6 +51,7 @@ Used in `applications`.
 | `ports` | array of [Port](#port-object) | No | `[]` | Port declarations owned and allocated by the Server. |
 | `environment` | object of string values | No | `{}` | Inline environment variables for this process. Use for values safe to store in `agent-up.json` and Server workspace state. |
 | `environmentFiles` | array of strings | No | `[]` | Workspace-relative `.env`-style files loaded when the process starts. |
+| `database` | boolean | No | `false` | Enables the Desktop database viewer tab for this application. Supported today for Postgres-backed services. |
 
 Example:
 
@@ -81,6 +82,7 @@ Used in `dotnet`.
 | `ports` | array of [Port](#port-object) | No | `[]` | Port declarations owned and allocated by the Server. |
 | `environment` | object of string values | No | `{}` | Inline environment variables for this process. |
 | `environmentFiles` | array of strings | No | `[]` | Workspace-relative `.env`-style files loaded when the process starts. |
+| `database` | boolean | No | `false` | Enables the Desktop database viewer tab for this application. Supported today for Postgres-backed services. |
 
 Example:
 
@@ -124,6 +126,7 @@ Used in `docker`.
 | `volumes` | array of strings | No | `[]` | Docker volume mappings passed as Docker `-v` arguments. |
 | `environmentFiles` | array of strings | No | `[]` | Workspace-relative files passed to Docker as `--env-file` arguments. |
 | `command` | array of strings | No | `null` | Arguments appended after the image in `docker run`, overriding the container's default command (equivalent to Docker Compose's `command`). |
+| `database` | boolean | No | `false` | Enables the Desktop database viewer tab for this application. Supported today for Postgres-backed services. |
 
 Example:
 
@@ -155,6 +158,7 @@ Used in `services`. This is the legacy Docker service shape. It remains supporte
 | `volumes` | array of strings | No | `[]` | Docker volume mappings passed as Docker `-v` arguments. |
 | `environmentFiles` | array of strings | No | `[]` | Workspace-relative files passed to Docker as `--env-file` arguments. |
 | `command` | array of strings | No | `null` | Arguments appended after the image in `docker run`, overriding the container's default command (equivalent to Docker Compose's `command`). |
+| `database` | boolean | No | `false` | Enables the Desktop database viewer tab for this application. Supported today for Postgres-backed services. |
 
 ## Port Object
 

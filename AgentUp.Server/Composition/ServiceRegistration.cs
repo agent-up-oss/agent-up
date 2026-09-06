@@ -28,6 +28,10 @@ using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Features.Database.Controllers;
+using AgentUp.Server.Features.Database.Interfaces;
+using AgentUp.Server.Features.Database.Providers;
+using AgentUp.Server.Features.Database.Services;
 using AgentUp.Server.Features.Metrics.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
@@ -166,6 +170,11 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AppMetricsPullService>();
         builder.Services.AddSingleton<AppMetricsController>();
         builder.Services.AddSingleton<ApplicationMetricsService>();
+        builder.Services.AddSingleton<IDatabaseAdapter, PostgresDatabaseAdapter>();
+        builder.Services.AddSingleton<DatabaseAdapterRegistry>();
+        builder.Services.AddSingleton<DatabaseConnectionSettingsProvider>();
+        builder.Services.AddSingleton<DatabaseExplorerService>();
+        builder.Services.AddSingleton<DatabasePresentationService>();
         builder.Services.AddHostedService<HostMetricsService>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
             sp.GetRequiredService<BrowserEventBus>(),

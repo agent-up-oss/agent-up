@@ -8,4 +8,5 @@ public record DotnetApplicationDefinition(
     DotnetRunDefinition Run,
     IReadOnlyList<PortDeclaration>? Ports = null,
     IReadOnlyDictionary<string, string>? Environment = null,
-    IReadOnlyList<string>? EnvironmentFiles = null);
+    IReadOnlyList<string>? EnvironmentFiles = null,
+    bool Database = false);

@@ -31,4 +31,6 @@ public class ApplicationInstance
     public IReadOnlyList<PortMapping> AllocatedPorts { get; set; } = [];
 
     public ApplicationState State { get; set; } = ApplicationState.Stopped;
+
+    public bool Database { get; init; }
 }

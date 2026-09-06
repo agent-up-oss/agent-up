@@ -104,7 +104,8 @@ public sealed class WorkspaceRegistry : IHostedService
                     Environment = d.Environment,
                     EnvironmentFiles = d.EnvironmentFiles,
                     Ports = d.Ports ?? [],
-                    AllocatedPorts = AllocatePorts(d.Ports)
+                    AllocatedPorts = AllocatePorts(d.Ports),
+                    Database = d.Database
                 })
                 .Concat(request.Services.Select(s => new ApplicationInstance
                 {
@@ -116,7 +117,8 @@ public sealed class WorkspaceRegistry : IHostedService
                     Environment = s.Environment,
                     EnvironmentFiles = s.EnvironmentFiles,
                     Volumes = s.Volumes,
-                    Args = s.Command
+                    Args = s.Command,
+                    Database = s.Database
                 }))
                 .Concat(typedDotnetApplications)
                 .Concat(typedDockerApplications)
@@ -125,6 +127,7 @@ public sealed class WorkspaceRegistry : IHostedService
 
         _workspaces[workspace.Id] = workspace;
         await _repository.SaveAllAsync(GetAll());
+        _bus.PublishWorkspaceChange(workspace);
         return workspace;
     }
 

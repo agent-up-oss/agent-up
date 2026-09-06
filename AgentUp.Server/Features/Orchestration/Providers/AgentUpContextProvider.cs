@@ -96,6 +96,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         services[].ports: Port declarations for the service.
         services[].environment: Optional environment variables for the service.
         services[].volumes: Optional Docker volume mappings for the service.
+        services[].database: When true, Desktop shows a Database tab for browsing schemas and running SQL against supported engines such as Postgres.
         prompts.commitPolicy: Optional repository-specific commit guidance for AI agents. The default policy scopes commit messages to the queued slice; uses feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, refactor for no-behavior source changes, chore for maintenance, packaging, CI, or tooling with no customer runtime effect, style for CSS/HTML only, and docs for documentation-only changes.
         ports[].variable: Environment variable that receives the allocated port.
         ports[].defaultPort: Preferred/default port used to derive allocation intent.

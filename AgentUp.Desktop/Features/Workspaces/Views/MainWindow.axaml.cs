@@ -237,6 +237,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Where(_ => vm.ShowConsole)
             .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
             .DisposeWith(_subscriptions);
+        vm.Console.Lines.CollectionChanged += OnConsoleLinesChanged;
+        Disposable.Create(() => vm.Console.Lines.CollectionChanged -= OnConsoleLinesChanged)
+            .DisposeWith(_subscriptions);
         vm.WhenAnyValue(v => v.ShowConsole)
             .Where(visible => visible && !vm.Console.IsLoading)
             .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
@@ -635,6 +638,20 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         webView.Source = destination;
     }
 
+    internal static bool ShouldReloadConsoleWebView(Uri? currentSource, Uri destination)
+        => currentSource is not null
+           && string.Equals(currentSource.OriginalString, destination.OriginalString, StringComparison.Ordinal);
+
+    private static void NavigateConsoleWebView(NativeWebView webView, Uri destination)
+    {
+        // Console output is rewritten to one temp file; a plain navigate would be skipped
+        // when the URI is unchanged, leaving the previous application's output visible.
+        if (ShouldReloadConsoleWebView(webView.Source, destination))
+            ReloadWebView(webView, destination);
+        else
+            NavigateWebView(webView, destination);
+    }
+
     private static void ReloadWebView(NativeWebView webView, Uri destination)
     {
         webView.Source = new Uri("about:blank");
@@ -704,6 +721,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
 
+    private void OnConsoleLinesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_isClosed) return;
+        if (DataContext is not MainViewModel { ShowConsole: true, Console.IsLoading: false }) return;
+        Dispatcher.UIThread.Post(RefreshConsoleWebView);
+    }
+
     private void RefreshConsoleWebView()
     {
         if (_isClosed) return;
@@ -755,7 +779,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             var html = BuildConsoleHtml(linesToShow);
             var htmlPath = ConsoleHtmlPath();
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
-            NavigateWebView(_consoleWebView, new Uri("file://" + htmlPath));
+            NavigateConsoleWebView(_consoleWebView, new Uri("file://" + htmlPath));
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
