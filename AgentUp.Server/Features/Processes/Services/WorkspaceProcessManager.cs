@@ -144,16 +144,22 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
         using var install = created;
 
+        // WaitForExitAsync only guarantees the process itself has exited, not that queued
+        // OutputDataReceived/ErrorDataReceived events have been raised or that the AppendAsync
+        // writes they start have completed; pendingOutput tracks those writes so they can be
+        // awaited before anything downstream (exit-code check, application launch) proceeds.
+        var pendingOutput = new ConcurrentBag<Task>();
+
         install.OutputDataReceived += (_, e) =>
         {
             if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, "[install] " + e.Data);
+                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, "[install] " + e.Data));
         };
 
         install.ErrorDataReceived += (_, e) =>
         {
             if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, "[install] [err] " + e.Data, ProcessOutputStream.Stderr);
+                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, "[install] [err] " + e.Data, ProcessOutputStream.Stderr));
         };
 
         // Registering under the same key the application process later uses lets a concurrent
@@ -169,6 +175,9 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             install.BeginOutputReadLine();
             install.BeginErrorReadLine();
             await install.WaitForExitAsync();
+            // Flushes any OutputDataReceived/ErrorDataReceived events still in flight now that
+            // the process has exited, per the documented WaitForExitAsync + WaitForExit pairing.
+            install.WaitForExit();
             exitCode = install.ExitCode;
         }
         catch (System.ComponentModel.Win32Exception ex)
@@ -178,6 +187,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
             throw new InvalidOperationException($"Install step failed for '{appName}': {ex.Message}", ex);
         }
+
+        await Task.WhenAll(pendingOutput);
 
         // If KillApplicationAsync already claimed this key, it owns the resulting application
         // state (and disposal) for this Stop; don't overwrite that with Failed or proceed to
