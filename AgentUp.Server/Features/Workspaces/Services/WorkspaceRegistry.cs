@@ -115,7 +115,8 @@ public sealed class WorkspaceRegistry : IHostedService
                     AllocatedPorts = AllocatePorts(s.Ports),
                     Environment = s.Environment,
                     EnvironmentFiles = s.EnvironmentFiles,
-                    Volumes = s.Volumes
+                    Volumes = s.Volumes,
+                    Args = s.Command
                 }))
                 .Concat(typedDotnetApplications)
                 .Concat(typedDockerApplications)

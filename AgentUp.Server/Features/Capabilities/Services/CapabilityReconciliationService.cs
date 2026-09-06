@@ -65,6 +65,7 @@ public sealed class CapabilityReconciliationService(IEnumerable<ICapabilityAdapt
             Environment = definition.Environment,
             EnvironmentFiles = definition.EnvironmentFiles,
             Volumes = definition.Volumes,
+            Args = definition.Command,
             CapabilityId = "docker",
             CapabilityStatus = resolved.Status
         };

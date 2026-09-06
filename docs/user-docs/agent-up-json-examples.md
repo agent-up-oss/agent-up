@@ -43,6 +43,34 @@ title: Examples
 }
 ```
 
+## Docker Container With A Custom Command
+
+Use `command` to override a container's default entrypoint arguments, for example to run Redpanda in dev-container mode:
+
+```json
+{
+  "name": "Inventory",
+  "docker": [
+    {
+      "name": "Redpanda",
+      "image": "docker.redpanda.com/redpandadata/redpanda:v24.2.4",
+      "command": [
+        "redpanda",
+        "start",
+        "--mode",
+        "dev-container",
+        "--smp",
+        "1",
+        "--default-log-level=warn"
+      ],
+      "ports": [
+        { "variable": "KAFKA_PORT", "defaultPort": 19092, "protocol": "tcp" }
+      ]
+    }
+  ]
+}
+```
+
 ## Legacy Local Commands
 
 ```json

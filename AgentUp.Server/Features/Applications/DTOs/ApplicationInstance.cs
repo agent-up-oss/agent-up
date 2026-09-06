@@ -18,6 +18,9 @@ public class ApplicationInstance
     public IReadOnlyDictionary<string, string>? Environment { get; init; }
     public IReadOnlyList<string>? Volumes { get; init; }
 
+    // Docker fields: extra arguments appended after the image, overriding the container's default command.
+    public IReadOnlyList<string>? Args { get; init; }
+
     // Capability reconciliation fields
     public string? CapabilityId { get; init; }
     public string? CapabilityVersionRequirement { get; init; }

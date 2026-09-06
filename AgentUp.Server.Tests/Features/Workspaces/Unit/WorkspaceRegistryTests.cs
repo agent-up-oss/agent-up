@@ -405,6 +405,39 @@ public class WorkspaceRegistryTests
         Assert.That(app.Volumes, Is.EqualTo(new[] { "pgdata:/var/lib/postgresql/data" }));
     }
 
+    [Test]
+    public async Task Register_TypedDocker_PreservesCommand()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Docker =
+            [
+                new DockerCapabilityDefinition(
+                    "Redpanda",
+                    "docker.redpanda.com/redpandadata/redpanda:v24.2.4",
+                    Command: ["redpanda", "start", "--smp", "1"])
+            ]
+        });
+
+        var app = workspace.Applications.Single();
+        Assert.That(app.Args, Is.EqualTo(new[] { "redpanda", "start", "--smp", "1" }));
+    }
+
+    [Test]
+    public async Task Register_Service_PreservesCommand()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            Services = [new DockerServiceDefinition(
+                "Redpanda",
+                "docker.redpanda.com/redpandadata/redpanda:v24.2.4",
+                Command: ["redpanda", "start", "--smp", "1"])]
+        });
+
+        var app = workspace.Applications.Single();
+        Assert.That(app.Args, Is.EqualTo(new[] { "redpanda", "start", "--smp", "1" }));
+    }
+
     private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
         ServerTestComposition.CreateRegistry(adapters);
 

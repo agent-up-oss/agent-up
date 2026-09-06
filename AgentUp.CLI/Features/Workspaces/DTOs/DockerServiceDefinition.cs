@@ -6,4 +6,5 @@ public record DockerServiceDefinition(
     IReadOnlyList<PortDeclaration>? Ports = null,
     IReadOnlyDictionary<string, string>? Environment = null,
     IReadOnlyList<string>? Volumes = null,
-    IReadOnlyList<string>? EnvironmentFiles = null);
+    IReadOnlyList<string>? EnvironmentFiles = null,
+    IReadOnlyList<string>? Command = null);
