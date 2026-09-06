@@ -278,7 +278,14 @@ public class WorkspaceProcessManagerTests
             await _manager.LaunchApplicationAsync(workspace, "Web");
 
             await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
-            var lines = (await _output.GetAsync(workspace.Id, "Web")).ToList();
+
+            // LaunchApplicationAsync does not await the application process's own completion,
+            // and reaching the Stopped state (set from its Exited handler) does not guarantee
+            // every OutputDataReceived-triggered AppendAsync write has finished yet; poll until
+            // the application command's own (unprefixed) output shows up rather than assuming
+            // it is already there.
+            var lines = await WaitForOutputAsync(workspace.Id, "Web",
+                candidate => candidate.Any(line => !line.StartsWith("[install]", StringComparison.Ordinal)));
 
             // printenv always emits at least one line, so both the install step and the
             // application command must have produced output; the install's lines carry the
@@ -654,6 +661,22 @@ public class WorkspaceProcessManagerTests
         }
 
         return state;
+    }
+
+    private async Task<List<string>> WaitForOutputAsync(
+        string workspaceId,
+        string appName,
+        Func<List<string>, bool> condition)
+    {
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+        var lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+        while (!condition(lines) && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(100);
+            lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+        }
+
+        return lines;
     }
 
     private static void DeleteDirectoryIfExists(string directory)
