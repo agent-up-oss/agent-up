@@ -68,6 +68,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         || _activeWorkspaceId is not null
         || _activeTabKey is not null;
 
+    internal bool ArePortWebViewsHiddenForTests =>
+        _webViews.Count == 0 || _webViews.Values.All(webView => !webView.IsVisible);
+
     private const string SelectionJs =
         "(function(){" +
         "if(!document.getElementById('_au_sel')){" +
@@ -218,11 +221,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Disposable.Create(() => vm.Sidebar.Workspaces.CollectionChanged -= OnWorkspaceCollectionChanged)
             .DisposeWith(_subscriptions);
         vm.Tutorial.WhenAnyValue(t => t.IsVisible)
+            .CombineLatest(
+                vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible),
+                (tutorialVisible, deleteVisible) => tutorialVisible || deleteVisible)
             .DistinctUntilChanged()
-            .Subscribe(isVisible =>
-                Dispatcher.UIThread.Post(() => ApplyTutorialWebViewVisibility(isVisible)))
+            .Subscribe(modalVisible =>
+                Dispatcher.UIThread.Post(() => ApplyModalOverlayWebViewVisibility(modalVisible)))
             .DisposeWith(_subscriptions);
-        ApplyTutorialWebViewVisibility(vm.Tutorial.IsVisible);
+        ApplyModalOverlayWebViewVisibility(IsModalOverlayVisible());
         vm.Console.WhenAnyValue(c => c.IsLoading)
             .Skip(1)
             .Where(loading => !loading)
@@ -354,7 +360,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private void UpdateErrorDisplay(string? workspaceId)
     {
-        if (IsTutorialVisible())
+        if (IsModalOverlayVisible())
         {
             WebViewErrorBanner.IsVisible = false;
             return;
@@ -387,20 +393,20 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             return;
         }
 
-        HandleDirectNavigation(workspaceId, url, IsTutorialVisible(), reloadIfSameUrl);
+        HandleDirectNavigation(workspaceId, url, IsModalOverlayVisible(), reloadIfSameUrl);
     }
 
-    private void HandleDirectNavigation(string? workspaceId, string? url, bool tutorialVisible, bool reloadIfSameUrl)
+    private void HandleDirectNavigation(string? workspaceId, string? url, bool modalOverlayVisible, bool reloadIfSameUrl)
     {
         if (workspaceId is null || url is null) return;
         if (!Uri.TryCreate(url, UriKind.Absolute, out var navUri) || navUri.Scheme is not ("http" or "https")) return;
 
         var tabKey = TabKey(workspaceId, navUri);
-        ActivateTab(workspaceId, tabKey, tutorialVisible);
+        ActivateTab(workspaceId, tabKey, modalOverlayVisible);
 
         if (_webViews.TryGetValue(tabKey, out var existingWebView))
         {
-            existingWebView.IsVisible = !tutorialVisible;
+            existingWebView.IsVisible = !modalOverlayVisible;
             if (!reloadIfSameUrl && !ShouldNavigateExistingWebView(_lastKnownBrowserUrls.GetValueOrDefault(tabKey), url))
                 return;
             var errNavVer = _navigationVersions.GetValueOrDefault(tabKey) + 1;
@@ -410,7 +416,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         }
 
         if (!TryGetOrCreateWebView(tabKey, workspaceId, url, out var webView, out var destinationUrl)) return;
-        webView.IsVisible = !tutorialVisible;
+        webView.IsVisible = !modalOverlayVisible;
         var navigationVersion = _navigationVersions.GetValueOrDefault(tabKey) + 1;
         _navigationVersions[tabKey] = navigationVersion;
         _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(destinationUrl), navigationVersion);
@@ -421,7 +427,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
 
-    private void ActivateTab(string? workspaceId, string? tabKey, bool tutorialVisible)
+    private void ActivateTab(string? workspaceId, string? tabKey, bool modalOverlayVisible)
     {
         if (workspaceId == _activeWorkspaceId && tabKey == _activeTabKey) return;
 
@@ -431,7 +437,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _activeWorkspaceId = workspaceId;
         _activeTabKey = tabKey;
 
-        if (!tutorialVisible && tabKey is not null && _webViews.TryGetValue(tabKey, out var next))
+        if (!modalOverlayVisible && tabKey is not null && _webViews.TryGetValue(tabKey, out var next))
             next.IsVisible = true;
 
         UpdateErrorDisplay(workspaceId);
@@ -622,17 +628,18 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
            && _webViews.TryGetValue(tabKey, out var current)
            && ReferenceEquals(current, webView);
 
-    private bool IsTutorialVisible()
-        => DataContext is MainViewModel { Tutorial.IsVisible: true };
+    private bool IsModalOverlayVisible()
+        => DataContext is MainViewModel vm
+           && (vm.Tutorial.IsVisible || vm.Sidebar.DeleteConfirmation.IsVisible);
 
-    private void ApplyTutorialWebViewVisibility(bool tutorialVisible)
+    private void ApplyModalOverlayWebViewVisibility(bool modalOverlayVisible)
     {
         if (_isClosed) return;
 
         foreach (var webView in _webViews.Values)
             webView.IsVisible = false;
 
-        if (tutorialVisible)
+        if (modalOverlayVisible)
         {
             WebViewErrorBanner.IsVisible = false;
             return;

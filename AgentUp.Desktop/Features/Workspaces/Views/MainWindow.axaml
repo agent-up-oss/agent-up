@@ -142,8 +142,8 @@
             <Setter Property="Background" Value="#0a0a0a"/>
         </Style>
         <Style Selector="ListBoxItem:selected Border.appTab">
-            <Setter Property="Background" Value="#07120a"/>
-            <Setter Property="BorderBrush" Value="#00b850"/>
+            <Setter Property="Background" Value="#111111"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
         </Style>
 
         <!-- Sub-navbar tab -->
@@ -163,17 +163,17 @@
         <!-- Browser address bar -->
         <Style Selector="TextBox.addressBar">
             <Setter Property="Background" Value="#030303"/>
-            <Setter Property="BorderBrush" Value="#184820"/>
+            <Setter Property="BorderBrush" Value="#3c3c3c"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Foreground" Value="#c9d7d0"/>
             <Setter Property="CaretBrush" Value="#c9d7d0"/>
-            <Setter Property="SelectionBrush" Value="#0f7a45"/>
+            <Setter Property="SelectionBrush" Value="#3c3c3c"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="FontSize" Value="12"/>
         </Style>
         <Style Selector="TextBox.addressBar:focus">
-            <Setter Property="BorderBrush" Value="#00d66b"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
         </Style>
         <Style Selector="Border.browserButton">
             <Setter Property="Width" Value="28"/>
@@ -205,6 +205,43 @@
         </Style>
         <Style Selector="ListBoxItem:selected Border.wsAvatar">
             <Setter Property="Background" Value="#0f7a45"/>
+        </Style>
+
+        <Style Selector="Button.wsDeleteButton">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Opacity" Value="0.55"/>
+        </Style>
+        <Style Selector="Button.wsDeleteButton:pointerover">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+
+        <Style Selector="Border.wsLifecycleButton">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Background" Value="#080808"/>
+            <Setter Property="BorderBrush" Value="#3c3c3c"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.wsLifecycleButton">
+            <Setter Property="Background" Value="#0d4f32"/>
+        </Style>
+        <Style Selector="Button:disabled Border.wsLifecycleButton">
+            <Setter Property="Opacity" Value="0.45"/>
+        </Style>
+        <Style Selector="TextBlock.wsLifecycleIcon">
+            <Setter Property="Foreground" Value="#f5fbf7"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.wsLifecycleIconPlay">
+            <Setter Property="Margin" Value="1,0,0,0"/>
         </Style>
 
         <!-- iOS-style toggle -->
@@ -255,7 +292,7 @@
             <Setter Property="CornerRadius" Value="7"/>
             <Setter Property="Padding" Value="14,8"/>
             <Setter Property="Background" Value="#080808"/>
-            <Setter Property="BorderBrush" Value="#147346"/>
+            <Setter Property="BorderBrush" Value="#3c3c3c"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style Selector="Button:pointerover Border.tutorialSecondaryButton">
@@ -269,8 +306,7 @@
     </Window.Styles>
 
     <Border Background="#000000"
-            BorderBrush="#287038"
-            BorderThickness="1">
+            BorderThickness="0">
     <Grid RowDefinitions="42,*">
 
         <Control x:Name="FocusSink"
@@ -284,6 +320,7 @@
         <Border Grid.Row="0"
                 x:Name="WindowChrome"
                 Background="#000000"
+                BorderThickness="0"
                 PointerPressed="OnWindowChromePointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0"
@@ -384,7 +421,7 @@
                 x:Name="SidebarRail"
                 Width="{Binding Sidebar.Width}"
                 Background="#000000"
-                BorderBrush="#184820"
+                BorderBrush="#2b2b2b"
                 BorderThickness="0,0,1,0">
             <DockPanel>
 
@@ -424,30 +461,69 @@
                                         HorizontalAlignment="Stretch">
                                     <Border Classes="wsEntry"
                                             CornerRadius="8"
-                                            Padding="14,10"
+                                            Padding="10,10,14,10"
                                             HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding RepositoryToolTip}">
-                                        <StackPanel Spacing="3">
-                                            <DockPanel>
-                                                <Border DockPanel.Dock="Left"
-                                                        Width="6" Height="6"
-                                                        CornerRadius="3"
-                                                        Background="{Binding StateColor}"
-                                                        VerticalAlignment="Center"
-                                                        Margin="0,0,7,0"/>
-                                                <TextBlock Text="{Binding DisplayName}"
-                                                           Foreground="#f5fbf7"
-                                                           FontSize="15"
-                                                           FontWeight="Medium"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           VerticalAlignment="Center"/>
-                                            </DockPanel>
-                                            <TextBlock Text="{Binding Branch}"
-                                                       Foreground="#9fb2a8"
-                                                       FontSize="12"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       Margin="13,0,0,0"/>
-                                        </StackPanel>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                            <Button Grid.Column="0"
+                                                    Command="{Binding StartCommand}"
+                                                    IsVisible="{Binding ShowStartButton}"
+                                                    IsEnabled="{Binding !IsLifecycleBusy}"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip.Tip="Start workspace">
+                                                <Border Classes="wsLifecycleButton">
+                                                    <TextBlock Classes="wsLifecycleIcon wsLifecycleIconPlay"
+                                                               Text="▶"/>
+                                                </Border>
+                                            </Button>
+                                            <Button Grid.Column="0"
+                                                    Command="{Binding StopCommand}"
+                                                    IsVisible="{Binding ShowStopButton}"
+                                                    IsEnabled="{Binding !IsLifecycleBusy}"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip.Tip="Stop workspace">
+                                                <Border Classes="wsLifecycleButton">
+                                                    <TextBlock Classes="wsLifecycleIcon" Text="■"/>
+                                                </Border>
+                                            </Button>
+                                            <Grid Grid.Column="1">
+                                                <StackPanel Spacing="3">
+                                                    <DockPanel LastChildFill="True">
+                                                        <Border DockPanel.Dock="Left"
+                                                                Width="6" Height="6"
+                                                                CornerRadius="3"
+                                                                Background="{Binding StateColor}"
+                                                                VerticalAlignment="Center"
+                                                                Margin="0,0,7,0"/>
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   Foreground="#f5fbf7"
+                                                                   FontSize="15"
+                                                                   FontWeight="Medium"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,8,0"/>
+                                                    </DockPanel>
+                                                    <TextBlock Text="{Binding Branch}"
+                                                               Foreground="#9fb2a8"
+                                                               FontSize="12"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Margin="13,0,0,0"/>
+                                                </StackPanel>
+                                                <Button Classes="wsDeleteButton"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Top"
+                                                        Margin="0,-2,-2,0"
+                                                        Command="{Binding RequestDeleteCommand}"
+                                                        ToolTip.Tip="Remove workspace">
+                                                    <TextBlock Text="✕"
+                                                               Foreground="#d84f4f"
+                                                               FontSize="11"
+                                                               FontWeight="Bold"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
                                     </Border>
                                 </Border>
                             </DataTemplate>
@@ -548,7 +624,7 @@
                         <!-- Application tab bar -->
                         <Border Grid.Row="0"
                                 Background="#050505"
-                                BorderBrush="#287038"
+                                BorderBrush="#2b2b2b"
                                 BorderThickness="0,0,0,1">
                             <ListBox x:Name="ApplicationTabs"
                                      ItemsSource="{Binding Applications.Applications}"
@@ -583,7 +659,7 @@
                         <Border Grid.Row="1"
                                 IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 Background="#000000"
-                                BorderBrush="#184820"
+                                BorderBrush="#2b2b2b"
                                 BorderThickness="0,0,0,1"
                                 Padding="14,8">
                             <ListBox x:Name="SubNavBar"
@@ -605,7 +681,7 @@
                                 x:Name="AddressNavBar"
                                 IsVisible="{Binding ShowPortView}"
                                 Background="#000000"
-                                BorderBrush="#104818"
+                                BorderBrush="#2b2b2b"
                                 BorderThickness="0,0,0,1"
                                 Padding="16,7">
                             <Grid ColumnDefinitions="Auto,Auto,Auto,*"
@@ -800,7 +876,7 @@
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     Background="#050505"
-                    BorderBrush="#00b850"
+                    BorderBrush="#333333"
                     BorderThickness="1"
                     CornerRadius="8"
                     Padding="28">
@@ -862,7 +938,7 @@
                                     <Button Grid.Column="0"
                                             x:Name="TutorialSelectJavaScriptButton"
                                             Command="{Binding Tutorial.SelectJavaScriptCommand}">
-                                        <Border Background="#080808" BorderBrush="#00b850" BorderThickness="1" CornerRadius="8" Padding="16">
+                                        <Border Background="#080808" BorderBrush="#3c3c3c" BorderThickness="1" CornerRadius="8" Padding="16">
                                             <StackPanel Spacing="8">
                                                 <TextBlock Text="JS"
                                                            Foreground="#f4dd4b"
@@ -874,14 +950,14 @@
                                             </StackPanel>
                                         </Border>
                                     </Button>
-                                    <Border Grid.Column="1" Background="#050505" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                    <Border Grid.Column="1" Background="#050505" BorderBrush="#333333" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text=".NET" Foreground="#8bb7ff" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text=".NET" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Coming later" Foreground="#acd0bd" FontSize="11" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
-                                    <Border Grid.Column="2" Background="#050505" BorderBrush="#11683f" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
+                                    <Border Grid.Column="2" Background="#050505" BorderBrush="#333333" BorderThickness="1" CornerRadius="8" Padding="16" Opacity="0.62">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text="PY" Foreground="#ffd66b" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Python" Foreground="#f5fbf7" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
@@ -951,7 +1027,7 @@
                                              FontSize="12"
                                              MinHeight="130"
                                              Background="#000000"
-                                             BorderBrush="#11683f"
+                                             BorderBrush="#333333"
                                              Foreground="#dcf3e7"
                                              Padding="12"/>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
@@ -991,7 +1067,7 @@
                                          FontSize="12"
                                          MinHeight="220"
                                          Background="#000000"
-                                         BorderBrush="#11683f"
+                                         BorderBrush="#333333"
                                          Foreground="#dcf3e7"
                                          Padding="12"/>
                                 <StackPanel Spacing="10" Margin="0,8,0,0">
@@ -1060,7 +1136,7 @@
                                              FontSize="12"
                                              MinHeight="120"
                                              Background="#000000"
-                                             BorderBrush="#11683f"
+                                             BorderBrush="#333333"
                                              Foreground="#dcf3e7"
                                              Padding="12"/>
                                 </StackPanel>
@@ -1146,7 +1222,7 @@
 
                             <Border IsVisible="{Binding Tutorial.StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                     Background="#000000"
-                                    BorderBrush="#11683f"
+                                    BorderBrush="#333333"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="12">
@@ -1196,6 +1272,70 @@
             </Border>
             </Grid>
         </Panel>
+
+        <Grid Grid.Row="1"
+              ZIndex="100"
+              x:Name="WorkspaceDeleteOverlay"
+              IsVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}"
+              IsHitTestVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}">
+            <Border Background="#CC020806"/>
+            <Border Background="#6607110f">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,8*,*"
+                  ColumnDefinitions="*,8*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        MinWidth="420"
+                        MaxWidth="560"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Background="#050505"
+                        BorderBrush="#333333"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="28">
+                    <StackPanel Spacing="18">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Remove workspace"
+                                       Foreground="#f5fbf7"
+                                       FontSize="22"
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Sidebar.DeleteConfirmation.Message}"
+                                       Foreground="#c6ddd2"
+                                       FontSize="14"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <CheckBox x:Name="WorkspaceDeleteConfirmCheckbox"
+                                  Content="I understand this removes the workspace from Agent-Up"
+                                  Foreground="#c6ddd2"
+                                  FontSize="13"
+                                  IsChecked="{Binding Sidebar.DeleteConfirmation.ConfirmChecked}"/>
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <Button Grid.Column="1"
+                                    x:Name="WorkspaceDeleteCancelButton"
+                                    Command="{Binding Sidebar.DeleteConfirmation.CancelCommand}">
+                                <Border Classes="tutorialSecondaryButton">
+                                    <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
+                                </Border>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    x:Name="WorkspaceDeleteConfirmButton"
+                                    Command="{Binding Sidebar.DeleteConfirmation.ConfirmCommand}">
+                                <Border Classes="tutorialButton">
+                                    <TextBlock Classes="tutorialButtonText" Text="Delete"/>
+                                </Border>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
     </Border>
 </Window>

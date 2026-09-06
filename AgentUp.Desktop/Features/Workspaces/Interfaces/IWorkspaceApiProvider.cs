@@ -8,5 +8,11 @@ public interface IWorkspaceApiProvider
 
     Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default);
 
+    Task StartAsync(string workspaceId, CancellationToken cancellationToken = default);
+
+    Task StopAsync(string workspaceId, CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default);
+
     Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default);
 }

@@ -78,7 +78,7 @@ Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1` so onboarding d
 
 ## Browser Experience
 
-The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome, green/teal active states, rounded workspace entries, and a browser-first runtime surface.
+The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome with no outer frame border, subtle internal dividers where needed, green/teal active states and indicators, rounded workspace entries, and a browser-first runtime surface.
 
 The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Sidebar toggle, workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the sidebar/reload controls and is green when the Desktop can reach the Server and red when it cannot.
 
@@ -96,7 +96,7 @@ Desktop sets a runtime `WindowIcon` from `media/logo.png` so Linux/Xorg window s
 +---------------------------------------------------------------+
 ```
 
-The left side shows workspace selection, health, branch, and running state. Sidebar collapse and reload are controlled from the title bar so the sidebar rail remains dedicated to workspace content. Expanded workspace rows fill the sidebar width, use the last segment of the repository path as the title, show the branch underneath, and expose the full repository path as the hover tooltip. The top area shows browser tabs, logs, and diagnostics. The center contains the embedded browser.
+The left side shows workspace selection, health, branch, and running state. Running and starting workspaces always appear above stopping, stopped, or failed ones; within each group the Server orders by recent activity. Desktop preserves that order on reload and re-sorts live when workspace state changes. Sidebar collapse and reload are controlled from the title bar so the sidebar rail remains dedicated to workspace content. Expanded workspace rows fill the sidebar width, use the last segment of the repository path as the title, show the branch underneath, and expose the full repository path as the hover tooltip. The top area shows browser tabs, logs, and diagnostics. The center contains the embedded browser.
 
 ## Application Tabs
 

@@ -6,7 +6,7 @@ using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 
-public sealed class WorkspaceListViewModel : ReactiveObject
+public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 {
     private readonly WorkspacesController _workspaces;
     private WorkspaceItemViewModel? _selectedWorkspace;
@@ -15,6 +15,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     private string? _errorMessage;
 
     public ObservableCollection<WorkspaceItemViewModel> Workspaces { get; } = [];
+
+    public WorkspaceDeleteConfirmationViewModel DeleteConfirmation { get; }
 
     public WorkspaceItemViewModel? SelectedWorkspace
     {
@@ -80,8 +82,91 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     public WorkspaceListViewModel(WorkspacesController workspaces)
     {
         _workspaces = workspaces;
+        WorkspaceDeleteConfirmationViewModel? deleteConfirmation = null;
+        deleteConfirmation = new WorkspaceDeleteConfirmationViewModel(
+            id => DeleteWorkspaceAsync(id),
+            () => deleteConfirmation!.Hide());
+        DeleteConfirmation = deleteConfirmation;
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
+    }
+
+    Task IWorkspaceItemHost.StartWorkspaceAsync(string workspaceId)
+        => StartWorkspaceAsync(workspaceId);
+
+    Task IWorkspaceItemHost.StopWorkspaceAsync(string workspaceId)
+        => StopWorkspaceAsync(workspaceId);
+
+    void IWorkspaceItemHost.RequestDeleteWorkspace(string workspaceId, string displayName)
+        => DeleteConfirmation.Show(workspaceId, displayName);
+
+    public async Task StartWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _workspaces.StartAsync(workspaceId, ct);
+            ErrorMessage = null;
+            await RefreshWorkspaceAsync(workspaceId, ct);
+        }
+        catch (TaskCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not start workspace: {ex.Message}";
+        }
+    }
+
+    public async Task StopWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _workspaces.StopAsync(workspaceId, ct);
+            ErrorMessage = null;
+            await RefreshWorkspaceAsync(workspaceId, ct);
+        }
+        catch (TaskCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not stop workspace: {ex.Message}";
+        }
+    }
+
+    public async Task DeleteWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _workspaces.DeleteAsync(workspaceId, ct);
+            DeleteConfirmation.Hide();
+            ErrorMessage = null;
+            await RefreshWorkspaceAsync(workspaceId, ct);
+        }
+        catch (TaskCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not remove workspace: {ex.Message}";
+        }
+    }
+
+    private WorkspaceItemViewModel CreateWorkspaceItem(WorkspaceDto dto)
+    {
+        var item = new WorkspaceItemViewModel(
+            dto.Id,
+            dto.DisplayName,
+            dto.Branch,
+            dto.RepositoryPath,
+            dto.WorktreePath,
+            dto.State,
+            dto.Applications);
+        item.SetHost(this);
+        return item;
     }
 
     // Applies a state-change event from the server in-place, updating only the mutable state
@@ -96,6 +181,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject
     {
         var item = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
         item?.ApplyStateChange(newState, appChanges, healthState);
+        if (item is not null && !string.Equals(newState, "Removed", StringComparison.Ordinal))
+            ResortWorkspaces(workspaceId);
     }
 
     public async Task RefreshWorkspaceAsync(string workspaceId, CancellationToken ct = default)
@@ -120,13 +207,12 @@ public sealed class WorkspaceListViewModel : ReactiveObject
             if (existing is not null)
             {
                 existing.UpdateFrom(dto.State, dto.Applications);
+                ResortWorkspaces(workspaceId);
                 ErrorMessage = null;
                 return;
             }
 
-            var added = new WorkspaceItemViewModel(
-                dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
-                dto.State, dto.Applications);
+            var added = CreateWorkspaceItem(dto);
             Workspaces.Add(added);
             if (SelectedWorkspace is null)
                 SelectedWorkspace = added;
@@ -172,11 +258,11 @@ public sealed class WorkspaceListViewModel : ReactiveObject
                 }
                 else
                 {
-                    Workspaces.Add(new WorkspaceItemViewModel(
-                        dto.Id, dto.DisplayName, dto.Branch, dto.RepositoryPath, dto.WorktreePath,
-                        dto.State, dto.Applications));
+                    Workspaces.Add(CreateWorkspaceItem(dto));
                 }
             }
+
+            ApplyWorkspaceOrder(dtos);
 
             if (SelectedWorkspace is null || !Workspaces.Any(w => w.Id == SelectedWorkspace.Id))
                 SelectedWorkspace = Workspaces.FirstOrDefault();
@@ -189,5 +275,60 @@ public sealed class WorkspaceListViewModel : ReactiveObject
         {
             IsLoading = false;
         }
+    }
+
+    private void ApplyWorkspaceOrder(IReadOnlyList<WorkspaceDto> orderedDtos)
+    {
+        var itemsById = Workspaces.ToDictionary(w => w.Id);
+        var orderedItems = orderedDtos
+            .OrderByDescending(dto => WorkspaceListOrdering.ActivePriority(dto.State))
+            .ThenByDescending(dto => dto.LastActivityAtUtc)
+            .ThenBy(dto => dto.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(dto => itemsById.GetValueOrDefault(dto.Id))
+            .Where(item => item is not null)
+            .Cast<WorkspaceItemViewModel>()
+            .ToList();
+
+        if (orderedItems.Count != Workspaces.Count)
+            return;
+
+        Workspaces.Clear();
+        foreach (var item in orderedItems)
+            Workspaces.Add(item);
+    }
+
+    private void ResortWorkspaces(string? preferWithinTierId = null)
+    {
+        if (Workspaces.Count <= 1)
+            return;
+
+        var items = Workspaces.ToList();
+        var active = items.Where(w => WorkspaceListOrdering.IsActive(w.State)).ToList();
+        var inactive = items.Where(w => !WorkspaceListOrdering.IsActive(w.State)).ToList();
+
+        PromoteWithinTier(active, preferWithinTierId);
+        PromoteWithinTier(inactive, preferWithinTierId);
+
+        var ordered = active.Concat(inactive).ToList();
+        if (ordered.Select(w => w.Id).SequenceEqual(items.Select(w => w.Id)))
+            return;
+
+        Workspaces.Clear();
+        foreach (var item in ordered)
+            Workspaces.Add(item);
+    }
+
+    private static void PromoteWithinTier(List<WorkspaceItemViewModel> tier, string? workspaceId)
+    {
+        if (workspaceId is null)
+            return;
+
+        var index = tier.FindIndex(w => w.Id == workspaceId);
+        if (index <= 0)
+            return;
+
+        var item = tier[index];
+        tier.RemoveAt(index);
+        tier.Insert(0, item);
     }
 }
