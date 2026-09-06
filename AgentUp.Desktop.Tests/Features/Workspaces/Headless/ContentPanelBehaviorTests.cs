@@ -81,29 +81,12 @@ public class ContentPanelBehaviorTests
     }
 
     [AvaloniaTest]
-    public async Task Content_hidesNavButtons_inAiMode()
+    public async Task Content_showsNavButtons_forHttpPortTabs()
     {
         var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));
-
-        Assert.That(app.Content.ShowsBrowserBackButton, Is.False);
-        Assert.That(app.Content.ShowsBrowserForwardButton, Is.False);
-        Assert.That(app.Content.ShowsBrowserReloadButton, Is.False);
-    }
-
-    [AvaloniaTest]
-    public async Task Content_showsNavButtons_inHumanMode()
-    {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var app = await AppDriver.LaunchWithWorkspaceAsync(
-            workspace,
-            () => throw new InvalidOperationException("no WebKit"));
-
-        var vm = (AgentUp.Desktop.Features.Workspaces.ViewModels.MainViewModel)app.Window.DataContext!;
-        vm.Sidebar.SelectedWorkspace!.ApplyControlMode("human", 0, 0);
-        await HeadlessExtensions.FlushAsync();
 
         Assert.That(app.Content.ShowsBrowserBackButton, Is.True);
         Assert.That(app.Content.ShowsBrowserForwardButton, Is.True);
