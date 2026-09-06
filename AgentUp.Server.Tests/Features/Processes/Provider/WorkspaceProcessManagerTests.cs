@@ -269,9 +269,9 @@ public class WorkspaceProcessManagerTests
                 [
                     new ApplicationDefinition(
                         "Web",
-                        "python3 -c \"print('started')\"",
+                        "printenv",
                         null,
-                        Install: "python3 -c \"print('installed')\"")
+                        Install: "printenv")
                 ]
             });
 
@@ -280,11 +280,14 @@ public class WorkspaceProcessManagerTests
             await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
             var lines = (await _output.GetAsync(workspace.Id, "Web")).ToList();
 
-            var installIndex = lines.IndexOf("[install] installed");
-            var startedIndex = lines.IndexOf("started");
-            Assert.That(installIndex, Is.GreaterThanOrEqualTo(0));
-            Assert.That(startedIndex, Is.GreaterThanOrEqualTo(0));
-            Assert.That(installIndex, Is.LessThan(startedIndex));
+            // printenv always emits at least one line, so both the install step and the
+            // application command must have produced output; the install's lines carry the
+            // [install] prefix and must all come before the application command's own.
+            var lastInstallIndex = lines.FindLastIndex(line => line.StartsWith("[install]", StringComparison.Ordinal));
+            var firstCommandIndex = lines.FindIndex(line => !line.StartsWith("[install]", StringComparison.Ordinal));
+            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(lastInstallIndex, Is.LessThan(firstCommandIndex));
         }
         finally
         {
@@ -307,9 +310,11 @@ public class WorkspaceProcessManagerTests
                 [
                     new ApplicationDefinition(
                         "Web",
-                        "python3 -c \"print('should not run')\"",
+                        "printenv",
                         null,
-                        Install: "python3 -c \"import sys; sys.exit(1)\"")
+                        // A missing module reliably exits 1 without needing shell metacharacters
+                        // (parentheses, semicolons, ...) that the command allowlist rejects.
+                        Install: "python3 -m agentup_test_nonexistent_module")
                 ]
             });
 
@@ -318,8 +323,10 @@ public class WorkspaceProcessManagerTests
             var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
             Assert.That(state, Is.EqualTo(ApplicationState.Failed));
 
+            // Only install-prefixed output should exist; the application's own printenv must
+            // never have run.
             var lines = await _output.GetAsync(workspace.Id, "Web");
-            Assert.That(lines, Has.None.EqualTo("should not run"));
+            Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
         }
         finally
         {
@@ -337,7 +344,7 @@ public class WorkspaceProcessManagerTests
             [
                 new ApplicationDefinition(
                     "Web",
-                    "python3 -c \"print('should not run')\"",
+                    "printenv",
                     null,
                     Install: "npm install; rm -rf /")
             ]
@@ -366,9 +373,11 @@ public class WorkspaceProcessManagerTests
                 [
                     new ApplicationDefinition(
                         "Web",
-                        "python3 -c \"print('should not run')\"",
+                        "printenv",
                         null,
-                        Install: "python3 -c \"import time; time.sleep(5)\"")
+                        // Never exits on its own, so it is still running (and killable) when
+                        // KillApplicationAsync fires below.
+                        Install: "python3 -m http.server 0 --bind 127.0.0.1")
                 ]
             });
 
@@ -382,8 +391,10 @@ public class WorkspaceProcessManagerTests
             // kill had not actually stopped the install.
             await Task.Delay(1000);
 
+            // Only install-prefixed output (if any) should exist; the application's own
+            // printenv must never have run.
             var lines = await _output.GetAsync(workspace.Id, "Web");
-            Assert.That(lines, Has.None.EqualTo("should not run"));
+            Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
         }
         finally
         {
