@@ -1,3 +1,4 @@
+using AgentUp.CommitPolicy.Features.CommitPolicy.Models;
 using AgentUp.Server.Features.Applications.DTOs;
 
 namespace AgentUp.Server.Features.Orchestration.DTOs;
@@ -9,7 +10,8 @@ public sealed record AgentUpConfiguration(
     IReadOnlyList<DotnetApplicationDefinition>? Dotnet = null,
     IReadOnlyList<DockerCapabilityDefinition>? Docker = null,
     AgentPromptConfiguration? Prompts = null,
-    WorkspaceDisplayConfiguration? Display = null);
+    WorkspaceDisplayConfiguration? Display = null,
+    CommitsConfiguration? Commits = null);
 
 public sealed record AgentPromptConfiguration(
     string? CommitPolicy = null);
