@@ -7,6 +7,8 @@ namespace AgentUp.CLI.Features.Commits.Services;
 
 public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git, CommitPolicyProvider commitPolicy)
 {
+    private static readonly CommitBuildPlanProvider BuildPlan = new();
+
     public async Task EnqueueAsync(EnqueueRequest request, CancellationToken cancellationToken = default)
     {
         await queue.WithLockAsync(async ct =>
@@ -18,8 +20,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             EnsureFilesAreUnassigned(current, request.Files);
             EnsureReviewIssueIsUnassigned(current, request.ReviewIssueId);
 
+            var tests = await ResolveConfiguredTestsAsync(request.Files, request.Tests, ct);
             var id = Guid.NewGuid().ToString("N");
-            var entry = new CommitEntry(request.Slice, request.Message, request.Files, request.Tests, id, id, NormalizeOptional(request.ReviewIssueId));
+            var entry = new CommitEntry(request.Slice, request.Message, request.Files, tests, id, id, NormalizeOptional(request.ReviewIssueId));
             var patch = await git.GetDiffAsync(request.Files, ct);
             await queue.SavePatchAsync(entry.PatchKey, patch, ct);
             await queue.WriteAsync(current with { Commits = [.. current.Commits, entry] }, ct);
@@ -289,6 +292,17 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var operation = await git.GetOperationStateAsync(cancellationToken);
         if (operation.Blocking)
             throw new InvalidOperationException($"A Git {operation.Kind} is in progress. Finish or abort it before using the commit queue.");
+    }
+
+    private async Task<IReadOnlyList<string>> ResolveConfiguredTestsAsync(
+        IReadOnlyList<string> files,
+        IReadOnlyList<string> requestedTests,
+        CancellationToken cancellationToken)
+    {
+        var repoRoot = await git.GetRepoRootAsync(cancellationToken);
+        var config = CommitsConfigurationLoader.Load(repoRoot);
+        var resolved = BuildPlan.ResolveCommands(config, files);
+        return requestedTests.Concat(resolved).Distinct(StringComparer.Ordinal).ToList();
     }
 
     private static void EnsureReviewIssueIsUnassigned(CommitsQueue current, string? reviewIssueId)

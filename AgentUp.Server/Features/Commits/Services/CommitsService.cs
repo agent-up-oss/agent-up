@@ -7,6 +7,8 @@ namespace AgentUp.Server.Features.Commits.Services;
 
 public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git, CommitPolicyProvider commitPolicy)
 {
+    private static readonly CommitBuildPlanProvider BuildPlan = new();
+
     public async Task<CommitsEnqueueResult> EnqueueAsync(string worktreePath, EnqueueRequest request, CancellationToken cancellationToken = default)
     {
         try
@@ -29,8 +31,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 if (duplicate is not null)
                     throw new InvalidOperationException($"File '{duplicate}' is already assigned to another queued entry.");
 
+                var tests = ResolveConfiguredTests(worktreePath, request.Files, request.Tests);
                 var id = Guid.NewGuid().ToString("N");
-                var entry = new CommitEntry(request.Slice, request.Message, request.Files, request.Tests, id, id, NormalizeOptional(request.ReviewIssueId));
+                var entry = new CommitEntry(request.Slice, request.Message, request.Files, tests, id, id, NormalizeOptional(request.ReviewIssueId));
                 var patch = await git.GetDiffAsync(worktreePath, request.Files, ct);
                 await queue.SavePatchAsync(worktreePath, entry.PatchKey, patch, ct);
                 var updated = current with { Commits = [.. current.Commits, entry] };
@@ -316,6 +319,13 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         var operation = await git.GetOperationStateAsync(worktreePath, cancellationToken);
         if (operation.Blocking)
             throw new InvalidOperationException($"A Git {operation.Kind} is in progress. Finish or abort it before using the commit queue.");
+    }
+
+    private static IReadOnlyList<string> ResolveConfiguredTests(string worktreePath, IReadOnlyList<string> files, IReadOnlyList<string> requestedTests)
+    {
+        var config = CommitsConfigurationLoader.Load(worktreePath);
+        var resolved = BuildPlan.ResolveCommands(config, files);
+        return requestedTests.Concat(resolved).Distinct(StringComparer.Ordinal).ToList();
     }
 
     private static void EnsureReviewIssueIsUnassigned(CommitsQueue current, string? reviewIssueId)
