@@ -24,17 +24,33 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             EnableRaisingEvents = true
         };
 
+    // The install command is idempotent by nature (npm install, dotnet restore, etc. are
+    // safe to re-run), so it is executed unconditionally before every launch rather than
+    // tracked with a completion marker — running it is always correct, skipping it sometimes
+    // is not.
+    public Process? CreateInstallProcess(Workspace workspace, ApplicationInstance app)
+    {
+        var startInfo = CreateInstallStartInfo(workspace, app);
+        return startInfo is null ? null : new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+    }
+
     public void Kill(Process process)
         => process.Kill(entireProcessTree: true);
 
     internal ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
+        => CreateStartInfo(workspace, app, app.Command!);
+
+    internal ProcessStartInfo? CreateInstallStartInfo(Workspace workspace, ApplicationInstance app)
+        => string.IsNullOrWhiteSpace(app.Install) ? null : CreateStartInfo(workspace, app, app.Install);
+
+    private ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app, string command)
     {
         var workingDirectory = WorkspacePathProvider.ResolveWorkspacePath(
             workspace.WorktreePath,
             app.Path,
             "Application path");
         var fileEnvironment = LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles);
-        var startInfo = CreateProcessStartInfo(app.Command!, workingDirectory);
+        var startInfo = CreateProcessStartInfo(command, workingDirectory);
         foreach (var (key, value) in fileEnvironment)
             startInfo.Environment[key] = value;
 

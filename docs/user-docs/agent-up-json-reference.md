@@ -92,6 +92,7 @@ Used in `applications`.
 |---|---:|---:|---:|---|
 | `name` | string | Yes | none | Application display name. Names are used in application lists and start/stop/restart operations. |
 | `command` | string | Yes | none | Executable-plus-arguments command used to start the application. Agent-Up launches it directly from the configured `path`, rejects shell expressions, and requires the first token to be an allowlisted executable name such as `node`, `npm`, `dotnet`, `python`, `cargo`, `go`, `java`, `make`, `mvn`, `gradle`, `bun`, `pnpm`, or `yarn`. |
+| `install` | string or null | No | none | Executable-plus-arguments command run to completion in the same `path`, before every start of `command` — subject to the same executable allowlist and shell-expression rejection as `command`. Runs unconditionally on every `agent-up start` (and every restart), so it must be safe to re-run, like `npm install`, `dotnet restore`, or `pip install -r requirements.txt`; the Server does not track whether it "already ran". Output is streamed to the application console prefixed with `[install]`. A non-zero exit fails the start and the application is not launched. |
 | `path` | string or null | No | workspace root | Working directory for the command, relative to the workspace root. Use `null` or omit it to run from the workspace root. |
 | `ports` | array of [Port](#port-object) | No | `[]` | Port declarations owned and allocated by the Server. |
 | `environment` | object of string values | No | `{}` | Inline environment variables for this process. Use for values safe to store in `agent-up.json` and Server workspace state. |
@@ -103,6 +104,7 @@ Example:
 {
   "name": "Web",
   "command": "npm run dev",
+  "install": "npm install",
   "path": "web",
   "environmentFiles": [".env"],
   "environment": {

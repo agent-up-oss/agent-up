@@ -100,6 +100,7 @@ public sealed class WorkspaceRegistry : IHostedService
                 {
                     Name = d.Name,
                     Command = d.Command,
+                    Install = d.Install,
                     Path = d.Path,
                     Environment = d.Environment,
                     EnvironmentFiles = d.EnvironmentFiles,

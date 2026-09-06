@@ -4,6 +4,7 @@
     {
       "name": "Docs",
       "command": "npm run start",
+      "install": "npm install",
       "path": "docs",
       "ports": [
         { "variable": "PORT", "defaultPort": 3000 }
@@ -12,6 +13,7 @@
     {
       "name": "Mobile",
       "command": "npm run web",
+      "install": "npm install",
       "path": "AgentUp.Mobile",
       "ports": [
         { "variable": "WEB_PORT", "defaultPort": 8081, "protocol": "http" }
