@@ -33,6 +33,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Switching between workspace tabs only toggles IsVisible; the WebView is never navigated away,
     // preserving full page state (scroll position, open accordions, JS memory, auth session).
     private readonly Dictionary<string, NativeWebView> _webViews = new();
+    // OAuth/sign-in popups opened via window.open() from within a workspace WebView — keyed by "{tabKey}:{sequence}".
+    private readonly Dictionary<string, IWebPopup> _webPopups = new();
+    private int _popupSequence;
     // Errors keyed by workspaceId (not tabKey) so the banner persists across tab switches.
     private readonly Dictionary<string, string> _webViewErrors = new();
     // Last successfully navigated http URL per tabKey; absent means tab is in error state.
@@ -58,6 +61,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     };
 
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
+    internal Func<IWebPopup> WebPopupFactory { get; set; } = () => new NativeWebDialogPopup();
+    internal int OpenPopupCountForTests => _webPopups.Count;
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
     internal BrowserViewportController BrowserViewport { get; }
     internal bool HasBrowserResourcesForTests =>
@@ -533,7 +538,61 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             ForceFirstWebKitPaint(tabKey, webView);
         };
 
+        webView.NewWindowRequested += (_, e) => HandleNewWindowRequested(workspaceId, tabKey, e);
+
         return webView;
+    }
+
+    // Many OAuth/sign-in flows (Google, GitHub, Microsoft, Auth0, ...) launch via window.open()
+    // rather than a same-tab redirect. Without handling this, the popup silently fails to open
+    // and the flow appears to just do nothing. We open the requested URL in a NativeWebDialog —
+    // a separate native-webview-backed window sharing the same engine/cookie store — so the
+    // popup renders and the sign-in flow can complete.
+    private void HandleNewWindowRequested(string workspaceId, string tabKey, WebViewNewWindowRequestedEventArgs e)
+    {
+        e.Handled = true;
+        if (_isClosed) return;
+        if (e.Request is not { Scheme: "http" or "https" } popupUri) return;
+
+        var popupId = $"{tabKey}:{++_popupSequence}";
+        try
+        {
+            var popup = WebPopupFactory();
+            _webPopups[popupId] = popup;
+            popup.Title = "Sign in";
+            popup.Closing += (_, _) => ClosePopup(popupId);
+            popup.Navigate(popupUri);
+            popup.Show();
+
+            RecordWebViewEvent(workspaceId, "popup_opened", "success", new()
+            {
+                ["tabKey"] = tabKey,
+                ["url"] = popupUri.ToString(),
+            });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            _webPopups.Remove(popupId);
+            RecordWebViewEvent(workspaceId, "popup_open_failed", "error", new()
+            {
+                ["tabKey"] = tabKey,
+                ["url"] = popupUri.ToString(),
+                ["error"] = ex.Message,
+            });
+            Trace.TraceWarning($"Could not open sign-in popup: {ex.Message}");
+        }
+    }
+
+    private void ClosePopup(string popupId)
+    {
+        if (!_webPopups.Remove(popupId, out var popup)) return;
+        try { popup.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+    }
+
+    private void ClosePopups(string tabKeyOrWorkspacePrefix)
+    {
+        foreach (var popupId in _webPopups.Keys.Where(key => key.StartsWith($"{tabKeyOrWorkspacePrefix}:", StringComparison.Ordinal)).ToList())
+            ClosePopup(popupId);
     }
 
     private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
@@ -959,6 +1018,7 @@ code {
 
         _lastKnownBrowserUrls.Remove(tabKey);
         _navigationVersions.Remove(tabKey);
+        ClosePopups(tabKey);
     }
 
     private static void DeleteBrowserErrorPage(string workspaceId)
@@ -1153,4 +1213,35 @@ code {
             Trace.TraceWarning(ex.Message);
         }
     }
+}
+
+// Thin seam over NativeWebDialog so tests can substitute a fake popup without ever
+// constructing a real native web dialog (doing so requires a working GTK/WebKit
+// environment and crashes the test process where one isn't available, e.g. plain `dotnet test`
+// on Linux without Xvfb).
+internal interface IWebPopup : IDisposable
+{
+    string Title { set; }
+    event EventHandler Closing;
+    void Navigate(Uri uri);
+    void Show();
+}
+
+internal sealed class NativeWebDialogPopup : IWebPopup
+{
+    private readonly NativeWebDialog _dialog = new();
+
+    public string Title { set => _dialog.Title = value; }
+
+    public event EventHandler? Closing
+    {
+        add => _dialog.Closing += value;
+        remove => _dialog.Closing -= value;
+    }
+
+    public void Navigate(Uri uri) => _dialog.Navigate(uri);
+
+    public void Show() => _dialog.Show();
+
+    public void Dispose() => _dialog.Dispose();
 }
