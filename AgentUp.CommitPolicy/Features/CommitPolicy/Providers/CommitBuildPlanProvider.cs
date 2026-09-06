@@ -41,13 +41,7 @@ public sealed class CommitBuildPlanProvider
     }
 
     private static void AddRange(List<string> commands, IReadOnlyList<string> values)
-    {
-        foreach (var value in values)
-        {
-            if (!commands.Contains(value, StringComparer.Ordinal))
-                commands.Add(value);
-        }
-    }
+        => commands.AddRange(values.Where(value => !commands.Contains(value, StringComparer.Ordinal)));
 
     private static string RootDirectory(string path)
         => path.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
