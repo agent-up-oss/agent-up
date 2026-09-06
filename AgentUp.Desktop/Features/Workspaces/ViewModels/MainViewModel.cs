@@ -6,6 +6,7 @@ using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
+using AgentUp.Desktop.Features.Database.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
@@ -35,6 +36,7 @@ public sealed class MainViewModel : ReactiveObject
     public ConsoleViewModel Console { get; }
     public MetricsViewModel Metrics { get; }
     public ApplicationAuditViewModel Audit { get; }
+    public DatabaseViewModel Database { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
 
     public ObservableCollection<SubTabViewModel> SubTabs { get; } = [];
@@ -48,6 +50,7 @@ public sealed class MainViewModel : ReactiveObject
     public bool ShowConsole => SelectedSubTab is ConsoleSubTabViewModel;
     public bool ShowMetrics => SelectedSubTab is MetricsSubTabViewModel;
     public bool ShowAudit => SelectedSubTab is AuditSubTabViewModel;
+    public bool ShowDatabase => SelectedSubTab is DatabaseSubTabViewModel;
     public bool ShowPortView => SelectedSubTab is PortSubTabViewModel { IsHttp: true };
     public bool ShowTcpInfo => SelectedSubTab is PortSubTabViewModel { IsHttp: false };
 
@@ -74,6 +77,7 @@ public sealed class MainViewModel : ReactiveObject
         ConsoleViewModel console,
         MetricsViewModel metrics,
         ApplicationAuditViewModel audit,
+        DatabaseViewModel database,
         FirstRunTutorialViewModel tutorial,
         PortsController ports)
     {
@@ -82,6 +86,7 @@ public sealed class MainViewModel : ReactiveObject
         Console = console;
         Metrics = metrics;
         Audit = audit;
+        Database = database;
         Tutorial = tutorial;
         _ports = ports;
 
@@ -214,6 +219,7 @@ public sealed class MainViewModel : ReactiveObject
                 this.RaisePropertyChanged(nameof(ShowConsole));
                 this.RaisePropertyChanged(nameof(ShowMetrics));
                 this.RaisePropertyChanged(nameof(ShowAudit));
+                this.RaisePropertyChanged(nameof(ShowDatabase));
                 this.RaisePropertyChanged(nameof(ShowPortView));
                 this.RaisePropertyChanged(nameof(ShowTcpInfo));
                 if (tab is PortSubTabViewModel { IsHttp: true } portTab)
@@ -234,6 +240,10 @@ public sealed class MainViewModel : ReactiveObject
                     && Sidebar.SelectedWorkspace?.Id is { } workspaceId
                     && Applications.SelectedApplication?.Name is { } application)
                     _ = Audit.LoadAsync(workspaceId, application);
+                if (tab is DatabaseSubTabViewModel
+                    && Sidebar.SelectedWorkspace?.Id is { } databaseWorkspaceId
+                    && Applications.SelectedApplication?.Name is { } databaseApplication)
+                    _ = Database.LoadAsync(databaseWorkspaceId, databaseApplication);
             });
 
     private void SubscribeTutorialSteps()
@@ -423,12 +433,13 @@ public sealed class MainViewModel : ReactiveObject
         var ports = app.AllocatedPorts
             .Select(port => new PortTabRequest(port.Variable ?? string.Empty, port.DefaultPort, port.AllocatedPort, port.Protocol))
             .ToList();
+        if (app.Database)
+            SubTabs.Add(new DatabaseSubTabViewModel());
         foreach (var tab in _ports.CreateTabs(ports))
             SubTabs.Add(tab);
         SubTabs.Add(new AuditSubTabViewModel());
 
-        SelectedSubTab = SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault()
-            ?? (SubTabViewModel)SubTabs[0];
+        SelectedSubTab = SubTabs[0];
 
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
             _ = portTab.ProbeAsync();
@@ -458,7 +469,7 @@ public sealed class MainViewModel : ReactiveObject
     }
 
     private static ApplicationViewModel CreateApplicationViewModel(WorkspaceApplicationViewModel app) =>
-        new(app.Name, app.Command, app.State, app.AllocatedPorts);
+        new(app.Name, app.Command, app.State, app.AllocatedPorts, app.Database);
 
     public async Task InitializeAsync()
     {

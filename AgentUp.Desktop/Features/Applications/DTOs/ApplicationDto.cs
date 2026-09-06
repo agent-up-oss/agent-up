@@ -6,7 +6,8 @@ public sealed record ApplicationDto(
     string Name,
     string Command,
     string? Path,
-    string State)
+    string State,
+    bool Database = false)
 {
     public List<PortMappingDto> AllocatedPorts { get; init; } = [];
 }

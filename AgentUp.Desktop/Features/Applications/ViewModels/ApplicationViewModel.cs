@@ -12,6 +12,7 @@ public sealed class ApplicationViewModel : ReactiveObject
     public string Name { get; }
     public string Command { get; }
     public IReadOnlyList<PortMappingDto> AllocatedPorts { get; }
+    public bool Database { get; }
 
     public string State
     {
@@ -25,13 +26,14 @@ public sealed class ApplicationViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
     }
 
-    public ApplicationViewModel(string name, string command, string state, IReadOnlyList<PortMappingDto>? allocatedPorts = null)
+    public ApplicationViewModel(string name, string command, string state, IReadOnlyList<PortMappingDto>? allocatedPorts = null, bool database = false)
     {
         Name = name;
         Command = command;
         _state = state;
         _stateColor = AppHealthLedRules.StateColor(state);
         AllocatedPorts = allocatedPorts ?? [];
+        Database = database;
     }
 
     public void UpdateState(string newState)

@@ -58,6 +58,7 @@ Legacy executable commands remain supported when Agent-Up should only launch the
     {
       "name": "Database",
       "image": "postgres:16",
+      "database": true,
       "ports": [{ "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }],
       "environment": {
         "POSTGRES_PASSWORD": "not-a-real-value"
@@ -67,6 +68,8 @@ Legacy executable commands remain supported when Agent-Up should only launch the
   ]
 }
 ```
+
+Setting `database` to `true` adds Database as the first detail tab for that application. The initial PostgreSQL adapter discovers databases and tables through the allocated port whose `defaultPort` is `5432`, using `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from the application's inline `environment` values (with PostgreSQL defaults where omitted). Selecting a table fills the multiline SQL field with `SELECT * ... LIMIT 50`; **Run SQL** sends the field unchanged, so it can execute writes as well as filtered reads.
 
 ## No Hardcoded Ports
 

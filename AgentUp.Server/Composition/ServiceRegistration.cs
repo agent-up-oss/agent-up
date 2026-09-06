@@ -28,6 +28,9 @@ using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Features.Database.Interfaces;
+using AgentUp.Server.Features.Database.Providers;
+using AgentUp.Server.Features.Database.Services;
 using AgentUp.Server.Features.Metrics.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
@@ -134,6 +137,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<WorkspaceLifecycleController>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
+        builder.Services.AddSingleton<IDatabaseAdapter, PostgresDatabaseAdapter>();
+        builder.Services.AddSingleton<DatabaseService>();
         builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
         builder.Services.AddSingleton<IAgentUpContextProvider, AgentUpContextProvider>();

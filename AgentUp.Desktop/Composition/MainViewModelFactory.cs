@@ -9,6 +9,10 @@ using AgentUp.Desktop.Features.Console.Controllers;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Console.Services;
 using AgentUp.Desktop.Features.Console.ViewModels;
+using AgentUp.Desktop.Features.Database.Controllers;
+using AgentUp.Desktop.Features.Database.Providers;
+using AgentUp.Desktop.Features.Database.Services;
+using AgentUp.Desktop.Features.Database.ViewModels;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Metrics.Providers;
 using AgentUp.Desktop.Features.Metrics.Services;
@@ -42,7 +46,8 @@ public static class MainViewModelFactory
         ConsoleApiClient consoleClient,
         MetricsApiClient? metricsClient = null,
         ApplicationAuditApiClient? auditClient = null,
-        FirstRunTutorialViewModel? tutorial = null)
+        FirstRunTutorialViewModel? tutorial = null,
+        DatabaseApiClient? databaseClient = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var applications = new ApplicationsController(new ApplicationSelectionService());
@@ -59,6 +64,7 @@ public static class MainViewModelFactory
             new ConsoleViewModel(console),
             new MetricsViewModel(metrics),
             new ApplicationAuditViewModel(audit),
+            new DatabaseViewModel(new DatabaseController(new DatabaseService(databaseClient ?? new DatabaseApiClient(DefaultAuditHttpClient)))),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
@@ -72,7 +78,8 @@ public static class MainViewModelFactory
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),
             new MetricsApiClient(http),
-            new ApplicationAuditApiClient(http));
+            new ApplicationAuditApiClient(http),
+            databaseClient: new DatabaseApiClient(http));
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

@@ -196,6 +196,11 @@ AgentUp.Desktop/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
       DTOs/
       ViewModels/
+    Database/         (database catalog, SQL query viewer, and Server API client)
+      Controllers/
+      DTOs/
+      Providers/
+      ViewModels/
 
 AgentUp.Mobile/
   src/

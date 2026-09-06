@@ -102,7 +102,7 @@ The left side shows workspace selection, health, branch, and running state. Runn
 
 The first tab row lists the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application.
 
-For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console and Metrics remain available after the port tabs.
+For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console and Metrics remain available after the port tabs. Applications marked `database` are the exception: Database is always the first and initially selected detail tab, and the Desktop calls the Server-owned database API rather than connecting to the database itself.
 
 The Metrics tab shows a vertically scrollable dashboard of summary cards and time-series charts built from Server-pulled application metrics (`ports[].metrics` in `agent-up.json`). Data refreshes every 30 seconds while the tab is selected.
 

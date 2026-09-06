@@ -37,6 +37,7 @@ public sealed class CapabilityReconciliationService(IEnumerable<ICapabilityAdapt
             AllocatedPorts = allocatedPorts,
             Environment = definition.Environment,
             EnvironmentFiles = definition.EnvironmentFiles,
+            Database = definition.Database,
             CapabilityId = "dotnet",
             CapabilityVersionRequirement = definition.Sdk,
             CapabilityStatus = resolved.Status
@@ -66,6 +67,7 @@ public sealed class CapabilityReconciliationService(IEnumerable<ICapabilityAdapt
             EnvironmentFiles = definition.EnvironmentFiles,
             Volumes = definition.Volumes,
             Args = definition.Command,
+            Database = definition.Database,
             CapabilityId = "docker",
             CapabilityStatus = resolved.Status
         };

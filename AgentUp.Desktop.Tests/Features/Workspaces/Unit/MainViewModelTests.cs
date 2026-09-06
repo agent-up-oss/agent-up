@@ -117,6 +117,22 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task InitializeAsync_placesDatabaseFirst_whenApplicationIsDatabaseEnabled()
+    {
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
+        {
+            Applications = [new ApplicationDto("Database", "docker", null, "Running", Database: true)]
+        };
+        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+
+        await vm.InitializeAsync();
+
+        Assert.That(vm.SubTabs[0].Label, Is.EqualTo("Database"));
+        Assert.That(vm.SelectedSubTab, Is.TypeOf<AgentUp.Desktop.Features.Database.ViewModels.DatabaseSubTabViewModel>());
+        Assert.That(vm.ShowDatabase, Is.True);
+    }
+
+    [Test]
     public async Task InitializeAsync_setsAddressBarToFirstHttpPortUrl_whenApplicationHasPorts()
     {
         const int port = 5100;

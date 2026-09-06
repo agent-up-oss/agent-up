@@ -26,6 +26,9 @@ public class ApplicationInstance
     public string? CapabilityVersionRequirement { get; init; }
     public CapabilityStatusDto? CapabilityStatus { get; init; }
 
+    // Enables the Server-owned database browsing surface for this application.
+    public bool Database { get; init; }
+
     // Port declarations (shared by process and docker apps)
     public IReadOnlyList<PortDeclaration> Ports { get; init; } = [];
     public IReadOnlyList<PortMapping> AllocatedPorts { get; set; } = [];

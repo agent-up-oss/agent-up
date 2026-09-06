@@ -9,4 +9,5 @@ public record ApplicationDefinition(
     string? Path,
     IReadOnlyList<PortDeclaration>? Ports = null,
     IReadOnlyDictionary<string, string>? Environment = null,
-    IReadOnlyList<string>? EnvironmentFiles = null);
+    IReadOnlyList<string>? EnvironmentFiles = null,
+    bool Database = false);
