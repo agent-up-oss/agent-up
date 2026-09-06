@@ -216,7 +216,9 @@ public sealed class OrchestrationMcpToolsTests
         var result = await tools.StopWorkspace(workspace!.Id);
 
         Assert.That(result.Succeeded, Is.False);
-        Assert.That(result.Message, Is.EqualTo("stop failed"));
+        // WorkspaceLifecycleService.StopAsync returns a stable public message and logs the raw
+        // exception server-side, rather than surfacing internal exception text to callers.
+        Assert.That(result.Message, Is.EqualTo("Workspace could not be stopped."));
         Assert.That(_registry.GetById(workspace.Id)!.State, Is.EqualTo(WorkspaceState.Failed));
     }
 
