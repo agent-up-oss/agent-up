@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
 using AgentUp.Server.Features.Applications.Controllers;
@@ -20,6 +21,7 @@ public sealed class WorkspaceLifecycleService
     private readonly WorkspaceStreamStateController _streamState;
     private readonly OrchestrationRegistrationController _registration;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _transitionLocks = new();
 
     public WorkspaceLifecycleService(
         WorkspaceRegistry registry,
@@ -43,95 +45,121 @@ public sealed class WorkspaceLifecycleService
 
     public async Task<WorkspaceLifecycleResult> StartAsync(string id)
     {
-        var workspace = _registry.GetById(id);
-        if (workspace is null)
-            return WorkspaceLifecycleResult.NotFound();
-
-        // Idempotent: if the workspace is already Running or in the middle of Starting,
-        // don't tear down the live browser session and re-launch processes. A double-Start
-        // click would otherwise dispose the session, reallocate ports, and spawn duplicate
-        // app processes — dropping the current stream and leaving zombie viewer pages.
-        // Callers who want a real restart must Stop first.
-        if (workspace.State is WorkspaceState.Running or WorkspaceState.Starting)
-            return WorkspaceLifecycleResult.Success();
-
-        await TryRefreshWorkspaceDefinitionAsync(workspace);
-
-        workspace = _registry.GetById(id)!;
-
-        await _registry.UpdateStateAsync(id, WorkspaceState.Starting);
-        foreach (var app in workspace.Applications)
-            await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
-
-        // Dispose any stale browser session from a previous run so the first navigate
-        // after this start creates a fresh Chromium session at the correct URL.
-        await _browser.DisposeSessionAsync(id);
-
+        var gate = GetTransitionLock(id);
+        await gate.WaitAsync();
         try
         {
-            await _registry.ReallocatePortsAsync(id);
+            var workspace = _registry.GetById(id);
+            if (workspace is null)
+                return WorkspaceLifecycleResult.NotFound();
+
+            // Idempotent: if the workspace is already Running or in the middle of Starting,
+            // don't tear down the live browser session and re-launch processes. A double-Start
+            // click would otherwise dispose the session, reallocate ports, and spawn duplicate
+            // app processes — dropping the current stream and leaving zombie viewer pages.
+            // Callers who want a real restart must Stop first.
+            if (workspace.State is WorkspaceState.Running or WorkspaceState.Starting)
+                return WorkspaceLifecycleResult.Success();
+
+            await TryRefreshWorkspaceDefinitionAsync(workspace);
+
             workspace = _registry.GetById(id)!;
-            await _processes.LaunchWorkspaceAsync(workspace);
-            await _registry.UpdateStateAsync(id, WorkspaceState.Running);
-            await _registry.UpdateLastErrorAsync(id, null);
+
+            await _registry.UpdateStateAsync(id, WorkspaceState.Starting);
             foreach (var app in workspace.Applications)
-                await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
+                await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Starting);
 
-            _streamState.OnWorkspaceStarted(workspace);
-            _healthChecks.StartForWorkspace(workspace);
-            _metricsPulls.StartForWorkspace(workspace);
+            // Dispose any stale browser session from a previous run so the first navigate
+            // after this start creates a fresh Chromium session at the correct URL.
+            await _browser.DisposeSessionAsync(id);
 
-            return WorkspaceLifecycleResult.Success();
+            try
+            {
+                await _registry.ReallocatePortsAsync(id);
+                workspace = _registry.GetById(id)!;
+                await _processes.LaunchWorkspaceAsync(workspace);
+                await _registry.UpdateStateAsync(id, WorkspaceState.Running);
+                await _registry.UpdateLastErrorAsync(id, null);
+                foreach (var app in workspace.Applications)
+                    await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
+
+                _streamState.OnWorkspaceStarted(workspace);
+                _healthChecks.StartForWorkspace(workspace);
+                _metricsPulls.StartForWorkspace(workspace);
+
+                return WorkspaceLifecycleResult.Success();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+            {
+                _logger.LogError(ex, "Workspace failed to start");
+                await _registry.UpdateLastErrorAsync(id, ex.Message);
+                await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
+                return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
+            }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        finally
         {
-            _logger.LogError(ex, "Workspace failed to start");
-            await _registry.UpdateLastErrorAsync(id, ex.Message);
-            await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
+            gate.Release();
         }
     }
 
     public async Task<WorkspaceLifecycleResult> StopAsync(string id)
     {
-        var workspace = _registry.GetById(id);
-        if (workspace is null)
-            return WorkspaceLifecycleResult.NotFound();
-
-        // Idempotent: a second Stop on an already-Stopped workspace is a no-op.
-        if (workspace.State is WorkspaceState.Stopped or WorkspaceState.Stopping)
-            return WorkspaceLifecycleResult.Success();
-
-        await _registry.UpdateStateAsync(id, WorkspaceState.Stopping);
-        foreach (var app in workspace.Applications)
-            await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopping);
-
+        var gate = GetTransitionLock(id);
+        await gate.WaitAsync();
         try
         {
-            // Publish WorkspaceStopped early so any live desktop clients hide the WebView
-            // and show the correct banner before we start tearing down the session.
-            _streamState.OnWorkspaceStopped(id);
-            _healthChecks.StopForWorkspace(id);
-            _metricsPulls.StopForWorkspace(id);
-            await _processes.KillWorkspaceAsync(id);
-            await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);
+            var workspace = _registry.GetById(id);
+            if (workspace is null)
+                return WorkspaceLifecycleResult.NotFound();
+
+            // Idempotent: a second Stop on an already-Stopped workspace is a no-op.
+            if (workspace.State is WorkspaceState.Stopped or WorkspaceState.Stopping)
+                return WorkspaceLifecycleResult.Success();
+
+            await _registry.UpdateStateAsync(id, WorkspaceState.Stopping);
             foreach (var app in workspace.Applications)
-                await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopped);
+                await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopping);
 
-            // Dispose the headless browser session so the display loop stops streaming stale
-            // content, and disconnect viewer WebSockets so clients reconnect after restart.
-            await _browser.DisposeSessionAsync(id);
-            await _browser.DisconnectAllAsync(id, CancellationToken.None);
+            try
+            {
+                // Publish WorkspaceStopped early so any live desktop clients hide the WebView
+                // and show the correct banner before we start tearing down the session.
+                _streamState.OnWorkspaceStopped(id);
+                _healthChecks.StopForWorkspace(id);
+                _metricsPulls.StopForWorkspace(id);
+                await _processes.KillWorkspaceAsync(id);
+                await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);
+                foreach (var app in workspace.Applications)
+                    await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopped);
 
-            return WorkspaceLifecycleResult.Success();
+                // Dispose the headless browser session so the display loop stops streaming stale
+                // content, and disconnect viewer WebSockets so clients reconnect after restart.
+                await _browser.DisposeSessionAsync(id);
+                await _browser.DisconnectAllAsync(id, CancellationToken.None);
+
+                return WorkspaceLifecycleResult.Success();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+            {
+                _logger.LogError(ex, "Workspace failed to stop");
+                await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
+                return WorkspaceLifecycleResult.Failed("Workspace could not be stopped.");
+            }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        finally
         {
-            _logger.LogError(ex, "Workspace failed to stop");
-            await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return WorkspaceLifecycleResult.Failed("Workspace could not be stopped.");
+            gate.Release();
         }
     }
+
+    // Start and Stop both read-then-write a workspace's state across several awaits
+    // (registry updates, process launch/kill, health and metrics polling). Without this,
+    // a concurrent Start/Stop pair for the same workspace can interleave — e.g. Stop
+    // finishing while Start is still awaiting LaunchWorkspaceAsync, which would then mark
+    // the workspace Running and resume polling after the Stop already tore it down.
+    private SemaphoreSlim GetTransitionLock(string workspaceId)
+        => _transitionLocks.GetOrAdd(workspaceId, static _ => new SemaphoreSlim(1, 1));
 
     public async Task<int> CleanupTutorialWorkspacesAsync()
     {
