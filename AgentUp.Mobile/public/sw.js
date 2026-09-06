@@ -11,7 +11,7 @@ self.addEventListener('install', event => event.waitUntil((async () => {
     const cache = await caches.open(bootstrap.cacheName);
     try {
       await Promise.all(bootstrap.files.map(async path => {
-        const asset = await fetch(path);
+        const asset = await fetch(path, { cache: 'no-store' });
         if (!asset.ok) throw new Error(`Bootstrap asset ${path} returned ${asset.status}.`);
         await cache.put(path, await withoutRedirectMetadata(asset));
       }));

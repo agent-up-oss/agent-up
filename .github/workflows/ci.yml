@@ -585,12 +585,19 @@ jobs:
           RELEASE_TAG: ${{ steps.channel.outputs.tag }}
           CHANNEL: ${{ steps.channel.outputs.name }}
         run: |
-          gh release create "$RELEASE_TAG" \
-            AgentUp.Mobile/agent-up-mobile-web.zip \
-            AgentUp.Mobile/release.json \
-            --prerelease \
-            --title "$RELEASE_TAG" \
-            --notes "Immutable AgentUp.Mobile web build for $RELEASE_TAG."
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              AgentUp.Mobile/agent-up-mobile-web.zip \
+              AgentUp.Mobile/release.json \
+              --clobber
+          else
+            gh release create "$RELEASE_TAG" \
+              AgentUp.Mobile/agent-up-mobile-web.zip \
+              AgentUp.Mobile/release.json \
+              --prerelease \
+              --title "$RELEASE_TAG" \
+              --notes "Immutable AgentUp.Mobile web build for $RELEASE_TAG."
+          fi
 
   release:
     name: Release
@@ -665,8 +672,8 @@ jobs:
           npm test
           npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
 
-          if npm view "@agent-up-oss/audit@$RELEASE_VERSION" version >/dev/null 2>&1; then
-            echo "@agent-up-oss/audit@$RELEASE_VERSION is already published; skipping."
+          if npm view "@agent-up/audit@$RELEASE_VERSION" version >/dev/null 2>&1; then
+            echo "@agent-up/audit@$RELEASE_VERSION is already published; skipping."
             exit 0
           fi
 

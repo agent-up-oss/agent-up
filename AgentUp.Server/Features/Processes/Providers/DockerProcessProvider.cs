@@ -105,11 +105,11 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
     private void AddDockerEnvironmentArgs(List<string> runArgs, Workspace workspace, ApplicationInstance app)
     {
         var portVariables = CreateWorkspacePortVariableMap(workspace);
+        foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
+            AddEnvironment(runArgs, key, InterpolateWorkspacePorts(value, portVariables));
         AddEnvironment(runArgs, "AGENT_UP_AUDIT_ENDPOINT", GetContainerAuditEndpoint(_auditEndpoint));
         AddEnvironment(runArgs, "AGENT_UP_WORKSPACE_ID", workspace.Id);
         AddEnvironment(runArgs, "AGENT_UP_APPLICATION", app.Name);
-        foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
-            AddEnvironment(runArgs, key, InterpolateWorkspacePorts(value, portVariables));
     }
 
     private static void AddEnvironment(List<string> runArgs, string key, string value)

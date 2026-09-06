@@ -12,6 +12,11 @@ test('rejects unsupported schemes and credentials', () => {
   assert.throws(() => normalizeServerUrl('https://user:pass@example.test'), /base URL/);
 });
 
+test('rejects query strings and fragments', () => {
+  assert.throws(() => normalizeServerUrl('https://example.test/?query=1'), /base URL/);
+  assert.throws(() => normalizeServerUrl('https://example.test/#fragment'), /base URL/);
+});
+
 test('probes the workspace API', async () => {
   let requested = '';
   await probeServer('https://agent-up.example', (async (input: string | URL | Request) => {

@@ -43,6 +43,7 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
         _application = application;
         _nextBefore = null;
         _nextBeforeEventId = null;
+        this.RaisePropertyChanged(nameof(HasMore));
         Events.Clear();
         IsLoading = false;
         try
