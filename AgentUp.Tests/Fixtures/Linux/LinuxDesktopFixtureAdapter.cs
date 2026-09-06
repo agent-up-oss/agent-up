@@ -59,7 +59,16 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         foreach (var dir in ldPath.Split(':', StringSplitOptions.RemoveEmptyEntries).Where(Directory.Exists))
         {
             foreach (var file in Directory.GetFiles(dir, "*.so.*"))
+            {
+                var name = Path.GetFileName(file);
+                if (name.Contains("asan", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("tsan", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("ubsan", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("msan", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 NativeLibrary.TryLoad(file, out _);
+            }
         }
     }
 

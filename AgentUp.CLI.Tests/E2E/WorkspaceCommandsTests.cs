@@ -27,6 +27,10 @@ using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Server.Features.Orchestration.Controllers;
+using AgentUp.Server.Features.Orchestration.Interfaces;
+using AgentUp.Server.Features.Orchestration.Providers;
+using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -485,6 +489,10 @@ public class WorkspaceCommandsTests
             sp.GetRequiredService<WorkspaceStreamStateService>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
+        builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
+        builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
+        builder.Services.AddSingleton<OrchestrationRegistrationService>();
+        builder.Services.AddSingleton<OrchestrationRegistrationController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);

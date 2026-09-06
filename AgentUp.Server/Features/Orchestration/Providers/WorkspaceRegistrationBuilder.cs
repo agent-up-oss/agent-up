@@ -21,7 +21,9 @@ public static class WorkspaceRegistrationBuilder
             Commit: identity.Commit)
         {
             Applications = config.Applications ?? [],
-            Services = config.Services ?? []
+            Services = config.Services ?? [],
+            Dotnet = config.Dotnet ?? [],
+            Docker = config.Docker ?? []
         };
     }
 }

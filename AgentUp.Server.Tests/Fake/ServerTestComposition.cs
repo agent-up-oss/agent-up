@@ -21,12 +21,26 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Fake;
 
 internal static class ServerTestComposition
 {
+    public static IServiceCollection AddWorkspaceLifecycleSupport(this IServiceCollection services)
+    {
+        services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
+        services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
+        services.AddSingleton<OrchestrationRegistrationService>();
+        services.AddSingleton<OrchestrationRegistrationController>();
+        services.AddSingleton<AppMetricsPullService>();
+        services.AddSingleton<AppMetricsController>();
+        services.AddSingleton<BrowserLifecycleController>();
+        services.AddSingleton<WorkspaceLifecycleService>();
+        services.AddSingleton<WorkspaceLifecycleController>();
+        return services;
+    }
     public static WorkspaceRegistry CreateRegistry(
         IReadOnlyList<ICapabilityAdapter>? adapters = null,
         WorkspaceEventBus? bus = null)

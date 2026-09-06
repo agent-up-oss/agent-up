@@ -103,12 +103,7 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<WorkspaceStreamStateService>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
-        builder.Services.AddSingleton<WorkspaceLifecycleService>();
-        builder.Services.AddSingleton<WorkspaceLifecycleController>();
-        builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
-        builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
-        builder.Services.AddSingleton<OrchestrationRegistrationService>();
-        builder.Services.AddSingleton<OrchestrationRegistrationController>();
+        builder.Services.AddWorkspaceLifecycleSupport();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
@@ -423,12 +418,7 @@ public class WorkspacesHttpTests
             sp.GetRequiredService<WorkspaceStreamStateService>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
-        builder.Services.AddSingleton<WorkspaceLifecycleService>();
-        builder.Services.AddSingleton<WorkspaceLifecycleController>();
-        builder.Services.AddSingleton<IAgentUpConfigurationProvider, AgentUpConfigurationProvider>();
-        builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
-        builder.Services.AddSingleton<OrchestrationRegistrationService>();
-        builder.Services.AddSingleton<OrchestrationRegistrationController>();
+        builder.Services.AddWorkspaceLifecycleSupport();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.None);
         var app = builder.Build();

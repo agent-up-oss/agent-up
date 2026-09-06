@@ -22,6 +22,10 @@ using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
+using AgentUp.Server.Features.Orchestration.Controllers;
+using AgentUp.Server.Features.Orchestration.Interfaces;
+using AgentUp.Server.Features.Orchestration.Providers;
+using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
@@ -98,7 +102,7 @@ public class ApplicationsHttpTests
             sp.GetRequiredService<WorkspaceStreamStateService>(),
             sp.GetRequiredService<ILogger<HeadlessBrowserSessionManager>>()));
         builder.Services.AddSingleton<BrowserLifecycleController>();
-        builder.Services.AddSingleton<WorkspaceLifecycleService>();
+        builder.Services.AddWorkspaceLifecycleSupport();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
