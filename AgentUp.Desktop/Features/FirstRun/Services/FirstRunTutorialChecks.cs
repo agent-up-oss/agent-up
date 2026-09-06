@@ -1040,7 +1040,8 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
                 latency_ms: latencyMs,
                 requests_per_minute: requestsPerMinute,
                 errors_total: errorsTotal,
-                uptime_percent: successRate,
+                success_rate: successRate,
+                uptime_percent: 100,
                 requests_total: totalRequests,
                 uptime_seconds: Math.round((Date.now() - startedAt) / 1000),
                 heap_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)

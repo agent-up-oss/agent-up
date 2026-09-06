@@ -1,5 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
@@ -34,6 +35,7 @@ internal static class ServerTestComposition
         services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
         services.AddSingleton<OrchestrationRegistrationService>();
         services.AddSingleton<OrchestrationRegistrationController>();
+        services.AddSingleton<AppMetricsHttpClient>();
         services.AddSingleton<AppMetricsPullService>();
         services.AddSingleton<AppMetricsController>();
         services.AddSingleton<BrowserLifecycleController>();
@@ -90,7 +92,7 @@ internal static class ServerTestComposition
             queryController, stateController, CreateAuditController(), NullLogger<AppHealthCheckService>.Instance);
         var healthChecks = new AppHealthController(healthCheckService);
         var metricsPulls = new AppMetricsController(new AppMetricsPullService(
-            CreateAuditController(), NullLogger<AppMetricsPullService>.Instance));
+            new AppMetricsHttpClient(), CreateAuditController(), NullLogger<AppMetricsPullService>.Instance));
         var streamState = new WorkspaceStreamStateService(
             eventBus, healthChecks, queryController, CreateAuditController(),
             NullLogger<WorkspaceStreamStateService>.Instance);

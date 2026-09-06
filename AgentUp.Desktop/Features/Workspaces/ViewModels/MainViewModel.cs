@@ -28,6 +28,7 @@ public sealed class MainViewModel : ReactiveObject
     private readonly Dictionary<string, string> _portUrls = new();
     private WorkspaceItemViewModel? _workspaceApplicationSubscription;
     private string? _lastSelectedHttpPortKey;
+    private CancellationTokenSource? _metricsLoadCts;
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -108,10 +109,18 @@ public sealed class MainViewModel : ReactiveObject
             .Subscribe(ws =>
             {
                 Console.Clear();
+                CancelPendingMetricsLoad();
                 Metrics.Clear();
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
             });
+
+    private void CancelPendingMetricsLoad()
+    {
+        _metricsLoadCts?.Cancel();
+        _metricsLoadCts?.Dispose();
+        _metricsLoadCts = null;
+    }
 
     private void SubscribeSelectedWorkspaceApplications(WorkspaceItemViewModel? workspace)
     {
@@ -179,16 +188,22 @@ public sealed class MainViewModel : ReactiveObject
                 ? Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(30), RxApp.TaskpoolScheduler)
                 : Observable.Empty<long>())
             .Switch()
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => LoadMetricsIfPossible());
 
     private void LoadMetricsIfPossible()
     {
         var workspaceId = Sidebar.SelectedWorkspace?.Id;
         var appName = Applications.SelectedApplication?.Name;
+
+        CancelPendingMetricsLoad();
+
         if (workspaceId is null || appName is null)
             return;
 
-        _ = Metrics.LoadAsync(workspaceId, appName);
+        var cts = new CancellationTokenSource();
+        _metricsLoadCts = cts;
+        _ = Metrics.LoadAsync(workspaceId, appName, cts.Token);
     }
 
 

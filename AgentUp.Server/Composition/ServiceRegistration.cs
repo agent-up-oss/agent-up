@@ -8,6 +8,7 @@ using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
 using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
@@ -161,6 +162,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserInputDispatcher>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<AppMetricsHttpClient>();
         builder.Services.AddSingleton<AppMetricsPullService>();
         builder.Services.AddSingleton<AppMetricsController>();
         builder.Services.AddSingleton<ApplicationMetricsService>();

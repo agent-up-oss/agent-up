@@ -13,7 +13,7 @@ public static class ProcessMetricsSampler
         process.Refresh();
 
         var startCpu = process.TotalProcessorTime;
-        var startUtc = DateTime.UtcNow;
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             await Task.Delay(cpuSampleWindow, cancellationToken);
@@ -24,7 +24,7 @@ public static class ProcessMetricsSampler
         }
 
         process.Refresh();
-        var elapsedMs = (DateTime.UtcNow - startUtc).TotalMilliseconds;
+        var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
         var cpuDeltaMs = (process.TotalProcessorTime - startCpu).TotalMilliseconds;
         var cpuPercent = elapsedMs <= 0
             ? 0

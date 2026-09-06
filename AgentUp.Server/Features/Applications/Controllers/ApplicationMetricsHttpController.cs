@@ -17,7 +17,11 @@ public sealed class ApplicationMetricsHttpController(
         int limit = 60,
         CancellationToken cancellationToken = default)
     {
-        if (workspaces.GetById(id) is null)
+        var workspace = workspaces.GetById(id);
+        if (workspace is null)
+            return NotFound();
+
+        if (!workspace.Applications.Any(app => string.Equals(app.Name, name, StringComparison.Ordinal)))
             return NotFound();
 
         var timeline = await metrics.GetTimelineAsync(id, name, limit, cancellationToken);

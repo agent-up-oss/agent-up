@@ -52,6 +52,30 @@ public sealed class AuditMcpToolsTests
     }
 
     [Test]
+    public async Task Query_DefaultsToWorkspaceScope_WhenScopeOmitted()
+    {
+        var events = new InMemoryAuditEventRepository();
+        var controller = ServerTestComposition.CreateAuditController(events: events);
+        var tools = new AuditMcpTools(controller);
+        await controller.RecordAsync(
+            new AuditRecordRequest("metrics", "server", "host_metrics_sample", "success", null, Scope: "host-server"),
+            CancellationToken.None);
+        await controller.RecordAsync(
+            new AuditRecordRequest("workspace", "server", "workspace_state_changed", "success", "workspace", Scope: "workspace"),
+            CancellationToken.None);
+
+        var result = await tools.Query(kind: null, compact: false);
+        var data = (IReadOnlyList<AuditEvent>)result.Data!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(data, Has.Count.EqualTo(1));
+            Assert.That(data.Single().Scope, Is.EqualTo("workspace"));
+        });
+    }
+
+    [Test]
     public async Task Query_ReturnsMatchingAuditEvents()
     {
         var events = new InMemoryAuditEventRepository();

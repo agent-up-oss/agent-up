@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
@@ -7,14 +8,14 @@ using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Applications.Services;
 
-public sealed class AppMetricsPullService(
+public sealed partial class AppMetricsPullService(
+    AppMetricsHttpClient http,
     AuditController audit,
     ILogger<AppMetricsPullService> logger) : IDisposable
 {
     private static readonly TimeSpan PullInterval = TimeSpan.FromSeconds(30);
 
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _workspaceCts = new();
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(8) };
 
     public void StartForWorkspace(Workspace workspace)
     {
@@ -56,7 +57,6 @@ public sealed class AppMetricsPullService(
         }
 
         _workspaceCts.Clear();
-        _http.Dispose();
     }
 
     private async Task RunPortPullAsync(
@@ -66,8 +66,6 @@ public sealed class AppMetricsPullService(
         string path,
         CancellationToken ct)
     {
-        var url = $"http://localhost:{allocatedPort}{path}";
-
         while (!ct.IsCancellationRequested)
         {
             try
@@ -79,23 +77,19 @@ public sealed class AppMetricsPullService(
                 return;
             }
 
-            IReadOnlyDictionary<string, string> metrics;
+            IReadOnlyDictionary<string, string>? metrics;
             try
             {
-                using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseContentRead, ct);
-                if (!response.IsSuccessStatusCode)
+                metrics = await http.FetchAsync(allocatedPort, path, ct);
+                if (metrics is null)
                 {
                     logger.LogDebug(
-                        "App metrics pull failed: {WorkspaceId}/{AppName}:{Port} → HTTP {StatusCode}",
+                        "App metrics pull failed: {WorkspaceId}/{AppName}:{Port}",
                         SanitizeForLog(workspaceId),
                         SanitizeForLog(appName),
-                        allocatedPort,
-                        (int)response.StatusCode);
+                        allocatedPort);
                     continue;
                 }
-
-                var body = await response.Content.ReadAsStringAsync(ct);
-                metrics = MetricsResponseParser.Parse(body);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -118,8 +112,8 @@ public sealed class AppMetricsPullService(
             var details = new Dictionary<string, string>(metrics, StringComparer.Ordinal)
             {
                 ["appName"] = appName,
+                ["application"] = appName,
                 ["port"] = allocatedPort.ToString(),
-                ["url"] = url
             };
 
             _ = audit.RecordAsync(new AuditRecordRequest(
@@ -133,7 +127,11 @@ public sealed class AppMetricsPullService(
         }
     }
 
+    // CodeQL's log-forging query does not recognize ad-hoc string replacement as clearing taint,
+    // so this restricts logged identifiers to a known-safe allowlist instead of stripping characters.
     private static string SanitizeForLog(string value) =>
-        value.Replace("\r", string.Empty, StringComparison.Ordinal)
-             .Replace("\n", string.Empty, StringComparison.Ordinal);
+        SafeLogToken().IsMatch(value) ? value : "invalid";
+
+    [GeneratedRegex(@"^[A-Za-z0-9 _.-]+$")]
+    private static partial Regex SafeLogToken();
 }

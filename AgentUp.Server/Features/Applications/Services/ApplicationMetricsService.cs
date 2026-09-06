@@ -12,9 +12,10 @@ public sealed class ApplicationMetricsService(AuditController audit)
     private static readonly (string[] Keys, string Label, string Unit)[] SummaryPriority =
     [
         (["latency_ms", "latency", "p95_ms", "duration_ms", "response_time_ms"], "Latency", "ms"),
-        (["uptime_percent", "uptime", "availability"], "Uptime", "%"),
         (["requests_per_minute", "req_per_min", "rpm", "requests_per_min", "throughput_rpm"], "Req/min", ""),
         (["errors_total", "error_count", "errors", "failed_requests"], "Errors", ""),
+        (["success_rate", "success_ratio"], "Success rate", "%"),
+        (["uptime_percent", "uptime", "availability"], "Uptime", "%"),
     ];
 
     public async Task<ApplicationMetricsTimelineDto> GetTimelineAsync(
@@ -37,12 +38,13 @@ public sealed class ApplicationMetricsService(AuditController audit)
                 null,
                 null,
                 cappedLimit,
-                AuditScope.Application),
+                AuditScope.Application,
+                Application: appName),
             cancellationToken);
 
         var samples = events
             .Where(evt => string.Equals(evt.Action, "app_metrics_pull", StringComparison.Ordinal)
-                          && string.Equals(evt.Details.GetValueOrDefault("appName"), appName, StringComparison.Ordinal))
+                          && string.Equals(evt.Details.GetValueOrDefault("application"), appName, StringComparison.Ordinal))
             .OrderBy(evt => evt.Timestamp)
             .Select(evt => new MetricsSample(evt.Timestamp, ExtractMetricValues(evt.Details)))
             .Where(sample => sample.Values.Count > 0)
@@ -146,7 +148,7 @@ public sealed class ApplicationMetricsService(AuditController audit)
         var lower = key.ToLowerInvariant();
         if (lower.Contains("latency") || lower.Contains("duration") || lower.Contains("response")) return 0;
         if (lower.Contains("request") || lower.Contains("throughput") || lower.Contains("rpm")) return 1;
-        if (lower.Contains("error") || lower.Contains("fail")) return 2;
+        if (lower.Contains("error") || lower.Contains("fail") || lower.Contains("success")) return 2;
         if (lower.Contains("cpu")) return 3;
         if (lower.Contains("memory") || lower.Contains("heap") || lower.Contains("bytes")) return 4;
         if (lower.Contains("connection") || lower.Contains("active")) return 5;
@@ -159,7 +161,7 @@ public sealed class ApplicationMetricsService(AuditController audit)
     private static string InferUnit(string key)
     {
         var lower = key.ToLowerInvariant();
-        if (lower.Contains("percent") || lower.EndsWith("_pct") || lower == "uptime") return "%";
+        if (lower.Contains("percent") || lower.EndsWith("_pct") || lower.Contains("rate") || lower.Contains("ratio") || lower == "uptime") return "%";
         if (lower.Contains("ms") || lower.Contains("latency") || lower.Contains("duration")) return "ms";
         if (lower.Contains("byte") || lower.Contains("memory") || lower.Contains("heap")) return "bytes";
         if (lower.Contains("request") || lower.Contains("rpm") || lower.Contains("throughput")) return "/min";

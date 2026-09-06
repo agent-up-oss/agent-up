@@ -106,7 +106,10 @@ const createRuntimeMetrics = () => {
         latency_ms: latencyMs,
         requests_per_minute: requestsPerMinute,
         errors_total: errorsTotal,
-        uptime_percent: successRate,
+        success_rate: successRate,
+        // This process has not restarted since it started, so uptime is 100% by definition;
+        // success_rate (above) is the separate, request-outcome-based measure.
+        uptime_percent: 100,
         requests_total: totalRequests,
         uptime_seconds: Math.round(process.uptime()),
         heap_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
@@ -118,14 +121,16 @@ const createRuntimeMetrics = () => {
 const attachRequestMetrics = (request, response, runtime) => {
   const started = Date.now();
   let recorded = false;
-  const record = () => {
+  const record = (statusCode) => {
     if (recorded) return;
     recorded = true;
-    runtime.record(Date.now() - started, response.statusCode || 200);
+    runtime.record(Date.now() - started, statusCode);
   };
-  response.on('finish', record);
+  response.on('finish', () => record(response.statusCode || 200));
   response.on('close', () => {
-    if (!response.writableFinished) record();
+    // The connection closed before a response was ever sent (e.g. the client aborted
+    // mid-request); record it as a failure rather than defaulting to statusCode 200.
+    if (!response.writableFinished) record(499);
   });
 };
 

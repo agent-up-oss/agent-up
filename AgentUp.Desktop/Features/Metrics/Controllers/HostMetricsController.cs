@@ -2,15 +2,11 @@ using AgentUp.Desktop.Features.Metrics.Services;
 
 namespace AgentUp.Desktop.Features.Metrics.Controllers;
 
-public sealed class HostMetricsController : IDisposable
+public sealed class HostMetricsController(HostMetricsReporter reporter) : IDisposable
 {
-    private readonly HostMetricsReporter _reporter;
+    public void Start() => reporter.Start();
 
-    public HostMetricsController(HttpClient http) => _reporter = new HostMetricsReporter(http);
+    public void Stop() => reporter.Stop();
 
-    public void Start() => _reporter.Start();
-
-    public void Stop() => _reporter.Stop();
-
-    public void Dispose() => _reporter.Dispose();
+    public void Dispose() => reporter.Dispose();
 }

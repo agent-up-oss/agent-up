@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Browser.Controllers;
@@ -126,8 +127,9 @@ public sealed class WorkspaceLifecycleService
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
+            _logger.LogError(ex, "Workspace failed to stop");
             await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
-            return WorkspaceLifecycleResult.Failed(ex.Message);
+            return WorkspaceLifecycleResult.Failed("Workspace could not be stopped.");
         }
     }
 
@@ -137,6 +139,8 @@ public sealed class WorkspaceLifecycleService
 
         foreach (var workspace in workspaces)
         {
+            _metricsPulls.StopForWorkspace(workspace.Id);
+
             try
             {
                 await _processes.KillWorkspaceAsync(workspace.Id);
@@ -166,7 +170,8 @@ public sealed class WorkspaceLifecycleService
             await _registry.RegisterAsync(request);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException
-                                     or FileNotFoundException or DirectoryNotFoundException)
+                                     or FileNotFoundException or DirectoryNotFoundException
+                                     or JsonException)
         {
             _logger.LogWarning(
                 ex,

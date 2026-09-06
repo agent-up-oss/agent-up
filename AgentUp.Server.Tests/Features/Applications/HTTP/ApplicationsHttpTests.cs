@@ -87,8 +87,10 @@ public class ApplicationsHttpTests
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
+        builder.Services.AddSingleton<AgentUp.Server.Features.Applications.Providers.AppMetricsHttpClient>();
         builder.Services.AddSingleton<AppMetricsPullService>();
         builder.Services.AddSingleton<AppMetricsController>();
+        builder.Services.AddSingleton<ApplicationMetricsService>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
             sp.GetRequiredService<BrowserEventBus>(),
             sp.GetRequiredService<AppHealthController>(),
@@ -249,6 +251,17 @@ public class ApplicationsHttpTests
             new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
 
         var response = await _client.PostAsync($"/api/workspaces/{created.Id}/applications/ghost/start", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task GetApplicationMetrics_ReturnsNotFound_ForUnknownApp()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications/ghost/metrics");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }

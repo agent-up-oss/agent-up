@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Diagnostics.CodeAnalysis;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Metrics.DTOs;
 using AgentUp.Desktop.Features.Metrics.Providers;
@@ -31,9 +32,10 @@ public sealed class MetricsControllerTests
     private sealed class MetricsHttpHandler(ApplicationMetricsTimelineDto timeline) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(timeline)
-            });
+            => Task.FromResult(CreateResponse(timeline));
+
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+        private static HttpResponseMessage CreateResponse(ApplicationMetricsTimelineDto value) =>
+            new(HttpStatusCode.OK) { Content = JsonContent.Create(value) };
     }
 }

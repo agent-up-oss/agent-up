@@ -19,7 +19,11 @@ public sealed class MetricsViewModel : ReactiveObject
     public bool IsLoading
     {
         get => _isLoading;
-        private set => this.RaiseAndSetIfChanged(ref _isLoading, value);
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isLoading, value);
+            this.RaisePropertyChanged(nameof(ShowEmptyState));
+        }
     }
 
     public bool HasSummary => SummaryCards.Count > 0;
@@ -63,10 +67,18 @@ public sealed class MetricsViewModel : ReactiveObject
         try
         {
             var timeline = await _metrics.GetTimelineAsync(workspaceId, appName, ct);
+            // A newer LoadAsync call may have superseded this one while awaiting; discard
+            // this stale response rather than overwriting the newer selection's data.
+            if (ct.IsCancellationRequested)
+                return;
+
             ApplyTimeline(timeline);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
+            if (ct.IsCancellationRequested)
+                return;
+
             EmptyMessage = "Could not load metrics from the Server.";
             SummaryCards.Clear();
             Charts.Clear();
@@ -74,7 +86,10 @@ public sealed class MetricsViewModel : ReactiveObject
         }
         finally
         {
-            IsLoading = false;
+            // A cancelled (superseded) call must not clear IsLoading out from under the
+            // newer call that is still in flight for the current selection.
+            if (!ct.IsCancellationRequested)
+                IsLoading = false;
         }
     }
 

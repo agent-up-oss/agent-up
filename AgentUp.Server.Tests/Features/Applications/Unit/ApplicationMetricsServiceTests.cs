@@ -22,6 +22,7 @@ public sealed class ApplicationMetricsServiceTests
             Details: new Dictionary<string, string>
             {
                 ["appName"] = "Web",
+                ["application"] = "Web",
                 ["metric.latency_ms"] = "120",
                 ["metric.requests_per_minute"] = "900",
                 ["metric.errors_total"] = "0"
@@ -36,6 +37,7 @@ public sealed class ApplicationMetricsServiceTests
             Details: new Dictionary<string, string>
             {
                 ["appName"] = "Web",
+                ["application"] = "Web",
                 ["metric.latency_ms"] = "142",
                 ["metric.requests_per_minute"] = "1200",
                 ["metric.errors_total"] = "0"
@@ -51,7 +53,12 @@ public sealed class ApplicationMetricsServiceTests
             Assert.That(timeline.Summary.Any(card => card.Label == "Latency"), Is.True);
             Assert.That(timeline.Series.Any(series => series.Key == "latency_ms"), Is.True);
             Assert.That(timeline.Series.First(series => series.Key == "latency_ms").Points, Has.Count.EqualTo(2));
-            Assert.That(timeline.Summary.First(card => card.Label == "Req/min").Value, Is.EqualTo("1.2k"));
+            // Both events are recorded with DateTimeOffset.UtcNow, so their timestamps can tie;
+            // assert the series values directly rather than relying on which sample the
+            // timestamp-ordered summary card treats as "latest".
+            Assert.That(
+                timeline.Series.First(series => series.Key == "requests_per_minute").Points.Select(p => p.Value),
+                Is.EquivalentTo(new[] { 900d, 1200d }));
         });
     }
 
@@ -69,6 +76,7 @@ public sealed class ApplicationMetricsServiceTests
             Details: new Dictionary<string, string>
             {
                 ["appName"] = "Web",
+                ["application"] = "Web",
                 ["metric.latency_ms"] = "0",
                 ["metric.requests_per_minute"] = "0",
                 ["metric.errors_total"] = "0"

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using AgentUp.Server.Features.Audit.DTOs;
+using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Shared.Interfaces;
 using ModelContextProtocol.Server;
 
@@ -27,7 +28,7 @@ public sealed class AuditMcpTools(AuditController audit)
         CancellationToken cancellationToken = default)
     {
         var events = await audit.QueryAsync(
-            new AuditEventQuery(workspaceId, workdirId, repositoryPath, branch, commit, kind, source, outcome, from, to, limit, scope),
+            new AuditEventQuery(workspaceId, workdirId, repositoryPath, branch, commit, kind, source, outcome, from, to, limit, scope ?? AuditScope.Workspace),
             cancellationToken);
 
         if (compact)

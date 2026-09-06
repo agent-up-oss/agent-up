@@ -20,7 +20,7 @@ public sealed class HostMetricsService(
             try
             {
                 var metrics = await ProcessMetricsSampler.SampleAsync(CpuSampleWindow, stoppingToken);
-                _ = audit.RecordAsync(new AuditRecordRequest(
+                await audit.RecordAsync(new AuditRecordRequest(
                     Kind: "metrics",
                     Source: "server",
                     Action: "host_metrics_sample",
