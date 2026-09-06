@@ -441,6 +441,26 @@ public class WorkspaceProcessManagerTests
         Assert.That(args, Does.Contain("UNRESOLVED=${MISSING_PORT}"));
     }
 
+    [Test]
+    public async Task CreateDockerRunArguments_AppendsCommandArgumentsAfterTheImage()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Services =
+            [
+                new DockerServiceDefinition(
+                    "Redpanda",
+                    "docker.redpanda.com/redpandadata/redpanda:v24.2.4",
+                    Command: ["redpanda", "start", "--smp", "1"])
+            ]
+        });
+
+        var args = new DockerProcessProvider().CreateRunArguments("agentup-test-redpanda", workspace, workspace.Applications.Single());
+
+        Assert.That(args.SkipWhile(a => a != "docker.redpanda.com/redpandadata/redpanda:v24.2.4").Skip(1),
+            Is.EqualTo(new[] { "redpanda", "start", "--smp", "1" }));
+    }
+
     private async Task<ApplicationState> WaitForApplicationStateAsync(
         string workspaceId,
         string appName,

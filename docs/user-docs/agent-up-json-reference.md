@@ -123,6 +123,7 @@ Used in `docker`.
 | `environment` | object of string values | No | `{}` | Inline container environment variables passed as Docker `-e` arguments. |
 | `volumes` | array of strings | No | `[]` | Docker volume mappings passed as Docker `-v` arguments. |
 | `environmentFiles` | array of strings | No | `[]` | Workspace-relative files passed to Docker as `--env-file` arguments. |
+| `command` | array of strings | No | `null` | Arguments appended after the image in `docker run`, overriding the container's default command (equivalent to Docker Compose's `command`). |
 
 Example:
 
@@ -153,6 +154,7 @@ Used in `services`. This is the legacy Docker service shape. It remains supporte
 | `environment` | object of string values | No | `{}` | Inline container environment variables passed as Docker `-e` arguments. |
 | `volumes` | array of strings | No | `[]` | Docker volume mappings passed as Docker `-v` arguments. |
 | `environmentFiles` | array of strings | No | `[]` | Workspace-relative files passed to Docker as `--env-file` arguments. |
+| `command` | array of strings | No | `null` | Arguments appended after the image in `docker run`, overriding the container's default command (equivalent to Docker Compose's `command`). |
 
 ## Port Object
 

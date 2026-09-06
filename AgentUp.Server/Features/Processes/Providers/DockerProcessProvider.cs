@@ -31,6 +31,8 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         AddDockerEnvironmentArgs(runArgs, workspace, app);
         AddDockerVolumeArgs(runArgs, app);
         runArgs.Add(app.Image!);
+        if (app.Args is { Count: > 0 })
+            runArgs.AddRange(app.Args);
         return runArgs;
     }
 
