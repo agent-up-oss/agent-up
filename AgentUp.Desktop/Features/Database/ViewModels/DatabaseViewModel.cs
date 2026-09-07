@@ -21,7 +21,7 @@ public sealed class DatabaseViewModel : ReactiveObject
 
     public ObservableCollection<string> Databases { get; } = [];
     public ObservableCollection<string> Tables { get; } = [];
-    public ObservableCollection<string> Columns { get; } = [];
+    public ObservableCollection<DatabaseColumnViewModel> Columns { get; } = [];
     public ObservableCollection<DatabaseRowViewModel> Rows { get; } = [];
 
     public string? SelectedDatabase
@@ -197,6 +197,15 @@ public sealed class DatabaseViewModel : ReactiveObject
                 SqlQuery);
             ApplyResult(result);
         }
+        catch (InvalidOperationException ex)
+        {
+            ErrorMessage = ex.Message;
+            Columns.Clear();
+            Rows.Clear();
+            this.RaisePropertyChanged(nameof(HasResults));
+            this.RaisePropertyChanged(nameof(ShowEmptyState));
+            Trace.TraceWarning(ex.Message);
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             ErrorMessage = "Query failed. Check the SQL and database connection.";
@@ -212,15 +221,45 @@ public sealed class DatabaseViewModel : ReactiveObject
     {
         Columns.Clear();
         Rows.Clear();
-        foreach (var column in result.Columns)
-            Columns.Add(column);
+
+        var widths = BuildColumnWidths(result.Columns, result.Rows);
+        for (var i = 0; i < result.Columns.Count; i++)
+            Columns.Add(new DatabaseColumnViewModel(result.Columns[i], widths[i]));
 
         foreach (var row in result.Rows)
-            Rows.Add(new DatabaseRowViewModel(row));
+        {
+            var cells = new List<DatabaseCellViewModel>(row.Count);
+            for (var i = 0; i < row.Count; i++)
+                cells.Add(new DatabaseCellViewModel(row[i], widths[Math.Min(i, widths.Count - 1)]));
+            Rows.Add(new DatabaseRowViewModel(cells));
+        }
 
         this.RaisePropertyChanged(nameof(HasResults));
         this.RaisePropertyChanged(nameof(ShowEmptyState));
     }
+
+    private static IReadOnlyList<double> BuildColumnWidths(
+        IReadOnlyList<string> columns,
+        IReadOnlyList<IReadOnlyList<string>> rows)
+    {
+        if (columns.Count == 0)
+            return [];
+
+        var widths = new double[columns.Count];
+        for (var i = 0; i < columns.Count; i++)
+            widths[i] = EstimateColumnWidth(columns[i]);
+
+        foreach (var row in rows)
+        {
+            for (var i = 0; i < columns.Count && i < row.Count; i++)
+                widths[i] = Math.Max(widths[i], EstimateColumnWidth(row[i]));
+        }
+
+        return widths;
+    }
+
+    private static double EstimateColumnWidth(string value)
+        => Math.Clamp(12 + (string.IsNullOrEmpty(value) ? 8 : value.Length) * 7.5, 120, 360);
 
     private static string BuildDefaultQuery(string table)
     {

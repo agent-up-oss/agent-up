@@ -1,11 +1,10 @@
 using System.Collections.ObjectModel;
-using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Database.ViewModels;
 
-public sealed class DatabaseRowViewModel : ReactiveObject
+public sealed class DatabaseRowViewModel
 {
-    public DatabaseRowViewModel(IReadOnlyList<string> cells) => Cells = cells;
+    public DatabaseRowViewModel(IReadOnlyList<DatabaseCellViewModel> cells) => Cells = cells;
 
-    public IReadOnlyList<string> Cells { get; }
+    public IReadOnlyList<DatabaseCellViewModel> Cells { get; }
 }

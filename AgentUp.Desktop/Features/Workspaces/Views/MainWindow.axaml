@@ -254,6 +254,72 @@
             <Setter Property="Background" Value="#0d4f32"/>
         </Style>
 
+        <!-- Database explorer -->
+        <Style Selector="Border.dbListItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover Border.dbListItem">
+            <Setter Property="Background" Value="#0f1a14"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected Border.dbListItem">
+            <Setter Property="Background" Value="#0f7a45"/>
+        </Style>
+        <Style Selector="TextBox.sqlEditor">
+            <Setter Property="Background" Value="#030303"/>
+            <Setter Property="BorderBrush" Value="#184820"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Foreground" Value="#d3eadf"/>
+            <Setter Property="CaretBrush" Value="#d3eadf"/>
+            <Setter Property="SelectionBrush" Value="#0f7a45"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontFamily" Value="Consolas,Courier New,monospace"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinHeight" Value="96"/>
+        </Style>
+        <Style Selector="TextBox.sqlEditor:focus">
+            <Setter Property="BorderBrush" Value="#2ea05f"/>
+        </Style>
+        <Style Selector="Button.dbRunButton">
+            <Setter Property="Background" Value="#0f7a45"/>
+            <Setter Property="Foreground" Value="#f5fbf7"/>
+            <Setter Property="BorderBrush" Value="#2ea05f"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.dbRunButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#13a35d"/>
+        </Style>
+        <Style Selector="TextBox.dbCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#c2d2ca"/>
+            <Setter Property="CaretBrush" Value="#c2d2ca"/>
+            <Setter Property="SelectionBrush" Value="#0f7a45"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontFamily" Value="Consolas,Courier New,monospace"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Focusable" Value="True"/>
+        </Style>
+        <Style Selector="Border.dbHeaderCell">
+            <Setter Property="BorderBrush" Value="#2b2b2b"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Background" Value="#101010"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style Selector="Border.dbDataCell">
+            <Setter Property="BorderBrush" Value="#2b2b2b"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Background" Value="#050505"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
         <Style Selector="Border.metricsSummaryCard">
             <Setter Property="Background" Value="#060806"/>
             <Setter Property="BorderBrush" Value="#184820"/>
@@ -945,7 +1011,18 @@
                                              SelectedItem="{Binding Database.SelectedDatabase}"
                                              Background="#050505"
                                              BorderBrush="#2b2b2b"
-                                             BorderThickness="1"/>
+                                             BorderThickness="1"
+                                             Padding="4">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="dbListItem" Padding="10,8" Margin="0,1">
+                                                    <TextBlock Text="{Binding}"
+                                                               Foreground="#c2d2ca"
+                                                               FontSize="12"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
                                     <TextBlock Grid.Row="2"
                                                Text="Tables"
                                                Foreground="#8aa497"
@@ -956,32 +1033,53 @@
                                              SelectedItem="{Binding Database.SelectedTable}"
                                              Background="#050505"
                                              BorderBrush="#2b2b2b"
-                                             BorderThickness="1"/>
+                                             BorderThickness="1"
+                                             Padding="4">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="dbListItem" Padding="10,8" Margin="0,1">
+                                                    <TextBlock Text="{Binding}"
+                                                               Foreground="#c2d2ca"
+                                                               FontSize="12"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
                                 </Grid>
 
                                 <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
                                     <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,8">
                                         <Button DockPanel.Dock="Right"
+                                                Classes="dbRunButton"
                                                 Content="Run"
                                                 Command="{Binding Database.RunQueryCommand}"
-                                                Margin="8,0,0,0"
-                                                Padding="14,8"/>
-                                        <TextBox Text="{Binding Database.SqlQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Margin="8,0,0,0"/>
+                                        <TextBox Classes="sqlEditor"
+                                                 Text="{Binding Database.SqlQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  AcceptsReturn="True"
                                                  TextWrapping="Wrap"
-                                                 MinHeight="72"
                                                  PlaceholderText="SQL query"/>
                                     </DockPanel>
 
-                                    <TextBlock Grid.Row="1"
-                                               Text="{Binding Database.ErrorMessage}"
-                                               Foreground="#d17b7b"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,8"/>
+                                    <Border Grid.Row="1"
+                                            Background="#1a0d0d"
+                                            BorderBrush="#5a2b2b"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="10,8"
+                                            Margin="0,0,0,8"
+                                            IsVisible="{Binding Database.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="{Binding Database.ErrorMessage}"
+                                                   Foreground="#f0a8a8"
+                                                   TextWrapping="Wrap"
+                                                   FontFamily="Consolas,Courier New,monospace"
+                                                   FontSize="11"/>
+                                    </Border>
 
                                     <ScrollViewer Grid.Row="2"
                                                   HorizontalScrollBarVisibility="Auto"
-                                                  VerticalScrollBarVisibility="Auto">
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  IsVisible="{Binding Database.HasResults}">
                                         <StackPanel Spacing="0">
                                             <ItemsControl ItemsSource="{Binding Database.Columns}">
                                                 <ItemsControl.ItemsPanel>
@@ -991,15 +1089,14 @@
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border BorderBrush="#2b2b2b"
-                                                                BorderThickness="1"
-                                                                Padding="8,6"
-                                                                MinWidth="120"
-                                                                Background="#101010">
-                                                            <TextBlock Text="{Binding}"
+                                                        <Border Classes="dbHeaderCell"
+                                                                Width="{Binding Width}">
+                                                            <TextBlock Text="{Binding Name}"
                                                                        Foreground="#d3eadf"
                                                                        FontWeight="Bold"
-                                                                       FontSize="11"/>
+                                                                       FontSize="11"
+                                                                       FontFamily="Consolas,Courier New,monospace"
+                                                                       TextWrapping="NoWrap"/>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
@@ -1016,15 +1113,11 @@
                                                             </ItemsControl.ItemsPanel>
                                                             <ItemsControl.ItemTemplate>
                                                                 <DataTemplate>
-                                                                    <Border BorderBrush="#2b2b2b"
-                                                                            BorderThickness="1"
-                                                                            Padding="8,6"
-                                                                            MinWidth="120"
-                                                                            Background="#050505">
-                                                                        <TextBlock Text="{Binding}"
-                                                                                   Foreground="#c2d2ca"
-                                                                                   FontSize="11"
-                                                                                   TextWrapping="Wrap"/>
+                                                                    <Border Classes="dbDataCell"
+                                                                            Width="{Binding Width}">
+                                                                        <TextBox Classes="dbCell"
+                                                                                 Text="{Binding Value}"
+                                                                                 TextWrapping="NoWrap"/>
                                                                     </Border>
                                                                 </DataTemplate>
                                                             </ItemsControl.ItemTemplate>

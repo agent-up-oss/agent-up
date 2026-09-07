@@ -93,7 +93,7 @@ public sealed class DatabaseExplorerService
         }
         catch (NpgsqlException ex)
         {
-            return DatabaseExplorerResult<TDto>.BadRequest($"Database connection failed: {ex.Message}");
+            return DatabaseExplorerResult<TDto>.BadRequest(ex.Message);
         }
     }
 
