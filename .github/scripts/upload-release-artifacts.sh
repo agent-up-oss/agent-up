@@ -27,9 +27,12 @@ expected_artifacts=(
   "agent-up-ubuntu-linux-x64.deb"
   "agent-up-windows-win-x64.exe"
   "agent-up-windows-win-x64.msi"
-  "agent-up-jetbrains-plugin.zip"
   "agent-up-sbom.cdx.json"
 )
+
+if [ "${INCLUDE_JETBRAINS_PLUGIN:-false}" = "true" ]; then
+  expected_artifacts+=("agent-up-jetbrains-plugin.zip")
+fi
 
 for artifact in "${expected_artifacts[@]}"; do
   if [ ! -s "$artifact_dir/$artifact" ]; then
@@ -65,6 +68,11 @@ checksum_file="$artifact_dir/checksums.sha256"
   done
 )
 
+plugin_manifest_entry=""
+if [ "${INCLUDE_JETBRAINS_PLUGIN:-false}" = "true" ]; then
+  plugin_manifest_entry=$'    "agent-up-jetbrains-plugin.zip",\n'
+fi
+
 cat > "$manifest" <<JSON
 {
   "version": "$version",
@@ -76,8 +84,7 @@ cat > "$manifest" <<JSON
     "agent-up-ubuntu-linux-x64.deb",
     "agent-up-windows-win-x64.exe",
     "agent-up-windows-win-x64.msi",
-    "agent-up-jetbrains-plugin.zip",
-    "agent-up-sbom.cdx.json"
+${plugin_manifest_entry}    "agent-up-sbom.cdx.json"
   ],
   "checksums": "checksums.sha256"
 }

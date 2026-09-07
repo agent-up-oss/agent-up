@@ -20,6 +20,7 @@ jobs:
     outputs:
       version: ${{ steps.plan.outputs.version }}
       publish: ${{ steps.plan.outputs.publish }}
+      plugin_changed: ${{ steps.plugin-changes.outputs.changed }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -40,6 +41,16 @@ jobs:
       - name: Plan version
         id: plan
         run: node .github/scripts/plan-version.js
+
+      - name: Detect plugin changes
+        id: plugin-changes
+        shell: bash
+        run: |
+          if git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- Plugins/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
   dotnet-build-test:
     name: .NET build, tests, and payloads
@@ -279,11 +290,13 @@ jobs:
           persist-credentials: false
 
       - uses: actions/setup-java@v6
+        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Build JetBrains plugin
+        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
         working-directory: Plugins/Jetbrains
         run: |
           ./gradlew --no-daemon test buildPlugin -PagentUpVersion="${{ needs.version.outputs.version }}"
@@ -292,6 +305,7 @@ jobs:
             "../../artifacts/jetbrains-plugin/agent-up-jetbrains-plugin.zip"
 
       - uses: actions/upload-artifact@v7
+        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
         with:
           name: jetbrains-plugin
           path: artifacts/jetbrains-plugin/agent-up-jetbrains-plugin.zip
@@ -634,6 +648,7 @@ jobs:
           path: release-artifacts
 
       - uses: actions/download-artifact@v8
+        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
         with:
           name: jetbrains-plugin
           path: release-artifacts
@@ -650,6 +665,8 @@ jobs:
             done
 
       - name: Prepare release artifacts
+        env:
+          INCLUDE_JETBRAINS_PLUGIN: ${{ needs.version.outputs.plugin_changed }}
         run: ./.github/scripts/upload-release-artifacts.sh "${{ needs.version.outputs.version }}"
 
       - name: Release
@@ -680,6 +697,7 @@ jobs:
           npm publish --access public
 
       - name: Publish JetBrains plugin to Marketplace
+        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
         working-directory: Plugins/Jetbrains
         env:
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
