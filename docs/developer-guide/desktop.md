@@ -126,6 +126,8 @@ Workspace event invalidations are scoped to the event workspace ID. Desktop refr
 
 Desktop displays each workspace application through a direct embedded WebView connection to the allocated HTTP port. Desktop owns those WebView instances and their browser state on the workstation.
 
+Desktop bridges HTML file inputs to the native Avalonia file picker so uploads work consistently across the platform WebView engines. The selected files are returned only to the requesting WebView and are limited to 32 MB per file and 128 MB per selection; directory inputs continue to use the platform WebView behavior.
+
 The Server owns a separate headless Chromium profile per workspace under `browser-profiles/{workspaceId}`. MCP browser tools use that headless profile for automation. Desktop does not stream, mirror, or read from the headless session.
 
 Desktop WebViews and Server headless profiles do not share cookies, local storage, session storage, IndexedDB, cache, or navigation state. Treat them as two independent browsers for the same workspace.

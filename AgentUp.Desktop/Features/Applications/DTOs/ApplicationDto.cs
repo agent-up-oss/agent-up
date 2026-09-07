@@ -9,4 +9,5 @@ public sealed record ApplicationDto(
     string State)
 {
     public List<PortMappingDto> AllocatedPorts { get; init; } = [];
+    public bool Database { get; init; }
 }

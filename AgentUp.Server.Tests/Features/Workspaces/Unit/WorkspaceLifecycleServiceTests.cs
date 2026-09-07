@@ -38,6 +38,25 @@ public sealed class WorkspaceLifecycleServiceTests
         Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Stopped));
     }
 
+    [Test]
+    public async Task Start_OnRunningWorkspace_RecreatesWorkspace()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes);
+
+        await lifecycle.StartAsync(created.Id);
+        await lifecycle.StartAsync(created.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(processes.LaunchCount, Is.EqualTo(2));
+            Assert.That(processes.KillCount, Is.EqualTo(1));
+            Assert.That(registry.GetById(created.Id)!.State, Is.EqualTo(WorkspaceState.Running));
+        });
+    }
+
     private sealed class BlockingLaunchWorkspaceProcessManager : IWorkspaceProcessManager
     {
         public TaskCompletionSource EnteredLaunch { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -51,6 +70,28 @@ public sealed class WorkspaceLifecycleServiceTests
 
         public Task LaunchApplicationAsync(Workspace workspace, string appName) => Task.CompletedTask;
         public Task KillAsync(string workspaceId) => Task.CompletedTask;
+        public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
+    }
+
+    private sealed class CountingWorkspaceProcessManager : IWorkspaceProcessManager
+    {
+        public int LaunchCount { get; private set; }
+        public int KillCount { get; private set; }
+
+        public Task LaunchAsync(Workspace workspace)
+        {
+            LaunchCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task LaunchApplicationAsync(Workspace workspace, string appName) => Task.CompletedTask;
+
+        public Task KillAsync(string workspaceId)
+        {
+            KillCount++;
+            return Task.CompletedTask;
+        }
+
         public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
     }
 }

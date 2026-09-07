@@ -12,6 +12,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Input.Platform;
+using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
@@ -20,8 +21,10 @@ using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
+using AgentUp.Desktop.Features.Browser.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using ReactiveUI;
 
@@ -33,6 +36,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Switching between workspace tabs only toggles IsVisible; the WebView is never navigated away,
     // preserving full page state (scroll position, open accordions, JS memory, auth session).
     private readonly Dictionary<string, NativeWebView> _webViews = new();
+    // OAuth/sign-in popups opened via window.open() from within a workspace WebView — keyed by "{tabKey}:{sequence}".
+    private readonly Dictionary<string, IWebPopup> _webPopups = new();
+    private int _popupSequence;
     // Errors keyed by workspaceId (not tabKey) so the banner persists across tab switches.
     private readonly Dictionary<string, string> _webViewErrors = new();
     // Last successfully navigated http URL per tabKey; absent means tab is in error state.
@@ -58,8 +64,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     };
 
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
+    internal Func<IWebPopup> WebPopupFactory { get; set; } = () => new NativeWebDialogPopup();
+    internal int OpenPopupCountForTests => _webPopups.Count;
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
     internal BrowserViewportController BrowserViewport { get; }
+    internal WebViewFilePickerController BrowserFilePicker { get; }
     internal bool HasBrowserResourcesForTests =>
         _addressPollTimer.IsEnabled
         || HasWorkspaceBrowserResourcesForTests
@@ -153,6 +162,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         InitializeComponent();
         SetWindowIcon();
         BrowserViewport = new BrowserViewportController(NavigateTo, EvalAsync);
+        BrowserFilePicker = new WebViewFilePickerController();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
@@ -236,6 +246,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Where(loading => !loading)
             .Where(_ => vm.ShowConsole)
             .Subscribe(_ => Dispatcher.UIThread.Post(RefreshConsoleWebView))
+            .DisposeWith(_subscriptions);
+        vm.Console.Lines.CollectionChanged += OnConsoleLinesChanged;
+        Disposable.Create(() => vm.Console.Lines.CollectionChanged -= OnConsoleLinesChanged)
             .DisposeWith(_subscriptions);
         vm.WhenAnyValue(v => v.ShowConsole)
             .Where(visible => visible && !vm.Console.IsLoading)
@@ -528,12 +541,97 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             });
 
             _ = webView.InvokeScript(SelectionJs);
+            _ = webView.InvokeScript(BrowserFilePicker.InstallScript);
             if (firstNavDone) return;
             firstNavDone = true;
             ForceFirstWebKitPaint(tabKey, webView);
         };
 
+        webView.NewWindowRequested += (_, e) => HandleNewWindowRequested(workspaceId, tabKey, e);
+        webView.WebMessageReceived += (_, e) =>
+        {
+            if (BrowserFilePicker.TryParseRequest(e.Body, out var request) && request is not null)
+                _ = HandleFilePickerRequestAsync(tabKey, webView, request);
+        };
+
         return webView;
+    }
+
+    // Many OAuth/sign-in flows (Google, GitHub, Microsoft, Auth0, ...) launch via window.open()
+    // rather than a same-tab redirect. Without handling this, the popup silently fails to open
+    // and the flow appears to just do nothing. We open the requested URL in a NativeWebDialog —
+    // a separate native-webview-backed window sharing the same engine/cookie store — so the
+    // popup renders and the sign-in flow can complete.
+    private void HandleNewWindowRequested(string workspaceId, string tabKey, WebViewNewWindowRequestedEventArgs e)
+    {
+        e.Handled = true;
+        if (_isClosed) return;
+        if (e.Request is not { Scheme: "http" or "https" } popupUri) return;
+
+        var popupId = $"{tabKey}:{++_popupSequence}";
+        try
+        {
+            var popup = WebPopupFactory();
+            _webPopups[popupId] = popup;
+            popup.Title = "Sign in";
+            popup.Closing += (_, _) => ClosePopup(popupId);
+            popup.Navigate(popupUri);
+            popup.Show();
+
+            RecordWebViewEvent(workspaceId, "popup_opened", "success", new()
+            {
+                ["tabKey"] = tabKey,
+                ["url"] = popupUri.ToString(),
+            });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            _webPopups.Remove(popupId);
+            RecordWebViewEvent(workspaceId, "popup_open_failed", "error", new()
+            {
+                ["tabKey"] = tabKey,
+                ["url"] = popupUri.ToString(),
+                ["error"] = ex.Message,
+            });
+            Trace.TraceWarning($"Could not open sign-in popup: {ex.Message}");
+        }
+    }
+
+    private void ClosePopup(string popupId)
+    {
+        if (!_webPopups.Remove(popupId, out var popup)) return;
+        try { popup.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
+    }
+
+    private void ClosePopups(string tabKeyOrWorkspacePrefix)
+    {
+        foreach (var popupId in _webPopups.Keys.Where(key => key.StartsWith($"{tabKeyOrWorkspacePrefix}:", StringComparison.Ordinal)).ToList())
+            ClosePopup(popupId);
+    }
+
+    private async Task HandleFilePickerRequestAsync(
+        string tabKey,
+        NativeWebView webView,
+        WebViewFilePickerRequest request)
+    {
+        try
+        {
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                AllowMultiple = request.Multiple,
+                Title = request.Multiple ? "Choose files to upload" : "Choose a file to upload"
+            });
+            if (!CanTouchWebView(tabKey, webView)) return;
+
+            var script = await BrowserFilePicker.BuildCompletionScriptAsync(request.RequestId, files);
+            await webView.InvokeScript(script);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException)
+        {
+            Trace.TraceWarning($"Could not select upload files: {ex.Message}");
+            if (CanTouchWebView(tabKey, webView))
+                await webView.InvokeScript(BrowserFilePicker.CancelScript(request.RequestId));
+        }
     }
 
     private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
@@ -635,6 +733,20 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         webView.Source = destination;
     }
 
+    internal static bool ShouldReloadConsoleWebView(Uri? currentSource, Uri destination)
+        => currentSource is not null
+           && string.Equals(currentSource.OriginalString, destination.OriginalString, StringComparison.Ordinal);
+
+    private static void NavigateConsoleWebView(NativeWebView webView, Uri destination)
+    {
+        // Console output is rewritten to one temp file; a plain navigate would be skipped
+        // when the URI is unchanged, leaving the previous application's output visible.
+        if (ShouldReloadConsoleWebView(webView.Source, destination))
+            ReloadWebView(webView, destination);
+        else
+            NavigateWebView(webView, destination);
+    }
+
     private static void ReloadWebView(NativeWebView webView, Uri destination)
     {
         webView.Source = new Uri("about:blank");
@@ -704,6 +816,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
 
+    private void OnConsoleLinesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_isClosed) return;
+        if (DataContext is not MainViewModel { ShowConsole: true, Console.IsLoading: false }) return;
+        Dispatcher.UIThread.Post(RefreshConsoleWebView);
+    }
+
     private void RefreshConsoleWebView()
     {
         if (_isClosed) return;
@@ -755,7 +874,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             var html = BuildConsoleHtml(linesToShow);
             var htmlPath = ConsoleHtmlPath();
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
-            NavigateWebView(_consoleWebView, new Uri("file://" + htmlPath));
+            NavigateConsoleWebView(_consoleWebView, new Uri("file://" + htmlPath));
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
@@ -959,6 +1078,7 @@ code {
 
         _lastKnownBrowserUrls.Remove(tabKey);
         _navigationVersions.Remove(tabKey);
+        ClosePopups(tabKey);
     }
 
     private static void DeleteBrowserErrorPage(string workspaceId)
@@ -1071,11 +1191,45 @@ code {
 
     private async void OnConsoleOverlayKeyDown(object? sender, KeyEventArgs e)
     {
-        var copyModifier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-            ? KeyModifiers.Meta
-            : KeyModifiers.Control;
-        if (e.Key != Key.C || !e.KeyModifiers.HasFlag(copyModifier)) return;
         if (_consoleWebView is null || _isClosed) return;
+        if (DataContext is not MainViewModel vm) return;
+
+        var isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        if (ConsoleKeyboardInputProvider.IsInterruptKey(e.Key, e.KeyModifiers))
+        {
+            e.Handled = true;
+            try
+            {
+                var result = await _consoleWebView.InvokeScript(
+                    "(function(){var s=window.getSelection();return s?s.toString():'';})()");
+                var text = NormalizeScriptResult(result);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                    if (clipboard is not null)
+                        await clipboard.SetTextAsync(text);
+                    return;
+                }
+
+                var workspaceId = vm.Sidebar.SelectedWorkspace?.Id;
+                var application = vm.Applications.SelectedApplication?.Name;
+                if (workspaceId is null || application is null) return;
+
+                using var response = await _serverHttp.PostAsync(
+                    $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/applications/{Uri.EscapeDataString(application)}/stop",
+                    null);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException or HttpRequestException)
+            {
+                Trace.TraceWarning(ex.Message);
+            }
+
+            return;
+        }
+
+        if (!ConsoleKeyboardInputProvider.IsCopyKey(e.Key, e.KeyModifiers, isMac)) return;
+
         e.Handled = true;
         try
         {
@@ -1153,4 +1307,35 @@ code {
             Trace.TraceWarning(ex.Message);
         }
     }
+}
+
+// Thin seam over NativeWebDialog so tests can substitute a fake popup without ever
+// constructing a real native web dialog (doing so requires a working GTK/WebKit
+// environment and crashes the test process where one isn't available, e.g. plain `dotnet test`
+// on Linux without Xvfb).
+internal interface IWebPopup : IDisposable
+{
+    string Title { set; }
+    event EventHandler Closing;
+    void Navigate(Uri uri);
+    void Show();
+}
+
+internal sealed class NativeWebDialogPopup : IWebPopup
+{
+    private readonly NativeWebDialog _dialog = new();
+
+    public string Title { set => _dialog.Title = value; }
+
+    public event EventHandler? Closing
+    {
+        add => _dialog.Closing += value;
+        remove => _dialog.Closing -= value;
+    }
+
+    public void Navigate(Uri uri) => _dialog.Navigate(uri);
+
+    public void Show() => _dialog.Show();
+
+    public void Dispose() => _dialog.Dispose();
 }

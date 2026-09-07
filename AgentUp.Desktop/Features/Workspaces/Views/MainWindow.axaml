@@ -4,6 +4,8 @@
         xmlns:appVm="using:AgentUp.Desktop.Features.Applications.ViewModels"
         xmlns:portVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         xmlns:metricsVm="using:AgentUp.Desktop.Features.Metrics.ViewModels"
+        xmlns:databaseVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
+        xmlns:databaseViewsVm="using:AgentUp.Desktop.Features.Database.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
@@ -18,6 +20,16 @@
         <DataTemplate DataType="portVm:ConsoleSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
                 <TextBlock Text="Console"
+                           Foreground="#c2d2ca"
+                           FontSize="12"
+                           FontWeight="Bold"/>
+            </Border>
+        </DataTemplate>
+
+        <!-- Database sub-tab -->
+        <DataTemplate DataType="databaseVm:DatabaseSubTabViewModel">
+            <Border Classes="subTab" Padding="13,7">
+                <TextBlock Text="Database"
                            Foreground="#c2d2ca"
                            FontSize="12"
                            FontWeight="Bold"/>
@@ -240,6 +252,72 @@
         </Style>
         <Style Selector="Button:pointerover Border.browserButton">
             <Setter Property="Background" Value="#0d4f32"/>
+        </Style>
+
+        <!-- Database explorer -->
+        <Style Selector="Border.dbListItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover Border.dbListItem">
+            <Setter Property="Background" Value="#0f1a14"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected Border.dbListItem">
+            <Setter Property="Background" Value="#0f7a45"/>
+        </Style>
+        <Style Selector="TextBox.sqlEditor">
+            <Setter Property="Background" Value="#030303"/>
+            <Setter Property="BorderBrush" Value="#184820"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Foreground" Value="#d3eadf"/>
+            <Setter Property="CaretBrush" Value="#d3eadf"/>
+            <Setter Property="SelectionBrush" Value="#0f7a45"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontFamily" Value="Consolas,Courier New,monospace"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinHeight" Value="96"/>
+        </Style>
+        <Style Selector="TextBox.sqlEditor:focus">
+            <Setter Property="BorderBrush" Value="#2ea05f"/>
+        </Style>
+        <Style Selector="Button.dbRunButton">
+            <Setter Property="Background" Value="#0f7a45"/>
+            <Setter Property="Foreground" Value="#f5fbf7"/>
+            <Setter Property="BorderBrush" Value="#2ea05f"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.dbRunButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#13a35d"/>
+        </Style>
+        <Style Selector="TextBox.dbCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#c2d2ca"/>
+            <Setter Property="CaretBrush" Value="#c2d2ca"/>
+            <Setter Property="SelectionBrush" Value="#0f7a45"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontFamily" Value="Consolas,Courier New,monospace"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Focusable" Value="True"/>
+        </Style>
+        <Style Selector="Border.dbHeaderCell">
+            <Setter Property="BorderBrush" Value="#2b2b2b"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Background" Value="#101010"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style Selector="Border.dbDataCell">
+            <Setter Property="BorderBrush" Value="#2b2b2b"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Background" Value="#050505"/>
+            <Setter Property="Padding" Value="0"/>
         </Style>
 
         <Style Selector="Border.metricsSummaryCard">
@@ -917,6 +995,162 @@
                                            FontSize="11"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
+
+                            <!-- Database explorer -->
+                            <Grid IsVisible="{Binding ShowDatabase}"
+                                  ColumnDefinitions="220,*"
+                                  Margin="16,12">
+                                <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,*" RowSpacing="8" Margin="0,0,12,0">
+                                    <TextBlock Grid.Row="0"
+                                               Text="Databases"
+                                               Foreground="#8aa497"
+                                               FontSize="12"
+                                               FontWeight="Medium"/>
+                                    <ListBox Grid.Row="1"
+                                             ItemsSource="{Binding Database.Databases}"
+                                             SelectedItem="{Binding Database.SelectedDatabase}"
+                                             Background="#050505"
+                                             BorderBrush="#2b2b2b"
+                                             BorderThickness="1"
+                                             Padding="4">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="dbListItem" Padding="10,8" Margin="0,1">
+                                                    <TextBlock Text="{Binding}"
+                                                               Foreground="#c2d2ca"
+                                                               FontSize="12"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <TextBlock Grid.Row="2"
+                                               Text="Tables"
+                                               Foreground="#8aa497"
+                                               FontSize="12"
+                                               FontWeight="Medium"/>
+                                    <ListBox Grid.Row="3"
+                                             ItemsSource="{Binding Database.Tables}"
+                                             SelectedItem="{Binding Database.SelectedTable}"
+                                             Background="#050505"
+                                             BorderBrush="#2b2b2b"
+                                             BorderThickness="1"
+                                             Padding="4">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="dbListItem" Padding="10,8" Margin="0,1">
+                                                    <TextBlock Text="{Binding}"
+                                                               Foreground="#c2d2ca"
+                                                               FontSize="12"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+
+                                <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+                                    <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,8">
+                                        <Button DockPanel.Dock="Right"
+                                                Classes="dbRunButton"
+                                                Content="Run"
+                                                Command="{Binding Database.RunQueryCommand}"
+                                                Margin="8,0,0,0"/>
+                                        <TextBox Classes="sqlEditor"
+                                                 Text="{Binding Database.SqlQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 PlaceholderText="SQL query"/>
+                                    </DockPanel>
+
+                                    <Border Grid.Row="1"
+                                            Background="#1a0d0d"
+                                            BorderBrush="#5a2b2b"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="10,8"
+                                            Margin="0,0,0,8"
+                                            IsVisible="{Binding Database.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="{Binding Database.ErrorMessage}"
+                                                   Foreground="#f0a8a8"
+                                                   TextWrapping="Wrap"
+                                                   FontFamily="Consolas,Courier New,monospace"
+                                                   FontSize="11"/>
+                                    </Border>
+
+                                    <ScrollViewer Grid.Row="2"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  IsVisible="{Binding Database.HasResults}">
+                                        <StackPanel Spacing="0">
+                                            <ItemsControl ItemsSource="{Binding Database.Columns}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Classes="dbHeaderCell"
+                                                                Width="{Binding Width}">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       Foreground="#d3eadf"
+                                                                       FontWeight="Bold"
+                                                                       FontSize="11"
+                                                                       FontFamily="Consolas,Courier New,monospace"
+                                                                       TextWrapping="NoWrap"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <ItemsControl ItemsSource="{Binding Database.Rows}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="databaseViewsVm:DatabaseRowViewModel">
+                                                        <ItemsControl ItemsSource="{Binding Cells}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel Orientation="Horizontal"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Classes="dbDataCell"
+                                                                            Width="{Binding Width}">
+                                                                        <TextBox Classes="dbCell"
+                                                                                 Text="{Binding Value}"
+                                                                                 TextWrapping="NoWrap"/>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </ScrollViewer>
+
+                                    <StackPanel Grid.Row="2"
+                                                IsVisible="{Binding Database.ShowEmptyState}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Spacing="8">
+                                        <TextBlock Text="Select a table or run a query."
+                                                   Foreground="#6f857a"
+                                                   FontSize="13"
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2"
+                                                IsVisible="{Binding Database.IsLoading}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Spacing="8">
+                                        <TextBlock Text="Loading database..."
+                                                   Foreground="#6f857a"
+                                                   FontSize="13"
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
 
                             <!-- Metrics dashboard -->
                             <Grid IsVisible="{Binding ShowMetrics}"

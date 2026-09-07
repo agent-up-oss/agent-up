@@ -82,8 +82,7 @@ public class WorkspaceProcessManagerTests
 
             Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
-            Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
-                Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+            Assert.That(startInfo.ArgumentList[1], Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));
             Assert.That(startInfo.Environment["API_PORT"], Is.EqualTo(api.AllocatedPorts.Single().AllocatedPort.ToString()));
             Assert.That(startInfo.Environment["AGENT_UP_AUDIT_ENDPOINT"], Is.EqualTo("http://127.0.0.1:5000/api/audit/record"));
@@ -194,8 +193,7 @@ public class WorkspaceProcessManagerTests
         Assert.That(startInfo.FileName, Is.EqualTo("npm"));
         Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
         Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
-        Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
-            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[1], Is.EqualTo(workspace.WorktreePath));
         Assert.That(startInfo.ArgumentList.Skip(2), Is.EqualTo(new[] { "run", "dev server" }));
     }
 
@@ -250,8 +248,7 @@ public class WorkspaceProcessManagerTests
         Assert.That(startInfo, Is.Not.Null);
         Assert.That(startInfo!.FileName, Is.EqualTo("npm"));
         Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
-        Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
-            Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+        Assert.That(startInfo.ArgumentList[1], Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
         Assert.That(startInfo.ArgumentList.Skip(2), Is.EqualTo(new[] { "install" }));
     }
 
@@ -428,24 +425,57 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
-    public async Task CreateLocalProcessStartInfo_RejectsEnvironmentFilesOutsideWorkspaceRoot()
+    public async Task CreateLocalProcessStartInfo_LoadsNestedEnvironmentFilesUnderWorkspaceRoot()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Web",
-                    "printenv",
-                    null,
-                    null,
-                    null,
-                    ["../.env"])
-            ]
-        });
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        var envDirectory = Path.Join(worktreePath, "config");
+        Directory.CreateDirectory(envDirectory);
+        await File.WriteAllTextAsync(Path.Join(envDirectory, ".env.local"), "SECRET_PASSWORD=from-nested-file");
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single()));
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "printenv",
+                        null,
+                        null,
+                        null,
+                        ["config/.env.local"])
+                ]
+            });
+
+            var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
+
+            Assert.That(startInfo.Environment["SECRET_PASSWORD"], Is.EqualTo("from-nested-file"));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Register_RejectsEnvironmentFilesOutsideWorkspaceRoot()
+    {
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "printenv",
+                        null,
+                        null,
+                        null,
+                        ["../.env"])
+                ]
+            }));
 
         Assert.That(ex!.Message, Does.Contain("must stay under the workspace root"));
     }

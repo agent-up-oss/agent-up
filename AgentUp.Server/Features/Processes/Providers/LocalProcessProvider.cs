@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Shared.Providers;
 
 namespace AgentUp.Server.Features.Processes.Providers;
 
@@ -171,20 +172,20 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         IReadOnlyList<string> arguments,
         string workingDirectory)
     {
-        var directory = CreateWorkspaceDirectoryAlias(workingDirectory);
+        var aliasedDirectory = CreateWorkspaceDirectoryAlias(workingDirectory);
         return fileName switch
         {
-            "bun" => ["--cwd", directory, .. arguments],
+            "bun" => ["--cwd", workingDirectory, .. arguments],
             "dotnet" when arguments.Count > 0 && arguments[0] == "run" && !arguments.Contains("--project", StringComparer.Ordinal)
-                => [.. arguments, "--project", directory],
-            "dotnet" => QualifyOptionPathArgument(arguments, "--project", directory),
-            "gradle" => ["-p", directory, .. arguments],
-            "make" => ["-C", directory, .. arguments],
-            "mvn" => ["-f", Path.Join(directory, "pom.xml"), .. arguments],
-            "node" => QualifyFirstPathArgument(arguments, directory),
-            "npm" => ["--prefix", directory, .. arguments],
-            "pnpm" => ["--dir", directory, .. arguments],
-            "yarn" => ["--cwd", directory, .. arguments],
+                => [.. arguments, "--project", aliasedDirectory],
+            "dotnet" => QualifyOptionPathArgument(arguments, "--project", aliasedDirectory),
+            "gradle" => ["-p", aliasedDirectory, .. arguments],
+            "make" => ["-C", aliasedDirectory, .. arguments],
+            "mvn" => ["-f", Path.Join(aliasedDirectory, "pom.xml"), .. arguments],
+            "node" => QualifyFirstPathArgument(arguments, aliasedDirectory),
+            "npm" => ["--prefix", workingDirectory, .. arguments],
+            "pnpm" => ["--dir", workingDirectory, .. arguments],
+            "yarn" => ["--cwd", workingDirectory, .. arguments],
             _ => arguments
         };
     }
