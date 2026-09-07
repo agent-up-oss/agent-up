@@ -13,6 +13,7 @@ public sealed class CommitsGitProviderTests
     {
         _repoRoot = Path.Join(Path.GetTempPath(), "AgentUp-CommitsGitProviderTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_repoRoot);
+        await File.WriteAllTextAsync(Path.Join(_repoRoot, "agent-up.json"), "{}");
         await RunGitAsync("init");
         await File.WriteAllTextAsync(Path.Join(_repoRoot, "README.md"), "test");
         await RunGitAsync("add", "README.md");
@@ -72,6 +73,37 @@ public sealed class CommitsGitProviderTests
         await provider.ApplyPatchAsync(patch);
 
         Assert.That(await File.ReadAllBytesAsync(Path.Join(_repoRoot, "wrapper.jar")), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public async Task GetRepoRootAsync_findsWorkspaceFromNestedNonRepositoryDirectory()
+    {
+        var nestedDirectory = Path.Join(_repoRoot, "src", "feature");
+        Directory.CreateDirectory(nestedDirectory);
+        var provider = new CommitsGitProvider(nestedDirectory);
+
+        var root = await provider.GetRepoRootAsync();
+
+        Assert.That(root, Is.EqualTo(_repoRoot));
+    }
+
+    [Test]
+    public void GetRepoRootAsync_failsOnlyAfterAgentUpJsonSearchReachesFilesystemRoot()
+    {
+        var outsideWorkspace = Path.Join(Path.GetTempPath(), "AgentUp-NoWorkspace", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(outsideWorkspace);
+        try
+        {
+            var provider = new CommitsGitProvider(outsideWorkspace);
+
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(() => provider.GetRepoRootAsync());
+
+            Assert.That(exception!.Message, Does.Contain("agent-up.json was not found"));
+        }
+        finally
+        {
+            Directory.Delete(outsideWorkspace);
+        }
     }
 
     private async Task RunGitAsync(params string[] arguments)
