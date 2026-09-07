@@ -9,12 +9,11 @@ using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
-using AgentUp.Desktop.Tests.Features.Database.Support;
+using AgentUp.Desktop.Tests.Support;
 using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
-using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 

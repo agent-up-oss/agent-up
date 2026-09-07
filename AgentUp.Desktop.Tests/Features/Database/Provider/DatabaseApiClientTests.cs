@@ -23,6 +23,32 @@ public class DatabaseApiClientTests
     }
 
     [Test]
+    public async Task ListDatabasesAsync_SurfacesProblemDetail()
+    {
+        using var handler = new FakeHandler(HttpStatusCode.NotFound, """{"detail":"Application is not configured as a database viewer target."}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await client.ListDatabasesAsync("ws-1", "Database"));
+
+        Assert.That(ex!.Message, Is.EqualTo("Application is not configured as a database viewer target."));
+    }
+
+    [Test]
+    public async Task ListTablesAsync_SurfacesProblemDetail()
+    {
+        using var handler = new FakeHandler(HttpStatusCode.BadRequest, """{"detail":"Database name is required."}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await client.ListTablesAsync("ws-1", "Database", "inventory"));
+
+        Assert.That(ex!.Message, Is.EqualTo("Database name is required."));
+    }
+
+    [Test]
     public async Task ExecuteQueryAsync_SurfacesProblemDetail()
     {
         using var handler = new FakeHandler(HttpStatusCode.BadRequest, """{"detail":"syntax error at or near \"FROM\""}""");

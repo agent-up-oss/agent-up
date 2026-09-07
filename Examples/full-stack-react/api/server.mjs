@@ -1,14 +1,19 @@
-import { createRequire } from 'node:module';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import pg from 'pg';
 import { migrate, seed } from './migrate.mjs';
-
-const require = createRequire(import.meta.url);
-const rateLimit = require('express-rate-limit');
 
 const { Pool } = pg;
 
 const app = express();
+const limiter = rateLimit({
+  windowMs: 60_000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
+
 const port = Number(process.env.API_PORT || 5601);
 const postgresHost = process.env.POSTGRES_HOST || '127.0.0.1';
 const postgresPort = Number(process.env.POSTGRES_PORT || 5432);
@@ -123,12 +128,6 @@ app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
-app.use(rateLimit({
-  windowMs: 60_000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-}));
 
 app.get('/health', async (_req, res) => {
   try {

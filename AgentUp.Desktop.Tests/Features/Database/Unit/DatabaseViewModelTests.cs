@@ -4,7 +4,7 @@ using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Database.Controllers;
 using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Features.Database.Services;
-using AgentUp.Desktop.Tests.Features.Database.Support;
+using AgentUp.Desktop.Tests.Support;
 using AgentUp.Desktop.Features.Database.ViewModels;
 
 namespace AgentUp.Desktop.Tests.Features.Database.Unit;
@@ -26,6 +26,40 @@ public class DatabaseViewModelTests
         Assert.That(vm.SqlQuery, Is.EqualTo("SELECT * FROM \"products\" LIMIT 50"));
         Assert.That(vm.Rows, Has.Count.EqualTo(1));
         Assert.That(vm.Columns[0].Name, Is.EqualTo("id"));
+    }
+
+    [Test]
+    public async Task LoadAsync_SurfacesProblemDetail_WhenListDatabasesFails()
+    {
+        using var handler = new FakeDatabaseHandler(listDatabasesError: "Application is not configured as a database viewer target.");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
+        var vm = new DatabaseViewModel(new DatabaseController(new DatabaseExplorerService(client)));
+
+        await vm.LoadAsync("ws-1", "Database");
+
+        Assert.That(vm.ErrorMessage, Is.EqualTo("Application is not configured as a database viewer target."));
+        Assert.That(vm.Databases, Is.Empty);
+        Assert.That(vm.IsLoading, Is.False);
+    }
+
+    [Test]
+    public async Task LoadAsync_SurfacesProblemDetail_WhenListTablesFails()
+    {
+        using var handler = new FakeDatabaseHandler(listTablesError: "Database name is required.");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
+        var vm = new DatabaseViewModel(new DatabaseController(new DatabaseExplorerService(client)));
+
+        await vm.LoadAsync("ws-1", "Database");
+        vm.SelectedDatabase = "archive";
+
+        for (var attempt = 0; attempt < 20 && vm.ErrorMessage is null; attempt++)
+            await Task.Delay(50);
+
+        Assert.That(vm.ErrorMessage, Is.EqualTo("Database name is required."));
+        Assert.That(vm.Tables, Is.Empty);
+        Assert.That(vm.IsLoading, Is.False);
     }
 
     [Test]
@@ -66,18 +100,38 @@ public class DatabaseViewModelTests
     private sealed class FakeDatabaseHandler : HttpMessageHandler
     {
         private readonly string? _queryError;
+        private readonly string? _listDatabasesError;
+        private readonly string? _listTablesError;
 
-        public FakeDatabaseHandler(string? queryError = null) => _queryError = queryError;
+        public FakeDatabaseHandler(
+            string? queryError = null,
+            string? listDatabasesError = null,
+            string? listTablesError = null)
+        {
+            _queryError = queryError;
+            _listDatabasesError = listDatabasesError;
+            _listTablesError = listTablesError;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             if (request.RequestUri!.AbsolutePath.EndsWith("/database/databases", StringComparison.Ordinal))
-                return Json(new { databases = new[] { "inventory" } });
+            {
+                if (_listDatabasesError is not null)
+                    return Task.FromResult(HttpTestResponses.Json(HttpStatusCode.BadRequest, new { detail = _listDatabasesError }));
+
+                return Json(new { databases = new[] { "inventory", "archive" } });
+            }
 
             if (request.RequestUri.AbsolutePath.EndsWith("/database/tables", StringComparison.Ordinal))
+            {
+                if (_listTablesError is not null)
+                    return Task.FromResult(HttpTestResponses.Json(HttpStatusCode.BadRequest, new { detail = _listTablesError }));
+
                 return Json(new { tables = new[] { "products", "orders" } });
+            }
 
             if (request.RequestUri.AbsolutePath.EndsWith("/database/query", StringComparison.Ordinal))
             {
