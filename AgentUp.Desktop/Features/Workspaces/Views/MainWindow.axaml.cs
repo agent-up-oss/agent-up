@@ -735,7 +735,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private bool IsModalOverlayVisible()
         => DataContext is MainViewModel vm
-           && (vm.Login.IsVisible || vm.Tutorial.IsVisible || vm.Sidebar.DeleteConfirmation.IsVisible);
+           && (vm.Tutorial.IsVisible || vm.Sidebar.DeleteConfirmation.IsVisible);
 
     private void ApplyModalOverlayWebViewVisibility(bool modalOverlayVisible)
     {
@@ -1248,8 +1248,20 @@ code {
         => CloseWindowButton.IsVisualAncestorOf(source)
            || MinimizeWindowButton.IsVisualAncestorOf(source)
            || RestoreWindowButton.IsVisualAncestorOf(source)
-           || SidebarToggle.IsVisualAncestorOf(source)
-           || ReloadButton.IsVisualAncestorOf(source);
+           || IsNamedChromeControl(source, "SidebarToggle")
+           || IsNamedChromeControl(source, "ReloadButton");
+
+    private static bool IsNamedChromeControl(Visual source, string name)
+    {
+        for (var current = source; current is not null; current = current.GetVisualParent() as Visual)
+        {
+            if (current is Control { Name: var controlName }
+                && string.Equals(controlName, name, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
 
     private void OnCloseWindowClicked(object? sender, RoutedEventArgs e) => Close();
 

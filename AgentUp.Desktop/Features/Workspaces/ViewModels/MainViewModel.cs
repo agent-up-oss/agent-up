@@ -14,6 +14,7 @@ using AgentUp.Desktop.Features.Ports.Controllers;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -40,6 +41,9 @@ public sealed class MainViewModel : ReactiveObject
     public ApplicationAuditViewModel Audit { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
     public LoginViewModel Login { get; }
+    public WindowChromeViewModel Chrome { get; } = new();
+
+    private readonly ChromeServerStatusViewModel _chromeServerStatus;
 
     public ObservableCollection<SubTabViewModel> SubTabs { get; } = [];
 
@@ -93,6 +97,10 @@ public sealed class MainViewModel : ReactiveObject
         Tutorial = tutorial;
         Login = login;
         _ports = ports;
+        _chromeServerStatus = new ChromeServerStatusViewModel(sidebar);
+        UpdateChromeLeftItems(Login.IsVisible);
+        Login.WhenAnyValue(viewModel => viewModel.IsVisible)
+            .Subscribe(UpdateChromeLeftItems);
 
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
@@ -486,5 +494,25 @@ public sealed class MainViewModel : ReactiveObject
     {
         await Tutorial.InitializeAsync();
         await Sidebar.LoadAsync();
+    }
+
+    private void UpdateChromeLeftItems(bool loginVisible)
+        => Chrome.SetLeftItems(loginVisible ? [] : CreateWorkspaceChromeItems());
+
+    private IEnumerable<object> CreateWorkspaceChromeItems()
+    {
+        yield return new ChromeIconButtonViewModel(
+            "SidebarToggle",
+            "☰",
+            16,
+            Sidebar.ToggleCommand,
+            "Toggle sidebar");
+        yield return new ChromeIconButtonViewModel(
+            "ReloadButton",
+            "↺",
+            15,
+            Sidebar.RefreshCommand,
+            "Reload workspaces");
+        yield return _chromeServerStatus;
     }
 }
