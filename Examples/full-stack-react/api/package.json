@@ -6,7 +6,7 @@
     "dev": "node server.mjs"
   },
   "dependencies": {
-    "express": "4.22.2",
+    "express": "5.2.1",
     "express-rate-limit": "7.5.0",
     "pg": "8.13.1"
   }
