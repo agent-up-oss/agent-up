@@ -9,6 +9,10 @@ using AgentUp.Desktop.Features.Console.Controllers;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Console.Services;
 using AgentUp.Desktop.Features.Console.ViewModels;
+using AgentUp.Desktop.Features.Database.Controllers;
+using AgentUp.Desktop.Features.Database.Providers;
+using AgentUp.Desktop.Features.Database.Services;
+using AgentUp.Desktop.Features.Database.ViewModels;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Metrics.Providers;
 using AgentUp.Desktop.Features.Metrics.Services;
@@ -37,10 +41,16 @@ public static class MainViewModelFactory
         BaseAddress = new Uri("http://127.0.0.1:5000")
     };
 
+    private static readonly HttpClient DefaultDatabaseHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
         MetricsApiClient? metricsClient = null,
+        DatabaseApiClient? databaseClient = null,
         ApplicationAuditApiClient? auditClient = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
@@ -49,6 +59,8 @@ public static class MainViewModelFactory
         var console = new ConsoleController(new ConsoleOutputService(consoleClient));
         var metrics = new MetricsController(new MetricsTimelineService(
             metricsClient ?? new MetricsApiClient(DefaultMetricsHttpClient)));
+        var database = new DatabaseController(new DatabaseExplorerService(
+            databaseClient ?? new DatabaseApiClient(DefaultDatabaseHttpClient)));
         var ports = new PortsController(new PortTabService());
         var audit = new ApplicationAuditController(new ApplicationAuditService(
             auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));
@@ -58,6 +70,7 @@ public static class MainViewModelFactory
             new ApplicationListViewModel(applications),
             new ConsoleViewModel(console),
             new MetricsViewModel(metrics),
+            new DatabaseViewModel(database),
             new ApplicationAuditViewModel(audit),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
@@ -72,6 +85,7 @@ public static class MainViewModelFactory
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),
             new MetricsApiClient(http),
+            new DatabaseApiClient(http),
             new ApplicationAuditApiClient(http));
     }
 

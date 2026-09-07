@@ -15,6 +15,14 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
 
     public string Name { get; }
 
+    public bool Database
+    {
+        get => _database;
+        private set => this.RaiseAndSetIfChanged(ref _database, value);
+    }
+
+    private bool _database;
+
     public string Command
     {
         get => _command;
@@ -49,10 +57,12 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         string name,
         string command,
         string state,
+        bool database = false,
         IReadOnlyList<PortMappingDto>? allocatedPorts = null,
         IReadOnlyList<PortHealthChangeDto>? portHealth = null)
     {
         Name = name;
+        _database = database;
         _command = command;
         _state = state;
         _stateColor = AppHealthLedRules.StateColor(state);
@@ -60,15 +70,21 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         _portHealth = portHealth;
     }
 
-    public bool UpdateFrom(string command, string state, IReadOnlyList<PortMappingDto>? allocatedPorts)
+    public bool UpdateFrom(
+        string command,
+        string state,
+        IReadOnlyList<PortMappingDto>? allocatedPorts,
+        bool database = false)
     {
         var ports = allocatedPorts ?? [];
         var portsChanged = !AllocatedPorts.SequenceEqual(ports);
+        var databaseChanged = Database != database;
 
         Command = command;
         AllocatedPorts = ports;
+        Database = database;
         var stateChanged = UpdateState(state);
-        return portsChanged || stateChanged;
+        return portsChanged || stateChanged || databaseChanged;
     }
 
     internal bool UpdateState(string newState, IReadOnlyList<PortHealthChangeDto>? portHealth = null)

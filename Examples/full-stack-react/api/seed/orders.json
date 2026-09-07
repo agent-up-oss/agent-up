@@ -1,0 +1,36 @@
+[
+  {
+    "id": "ORD-2401",
+    "customer_name": "Northwind Traders",
+    "region": "North America",
+    "status": "Fulfilled",
+    "total_amount": 1543.0,
+    "placed_at": "2026-07-13T14:22:00Z",
+    "items": [
+      { "sku": "SKU-1001", "quantity": 4, "line_total": 516.0 },
+      { "sku": "SKU-1003", "quantity": 13, "line_total": 1027.0 }
+    ]
+  },
+  {
+    "id": "ORD-2402",
+    "customer_name": "Blue Harbor Logistics",
+    "region": "Europe",
+    "status": "Processing",
+    "total_amount": 978.0,
+    "placed_at": "2026-07-14T07:05:00Z",
+    "items": [
+      { "sku": "SKU-1002", "quantity": 2, "line_total": 978.0 }
+    ]
+  },
+  {
+    "id": "ORD-2403",
+    "customer_name": "Summit Field Ops",
+    "region": "Asia Pacific",
+    "status": "Pending",
+    "total_amount": 657.0,
+    "placed_at": "2026-07-14T09:40:00Z",
+    "items": [
+      { "sku": "SKU-1004", "quantity": 3, "line_total": 657.0 }
+    ]
+  }
+]

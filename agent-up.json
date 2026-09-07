@@ -4,7 +4,7 @@
     {
       "name": "Docs",
       "command": "npm run start",
-      "install": "npm install",
+      "install": "npm install --package-lock=false",
       "path": "docs",
       "ports": [
         { "variable": "PORT", "defaultPort": 3000 }
@@ -13,10 +13,35 @@
     {
       "name": "Mobile",
       "command": "npm run web",
-      "install": "npm install",
+      "install": "npm install --package-lock=false",
       "path": "AgentUp.Mobile",
       "ports": [
         { "variable": "WEB_PORT", "defaultPort": 8081, "protocol": "http" }
+      ]
+    },
+    {
+      "name": "Example Web",
+      "command": "npm run dev",
+      "install": "npm install --package-lock=false",
+      "path": "Examples/full-stack-react/web",
+      "ports": [
+        { "variable": "WEB_PORT", "defaultPort": 5600, "protocol": "http" }
+      ]
+    },
+    {
+      "name": "Example API",
+      "command": "npm run dev",
+      "install": "npm install --package-lock=false",
+      "path": "Examples/full-stack-react/api",
+      "environmentFiles": ["Examples/full-stack-react/database.env"],
+      "ports": [
+        {
+          "variable": "API_PORT",
+          "defaultPort": 5601,
+          "protocol": "http",
+          "healthCheck": "/health",
+          "metrics": "/metrics"
+        }
       ]
     }
   ],
@@ -24,13 +49,12 @@
     {
       "name": "Database",
       "image": "postgres:16",
+      "database": true,
+      "environmentFiles": ["Examples/full-stack-react/database.env"],
       "ports": [
         { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
       ],
-      "environment": {
-        "POSTGRES_PASSWORD": "not-a-real-value"
-      },
-      "volumes": ["pgdata:/var/lib/postgresql/data"]
+      "volumes": ["agent-up-full-stack-pgdata:/var/lib/postgresql/data"]
     }
   ],
   "prompts": {
