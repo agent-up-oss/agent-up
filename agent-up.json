@@ -4,6 +4,7 @@
     {
       "name": "Docs",
       "command": "npm run start",
+      "install": "npm install --package-lock=false",
       "path": "docs",
       "ports": [
         { "variable": "PORT", "defaultPort": 3000 }
@@ -12,9 +13,35 @@
     {
       "name": "Mobile",
       "command": "npm run web",
+      "install": "npm install --package-lock=false",
       "path": "AgentUp.Mobile",
       "ports": [
         { "variable": "WEB_PORT", "defaultPort": 8081, "protocol": "http" }
+      ]
+    },
+    {
+      "name": "Example Web",
+      "command": "npm run dev",
+      "install": "npm install --package-lock=false",
+      "path": "Examples/full-stack-react/web",
+      "ports": [
+        { "variable": "WEB_PORT", "defaultPort": 5600, "protocol": "http" }
+      ]
+    },
+    {
+      "name": "Example API",
+      "command": "npm run dev",
+      "install": "npm install --package-lock=false",
+      "path": "Examples/full-stack-react/api",
+      "environmentFiles": ["Examples/full-stack-react/database.env"],
+      "ports": [
+        {
+          "variable": "API_PORT",
+          "defaultPort": 5601,
+          "protocol": "http",
+          "healthCheck": "/health",
+          "metrics": "/metrics"
+        }
       ]
     }
   ],
@@ -23,16 +50,52 @@
       "name": "Database",
       "image": "postgres:16",
       "database": true,
+      "environmentFiles": ["Examples/full-stack-react/database.env"],
       "ports": [
         { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
       ],
-      "environment": {
-        "POSTGRES_PASSWORD": "not-a-real-value"
-      },
       "volumes": ["pgdata:/var/lib/postgresql/data"]
     }
   ],
   "prompts": {
     "commitPolicy": "Scope every commit message to the queued slice. Production changes in Server, CLI, Tray, InstallerApp, Installers, or Desktop are customer-facing and should be fix or feat unless they are true no-behavior source refactors. Use test for test-only changes and PackageSmoke changes, unless they are queued with same-slice fix or feat production changes. Use refactor for internal no-behavior source changes. Use chore only for maintenance, packaging, CI, or tooling changes that do not affect customer runtime behavior."
+  },
+  "commits": {
+    "build": ["dotnet build agent-up.sln"],
+    "test": ["dotnet test AgentUp.Architecture.Tests"],
+    "projects": {
+      "AgentUp.Capabilities.Abstractions": {
+        "test": ["dotnet test AgentUp.Capabilities.Abstractions.Tests"]
+      },
+      "AgentUp.Capabilities.Common": {
+        "test": ["dotnet test AgentUp.Capabilities.Common.Tests"],
+        "dependsOn": ["AgentUp.Capabilities.Abstractions"]
+      },
+      "AgentUp.Capabilities.Dotnet": {
+        "test": ["dotnet test AgentUp.Capabilities.Dotnet.Tests"],
+        "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
+      },
+      "AgentUp.Capabilities.Docker": {
+        "test": ["dotnet test AgentUp.Capabilities.Docker.Tests"],
+        "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
+      },
+      "AgentUp.CommitPolicy": {
+        "test": ["dotnet test AgentUp.CommitPolicy.Tests"]
+      },
+      "AgentUp.Server": {
+        "test": ["dotnet test AgentUp.Server.Tests"],
+        "dependsOn": ["AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"]
+      },
+      "AgentUp.CLI": {
+        "test": ["dotnet test AgentUp.CLI.Tests"],
+        "dependsOn": ["AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions"]
+      },
+      "AgentUp.Desktop": {
+        "test": ["dotnet test AgentUp.Desktop.Tests"]
+      },
+      "AgentUp.Mobile": {
+        "test": []
+      }
+    }
   }
 }

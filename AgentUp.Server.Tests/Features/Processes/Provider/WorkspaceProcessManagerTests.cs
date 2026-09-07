@@ -82,8 +82,7 @@ public class WorkspaceProcessManagerTests
 
             Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
-            Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
-                Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+            Assert.That(startInfo.ArgumentList[1], Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
             Assert.That(startInfo.Environment["WEB_PORT"], Is.EqualTo(web.AllocatedPorts.Single().AllocatedPort.ToString()));
             Assert.That(startInfo.Environment["API_PORT"], Is.EqualTo(api.AllocatedPorts.Single().AllocatedPort.ToString()));
             Assert.That(startInfo.Environment["AGENT_UP_AUDIT_ENDPOINT"], Is.EqualTo("http://127.0.0.1:5000/api/audit/record"));
@@ -194,8 +193,7 @@ public class WorkspaceProcessManagerTests
         Assert.That(startInfo.FileName, Is.EqualTo("npm"));
         Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
         Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
-        Assert.That(Directory.ResolveLinkTarget(startInfo.ArgumentList[1], returnFinalTarget: true)!.FullName,
-            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[1], Is.EqualTo(workspace.WorktreePath));
         Assert.That(startInfo.ArgumentList.Skip(2), Is.EqualTo(new[] { "run", "dev server" }));
     }
 
@@ -225,6 +223,191 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task CreateInstallStartInfo_ReturnsNull_WhenInstallNotConfigured()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Web", "npm run dev", null)]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo, Is.Null);
+    }
+
+    [Test]
+    public async Task CreateInstallStartInfo_UsesSameWorkingDirectoryAndAllowlistAsCommand()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications = [new ApplicationDefinition("Web", "npm run dev", "web", Install: "npm install")]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo, Is.Not.Null);
+        Assert.That(startInfo!.FileName, Is.EqualTo("npm"));
+        Assert.That(startInfo.ArgumentList[0], Is.EqualTo("--prefix"));
+        Assert.That(startInfo.ArgumentList[1], Is.EqualTo(Path.Join(workspace.WorktreePath, "web")));
+        Assert.That(startInfo.ArgumentList.Skip(2), Is.EqualTo(new[] { "install" }));
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_RunsInstallStepBeforeCommand_AndPrefixesInstallOutput()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "printenv",
+                        null,
+                        Install: "printenv")
+                ]
+            });
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+
+            await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
+
+            // LaunchApplicationAsync does not await the application process's own completion,
+            // and reaching the Stopped state (set from its Exited handler) does not guarantee
+            // every OutputDataReceived-triggered AppendAsync write has finished yet; poll until
+            // the application command's own (unprefixed) output shows up rather than assuming
+            // it is already there.
+            var lines = await WaitForOutputAsync(workspace.Id, "Web",
+                candidate => candidate.Any(line => !line.StartsWith("[install]", StringComparison.Ordinal)));
+
+            // printenv always emits at least one line, so both the install step and the
+            // application command must have produced output; the install's lines carry the
+            // [install] prefix and must all come before the application command's own.
+            var lastInstallIndex = lines.FindLastIndex(line => line.StartsWith("[install]", StringComparison.Ordinal));
+            var firstCommandIndex = lines.FindIndex(line => !line.StartsWith("[install]", StringComparison.Ordinal));
+            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(lastInstallIndex, Is.LessThan(firstCommandIndex));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_FailsWithoutLaunchingCommand_WhenInstallExitsNonZero()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "printenv",
+                        null,
+                        // A missing module reliably exits 1 without needing shell metacharacters
+                        // (parentheses, semicolons, ...) that the command allowlist rejects.
+                        Install: "python3 -m agentup_test_nonexistent_module")
+                ]
+            });
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
+
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
+            Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+
+            // Only install-prefixed output should exist; the application's own printenv must
+            // never have run.
+            var lines = await _output.GetAsync(workspace.Id, "Web");
+            Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_MarksApplicationFailed_WhenInstallCommandIsInvalid()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Web",
+                    "printenv",
+                    null,
+                    Install: "npm install; rm -rf /")
+            ]
+        });
+
+        Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
+
+        var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
+        Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+
+        var lines = await _output.GetAsync(workspace.Id, "Web");
+        Assert.That(lines, Has.Some.Contains("not a shell expression"));
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_DoesNotLaunchCommand_WhenKilledDuringInstall()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "printenv",
+                        null,
+                        // Never exits on its own, so it is still running (and killable) when
+                        // KillApplicationAsync fires below.
+                        Install: "python3 -m http.server 0 --bind 127.0.0.1")
+                ]
+            });
+
+            var launchTask = _manager.LaunchApplicationAsync(workspace, "Web");
+            await Task.Delay(500);
+            await _manager.KillApplicationAsync(workspace.Id, "Web");
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await launchTask);
+
+            // Give the application command a window in which it would have started if the
+            // kill had not actually stopped the install.
+            await Task.Delay(1000);
+
+            // Only install-prefixed output (if any) should exist; the application's own
+            // printenv must never have run.
+            var lines = await _output.GetAsync(workspace.Id, "Web");
+            Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task CreateLocalProcessStartInfo_RejectsShellExpressions()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
@@ -242,24 +425,57 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
-    public async Task CreateLocalProcessStartInfo_RejectsEnvironmentFilesOutsideWorkspaceRoot()
+    public async Task CreateLocalProcessStartInfo_LoadsNestedEnvironmentFilesUnderWorkspaceRoot()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Web",
-                    "printenv",
-                    null,
-                    null,
-                    null,
-                    ["../.env"])
-            ]
-        });
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        var envDirectory = Path.Join(worktreePath, "config");
+        Directory.CreateDirectory(envDirectory);
+        await File.WriteAllTextAsync(Path.Join(envDirectory, ".env.local"), "SECRET_PASSWORD=from-nested-file");
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single()));
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "printenv",
+                        null,
+                        null,
+                        null,
+                        ["config/.env.local"])
+                ]
+            });
+
+            var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
+
+            Assert.That(startInfo.Environment["SECRET_PASSWORD"], Is.EqualTo("from-nested-file"));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Register_RejectsEnvironmentFilesOutsideWorkspaceRoot()
+    {
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Web",
+                        "printenv",
+                        null,
+                        null,
+                        null,
+                        ["../.env"])
+                ]
+            }));
 
         Assert.That(ex!.Message, Does.Contain("must stay under the workspace root"));
     }
@@ -475,6 +691,22 @@ public class WorkspaceProcessManagerTests
         }
 
         return state;
+    }
+
+    private async Task<List<string>> WaitForOutputAsync(
+        string workspaceId,
+        string appName,
+        Func<List<string>, bool> condition)
+    {
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+        var lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+        while (!condition(lines) && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(100);
+            lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+        }
+
+        return lines;
     }
 
     private static void DeleteDirectoryIfExists(string directory)

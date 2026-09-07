@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Shared.Providers;
 
 namespace AgentUp.Server.Features.Processes.Providers;
 
@@ -24,17 +25,33 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             EnableRaisingEvents = true
         };
 
+    // The install command is idempotent by nature (npm install, dotnet restore, etc. are
+    // safe to re-run), so it is executed unconditionally before every launch rather than
+    // tracked with a completion marker — running it is always correct, skipping it sometimes
+    // is not.
+    public Process? CreateInstallProcess(Workspace workspace, ApplicationInstance app)
+    {
+        var startInfo = CreateInstallStartInfo(workspace, app);
+        return startInfo is null ? null : new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+    }
+
     public void Kill(Process process)
         => process.Kill(entireProcessTree: true);
 
     internal ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
+        => CreateStartInfo(workspace, app, app.Command!);
+
+    internal ProcessStartInfo? CreateInstallStartInfo(Workspace workspace, ApplicationInstance app)
+        => string.IsNullOrWhiteSpace(app.Install) ? null : CreateStartInfo(workspace, app, app.Install);
+
+    private ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app, string command)
     {
         var workingDirectory = WorkspacePathProvider.ResolveWorkspacePath(
             workspace.WorktreePath,
             app.Path,
             "Application path");
         var fileEnvironment = LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles);
-        var startInfo = CreateProcessStartInfo(app.Command!, workingDirectory);
+        var startInfo = CreateProcessStartInfo(command, workingDirectory);
         foreach (var (key, value) in fileEnvironment)
             startInfo.Environment[key] = value;
 
@@ -155,20 +172,20 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         IReadOnlyList<string> arguments,
         string workingDirectory)
     {
-        var directory = CreateWorkspaceDirectoryAlias(workingDirectory);
+        var aliasedDirectory = CreateWorkspaceDirectoryAlias(workingDirectory);
         return fileName switch
         {
-            "bun" => ["--cwd", directory, .. arguments],
+            "bun" => ["--cwd", workingDirectory, .. arguments],
             "dotnet" when arguments.Count > 0 && arguments[0] == "run" && !arguments.Contains("--project", StringComparer.Ordinal)
-                => [.. arguments, "--project", directory],
-            "dotnet" => QualifyOptionPathArgument(arguments, "--project", directory),
-            "gradle" => ["-p", directory, .. arguments],
-            "make" => ["-C", directory, .. arguments],
-            "mvn" => ["-f", Path.Join(directory, "pom.xml"), .. arguments],
-            "node" => QualifyFirstPathArgument(arguments, directory),
-            "npm" => ["--prefix", directory, .. arguments],
-            "pnpm" => ["--dir", directory, .. arguments],
-            "yarn" => ["--cwd", directory, .. arguments],
+                => [.. arguments, "--project", aliasedDirectory],
+            "dotnet" => QualifyOptionPathArgument(arguments, "--project", aliasedDirectory),
+            "gradle" => ["-p", aliasedDirectory, .. arguments],
+            "make" => ["-C", aliasedDirectory, .. arguments],
+            "mvn" => ["-f", Path.Join(aliasedDirectory, "pom.xml"), .. arguments],
+            "node" => QualifyFirstPathArgument(arguments, aliasedDirectory),
+            "npm" => ["--prefix", workingDirectory, .. arguments],
+            "pnpm" => ["--dir", workingDirectory, .. arguments],
+            "yarn" => ["--cwd", workingDirectory, .. arguments],
             _ => arguments
         };
     }

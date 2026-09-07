@@ -125,7 +125,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
-| `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
+| `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues; also owns `agent-up.json`'s `commits` configuration schema and the build/test command resolution (including transitive project dependents) used by both queues |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
 | `LocalInstaller.App` | Product-neutral Avalonia installer dashboard over platform installer adapters and installer-owned capability catalog state; no compile-time dependency on `AgentUp.Capabilities.*` |
 | `LocalInstaller.Packaging` | Product-neutral release artifact staging, package metadata generation, and native packaging tool orchestration |
@@ -441,6 +441,8 @@ Every managed repository is described declaratively with `agent-up.json`.
 Managed applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration. The first-party AgentUp.Mobile client is an explicit exception and may consume the state-free `@agent-up/audit` browser transport because it is itself an Agent-Up product client.
 
 Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
+
+A local application entry may declare `install`, an executable-plus-arguments command (same allowlist and shell rejection as `command`) run to completion in the application's `path` before every launch of `command`. It has no separate "already installed" tracking: the Server reruns it on every start and restart and relies on the command itself being idempotent (`npm install`, `dotnet restore`, `pip install -r requirements.txt`). Output streams to the application console prefixed with `[install]`; a non-zero exit fails the start without launching `command`.
 
 The optional root `display` object in `agent-up.json` is only for Desktop visuals. `display.name` overrides the workspace entry title and `display.branch` overrides the workspace entry subtitle. These values must not change repository path identity, worktree path handling, Git branch detection, commit identity, audit identity, or process working directories.
 

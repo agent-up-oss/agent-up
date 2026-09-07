@@ -19,6 +19,7 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 | `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications launched through the Agent-Up .NET capability. |
 | `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers launched through the Agent-Up Docker capability. |
 | `prompts` | [Prompts](#prompts-object) | No | default Agent-Up guidance | Optional repository-specific guidance for AI agents. |
+| `commits` | [Commits](#commits-object) | No | no build/test enforcement | Optional build and test commands the commit queue resolves and attaches to queued entries. |
 
 ## Display Object
 
@@ -39,6 +40,50 @@ Used at the root to refine default AI-agent behavior for this repository.
 
 Default commit policy: scope commit messages to the queued slice; use `feat` for user-facing additions, `fix` for user-facing fixes, `test` for test-only or smoke-validation changes, `refactor` for no-behavior source changes, `chore` for maintenance, packaging, CI, or tooling with no customer runtime effect, `style` for CSS/HTML-only changes, and `docs` for documentation-only changes.
 
+## Commits Object
+
+Used at the root to declare build and test commands the local commit queue (`agentup commits enqueue` and the equivalent Server MCP `enqueue_commit` tool) resolves for a queued entry's changed files. When present, resolved commands are merged into the entry's `tests`, alongside anything passed explicitly with `--tests`. Omitting `commits`, or any of its properties, keeps the previous behavior: no commands are resolved automatically.
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `build` | array of strings | No | `[]` | General commands that apply to every queued entry, such as building the solution. |
+| `test` | array of strings | No | `[]` | General test commands that apply to every queued entry, such as an architecture test suite. |
+| `projects` | object of [Commits Project](#commits-project-object) | No | `{}` | Per-project test commands, keyed by the top-level project directory a changed file falls under (the first path segment). |
+
+## Commits Project Object
+
+Used as values in `commits.projects`, keyed by project directory name.
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `test` | array of strings | No | `[]` | Test commands for this project. Resolved for a queued entry whenever one of its files falls under this project, or under a project that depends on it (see `dependsOn`). |
+| `dependsOn` | array of strings | No | `[]` | Other project keys this project depends on. Used to find transitive dependents: when a dependency's files change, this project's `test` commands are resolved too, and so on transitively. |
+
+Example:
+
+```json
+{
+  "commits": {
+    "build": ["dotnet build agent-up.sln"],
+    "test": ["dotnet test AgentUp.Architecture.Tests"],
+    "projects": {
+      "AgentUp.CommitPolicy": {
+        "test": ["dotnet test AgentUp.CommitPolicy.Tests"]
+      },
+      "AgentUp.Server": {
+        "test": ["dotnet test AgentUp.Server.Tests"],
+        "dependsOn": ["AgentUp.CommitPolicy"]
+      },
+      "AgentUp.Mobile": {
+        "test": []
+      }
+    }
+  }
+}
+```
+
+With this configuration, an entry touching only `AgentUp.CommitPolicy/...` files resolves the general `build` and `test` commands plus `AgentUp.CommitPolicy`'s own tests and `AgentUp.Server`'s tests, because `AgentUp.Server` depends on `AgentUp.CommitPolicy`. An entry touching only documentation files resolves just the general `build` and `test` commands. `AgentUp.Mobile` is declared with no test commands yet, ready for a test command to be added once mobile tests exist, without any change to the resolution logic.
+
 ## Application Object
 
 Used in `applications`.
@@ -47,6 +92,7 @@ Used in `applications`.
 |---|---:|---:|---:|---|
 | `name` | string | Yes | none | Application display name. Names are used in application lists and start/stop/restart operations. |
 | `command` | string | Yes | none | Executable-plus-arguments command used to start the application. Agent-Up launches it directly from the configured `path`, rejects shell expressions, and requires the first token to be an allowlisted executable name such as `node`, `npm`, `dotnet`, `python`, `cargo`, `go`, `java`, `make`, `mvn`, `gradle`, `bun`, `pnpm`, or `yarn`. |
+| `install` | string or null | No | none | Executable-plus-arguments command run to completion in the same `path`, before every start of `command` — subject to the same executable allowlist and shell-expression rejection as `command`. Runs unconditionally on every `agent-up start` (and every restart), so it must be safe to re-run, like `npm install`, `dotnet restore`, or `pip install -r requirements.txt`; the Server does not track whether it "already ran". Output is streamed to the application console prefixed with `[install]`. A non-zero exit fails the start and the application is not launched. |
 | `path` | string or null | No | workspace root | Working directory for the command, relative to the workspace root. Use `null` or omit it to run from the workspace root. |
 | `ports` | array of [Port](#port-object) | No | `[]` | Port declarations owned and allocated by the Server. |
 | `environment` | object of string values | No | `{}` | Inline environment variables for this process. Use for values safe to store in `agent-up.json` and Server workspace state. |
@@ -59,6 +105,7 @@ Example:
 {
   "name": "Web",
   "command": "npm run dev",
+  "install": "npm install",
   "path": "web",
   "environmentFiles": [".env"],
   "environment": {

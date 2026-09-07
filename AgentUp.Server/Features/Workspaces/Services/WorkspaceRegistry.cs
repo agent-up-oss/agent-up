@@ -6,7 +6,7 @@ using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Models;
-using AgentUp.Server.Features.Workspaces.Repositories;
+using AgentUp.Server.Features.Workspaces.Providers;
 using Microsoft.Extensions.Hosting;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
@@ -100,6 +100,7 @@ public sealed class WorkspaceRegistry : IHostedService
                 {
                     Name = d.Name,
                     Command = d.Command,
+                    Install = d.Install,
                     Path = d.Path,
                     Environment = d.Environment,
                     EnvironmentFiles = d.EnvironmentFiles,
@@ -124,6 +125,12 @@ public sealed class WorkspaceRegistry : IHostedService
                 .Concat(typedDockerApplications)
                 .ToList()
         };
+
+        WorkspaceEnvironmentFilesValidator.Validate(
+            request.WorktreePath,
+            workspace.Applications.Select(app => new ApplicationEnvironmentFileSource(
+                app.Name,
+                app.EnvironmentFiles)));
 
         _workspaces[workspace.Id] = workspace;
         await _repository.SaveAllAsync(GetAll());

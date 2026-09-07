@@ -1,4 +1,4 @@
-namespace AgentUp.Server.Features.Processes.Providers;
+namespace AgentUp.Server.Shared.Providers;
 
 public static class WorkspacePathProvider
 {
@@ -22,21 +22,26 @@ public static class WorkspacePathProvider
         return fullPath;
     }
 
-    public static string ResolveWorkspaceRootFile(string root, string fileName, string pathKind)
+    public static string ResolveWorkspaceRootFile(string root, string relativeFilePath, string pathKind)
     {
-        if (string.IsNullOrWhiteSpace(fileName) || fileName != fileName.Trim())
+        if (string.IsNullOrWhiteSpace(relativeFilePath) || relativeFilePath != relativeFilePath.Trim())
             throw new InvalidOperationException($"{pathKind} paths must not be empty.");
 
-        if (fileName.Contains("..", StringComparison.Ordinal))
+        if (Path.IsPathRooted(relativeFilePath))
+            throw new InvalidOperationException($"{pathKind} must be relative to the workspace root.");
+
+        if (relativeFilePath.Contains("..", StringComparison.Ordinal))
             throw new InvalidOperationException($"{pathKind} must stay under the workspace root.");
 
-        if (Path.IsPathRooted(fileName) || !string.Equals(fileName, Path.GetFileName(fileName), StringComparison.Ordinal))
-            throw new InvalidOperationException($"{pathKind} must be a file name relative to the workspace root.");
+        foreach (var segment in relativeFilePath.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (segment is "." or "..")
+                throw new InvalidOperationException($"{pathKind} must stay under the workspace root.");
 
-        if (fileName.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not '.' and not '_' and not '-'))
-            throw new InvalidOperationException($"{pathKind} contains unsafe characters.");
+            if (segment.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not '.' and not '_' and not '-'))
+                throw new InvalidOperationException($"{pathKind} contains unsafe characters.");
+        }
 
-        var rootFullPath = ResolveWorkspacePath(root, null, pathKind);
-        return Path.Join(rootFullPath, fileName);
+        return ResolveWorkspacePath(root, relativeFilePath, pathKind);
     }
 }

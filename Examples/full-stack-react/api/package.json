@@ -1,0 +1,12 @@
+{
+  "name": "agent-up-example-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "pg": "8.13.1"
+  }
+}

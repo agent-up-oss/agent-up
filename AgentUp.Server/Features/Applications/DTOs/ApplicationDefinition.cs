@@ -10,4 +10,5 @@ public record ApplicationDefinition(
     IReadOnlyList<PortDeclaration>? Ports = null,
     IReadOnlyDictionary<string, string>? Environment = null,
     IReadOnlyList<string>? EnvironmentFiles = null,
-    bool Database = false);
+    bool Database = false,
+    string? Install = null);
