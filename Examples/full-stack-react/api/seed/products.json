@@ -1,0 +1,57 @@
+[
+  {
+    "sku": "SKU-1001",
+    "name": "Atlas Analytics Seat",
+    "category": "Software",
+    "status": "Priority",
+    "region": "North America",
+    "inventory": 384,
+    "unit_price": 129.0,
+    "margin": 72.4,
+    "updated_at": "2026-07-14T08:30:00Z"
+  },
+  {
+    "sku": "SKU-1002",
+    "name": "Beacon Edge Gateway",
+    "category": "Hardware",
+    "status": "Healthy",
+    "region": "Europe",
+    "inventory": 146,
+    "unit_price": 489.0,
+    "margin": 41.2,
+    "updated_at": "2026-07-14T09:15:00Z"
+  },
+  {
+    "sku": "SKU-1003",
+    "name": "Cedar Support Bundle",
+    "category": "Services",
+    "status": "Healthy",
+    "region": "North America",
+    "inventory": 920,
+    "unit_price": 79.0,
+    "margin": 63.5,
+    "updated_at": "2026-07-14T10:00:00Z"
+  },
+  {
+    "sku": "SKU-1004",
+    "name": "Delta Data Relay",
+    "category": "Hardware",
+    "status": "Watch",
+    "region": "Asia Pacific",
+    "inventory": 52,
+    "unit_price": 219.0,
+    "margin": 28.7,
+    "updated_at": "2026-07-14T11:45:00Z"
+  },
+  {
+    "sku": "SKU-1005",
+    "name": "Echo Workflow Pack",
+    "category": "Software",
+    "status": "Healthy",
+    "region": "Europe",
+    "inventory": 610,
+    "unit_price": 49.0,
+    "margin": 81.0,
+    "updated_at": "2026-07-14T12:20:00Z"
+  }
+]

@@ -1,3 +1,5 @@
+using AgentUp.Server.Shared.Providers;
+
 namespace AgentUp.Server.Features.Processes.Providers;
 
 public static class EnvironmentFilePathProvider

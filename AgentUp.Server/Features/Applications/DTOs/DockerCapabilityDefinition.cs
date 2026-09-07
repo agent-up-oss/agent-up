@@ -9,4 +9,5 @@ public record DockerCapabilityDefinition(
     IReadOnlyDictionary<string, string>? Environment = null,
     IReadOnlyList<string>? Volumes = null,
     IReadOnlyList<string>? EnvironmentFiles = null,
-    IReadOnlyList<string>? Command = null);
+    IReadOnlyList<string>? Command = null,
+    bool Database = false);
