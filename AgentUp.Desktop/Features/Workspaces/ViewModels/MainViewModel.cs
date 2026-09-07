@@ -476,7 +476,7 @@ public sealed class MainViewModel : ReactiveObject
     }
 
     private static ApplicationViewModel CreateApplicationViewModel(WorkspaceApplicationViewModel app) =>
-        new(app.Name, app.Command, app.State, app.Database, app.AllocatedPorts);
+        new(app.Name, app.Command, app.State, app.AllocatedPorts, app.Database);
 
     public async Task InitializeAsync()
     {

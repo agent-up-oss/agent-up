@@ -59,7 +59,7 @@ const pool = new Pool({
   host: postgresHost,
   port: postgresPort,
   user: process.env.POSTGRES_USER || 'agentup',
-  password: process.env.POSTGRES_PASSWORD || 'agent-up',
+  password: process.env.POSTGRES_PASSWORD || 'agentup-example-local',
   database: process.env.POSTGRES_DB || 'agentup',
 });
 
@@ -104,11 +104,33 @@ async function ensureDatabase() {
     return;
   }
 
-  await startDatabaseWarmup();
-  if (!databaseReady) {
-    throw new Error('Database is not ready yet.');
-  }
+  startDatabaseWarmup();
+  throw new Error('Database is not ready yet.');
 }
+
+function createRateLimiter({ windowMs = 60_000, max = 120 } = {}) {
+  const buckets = new Map();
+
+  return (req, res, next) => {
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    let bucket = buckets.get(key);
+    if (!bucket || now - bucket.startedAt >= windowMs) {
+      bucket = { startedAt: now, count: 0 };
+      buckets.set(key, bucket);
+    }
+
+    bucket.count += 1;
+    if (bucket.count > max) {
+      res.status(429).json({ error: 'Too many requests' });
+      return;
+    }
+
+    next();
+  };
+}
+
+const databaseRouteLimiter = createRateLimiter();
 
 app.use(express.json());
 app.use((req, res, next) => {
@@ -122,7 +144,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-app.get('/health', async (_req, res) => {
+app.get('/health', databaseRouteLimiter, async (_req, res) => {
   try {
     await ensureDatabase();
     const { rows } = await pool.query('select count(*)::int as product_count from products');
@@ -133,7 +155,7 @@ app.get('/health', async (_req, res) => {
   }
 });
 
-app.get('/metrics', async (_req, res) => {
+app.get('/metrics', databaseRouteLimiter, async (_req, res) => {
   try {
     await ensureDatabase();
     const { rows } = await pool.query(`
@@ -154,7 +176,7 @@ app.get('/metrics', async (_req, res) => {
   }
 });
 
-app.get('/api/products', async (_req, res) => {
+app.get('/api/products', databaseRouteLimiter, async (_req, res) => {
   try {
     await ensureDatabase();
     const { rows } = await pool.query(`
@@ -184,7 +206,7 @@ app.get('/api/products', async (_req, res) => {
   }
 });
 
-app.get('/api/orders', async (_req, res) => {
+app.get('/api/orders', databaseRouteLimiter, async (_req, res) => {
   try {
     await ensureDatabase();
     const { rows } = await pool.query(`

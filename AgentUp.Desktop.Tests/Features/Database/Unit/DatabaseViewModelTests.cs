@@ -14,8 +14,9 @@ public class DatabaseViewModelTests
     [Test]
     public async Task SelectedTable_SetsDefaultSelectQuery()
     {
-        var handler = new FakeDatabaseHandler();
-        var client = new DatabaseApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost") });
+        using var handler = new FakeDatabaseHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
         var vm = new DatabaseViewModel(new DatabaseController(new DatabaseExplorerService(client)));
 
         await vm.LoadAsync("ws-1", "Database");
@@ -29,16 +30,36 @@ public class DatabaseViewModelTests
     [Test]
     public async Task RunQuery_SurfacesServerSqlError()
     {
-        var handler = new FakeDatabaseHandler(queryError: "42P01: relation \"missing\" does not exist");
-        var client = new DatabaseApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost") });
+        using var handler = new FakeDatabaseHandler(queryError: "42P01: relation \"missing\" does not exist");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
         var vm = new DatabaseViewModel(new DatabaseController(new DatabaseExplorerService(client)));
 
         await vm.LoadAsync("ws-1", "Database");
         vm.SqlQuery = "SELECT * FROM missing";
-        await vm.RunQueryCommand.Execute().FirstAsync();
+        await vm.ExecuteRunQueryAsync();
 
         Assert.That(vm.ErrorMessage, Is.EqualTo("42P01: relation \"missing\" does not exist"));
         Assert.That(vm.Rows, Is.Empty);
+    }
+
+    [Test]
+    public async Task RunQuery_IgnoresStaleResults_WhenClearedDuringQuery()
+    {
+        using var handler = new DelayedDatabaseHandler(new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
+        var vm = new DatabaseViewModel(new DatabaseController(new DatabaseExplorerService(client)));
+
+        await vm.LoadAsync("ws-1", "Database");
+        await Task.Delay(50);
+        vm.SqlQuery = "SELECT * FROM products";
+        var slowQuery = vm.ExecuteRunQueryAsync();
+        vm.Clear();
+        await slowQuery;
+
+        Assert.That(vm.Rows, Is.Empty);
+        Assert.That(vm.Columns, Is.Empty);
     }
 
     private sealed class FakeDatabaseHandler : HttpMessageHandler
@@ -55,7 +76,7 @@ public class DatabaseViewModelTests
                 return Json(new { databases = new[] { "inventory" } });
 
             if (request.RequestUri.AbsolutePath.EndsWith("/database/tables", StringComparison.Ordinal))
-                return Json(new { tables = new[] { "products" } });
+                return Json(new { tables = new[] { "products", "orders" } });
 
             if (request.RequestUri.AbsolutePath.EndsWith("/database/query", StringComparison.Ordinal))
             {
@@ -71,6 +92,49 @@ public class DatabaseViewModelTests
             }
 
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
+
+        private static Task<HttpResponseMessage> Json(object payload)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(payload)
+            });
+    }
+
+    private sealed class DelayedDatabaseHandler : HttpMessageHandler
+    {
+        private readonly TaskCompletionSource _ordersCompleted;
+
+        public DelayedDatabaseHandler(TaskCompletionSource ordersCompleted)
+            => _ordersCompleted = ordersCompleted;
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/database/databases", StringComparison.Ordinal))
+                return await Json(new { databases = new[] { "inventory" } });
+
+            if (request.RequestUri.AbsolutePath.EndsWith("/database/tables", StringComparison.Ordinal))
+                return await Json(new { tables = new[] { "products", "orders" } });
+
+            if (request.RequestUri.AbsolutePath.EndsWith("/database/query", StringComparison.Ordinal))
+            {
+                var sql = await request.Content!.ReadAsStringAsync(cancellationToken);
+                await Task.Delay(TimeSpan.FromMilliseconds(80), cancellationToken);
+                if (sql.Contains("\"orders\"", StringComparison.Ordinal))
+                {
+                    var response = await Json(new { columns = new[] { "order_id" }, rows = new[] { new[] { "ORD-1" } } });
+                    _ordersCompleted.TrySetResult();
+                    return response;
+                }
+
+                var staleResponse = await Json(new { columns = new[] { "id" }, rows = new[] { new[] { "stale" } } });
+                _ordersCompleted.TrySetResult();
+                return staleResponse;
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
         }
 
         private static Task<HttpResponseMessage> Json(object payload)

@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Console.Providers;
@@ -8,6 +9,7 @@ using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -21,14 +23,14 @@ public class MainViewModelTests
     [Test]
     public void SidebarWidth_is220WhenExpanded()
     {
-        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
+        var vm = CreateVm(NullWorkspaceClient());
         Assert.That(vm.Sidebar.Width, Is.EqualTo(220));
     }
 
     [Test]
     public void SidebarWidth_is56WhenCollapsed()
     {
-        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
+        var vm = CreateVm(NullWorkspaceClient());
         vm.Sidebar.IsCollapsed = true;
         Assert.That(vm.Sidebar.Width, Is.EqualTo(56));
     }
@@ -36,7 +38,7 @@ public class MainViewModelTests
     [Test]
     public void IsSidebarExpanded_invertsIsSidebarCollapsed()
     {
-        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
+        var vm = CreateVm(NullWorkspaceClient());
 
         Assert.That(vm.Sidebar.IsExpanded, Is.True);
         vm.Sidebar.IsCollapsed = true;
@@ -48,7 +50,7 @@ public class MainViewModelTests
     [Test]
     public void SidebarToggleIcon_changesWithCollapsedState()
     {
-        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
+        var vm = CreateVm(NullWorkspaceClient());
         Assert.That(vm.Sidebar.ToggleIcon, Is.EqualTo("‹"));
         vm.Sidebar.IsCollapsed = true;
         Assert.That(vm.Sidebar.ToggleIcon, Is.EqualTo("›"));
@@ -57,7 +59,7 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_setsErrorMessage_whenServerUnreachable()
     {
-        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
+        var vm = CreateVm(NullWorkspaceClient());
         await vm.InitializeAsync();
 
         Assert.That(vm.Sidebar.ErrorMessage, Is.Not.Null.And.Not.Empty);
@@ -68,7 +70,7 @@ public class MainViewModelTests
     public async Task InitializeAsync_populatesWorkspaces_onSuccess()
     {
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
 
@@ -82,7 +84,7 @@ public class MainViewModelTests
     public async Task InitializeAsync_selectsFirstWorkspace_automaticallyOnFirstLoad()
     {
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
 
@@ -107,7 +109,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
 
@@ -131,7 +133,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
 
@@ -142,7 +144,7 @@ public class MainViewModelTests
     public async Task NavigateAddressCommand_emitsEditedAddress_whenHttpPortTabSelected()
     {
         var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -158,7 +160,7 @@ public class MainViewModelTests
     public async Task NavigateAddressCommand_prefixesHttpScheme_whenEditedAddressHasNoScheme()
     {
         var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -175,7 +177,7 @@ public class MainViewModelTests
     public async Task UpdateAddressFromBrowser_updatesAddressBar_whenSelectedHttpPortNavigates()
     {
         var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
         vm.UpdateAddressFromBrowser("ws-1", "http://localhost:3000/dashboard");
@@ -186,7 +188,7 @@ public class MainViewModelTests
     [Test]
     public void BrowserCommands_emitRequestedBrowserActions()
     {
-        var vm = MainViewModelFactory.Create(NullWorkspaceClient(), NullConsoleClient());
+        var vm = CreateVm(NullWorkspaceClient());
         var commands = new List<BrowserCommand>();
         vm.BrowserCommands.Subscribe(commands.Add);
 
@@ -207,7 +209,7 @@ public class MainViewModelTests
         var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 3000) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var vm = CreateVm(new WorkspaceApiClient(http));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -229,7 +231,7 @@ public class MainViewModelTests
         var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 10200) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var vm = CreateVm(new WorkspaceApiClient(http));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -253,7 +255,7 @@ public class MainViewModelTests
         var refreshedWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10300) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var vm = CreateVm(new WorkspaceApiClient(http));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -279,7 +281,7 @@ public class MainViewModelTests
         var refreshedWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20300) with { State = "Running" };
         var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var vm = CreateVm(new WorkspaceApiClient(http));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
 
@@ -305,7 +307,7 @@ public class MainViewModelTests
         var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 10300);
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var vm = CreateVm(new WorkspaceApiClient(http));
 
         await vm.InitializeAsync();
         vm.Sidebar.ErrorMessage = "Could not refresh workspace 'ws-1': previous failure";
@@ -322,7 +324,7 @@ public class MainViewModelTests
         var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient());
+        var vm = CreateVm(new WorkspaceApiClient(http));
         using var cts = new CancellationTokenSource();
 
         await vm.InitializeAsync();
@@ -341,7 +343,7 @@ public class MainViewModelTests
         var tutorial = new FirstRunTutorialViewModel(
             new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
             new PassingTutorialChecks());
-        var vm = MainViewModelFactory.Create(new WorkspaceApiClient(http), NullConsoleClient(), tutorial: tutorial);
+        var vm = CreateVm(new WorkspaceApiClient(http), tutorial: tutorial);
         var browserCommands = new List<BrowserCommand>();
         vm.BrowserCommands.Subscribe(browserCommands.Add);
 
@@ -363,7 +365,7 @@ public class MainViewModelTests
         {
             Applications = [new ApplicationDto("Worker", "cmd", null, "Running")]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
 
@@ -387,7 +389,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
@@ -417,7 +419,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
 
@@ -456,7 +458,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
 
@@ -480,7 +482,7 @@ public class MainViewModelTests
         {
             Applications = [new ApplicationDto("Web", "npm run dev", null, "Starting")]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
         vm.Sidebar.SelectedWorkspace!.ApplyStateChange("Running", [new AppStateChangeDto("Web", "Running")]);
@@ -501,7 +503,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(emissions.Add);
 
@@ -527,7 +529,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([dto]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(emissions.Add);
 
@@ -573,7 +575,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([first, second]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([first, second]));
 
         await vm.InitializeAsync();
         var selected = vm.SelectApplicationForUrl("ws-2", "http://localhost:5202/users");
@@ -606,7 +608,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([workspace]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([workspace]));
 
         await vm.InitializeAsync();
         var selected = vm.SelectApplicationForUrl("ws-1", "http://localhost:5102/users");
@@ -645,7 +647,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([first, second]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([first, second]));
 
         await vm.InitializeAsync();
         var selected = vm.SelectApplicationForUrl("ws-2", "http://localhost:5999/users");
@@ -673,7 +675,7 @@ public class MainViewModelTests
                 }
             ]
         };
-        var vm = MainViewModelFactory.Create(FakeWorkspaceClient([workspace]), NullConsoleClient());
+        var vm = CreateVm(FakeWorkspaceClient([workspace]));
 
         await vm.InitializeAsync();
 
@@ -687,6 +689,16 @@ public class MainViewModelTests
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    private static MainViewModel CreateVm(
+        WorkspaceApiClient workspaceClient,
+        ConsoleApiClient? consoleClient = null,
+        FirstRunTutorialViewModel? tutorial = null)
+        => MainViewModelFactory.Create(
+            workspaceClient,
+            consoleClient ?? NullConsoleClient(),
+            databaseClient: NullDatabaseClient(),
+            tutorial: tutorial);
+
     private static WorkspaceApiClient NullWorkspaceClient()
     {
         var http = new HttpClient { BaseAddress = new Uri("http://localhost:0") };
@@ -697,6 +709,23 @@ public class MainViewModelTests
     {
         var http = new HttpClient { BaseAddress = new Uri("http://localhost:0") };
         return new ConsoleApiClient(http);
+    }
+
+    private static DatabaseApiClient NullDatabaseClient()
+    {
+        var http = new HttpClient(new NullDatabaseHandler()) { BaseAddress = new Uri("http://localhost:0") };
+        return new DatabaseApiClient(http);
+    }
+
+    private sealed class NullDatabaseHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = System.Net.Http.Json.JsonContent.Create(new { databases = Array.Empty<string>() })
+            });
     }
 
     private static WorkspaceApiClient FakeWorkspaceClient(List<WorkspaceDto> workspaces)

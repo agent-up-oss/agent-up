@@ -78,4 +78,62 @@ public class DatabaseConnectionSettingsProviderTests
             () => new DatabaseConnectionSettingsProvider().Resolve(workspace, workspace.Applications[0]),
             Throws.InvalidOperationException.With.Message.Contains("not configured as a database viewer"));
     }
+
+    [Test]
+    public void Resolve_ThrowsWhenDatabaseEngineIsUnsupported()
+    {
+        var workspace = new Workspace
+        {
+            Id = "ws-1",
+            DisplayName = "Demo",
+            RepositoryPath = "/repo",
+            WorktreePath = "/repo",
+            Branch = "main",
+            Commit = "abc",
+            Applications =
+            [
+                new ApplicationInstance
+                {
+                    Name = "Database",
+                    ServiceType = ServiceType.Docker,
+                    Image = "mysql:8",
+                    Database = true,
+                    AllocatedPorts = [new PortMapping("MYSQL_PORT", 3306, 10602, "tcp", null, null)]
+                }
+            ]
+        };
+
+        Assert.That(
+            () => new DatabaseConnectionSettingsProvider().Resolve(workspace, workspace.Applications[0]),
+            Throws.InvalidOperationException.With.Message.Contains("no supported database engine"));
+    }
+
+    [Test]
+    public void Resolve_ThrowsWhenNoAllocatedDatabasePort()
+    {
+        var workspace = new Workspace
+        {
+            Id = "ws-1",
+            DisplayName = "Demo",
+            RepositoryPath = "/repo",
+            WorktreePath = "/repo",
+            Branch = "main",
+            Commit = "abc",
+            Applications =
+            [
+                new ApplicationInstance
+                {
+                    Name = "Database",
+                    ServiceType = ServiceType.Docker,
+                    Image = "postgres:16",
+                    Database = true,
+                    AllocatedPorts = []
+                }
+            ]
+        };
+
+        Assert.That(
+            () => new DatabaseConnectionSettingsProvider().Resolve(workspace, workspace.Applications[0]),
+            Throws.InvalidOperationException.With.Message.Contains("no allocated database port"));
+    }
 }

@@ -4,7 +4,7 @@
     "customer_name": "Northwind Traders",
     "region": "North America",
     "status": "Fulfilled",
-    "total_amount": 1548.0,
+    "total_amount": 1543.0,
     "placed_at": "2026-07-13T14:22:00Z",
     "items": [
       { "sku": "SKU-1001", "quantity": 4, "line_total": 516.0 },

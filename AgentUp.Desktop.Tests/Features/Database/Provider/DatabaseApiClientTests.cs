@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using AgentUp.Desktop.Features.Database.Controllers;
 using AgentUp.Desktop.Features.Database.DTOs;
 using AgentUp.Desktop.Features.Database.Providers;
+using AgentUp.Desktop.Features.Database.Services;
 
 namespace AgentUp.Desktop.Tests.Features.Database.Provider;
 
@@ -11,8 +13,9 @@ public class DatabaseApiClientTests
     [Test]
     public async Task ListDatabasesAsync_DeserializesResponse()
     {
-        var handler = new FakeHandler();
-        var client = new DatabaseApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost") });
+        using var handler = new FakeHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
 
         var result = await client.ListDatabasesAsync("ws-1", "Database");
 
@@ -22,8 +25,9 @@ public class DatabaseApiClientTests
     [Test]
     public async Task ExecuteQueryAsync_SurfacesProblemDetail()
     {
-        var handler = new FakeHandler(HttpStatusCode.BadRequest, """{"detail":"syntax error at or near \"FROM\""}""");
-        var client = new DatabaseApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost") });
+        using var handler = new FakeHandler(HttpStatusCode.BadRequest, """{"detail":"syntax error at or near \"FROM\""}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new DatabaseApiClient(http);
 
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.ExecuteQueryAsync("ws-1", "Database", "inventory", "SELECT FROM"));

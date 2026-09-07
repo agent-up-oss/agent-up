@@ -30,8 +30,8 @@ public sealed class ApplicationViewModel : ReactiveObject
         string name,
         string command,
         string state,
-        bool database = false,
-        IReadOnlyList<PortMappingDto>? allocatedPorts = null)
+        IReadOnlyList<PortMappingDto>? allocatedPorts = null,
+        bool database = false)
     {
         Name = name;
         Command = command;

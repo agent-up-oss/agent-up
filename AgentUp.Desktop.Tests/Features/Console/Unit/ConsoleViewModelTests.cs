@@ -13,8 +13,9 @@ public sealed class ConsoleViewModelTests
     [Test]
     public async Task LoadAsync_KeepsLatestApplicationOutput_WhenLoadsRace()
     {
-        var handler = new DelayedConsoleHandler();
-        var client = new ConsoleApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost") });
+        using var handler = new DelayedConsoleHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new ConsoleApiClient(http);
         var vm = new ConsoleViewModel(new ConsoleController(new ConsoleOutputService(client)));
 
         var docsTask = vm.LoadAsync("ws-1", "Docs");

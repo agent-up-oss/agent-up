@@ -15,9 +15,8 @@ public static class WorkspacePathProvider
             throw new InvalidOperationException($"{pathKind} must be relative to the workspace root.");
 
         var fullPath = Path.GetFullPath(Path.Join(rootFullPath, relativePath));
-        var relative = Path.GetRelativePath(rootFullPath, fullPath);
-        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
-            throw new InvalidOperationException($"{pathKind} must stay under the workspace root.");
+        EnsureLexicallyContained(rootFullPath, fullPath, pathKind);
+        EnsurePhysicallyContained(rootFullPath, fullPath, pathKind);
 
         return fullPath;
     }
@@ -43,5 +42,51 @@ public static class WorkspacePathProvider
         }
 
         return ResolveWorkspacePath(root, relativeFilePath, pathKind);
+    }
+
+    private static void EnsureLexicallyContained(string rootFullPath, string fullPath, string pathKind)
+    {
+        var relative = Path.GetRelativePath(rootFullPath, fullPath);
+        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
+            throw new InvalidOperationException($"{pathKind} must stay under the workspace root.");
+    }
+
+    private static void EnsurePhysicallyContained(string rootFullPath, string fullPath, string pathKind)
+    {
+        var physicalRoot = ResolvePhysicalPath(rootFullPath);
+        var physicalPath = ResolvePhysicalPath(fullPath);
+        var relative = Path.GetRelativePath(physicalRoot, physicalPath);
+        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || relative.StartsWith("..\\", StringComparison.Ordinal))
+            throw new InvalidOperationException($"{pathKind} must stay under the workspace root.");
+    }
+
+    private static string ResolvePhysicalPath(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        if (!Path.IsPathRooted(fullPath))
+            return fullPath;
+
+        var root = Path.GetPathRoot(fullPath)!;
+        var segments = fullPath[root.Length..]
+            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+
+        var current = root;
+        foreach (var segment in segments)
+        {
+            current = Path.Join(current, segment);
+            if (!File.Exists(current) && !Directory.Exists(current))
+                continue;
+
+            var linkTarget = File.ResolveLinkTarget(current, returnFinalTarget: true)
+                ?? Directory.ResolveLinkTarget(current, returnFinalTarget: true);
+            if (linkTarget is null)
+                continue;
+
+            current = Path.IsPathRooted(linkTarget.FullName)
+                ? Path.GetFullPath(linkTarget.FullName)
+                : Path.GetFullPath(Path.Join(Path.GetDirectoryName(current)!, linkTarget.FullName));
+        }
+
+        return Path.GetFullPath(current);
     }
 }

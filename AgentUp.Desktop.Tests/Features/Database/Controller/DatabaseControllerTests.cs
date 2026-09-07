@@ -13,9 +13,9 @@ public class DatabaseControllerTests
     [Test]
     public async Task ListDatabasesAsync_DelegatesToApiClient()
     {
-        var handler = new FakeHandler();
-        var controller = new DatabaseController(new DatabaseExplorerService(
-            new DatabaseApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost") })));
+        using var handler = new FakeHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var controller = new DatabaseController(new DatabaseExplorerService(new DatabaseApiClient(http)));
 
         var result = await controller.ListDatabasesAsync("ws-1", "Database");
 

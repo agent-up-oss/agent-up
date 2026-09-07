@@ -40,11 +40,31 @@ public sealed class WorkspacePathProviderTests
     }
 
     [Test]
-    public void ResolveWorkspaceRootFile_RejectsPathOutsideWorkspaceRoot()
+    public void ResolveWorkspaceRootFile_RejectsSymlinkThatEscapesWorkspaceRoot()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            WorkspacePathProvider.ResolveWorkspaceRootFile("/repo", "../.env", "Environment file"));
+        var root = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        var outside = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(outside);
+        File.WriteAllText(Path.Join(outside, "database.env"), "POSTGRES_DB=agentup");
+        Directory.CreateSymbolicLink(Path.Join(root, "linked"), outside);
 
-        Assert.That(ex!.Message, Does.Contain("must stay under the workspace root"));
+        try
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                WorkspacePathProvider.ResolveWorkspaceRootFile(
+                    root,
+                    "linked/database.env",
+                    "Environment file"));
+
+            Assert.That(ex!.Message, Does.Contain("must stay under the workspace root"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+            if (Directory.Exists(outside))
+                Directory.Delete(outside, recursive: true);
+        }
     }
 }
