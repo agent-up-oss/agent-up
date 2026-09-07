@@ -19,9 +19,27 @@ public class AuthenticationProviderTests
     }
 
     [Test]
-    public void Constructor_RequiresPasswordWhenEnabled()
+    public void DefaultsToUnauthenticatedWhenPasswordMissing()
     {
-        Assert.That(() => Create(), Throws.TypeOf<InvalidOperationException>());
+        var service = Create();
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.IsRequired, Is.False);
+            Assert.That(service.IsAuthenticated(null), Is.True);
+        });
+    }
+
+    [Test]
+    public void ExplicitDisableOverridesConfiguredPassword()
+    {
+        var service = Create(
+            ("AGENTUP_ADMIN_PASSWORD", "secret"),
+            ("AGENTUP_AUTH_DISABLED", "true"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.IsRequired, Is.False);
+            Assert.That(service.Login("secret"), Is.Null);
+        });
     }
 
     [Test]

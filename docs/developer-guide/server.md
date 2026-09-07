@@ -41,16 +41,17 @@ Packaged services bind to `http://127.0.0.1:5000` by default. Service definition
 
 ## Authentication and network boundaries
 
-The REST API uses a single administrator account. `AGENTUP_ADMIN_PASSWORD`
-provides its password, and a successful `POST /api/auth/login` returns an
-in-memory bearer token. The fallback authorization policy requires a valid
-token for every REST endpoint unless the endpoint explicitly opts out; this
-makes newly added routes protected by default. `GET /api/auth/status` and the
-login endpoint are anonymous so clients can decide whether to display login.
+The REST API uses a single administrator account. Set `AGENTUP_ADMIN_PASSWORD`
+to enable authentication; when it is unset, REST routes remain open and clients
+skip their login UI. A successful `POST /api/auth/login` returns an in-memory
+bearer token. The fallback authorization policy requires a valid token for every
+REST endpoint unless the endpoint explicitly opts out; this makes newly added
+routes protected by default when authentication is enabled. `GET /api/auth/status`
+and the login endpoint are anonymous so clients can decide whether to display
+login.
 
-Set `AGENTUP_AUTH_DISABLED=true` to run without REST authentication. The
-Desktop and Mobile clients query authentication status and skip their login UI
-in that mode.
+Set `AGENTUP_AUTH_DISABLED=true` to force unauthenticated mode even when
+`AGENTUP_ADMIN_PASSWORD` is configured.
 
 MCP remains unauthenticated for local automation, but `/mcp` requests from a
 non-loopback remote address are hidden with a 404 response. The HTTP listener

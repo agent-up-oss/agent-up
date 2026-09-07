@@ -11,16 +11,19 @@ public sealed class AuthenticationProvider
 
     public AuthenticationProvider(IConfiguration configuration)
     {
-        var disabled = string.Equals(
+        var explicitlyDisabled = string.Equals(
             configuration["AGENTUP_AUTH_DISABLED"], "true", StringComparison.OrdinalIgnoreCase);
         var password = configuration["AGENTUP_ADMIN_PASSWORD"];
 
-        if (!disabled && string.IsNullOrEmpty(password))
-            throw new InvalidOperationException(
-                "AGENTUP_ADMIN_PASSWORD must be set unless AGENTUP_AUTH_DISABLED=true.");
+        if (explicitlyDisabled || string.IsNullOrEmpty(password))
+        {
+            IsRequired = false;
+            _password = null;
+            return;
+        }
 
-        IsRequired = !disabled;
-        _password = disabled ? null : Encoding.UTF8.GetBytes(password!);
+        IsRequired = true;
+        _password = Encoding.UTF8.GetBytes(password);
     }
 
     public bool IsRequired { get; }

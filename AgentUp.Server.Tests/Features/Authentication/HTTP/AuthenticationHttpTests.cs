@@ -34,6 +34,22 @@ public class AuthenticationHttpTests
     }
 
     [Test]
+    public async Task RestRoutes_AreOpen_WhenAdminPasswordIsNotConfigured()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+
+        var status = await client.GetFromJsonAsync<LoginResponse>("/api/auth/status");
+        var workspaces = await client.GetAsync("/api/workspaces");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status!.AuthenticationRequired, Is.False);
+            Assert.That(workspaces.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
+    }
+
+    [Test]
     public async Task AuthenticationCanBeDisabled()
     {
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
