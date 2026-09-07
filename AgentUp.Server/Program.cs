@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Runtime.InteropServices;
 using System.Text;
 using AgentUp.Server.Composition;
-using AgentUp.Server.Features.Authentication.Providers;
+using AgentUp.Server.Features.Authentication.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +21,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseWebSockets();
 app.UseCors(AgentUp.Server.Shared.Providers.WebClientOriginProvider.PolicyName);
-app.UseMiddleware<McpNetworkRestrictionMiddleware>();
+app.UseMiddleware<IMcpNetworkRestrictionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

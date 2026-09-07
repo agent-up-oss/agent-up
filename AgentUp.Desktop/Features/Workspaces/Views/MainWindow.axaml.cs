@@ -153,12 +153,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         "};" +
         "})();";
 
-    public MainWindow() : this(new HttpClient
-    {
-        BaseAddress = new Uri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000")
-    })
+    public MainWindow() : this(CreateServerHttpClient())
     {
     }
+
+    private static HttpClient CreateServerHttpClient() => new()
+    {
+        BaseAddress = new Uri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000")
+    };
 
     public MainWindow(HttpClient serverHttp)
     {

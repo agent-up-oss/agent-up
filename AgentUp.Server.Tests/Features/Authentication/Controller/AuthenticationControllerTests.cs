@@ -1,6 +1,7 @@
 using AgentUp.Server.Features.Authentication.Controllers;
 using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Authentication.Providers;
+using AgentUp.Server.Features.Authentication.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
@@ -14,7 +15,7 @@ public class AuthenticationControllerTests
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "secret" }).Build();
-        var controller = new AuthenticationController(new AuthenticationProvider(configuration));
+        var controller = new AuthenticationController(new AuthenticationService(new AuthenticationProvider(configuration)));
 
         var response = controller.Login(new LoginRequest("secret"));
 
@@ -26,7 +27,7 @@ public class AuthenticationControllerTests
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "secret" }).Build();
-        var controller = new AuthenticationController(new AuthenticationProvider(configuration));
+        var controller = new AuthenticationController(new AuthenticationService(new AuthenticationProvider(configuration)));
 
         var response = controller.Login(new LoginRequest("wrong"));
 

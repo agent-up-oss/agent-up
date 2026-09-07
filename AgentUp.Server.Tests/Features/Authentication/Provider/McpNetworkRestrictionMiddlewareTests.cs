@@ -11,12 +11,12 @@ public class McpNetworkRestrictionMiddlewareTests
     public async Task InvokeAsync_HidesMcpFromNonLoopbackClients()
     {
         var called = false;
-        var middleware = new McpNetworkRestrictionMiddleware(_ => { called = true; return Task.CompletedTask; });
+        var middleware = new McpNetworkRestrictionMiddleware();
         var context = new DefaultHttpContext();
         context.Request.Path = "/mcp/browser";
         context.Connection.RemoteIpAddress = IPAddress.Parse("192.168.1.20");
 
-        await middleware.InvokeAsync(context);
+        await middleware.InvokeAsync(context, _ => { called = true; return Task.CompletedTask; });
 
         Assert.Multiple(() =>
         {

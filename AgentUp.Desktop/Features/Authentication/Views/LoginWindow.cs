@@ -7,7 +7,7 @@ namespace AgentUp.Desktop.Features.Authentication.Views;
 public sealed class LoginWindow : Window
 {
     private readonly AuthenticationApiClient _authentication;
-    private readonly TextBox _password = new() { PasswordChar = '●', Watermark = "Admin password" };
+    private readonly TextBox _password = new() { PasswordChar = '●', PlaceholderText = "Admin password" };
     private readonly TextBlock _error = new() { Foreground = Avalonia.Media.Brushes.OrangeRed };
     private readonly Button _submit = new() { Content = "Sign in", HorizontalAlignment = HorizontalAlignment.Stretch };
 

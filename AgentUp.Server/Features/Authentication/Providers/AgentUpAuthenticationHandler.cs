@@ -12,7 +12,7 @@ public sealed class AgentUpAuthenticationHandler(
     AuthenticationProvider authentication)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
-    public const string Scheme = "AgentUpBearer";
+    public const string SchemeName = "AgentUpBearer";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -30,7 +30,7 @@ public sealed class AgentUpAuthenticationHandler(
 
     private AuthenticateResult Success()
     {
-        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "admin")], Scheme);
-        return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme));
+        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "admin")], SchemeName);
+        return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
     }
 }

@@ -1,10 +1,11 @@
 using System.Net;
+using AgentUp.Server.Features.Authentication.Interfaces;
 
 namespace AgentUp.Server.Features.Authentication.Providers;
 
-public sealed class McpNetworkRestrictionMiddleware(RequestDelegate next)
+public sealed class McpNetworkRestrictionMiddleware : IMcpNetworkRestrictionMiddleware
 {
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         if (context.Request.Path.StartsWithSegments("/mcp")
             && context.Connection.RemoteIpAddress is { } remote

@@ -65,12 +65,6 @@ public static class MainViewModelFactory
             ports);
     }
 
-    public static MainViewModel Create(string serverUrl)
-    {
-        var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
-        return Create(http);
-    }
-
     public static MainViewModel Create(HttpClient http)
     {
         return Create(
