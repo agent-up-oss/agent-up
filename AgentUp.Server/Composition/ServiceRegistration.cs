@@ -8,6 +8,7 @@ using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
 using AgentUp.Server.Features.Applications.Controllers;
+using AgentUp.Server.Features.Authentication.Providers;
 using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
@@ -48,6 +49,7 @@ using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Shared.Providers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AgentUp.Server.Composition;
 
@@ -60,6 +62,14 @@ public static class ServiceRegistration
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        builder.Services.AddSingleton<AuthenticationProvider>();
+        builder.Services.AddAuthentication(AgentUpAuthenticationHandler.Scheme)
+            .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AgentUpAuthenticationHandler>(
+                AgentUpAuthenticationHandler.Scheme, _ => { });
+        builder.Services.AddAuthorization(options =>
+            options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .Build());
         builder.Services.AddCors(options => options.AddPolicy(
             WebClientOriginProvider.PolicyName,
             policy => policy

@@ -153,7 +153,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         "};" +
         "})();";
 
-    public MainWindow()
+    public MainWindow() : this(new HttpClient
+    {
+        BaseAddress = new Uri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000")
+    })
+    {
+    }
+
+    public MainWindow(HttpClient serverHttp)
     {
         InitializeComponent();
         SetWindowIcon();
@@ -162,9 +169,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         PortPane.SizeChanged += OnPortPaneSizeChanged;
-        var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
-        _serverBaseUrl = serverUrl;
-        _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
+        _serverBaseUrl = serverHttp.BaseAddress?.ToString().TrimEnd('/')
+            ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
+        _serverHttp = serverHttp;
     }
 
     private void SetWindowIcon()
@@ -211,6 +218,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel vm) return;
 
         var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
+        eventHttp.DefaultRequestHeaders.Authorization = _serverHttp.DefaultRequestHeaders.Authorization;
         _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
         _workspaceEventClient.Start();
 

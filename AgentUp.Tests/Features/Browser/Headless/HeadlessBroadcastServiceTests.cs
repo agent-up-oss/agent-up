@@ -3,6 +3,7 @@ using AgentUp.Server;
 using AgentUp.Browser.Streaming;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentUp.Tests.Features.Browser.Headless;
@@ -19,7 +20,8 @@ public sealed class HeadlessBroadcastServiceTests
     [OneTimeSetUp]
     public void SetUp()
     {
-        _factory = new WebApplicationFactory<Program>();
+        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.UseSetting("AGENTUP_AUTH_DISABLED", "true"));
     }
 
     [OneTimeTearDown]

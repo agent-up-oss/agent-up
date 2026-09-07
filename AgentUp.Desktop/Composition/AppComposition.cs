@@ -6,9 +6,9 @@ namespace AgentUp.Desktop.Composition;
 
 public static class AppComposition
 {
-    public static (Window Window, MainViewModel ViewModel) CreateMainWindow(string serverUrl)
+    public static (Window Window, MainViewModel ViewModel) CreateMainWindow(HttpClient http)
     {
-        var viewModel = MainViewModelFactory.Create(serverUrl);
-        return (new MainWindow { DataContext = viewModel }, viewModel);
+        var viewModel = MainViewModelFactory.Create(http);
+        return (new MainWindow(http) { DataContext = viewModel }, viewModel);
     }
 }

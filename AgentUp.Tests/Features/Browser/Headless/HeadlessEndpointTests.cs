@@ -1,4 +1,5 @@
 using AgentUp.Server;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace AgentUp.Tests.Features.Browser.Headless;
@@ -16,7 +17,8 @@ public sealed class HeadlessEndpointTests
     [OneTimeSetUp]
     public void SetUp()
     {
-        _factory = new WebApplicationFactory<Program>();
+        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.UseSetting("AGENTUP_AUTH_DISABLED", "true"));
         _client = _factory.CreateClient();
     }
 
