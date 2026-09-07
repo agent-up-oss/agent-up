@@ -400,6 +400,12 @@ The Server owns all orchestration:
 
 No orchestration logic belongs in Desktop, CLI, or MCP clients.
 
+The Server requires its single administrator to log in with the password from
+`AGENTUP_ADMIN_PASSWORD`; authorization is the default for REST routes. Set
+`AGENTUP_AUTH_DISABLED=true` only for an intentionally unauthenticated Server.
+MCP routes remain unauthenticated and must accept connections only from a
+loopback address, even when the REST listener is exposed to another subnet.
+
 Full guide: `docs/developer-guide/server.md`.
 
 # Client Rules

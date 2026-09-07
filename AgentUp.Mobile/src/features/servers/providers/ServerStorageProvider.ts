@@ -18,7 +18,8 @@ export function loadServerSelection(storage: KeyValueStorage | null): ServerSele
     const parsed = JSON.parse(storage.getItem(storageKey) ?? 'null') as Partial<ServerSelection> | null;
     const servers = Array.isArray(parsed?.servers)
       ? parsed.servers.filter((server): server is ConfiguredServer =>
-          typeof server?.id === 'string' && typeof server?.url === 'string')
+          typeof server?.id === 'string' && typeof server?.url === 'string'
+          && (server.accessToken === undefined || typeof server.accessToken === 'string'))
       : [];
     const activeServerId = servers.some(server => server.id === parsed?.activeServerId)
       ? parsed?.activeServerId ?? null

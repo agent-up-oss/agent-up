@@ -65,9 +65,8 @@ public static class MainViewModelFactory
             ports);
     }
 
-    public static MainViewModel Create(string serverUrl)
+    public static MainViewModel Create(HttpClient http)
     {
-        var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
         return Create(
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),

@@ -143,3 +143,8 @@ The Desktop does not own runtime state and should not duplicate orchestration ru
 Installed Desktop artifacts are paired with a local `AgentUp.Server` service. The installer or package service assets are responsible for installing and starting `agent-up-server`; the Desktop still behaves as a client and connects to `http://localhost:5000` by default.
 
 For development, `AGENTUP_SERVER_URL` can point Desktop at a manually started Server.
+
+Desktop queries `/api/auth/status` before loading workspace state. When the
+Server requires authentication it shows the administrator password window and
+uses the returned bearer token for REST and workspace-event requests. When the
+Server has authentication disabled, Desktop opens the main window directly.

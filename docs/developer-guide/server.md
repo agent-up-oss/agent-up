@@ -39,6 +39,24 @@ Packaged installations run `AgentUp.Server` as the local `agent-up-server` servi
 
 Packaged services bind to `http://127.0.0.1:5000` by default. Service definitions that automatically restart the Server must throttle restart attempts to at least 5 seconds so a bind failure, such as another process already using port 5000, cannot create a tight restart loop.
 
+## Authentication and network boundaries
+
+The REST API uses a single administrator account. `AGENTUP_ADMIN_PASSWORD`
+provides its password, and a successful `POST /api/auth/login` returns an
+in-memory bearer token. The fallback authorization policy requires a valid
+token for every REST endpoint unless the endpoint explicitly opts out; this
+makes newly added routes protected by default. `GET /api/auth/status` and the
+login endpoint are anonymous so clients can decide whether to display login.
+
+Set `AGENTUP_AUTH_DISABLED=true` to run without REST authentication. The
+Desktop and Mobile clients query authentication status and skip their login UI
+in that mode.
+
+MCP remains unauthenticated for local automation, but `/mcp` requests from a
+non-loopback remote address are hidden with a 404 response. The HTTP listener
+can therefore use an address such as `ASPNETCORE_URLS=http://0.0.0.0:5000` for
+LAN REST access while MCP remains localhost-only at the request boundary.
+
 The REST API permits cross-origin browser requests from any HTTP or HTTPS
 origin, so the Mobile web/PWA client can reach a Server the user points it at
 regardless of where that client is hosted (a local dev port, an installed

@@ -6,7 +6,7 @@ type ServersController = {
   servers: ConfiguredServer[];
   activeServer: ConfiguredServer | null;
   selectServer(id: string): void;
-  saveServer(url: string): void;
+  saveServer(url: string, accessToken?: string): void;
 };
 
 const Context = createContext<ServersController | null>(null);
@@ -27,10 +27,14 @@ export function ServersProvider({ children }: PropsWithChildren) {
     servers: selection.servers,
     activeServer: selection.servers.find(server => server.id === selection.activeServerId) ?? null,
     selectServer: id => setSelection(current => ({ ...current, activeServerId: id })),
-    saveServer: url => setSelection(current => {
+    saveServer: (url, accessToken) => setSelection(current => {
       const existing = current.servers.find(server => server.url === url);
-      if (existing) return { ...current, activeServerId: existing.id };
-      const server = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, url };
+      if (existing) return {
+        ...current,
+        servers: current.servers.map(server => server.id === existing.id ? { ...server, accessToken } : server),
+        activeServerId: existing.id,
+      };
+      const server = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, url, accessToken };
       return { servers: [...current.servers, server], activeServerId: server.id };
     }),
   }), [selection]);
