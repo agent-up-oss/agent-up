@@ -1,0 +1,46 @@
+{
+  "name": "Full Stack React Example",
+  "display": {
+    "name": "Full Stack React",
+    "branch": "Examples"
+  },
+  "applications": [
+    {
+      "name": "Web",
+      "command": "npm run dev",
+      "install": "npm install --package-lock=false",
+      "path": "web",
+      "ports": [
+        { "variable": "WEB_PORT", "defaultPort": 5600, "protocol": "http" }
+      ]
+    },
+    {
+      "name": "API",
+      "command": "npm run dev",
+      "install": "npm install --package-lock=false",
+      "path": "api",
+      "environmentFiles": ["database.env"],
+      "ports": [
+        {
+          "variable": "API_PORT",
+          "defaultPort": 5601,
+          "protocol": "http",
+          "healthCheck": "/health",
+          "metrics": "/metrics"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "Database",
+      "image": "postgres:16",
+      "database": true,
+      "environmentFiles": ["database.env"],
+      "ports": [
+        { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
+      ],
+      "volumes": ["agent-up-example-pgdata:/var/lib/postgresql/data"]
+    }
+  ]
+}

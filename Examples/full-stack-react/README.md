@@ -84,6 +84,6 @@ Examples/full-stack-react/
 
 ## Notes
 
-- The API retries database setup on first request, so give Postgres a few seconds on cold start.
+- The API starts immediately and retries Postgres setup in the background, so it can start before the Database container is ready. `/health` returns `503` until migrations and seed data finish.
 - If you change `agent-up.json` or migrations after a workspace was already registered, run `agent-up start` again so Agent-Up reloads the definition and restarts processes.
-- To reset data, stop the workspace, remove the Docker volume `pgdata`, and start again.
+- To reset data, stop the workspace and run `docker volume rm agent-up-example-pgdata`, then start again. Recreating the workspace alone does not reset Docker volumes; Postgres only applies `database.env` credentials on first volume initialization.

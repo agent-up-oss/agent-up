@@ -1,6 +1,8 @@
 import express from 'express';
-import { Pool } from 'pg';
+import pg from 'pg';
 import { migrate, seed } from './migrate.mjs';
+
+const { Pool } = pg;
 
 const app = express();
 const port = Number(process.env.API_PORT || 5601);
@@ -62,15 +64,50 @@ const pool = new Pool({
 });
 
 let databaseReady = false;
+let databaseWarmupPromise = null;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function connectToPostgres() {
+  const client = await pool.connect();
+  client.release();
+}
+
+async function warmDatabase() {
+  let attempt = 0;
+  while (!databaseReady) {
+    attempt += 1;
+    try {
+      await connectToPostgres();
+      await migrate(pool);
+      await seed(pool);
+      databaseReady = true;
+      console.log(`[startup] database ready after ${attempt} attempt(s)`);
+      return;
+    } catch (error) {
+      const delayMs = Math.min(1000 * attempt, 5000);
+      console.log(`[startup] waiting for Postgres (attempt ${attempt}): ${error.message}`);
+      await sleep(delayMs);
+    }
+  }
+}
+
+function startDatabaseWarmup() {
+  databaseWarmupPromise ??= warmDatabase();
+  return databaseWarmupPromise;
+}
 
 async function ensureDatabase() {
   if (databaseReady) {
     return;
   }
 
-  await migrate(pool);
-  await seed(pool);
-  databaseReady = true;
+  await startDatabaseWarmup();
+  if (!databaseReady) {
+    throw new Error('Database is not ready yet.');
+  }
 }
 
 app.use(express.json());
@@ -171,17 +208,13 @@ app.get('/api/orders', async (_req, res) => {
   }
 });
 
-async function start() {
-  try {
-    await ensureDatabase();
-    app.listen(port, () => {
-      console.log(`API listening on ${port}`);
-      console.log(`API querying Postgres at ${postgresHost}:${postgresPort}/${process.env.POSTGRES_DB || 'agentup'}`);
-    });
-  } catch (error) {
-    console.error(`[startup] ${error.message}`);
-    process.exitCode = 1;
-  }
-}
-
-start();
+app.listen(port, '0.0.0.0', () => {
+  console.log(`API listening on ${port}`);
+  console.log(`API querying Postgres at ${postgresHost}:${postgresPort}/${process.env.POSTGRES_DB || 'agentup'}`);
+  startDatabaseWarmup().catch((error) => {
+    console.error(`[startup] database warmup failed: ${error.message}`);
+  });
+}).on('error', (error) => {
+  console.error(`[startup] ${error.message}`);
+  process.exitCode = 1;
+});

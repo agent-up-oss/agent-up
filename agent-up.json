@@ -54,7 +54,7 @@
       "ports": [
         { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
       ],
-      "volumes": ["pgdata:/var/lib/postgresql/data"]
+      "volumes": ["agent-up-example-pgdata:/var/lib/postgresql/data"]
     }
   ],
   "prompts": {

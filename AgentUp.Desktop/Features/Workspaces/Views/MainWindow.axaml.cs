@@ -22,6 +22,7 @@ using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using ReactiveUI;
 
@@ -1095,11 +1096,45 @@ code {
 
     private async void OnConsoleOverlayKeyDown(object? sender, KeyEventArgs e)
     {
-        var copyModifier = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-            ? KeyModifiers.Meta
-            : KeyModifiers.Control;
-        if (e.Key != Key.C || !e.KeyModifiers.HasFlag(copyModifier)) return;
         if (_consoleWebView is null || _isClosed) return;
+        if (DataContext is not MainViewModel vm) return;
+
+        var isMac = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        if (ConsoleKeyboardInputProvider.IsInterruptKey(e.Key, e.KeyModifiers))
+        {
+            e.Handled = true;
+            try
+            {
+                var result = await _consoleWebView.InvokeScript(
+                    "(function(){var s=window.getSelection();return s?s.toString():'';})()");
+                var text = NormalizeScriptResult(result);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                    if (clipboard is not null)
+                        await clipboard.SetTextAsync(text);
+                    return;
+                }
+
+                var workspaceId = vm.Sidebar.SelectedWorkspace?.Id;
+                var application = vm.Applications.SelectedApplication?.Name;
+                if (workspaceId is null || application is null) return;
+
+                using var response = await _serverHttp.PostAsync(
+                    $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/applications/{Uri.EscapeDataString(application)}/stop",
+                    null);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException or HttpRequestException)
+            {
+                Trace.TraceWarning(ex.Message);
+            }
+
+            return;
+        }
+
+        if (!ConsoleKeyboardInputProvider.IsCopyKey(e.Key, e.KeyModifiers, isMac)) return;
+
         e.Handled = true;
         try
         {
