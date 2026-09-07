@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using AgentUp.CLI.Features.Workspaces.Controllers;
+using AgentUp.CLI.Shared.Providers;
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
@@ -63,6 +63,21 @@ public class CurrentWorkspaceResolverTests
     private static WorkspaceApiClient ClientThrowing(Exception exception)
         => new(new HttpClient(new StubHandler(_ => throw exception)) { BaseAddress = new Uri("http://localhost") });
 
+    [Test]
+    public async Task ResolveAsync_returnsLoginHint_whenUnauthorized()
+    {
+        var client = new WorkspaceApiClient(new HttpClient(new UnauthorizedHandler())
+        {
+            BaseAddress = new Uri("http://localhost")
+        });
+
+        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+            .ResolveAsync("query failed", "missing workspace");
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Is.EqualTo(AuthenticationRequiredException.LoginHint));
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _response;
@@ -74,5 +89,11 @@ public class CurrentWorkspaceResolverTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(_response(request));
+    }
+
+    private sealed class UnauthorizedHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
     }
 }

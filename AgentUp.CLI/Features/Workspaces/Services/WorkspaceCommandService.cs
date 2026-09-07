@@ -1,6 +1,7 @@
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Interfaces;
 using AgentUp.CLI.Features.Workspaces.Providers;
+using AgentUp.CLI.Shared.Providers;
 
 namespace AgentUp.CLI.Features.Workspaces.Services;
 
@@ -57,6 +58,10 @@ public sealed class WorkspaceCommandService
                 Docker = docker
             });
         }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<StartedWorkspace>.Failed(ex.Message);
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             return WorkspaceCommandResult<StartedWorkspace>.Failed($"Error: Failed to push workspace definition: {ex.Message}");
@@ -68,6 +73,10 @@ public sealed class WorkspaceCommandService
         try
         {
             await _client.StartWorkspaceAsync(workspace.Id);
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<StartedWorkspace>.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
@@ -89,6 +98,10 @@ public sealed class WorkspaceCommandService
         try
         {
             return WorkspaceCommandResult<IReadOnlyList<WorkspaceDto>>.Success(await _client.ListAsync());
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<IReadOnlyList<WorkspaceDto>>.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
@@ -123,6 +136,10 @@ public sealed class WorkspaceCommandService
 
             return WorkspaceCommandResult<int>.Success(removed);
         }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<int>.Failed(ex.Message);
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             return WorkspaceCommandResult<int>.Failed($"Error: Failed to clear workspaces: {ex.Message}");
@@ -144,6 +161,10 @@ public sealed class WorkspaceCommandService
         try
         {
             await _client.StopWorkspaceAsync(workspace.Id);
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<WorkspaceDto>.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {

@@ -1,5 +1,6 @@
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Providers;
+using AgentUp.CLI.Shared.Providers;
 
 namespace AgentUp.CLI.Features.Workspaces.Services;
 
@@ -20,6 +21,10 @@ public sealed class CurrentWorkspaceResolver
         try
         {
             workspaces = await _client.ListAsync();
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceResolution.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
