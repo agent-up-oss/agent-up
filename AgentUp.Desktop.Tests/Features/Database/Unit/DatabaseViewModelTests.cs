@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Database.Controllers;
 using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Features.Database.Services;
+using AgentUp.Desktop.Tests.Features.Database.Support;
 using AgentUp.Desktop.Features.Database.ViewModels;
 
 namespace AgentUp.Desktop.Tests.Features.Database.Unit;
@@ -81,24 +82,16 @@ public class DatabaseViewModelTests
             if (request.RequestUri.AbsolutePath.EndsWith("/database/query", StringComparison.Ordinal))
             {
                 if (_queryError is not null)
-                {
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
-                    {
-                        Content = JsonContent.Create(new { detail = _queryError })
-                    });
-                }
+                    return Task.FromResult(HttpTestResponses.Json(HttpStatusCode.BadRequest, new { detail = _queryError }));
 
                 return Json(new { columns = new[] { "id" }, rows = new[] { new[] { "1" } } });
             }
 
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            return Task.FromResult(HttpTestResponses.Json(HttpStatusCode.NotFound, new { }));
         }
 
         private static Task<HttpResponseMessage> Json(object payload)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(payload)
-            });
+            => Task.FromResult(HttpTestResponses.Json(payload));
     }
 
     private sealed class DelayedDatabaseHandler : HttpMessageHandler
@@ -134,13 +127,10 @@ public class DatabaseViewModelTests
                 return staleResponse;
             }
 
-            return new HttpResponseMessage(HttpStatusCode.NotFound);
+            return HttpTestResponses.Json(HttpStatusCode.NotFound, new { });
         }
 
         private static Task<HttpResponseMessage> Json(object payload)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(payload)
-            });
+            => Task.FromResult(HttpTestResponses.Json(payload));
     }
 }

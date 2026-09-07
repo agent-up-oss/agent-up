@@ -9,6 +9,7 @@ using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Tests.Features.Database.Support;
 using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.FirstRun.Interfaces;
@@ -711,21 +712,19 @@ public class MainViewModelTests
         return new ConsoleApiClient(http);
     }
 
-    private static DatabaseApiClient NullDatabaseClient()
+    private static readonly HttpClient NullDatabaseHttp = new(new NullDatabaseHandler())
     {
-        var http = new HttpClient(new NullDatabaseHandler()) { BaseAddress = new Uri("http://localhost:0") };
-        return new DatabaseApiClient(http);
-    }
+        BaseAddress = new Uri("http://localhost:0")
+    };
+
+    private static DatabaseApiClient NullDatabaseClient() => new(NullDatabaseHttp);
 
     private sealed class NullDatabaseHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
-            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
-            {
-                Content = System.Net.Http.Json.JsonContent.Create(new { databases = Array.Empty<string>() })
-            });
+            => Task.FromResult(HttpTestResponses.Json(new { databases = Array.Empty<string>() }));
     }
 
     private static WorkspaceApiClient FakeWorkspaceClient(List<WorkspaceDto> workspaces)
