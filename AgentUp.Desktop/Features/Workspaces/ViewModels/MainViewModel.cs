@@ -5,6 +5,7 @@ using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
+using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Database.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
@@ -38,6 +39,7 @@ public sealed class MainViewModel : ReactiveObject
     public DatabaseViewModel Database { get; }
     public ApplicationAuditViewModel Audit { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
+    public LoginViewModel Login { get; }
 
     public ObservableCollection<SubTabViewModel> SubTabs { get; } = [];
 
@@ -79,6 +81,7 @@ public sealed class MainViewModel : ReactiveObject
         DatabaseViewModel database,
         ApplicationAuditViewModel audit,
         FirstRunTutorialViewModel tutorial,
+        LoginViewModel login,
         PortsController ports)
     {
         Sidebar = sidebar;
@@ -88,6 +91,7 @@ public sealed class MainViewModel : ReactiveObject
         Database = database;
         Audit = audit;
         Tutorial = tutorial;
+        Login = login;
         _ports = ports;
 
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);

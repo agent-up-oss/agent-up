@@ -15,22 +15,15 @@ public sealed class AuthenticationProvider
             configuration["AGENTUP_AUTH_DISABLED"], "true", StringComparison.OrdinalIgnoreCase);
         var password = configuration["AGENTUP_ADMIN_PASSWORD"];
 
-        if (explicitlyDisabled || string.IsNullOrEmpty(password))
-        {
-            IsRequired = false;
-            _password = null;
-            return;
-        }
-
-        IsRequired = true;
-        _password = Encoding.UTF8.GetBytes(password);
+        IsRequired = !explicitlyDisabled;
+        _password = string.IsNullOrEmpty(password) ? null : Encoding.UTF8.GetBytes(password);
     }
 
     public bool IsRequired { get; }
 
     public string? Login(string password)
     {
-        if (!IsRequired) return null;
+        if (!IsRequired || _password is null) return null;
         var candidate = Encoding.UTF8.GetBytes(password ?? string.Empty);
         if (candidate.Length != _password!.Length || !CryptographicOperations.FixedTimeEquals(candidate, _password))
             return null;

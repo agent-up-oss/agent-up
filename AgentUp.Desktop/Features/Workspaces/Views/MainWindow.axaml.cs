@@ -735,7 +735,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     private bool IsModalOverlayVisible()
         => DataContext is MainViewModel vm
-           && (vm.Tutorial.IsVisible || vm.Sidebar.DeleteConfirmation.IsVisible);
+           && (vm.Login.IsVisible || vm.Tutorial.IsVisible || vm.Sidebar.DeleteConfirmation.IsVisible);
 
     private void ApplyModalOverlayWebViewVisibility(bool modalOverlayVisible)
     {

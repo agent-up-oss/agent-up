@@ -19,13 +19,14 @@ public class AuthenticationProviderTests
     }
 
     [Test]
-    public void DefaultsToUnauthenticatedWhenPasswordMissing()
+    public void RequiresAuthenticationByDefault_WhenPasswordMissing()
     {
         var service = Create();
         Assert.Multiple(() =>
         {
-            Assert.That(service.IsRequired, Is.False);
-            Assert.That(service.IsAuthenticated(null), Is.True);
+            Assert.That(service.IsRequired, Is.True);
+            Assert.That(service.IsAuthenticated(null), Is.False);
+            Assert.That(service.Login("anything"), Is.Null);
         });
     }
 

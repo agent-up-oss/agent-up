@@ -13,6 +13,10 @@ using AgentUp.Desktop.Features.Database.Controllers;
 using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Features.Database.Services;
 using AgentUp.Desktop.Features.Database.ViewModels;
+using AgentUp.Desktop.Features.Authentication.Controllers;
+using AgentUp.Desktop.Features.Authentication.Providers;
+using AgentUp.Desktop.Features.Authentication.Services;
+using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Metrics.Providers;
 using AgentUp.Desktop.Features.Metrics.Services;
@@ -52,7 +56,8 @@ public static class MainViewModelFactory
         MetricsApiClient? metricsClient = null,
         DatabaseApiClient? databaseClient = null,
         ApplicationAuditApiClient? auditClient = null,
-        FirstRunTutorialViewModel? tutorial = null)
+        FirstRunTutorialViewModel? tutorial = null,
+        LoginViewModel? login = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var applications = new ApplicationsController(new ApplicationSelectionService());
@@ -75,17 +80,21 @@ public static class MainViewModelFactory
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
+            login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
+                new AuthenticationApiClient(new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") })))),
             ports);
     }
 
-    public static MainViewModel Create(HttpClient http)
+    public static MainViewModel Create(HttpClient http, LoginViewModel? login = null)
     {
         return Create(
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),
             new MetricsApiClient(http),
             new DatabaseApiClient(http),
-            new ApplicationAuditApiClient(http));
+            new ApplicationAuditApiClient(http),
+            login: login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
+                new AuthenticationApiClient(http)))));
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

@@ -1,4 +1,7 @@
 using AgentUp.CLI.Composition;
+using AgentUp.InstallerConfig;
+
+RepositoryDotEnv.LoadOptional();
 
 var serverUrl = GetServerUrl(args);
 var runner = CliRunnerFactory.Create(serverUrl, Directory.GetCurrentDirectory());

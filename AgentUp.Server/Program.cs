@@ -1,9 +1,12 @@
 using System.Security.Cryptography;
 using System.Runtime.InteropServices;
 using System.Text;
+using AgentUp.InstallerConfig;
 using AgentUp.Server.Composition;
 using AgentUp.Server.Features.Authentication.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+
+RepositoryDotEnv.LoadOptional();
 
 var builder = WebApplication.CreateBuilder(args);
 

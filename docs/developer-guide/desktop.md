@@ -145,6 +145,7 @@ Installed Desktop artifacts are paired with a local `AgentUp.Server` service. Th
 For development, `AGENTUP_SERVER_URL` can point Desktop at a manually started Server.
 
 Desktop queries `/api/auth/status` before loading workspace state. When the
-Server requires authentication it shows the administrator password window and
-uses the returned bearer token for REST and workspace-event requests. When the
-Server has authentication disabled, Desktop opens the main window directly.
+Server requires authentication it shows an in-window administrator sign-in page
+that gates the main UI and uses the returned bearer token for REST and
+workspace-event requests. When the Server has authentication disabled, Desktop
+opens the main window directly.

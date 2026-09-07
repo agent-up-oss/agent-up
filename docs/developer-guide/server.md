@@ -41,17 +41,22 @@ Packaged services bind to `http://127.0.0.1:5000` by default. Service definition
 
 ## Authentication and network boundaries
 
-The REST API uses a single administrator account. Set `AGENTUP_ADMIN_PASSWORD`
-to enable authentication; when it is unset, REST routes remain open and clients
-skip their login UI. A successful `POST /api/auth/login` returns an in-memory
-bearer token. The fallback authorization policy requires a valid token for every
-REST endpoint unless the endpoint explicitly opts out; this makes newly added
-routes protected by default when authentication is enabled. `GET /api/auth/status`
-and the login endpoint are anonymous so clients can decide whether to display
-login.
+The REST API uses a single administrator account. Authentication is required
+by default for every REST endpoint unless the endpoint explicitly opts out; this
+makes newly added routes protected by default. `AGENTUP_ADMIN_PASSWORD` supplies
+the administrator password for `POST /api/auth/login`, which returns an in-memory
+bearer token. `GET /api/auth/status` and the login endpoint are anonymous so
+Desktop, Mobile, and other clients can decide whether to display login.
 
-Set `AGENTUP_AUTH_DISABLED=true` to force unauthenticated mode even when
-`AGENTUP_ADMIN_PASSWORD` is configured.
+The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset. REST routes remain
+protected in that mode, but login cannot succeed until the password is configured.
+
+For local development, copy `.env.example` to `.env` in the repository root.
+Server, Desktop, and CLI load that file on startup when present. Existing shell
+environment variables are not overridden.
+
+Set `AGENTUP_AUTH_DISABLED=true` to run without REST authentication. Desktop and
+Mobile query authentication status and skip their login UI in that mode.
 
 MCP remains unauthenticated for local automation, but `/mcp` requests from a
 non-loopback remote address are hidden with a 404 response. The HTTP listener

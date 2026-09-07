@@ -401,10 +401,12 @@ The Server owns all orchestration:
 No orchestration logic belongs in Desktop, CLI, or MCP clients.
 
 The Server requires its single administrator to log in with the password from
-`AGENTUP_ADMIN_PASSWORD` when that variable is set; authorization is the default
-for REST routes in that mode. When `AGENTUP_ADMIN_PASSWORD` is unset, the Server
-starts unauthenticated. Set `AGENTUP_AUTH_DISABLED=true` only to force
-unauthenticated mode while a password remains configured.
+`AGENTUP_ADMIN_PASSWORD` when authentication is enabled. REST authorization is
+required by default for every route unless the endpoint explicitly opts out.
+Set `AGENTUP_AUTH_DISABLED=true` only for an intentionally unauthenticated Server.
+The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset; login succeeds only
+after that password is configured. For local development, Server, Desktop, and
+CLI load a repository-root `.env` file when present; see `.env.example`.
 MCP routes remain unauthenticated and must accept connections only from a
 loopback address, even when the REST listener is exposed to another subnet.
 

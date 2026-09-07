@@ -1704,6 +1704,55 @@
                 </Border>
             </Grid>
         </Grid>
+
+        <Panel Grid.RowSpan="2"
+               ZIndex="110"
+               x:Name="LoginOverlay"
+               IsVisible="{Binding Login.IsVisible}"
+               IsHitTestVisible="{Binding Login.IsVisible}">
+            <Border Background="#000000"/>
+            <Grid RowDefinitions="*,Auto,*"
+                  ColumnDefinitions="*,Auto,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        Width="420"
+                        Background="#050505"
+                        BorderBrush="#333333"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="32">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Agent-Up Server"
+                                   Foreground="#f5fbf7"
+                                   FontSize="25"
+                                   FontWeight="Bold"/>
+                        <TextBlock Text="Enter the administrator password to continue."
+                                   Foreground="#c6ddd2"
+                                   FontSize="14"
+                                   TextWrapping="Wrap"/>
+                        <TextBox Text="{Binding Login.Password, Mode=TwoWay}"
+                                 PasswordChar="●"
+                                 PlaceholderText="Admin password"/>
+                        <Button Command="{Binding Login.SignInCommand}"
+                                IsEnabled="{Binding !Login.IsBusy}"
+                                HorizontalAlignment="Stretch">
+                            <Border Background="#00b850"
+                                    CornerRadius="6"
+                                    Padding="12,8">
+                                <TextBlock Text="Sign in"
+                                           Foreground="#000000"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center"/>
+                            </Border>
+                        </Button>
+                        <TextBlock Text="{Binding Login.ErrorMessage}"
+                                   Foreground="#ff6b6b"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding Login.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Panel>
     </Grid>
     </Border>
 </Window>

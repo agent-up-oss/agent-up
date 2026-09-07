@@ -34,7 +34,7 @@ public class AuthenticationHttpTests
     }
 
     [Test]
-    public async Task RestRoutes_AreOpen_WhenAdminPasswordIsNotConfigured()
+    public async Task RestRoutes_RequireLogin_EvenWhenAdminPasswordIsNotConfigured()
     {
         using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
@@ -44,8 +44,8 @@ public class AuthenticationHttpTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(status!.AuthenticationRequired, Is.False);
-            Assert.That(workspaces.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(status!.AuthenticationRequired, Is.True);
+            Assert.That(workspaces.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
         });
     }
 

@@ -31,20 +31,30 @@ dotnet build agent-up.sln
 
 When using an installed Desktop artifact, the Server should already be running as the local `agent-up-server` service.
 
-Set `AGENTUP_ADMIN_PASSWORD` to enable REST authentication. When it is unset,
-the Server starts unauthenticated so local development and first-run installs
-can connect without credentials. Desktop and Mobile prompt for the password only
-when authentication is required.
+REST authentication is required by default. Set `AGENTUP_ADMIN_PASSWORD` before
+starting a protected Server, or copy `.env.example` to `.env` in the repository
+root and edit the value there. Server, Desktop, and CLI load that file on startup
+when it exists; shell environment variables still take precedence.
 
-Set `AGENTUP_AUTH_DISABLED=true` to force unauthenticated mode even when
-`AGENTUP_ADMIN_PASSWORD` is configured.
+```bash
+cp .env.example .env
+# edit .env, then:
+dotnet run --project AgentUp.Server
+```
 
-To enable authentication:
+You can still export the password directly when you prefer:
 
 ```bash
 export AGENTUP_ADMIN_PASSWORD='choose-a-long-password'
 dotnet run --project AgentUp.Server
 ```
+
+Desktop and Mobile prompt for this password when they connect. The Server still
+starts when the password is unset, but login cannot succeed until it is configured.
+
+For a deliberately unauthenticated local installation, set
+`AGENTUP_AUTH_DISABLED=true` instead. Desktop and Mobile skip their login UI in
+that mode.
 
 To expose REST to the LAN, set `ASPNETCORE_URLS=http://0.0.0.0:5000`. MCP has no
 login because it is intended for local tools, and the Server rejects MCP requests
