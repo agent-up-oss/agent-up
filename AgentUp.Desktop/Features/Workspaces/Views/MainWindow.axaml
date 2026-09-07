@@ -572,6 +572,8 @@
             <Panel x:Name="LoginPage"
                    IsVisible="{Binding Login.IsVisible}"
                    IsHitTestVisible="{Binding Login.IsVisible}"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
                    Background="#000000">
                 <Grid RowDefinitions="*,Auto,*"
                       ColumnDefinitions="*,Auto,*">
@@ -616,7 +618,9 @@
                 </Grid>
             </Panel>
 
-            <Grid IsVisible="{Binding !Login.IsVisible}">
+            <Grid IsVisible="{Binding !Login.IsVisible}"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -1276,14 +1280,19 @@
             </Panel>
         </Border>
         </Grid>
-            </Grid>
 
-        <Panel x:Name="FirstRunTutorialOverlay"
-               ZIndex="90"
-               IsVisible="{Binding Tutorial.IsVisible}"
-               IsHitTestVisible="{Binding Tutorial.IsVisible}">
-            <Border Background="#CC020806"/>
-            <Border Background="#6607110f">
+        <Grid x:Name="FirstRunTutorialOverlay"
+              ZIndex="90"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              IsVisible="{Binding Tutorial.IsVisible}"
+              IsHitTestVisible="{Binding Tutorial.IsVisible}">
+            <Border Background="#CC020806"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"/>
+            <Border Background="#6607110f"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
                 <Border.Effect>
                     <BlurEffect Radius="10"/>
                 </Border.Effect>
@@ -1695,14 +1704,20 @@
                 </Grid>
             </Border>
             </Grid>
-        </Panel>
+        </Grid>
 
         <Grid ZIndex="100"
               x:Name="WorkspaceDeleteOverlay"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
               IsVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}"
               IsHitTestVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}">
-            <Border Background="#CC020806"/>
-            <Border Background="#6607110f">
+            <Border Background="#CC020806"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"/>
+            <Border Background="#6607110f"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
                 <Border.Effect>
                     <BlurEffect Radius="10"/>
                 </Border.Effect>
@@ -1760,5 +1775,6 @@
             </Grid>
         </Grid>
         </Grid>
+    </Grid>
     </Border>
 </Window>

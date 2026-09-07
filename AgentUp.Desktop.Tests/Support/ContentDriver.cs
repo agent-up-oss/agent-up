@@ -34,7 +34,7 @@ internal sealed class ContentDriver(MainWindow window)
         window.FindControl<Border>("AddressNavBar")?.IsVisible ?? false;
 
     public bool ShowsFirstRunTutorial =>
-        window.FindControl<Panel>("FirstRunTutorialOverlay")?.IsVisible ?? false;
+        window.FindControl<Grid>("FirstRunTutorialOverlay")?.IsVisible ?? false;
 
     public string? TutorialStatusMessage =>
         window.FindControl<TextBlock>("TutorialStatusMessage")?.Text;
