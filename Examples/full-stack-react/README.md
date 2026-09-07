@@ -14,14 +14,14 @@ This example solves that by running SQL migrations and seed data when the API pr
 
 | Feature | Where |
 |---------|-------|
-| Multi-application workspace | `Web`, `API`, and `Database` apps |
-| HTTP browser tabs | `Web` on `WEB_PORT` |
+| Multi-application workspace | `Example Web`, `Example API`, and `Database` apps in the root `agent-up.json` |
+| HTTP browser tabs | `Example Web` on `WEB_PORT` |
 | Console output | per-app process logs |
-| Health checks | `API` `/health` |
-| Metrics | `API` `/metrics` |
+| Health checks | `Example API` `/health` |
+| Metrics | `Example API` `/metrics` |
 | Database explorer | `Database` service with `"database": true` |
-| Frontend audit events | `Web` uses `@agent-up/audit` |
-| Shared env files | `database.env` for API + Postgres |
+| Frontend audit events | `Example Web` uses `@agent-up/audit` |
+| Shared env files | `database.env` for `Example API` + `Database` |
 | Install commands | `install` runs `npm install` before each start |
 | Port allocation | defaults `5600` / `5601` / `5432` |
 
@@ -43,17 +43,12 @@ From the repository root:
 agent-up start
 ```
 
-The example is wired into the root `agent-up.json` as **Example Web**, **Example API**, and **Database**. You can also run it as a standalone workspace:
-
-```bash
-cd Examples/full-stack-react
-agent-up start
-```
+The example is wired into the root `agent-up.json` as **Example Web**, **Example API**, and **Database**. There is no separate `agent-up.json` in this folder.
 
 Then in Agent-Up Desktop:
 
-1. Open the **Web** app browser tab for the React dashboard.
-2. Open the **API** app **Metrics** tab after browsing the UI for a minute.
+1. Open the **Example Web** browser tab for the React dashboard.
+2. Open the **Example API** **Metrics** tab after browsing the UI for a minute.
 3. Open the **Database** app **Database** tab and select the `agentup` database.
 4. Inspect `products`, `orders`, and `order_items`.
 
@@ -71,7 +66,6 @@ group by o.id, o.customer_name, o.status;
 
 ```text
 Examples/full-stack-react/
-  agent-up.json
   database.env
   migrations/
   api/
@@ -85,5 +79,15 @@ Examples/full-stack-react/
 ## Notes
 
 - The API starts immediately and retries Postgres setup in the background, so it can start before the Database container is ready. `/health` returns `503` until migrations and seed data finish.
-- If you change `agent-up.json` or migrations after a workspace was already registered, run `agent-up start` again so Agent-Up reloads the definition and restarts processes.
-- To reset data, stop the workspace and run `docker volume rm agent-up-example-pgdata`, then start again. Recreating the workspace alone does not reset Docker volumes; Postgres only applies `database.env` credentials on first volume initialization.
+- If you change the root `agent-up.json` or migrations after a workspace was already registered, run `agent-up start` again so Agent-Up reloads the definition and restarts processes.
+- Postgres only applies `database.env` credentials when its Docker volume is first created. If `Example API` or the **Database** tab report authentication failures after a credential change, stop the workspace and remove the example volume, then start again:
+
+```bash
+docker volume rm agent-up-full-stack-pgdata
+```
+
+If you still have an older example volume from earlier iterations, remove that too:
+
+```bash
+docker volume rm agent-up-example-pgdata pgdata 2>/dev/null || true
+```
