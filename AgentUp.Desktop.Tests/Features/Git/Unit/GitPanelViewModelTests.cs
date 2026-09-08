@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Interfaces;
@@ -209,6 +210,75 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.ToggleIcon, Is.EqualTo("›"));
     }
 
+    [Test]
+    public async Task LoadAsync_discardsATreeThatArrivesAfterAnotherWorkspaceWasSelected()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), HoldChanges = true };
+        var panel = CreatePanel(client);
+        var stale = panel.LoadAsync("ws-1");
+
+        client.HoldChanges = false;
+        client.Tree = OtherWorkspaceTree();
+        await panel.LoadAsync("ws-2");
+
+        client.CompleteHeldChanges(SampleTree());
+        await stale;
+
+        Assert.That(panel.Nodes.Select(node => node.Name), Is.EqualTo(new[] { "other.cs" }));
+        Assert.That(panel.Branch, Is.EqualTo("release"));
+        Assert.That(panel.IsLoading, Is.False);
+    }
+
+    [Test]
+    public async Task LoadAsync_discardsAFailureFromASupersededWorkspace()
+    {
+        var client = new FakeGitApiProvider { HoldChanges = true };
+        var panel = CreatePanel(client);
+        var stale = panel.LoadAsync("ws-1");
+
+        client.HoldChanges = false;
+        client.Tree = OtherWorkspaceTree();
+        await panel.LoadAsync("ws-2");
+
+        client.FailHeldChanges("Connection refused");
+        await stale;
+
+        Assert.That(panel.ErrorMessage, Is.Null, "a superseded workspace must not raise an error for the current one");
+        Assert.That(panel.Nodes.Select(node => node.Name), Is.EqualTo(new[] { "other.cs" }));
+    }
+
+    [Test]
+    public async Task OpeningAFileDiscardsADiffThatArrivesAfterAnotherFileWasOpened()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        client.HoldDiff = true;
+        var stale = panel.Nodes[2].OpenCommand.Execute().FirstAsync().ToTask();
+
+        client.HoldDiff = false;
+        client.FileDiff = new GitFileDiffDto("src/app/util.cs", "Added", false, "+util");
+        await panel.Nodes[3].OpenCommand.Execute().FirstAsync();
+
+        client.CompleteHeldDiff(new GitFileDiffDto("src/app/main.cs", "Modified", false, "+main"));
+        await stale;
+
+        Assert.That(panel.Diff.Path, Is.EqualTo("src/app/util.cs"));
+        Assert.That(panel.Diff.Content, Is.EqualTo("+util"));
+    }
+
+    private static GitChangeTreeDto OtherWorkspaceTree()
+        => new(
+            "ws-2",
+            "release",
+            1,
+            new GitChangeDirectoryDto(
+                string.Empty,
+                string.Empty,
+                [],
+                [new GitChangeFileDto("other.cs", "other.cs", "Modified")]));
+
     private static GitPanelViewModel CreatePanel(IGitApiProvider client)
         => new(new GitController(new GitChangeListService(client)));
 
@@ -237,11 +307,26 @@ public sealed class GitPanelViewModelTests
 
 internal sealed class FakeGitApiProvider : IGitApiProvider
 {
+    private TaskCompletionSource<GitChangeTreeDto?>? _heldChanges;
+    private TaskCompletionSource<GitFileDiffDto?>? _heldDiff;
+
     public GitChangeTreeDto? Tree { get; set; }
 
     public GitFileDiffDto? FileDiff { get; set; }
 
     public string? ChangesFailure { get; set; }
+
+    // When set, the next call parks until the test completes it, so a response can be made to
+    // arrive after a newer request has already been issued.
+    public bool HoldChanges { get; set; }
+
+    public bool HoldDiff { get; set; }
+
+    public void CompleteHeldChanges(GitChangeTreeDto? tree) => _heldChanges!.SetResult(tree);
+
+    public void CompleteHeldDiff(GitFileDiffDto? diff) => _heldDiff!.SetResult(diff);
+
+    public void FailHeldChanges(string message) => _heldChanges!.SetException(new HttpRequestException(message));
 
     public GitCommitResultDto CommitResult { get; set; } = new(true, true, "0123456789abcdef", null);
 
@@ -252,13 +337,24 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
     public Task<GitChangeTreeDto?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
     {
         ChangeRequests++;
-        return ChangesFailure is null
-            ? Task.FromResult(Tree)
-            : Task.FromException<GitChangeTreeDto?>(new HttpRequestException(ChangesFailure));
+        if (ChangesFailure is not null)
+            return Task.FromException<GitChangeTreeDto?>(new HttpRequestException(ChangesFailure));
+
+        if (!HoldChanges)
+            return Task.FromResult(Tree);
+
+        _heldChanges = new TaskCompletionSource<GitChangeTreeDto?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        return _heldChanges.Task;
     }
 
     public Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken cancellationToken = default)
-        => Task.FromResult(FileDiff);
+    {
+        if (!HoldDiff)
+            return Task.FromResult(FileDiff);
+
+        _heldDiff = new TaskCompletionSource<GitFileDiffDto?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        return _heldDiff.Task;
+    }
 
     public Task<GitCommitResultDto> CommitAsync(string workspaceId, GitCommitRequestDto request, CancellationToken cancellationToken = default)
     {

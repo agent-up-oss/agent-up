@@ -10,6 +10,11 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 {
     private readonly GitController _git;
     private bool _isApplyingSelection;
+    // Monotonic ids for the in-flight tree and diff requests. A response is applied only when it
+    // still belongs to the newest request, so a slow reply for a previous workspace or file cannot
+    // repopulate the panel after the user moved on.
+    private int _treeRequest;
+    private int _diffRequest;
     private string? _workspaceId;
     private bool _isVisible;
     private bool _isLoading;
@@ -108,6 +113,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     public async Task LoadAsync(string? workspaceId, CancellationToken cancellationToken = default)
     {
+        var request = ++_treeRequest;
+        _diffRequest++;
         _workspaceId = workspaceId;
         Diff.Hide();
         if (workspaceId is null)
@@ -121,7 +128,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         try
         {
             var tree = await _git.GetChangesAsync(workspaceId, cancellationToken);
-            ApplyTree(tree);
+            if (request == _treeRequest)
+                ApplyTree(tree);
         }
         catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -129,13 +137,19 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
         {
+            if (request != _treeRequest)
+                return;
+
             Clear();
             ErrorMessage = $"Could not load Git changes: {ex.Message}";
         }
         finally
         {
-            IsLoading = false;
-            RaiseListProperties();
+            if (request == _treeRequest)
+            {
+                IsLoading = false;
+                RaiseListProperties();
+            }
         }
     }
 
@@ -152,24 +166,33 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     async Task IGitChangeNodeHost.OpenFileAsync(GitChangeNodeViewModel node)
     {
-        if (_workspaceId is null)
+        var workspaceId = _workspaceId;
+        if (workspaceId is null)
             return;
 
+        var request = ++_diffRequest;
         Diff.ShowLoading(node.Path, node.Status);
         try
         {
-            var diff = await _git.GetFileDiffAsync(_workspaceId, node.Path);
-            if (diff is null)
-                Diff.ShowError(node.Path, "This file no longer has changes.");
-            else if (diff.IsBinary)
-                Diff.ShowBinary(node.Path, diff.Status);
-            else
-                Diff.ShowDiff(node.Path, diff.Status, diff.Diff);
+            var diff = await _git.GetFileDiffAsync(workspaceId, node.Path);
+            if (request == _diffRequest)
+                ShowDiff(node, diff);
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
         {
-            Diff.ShowError(node.Path, $"Could not load the diff: {ex.Message}");
+            if (request == _diffRequest)
+                Diff.ShowError(node.Path, $"Could not load the diff: {ex.Message}");
         }
+    }
+
+    private void ShowDiff(GitChangeNodeViewModel node, GitFileDiffDto? diff)
+    {
+        if (diff is null)
+            Diff.ShowError(node.Path, "This file no longer has changes.");
+        else if (diff.IsBinary)
+            Diff.ShowBinary(node.Path, diff.Status);
+        else
+            Diff.ShowDiff(node.Path, diff.Status, diff.Diff);
     }
 
     void IGitChangeNodeHost.NodeSelectionChanged(GitChangeNodeViewModel node)
