@@ -1,0 +1,68 @@
+// Shared transport for the Agent-Up Server REST API. The servers slice owns connectivity to a
+// configured server; feature slices call this instead of reimplementing fetch handling.
+
+export const DEFAULT_TIMEOUT_MS = 15000;
+
+export async function sendServerRequest(
+  serverUrl: string,
+  path: string,
+  init: RequestInit = {},
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  request: typeof fetch = fetch,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await request(`${serverUrl}${path}`, {
+      ...init,
+      headers: { Accept: 'application/json', ...(init.headers ?? {}) },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new ServerRequestError(await readProblemDetail(response), response.status);
+    return response;
+  } catch (error) {
+    throw toReadableError(error, serverUrl);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function readServerJson<T>(response: Response): Promise<T | null> {
+  if (response.status === 204) return null;
+  const body = await response.text();
+  if (!body) return null;
+  return JSON.parse(body) as T;
+}
+
+export function jsonBody(value: unknown): RequestInit {
+  return { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) };
+}
+
+export class ServerRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ServerRequestError';
+    this.status = status;
+  }
+}
+
+export async function readProblemDetail(response: Response): Promise<string> {
+  try {
+    const body = await response.text();
+    if (!body) return `The server returned ${response.status}.`;
+    const parsed = JSON.parse(body) as { detail?: string; title?: string };
+    return parsed.detail ?? parsed.title ?? body;
+  } catch {
+    return `The server returned ${response.status}.`;
+  }
+}
+
+export function toReadableError(error: unknown, serverUrl: string): Error {
+  if (error instanceof Error && error.name === 'AbortError')
+    return new Error('The server did not respond in time.');
+  if (error instanceof TypeError)
+    return new Error(`Could not reach ${serverUrl}. Check that Agent-Up Server is running and reachable from this device.`);
+  return error instanceof Error ? error : new Error(String(error));
+}

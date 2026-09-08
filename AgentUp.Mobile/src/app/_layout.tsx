@@ -4,12 +4,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ServerSidebar } from '@/features/servers/components/ServerSidebar';
 import { ServersProvider } from '@/features/servers/controllers/ServersContext';
+import { WorkspacesProvider } from '@/features/workspaces/controllers/WorkspacesContext';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider style={styles.safeArea}>
       <StatusBar style="light" />
-      <ServersProvider><ServerSidebar><View style={styles.app}>
+      <ServersProvider><WorkspacesProvider><ServerSidebar><View style={styles.app}>
         <Tabs
           screenOptions={{
             headerShown: false,
@@ -24,11 +25,19 @@ export default function RootLayout() {
             options={{ title: 'Home', tabBarIcon: ({ color }) => <Text style={{ color }}>⌂</Text> }}
           />
           <Tabs.Screen
+            name="workspaces"
+            options={{ title: 'Workspaces', tabBarIcon: ({ color }) => <Text style={{ color }}>▤</Text> }}
+          />
+          <Tabs.Screen
+            name="git"
+            options={{ title: 'Git', tabBarIcon: ({ color }) => <Text style={{ color }}>⑂</Text> }}
+          />
+          <Tabs.Screen
             name="settings"
             options={{ title: 'Settings', tabBarIcon: ({ color }) => <Text style={{ color }}>⚙</Text> }}
           />
         </Tabs>
-      </View></ServerSidebar></ServersProvider>
+      </View></ServerSidebar></WorkspacesProvider></ServersProvider>
     </SafeAreaProvider>
   );
 }

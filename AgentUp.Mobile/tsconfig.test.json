@@ -1,11 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/features/updates/**/*.ts",
-    "src/features/servers/**/*.ts"
+    "src/features/servers/**/*.ts",
+    "src/features/workspaces/**/*.ts",
+    "src/features/git/**/*.ts"
   ],
   "exclude": []
 }
