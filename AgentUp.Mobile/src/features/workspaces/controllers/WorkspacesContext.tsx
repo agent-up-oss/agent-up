@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import type { CloneSourceRequest, Workspace } from '../models/Workspace';
 import { cloneSourceRepository, listWorkspaces, startWorkspace, stopWorkspace } from '../providers/WorkspacesApiProvider';
+import { createWorkspaceRefresh } from '../providers/WorkspaceRefreshProvider';
 
 type WorkspacesController = {
   serverUrl: string | null;
@@ -26,27 +27,28 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!serverUrl) {
-      setWorkspaces([]);
-      setSelectedId(null);
-      setError(null);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const loaded = await listWorkspaces(serverUrl);
+  // useState setters are stable, so the sink is created once and the refresh keeps its own
+  // generation counter across renders.
+  const refreshRef = useRef<((serverUrl: string | null) => Promise<void>) | null>(null);
+  refreshRef.current ??= createWorkspaceRefresh({
+    onLoading: setLoading,
+    onWorkspaces: loaded => {
       setWorkspaces(loaded);
       setError(null);
       setSelectedId(current => (current && loaded.some(w => w.id === current) ? current : loaded[0]?.id ?? null));
-    } catch (cause) {
+    },
+    onError: message => {
       setWorkspaces([]);
-      setError(cause instanceof Error ? cause.message : 'Could not load workspaces.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serverUrl]);
+      setError(message);
+    },
+    onDisconnected: () => {
+      setWorkspaces([]);
+      setSelectedId(null);
+      setError(null);
+    },
+  }, listWorkspaces);
+
+  const refresh = useCallback(() => refreshRef.current!(serverUrl), [serverUrl]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 

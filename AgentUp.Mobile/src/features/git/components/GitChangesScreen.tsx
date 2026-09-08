@@ -5,6 +5,7 @@ import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesConte
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
 import { commitFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
 import {
+  canCommitSelection,
   flattenChangeTree,
   isDirectorySelected,
   selectedFilePaths,
@@ -77,7 +78,7 @@ export function GitChangesScreen() {
 
   const selectedCount = selectedFilePaths(nodes, selected).length;
   const fileCount = nodes.filter(node => !node.isDirectory).length;
-  const canCommit = !committing && selectedCount > 0 && message.trim().length > 0;
+  const canCommit = !committing && canCommitSelection(selectedCount, message);
 
   return <SafeAreaView style={styles.screen}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

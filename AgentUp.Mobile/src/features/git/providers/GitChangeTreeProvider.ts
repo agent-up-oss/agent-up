@@ -41,6 +41,11 @@ export function selectedFilePaths(nodes: GitChangeNode[], selected: string[]): s
     .map(node => node.path);
 }
 
+// Commit is offered only for a non-empty selection with a non-blank message.
+export function canCommitSelection(selectedCount: number, message: string): boolean {
+  return selectedCount > 0 && message.trim().length > 0;
+}
+
 export function statusGlyph(status: GitChangeNode['status']): string {
   switch (status) {
     case 'Added':

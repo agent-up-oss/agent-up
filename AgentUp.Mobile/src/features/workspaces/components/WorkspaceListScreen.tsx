@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
+import { canCloneWorkspace } from '../providers/CloneInputProvider';
 
 export function WorkspaceListScreen() {
   const { serverUrl, workspaces, selectedWorkspace, loading, error, selectWorkspace, refresh, clone } = useWorkspaces();
@@ -26,7 +27,7 @@ export function WorkspaceListScreen() {
     }
   };
 
-  const canConfirm = !cloning && repository.trim().length > 0 && branch.trim().length > 0;
+  const canConfirm = !cloning && canCloneWorkspace(repository, branch);
 
   return <SafeAreaView style={styles.screen}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

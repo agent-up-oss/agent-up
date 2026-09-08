@@ -1,9 +1,4 @@
-import {
-  jsonBody,
-  readServerJson,
-  sendServerRequest,
-  ServerRequestError,
-} from '@/features/servers/providers/ServerRequestProvider';
+import { jsonBody, requestServerJson, ServerRequestError } from '@/features/servers/providers/ServerRequestProvider';
 import type { GitChangeTree, GitCommitResult, GitFileDiff } from '../models/GitChanges';
 
 const COMMIT_TIMEOUT_MS = 60000;
@@ -40,22 +35,20 @@ export async function commitFiles(
   message: string,
   request: typeof fetch = fetch,
 ): Promise<GitCommitResult> {
-  const response = await sendServerRequest(
+  const result = await requestServerJson<GitCommitResult>(
     serverUrl,
     `/api/workspaces/${encodeURIComponent(workspaceId)}/git/commit`,
     jsonBody({ files, message }),
     COMMIT_TIMEOUT_MS,
     request,
   );
-  const result = await readServerJson<GitCommitResult>(response);
   if (!result) throw new Error('The server returned an empty commit result.');
   return result;
 }
 
 async function readOrNull<T>(serverUrl: string, path: string, request: typeof fetch): Promise<T | null> {
   try {
-    const response = await sendServerRequest(serverUrl, path, { method: 'GET' }, undefined, request);
-    return await readServerJson<T>(response);
+    return await requestServerJson<T>(serverUrl, path, { method: 'GET' }, undefined, request);
   } catch (error) {
     if (error instanceof ServerRequestError && error.status === 404) return null;
     throw error;

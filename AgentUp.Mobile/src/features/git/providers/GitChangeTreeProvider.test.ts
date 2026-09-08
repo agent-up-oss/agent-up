@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { GitChangeTree } from '../models/GitChanges';
 import {
+  canCommitSelection,
   filePathsUnder,
   flattenChangeTree,
   isDirectorySelected,
@@ -117,6 +118,14 @@ test('an empty directory is never reported as selected', () => {
   });
 
   assert.equal(isDirectorySelected(nodes, nodes[0], []), false);
+});
+
+test('commit is offered only for a selection with a non-blank message', () => {
+  assert.equal(canCommitSelection(1, 'fix(App): correct the probe'), true);
+  assert.equal(canCommitSelection(0, 'fix(App): correct the probe'), false);
+  assert.equal(canCommitSelection(1, ''), false);
+  assert.equal(canCommitSelection(1, '   \n\t'), false);
+  assert.equal(canCommitSelection(0, ''), false);
 });
 
 test('status glyphs and colors distinguish the change kinds', () => {

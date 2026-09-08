@@ -3,13 +3,15 @@
 
 export const DEFAULT_TIMEOUT_MS = 15000;
 
-export async function sendServerRequest(
+// fetch resolves as soon as response headers arrive, so the body is read inside the same timeout
+// window. Clearing the timer earlier would let a server that stalls its body hang the client.
+export async function requestServerJson<T>(
   serverUrl: string,
   path: string,
   init: RequestInit = {},
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
   request: typeof fetch = fetch,
-): Promise<Response> {
+): Promise<T | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -19,19 +21,12 @@ export async function sendServerRequest(
       signal: controller.signal,
     });
     if (!response.ok) throw new ServerRequestError(await readProblemDetail(response), response.status);
-    return response;
+    return await readJsonBody<T>(response);
   } catch (error) {
     throw toReadableError(error, serverUrl);
   } finally {
     clearTimeout(timeout);
   }
-}
-
-export async function readServerJson<T>(response: Response): Promise<T | null> {
-  if (response.status === 204) return null;
-  const body = await response.text();
-  if (!body) return null;
-  return JSON.parse(body) as T;
 }
 
 export function jsonBody(value: unknown): RequestInit {
@@ -46,6 +41,13 @@ export class ServerRequestError extends Error {
     this.name = 'ServerRequestError';
     this.status = status;
   }
+}
+
+async function readJsonBody<T>(response: Response): Promise<T | null> {
+  if (response.status === 204) return null;
+  const body = await response.text();
+  if (!body) return null;
+  return JSON.parse(body) as T;
 }
 
 export async function readProblemDetail(response: Response): Promise<string> {
