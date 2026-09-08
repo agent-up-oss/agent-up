@@ -9,33 +9,45 @@ export type WorkspaceRefreshSink = {
   onDisconnected(): void;
 };
 
-// Returns a refresh function that ignores any reply belonging to an earlier call. Without this a
-// slow response for the server the user just switched away from would replace the workspaces,
-// selection, error, and loading state of the server they are now on.
+export type WorkspaceRefresher = {
+  // Loads the workspaces of one server. Any reply belonging to an earlier call is ignored, so a
+  // slow response for the server the user switched away from cannot replace the current one.
+  refresh(serverUrl: string | null): Promise<void>;
+  // Whether serverUrl is the one the most recent refresh targeted. Long-running work started on a
+  // server must check this before touching state, since finishing does not make that server current.
+  isActive(serverUrl: string | null): boolean;
+};
+
 export function createWorkspaceRefresh(
   sink: WorkspaceRefreshSink,
   list: (serverUrl: string) => Promise<Workspace[]>,
-): (serverUrl: string | null) => Promise<void> {
+): WorkspaceRefresher {
   let generation = 0;
+  let activeServerUrl: string | null = null;
 
-  return async function refresh(serverUrl: string | null): Promise<void> {
-    const ticket = ++generation;
-    if (!serverUrl) {
-      sink.onDisconnected();
-      sink.onLoading(false);
-      return;
-    }
+  return {
+    isActive: serverUrl => serverUrl === activeServerUrl,
 
-    sink.onLoading(true);
-    try {
-      const loaded = await list(serverUrl);
-      if (ticket !== generation) return;
-      sink.onWorkspaces(loaded);
-    } catch (cause) {
-      if (ticket !== generation) return;
-      sink.onError(cause instanceof Error ? cause.message : 'Could not load workspaces.');
-    } finally {
-      if (ticket === generation) sink.onLoading(false);
-    }
+    async refresh(serverUrl: string | null): Promise<void> {
+      activeServerUrl = serverUrl;
+      const ticket = ++generation;
+      if (!serverUrl) {
+        sink.onDisconnected();
+        sink.onLoading(false);
+        return;
+      }
+
+      sink.onLoading(true);
+      try {
+        const loaded = await list(serverUrl);
+        if (ticket !== generation) return;
+        sink.onWorkspaces(loaded);
+      } catch (cause) {
+        if (ticket !== generation) return;
+        sink.onError(cause instanceof Error ? cause.message : 'Could not load workspaces.');
+      } finally {
+        if (ticket === generation) sink.onLoading(false);
+      }
+    },
   };
 }

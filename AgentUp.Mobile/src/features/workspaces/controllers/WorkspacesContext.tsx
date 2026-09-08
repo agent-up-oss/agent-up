@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import type { CloneSourceRequest, Workspace } from '../models/Workspace';
 import { cloneSourceRepository, listWorkspaces, startWorkspace, stopWorkspace } from '../providers/WorkspacesApiProvider';
-import { createWorkspaceRefresh } from '../providers/WorkspaceRefreshProvider';
+import { createWorkspaceActions, type WorkspaceActions } from '../providers/WorkspaceActionsProvider';
+import { createWorkspaceRefresh, type WorkspaceRefresher } from '../providers/WorkspaceRefreshProvider';
 
 type WorkspacesController = {
   serverUrl: string | null;
@@ -27,10 +28,10 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // useState setters are stable, so the sink is created once and the refresh keeps its own
-  // generation counter across renders.
-  const refreshRef = useRef<((serverUrl: string | null) => Promise<void>) | null>(null);
-  refreshRef.current ??= createWorkspaceRefresh({
+  // useState setters are stable, so these are created once and keep their own generation and
+  // active-server state across renders. All request sequencing lives in the providers.
+  const refresherRef = useRef<WorkspaceRefresher | null>(null);
+  refresherRef.current ??= createWorkspaceRefresh({
     onLoading: setLoading,
     onWorkspaces: loaded => {
       setWorkspaces(loaded);
@@ -48,7 +49,14 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     },
   }, listWorkspaces);
 
-  const refresh = useCallback(() => refreshRef.current!(serverUrl), [serverUrl]);
+  const actionsRef = useRef<WorkspaceActions | null>(null);
+  actionsRef.current ??= createWorkspaceActions(
+    refresherRef.current,
+    { clone: cloneSourceRepository, start: startWorkspace, stop: stopWorkspace },
+    { onSelect: setSelectedId },
+  );
+
+  const refresh = useCallback(() => refresherRef.current!.refresh(serverUrl), [serverUrl]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -60,23 +68,9 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     error,
     selectWorkspace: id => setSelectedId(id),
     refresh,
-    clone: async request => {
-      if (!serverUrl) throw new Error('Connect this client to an Agent-Up Server first.');
-      const workspace = await cloneSourceRepository(serverUrl, request);
-      await refresh();
-      setSelectedId(workspace.id);
-      return workspace;
-    },
-    start: async id => {
-      if (!serverUrl) return;
-      await startWorkspace(serverUrl, id);
-      await refresh();
-    },
-    stop: async id => {
-      if (!serverUrl) return;
-      await stopWorkspace(serverUrl, id);
-      await refresh();
-    },
+    clone: request => actionsRef.current!.clone(serverUrl, request),
+    start: id => actionsRef.current!.start(serverUrl, id),
+    stop: id => actionsRef.current!.stop(serverUrl, id),
   }), [serverUrl, workspaces, selectedId, loading, error, refresh]);
 
   return <Context.Provider value={controller}>{children}</Context.Provider>;

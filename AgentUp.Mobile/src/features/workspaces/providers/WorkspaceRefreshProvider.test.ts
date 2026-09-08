@@ -50,7 +50,7 @@ test('a slow response for the previous server does not replace the current one',
     serverUrl.endsWith('slow')
       ? new Promise<Workspace[]>(resolve => { releaseSlow = resolve; })
       : Promise.resolve([workspace('from-fast')]);
-  const refresh = createWorkspaceRefresh(recorded.sink, list);
+  const { refresh } = createWorkspaceRefresh(recorded.sink, list);
 
   const slow = refresh('http://slow');
   await refresh('http://fast');
@@ -69,7 +69,7 @@ test('a failure from the previous server does not replace the current one', asyn
     serverUrl.endsWith('slow')
       ? new Promise<Workspace[]>((_resolve, reject) => { failSlow = reject; })
       : Promise.resolve([workspace('from-fast')]);
-  const refresh = createWorkspaceRefresh(recorded.sink, list);
+  const { refresh } = createWorkspaceRefresh(recorded.sink, list);
 
   const slow = refresh('http://slow');
   await refresh('http://fast');
@@ -83,7 +83,7 @@ test('a failure from the previous server does not replace the current one', asyn
 
 test('a response for the current server is applied', async () => {
   const recorded = recorder();
-  const refresh = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([workspace('ws-1')]));
+  const { refresh } = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([workspace('ws-1')]));
 
   await refresh('http://localhost:5000');
 
@@ -93,7 +93,7 @@ test('a response for the current server is applied', async () => {
 
 test('a failure for the current server is reported', async () => {
   const recorded = recorder();
-  const refresh = createWorkspaceRefresh(recorded.sink, () => Promise.reject(new Error('Connection refused')));
+  const { refresh } = createWorkspaceRefresh(recorded.sink, () => Promise.reject(new Error('Connection refused')));
 
   await refresh('http://localhost:5000');
 
@@ -103,7 +103,7 @@ test('a failure for the current server is reported', async () => {
 
 test('refreshing without a server disconnects instead of loading', async () => {
   const recorded = recorder();
-  const refresh = createWorkspaceRefresh(recorded.sink, () => {
+  const { refresh } = createWorkspaceRefresh(recorded.sink, () => {
     throw new Error('the server must not be queried when none is selected');
   });
 
@@ -116,7 +116,7 @@ test('refreshing without a server disconnects instead of loading', async () => {
 test('a pending response is dropped once the server is deselected', async () => {
   const recorded = recorder();
   let release: (workspaces: Workspace[]) => void = () => {};
-  const refresh = createWorkspaceRefresh(
+  const { refresh } = createWorkspaceRefresh(
     recorded.sink,
     () => new Promise<Workspace[]>(resolve => { release = resolve; }),
   );
@@ -129,4 +129,37 @@ test('a pending response is dropped once the server is deselected', async () => 
 
   assert.deepEqual(recorded.applied, []);
   assert.equal(recorded.disconnects, 1);
+});
+
+test('isActive tracks the server the newest refresh targeted', async () => {
+  const recorded = recorder();
+  const refresher = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([]));
+
+  assert.equal(refresher.isActive('http://a'), false, 'nothing is active before the first refresh');
+
+  await refresher.refresh('http://a');
+  assert.equal(refresher.isActive('http://a'), true);
+
+  await refresher.refresh('http://b');
+  assert.equal(refresher.isActive('http://a'), false);
+  assert.equal(refresher.isActive('http://b'), true);
+
+  await refresher.refresh(null);
+  assert.equal(refresher.isActive('http://b'), false);
+  assert.equal(refresher.isActive(null), true);
+});
+
+test('isActive becomes true as soon as a refresh starts, before it settles', async () => {
+  const recorded = recorder();
+  let release: (workspaces: Workspace[]) => void = () => {};
+  const refresher = createWorkspaceRefresh(
+    recorded.sink,
+    () => new Promise<Workspace[]>(resolve => { release = resolve; }),
+  );
+
+  const pending = refresher.refresh('http://a');
+  assert.equal(refresher.isActive('http://a'), true);
+
+  release([]);
+  await pending;
 });
