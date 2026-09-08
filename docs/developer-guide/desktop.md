@@ -23,8 +23,14 @@ AgentUp.Desktop/
       DTOs/         WorkspaceDto
       Providers/    WorkspaceApiClient
       Repositories/ BrowserUrlStore
-      ViewModels/   MainViewModel, WorkspaceItemViewModel
+      ViewModels/   MainViewModel, WorkspaceItemViewModel, WorkspaceCloneViewModel
       Views/        MainWindow.axaml
+    Git/
+      DTOs/         GitChangeTreeDto, GitFileDiffDto
+      Providers/    GitApiClient
+      Services/     GitChangeListService
+      Controllers/  GitController
+      ViewModels/   GitPanelViewModel, GitChangeNodeViewModel
 ```
 
 ## Responsibilities
@@ -38,8 +44,23 @@ The Desktop displays:
 - Health.
 - Running processes.
 - A paginated frontend audit trail for each selected application.
+- The uncommitted Git changes of the selected workspace.
 
 It connects to the Server and renders server-owned state.
+
+## Adding Workspaces
+
+The workspace list header has a `+` button that opens a modal asking for a repository and a branch. Confirming posts to the Server's source-clones endpoint, reloads the list, and selects the workspace the Server registered. The dialog stays open with the Server's message when the clone fails, so the user can correct the repository or branch without retyping both.
+
+Desktop does not clone, validate remotes, or choose a destination directory. Those are Server concerns; Desktop only collects the two fields and renders the result.
+
+## Git Panel
+
+The Git icon in the title bar toggles a panel on the right of the selected workspace. The panel renders the Server's change tree as a flattened, indented list: directories first, then files, each row carrying a checkbox and a status marker.
+
+Selecting a file name opens its diff in a modal over the window. Selecting a directory checkbox selects every file beneath it, and a directory shows as checked exactly when all of its files are selected. Below the list are a commit message box and a Commit button that stays disabled until at least one file is selected and the message is non-empty.
+
+`GitPanelViewModel` owns selection propagation between directory and file rows; the flattened rows keep the Avalonia list simple while the Server keeps the tree shape. The panel reloads whenever the selected workspace changes and after a successful commit.
 
 ## First-Run Tutorial
 

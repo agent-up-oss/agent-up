@@ -11,6 +11,8 @@ title: Server
 The Server manages:
 
 - Workspace registry.
+- Managed source clones.
+- Git working-tree review and commits.
 - Process lifecycle.
 - Port allocation.
 - Docker lifecycle.
@@ -70,6 +72,28 @@ existing audit store and provides bounded, cursor-paginated queries scoped to a
 workspace and application.
 
 Process output storage must not use workspace IDs or application names as raw path segments. Repositories that persist process logs must encode or canonicalize those identifiers and verify the resolved path stays under the Server-owned output root before reading, writing, or deleting files.
+
+## Managed Source Clones
+
+The `SourceClones` slice owns repositories Agent-Up clones for itself, as opposed to worktrees registered from the CLI or MCP. `POST /api/source-clones` takes a repository and a branch, validates both, clones into the source clones root, and registers the resulting workspace through the `Workspaces` controller boundary. `GET /api/source-clones/root` reports the configured root.
+
+The root comes from `AGENTUP_SOURCE_CLONES_ROOT` and otherwise defaults to a `sources` directory under the Server data directory. The slice resolves a destination directory from the repository name, verifies it stays under that root, and refuses a clone when the destination already exists.
+
+Remotes are restricted to `http`, `https`, `ssh`, and `git` URLs plus the `user@host:path` form. Local `file://` and transport-helper remotes are rejected so a REST caller cannot make the Server read arbitrary local repositories. Branch names are validated against Git ref rules before any process starts, and the clone runs with `GIT_TERMINAL_PROMPT=0` so a credential prompt cannot hang the Server.
+
+Registration prefers the repository's own `agent-up.json` through the `Orchestration` registration controller. A repository without that file still registers, using the clone directory name and the identity read from the new checkout.
+
+## Git Working Tree
+
+The `Git` slice is the Server-side capability behind the Desktop Git panel and the Mobile Git tab. It resolves the selected workspace's worktree path and exposes three routes:
+
+- `GET /api/workspaces/{workspaceId}/git/changes` returns the uncommitted changes as a directory tree with per-file status.
+- `GET /api/workspaces/{workspaceId}/git/file?path=` returns one file's diff, including untracked files.
+- `POST /api/workspaces/{workspaceId}/git/commit` stages and commits only the requested paths with the supplied message and returns the new commit.
+
+The provider runs Git through an allowlisted operation set with `ProcessStartInfo.ArgumentList`, rejects pathspec magic, option-shaped paths, and paths that resolve outside the repository root, and always passes `--` before user-supplied paths. Because the commit passes explicit pathspecs, changes to files the caller did not select stay in the worktree.
+
+This slice is separate from the `Commits` slice. `Commits` owns the agent-facing commit queue, which stages vertical slices for a developer to review. `Git` owns the human review-and-commit surface in Desktop and Mobile.
 
 ## Tutorial Cleanup
 

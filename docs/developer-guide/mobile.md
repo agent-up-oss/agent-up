@@ -41,6 +41,26 @@ feature-oriented convention as the .NET projects. Do not commit generated
 `android/` or `ios/` projects; Expo owns those platform details until a native
 customization requires an intentional prebuild.
 
+## Workspaces and Git slices
+
+`src/features/workspaces/` owns the Workspaces tab: the workspace list, the
+selected workspace shared across tabs, and the `+` dialog that asks for a
+repository and a branch and posts them to the Server's source-clones endpoint.
+Selection lives in `WorkspacesProvider`, which is mounted in the root layout so
+other tabs read the same selection.
+
+`src/features/git/` owns the Git tab. It renders the Server's change tree as
+indented rows with per-file checkboxes, opens a file's diff in a modal, and
+commits the selected paths with the entered message. Tree flattening and
+directory/file selection are pure functions in
+`providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
+renderer.
+
+Both slices reach the Server through
+`src/features/servers/providers/ServerRequestProvider.ts`. The servers slice
+owns connectivity to a configured Server, so feature slices do not reimplement
+timeout, problem-detail, and unreachable-server handling.
+
 ## Local development
 
 Install dependencies with the repository Nix shell so the expected Node.js
