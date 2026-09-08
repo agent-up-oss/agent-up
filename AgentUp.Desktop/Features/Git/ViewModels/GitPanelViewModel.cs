@@ -158,6 +158,9 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         Nodes.Clear();
         Branch = string.Empty;
         SelectedFileCount = 0;
+        // A superseded request skips the loading reset in LoadAsync, so clearing the panel has to
+        // settle it here; otherwise deselecting mid-load leaves the panel loading forever.
+        IsLoading = false;
         ErrorMessage = null;
         StatusMessage = null;
         Diff.Hide();

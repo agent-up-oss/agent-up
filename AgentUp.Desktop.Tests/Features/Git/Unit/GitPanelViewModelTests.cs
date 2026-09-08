@@ -248,6 +248,23 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task DeselectingTheWorkspaceMidLoadDoesNotLeaveThePanelLoading()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), HoldChanges = true };
+        var panel = CreatePanel(client);
+        var pending = panel.LoadAsync("ws-1");
+
+        await panel.LoadAsync(null);
+
+        client.CompleteHeldChanges(SampleTree());
+        await pending;
+
+        Assert.That(panel.IsLoading, Is.False);
+        Assert.That(panel.Nodes, Is.Empty);
+        Assert.That(panel.ShowEmptyState, Is.True);
+    }
+
+    [Test]
     public async Task OpeningAFileDiscardsADiffThatArrivesAfterAnotherFileWasOpened()
     {
         var client = new FakeGitApiProvider { Tree = SampleTree() };
