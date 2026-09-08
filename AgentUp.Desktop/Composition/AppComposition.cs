@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using AgentUp.Desktop.Features.Authentication.Controllers;
@@ -6,7 +7,6 @@ using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
-using System.Net.Http.Headers;
 
 namespace AgentUp.Desktop.Composition;
 
@@ -23,26 +23,49 @@ public static class AppComposition
         window.Closing += (_, _) => viewModel.Login.Cancel();
         window.Show();
 
-        if (await authentication.IsRequiredAsync())
-        {
-            viewModel.Login.Show();
-            var token = await viewModel.Login.WaitForSignInAsync();
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                desktop.Shutdown();
-                return;
-            }
-
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        }
+        while (!await TryAuthenticateAsync(desktop, http, authentication, login))
+            continue;
 
         await viewModel.InitializeAsync();
     }
 
-    private static HttpClient CreateServerHttpClient() => new()
+    private static async Task<bool> TryAuthenticateAsync(
+        IClassicDesktopStyleApplicationLifetime desktop,
+        HttpClient http,
+        AuthenticationController authentication,
+        LoginViewModel login)
     {
-        BaseAddress = new Uri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000")
-    };
+        try
+        {
+            if (!await authentication.IsRequiredAsync())
+                return true;
+
+            login.Show();
+            var token = await login.WaitForSignInAsync();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                desktop.Shutdown();
+                return false;
+            }
+
+            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return true;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            login.ShowConnectionFailure(ex.Message);
+            if (!await login.WaitForConnectionRetryAsync())
+            {
+                desktop.Shutdown();
+                return false;
+            }
+
+            return false;
+        }
+    }
+
+    private static HttpClient CreateServerHttpClient()
+        => new() { BaseAddress = SecureServerUrlProvider.ResolveServerUri() };
 
     public static (Window Window, MainViewModel ViewModel) CreateMainWindow(HttpClient http, LoginViewModel login)
     {

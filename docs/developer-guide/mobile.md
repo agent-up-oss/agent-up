@@ -18,7 +18,9 @@ selecting another sidebar icon changes the client target and does not copy or
 own Server runtime state. A URL is saved only after the Server authentication
 status probe succeeds. If login is required, the client requests the single
 administrator password and stores the resulting access token with the Server
-selection; if authentication is disabled, it skips that login step.
+selection; if authentication is disabled, it skips that login step. Remote
+servers must use HTTPS; loopback HTTP URLs remain supported for local
+development.
 
 As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package

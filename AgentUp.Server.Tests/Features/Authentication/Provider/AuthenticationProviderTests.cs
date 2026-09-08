@@ -54,6 +54,21 @@ public class AuthenticationProviderTests
         });
     }
 
+    [Test]
+    public void IsAuthenticated_RejectsExpiredSessions()
+    {
+        var service = Create(
+            ("AGENTUP_ADMIN_PASSWORD", "secret"),
+            ("AGENTUP_SESSION_LIFETIME_SECONDS", "-1"));
+        var token = service.Login("secret");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(token, Is.Not.Null);
+            Assert.That(service.IsAuthenticated(token), Is.False);
+        });
+    }
+
     private static AuthenticationProvider Create(params (string Key, string Value)[] values) =>
         new(new ConfigurationBuilder().AddInMemoryCollection(
             values.ToDictionary(value => value.Key, value => (string?)value.Value)).Build());

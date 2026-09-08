@@ -9,7 +9,7 @@ namespace AgentUp.Tests.Features.Browser.Headless;
 //
 // Run: dotnet test AgentUp.Tests/ --filter "Category=Headless"
 [TestFixture, Category("Headless")]
-public sealed class HeadlessEndpointTests
+public sealed class HeadlessEndpointTests : IDisposable
 {
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
@@ -23,10 +23,12 @@ public sealed class HeadlessEndpointTests
     }
 
     [OneTimeTearDown]
-    public async Task TearDown()
+    public void TearDown() => Dispose();
+
+    public void Dispose()
     {
-        _client.Dispose();
-        await _factory.DisposeAsync();
+        _client?.Dispose();
+        _factory?.Dispose();
     }
 
     [Test]

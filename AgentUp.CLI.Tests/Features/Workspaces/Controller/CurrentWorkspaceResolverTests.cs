@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using AgentUp.CLI.Shared.Providers;
@@ -93,7 +94,24 @@ public class CurrentWorkspaceResolverTests
 
     private sealed class UnauthorizedHandler : HttpMessageHandler
     {
+        private readonly ConcurrentBag<HttpResponseMessage> _responses = new();
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized);
+            _responses.Add(response);
+            return Task.FromResult(response);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                foreach (var response in _responses)
+                    response.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

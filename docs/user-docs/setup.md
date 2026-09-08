@@ -60,6 +60,10 @@ To expose REST to the LAN, set `ASPNETCORE_URLS=http://0.0.0.0:5000`. MCP has no
 login because it is intended for local tools, and the Server rejects MCP requests
 whose remote address is not loopback.
 
+Remote Desktop and Mobile clients must use HTTPS when the Server URL is not
+loopback. Loopback HTTP remains supported for local development on
+`http://localhost` and `http://127.0.0.1`.
+
 For source development:
 
 ```bash

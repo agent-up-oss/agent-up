@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useServers } from '../controllers/ServersContext';
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
-import { getAuthenticationStatus, login } from '../../authentication/providers/AuthenticationProvider';
+import { getAuthenticationStatus, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
 
 export function ServerSetupScreen() {
   const { activeServer, saveServer } = useServers();
@@ -19,10 +19,13 @@ export function ServerSetupScreen() {
     if (connectionInFlight.current) return;
     connectionInFlight.current = true;
     setBusy(true); setStatus('Trying server…');
+    setLoginUrl(null);
+    setPassword('');
     try {
       const normalized = normalizeServerUrl(url);
       const auth = await getAuthenticationStatus(normalized);
       if (auth.authenticationRequired) {
+        ensureCredentialTransportAllowed(normalized);
         setLoginUrl(normalized);
         setStatus('Enter the server admin password.');
         return;
@@ -54,10 +57,10 @@ export function ServerSetupScreen() {
     <Text style={styles.subtitle}>Connect this client to an Agent-Up Server.</Text>
     <View style={styles.card}>
       <Text style={styles.heading}>Add a server</Text>
-      <Text style={styles.detail}>Enter an HTTP or HTTPS base URL. Login tokens stay in this client's local storage.</Text>
+      <Text style={styles.detail}>Use HTTPS for remote servers. Loopback HTTP URLs are allowed for local development. Login tokens stay in this client's local storage.</Text>
       <Text style={styles.label}>Server URL</Text>
       <TextInput accessibilityLabel="Server URL" autoCapitalize="none" autoCorrect={false} keyboardType="url"
-        placeholder="http://192.168.1.10:5000" placeholderTextColor="#718077" value={url} onChangeText={setUrl}
+        placeholder="https://agent-up.example.com" placeholderTextColor="#718077" value={url} onChangeText={setUrl}
         editable={!busy} onSubmitEditing={() => void tryAndSave()} style={styles.input} />
       {loginUrl && <><Text style={styles.label}>Admin password</Text>
         <TextInput accessibilityLabel="Admin password" secureTextEntry value={password} onChangeText={setPassword}

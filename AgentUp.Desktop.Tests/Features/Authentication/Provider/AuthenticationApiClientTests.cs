@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using AgentUp.Desktop.Features.Authentication.Providers;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Authentication.Provider;
 
@@ -10,7 +11,8 @@ public class AuthenticationApiClientTests
     [Test]
     public async Task IsAuthenticationRequiredAsync_ReadsServerStatus()
     {
-        var client = CreateClient(_ => Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(_ => Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var client = new AuthenticationApiClient(http.Client);
 
         Assert.That(await client.IsAuthenticationRequiredAsync(), Is.False);
     }
@@ -18,23 +20,26 @@ public class AuthenticationApiClientTests
     [Test]
     public async Task LoginAsync_ReturnsAccessToken()
     {
-        var client = CreateClient(_ => Json(HttpStatusCode.OK,
+        using var http = new DisposableTestHttpClient(_ => Json(HttpStatusCode.OK,
             "{\"authenticationRequired\":true,\"accessToken\":\"abc\"}"));
+        var client = new AuthenticationApiClient(http.Client);
 
         Assert.That(await client.LoginAsync("secret"), Is.EqualTo("abc"));
     }
 
-    private static AuthenticationApiClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> response) =>
-        new(new HttpClient(new StubHandler(response)) { BaseAddress = new Uri("http://server") });
+    [Test]
+    public async Task LoginAsync_ThrowsForUnauthorizedPassword()
+    {
+        using var http = new DisposableTestHttpClient(_ => Json(HttpStatusCode.Unauthorized, "{}"));
+        var client = new AuthenticationApiClient(http.Client);
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await client.LoginAsync("wrong"));
+        Assert.That(exception!.Message, Is.EqualTo("The admin password is incorrect."));
+    }
 
     private static HttpResponseMessage Json(HttpStatusCode status, string json) => new(status)
     {
         Content = new StringContent(json, Encoding.UTF8, "application/json")
     };
-
-    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> response) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(response(request));
-    }
 }

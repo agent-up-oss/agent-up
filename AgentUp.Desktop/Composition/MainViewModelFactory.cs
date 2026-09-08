@@ -35,6 +35,11 @@ namespace AgentUp.Desktop.Composition;
 
 public static class MainViewModelFactory
 {
+    private static readonly HttpClient DefaultAuthHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     private static readonly HttpClient DefaultAuditHttpClient = new()
     {
         BaseAddress = new Uri("http://127.0.0.1:5000")
@@ -81,7 +86,7 @@ public static class MainViewModelFactory
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
             login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
-                new AuthenticationApiClient(new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") })))),
+                new AuthenticationApiClient(DefaultAuthHttpClient)))),
             ports);
     }
 

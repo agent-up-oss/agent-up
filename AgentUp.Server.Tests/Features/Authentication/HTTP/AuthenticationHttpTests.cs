@@ -14,7 +14,7 @@ public class AuthenticationHttpTests
     [Test]
     public async Task RestRoutes_RequireLogin_AndAcceptIssuedToken()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
                 new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
         using var client = factory.CreateClient();
@@ -36,7 +36,7 @@ public class AuthenticationHttpTests
     [Test]
     public async Task RestRoutes_RequireLogin_EvenWhenAdminPasswordIsNotConfigured()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
 
         var status = await client.GetFromJsonAsync<LoginResponse>("/api/auth/status");
@@ -52,7 +52,7 @@ public class AuthenticationHttpTests
     [Test]
     public async Task AuthenticationCanBeDisabled()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
                 new Dictionary<string, string?> { ["AGENTUP_AUTH_DISABLED"] = "true" })));
         using var client = factory.CreateClient();

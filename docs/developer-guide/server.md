@@ -46,7 +46,9 @@ by default for every REST endpoint unless the endpoint explicitly opts out; this
 makes newly added routes protected by default. `AGENTUP_ADMIN_PASSWORD` supplies
 the administrator password for `POST /api/auth/login`, which returns an in-memory
 bearer token. `GET /api/auth/status` and the login endpoint are anonymous so
-Desktop, Mobile, and other clients can decide whether to display login.
+Desktop, Mobile, and other clients can decide whether to display login. Bearer
+sessions expire after 24 hours by default; override with
+`AGENTUP_SESSION_LIFETIME_SECONDS`.
 
 The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset. REST routes remain
 protected in that mode, but login cannot succeed until the password is configured.
@@ -62,6 +64,9 @@ MCP remains unauthenticated for local automation, but `/mcp` requests from a
 non-loopback remote address are hidden with a 404 response. The HTTP listener
 can therefore use an address such as `ASPNETCORE_URLS=http://0.0.0.0:5000` for
 LAN REST access while MCP remains localhost-only at the request boundary.
+
+Desktop and Mobile reject remote `http://` Server URLs for administrator login
+and require HTTPS outside loopback hosts.
 
 The REST API permits cross-origin browser requests from any HTTP or HTTPS
 origin, so the Mobile web/PWA client can reach a Server the user points it at

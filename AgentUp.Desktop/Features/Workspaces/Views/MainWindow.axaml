@@ -593,12 +593,32 @@
                             <TextBlock Text="Enter the administrator password to continue."
                                        Foreground="#c6ddd2"
                                        FontSize="14"
-                                       TextWrapping="Wrap"/>
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding !Login.IsConnectionRetry}"/>
+                            <TextBlock Text="Could not reach the server. Check that Agent-Up Server is running and AGENTUP_SERVER_URL is correct."
+                                       Foreground="#c6ddd2"
+                                       FontSize="14"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding Login.IsConnectionRetry}"/>
                             <TextBox Text="{Binding Login.Password, Mode=TwoWay}"
                                      PasswordChar="●"
-                                     PlaceholderText="Admin password"/>
+                                     PlaceholderText="Admin password"
+                                     IsVisible="{Binding !Login.IsConnectionRetry}"/>
+                            <Button Command="{Binding Login.RetryConnectionCommand}"
+                                    IsVisible="{Binding Login.IsConnectionRetry}"
+                                    HorizontalAlignment="Stretch">
+                                <Border Background="#00b850"
+                                        CornerRadius="6"
+                                        Padding="12,8">
+                                    <TextBlock Text="Retry connection"
+                                               Foreground="#000000"
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Center"/>
+                                </Border>
+                            </Button>
                             <Button Command="{Binding Login.SignInCommand}"
                                     IsEnabled="{Binding !Login.IsBusy}"
+                                    IsVisible="{Binding !Login.IsConnectionRetry}"
                                     HorizontalAlignment="Stretch">
                                 <Border Background="#00b850"
                                         CornerRadius="6"
