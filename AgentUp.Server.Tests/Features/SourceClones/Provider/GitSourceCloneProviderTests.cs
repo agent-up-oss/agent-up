@@ -45,6 +45,21 @@ public sealed class GitSourceCloneProviderTests
     }
 
     [Test]
+    public async Task CloneAsync_propagatesCancellationInsteadOfLeavingGitRunning()
+    {
+        var destination = Path.Join(_root, "clones", "widgets");
+        var provider = new GitSourceCloneProvider();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        Assert.That(
+            Assert.CatchAsync(async () => await provider.CloneAsync(
+                new SourceCloneTarget(_origin, "main", "widgets", destination),
+                cancellation.Token)),
+            Is.AssignableTo<OperationCanceledException>());
+    }
+
+    [Test]
     public void CloneAsync_reportsUnknownBranchesAsStructuredFailures()
     {
         var destination = Path.Join(_root, "clones", "widgets");

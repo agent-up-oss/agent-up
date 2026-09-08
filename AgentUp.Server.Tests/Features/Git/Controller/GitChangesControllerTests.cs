@@ -29,10 +29,10 @@ public sealed class GitChangesControllerTests
         git.Changes.Add(new GitChangeEntry("src/app/main.cs", GitChangeStatus.Modified));
         var (controller, workspaceId) = await CreateControllerAsync(git);
 
-        var result = await controller.GetChanges(workspaceId) as OkObjectResult;
+        var result = await controller.GetChanges(workspaceId);
 
-        var tree = result!.Value as GitChangeTree;
-        Assert.That(tree!.FileCount, Is.EqualTo(1));
+        var tree = OkValue<GitChangeTree>(result);
+        Assert.That(tree.FileCount, Is.EqualTo(1));
         Assert.That(tree.Root.Directories[0].Name, Is.EqualTo("src"));
     }
 
@@ -55,9 +55,9 @@ public sealed class GitChangesControllerTests
         };
         var (controller, workspaceId) = await CreateControllerAsync(git);
 
-        var result = await controller.GetFileDiff(workspaceId, "src/app/main.cs") as OkObjectResult;
+        var result = await controller.GetFileDiff(workspaceId, "src/app/main.cs");
 
-        Assert.That((result!.Value as GitFileDiff)!.Diff, Is.EqualTo("@@ -1 +1 @@"));
+        Assert.That(OkValue<GitFileDiff>(result).Diff, Is.EqualTo("@@ -1 +1 @@"));
     }
 
     [Test]
@@ -78,11 +78,15 @@ public sealed class GitChangesControllerTests
 
         var result = await controller.Commit(
             workspaceId,
-            new GitCommitRequest(["src/app/main.cs"], "feat(App): add main")) as OkObjectResult;
+            new GitCommitRequest(["src/app/main.cs"], "feat(App): add main"));
 
-        Assert.That((result!.Value as GitCommitResult)!.Commit, Is.EqualTo("0123456789abcdef"));
+        Assert.That(OkValue<GitCommitResult>(result).Commit, Is.EqualTo("0123456789abcdef"));
         Assert.That(git.CommittedFiles, Is.EqualTo(new[] { "src/app/main.cs" }));
     }
+
+    private static T OkValue<T>(IActionResult result) where T : class
+        => (result as OkObjectResult)?.Value as T
+           ?? throw new AssertionException($"Expected a 200 OK result carrying {typeof(T).Name}, got {result.GetType().Name}.");
 
     private static async Task<(GitChangesController Controller, string WorkspaceId)> CreateControllerAsync(
         FakeGitWorkingTreeProvider git)

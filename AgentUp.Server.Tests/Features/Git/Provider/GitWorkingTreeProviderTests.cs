@@ -156,6 +156,74 @@ public sealed class GitWorkingTreeProviderTests
         Assert.That(exception!.Message, Does.Contain("Commit message"));
     }
 
+    [TestCase(".")]
+    [TestCase("./")]
+    [TestCase("src")]
+    [TestCase("src/app")]
+    public async Task CommitAsync_rejectsPathsThatAreNotASingleChangedFile(string path)
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "README.md"), "widgets changed\n");
+        await File.WriteAllTextAsync(Path.Join(_repository, "src", "app", "main.cs"), "// changed\n");
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.CommitAsync(_repository, [path], "chore: sweep"));
+
+        Assert.That(exception!.Message, Does.Contain("not a changed file"));
+        Assert.That(await provider.GetChangesAsync(_repository), Has.Count.EqualTo(2),
+            "a rejected selection must leave every change in the worktree");
+    }
+
+    [Test]
+    public async Task CommitAsync_rejectsAFileWithoutChanges()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "README.md"), "widgets changed\n");
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.CommitAsync(_repository, ["src/app/main.cs"], "chore: untouched"));
+
+        Assert.That(exception!.Message, Does.Contain("not a changed file"));
+    }
+
+    // A backslash is a legal character in a Unix file name, so the path git reports must survive
+    // unchanged into the diff and commit calls. Windows cannot create such a file at all.
+    [Test]
+    [Platform("Unix")]
+    public async Task ChangedPathsWithBackslashesRoundTripThroughDiffAndCommit()
+    {
+        var name = "odd\\name.cs";
+        await File.WriteAllTextAsync(Path.Join(_repository, name), "// odd\n");
+        var provider = new GitWorkingTreeProvider();
+
+        var changes = await provider.GetChangesAsync(_repository);
+        var reported = changes.Single(change => change.Path.Contains("odd", StringComparison.Ordinal)).Path;
+
+        Assert.That(reported, Is.EqualTo(name));
+        Assert.That(await provider.GetFileDiffAsync(_repository, reported), Is.Not.Null);
+
+        await provider.CommitAsync(_repository, [reported], "feat(App): add odd name");
+
+        Assert.That(await provider.GetChangesAsync(_repository), Is.Empty);
+    }
+
+    [Test]
+    public async Task CommitAsync_propagatesCancellationInsteadOfLeavingGitRunning()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "README.md"), "widgets changed\n");
+        var provider = new GitWorkingTreeProvider();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        Assert.That(
+            Assert.CatchAsync(async () => await provider.CommitAsync(
+                _repository,
+                ["README.md"],
+                "fix(App): change readme",
+                cancellation.Token)),
+            Is.AssignableTo<OperationCanceledException>());
+    }
+
     [Test]
     public void CommitAsync_rejectsAnEmptyFileSelection()
     {

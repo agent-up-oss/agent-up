@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using AgentUp.Server.Features.SourceClones.DTOs;
 using AgentUp.Server.Features.SourceClones.Interfaces;
@@ -32,11 +33,43 @@ public sealed class GitSourceCloneProvider : ISourceCloneGitProvider
 
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        await stdoutTask;
-        var stderr = await stderrTask;
+        string stderr;
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+            await stdoutTask;
+            stderr = await stderrTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Disposing the process does not stop git, so an abandoned clone would keep writing
+            // into the source clones root after the request ended.
+            await KillProcessAfterCancellationAsync(process);
+            throw;
+        }
 
         if (process.ExitCode != 0)
             throw new InvalidOperationException($"Cloning '{target.Repository}' at branch '{target.Branch}' failed: {stderr.Trim()}");
+    }
+
+    private static async Task KillProcessAfterCancellationAsync(Process process)
+    {
+        if (process.HasExited)
+            return;
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (Win32Exception)
+        {
+            return;
+        }
+
+        await process.WaitForExitAsync(CancellationToken.None);
     }
 }

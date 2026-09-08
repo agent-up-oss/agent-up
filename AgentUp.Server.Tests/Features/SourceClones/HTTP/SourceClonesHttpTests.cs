@@ -74,6 +74,22 @@ public sealed class SourceClonesHttpTests
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("Branch"));
     }
 
+    [TestCase("ext::sh -c whoami")]
+    [TestCase("ext::git-upload-pack %S /repo")]
+    public async Task Post_rejectsTransportHelperRemotes(string repository)
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/source-clones",
+            new CloneSourceRequest(repository, "main"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("Repository"));
+        Assert.That(Directory.Exists(_clonesRoot), Is.False);
+        Assert.That(await client.GetFromJsonAsync<List<Workspace>>("/api/workspaces"), Is.Empty);
+    }
+
     [Test]
     public async Task Post_rejectsLocalFileRemotesAndRegistersNoWorkspace()
     {

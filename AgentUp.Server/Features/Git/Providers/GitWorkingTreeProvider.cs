@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using AgentUp.Server.Features.Git.DTOs;
@@ -45,12 +46,20 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         string message,
         CancellationToken cancellationToken = default)
     {
+        var commitMessage = NormalizeCommitMessage(message);
         var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
         var safeFiles = files.Select(file => NormalizeRepoRelativePath(repoRoot, file)).Distinct(StringComparer.Ordinal).ToList();
         if (safeFiles.Count == 0)
             throw new InvalidOperationException("Select at least one file to commit.");
 
-        var commitMessage = NormalizeCommitMessage(message);
+        // Each path must name a file git currently reports as changed. Without this a request
+        // could pass "." or a directory, which git would expand to every change in the worktree.
+        var changed = (await GetChangesAsync(repoRoot, cancellationToken))
+            .Select(change => change.Path)
+            .ToHashSet(StringComparer.Ordinal);
+        var unknown = safeFiles.FirstOrDefault(file => !changed.Contains(file));
+        if (unknown is not null)
+            throw new InvalidOperationException($"Git file path '{unknown}' is not a changed file in this workspace.");
 
         var addArgs = new List<string> { "add", "--" };
         addArgs.AddRange(safeFiles);
@@ -62,6 +71,12 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
 
         return await RunGitAsync(repoRoot, ["rev-parse", "HEAD"], cancellationToken);
     }
+
+    // Git reports repository-relative paths with forward slashes, and Path.GetRelativePath returns
+    // backslashes on Windows. On Unix a backslash is a legal filename character, so folding it there
+    // would rename the file out from under the diff and commit calls.
+    private static string NormalizeSeparators(string path)
+        => OperatingSystem.IsWindows() ? path.Replace('\\', '/') : path;
 
     private static string NullDevicePath()
         => OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
@@ -95,7 +110,7 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
                 index++;
 
             if (path.Length > 0)
-                yield return new GitChangeEntry(path.Replace('\\', '/'), MapStatus(code));
+                yield return new GitChangeEntry(NormalizeSeparators(path), MapStatus(code));
         }
     }
 
@@ -128,7 +143,7 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative))
             throw new InvalidOperationException($"Git file path '{path}' must stay under the repository root.");
 
-        var normalized = relative.Replace('\\', '/');
+        var normalized = NormalizeSeparators(relative);
         if (!GitPathArgument().IsMatch(normalized))
             throw new InvalidOperationException($"Git file path '{path}' must be a safe repository-relative path.");
 
@@ -162,15 +177,48 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
 
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        var stdout = await stdoutTask;
-        var stderr = await stderrTask;
+        string stdout;
+        string stderr;
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+            stdout = await stdoutTask;
+            stderr = await stderrTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Disposing the process does not stop git, so an abandoned commit could still rewrite
+            // history after the request ended. Stop it before surfacing the cancellation.
+            await KillProcessAfterCancellationAsync(process);
+            throw;
+        }
 
         var allowed = allowedExitCodes ?? [0];
         if (!allowed.Contains(process.ExitCode))
             throw new InvalidOperationException($"Git operation '{arguments[0]}' failed: {stderr.Trim()}");
 
         return trimOutput ? stdout.TrimEnd() : stdout;
+    }
+
+    private static async Task KillProcessAfterCancellationAsync(Process process)
+    {
+        if (process.HasExited)
+            return;
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (Win32Exception)
+        {
+            return;
+        }
+
+        await process.WaitForExitAsync(CancellationToken.None);
     }
 
     private static string NormalizeWorktreePath(string worktreePath)

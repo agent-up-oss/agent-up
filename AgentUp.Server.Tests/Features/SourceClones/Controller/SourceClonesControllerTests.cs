@@ -33,12 +33,15 @@ public sealed class SourceClonesControllerTests
 
         var result = await controller.Clone(new CloneSourceRequest("https://example.test/acme/widgets.git", "main"));
 
-        var created = result as CreatedResult;
-        Assert.That(created, Is.Not.Null);
-        var workspace = created!.Value as Workspace;
-        Assert.That(workspace, Is.Not.Null);
-        Assert.That(created.Location, Is.EqualTo($"/api/workspaces/{workspace!.Id}"));
-        Assert.That(git.Cloned!.Branch, Is.EqualTo("main"));
+        var created = result as CreatedResult
+            ?? throw new AssertionException($"Expected a 201 Created result, got {result.GetType().Name}.");
+        var workspace = created.Value as Workspace
+            ?? throw new AssertionException("Expected the created result to carry the registered workspace.");
+        var cloned = git.Cloned
+            ?? throw new AssertionException("Expected the repository to have been cloned.");
+
+        Assert.That(created.Location, Is.EqualTo($"/api/workspaces/{workspace.Id}"));
+        Assert.That(cloned.Branch, Is.EqualTo("main"));
     }
 
     private static SourceClonesController CreateController(FakeSourceCloneGitProvider git)
