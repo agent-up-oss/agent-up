@@ -2,6 +2,7 @@ using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.FirstRun.Interfaces;
@@ -61,7 +62,7 @@ internal sealed class AppDriver
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
-        return await LaunchWithClientsAsync(workspaceClient, consoleClient);
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient, new GitApiClient(http));
     }
 
     public static async Task<(AppDriver Driver, MutableFakeHttpMessageHandler Handler)> LaunchWithMutableWorkspacesAsync(
@@ -72,7 +73,7 @@ internal sealed class AppDriver
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
-        var driver = await LaunchWithClientsAsync(workspaceClient, consoleClient, webViewFactory);
+        var driver = await LaunchWithClientsAsync(workspaceClient, consoleClient, new GitApiClient(http), webViewFactory);
         return (driver, handler);
     }
 
@@ -84,7 +85,7 @@ internal sealed class AppDriver
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
-        return await LaunchWithClientsAsync(workspaceClient, consoleClient);
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient, new GitApiClient(http));
     }
 
     private static async Task<AppDriver> LaunchAsync(
@@ -96,16 +97,21 @@ internal sealed class AppDriver
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
-        return await LaunchWithClientsAsync(workspaceClient, consoleClient, webViewFactory, tutorial);
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient, new GitApiClient(http), webViewFactory, tutorial);
     }
 
     private static async Task<AppDriver> LaunchWithClientsAsync(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
+        GitApiClient gitClient,
         Func<NativeWebView>? webViewFactory = null,
         FirstRunTutorialViewModel? tutorial = null)
     {
-        var vm = MainViewModelFactory.Create(workspaceClient, consoleClient, tutorial: tutorial ?? CompletedTutorial());
+        var vm = MainViewModelFactory.Create(
+            workspaceClient,
+            consoleClient,
+            tutorial: tutorial ?? CompletedTutorial(),
+            gitClient: gitClient);
         var window = new MainWindow { DataContext = vm };
         window.WebViewFactory = webViewFactory
             ?? (() => throw new InvalidOperationException("WebView not available in headless tests"));

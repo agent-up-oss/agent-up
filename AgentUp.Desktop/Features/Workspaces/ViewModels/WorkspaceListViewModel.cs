@@ -18,6 +18,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 
     public WorkspaceDeleteConfirmationViewModel DeleteConfirmation { get; }
 
+    public WorkspaceCloneViewModel AddWorkspace { get; }
+
     public WorkspaceItemViewModel? SelectedWorkspace
     {
         get => _selectedWorkspace;
@@ -78,6 +80,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowAddWorkspaceCommand { get; }
 
     public WorkspaceListViewModel(WorkspacesController workspaces)
     {
@@ -87,8 +90,41 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             id => DeleteWorkspaceAsync(id),
             () => deleteConfirmation!.Hide());
         DeleteConfirmation = deleteConfirmation;
+        AddWorkspace = new WorkspaceCloneViewModel(
+            (repository, branch) => CloneWorkspaceAsync(repository, branch));
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
+        ShowAddWorkspaceCommand = ReactiveCommand.Create(AddWorkspace.Show);
+    }
+
+    // Clones a repository into the Server-owned source clones root and selects the workspace the
+    // Server registers for it. Returns false so the dialog stays open with the failure message.
+    public async Task<bool> CloneWorkspaceAsync(string repository, string branch, CancellationToken ct = default)
+    {
+        try
+        {
+            var workspace = await _workspaces.CloneAsync(repository, branch, ct);
+            ErrorMessage = null;
+            await LoadAsync(ct);
+            SelectWorkspace(workspace.Id);
+            return true;
+        }
+        catch (TaskCanceledException) when (ct.IsCancellationRequested)
+        {
+            return false;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            AddWorkspace.ErrorMessage = ex.Message;
+            return false;
+        }
+    }
+
+    private void SelectWorkspace(string workspaceId)
+    {
+        var added = Workspaces.FirstOrDefault(workspace => workspace.Id == workspaceId);
+        if (added is not null)
+            SelectedWorkspace = added;
     }
 
     Task IWorkspaceItemHost.StartWorkspaceAsync(string workspaceId)

@@ -31,6 +31,9 @@ public class WorkspaceListViewModelOrderingTests
         public Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default) =>
             Task.FromResult<WorkspaceDto?>(null);
 
+        public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new WorkspaceDto("ws-cloned", "widgets", "/clones/widgets", "/clones/widgets", "main", "abc123", "Stopped"));
+
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 

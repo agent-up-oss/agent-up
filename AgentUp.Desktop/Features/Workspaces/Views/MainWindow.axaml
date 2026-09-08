@@ -6,6 +6,7 @@
         xmlns:metricsVm="using:AgentUp.Desktop.Features.Metrics.ViewModels"
         xmlns:databaseVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         xmlns:databaseViewsVm="using:AgentUp.Desktop.Features.Database.ViewModels"
+        xmlns:gitVm="using:AgentUp.Desktop.Features.Git.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
@@ -427,6 +428,44 @@
             <Setter Property="Margin" Value="20,0,0,0"/>
         </Style>
 
+        <!-- Add workspace (+) -->
+        <Style Selector="Border.wsAddButton">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Background" Value="#080808"/>
+            <Setter Property="BorderBrush" Value="#3c3c3c"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Button:pointerover Border.wsAddButton">
+            <Setter Property="Background" Value="#0d4f32"/>
+        </Style>
+        <Style Selector="TextBlock.wsAddIcon">
+            <Setter Property="Foreground" Value="#2bf27a"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Git changes panel -->
+        <Style Selector="Border.gitNodeRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="4,3"/>
+        </Style>
+        <Style Selector="Border.gitNodeRow:pointerover">
+            <Setter Property="Background" Value="#0f3d28"/>
+        </Style>
+        <Style Selector="Button.gitNodeName">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
         <!-- First-run tutorial -->
         <Style Selector="Border.tutorialButton">
             <Setter Property="CornerRadius" Value="7"/>
@@ -491,6 +530,13 @@
                             ToolTip.Tip="Reload workspaces">
                         <Border Classes="titleToolButton">
                             <TextBlock Classes="chromeIcon" Text="↺" FontSize="15"/>
+                        </Border>
+                    </Button>
+                    <Button x:Name="GitPanelToggle"
+                            Command="{Binding Git.ToggleCommand}"
+                            ToolTip.Tip="Toggle Git changes panel">
+                        <Border Classes="titleToolButton">
+                            <TextBlock Classes="chromeIcon" Text="⑂" FontSize="15"/>
                         </Border>
                     </Button>
                     <Border x:Name="ServerStatusBadge"
@@ -565,6 +611,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
         <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
@@ -578,19 +625,39 @@
 
                 <!-- Header (expanded only) -->
                 <Border DockPanel.Dock="Top"
-                        Padding="16,12,16,6"
+                        Padding="16,10,10,6"
                         IsVisible="{Binding Sidebar.IsExpanded}">
-                    <TextBlock Text="Workspaces"
-                               Foreground="#2bf27a"
-                               FontSize="11"
-                               FontWeight="Bold"
-                               VerticalAlignment="Center"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Workspaces"
+                                   Foreground="#2bf27a"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                x:Name="AddWorkspaceButton"
+                                Command="{Binding Sidebar.ShowAddWorkspaceCommand}"
+                                ToolTip.Tip="Clone a repository into a new workspace">
+                            <Border Classes="wsAddButton">
+                                <TextBlock Classes="wsAddIcon" Text="+"/>
+                            </Border>
+                        </Button>
+                    </Grid>
                 </Border>
 
-                <!-- Spacer above avatar list (collapsed only) -->
+                <!-- Add button above the avatar list (collapsed only) -->
                 <Border DockPanel.Dock="Top"
-                        Height="14"
-                        IsVisible="{Binding Sidebar.IsCollapsed}"/>
+                        Padding="0,10,0,6"
+                        IsVisible="{Binding Sidebar.IsCollapsed}">
+                    <Button x:Name="AddWorkspaceButtonCollapsed"
+                            HorizontalAlignment="Center"
+                            Command="{Binding Sidebar.ShowAddWorkspaceCommand}"
+                            ToolTip.Tip="Clone a repository into a new workspace">
+                        <Border Classes="wsAddButton">
+                            <TextBlock Classes="wsAddIcon" Text="+"/>
+                        </Border>
+                    </Button>
+                </Border>
 
                 <!-- Expanded workspace list -->
                 <ScrollViewer x:Name="WorkspaceListExpanded"
@@ -1220,6 +1287,141 @@
 
             </Panel>
         </Border>
+
+        <!-- ── Git changes panel ──────────────────────────────────────────────── -->
+        <Border Grid.Column="2"
+                x:Name="GitPanel"
+                Width="320"
+                IsVisible="{Binding Git.IsVisible}"
+                Background="#000000"
+                BorderBrush="#2b2b2b"
+                BorderThickness="1,0,0,0">
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+                <Border Grid.Row="0" Padding="14,12,10,8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="Git changes"
+                                       Foreground="#2bf27a"
+                                       FontSize="11"
+                                       FontWeight="Bold"/>
+                            <TextBlock x:Name="GitBranchLabel"
+                                       Text="{Binding Git.Branch}"
+                                       Foreground="#9fb2a8"
+                                       FontSize="11"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                x:Name="GitRefreshButton"
+                                Command="{Binding Git.RefreshCommand}"
+                                ToolTip.Tip="Reload Git changes">
+                            <Border Classes="titleToolButton">
+                                <TextBlock Classes="chromeIcon" Text="↺" FontSize="14"/>
+                            </Border>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <StackPanel Grid.Row="1" Margin="14,0,14,8" Spacing="4">
+                    <TextBlock x:Name="GitSelectionSummary"
+                               Text="{Binding Git.SelectionSummary}"
+                               Foreground="#789085"
+                               FontSize="11"/>
+                    <TextBlock x:Name="GitErrorMessage"
+                               Text="{Binding Git.ErrorMessage}"
+                               IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               Foreground="#d84f4f"
+                               FontSize="11"
+                               TextWrapping="Wrap"/>
+                    <TextBlock x:Name="GitStatusMessage"
+                               Text="{Binding Git.StatusMessage}"
+                               IsVisible="{Binding Git.StatusMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               Foreground="#2bf27a"
+                               FontSize="11"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <Panel Grid.Row="2">
+                    <ScrollViewer x:Name="GitChangeTree"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Margin="8,0">
+                        <ItemsControl ItemsSource="{Binding Git.Nodes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="gitVm:GitChangeNodeViewModel">
+                                    <Border Classes="gitNodeRow" Margin="{Binding Indent}">
+                                        <Grid ColumnDefinitions="Auto,Auto,*">
+                                            <CheckBox Grid.Column="0"
+                                                      IsChecked="{Binding IsSelected}"
+                                                      MinWidth="0"
+                                                      Padding="0"
+                                                      Margin="0,0,6,0"
+                                                      VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Glyph}"
+                                                       Foreground="{Binding GlyphColor}"
+                                                       FontSize="11"
+                                                       FontWeight="Bold"
+                                                       Width="14"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Grid.Column="2"
+                                                    Classes="gitNodeName"
+                                                    Command="{Binding OpenCommand}"
+                                                    IsEnabled="{Binding IsFile}"
+                                                    ToolTip.Tip="{Binding ToolTip}">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="{Binding NameColor}"
+                                                           FontSize="12"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock x:Name="GitLoadingIndicator"
+                               IsVisible="{Binding Git.IsLoading}"
+                               Text="Loading changes…"
+                               Foreground="#2bf27a"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="GitEmptyState"
+                               IsVisible="{Binding Git.ShowEmptyState}"
+                               Text="No uncommitted changes."
+                               Foreground="#6f857a"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Panel>
+
+                <StackPanel Grid.Row="3" Margin="14,8,14,14" Spacing="8">
+                    <TextBox x:Name="GitCommitMessage"
+                             Text="{Binding Git.CommitMessage}"
+                             Watermark="Commit message"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             MinHeight="72"
+                             MaxHeight="140"
+                             Background="#050505"
+                             Foreground="#f5fbf7"
+                             BorderBrush="#333333"
+                             BorderThickness="1"
+                             FontSize="12"/>
+                    <Button x:Name="GitCommitButton"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding Git.CommitCommand}">
+                        <Border Classes="tutorialButton" HorizontalAlignment="Stretch">
+                            <TextBlock Classes="tutorialButtonText"
+                                       Text="Commit"
+                                       HorizontalAlignment="Center"/>
+                        </Border>
+                    </Button>
+                </StackPanel>
+
+            </Grid>
+        </Border>
         </Grid>
 
         <Panel Grid.RowSpan="2"
@@ -1640,6 +1842,178 @@
             </Border>
             </Grid>
         </Panel>
+
+        <Grid Grid.Row="1"
+              ZIndex="100"
+              x:Name="AddWorkspaceOverlay"
+              IsVisible="{Binding Sidebar.AddWorkspace.IsVisible}"
+              IsHitTestVisible="{Binding Sidebar.AddWorkspace.IsVisible}">
+            <Border Background="#CC020806"/>
+            <Border Background="#6607110f">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,8*,*"
+                  ColumnDefinitions="*,8*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        MinWidth="460"
+                        MaxWidth="600"
+                        VerticalAlignment="Center"
+                        Background="#050505"
+                        BorderBrush="#333333"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="28">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Add workspace"
+                                       Foreground="#f5fbf7"
+                                       FontSize="22"
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="Agent-Up clones the repository into its managed source clones directory and registers the workspace."
+                                       Foreground="#c6ddd2"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Repository"
+                                       Foreground="#9fb2a8"
+                                       FontSize="11"
+                                       FontWeight="Bold"/>
+                            <TextBox x:Name="AddWorkspaceRepository"
+                                     Text="{Binding Sidebar.AddWorkspace.Repository}"
+                                     Watermark="https://github.com/acme/widgets.git"
+                                     IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
+                                     Background="#080808"
+                                     Foreground="#f5fbf7"
+                                     BorderBrush="#333333"
+                                     BorderThickness="1"
+                                     FontSize="13"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Branch"
+                                       Foreground="#9fb2a8"
+                                       FontSize="11"
+                                       FontWeight="Bold"/>
+                            <TextBox x:Name="AddWorkspaceBranch"
+                                     Text="{Binding Sidebar.AddWorkspace.Branch}"
+                                     Watermark="main"
+                                     IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
+                                     Background="#080808"
+                                     Foreground="#f5fbf7"
+                                     BorderBrush="#333333"
+                                     BorderThickness="1"
+                                     FontSize="13"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="AddWorkspaceError"
+                                   Text="{Binding Sidebar.AddWorkspace.ErrorMessage}"
+                                   IsVisible="{Binding Sidebar.AddWorkspace.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   Foreground="#d84f4f"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"/>
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <Button Grid.Column="1"
+                                    x:Name="AddWorkspaceCancelButton"
+                                    Command="{Binding Sidebar.AddWorkspace.CancelCommand}">
+                                <Border Classes="tutorialSecondaryButton">
+                                    <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
+                                </Border>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    x:Name="AddWorkspaceConfirmButton"
+                                    Command="{Binding Sidebar.AddWorkspace.ConfirmCommand}">
+                                <Border Classes="tutorialButton">
+                                    <TextBlock Classes="tutorialButtonText"
+                                               Text="{Binding Sidebar.AddWorkspace.ConfirmLabel}"/>
+                                </Border>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Row="1"
+              ZIndex="100"
+              x:Name="GitFileDiffOverlay"
+              IsVisible="{Binding Git.Diff.IsVisible}"
+              IsHitTestVisible="{Binding Git.Diff.IsVisible}">
+            <Border Background="#CC020806"/>
+            <Border Background="#6607110f">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,10*,*"
+                  ColumnDefinitions="*,10*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        Background="#050505"
+                        BorderBrush="#333333"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20">
+                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="3">
+                                <TextBlock x:Name="GitFileDiffPath"
+                                           Text="{Binding Git.Diff.Path}"
+                                           Foreground="#f5fbf7"
+                                           FontSize="15"
+                                           FontWeight="Bold"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="GitFileDiffStatus"
+                                           Text="{Binding Git.Diff.Status}"
+                                           Foreground="#9fb2a8"
+                                           FontSize="11"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    x:Name="GitFileDiffCloseButton"
+                                    Command="{Binding Git.Diff.CloseCommand}"
+                                    ToolTip.Tip="Close">
+                                <Border Classes="chromeButton">
+                                    <TextBlock Classes="chromeIcon chromeCloseIcon" Text="×"/>
+                                </Border>
+                            </Button>
+                        </Grid>
+
+                        <Panel Grid.Row="1">
+                            <TextBlock IsVisible="{Binding Git.Diff.IsLoading}"
+                                       Text="Loading diff…"
+                                       Foreground="#2bf27a"
+                                       FontSize="13"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="GitFileDiffContent"
+                                           Text="{Binding Git.Diff.Content}"
+                                           Foreground="#c6ddd2"
+                                           FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                           FontSize="12"/>
+                            </ScrollViewer>
+                        </Panel>
+
+                        <Button Grid.Row="2"
+                                x:Name="GitFileDiffDismissButton"
+                                HorizontalAlignment="Right"
+                                Command="{Binding Git.Diff.CloseCommand}">
+                            <Border Classes="tutorialSecondaryButton">
+                                <TextBlock Classes="tutorialButtonText" Text="Close"/>
+                            </Border>
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
 
         <Grid Grid.Row="1"
               ZIndex="100"

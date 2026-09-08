@@ -7,6 +7,7 @@ using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Database.ViewModels;
+using AgentUp.Desktop.Features.Git.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
@@ -37,6 +38,7 @@ public sealed class MainViewModel : ReactiveObject
     public MetricsViewModel Metrics { get; }
     public DatabaseViewModel Database { get; }
     public ApplicationAuditViewModel Audit { get; }
+    public GitPanelViewModel Git { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
 
     public ObservableCollection<SubTabViewModel> SubTabs { get; } = [];
@@ -78,6 +80,7 @@ public sealed class MainViewModel : ReactiveObject
         MetricsViewModel metrics,
         DatabaseViewModel database,
         ApplicationAuditViewModel audit,
+        GitPanelViewModel git,
         FirstRunTutorialViewModel tutorial,
         PortsController ports)
     {
@@ -87,6 +90,7 @@ public sealed class MainViewModel : ReactiveObject
         Metrics = metrics;
         Database = database;
         Audit = audit;
+        Git = git;
         Tutorial = tutorial;
         _ports = ports;
 
@@ -119,6 +123,7 @@ public sealed class MainViewModel : ReactiveObject
                 Metrics.Clear();
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
+                _ = Git.LoadAsync(ws?.Id);
             });
 
     private void CancelPendingMetricsLoad()

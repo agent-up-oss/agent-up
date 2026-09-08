@@ -11,6 +11,7 @@ using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Tests.Support;
 using AgentUp.Desktop.Features.Database.Providers;
+using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -697,7 +698,8 @@ public class MainViewModelTests
             workspaceClient,
             consoleClient ?? NullConsoleClient(),
             databaseClient: NullDatabaseClient(),
-            tutorial: tutorial);
+            tutorial: tutorial,
+            gitClient: NullGitClient());
 
     private static WorkspaceApiClient NullWorkspaceClient()
     {
@@ -717,6 +719,27 @@ public class MainViewModelTests
     };
 
     private static DatabaseApiClient NullDatabaseClient() => new(NullDatabaseHttp);
+
+    private static readonly HttpClient NullGitHttp = new(new NullGitHandler())
+    {
+        BaseAddress = new Uri("http://localhost:0")
+    };
+
+    private static GitApiClient NullGitClient() => new(NullGitHttp);
+
+    private sealed class NullGitHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(HttpTestResponses.Json(new
+            {
+                workspaceId = "ws-1",
+                branch = "main",
+                fileCount = 0,
+                root = new { name = "", path = "", directories = Array.Empty<object>(), files = Array.Empty<object>() }
+            }));
+    }
 
     private sealed class NullDatabaseHandler : HttpMessageHandler
     {
