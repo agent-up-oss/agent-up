@@ -21,7 +21,7 @@ Changed files are grouped by directory and indented, the same way a commit windo
 | `→` | Renamed |
 | `!` | Conflicted |
 
-Untracked files are listed individually rather than collapsed into their directory, so you can select exactly the new files you want.
+Each untracked file gets its own row under its directory. Git alone would collapse a new directory into a single entry, so listing the files individually lets you select exactly the new files you want.
 
 Selecting a file name opens its diff in a modal. Close the modal to return to the list. Binary files report that no text diff is rendered instead of showing raw bytes.
 
