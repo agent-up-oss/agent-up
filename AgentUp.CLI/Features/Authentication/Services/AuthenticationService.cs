@@ -34,6 +34,9 @@ public sealed class AuthenticationService(
         if (_createHttpClient is not null)
             return _createHttpClient();
 
-        return new HttpClient { BaseAddress = new Uri(_normalizedServerUrl) };
+        return new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false })
+        {
+            BaseAddress = SecureServerUrlProvider.ResolveServerUri(_normalizedServerUrl)
+        };
     }
 }

@@ -55,7 +55,19 @@ export async function ensurePortAvailable(port, options = {}) {
 
 /** @deprecated Use ensurePortAvailable instead. */
 export async function waitForPortAvailable(port, options = {}) {
-  return ensurePortAvailable(port, options);
+  const {
+    maxAttempts,
+    delayMs,
+    maxGraceAttempts,
+    graceDelayMs,
+    ...rest
+  } = options;
+
+  return ensurePortAvailable(port, {
+    ...rest,
+    maxGraceAttempts: maxGraceAttempts ?? maxAttempts ?? 5,
+    graceDelayMs: graceDelayMs ?? delayMs ?? 200,
+  });
 }
 
 function delay(ms) {

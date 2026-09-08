@@ -56,7 +56,9 @@ For a deliberately unauthenticated local installation, set
 `AGENTUP_AUTH_DISABLED=true` instead. Desktop and Mobile skip their login UI in
 that mode.
 
-To expose REST to the LAN, set `ASPNETCORE_URLS=http://0.0.0.0:5000`. MCP has no
+To expose REST to the LAN, bind the Server to your network interface and protect
+it with HTTPS or a TLS-terminating reverse proxy. Plain HTTP exposes the
+administrator password during login and bearer tokens on the wire. MCP has no
 login because it is intended for local tools, and the Server rejects MCP requests
 whose remote address is not loopback.
 

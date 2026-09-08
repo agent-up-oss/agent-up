@@ -16,27 +16,53 @@ public sealed class AuthenticationCredentialsStore(string? baseDirectory = null)
     public string? GetToken(string serverUrl)
     {
         var normalized = ServerUrlNormalizer.Normalize(serverUrl);
-        var document = ReadDocument();
-        return document.Servers.TryGetValue(normalized, out var token) ? token : null;
+        return WithDocumentLock(document =>
+            document.Servers.TryGetValue(normalized, out var token) ? token : null);
     }
 
     public void SetToken(string serverUrl, string token)
     {
         var normalized = ServerUrlNormalizer.Normalize(serverUrl);
-        var document = ReadDocument();
-        document.Servers[normalized] = token;
-        WriteDocument(document);
+        WithDocumentLock(document =>
+        {
+            document.Servers[normalized] = token;
+            WriteDocument(document);
+        });
     }
 
     public void ClearToken(string serverUrl)
     {
         var normalized = ServerUrlNormalizer.Normalize(serverUrl);
-        var document = ReadDocument();
-        if (!document.Servers.Remove(normalized))
-            return;
+        WithDocumentLock(document =>
+        {
+            if (!document.Servers.Remove(normalized))
+                return;
 
-        WriteDocument(document);
+            WriteDocument(document);
+        });
     }
+
+    private T WithDocumentLock<T>(Func<CredentialsDocument, T> mutate)
+    {
+        var lockPath = $"{_filePath}.lock";
+        var directory = Path.GetDirectoryName(_filePath)!;
+        Directory.CreateDirectory(directory);
+        RestrictDirectoryAccess(directory);
+
+        using var lockStream = new FileStream(
+            lockPath,
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.None);
+        return mutate(ReadDocument());
+    }
+
+    private void WithDocumentLock(Action<CredentialsDocument> mutate)
+        => WithDocumentLock(document =>
+        {
+            mutate(document);
+            return 0;
+        });
 
     private CredentialsDocument ReadDocument()
     {
@@ -58,17 +84,52 @@ public sealed class AuthenticationCredentialsStore(string? baseDirectory = null)
     {
         var directory = Path.GetDirectoryName(_filePath)!;
         Directory.CreateDirectory(directory);
+        RestrictDirectoryAccess(directory);
         var json = JsonSerializer.Serialize(document, JsonOptions);
         var tempPath = Path.Join(directory, $"{Path.GetFileName(_filePath)}.{Guid.NewGuid():N}.tmp");
         try
         {
-            File.WriteAllText(tempPath, json);
+            WriteOwnerOnlyText(tempPath, json);
             File.Move(tempPath, _filePath, true);
+            RestrictFileAccess(_filePath);
         }
         finally
         {
             if (File.Exists(tempPath))
                 File.Delete(tempPath);
         }
+    }
+
+    private static void WriteOwnerOnlyText(string path, string contents)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            File.WriteAllText(path, contents);
+            return;
+        }
+
+        using var stream = new FileStream(
+            path,
+            new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+                UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite
+            });
+        using var writer = new StreamWriter(stream);
+        writer.Write(contents);
+    }
+
+    private static void RestrictDirectoryAccess(string directory)
+    {
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+    }
+
+    private static void RestrictFileAccess(string path)
+    {
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 }

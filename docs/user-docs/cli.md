@@ -64,6 +64,8 @@ dotnet run --project AgentUp.CLI -- status --server http://localhost:5001
 
 Authenticates the CLI with a Server that requires the admin password. Tokens are stored locally per server URL and attached automatically to later workspace commands.
 
+`auth` commands always require an explicit `--server` argument. They do not fall back to repository `.env` values or `AGENTUP_SERVER_URL`, so a checked-out `.env` cannot redirect your password to another host.
+
 When a workspace command receives `401 Unauthorized`, the CLI prints:
 
 ```text

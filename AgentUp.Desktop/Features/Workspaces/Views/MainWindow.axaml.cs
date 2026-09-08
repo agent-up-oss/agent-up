@@ -220,11 +220,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
 
-        var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
-        eventHttp.DefaultRequestHeaders.Authorization = _serverHttp.DefaultRequestHeaders.Authorization;
-        _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
-        _workspaceEventClient.Start();
-
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url, reloadIfSameUrl: true)))
@@ -288,6 +283,18 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         _auditController ??= new ViewModelAuditController(_serverHttp);
         _auditController.Attach(vm, CaptureViewState);
+    }
+
+    internal void StartAuthenticatedServices()
+    {
+        if (DataContext is not MainViewModel vm)
+            return;
+
+        _workspaceEventClient?.Dispose();
+        var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
+        eventHttp.DefaultRequestHeaders.Authorization = _serverHttp.DefaultRequestHeaders.Authorization;
+        _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
+        _workspaceEventClient.Start();
     }
 
     protected override void OnClosed(EventArgs e)

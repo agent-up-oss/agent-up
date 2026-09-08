@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Sockets;
 using System.Text.Json;
 using AgentUp.CLI.Composition;
 using AgentUp.CLI.Features.Authentication.Controllers;
@@ -8,6 +7,7 @@ using AgentUp.CLI.Features.Authentication.Providers;
 using AgentUp.CLI.Features.Authentication.Services;
 using AgentUp.CLI.Shared.Providers;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 
 namespace AgentUp.CLI.Tests.Features.Authentication.Controller;
 
@@ -53,9 +53,8 @@ public class AuthLoginCommandTests
     [Test]
     public async Task List_printsLoginHint_whenUnauthorized()
     {
-        var port = FindFreePort();
-        await using var server = BuildUnauthorizedWorkspaceServer(port);
-        await server.StartAsync();
+        await using var server = await StartUnauthorizedWorkspaceServerAsync();
+        var port = new Uri(server.Urls.First()).Port;
 
         using var output = new StringWriter();
         var exitCode = await CliRunnerFactory.Create($"http://localhost:{port}", Directory.GetCurrentDirectory(), output)
@@ -68,12 +67,10 @@ public class AuthLoginCommandTests
         });
     }
 
-    private static WebApplication BuildUnauthorizedWorkspaceServer(int port)
+    private static async Task<WebApplication> StartUnauthorizedWorkspaceServerAsync()
     {
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-        {
-            Args = [$"--urls=http://localhost:{port}"]
-        });
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
         var app = builder.Build();
         app.Use(async (context, next) =>
         {
@@ -85,6 +82,7 @@ public class AuthLoginCommandTests
 
             await next(context);
         });
+        await app.StartAsync();
         return app;
     }
 
@@ -93,13 +91,6 @@ public class AuthLoginCommandTests
         var directory = Path.Join(Path.GetTempPath(), "AgentUp-CLI-Auth", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         return directory;
-    }
-
-    private static int FindFreePort()
-    {
-        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
-        return ((System.Net.IPEndPoint)socket.LocalEndPoint!).Port;
     }
 
     private static HttpResponseMessage JsonResponse<T>(T payload)

@@ -21,7 +21,8 @@ public static class CliRunnerFactory
         var normalizedServerUrl = ServerUrlNormalizer.Normalize(serverUrl);
 
         var credentialsStore = new AuthenticationCredentialsStore();
-        var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
+        var serverUri = SecureServerUrlProvider.ResolveServerUri(normalizedServerUrl);
+        var http = new HttpClient { BaseAddress = serverUri };
         var token = credentialsStore.GetToken(normalizedServerUrl);
         if (token is not null)
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

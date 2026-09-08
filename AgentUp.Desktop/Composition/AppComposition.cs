@@ -26,6 +26,9 @@ public static class AppComposition
         while (!await TryAuthenticateAsync(desktop, http, authentication, login))
             continue;
 
+        if (desktop.MainWindow is MainWindow mainWindow)
+            mainWindow.StartAuthenticatedServices();
+
         await viewModel.InitializeAsync();
     }
 

@@ -9,15 +9,26 @@ using Microsoft.Extensions.Configuration;
 namespace AgentUp.Server.Tests.Features.Authentication.HTTP;
 
 [TestFixture]
-public class AuthenticationHttpTests
+public sealed class AuthenticationHttpTests
 {
+    private WebApplicationFactory<Program> _factory = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        using var factory = new WebApplicationFactory<Program>();
+        _factory = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
+    }
+
+    [TearDown]
+    public void TearDown() => _factory.Dispose();
+
     [Test]
     public async Task RestRoutes_RequireLogin_AndAcceptIssuedToken()
     {
-        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
-        using var client = factory.CreateClient();
+        using var client = _factory.CreateClient();
 
         Assert.That((await client.GetAsync("/api/workspaces")).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
 
@@ -36,7 +47,7 @@ public class AuthenticationHttpTests
     [Test]
     public async Task RestRoutes_RequireLogin_EvenWhenAdminPasswordIsNotConfigured()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
 
         var status = await client.GetFromJsonAsync<LoginResponse>("/api/auth/status");
@@ -52,7 +63,7 @@ public class AuthenticationHttpTests
     [Test]
     public async Task AuthenticationCanBeDisabled()
     {
-        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
                 new Dictionary<string, string?> { ["AGENTUP_AUTH_DISABLED"] = "true" })));
         using var client = factory.CreateClient();
