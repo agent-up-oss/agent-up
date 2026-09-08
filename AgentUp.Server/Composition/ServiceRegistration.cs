@@ -32,6 +32,9 @@ using AgentUp.Server.Features.Database.Controllers;
 using AgentUp.Server.Features.Database.Interfaces;
 using AgentUp.Server.Features.Database.Providers;
 using AgentUp.Server.Features.Database.Services;
+using AgentUp.Server.Features.Git.Interfaces;
+using AgentUp.Server.Features.Git.Providers;
+using AgentUp.Server.Features.Git.Services;
 using AgentUp.Server.Features.Metrics.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
@@ -46,6 +49,9 @@ using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
+using AgentUp.Server.Features.SourceClones.Interfaces;
+using AgentUp.Server.Features.SourceClones.Providers;
+using AgentUp.Server.Features.SourceClones.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Providers;
@@ -203,6 +209,12 @@ public static class ServiceRegistration
             sp.GetRequiredService<HeadlessBrowserCommandDispatcher>());
         builder.Services.AddSingleton(sp =>
             new HeadlessBrowserSessionAccessor(sp.GetRequiredService<HeadlessBrowserSessionManager>()));
+        builder.Services.AddSingleton<IGitWorkingTreeProvider, GitWorkingTreeProvider>();
+        builder.Services.AddSingleton<GitChangeTreeService>();
+        builder.Services.AddSingleton<ISourceCloneRootProvider>(_ => new SourceCloneRootProvider(dataDir));
+        builder.Services.AddSingleton<ISourceCloneTargetProvider, SourceCloneTargetProvider>();
+        builder.Services.AddSingleton<ISourceCloneGitProvider, GitSourceCloneProvider>();
+        builder.Services.AddSingleton<SourceCloneService>();
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }
