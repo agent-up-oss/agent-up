@@ -10,6 +10,7 @@ platform="$1"
 rid="$2"
 artifact_dir="$3"
 work_dir="$(pwd)/artifacts/service-smoke/$platform-$rid"
+export AGENTUP_PACKAGE_SMOKE_AUTH_DISABLED=true
 
 if [ -n "${AGENTUP_PACKAGE_SMOKE_COMMAND:-}" ]; then
   exec "$AGENTUP_PACKAGE_SMOKE_COMMAND" validate-installed-service "$platform" "$rid" "$artifact_dir" "$work_dir"

@@ -7,6 +7,7 @@
         xmlns:databaseVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         xmlns:databaseViewsVm="using:AgentUp.Desktop.Features.Database.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
+        xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
         Width="1100" Height="700"
@@ -110,6 +111,42 @@
                                FontSize="12"
                                FontWeight="Bold"
                                VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="chromeVm:ChromeIconButtonViewModel">
+            <Button Name="{Binding Name}"
+                    Command="{Binding Command}"
+                    ToolTip.Tip="{Binding ToolTip}">
+                <Border Classes="titleToolButton">
+                    <TextBlock Classes="chromeIcon"
+                               Text="{Binding Icon}"
+                               FontSize="{Binding FontSize}"/>
+                </Border>
+            </Button>
+        </DataTemplate>
+
+        <DataTemplate DataType="chromeVm:ChromeServerStatusViewModel">
+            <Border x:Name="ServerStatusBadge"
+                    Margin="6,0,0,0"
+                    Padding="12,5"
+                    CornerRadius="999"
+                    BorderBrush="{Binding ServerStatusColor}"
+                    BorderThickness="1"
+                    Background="#030303"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Width="9"
+                            Height="9"
+                            CornerRadius="5"
+                            Background="{Binding ServerStatusColor}"
+                            VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ServerStatusText"
+                               Text="{Binding ServerStatusText}"
+                               Foreground="#f5fbf7"
+                               FontSize="11"
+                               FontWeight="Bold"/>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -474,47 +511,16 @@
                 BorderThickness="0"
                 PointerPressed="OnWindowChromePointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto">
-                <StackPanel Grid.Column="0"
-                            Orientation="Horizontal"
-                            Spacing="4"
-                            Margin="10,0,0,0"
-                            VerticalAlignment="Center">
-                    <Button x:Name="SidebarToggle"
-                            Command="{Binding Sidebar.ToggleCommand}"
-                            ToolTip.Tip="Toggle sidebar">
-                        <Border Classes="titleToolButton">
-                            <TextBlock Classes="chromeIcon" Text="☰" FontSize="16"/>
-                        </Border>
-                    </Button>
-                    <Button x:Name="ReloadButton"
-                            Command="{Binding Sidebar.RefreshCommand}"
-                            ToolTip.Tip="Reload workspaces">
-                        <Border Classes="titleToolButton">
-                            <TextBlock Classes="chromeIcon" Text="↺" FontSize="15"/>
-                        </Border>
-                    </Button>
-                    <Border x:Name="ServerStatusBadge"
-                            Margin="6,0,0,0"
-                            Padding="12,5"
-                            CornerRadius="999"
-                            BorderBrush="{Binding Sidebar.ServerStatusColor}"
-                            BorderThickness="1"
-                            Background="#030303"
-                            VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Border Width="9"
-                                    Height="9"
-                                    CornerRadius="5"
-                                    Background="{Binding Sidebar.ServerStatusColor}"
-                                    VerticalAlignment="Center"/>
-                            <TextBlock x:Name="ServerStatusText"
-                                       Text="{Binding Sidebar.ServerStatusText}"
-                                       Foreground="#f5fbf7"
-                                       FontSize="11"
-                                       FontWeight="Bold"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                <ItemsControl Grid.Column="0"
+                              ItemsSource="{Binding Chrome.LeftItems}"
+                              Margin="10,0,0,0"
+                              VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="4"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
 
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
@@ -561,7 +567,80 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1"
+              x:Name="PageHost">
+            <Panel x:Name="LoginPage"
+                   IsVisible="{Binding Login.IsVisible}"
+                   IsHitTestVisible="{Binding Login.IsVisible}"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   Background="#000000">
+                <Grid RowDefinitions="*,Auto,*"
+                      ColumnDefinitions="*,Auto,*">
+                    <Border Grid.Row="1"
+                            Grid.Column="1"
+                            Width="420"
+                            Background="#050505"
+                            BorderBrush="#333333"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="32">
+                        <StackPanel Spacing="16">
+                            <TextBlock Text="Agent-Up Server"
+                                       Foreground="#f5fbf7"
+                                       FontSize="25"
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="Enter the administrator password to continue."
+                                       Foreground="#c6ddd2"
+                                       FontSize="14"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding !Login.IsConnectionRetry}"/>
+                            <TextBlock Text="Could not reach the server. Check that Agent-Up Server is running and AGENTUP_SERVER_URL is correct."
+                                       Foreground="#c6ddd2"
+                                       FontSize="14"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding Login.IsConnectionRetry}"/>
+                            <TextBox Text="{Binding Login.Password, Mode=TwoWay}"
+                                     PasswordChar="●"
+                                     PlaceholderText="Admin password"
+                                     IsVisible="{Binding !Login.IsConnectionRetry}"/>
+                            <Button Command="{Binding Login.RetryConnectionCommand}"
+                                    IsVisible="{Binding Login.IsConnectionRetry}"
+                                    HorizontalAlignment="Stretch">
+                                <Border Background="#00b850"
+                                        CornerRadius="6"
+                                        Padding="12,8">
+                                    <TextBlock Text="Retry connection"
+                                               Foreground="#000000"
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Center"/>
+                                </Border>
+                            </Button>
+                            <Button Command="{Binding Login.SignInCommand}"
+                                    IsEnabled="{Binding !Login.IsBusy}"
+                                    IsVisible="{Binding !Login.IsConnectionRetry}"
+                                    HorizontalAlignment="Stretch">
+                                <Border Background="#00b850"
+                                        CornerRadius="6"
+                                        Padding="12,8">
+                                    <TextBlock Text="Sign in"
+                                               Foreground="#000000"
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Center"/>
+                                </Border>
+                            </Button>
+                            <TextBlock Text="{Binding Login.ErrorMessage}"
+                                       Foreground="#ff6b6b"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding Login.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Panel>
+
+            <Grid IsVisible="{Binding !Login.IsVisible}"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -1222,12 +1301,18 @@
         </Border>
         </Grid>
 
-        <Panel Grid.RowSpan="2"
-               x:Name="FirstRunTutorialOverlay"
-               IsVisible="{Binding Tutorial.IsVisible}"
-               IsHitTestVisible="{Binding Tutorial.IsVisible}">
-            <Border Background="#CC020806"/>
-            <Border Background="#6607110f">
+        <Grid x:Name="FirstRunTutorialOverlay"
+              ZIndex="90"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              IsVisible="{Binding Tutorial.IsVisible}"
+              IsHitTestVisible="{Binding Tutorial.IsVisible}">
+            <Border Background="#CC020806"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"/>
+            <Border Background="#6607110f"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
                 <Border.Effect>
                     <BlurEffect Radius="10"/>
                 </Border.Effect>
@@ -1639,15 +1724,20 @@
                 </Grid>
             </Border>
             </Grid>
-        </Panel>
+        </Grid>
 
-        <Grid Grid.Row="1"
-              ZIndex="100"
+        <Grid ZIndex="100"
               x:Name="WorkspaceDeleteOverlay"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
               IsVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}"
               IsHitTestVisible="{Binding Sidebar.DeleteConfirmation.IsVisible}">
-            <Border Background="#CC020806"/>
-            <Border Background="#6607110f">
+            <Border Background="#CC020806"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"/>
+            <Border Background="#6607110f"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
                 <Border.Effect>
                     <BlurEffect Radius="10"/>
                 </Border.Effect>
@@ -1703,6 +1793,7 @@
                     </StackPanel>
                 </Border>
             </Grid>
+        </Grid>
         </Grid>
     </Grid>
     </Border>

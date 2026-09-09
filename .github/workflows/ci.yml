@@ -513,6 +513,13 @@ jobs:
           export AGENTUP_INSTALLER_APP_COMMAND="$PWD/dotnet-ci/payloads/${{ matrix.rid }}/installer/AgentUp.InstallerApp"
           ./.github/scripts/smoke-installer-elevation.sh "${{ matrix.platform }}" "$PWD/dotnet-ci/payloads/${{ matrix.rid }}"
 
+      - name: Allow installed-service smoke environment through sudo
+        if: ${{ matrix.platform == 'ubuntu' }}
+        shell: bash
+        run: |
+          echo 'Defaults env_keep += "AGENTUP_PACKAGE_SMOKE_AUTH_DISABLED"' | sudo tee /etc/sudoers.d/agentup-smoke-env
+          sudo chmod 0440 /etc/sudoers.d/agentup-smoke-env
+
       - name: Smoke test installed service
         shell: bash
         run: |

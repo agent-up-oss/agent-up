@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import { resolveMobilePort, waitForPortAvailable } from './mobile-port.mjs';
+import { resolveMobilePort, ensurePortAvailable } from './mobile-port.mjs';
 
 const port = resolveMobilePort(process.env.WEB_PORT);
-await waitForPortAvailable(port);
+await ensurePortAvailable(port);
 
 const result = spawnSync('expo', ['start', '--web', '--lan', '--port', String(port)], {
   env: {

@@ -26,6 +26,10 @@ public sealed class CurrentWorkspaceResolver
         {
             workspaces = await _client.ListAsync();
         }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceResolution.Failed(ex.Message);
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             return WorkspaceResolution.Failed($"{queryFailureMessage}: {ex.Message}");

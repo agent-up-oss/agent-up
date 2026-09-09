@@ -62,6 +62,26 @@ Shows the state of the workspace in the current directory.
 dotnet run --project AgentUp.CLI -- status --server http://localhost:5001
 ```
 
+### auth
+
+Authenticates the CLI with a Server that requires the admin password. Tokens are stored locally per server URL and attached automatically to later workspace commands.
+
+`auth` commands always require an explicit `--server` argument. They do not fall back to repository `.env` values or `AGENTUP_SERVER_URL`, so a checked-out `.env` cannot redirect your password to another host.
+
+When a workspace command receives `401 Unauthorized`, the CLI prints:
+
+```text
+use: auth login --server
+```
+
+Log in with:
+
+```bash
+dotnet run --project AgentUp.CLI -- auth login --server http://localhost:5001 --password "$AGENTUP_ADMIN_PASSWORD"
+```
+
+Omit `--password` to enter the admin password interactively. Use `auth status` to check whether authentication is required and configured, and `auth logout` to remove the stored token for the selected server.
+
 ### commits
 
 Manages a local vertical-slice commit staging queue. The `commits` subcommand has no Server dependency — it operates entirely on the local working tree and a queue file stored in the platform config directory, scoped to the current Git repository.
