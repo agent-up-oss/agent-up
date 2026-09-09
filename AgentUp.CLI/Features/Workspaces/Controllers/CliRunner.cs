@@ -1,4 +1,5 @@
 using System.Reflection;
+using AgentUp.CLI.Features.Authentication.Controllers;
 using AgentUp.CLI.Features.Commits.Controllers;
 
 namespace AgentUp.CLI.Features.Workspaces.Controllers;
@@ -12,6 +13,7 @@ public sealed class WorkspacesController
     private readonly ClearCommand _clear;
     private readonly ListCommand _list;
     private readonly StatusCommand _status;
+    private readonly AuthenticationController _authentication;
     private readonly CommitsController _commits;
 
     public WorkspacesController(
@@ -22,6 +24,7 @@ public sealed class WorkspacesController
         ClearCommand clear,
         ListCommand list,
         StatusCommand status,
+        AuthenticationController authentication,
         CommitsController commits)
     {
         _serverUrl = serverUrl;
@@ -31,13 +34,14 @@ public sealed class WorkspacesController
         _clear = clear;
         _list = list;
         _status = status;
+        _authentication = authentication;
         _commits = commits;
     }
 
     public async Task<int> RunAsync(string[] args)
         => args.Any(arg => arg == "--version")
             ? PrintVersion(_output)
-            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _commits, _output)();
+            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _authentication, _commits, _output)();
 
     private static Func<Task<int>> ResolveCommand(
         string[] args,
@@ -47,6 +51,7 @@ public sealed class WorkspacesController
         ClearCommand clear,
         ListCommand list,
         StatusCommand status,
+        AuthenticationController authentication,
         CommitsController commits,
         TextWriter output)
         => (args.FirstOrDefault(argument => !argument.StartsWith("--")) ?? "") switch
@@ -57,6 +62,7 @@ public sealed class WorkspacesController
             "clear" => clear.RunAsync,
             "list" => list.RunAsync,
             "status" => status.RunAsync,
+            "auth" => () => authentication.RunAsync(args.SkipWhile(a => a != "auth").Skip(1).ToArray()),
             "commits" => () => commits.RunAsync(args.SkipWhile(a => a != "commits").Skip(1).ToArray()),
             _ => () => Task.FromResult(PrintHelp(output, serverUrl))
         };
@@ -70,6 +76,7 @@ public sealed class WorkspacesController
         output.WriteLine("  clear    Stop and remove all workspaces on the server");
         output.WriteLine("  list     List all workspaces on the server");
         output.WriteLine("  status   Show status of the current workspace");
+        output.WriteLine("  auth     Authenticate with the server (login, logout, status)");
         output.WriteLine("  commits  Manage the vertical-slice commit queue");
         output.WriteLine("  version  Print the CLI version");
         output.WriteLine();

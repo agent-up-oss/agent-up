@@ -11,6 +11,7 @@ import dev.agentup.jetbrains.cli.CliJsonParser;
 import dev.agentup.jetbrains.cli.CliJsonParseException;
 import dev.agentup.jetbrains.cli.NextCommitResponse;
 import dev.agentup.jetbrains.settings.AgentUpSettings;
+import dev.agentup.jetbrains.workspace.WorkspaceRootLocator;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -28,7 +29,7 @@ public final class QueueService {
     public QueueState getQueueSize() {
         Path repository = repositoryPath();
         if (repository == null) {
-            return QueueState.failed("No local project path is available.");
+            return QueueState.failed("No agent-up.json was found in the project directory or any parent directory.");
         }
 
         AgentUpSettings.State settings = ApplicationManager.getApplication().getService(AgentUpSettings.class).getState();
@@ -64,7 +65,7 @@ public final class QueueService {
     public NextCommitResponse runNext() {
         Path repository = repositoryPath();
         if (repository == null) {
-            throw new CliExecutionException("No local project path is available.");
+            throw new CliExecutionException("No agent-up.json was found in the project directory or any parent directory.");
         }
 
         AgentUpSettings.State settings = ApplicationManager.getApplication().getService(AgentUpSettings.class).getState();
@@ -96,6 +97,6 @@ public final class QueueService {
 
     private Path repositoryPath() {
         String basePath = project.getBasePath();
-        return basePath == null ? null : Path.of(basePath);
+        return basePath == null ? null : WorkspaceRootLocator.find(Path.of(basePath));
     }
 }

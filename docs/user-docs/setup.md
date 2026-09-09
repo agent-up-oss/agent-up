@@ -31,6 +31,41 @@ dotnet build agent-up.sln
 
 When using an installed Desktop artifact, the Server should already be running as the local `agent-up-server` service.
 
+REST authentication is required by default. Set `AGENTUP_ADMIN_PASSWORD` before
+starting a protected Server, or copy `.env.example` to `.env` in the repository
+root and edit the value there. Server, Desktop, and CLI load that file on startup
+when it exists; shell environment variables still take precedence.
+
+```bash
+cp .env.example .env
+# edit .env, then:
+dotnet run --project AgentUp.Server
+```
+
+You can still export the password directly when you prefer:
+
+```bash
+export AGENTUP_ADMIN_PASSWORD='choose-a-long-password'
+dotnet run --project AgentUp.Server
+```
+
+Desktop and Mobile prompt for this password when they connect. The Server still
+starts when the password is unset, but login cannot succeed until it is configured.
+
+For a deliberately unauthenticated local installation, set
+`AGENTUP_AUTH_DISABLED=true` instead. Desktop and Mobile skip their login UI in
+that mode.
+
+To expose REST to the LAN, bind the Server to your network interface and protect
+it with HTTPS or a TLS-terminating reverse proxy. Plain HTTP exposes the
+administrator password during login and bearer tokens on the wire. MCP has no
+login because it is intended for local tools, and the Server rejects MCP requests
+whose remote address is not loopback.
+
+Remote Desktop and Mobile clients must use HTTPS when the Server URL is not
+loopback. Loopback HTTP remains supported for local development on
+`http://localhost` and `http://127.0.0.1`.
+
 For source development:
 
 ```bash

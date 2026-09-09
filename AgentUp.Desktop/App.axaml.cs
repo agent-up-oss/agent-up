@@ -16,10 +16,7 @@ public class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
-            var (window, viewModel) = AppComposition.CreateMainWindow(serverUrl);
-            desktop.MainWindow = window;
-            _ = viewModel.InitializeAsync();
+            _ = AppComposition.InitializeDesktopAsync(desktop);
         }
 
         base.OnFrameworkInitializationCompleted();

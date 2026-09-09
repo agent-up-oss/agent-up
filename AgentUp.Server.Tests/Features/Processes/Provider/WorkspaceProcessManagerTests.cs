@@ -97,6 +97,49 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task CreateLocalProcessStartInfo_UsesEachApplicationsOwnPort_WhenPortVariablesCollide()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(Path.Join(worktreePath, "mobile"));
+        Directory.CreateDirectory(Path.Join(worktreePath, "web"));
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "Mobile",
+                        "npm run web",
+                        "mobile",
+                        [new PortDeclaration("WEB_PORT", 8081)]),
+                    new ApplicationDefinition(
+                        "Example Web",
+                        "npm run dev",
+                        "web",
+                        [new PortDeclaration("WEB_PORT", 5600)])
+                ]
+            });
+
+            var mobile = workspace.Applications.Single(app => app.Name == "Mobile");
+            var exampleWeb = workspace.Applications.Single(app => app.Name == "Example Web");
+
+            var mobileStartInfo = new LocalProcessProvider().CreateStartInfo(workspace, mobile);
+            var exampleWebStartInfo = new LocalProcessProvider().CreateStartInfo(workspace, exampleWeb);
+
+            Assert.That(mobileStartInfo.Environment["WEB_PORT"], Is.EqualTo(mobile.AllocatedPorts.Single().AllocatedPort.ToString()));
+            Assert.That(exampleWebStartInfo.Environment["WEB_PORT"], Is.EqualTo(exampleWeb.AllocatedPorts.Single().AllocatedPort.ToString()));
+            Assert.That(mobileStartInfo.Environment["WEB_PORT"], Is.Not.EqualTo(exampleWebStartInfo.Environment["WEB_PORT"]));
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task CreateLocalProcessStartInfo_LoadsApplicationEnvironmentFilesAndInlineEnvironment()
     {
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());

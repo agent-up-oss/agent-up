@@ -15,8 +15,12 @@ orchestration must remain in `AgentUp.Server`.
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
 the active selection in PWA local storage. Only one Server is active at a time;
 selecting another sidebar icon changes the client target and does not copy or
-own Server runtime state. A URL is saved only after the existing workspaces API
-responds successfully. Authentication credentials are not currently stored.
+own Server runtime state. A URL is saved only after the Server authentication
+status probe succeeds. If login is required, the client requests the single
+administrator password and stores the resulting access token with the Server
+selection; if authentication is disabled, it skips that login step. Remote
+servers must use HTTPS; loopback HTTP URLs remain supported for local
+development.
 
 As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
@@ -70,6 +74,9 @@ devices can connect.
 
 The web script passes the Server-allocated `WEB_PORT` to Expo when Mobile is
 launched from `agent-up.json`; otherwise it uses Expo's default port 8081.
+Before Expo starts, the script waits briefly for a previous listener on that
+same application port to exit. Each application receives its own allocated port
+even when multiple apps declare the same port variable name.
 
 The same development server can open the app through Expo Go on a physical
 Android or iOS device:
