@@ -13,6 +13,10 @@ using AgentUp.Desktop.Features.Database.Controllers;
 using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Features.Database.Services;
 using AgentUp.Desktop.Features.Database.ViewModels;
+using AgentUp.Desktop.Features.Authentication.Controllers;
+using AgentUp.Desktop.Features.Authentication.Providers;
+using AgentUp.Desktop.Features.Authentication.Services;
+using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Features.Git.Services;
@@ -35,6 +39,11 @@ namespace AgentUp.Desktop.Composition;
 
 public static class MainViewModelFactory
 {
+    private static readonly HttpClient DefaultAuthHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     private static readonly HttpClient DefaultAuditHttpClient = new()
     {
         BaseAddress = new Uri("http://127.0.0.1:5000")
@@ -62,7 +71,8 @@ public static class MainViewModelFactory
         DatabaseApiClient? databaseClient = null,
         ApplicationAuditApiClient? auditClient = null,
         FirstRunTutorialViewModel? tutorial = null,
-        GitApiClient? gitClient = null)
+        GitApiClient? gitClient = null,
+        LoginViewModel? login = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var applications = new ApplicationsController(new ApplicationSelectionService());
@@ -88,19 +98,22 @@ public static class MainViewModelFactory
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
+            login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
+                new AuthenticationApiClient(DefaultAuthHttpClient)))),
             ports);
     }
 
-    public static MainViewModel Create(string serverUrl)
+    public static MainViewModel Create(HttpClient http, LoginViewModel? login = null)
     {
-        var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
         return Create(
             new WorkspaceApiClient(http),
             new ConsoleApiClient(http),
             new MetricsApiClient(http),
             new DatabaseApiClient(http),
             new ApplicationAuditApiClient(http),
-            gitClient: new GitApiClient(http));
+            gitClient: new GitApiClient(http),
+            login: login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
+                new AuthenticationApiClient(http)))));
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

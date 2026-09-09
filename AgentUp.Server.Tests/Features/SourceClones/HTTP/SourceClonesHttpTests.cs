@@ -26,7 +26,12 @@ public sealed class SourceClonesHttpTests
         Environment.SetEnvironmentVariable(SourceCloneRootProvider.RootEnvironmentVariable, _clonesRoot);
         using var factory = new WebApplicationFactory<Program>();
         _factory = factory.WithWebHostBuilder(builder =>
-            builder.UseSetting("Storage:DataDirectory", _dataDirectory));
+        {
+            builder.UseSetting("Storage:DataDirectory", _dataDirectory);
+            // The Server requires a bearer token unless authentication is disabled, and these
+            // tests exercise the endpoints themselves rather than the authentication handler.
+            builder.UseSetting("AGENTUP_AUTH_DISABLED", "true");
+        });
     }
 
     [TearDown]

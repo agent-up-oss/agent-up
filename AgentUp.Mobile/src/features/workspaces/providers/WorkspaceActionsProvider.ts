@@ -1,10 +1,11 @@
+import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { CloneSourceRequest, Workspace } from '../models/Workspace';
 import type { WorkspaceRefresher } from './WorkspaceRefreshProvider';
 
 export type WorkspaceActionsApi = {
-  clone(serverUrl: string, request: CloneSourceRequest): Promise<Workspace>;
-  start(serverUrl: string, workspaceId: string): Promise<void>;
-  stop(serverUrl: string, workspaceId: string): Promise<void>;
+  clone(server: ServerSession, request: CloneSourceRequest): Promise<Workspace>;
+  start(server: ServerSession, workspaceId: string): Promise<void>;
+  stop(server: ServerSession, workspaceId: string): Promise<void>;
 };
 
 export type WorkspaceActionsSink = {
@@ -12,9 +13,9 @@ export type WorkspaceActionsSink = {
 };
 
 export type WorkspaceActions = {
-  clone(serverUrl: string | null, request: CloneSourceRequest): Promise<Workspace>;
-  start(serverUrl: string | null, workspaceId: string): Promise<void>;
-  stop(serverUrl: string | null, workspaceId: string): Promise<void>;
+  clone(server: ServerSession | null, request: CloneSourceRequest): Promise<Workspace>;
+  start(server: ServerSession | null, workspaceId: string): Promise<void>;
+  stop(server: ServerSession | null, workspaceId: string): Promise<void>;
 };
 
 // Actions that outlive their own request. A clone can run for minutes, so by the time it returns
@@ -27,29 +28,29 @@ export function createWorkspaceActions(
   sink: WorkspaceActionsSink,
 ): WorkspaceActions {
   return {
-    async clone(serverUrl, request) {
-      if (!serverUrl) throw new Error('Connect this client to an Agent-Up Server first.');
+    async clone(server, request) {
+      if (!server) throw new Error('Connect this client to an Agent-Up Server first.');
 
-      const workspace = await api.clone(serverUrl, request);
-      if (!refresher.isActive(serverUrl)) return workspace;
+      const workspace = await api.clone(server, request);
+      if (!refresher.isActive(server)) return workspace;
 
-      await refresher.refresh(serverUrl);
+      await refresher.refresh(server);
       sink.onSelect(workspace.id);
       return workspace;
     },
 
-    async start(serverUrl, workspaceId) {
-      if (!serverUrl) return;
+    async start(server, workspaceId) {
+      if (!server) return;
 
-      await api.start(serverUrl, workspaceId);
-      if (refresher.isActive(serverUrl)) await refresher.refresh(serverUrl);
+      await api.start(server, workspaceId);
+      if (refresher.isActive(server)) await refresher.refresh(server);
     },
 
-    async stop(serverUrl, workspaceId) {
-      if (!serverUrl) return;
+    async stop(server, workspaceId) {
+      if (!server) return;
 
-      await api.stop(serverUrl, workspaceId);
-      if (refresher.isActive(serverUrl)) await refresher.refresh(serverUrl);
+      await api.stop(server, workspaceId);
+      if (refresher.isActive(server)) await refresher.refresh(server);
     },
   };
 }

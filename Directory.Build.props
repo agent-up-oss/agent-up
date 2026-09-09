@@ -2,6 +2,6 @@
   <PropertyGroup>
     <RepositoryUrl>https://github.com/themassiveone/agent-up</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <LocalInstallerVersion>1.0.0</LocalInstallerVersion>
+    <LocalInstallerVersion>1.1.0</LocalInstallerVersion>
   </PropertyGroup>
 </Project>

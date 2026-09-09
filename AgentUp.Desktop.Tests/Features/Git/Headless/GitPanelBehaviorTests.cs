@@ -16,7 +16,7 @@ public sealed class GitPanelBehaviorTests
 
         Assert.That(panel.IsVisible, Is.False);
 
-        await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("GitPanelToggle")!);
+        await driver.Window.ClickControlAsync(ChromeTestSupport.FindDescendantByName<Button>(driver.Window, "GitPanelToggle")!);
 
         Assert.That(panel.IsVisible, Is.True);
     }
@@ -25,7 +25,7 @@ public sealed class GitPanelBehaviorTests
     public async Task GitPanel_showsTheCommitMessageBoxAndCommitButton()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
-        await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("GitPanelToggle")!);
+        await driver.Window.ClickControlAsync(ChromeTestSupport.FindDescendantByName<Button>(driver.Window, "GitPanelToggle")!);
 
         Assert.That(driver.Window.FindControl<TextBox>("GitCommitMessage")!.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsVisible, Is.True);
@@ -35,7 +35,7 @@ public sealed class GitPanelBehaviorTests
     public async Task GitCommitButton_staysDisabledWithoutSelectedFilesOrAMessage()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
-        await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("GitPanelToggle")!);
+        await driver.Window.ClickControlAsync(ChromeTestSupport.FindDescendantByName<Button>(driver.Window, "GitPanelToggle")!);
 
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsEffectivelyEnabled, Is.False);
     }

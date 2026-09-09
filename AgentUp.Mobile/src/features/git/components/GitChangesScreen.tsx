@@ -15,7 +15,7 @@ import {
 } from '../providers/GitChangeTreeProvider';
 
 export function GitChangesScreen() {
-  const { serverUrl, selectedWorkspace } = useWorkspaces();
+  const { server, selectedWorkspace } = useWorkspaces();
   const workspaceId = selectedWorkspace?.id ?? null;
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
@@ -32,10 +32,10 @@ export function GitChangesScreen() {
   const nodes = useMemo(() => flattenChangeTree(tree), [tree]);
 
   const load = useCallback(async () => {
-    if (!serverUrl || !workspaceId) { setTree(null); setSelected([]); return; }
+    if (!server || !workspaceId) { setTree(null); setSelected([]); return; }
     setLoading(true); setError(null);
     try {
-      setTree(await getChanges(serverUrl, workspaceId));
+      setTree(await getChanges(server, workspaceId));
       setSelected([]);
     } catch (cause) {
       setTree(null);
@@ -43,15 +43,15 @@ export function GitChangesScreen() {
     } finally {
       setLoading(false);
     }
-  }, [serverUrl, workspaceId]);
+  }, [server, workspaceId]);
 
   useEffect(() => { void load(); }, [load]);
 
   const openDiff = async (node: GitChangeNode) => {
-    if (!serverUrl || !workspaceId || node.isDirectory) return;
+    if (!server || !workspaceId || node.isDirectory) return;
     setDiffPath(node.path); setDiff(null); setDiffLoading(true);
     try {
-      setDiff(await getFileDiff(serverUrl, workspaceId, node.path));
+      setDiff(await getFileDiff(server, workspaceId, node.path));
     } catch (cause) {
       setDiff({ path: node.path, status: 'Modified', isBinary: false, diff: cause instanceof Error ? cause.message : 'Could not load the diff.' });
     } finally {
@@ -60,11 +60,11 @@ export function GitChangesScreen() {
   };
 
   const commit = async () => {
-    if (!serverUrl || !workspaceId || committing) return;
+    if (!server || !workspaceId || committing) return;
     const files = selectedFilePaths(nodes, selected);
     setCommitting(true); setError(null); setStatus(null);
     try {
-      const result = await commitFiles(serverUrl, workspaceId, files, message.trim());
+      const result = await commitFiles(server, workspaceId, files, message.trim());
       if (!result.succeeded) { setError(result.error ?? 'The commit failed.'); return; }
       setMessage('');
       setStatus(`Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`);

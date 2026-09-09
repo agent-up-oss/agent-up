@@ -16,7 +16,10 @@ public sealed class WebClientCorsHttpTests
         _dataDirectory = Path.Join(Path.GetTempPath(), $"agent-up-cors-{Guid.NewGuid():N}");
         using var factory = new WebApplicationFactory<Program>();
         _factory = factory.WithWebHostBuilder(builder =>
-            builder.UseSetting("Storage:DataDirectory", _dataDirectory));
+        {
+            builder.UseSetting("Storage:DataDirectory", _dataDirectory);
+            builder.UseSetting("AGENTUP_AUTH_DISABLED", "true");
+        });
     }
 
     [TearDown]

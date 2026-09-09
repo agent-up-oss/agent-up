@@ -1,3 +1,4 @@
+import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { Workspace } from '../models/Workspace';
 
 // Where a refresh reports its outcome. The controller supplies React state setters; keeping the
@@ -12,26 +13,27 @@ export type WorkspaceRefreshSink = {
 export type WorkspaceRefresher = {
   // Loads the workspaces of one server. Any reply belonging to an earlier call is ignored, so a
   // slow response for the server the user switched away from cannot replace the current one.
-  refresh(serverUrl: string | null): Promise<void>;
-  // Whether serverUrl is the one the most recent refresh targeted. Long-running work started on a
+  refresh(server: ServerSession | null): Promise<void>;
+  // Whether this server is the one the most recent refresh targeted. Long-running work started on a
   // server must check this before touching state, since finishing does not make that server current.
-  isActive(serverUrl: string | null): boolean;
+  // Servers are compared by URL, so re-authenticating against the same server stays active.
+  isActive(server: ServerSession | null): boolean;
 };
 
 export function createWorkspaceRefresh(
   sink: WorkspaceRefreshSink,
-  list: (serverUrl: string) => Promise<Workspace[]>,
+  list: (server: ServerSession) => Promise<Workspace[]>,
 ): WorkspaceRefresher {
   let generation = 0;
   let activeServerUrl: string | null = null;
 
   return {
-    isActive: serverUrl => serverUrl === activeServerUrl,
+    isActive: server => (server?.url ?? null) === activeServerUrl,
 
-    async refresh(serverUrl: string | null): Promise<void> {
-      activeServerUrl = serverUrl;
+    async refresh(server: ServerSession | null): Promise<void> {
+      activeServerUrl = server?.url ?? null;
       const ticket = ++generation;
-      if (!serverUrl) {
+      if (!server) {
         sink.onDisconnected();
         sink.onLoading(false);
         return;
@@ -39,7 +41,7 @@ export function createWorkspaceRefresh(
 
       sink.onLoading(true);
       try {
-        const loaded = await list(serverUrl);
+        const loaded = await list(server);
         if (ticket !== generation) return;
         sink.onWorkspaces(loaded);
       } catch (cause) {

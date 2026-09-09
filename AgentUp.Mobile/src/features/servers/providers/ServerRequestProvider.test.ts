@@ -18,7 +18,7 @@ function stalledBodyFetch(): typeof fetch {
 
 test('a response that stalls its body still times out', async () => {
   await assert.rejects(
-    () => requestServerJson('http://localhost:5000', '/api/workspaces', { method: 'GET' }, 25, stalledBodyFetch()),
+    () => requestServerJson({ url: 'http://localhost:5000' }, '/api/workspaces', { method: 'GET' }, 25, stalledBodyFetch()),
     /did not respond in time/,
   );
 });
@@ -36,7 +36,7 @@ test('a body that arrives within the timeout is returned', async () => {
   }) as unknown as typeof fetch;
 
   const body = await requestServerJson<{ ok: boolean }>(
-    'http://localhost:5000', '/api/workspaces', { method: 'GET' }, 2000, slowBodyFetch);
+    { url: 'http://localhost:5000' }, '/api/workspaces', { method: 'GET' }, 2000, slowBodyFetch);
 
   assert.deepEqual(body, { ok: true });
 });
@@ -45,7 +45,7 @@ test('a 204 response reads as no content', async () => {
   const noContentFetch = (async () => new Response(null, { status: 204 })) as unknown as typeof fetch;
 
   assert.equal(
-    await requestServerJson('http://localhost:5000', '/api/workspaces/a/start', { method: 'POST' }, 2000, noContentFetch),
+    await requestServerJson({ url: 'http://localhost:5000' }, '/api/workspaces/a/start', { method: 'POST' }, 2000, noContentFetch),
     null,
   );
 });
@@ -55,7 +55,7 @@ test('an error response surfaces the problem detail and its status', async () =>
     new Response(JSON.stringify({ detail: 'Branch must be a valid Git branch name.' }), { status: 400 })
   ) as unknown as typeof fetch;
 
-  const error = await requestServerJson('http://localhost:5000', '/api/source-clones', {}, 2000, failingFetch)
+  const error = await requestServerJson({ url: 'http://localhost:5000' }, '/api/source-clones', {}, 2000, failingFetch)
     .then(() => null, (cause: unknown) => cause);
 
   assert.ok(error instanceof ServerRequestError);
@@ -67,7 +67,37 @@ test('an unreachable server is reported with its origin', async () => {
   const refusingFetch = (async () => { throw new TypeError('fetch failed'); }) as unknown as typeof fetch;
 
   await assert.rejects(
-    () => requestServerJson('http://localhost:5000', '/api/workspaces', {}, 2000, refusingFetch),
+    () => requestServerJson({ url: 'http://localhost:5000' }, '/api/workspaces', {}, 2000, refusingFetch),
     /Could not reach http:\/\/localhost:5000/,
   );
+});
+
+test('a session with an access token sends it as a bearer credential', async () => {
+  const recorded: RequestInit[] = [];
+  const recordingFetch = (async (_url: string | URL | Request, init: RequestInit = {}) => {
+    recorded.push(init);
+    return new Response('{}', { status: 200 });
+  }) as unknown as typeof fetch;
+
+  await requestServerJson(
+    { url: 'http://localhost:5000', accessToken: 'token-abc' },
+    '/api/workspaces',
+    { method: 'GET' },
+    2000,
+    recordingFetch,
+  );
+
+  assert.equal((recorded[0].headers as Record<string, string>).Authorization, 'Bearer token-abc');
+});
+
+test('a session without an access token sends no authorization header', async () => {
+  const recorded: RequestInit[] = [];
+  const recordingFetch = (async (_url: string | URL | Request, init: RequestInit = {}) => {
+    recorded.push(init);
+    return new Response('{}', { status: 200 });
+  }) as unknown as typeof fetch;
+
+  await requestServerJson({ url: 'http://localhost:5000' }, '/api/workspaces', { method: 'GET' }, 2000, recordingFetch);
+
+  assert.equal('Authorization' in (recorded[0].headers as Record<string, string>), false);
 });

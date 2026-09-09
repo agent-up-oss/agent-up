@@ -3,10 +3,18 @@
 
 export const DEFAULT_TIMEOUT_MS = 15000;
 
+// A server plus the credential the client holds for it. The Server requires a bearer token unless
+// it was started with authentication disabled, so the token travels with the URL rather than being
+// looked up separately by each slice.
+export type ServerSession = {
+  url: string;
+  accessToken?: string;
+};
+
 // fetch resolves as soon as response headers arrive, so the body is read inside the same timeout
 // window. Clearing the timer earlier would let a server that stalls its body hang the client.
 export async function requestServerJson<T>(
-  serverUrl: string,
+  server: ServerSession,
   path: string,
   init: RequestInit = {},
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
@@ -15,18 +23,26 @@ export async function requestServerJson<T>(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await request(`${serverUrl}${path}`, {
+    const response = await request(`${server.url}${path}`, {
       ...init,
-      headers: { Accept: 'application/json', ...(init.headers ?? {}) },
+      headers: {
+        Accept: 'application/json',
+        ...authorizationHeader(server.accessToken),
+        ...(init.headers ?? {}),
+      },
       signal: controller.signal,
     });
     if (!response.ok) throw new ServerRequestError(await readProblemDetail(response), response.status);
     return await readJsonBody<T>(response);
   } catch (error) {
-    throw toReadableError(error, serverUrl);
+    throw toReadableError(error, server.url);
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function authorizationHeader(accessToken?: string): Record<string, string> {
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 }
 
 export function jsonBody(value: unknown): RequestInit {
