@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Audit.Providers;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Database.Providers;
@@ -19,7 +20,10 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
 {
     internal const string WorkspaceId = "ws-e2e";
 
+    private const string NavigationTokenScript = "(function(){return window.__nav || 'none';})()";
+
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan NavigationAttemptTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly List<NativeWebView> _webViews;
@@ -82,7 +86,20 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     // wait on observable page state instead of fixed delays.
     internal async Task WaitForScriptAsync(string script, string expected, string because, TimeSpan? timeout = null)
     {
-        var deadline = DateTimeOffset.UtcNow + (timeout ?? DefaultTimeout);
+        var attempt = await TryWaitForScriptAsync(script, expected, timeout ?? DefaultTimeout);
+        if (attempt.Matched)
+            return;
+
+        var detail = attempt.Error is null ? string.Empty : $" Last evaluation error: {attempt.Error}.";
+        Assert.Fail($"{because}. Expected '{expected}' from '{script}' but the last result was '{attempt.Last ?? "(null)"}'.{detail}");
+    }
+
+    private async Task<(bool Matched, string? Last, string? Error)> TryWaitForScriptAsync(
+        string script,
+        string expected,
+        TimeSpan timeout)
+    {
+        var deadline = DateTimeOffset.UtcNow + timeout;
         string? last = null;
         string? evaluationError = null;
         while (DateTimeOffset.UtcNow < deadline)
@@ -92,22 +109,21 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
                 last = await EvalAsync(script);
                 evaluationError = null;
                 if (string.Equals(last, expected, StringComparison.Ordinal))
-                    return;
+                    return (true, last, null);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Platform WebView engines refuse script evaluation while a navigation is in
                 // flight, which is ordinary in the middle of an OAuth redirect chain. Polling
-                // continues; the deadline below is the real failure signal, and the last engine
-                // error is reported with it.
+                // continues; the deadline is the real failure signal, and the last engine error
+                // is reported with it.
                 evaluationError = ex.Message;
             }
 
             await Task.Delay(PollInterval);
         }
 
-        var detail = evaluationError is null ? string.Empty : $" Last evaluation error: {evaluationError}.";
-        Assert.Fail($"{because}. Expected '{expected}' from '{script}' but the last result was '{last ?? "(null)"}'.{detail}");
+        return (false, last, evaluationError);
     }
 
     // Runs a script whose whole point is to navigate away. The engine can tear the evaluation
@@ -127,24 +143,31 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
 
     // Navigates the workspace browser tab the way Desktop's own browser controller does and
     // waits until that exact document is live in the WebView.
+    //
+    // Desktop re-navigates a workspace tab on its own whenever the tab's port probe or health
+    // state settles, which can land after — and supersede — a navigation a test just asked for.
+    // That is correct product behaviour, so the harness simply re-issues its navigation until
+    // the document it asked for is the one running.
     internal async Task<string> NavigateAsync(string url)
     {
         var token = Guid.NewGuid().ToString("N");
         var separator = url.Contains('?', StringComparison.Ordinal) ? "&" : "?";
         var target = $"{url}{separator}nav={token}";
-        await Dispatcher.UIThread.InvokeAsync(() => Window.NavigateTo(WorkspaceId, target));
-        await WaitForNavigationAsync(token);
+        var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
+        (bool Matched, string? Last, string? Error) attempt = default;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => Window.NavigateTo(WorkspaceId, target));
+            attempt = await TryWaitForScriptAsync(NavigationTokenScript, token, NavigationAttemptTimeout);
+            if (attempt.Matched)
+                return token;
+        }
+
+        Assert.Fail(
+            $"The Desktop WebView never loaded the page for navigation '{token}'. "
+            + $"The last window.__nav was '{attempt.Last ?? "(null)"}'.");
         return token;
     }
-
-    // Waits for the exact document the test just requested. Every test page echoes the nav
-    // token from its URL, so a stale document left over from an earlier navigation can never
-    // satisfy the wait.
-    internal Task WaitForNavigationAsync(string navigationToken)
-        => WaitForScriptAsync(
-            "(function(){return window.__nav || 'none';})()",
-            navigationToken,
-            $"The Desktop WebView never loaded the page for navigation '{navigationToken}'");
 
     // Desktop injects its page scripts from NavigationCompleted, so the bridge becomes
     // available shortly after the document itself does.
@@ -157,8 +180,16 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     private static void SelectHttpPortTab(MainViewModel viewModel)
     {
         var portTab = viewModel.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(tab => tab.IsHttp);
-        if (portTab is not null)
-            viewModel.SelectedSubTab = portTab;
+        if (portTab is null)
+            return;
+
+        viewModel.SelectedSubTab = portTab;
+
+        // Stand in for the port health a running Server reports over its event stream. Without
+        // it the tab stays in the probing state, and Desktop keeps re-probing and re-navigating
+        // the tab every few seconds — which is correct while a port's health is unknown, but is
+        // not the state these tests are about.
+        portTab.SetLedState(PortLedState.Healthy);
     }
 
     public async ValueTask DisposeAsync()
