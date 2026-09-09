@@ -67,6 +67,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal Func<IWebPopup> WebPopupFactory { get; set; } = () => new NativeWebDialogPopup();
     internal int OpenPopupCountForTests => _webPopups.Count;
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
+    // Seam over the native file dialog. No test runner can drive a GTK/AppKit/Win32 file
+    // chooser, so end-to-end tests substitute the chooser step and keep every other part of
+    // the upload bridge — script injection, the WebView message, IStorageFile reads, and the
+    // completion script — running against the real platform WebView and storage provider.
+    internal Func<FilePickerOpenOptions, Task<IReadOnlyList<IStorageFile>>> FilePicker { get; set; }
     internal BrowserViewportController BrowserViewport { get; }
     internal WebViewFilePickerController BrowserFilePicker { get; }
     internal bool HasBrowserResourcesForTests =>
@@ -172,6 +177,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         SetWindowIcon();
         BrowserViewport = new BrowserViewportController(NavigateTo, EvalAsync);
         BrowserFilePicker = new WebViewFilePickerController();
+        FilePicker = options => StorageProvider.OpenFilePickerAsync(options);
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
@@ -633,7 +639,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         try
         {
-            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            var files = await FilePicker(new FilePickerOpenOptions
             {
                 AllowMultiple = request.Multiple,
                 Title = request.Multiple ? "Choose files to upload" : "Choose a file to upload"

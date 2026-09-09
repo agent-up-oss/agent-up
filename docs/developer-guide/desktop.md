@@ -126,7 +126,9 @@ Workspace event invalidations are scoped to the event workspace ID. Desktop refr
 
 Desktop displays each workspace application through a direct embedded WebView connection to the allocated HTTP port. Desktop owns those WebView instances and their browser state on the workstation.
 
-Desktop bridges HTML file inputs to the native Avalonia file picker so uploads work consistently across the platform WebView engines. The selected files are returned only to the requesting WebView and are limited to 32 MB per file and 128 MB per selection; directory inputs continue to use the platform WebView behavior.
+Desktop bridges HTML file inputs to the native Avalonia file picker so uploads work consistently across the platform WebView engines. Only trusted user clicks reach the bridge, so a page cannot open a native file chooser on its own. The selected files are returned only to the requesting WebView and are limited to 32 MB per file and 128 MB per selection, enforced while each file is read rather than after it, so an oversized selection is refused instead of buffered. Directory inputs continue to use the platform WebView behavior.
+
+The upload bridge and the sign-in popup path are covered end to end in `AgentUp.Tests` against the real window, the platform WebView engine, and the platform storage provider. Those tests substitute only what no test runner can drive on a CI runner — the modal file chooser and the engine's new-window callback — and keep the injected scripts, WebView messages, `IStorageFile` reads, redirects, and cookies real.
 
 The Server owns a separate headless Chromium profile per workspace under `browser-profiles/{workspaceId}`. MCP browser tools use that headless profile for automation. Desktop does not stream, mirror, or read from the headless session.
 

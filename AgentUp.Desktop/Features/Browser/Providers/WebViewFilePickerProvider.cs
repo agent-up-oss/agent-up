@@ -9,6 +9,9 @@ internal static class WebViewFilePickerProvider
     private const string MessageType = "agent-up:file-picker";
     private const long MaximumFileBytes = 32 * 1024 * 1024;
     private const long MaximumSelectionBytes = 128 * 1024 * 1024;
+    private const int CopyBufferBytes = 81_920;
+    private const string SelectionTooLargeMessage =
+        "Upload selections are limited to 32 MB per file and 128 MB in total.";
 
     internal const string InstallScript =
         "(function(){" +
@@ -54,23 +57,41 @@ internal static class WebViewFilePickerProvider
         CancellationToken cancellationToken = default)
     {
         var selected = new List<WebViewSelectedFile>(files.Count);
-        long selectionBytes = 0;
+        var remainingBytes = MaximumSelectionBytes;
         foreach (var file in files)
         {
-            await using var input = await file.OpenReadAsync();
-            using var output = new MemoryStream();
-            await input.CopyToAsync(output, cancellationToken);
-            selectionBytes += output.Length;
-            if (output.Length > MaximumFileBytes || selectionBytes > MaximumSelectionBytes)
-                throw new InvalidDataException("Upload selections are limited to 32 MB per file and 128 MB in total.");
-
-            selected.Add(new WebViewSelectedFile(
-                file.Name,
-                GetMimeType(file.Name),
-                Convert.ToBase64String(output.GetBuffer(), 0, checked((int)output.Length))));
+            var content = await ReadBoundedContentAsync(file, Math.Min(MaximumFileBytes, remainingBytes), cancellationToken);
+            remainingBytes -= content.Bytes;
+            selected.Add(new WebViewSelectedFile(file.Name, GetMimeType(file.Name), content.Base64));
         }
 
         return selected;
+    }
+
+    // The limits are enforced while the stream is consumed rather than after it: a picker
+    // selection is user-supplied and may point at an arbitrarily large file, and buffering
+    // that whole file before rejecting it would exhaust Desktop's memory.
+    private static async Task<(string Base64, long Bytes)> ReadBoundedContentAsync(
+        IStorageFile file,
+        long limitBytes,
+        CancellationToken cancellationToken)
+    {
+        await using var input = await file.OpenReadAsync();
+        using var output = new MemoryStream();
+        var buffer = new byte[CopyBufferBytes];
+        while (true)
+        {
+            var read = await input.ReadAsync(buffer, cancellationToken);
+            if (read == 0)
+                break;
+            if (output.Length + read > limitBytes)
+                throw new InvalidDataException(SelectionTooLargeMessage);
+
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+        }
+
+        var length = checked((int)output.Length);
+        return (Convert.ToBase64String(output.GetBuffer(), 0, length), length);
     }
 
     internal static string CompleteScript(string requestId, IReadOnlyList<WebViewSelectedFile> files)
