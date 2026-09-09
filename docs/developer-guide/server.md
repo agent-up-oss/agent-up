@@ -39,8 +39,6 @@ Packaged installations run `AgentUp.Server` as the local `agent-up-server` servi
 
 Packaged services bind to `http://127.0.0.1:5000` by default. Service definitions that automatically restart the Server must throttle restart attempts to at least 5 seconds so a bind failure, such as another process already using port 5000, cannot create a tight restart loop.
 
-Packaged installs currently declare `AGENTUP_AUTH_DISABLED=true` on the native `agent-up-server` service so installed-service smoke and first-run Desktop/CLI use work without a preconfigured administrator password. To require REST authentication on a packaged install, remove or override that variable in the platform service environment, set `AGENTUP_ADMIN_PASSWORD`, and restart `agent-up-server`.
-
 ## Authentication and network boundaries
 
 The REST API uses a single administrator account. Authentication is required

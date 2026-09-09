@@ -6,11 +6,10 @@ namespace AgentUp.Server.Tests.Features.Authentication.Unit;
 public sealed class AgentUpServerManifestTests
 {
     [Test]
-    public void EnvironmentVariables_declaresSmokeValidationOptOut()
+    public void EnvironmentVariables_doesNotShipAuthDisabledByDefault()
     {
         var manifest = new AgentUpServerManifest();
 
-        Assert.That(manifest.EnvironmentVariables, Does.ContainKey("AGENTUP_AUTH_DISABLED"));
-        Assert.That(manifest.EnvironmentVariables["AGENTUP_AUTH_DISABLED"], Is.EqualTo("true"));
+        Assert.That(manifest.EnvironmentVariables, Does.Not.ContainKey("AGENTUP_AUTH_DISABLED"));
     }
 }

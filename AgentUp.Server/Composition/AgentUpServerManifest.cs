@@ -14,5 +14,5 @@ public sealed class AgentUpServerManifest : LocalInstallerServerManifest
     public override string ServiceName => AgentUpProduct.Slug + "-server";
 
     public override IReadOnlyDictionary<string, string> EnvironmentVariables =>
-        new Dictionary<string, string> { ["AGENTUP_AUTH_DISABLED"] = "true" };
+        PackageSmokeEnvironment.ServerEnvironmentVariables;
 }

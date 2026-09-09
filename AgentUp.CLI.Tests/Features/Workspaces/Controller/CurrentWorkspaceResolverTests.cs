@@ -87,7 +87,7 @@ public class CurrentWorkspaceResolverTests
             BaseAddress = new Uri("http://localhost")
         });
 
-        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+        var result = await new CurrentWorkspaceResolver(client, _workspaceRoot)
             .ResolveAsync("query failed", "missing workspace");
 
         Assert.That(result.Succeeded, Is.False);
