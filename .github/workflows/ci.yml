@@ -199,95 +199,138 @@ jobs:
               --blame-hang-timeout 300s
           fi
 
+      - name: Locate module coverage reports
+        id: coverage-reports
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          add_reports() {
+            local output_name="$1"
+            local test_project_name="$2"
+            local search_root="artifacts/test-results/$test_project_name"
+            local reports
+
+            reports="$(find "$search_root" -type f -name 'coverage.cobertura.xml' -print | sort | paste -sd, -)"
+            if [ -z "$reports" ]; then
+              echo "No Cobertura coverage reports found for $test_project_name under $search_root" >&2
+              return 1
+            fi
+
+            echo "$output_name=$reports" >> "$GITHUB_OUTPUT"
+          }
+
+          add_reports agentup_architecture_tests AgentUp.Architecture.Tests
+          add_reports agentup_cli_tests AgentUp.CLI.Tests
+          add_reports agentup_capabilities_abstractions_tests AgentUp.Capabilities.Abstractions.Tests
+          add_reports agentup_capabilities_common_tests AgentUp.Capabilities.Common.Tests
+          add_reports agentup_capabilities_docker_tests AgentUp.Capabilities.Docker.Tests
+          add_reports agentup_capabilities_dotnet_tests AgentUp.Capabilities.Dotnet.Tests
+          add_reports agentup_commit_policy_tests AgentUp.CommitPolicy.Tests
+          add_reports agentup_desktop_tests AgentUp.Desktop.Tests
+          add_reports agentup_server_tests AgentUp.Server.Tests
+          add_reports agentup_tests AgentUp.Tests
+
       - name: Upload AgentUp.Architecture.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Architecture.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_architecture_tests }}
           flags: agentup-architecture-tests
           name: AgentUp.Architecture.Tests
           fail_ci_if_error: true
+          disable_search: true
+          verbose: true
 
       - name: Upload AgentUp.CLI.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.CLI.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_cli_tests }}
           flags: agentup-cli-tests
           name: AgentUp.CLI.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Capabilities.Abstractions.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
           flags: agentup-capabilities-abstractions-tests
           name: AgentUp.Capabilities.Abstractions.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Capabilities.Common.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
           flags: agentup-capabilities-common-tests
           name: AgentUp.Capabilities.Common.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Docker.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Capabilities.Docker.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_docker_tests }}
           flags: agentup-capabilities-docker-tests
           name: AgentUp.Capabilities.Docker.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Capabilities.Dotnet.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_dotnet_tests }}
           flags: agentup-capabilities-dotnet-tests
           name: AgentUp.Capabilities.Dotnet.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.CommitPolicy.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.CommitPolicy.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_commit_policy_tests }}
           flags: agentup-commit-policy-tests
           name: AgentUp.CommitPolicy.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.Desktop.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Desktop.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
           flags: agentup-desktop-tests
           name: AgentUp.Desktop.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.Server.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Server.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_server_tests }}
           flags: agentup-server-tests
           name: AgentUp.Server.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.Tests coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: artifacts/test-results/AgentUp.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_tests }}
           flags: agentup-tests
           name: AgentUp.Tests
           fail_ci_if_error: true
+          disable_search: true
 
       - name: Generate SBOM
         run: |
