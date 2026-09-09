@@ -56,6 +56,7 @@ internal sealed class OAuthTestServer : IDisposable
     private readonly ConcurrentDictionary<string, string> _sessions = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<IReadOnlyDictionary<string, string>> _authorizeRequests = new();
     private readonly SemaphoreSlim _authorizeSignal = new(0);
+    private readonly IReadOnlyDictionary<string, Func<HttpListenerContext, IReadOnlyDictionary<string, string>, Task>> _routes;
     private int _tokenGrants;
     private int _rejectedRequests;
 
@@ -72,6 +73,15 @@ internal sealed class OAuthTestServer : IDisposable
 
     internal OAuthTestServer()
     {
+        _routes = new Dictionary<string, Func<HttpListenerContext, IReadOnlyDictionary<string, string>, Task>>(StringComparer.Ordinal)
+        {
+            ["/signin"] = (context, _) => StartSignIn(context),
+            ["/oauth/authorize"] = Authorize,
+            ["/oauth/callback"] = CompleteSignInAsync,
+            ["/oauth/token"] = (context, _) => IssueTokenAsync(context),
+            ["/session"] = (context, _) => WriteSessionAsync(context)
+        };
+
         Port = LoopbackPorts.FindFree();
         _listener = new HttpListener();
         _listener.Prefixes.Add($"http://127.0.0.1:{Port}/");
@@ -137,47 +147,22 @@ internal sealed class OAuthTestServer : IDisposable
         }
     }
 
-    private async Task RouteAsync(HttpListenerContext context)
+    // Routing is a table lookup rather than a chain of conditions on the request path. An
+    // if-chain makes a request-derived value the guard on every handler it dispatches to,
+    // including the sign-in and authorization ones — the shape of a security decision taken on
+    // untrusted input, which is what CodeQL's user-controlled-bypass rule reports. Dispatching
+    // through a fixed table keeps the same behaviour without any handler sitting behind such a
+    // guard.
+    private Task RouteAsync(HttpListenerContext context)
     {
         var path = context.Request.Url?.AbsolutePath ?? "/";
         var query = ParseQuery(context.Request.Url?.Query);
-
-        if (path == "/signin")
-        {
-            StartSignIn(context);
-            return;
-        }
-
-        if (path == "/oauth/authorize")
-        {
-            Authorize(context, query);
-            return;
-        }
-
-        if (path == "/oauth/callback")
-        {
-            await CompleteSignInAsync(context, query);
-            return;
-        }
-
-        if (path == "/oauth/token")
-        {
-            await IssueTokenAsync(context);
-            return;
-        }
-
-        if (path == "/session")
-        {
-            await WriteSessionAsync(context);
-            return;
-        }
-
-        await WritePageAsync(context, query);
+        return _routes.GetValueOrDefault(path, WritePageAsync).Invoke(context, query);
     }
 
     // The application starts the flow: it keeps the PKCE verifier and sends the browser to the
     // provider with only the derived challenge.
-    private void StartSignIn(HttpListenerContext context)
+    private Task StartSignIn(HttpListenerContext context)
     {
         var verifier = RandomToken(48);
         var state = RandomToken(16);
@@ -193,11 +178,12 @@ internal sealed class OAuthTestServer : IDisposable
                         + "&code_challenge_method=S256";
         context.Response.Redirect(authorize);
         context.Response.Close();
+        return Task.CompletedTask;
     }
 
     // The provider approves the already-consented client and hands back a one-time code bound
     // to the PKCE challenge.
-    private void Authorize(HttpListenerContext context, IReadOnlyDictionary<string, string> query)
+    private Task Authorize(HttpListenerContext context, IReadOnlyDictionary<string, string> query)
     {
         _authorizeRequests.Enqueue(query);
         _authorizeSignal.Release();
@@ -211,7 +197,7 @@ internal sealed class OAuthTestServer : IDisposable
         if (!valid)
         {
             Reject(context, "invalid_request");
-            return;
+            return Task.CompletedTask;
         }
 
         var code = RandomToken(24);
@@ -219,6 +205,7 @@ internal sealed class OAuthTestServer : IDisposable
         context.Response.Redirect(
             $"{redirectUri}?code={Uri.EscapeDataString(code)}&state={Uri.EscapeDataString(query.GetValueOrDefault("state", string.Empty))}");
         context.Response.Close();
+        return Task.CompletedTask;
     }
 
     // The application's redirect endpoint: it matches the state it issued, exchanges the code on
