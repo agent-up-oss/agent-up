@@ -83,7 +83,10 @@ export async function startStaticWebServer(options = {}) {
 
     try {
       const body = await readFile(filePath);
-      response.writeHead(200, { 'content-type': contentTypeFor(filePath) });
+      response.writeHead(200, {
+        'content-type': contentTypeFor(filePath),
+        'cache-control': 'no-store',
+      });
       response.end(body);
     } catch (error) {
       log(`[agent-up] failed to read ${filePath}:`, error);

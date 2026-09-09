@@ -6,7 +6,6 @@
     ]
   },
   "include": [
-    "src/features/updates/**/*.ts",
     "src/features/servers/**/*.ts",
     "src/features/workspaces/**/*.ts",
     "src/features/git/**/*.ts"

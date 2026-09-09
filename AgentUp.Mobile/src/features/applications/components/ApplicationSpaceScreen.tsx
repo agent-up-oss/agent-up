@@ -1,0 +1,38 @@
+import { useMemo } from 'react';
+import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
+import type { Workspace } from '@/features/workspaces/models/Workspace';
+
+type ApplicationSpaceScreenProps = {
+  workspace: Workspace;
+  applicationName: string;
+};
+
+export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
+  const shellConfig = useMemo(() => ({
+    title: applicationName,
+    rightAction: null,
+    sidebarContent: null,
+  }), [applicationName]);
+
+  useShellConfig(shellConfig);
+
+  const application = workspace.applications?.find(entry => entry.name === applicationName);
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <Text style={styles.subtitle}>{workspace.displayName}</Text>
+      <Text style={styles.placeholder}>
+        The application space for {applicationName} will be implemented here.
+      </Text>
+      {application && <Text style={styles.status}>Current state: {application.state}</Text>}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { padding: 20, paddingBottom: 32, gap: 12 },
+  subtitle: { color: '#aebcb3', fontSize: 14 },
+  placeholder: { color: '#f5fbf7', lineHeight: 22, fontSize: 16 },
+  status: { color: '#9fb2a8' },
+});

@@ -10,7 +10,7 @@ function createFixture() {
   writeFileSync(join(root, 'index.html'), '<html>home</html>');
   mkdirSync(join(root, 'workspaces'));
   writeFileSync(join(root, 'workspaces', 'index.html'), '<html>workspaces</html>');
-  writeFileSync(join(root, 'sw.js'), 'self.addEventListener("install", () => {});');
+  writeFileSync(join(root, 'app.js'), 'console.log("mobile");');
   return root;
 }
 
@@ -26,7 +26,7 @@ test('resolves nested static routes', () => {
 
 test('resolves direct asset files', () => {
   const root = createFixture();
-  assert.equal(resolveDistFile(root, '/sw.js'), join(root, 'sw.js'));
+  assert.equal(resolveDistFile(root, '/app.js'), join(root, 'app.js'));
 });
 
 test('rejects paths outside the dist root', () => {
@@ -36,6 +36,6 @@ test('rejects paths outside the dist root', () => {
 
 test('maps common content types', () => {
   assert.equal(contentTypeFor('/dist/index.html'), 'text/html; charset=utf-8');
-  assert.equal(contentTypeFor('/dist/sw.js'), 'text/javascript; charset=utf-8');
-  assert.equal(contentTypeFor('/dist/bootstrap-manifest.json'), 'application/json; charset=utf-8');
+  assert.equal(contentTypeFor('/dist/app.js'), 'text/javascript; charset=utf-8');
+  assert.equal(contentTypeFor('/dist/manifest.json'), 'application/json; charset=utf-8');
 });
