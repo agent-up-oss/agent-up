@@ -12,6 +12,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Input.Platform;
+using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
@@ -20,6 +21,7 @@ using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
+using AgentUp.Desktop.Features.Browser.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Shared.Providers;
@@ -65,7 +67,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal Func<IWebPopup> WebPopupFactory { get; set; } = () => new NativeWebDialogPopup();
     internal int OpenPopupCountForTests => _webPopups.Count;
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
+    // Seam over the native file dialog. No test runner can drive a GTK/AppKit/Win32 file
+    // chooser, so end-to-end tests substitute the chooser step and keep every other part of
+    // the upload bridge — script injection, the WebView message, IStorageFile reads, and the
+    // completion script — running against the real platform WebView and storage provider.
+    internal Func<FilePickerOpenOptions, Task<IReadOnlyList<IStorageFile>>> FilePicker { get; set; }
     internal BrowserViewportController BrowserViewport { get; }
+    internal WebViewFilePickerController BrowserFilePicker { get; }
     internal bool HasBrowserResourcesForTests =>
         _addressPollTimer.IsEnabled
         || HasWorkspaceBrowserResourcesForTests
@@ -168,6 +176,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         InitializeComponent();
         SetWindowIcon();
         BrowserViewport = new BrowserViewportController(NavigateTo, EvalAsync);
+        BrowserFilePicker = new WebViewFilePickerController();
+        FilePicker = options => StorageProvider.OpenFilePickerAsync(options);
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
@@ -554,12 +564,18 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             });
 
             _ = webView.InvokeScript(SelectionJs);
+            _ = webView.InvokeScript(BrowserFilePicker.InstallScript);
             if (firstNavDone) return;
             firstNavDone = true;
             ForceFirstWebKitPaint(tabKey, webView);
         };
 
         webView.NewWindowRequested += (_, e) => HandleNewWindowRequested(workspaceId, tabKey, e);
+        webView.WebMessageReceived += (_, e) =>
+        {
+            if (BrowserFilePicker.TryParseRequest(e.Body, out var request) && request is not null)
+                _ = HandleFilePickerRequestAsync(tabKey, webView, request);
+        };
 
         return webView;
     }
@@ -614,6 +630,31 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         foreach (var popupId in _webPopups.Keys.Where(key => key.StartsWith($"{tabKeyOrWorkspacePrefix}:", StringComparison.Ordinal)).ToList())
             ClosePopup(popupId);
+    }
+
+    private async Task HandleFilePickerRequestAsync(
+        string tabKey,
+        NativeWebView webView,
+        WebViewFilePickerRequest request)
+    {
+        try
+        {
+            var files = await FilePicker(new FilePickerOpenOptions
+            {
+                AllowMultiple = request.Multiple,
+                Title = request.Multiple ? "Choose files to upload" : "Choose a file to upload"
+            });
+            if (!CanTouchWebView(tabKey, webView)) return;
+
+            var script = await BrowserFilePicker.BuildCompletionScriptAsync(request.RequestId, files);
+            await webView.InvokeScript(script);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException)
+        {
+            Trace.TraceWarning($"Could not select upload files: {ex.Message}");
+            if (CanTouchWebView(tabKey, webView))
+                await webView.InvokeScript(BrowserFilePicker.CancelScript(request.RequestId));
+        }
     }
 
     private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
