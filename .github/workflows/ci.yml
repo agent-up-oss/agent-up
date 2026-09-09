@@ -207,7 +207,6 @@ jobs:
           flags: agentup-architecture-tests
           name: AgentUp.Architecture.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.CLI.Tests coverage
         uses: codecov/codecov-action@v5
@@ -217,7 +216,6 @@ jobs:
           flags: agentup-cli-tests
           name: AgentUp.CLI.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
         uses: codecov/codecov-action@v5
@@ -227,7 +225,6 @@ jobs:
           flags: agentup-capabilities-abstractions-tests
           name: AgentUp.Capabilities.Abstractions.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
         uses: codecov/codecov-action@v5
@@ -237,7 +234,6 @@ jobs:
           flags: agentup-capabilities-common-tests
           name: AgentUp.Capabilities.Common.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Docker.Tests coverage
         uses: codecov/codecov-action@v5
@@ -247,7 +243,6 @@ jobs:
           flags: agentup-capabilities-docker-tests
           name: AgentUp.Capabilities.Docker.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
         uses: codecov/codecov-action@v5
@@ -257,7 +252,6 @@ jobs:
           flags: agentup-capabilities-dotnet-tests
           name: AgentUp.Capabilities.Dotnet.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.CommitPolicy.Tests coverage
         uses: codecov/codecov-action@v5
@@ -267,7 +261,6 @@ jobs:
           flags: agentup-commit-policy-tests
           name: AgentUp.CommitPolicy.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.Desktop.Tests coverage
         uses: codecov/codecov-action@v5
@@ -277,7 +270,6 @@ jobs:
           flags: agentup-desktop-tests
           name: AgentUp.Desktop.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.Server.Tests coverage
         uses: codecov/codecov-action@v5
@@ -287,7 +279,6 @@ jobs:
           flags: agentup-server-tests
           name: AgentUp.Server.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Upload AgentUp.Tests coverage
         uses: codecov/codecov-action@v5
@@ -297,7 +288,6 @@ jobs:
           flags: agentup-tests
           name: AgentUp.Tests
           fail_ci_if_error: true
-          disable_search: true
 
       - name: Generate SBOM
         run: |
