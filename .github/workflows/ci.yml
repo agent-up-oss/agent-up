@@ -117,6 +117,7 @@ jobs:
               dotnet test "$test_project"
               --configuration Release
               --no-build
+              --results-directory "artifacts/test-results/$test_project_name"
               --settings "coverlet.runsettings"
               --logger "trx;LogFileName=test-results.trx"
               --collect:"XPlat Code Coverage"
@@ -189,6 +190,7 @@ jobs:
             dotnet test "AgentUp.Tests/AgentUp.Tests.csproj" \
               --configuration Release \
               --no-build \
+              --results-directory "artifacts/test-results/AgentUp.Tests" \
               --settings "coverlet.runsettings" \
               --logger "trx;LogFileName=e2e-results.trx" \
               --collect:"XPlat Code Coverage" \
@@ -196,6 +198,106 @@ jobs:
               --blame-hang \
               --blame-hang-timeout 300s
           fi
+
+      - name: Upload AgentUp.Architecture.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Architecture.Tests
+          flags: agentup-architecture-tests
+          name: AgentUp.Architecture.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.CLI.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.CLI.Tests
+          flags: agentup-cli-tests
+          name: AgentUp.CLI.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Capabilities.Abstractions.Tests
+          flags: agentup-capabilities-abstractions-tests
+          name: AgentUp.Capabilities.Abstractions.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Common.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Capabilities.Common.Tests
+          flags: agentup-capabilities-common-tests
+          name: AgentUp.Capabilities.Common.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Docker.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Capabilities.Docker.Tests
+          flags: agentup-capabilities-docker-tests
+          name: AgentUp.Capabilities.Docker.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Capabilities.Dotnet.Tests
+          flags: agentup-capabilities-dotnet-tests
+          name: AgentUp.Capabilities.Dotnet.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.CommitPolicy.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.CommitPolicy.Tests
+          flags: agentup-commit-policy-tests
+          name: AgentUp.CommitPolicy.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Desktop.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Desktop.Tests
+          flags: agentup-desktop-tests
+          name: AgentUp.Desktop.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Server.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Server.Tests
+          flags: agentup-server-tests
+          name: AgentUp.Server.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: artifacts/test-results/AgentUp.Tests
+          flags: agentup-tests
+          name: AgentUp.Tests
+          fail_ci_if_error: true
+          disable_search: true
 
       - name: Generate SBOM
         run: |
