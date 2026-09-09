@@ -1,7 +1,12 @@
 using System.Security.Cryptography;
 using System.Runtime.InteropServices;
 using System.Text;
+using AgentUp.InstallerConfig;
 using AgentUp.Server.Composition;
+using AgentUp.Server.Features.Authentication.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+
+RepositoryDotEnv.LoadOptional();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,11 +24,14 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseWebSockets();
 app.UseCors(AgentUp.Server.Shared.Providers.WebClientOriginProvider.PolicyName);
+app.UseMiddleware<IMcpNetworkRestrictionMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
-app.MapMcp("/mcp/commits");
-app.MapMcp("/mcp/orchestration");
-app.MapMcp("/mcp/browser");
-app.MapMcp("/mcp/audit");
+app.MapMcp("/mcp/commits").WithMetadata(new AllowAnonymousAttribute());
+app.MapMcp("/mcp/orchestration").WithMetadata(new AllowAnonymousAttribute());
+app.MapMcp("/mcp/browser").WithMetadata(new AllowAnonymousAttribute());
+app.MapMcp("/mcp/audit").WithMetadata(new AllowAnonymousAttribute());
 
 app.Run();
 

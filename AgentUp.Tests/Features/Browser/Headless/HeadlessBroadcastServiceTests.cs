@@ -3,6 +3,7 @@ using AgentUp.Server;
 using AgentUp.Browser.Streaming;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentUp.Tests.Features.Browser.Headless;
@@ -12,21 +13,21 @@ namespace AgentUp.Tests.Features.Browser.Headless;
 //
 // Run: dotnet test AgentUp.Tests/ --filter "Category=Headless"
 [TestFixture, Category("Headless")]
-public sealed class HeadlessBroadcastServiceTests
+public sealed class HeadlessBroadcastServiceTests : IDisposable
 {
     private WebApplicationFactory<Program> _factory = null!;
 
     [OneTimeSetUp]
     public void SetUp()
     {
-        _factory = new WebApplicationFactory<Program>();
+        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.UseSetting("AGENTUP_AUTH_DISABLED", "true"));
     }
 
     [OneTimeTearDown]
-    public async Task TearDown()
-    {
-        await _factory.DisposeAsync();
-    }
+    public void TearDown() => Dispose();
+
+    public void Dispose() => _factory?.Dispose();
 
     [Test, CancelAfter(10000)]
     public async Task Frame_is_received_by_connected_subscriber(CancellationToken ct)

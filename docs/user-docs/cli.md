@@ -28,13 +28,15 @@ export AGENTUP_SERVER_URL=http://localhost:5001
 
 ### start
 
-Reads `agent-up.json` from the current directory and pushes the workspace and application definitions to the server. Works like `npm install` — running it is what makes the workspace exist on the server. If the workspace has never been started, it does not exist. Running `start` again from the same directory updates the existing workspace in place.
+Searches the current directory and its parents for `agent-up.json`, then pushes the workspace and application definitions to the server. The directory containing `agent-up.json` is the workspace root, even when the command is invoked from a nested directory that is not itself a Git repository. The command fails only when no `agent-up.json` exists anywhere in that directory chain.
+
+`start` works like `npm install` — running it is what makes the workspace exist on the server. If the workspace has never been started, it does not exist. Running `start` again from the same workspace updates the existing workspace in place.
 
 ```bash
 dotnet run --project AgentUp.CLI -- start --server http://localhost:5001
 ```
 
-The workspace identity is the current directory path. Git metadata is optional: when the directory is not a Git repository, the workspace is still registered and its branch is shown as `not on a git branch`.
+The workspace identity is the directory containing `agent-up.json`. Git metadata is optional: when that directory is not a Git repository, the workspace is still registered and its branch is shown as `not on a git branch`.
 
 ### list
 
@@ -59,6 +61,26 @@ Shows the state of the workspace in the current directory.
 ```bash
 dotnet run --project AgentUp.CLI -- status --server http://localhost:5001
 ```
+
+### auth
+
+Authenticates the CLI with a Server that requires the admin password. Tokens are stored locally per server URL and attached automatically to later workspace commands.
+
+`auth` commands always require an explicit `--server` argument. They do not fall back to repository `.env` values or `AGENTUP_SERVER_URL`, so a checked-out `.env` cannot redirect your password to another host.
+
+When a workspace command receives `401 Unauthorized`, the CLI prints:
+
+```text
+use: auth login --server
+```
+
+Log in with:
+
+```bash
+dotnet run --project AgentUp.CLI -- auth login --server http://localhost:5001 --password "$AGENTUP_ADMIN_PASSWORD"
+```
+
+Omit `--password` to enter the admin password interactively. Use `auth status` to check whether authentication is required and configured, and `auth logout` to remove the stored token for the selected server.
 
 ### commits
 

@@ -10,7 +10,7 @@ without leaving the IDE.
 
 - Agent-Up CLI installed as `agent-up`, or a custom executable configured under
   Settings | Tools | Agent-Up.
-- A local Git repository opened as the IDE project.
+- A project inside a workspace whose current directory or a parent contains `agent-up.json`.
 - An Agent-Up CLI version that supports:
   - `agent-up commits status --format json`
   - `agent-up commits next --format json`
@@ -28,6 +28,10 @@ without leaving the IDE.
 
 The plugin does not create commits. It only stages the next queued entry so you
 can review the diff and commit manually inside the IDE.
+
+The plugin searches upward from the IDE project directory for `agent-up.json`
+and runs queue commands from the directory containing it. This supports opening
+a nested project directory even when that directory is not itself a Git root.
 
 The CLI executable path, polling interval, and timeouts are configurable under
 Settings | Tools | Agent-Up. During local development, the executable can be a

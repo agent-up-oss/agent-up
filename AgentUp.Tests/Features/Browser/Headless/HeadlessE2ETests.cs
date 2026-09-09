@@ -35,6 +35,7 @@ public sealed class HeadlessE2ETests
             .WithWebHostBuilder(host =>
             {
                 host.UseSetting("Storage:DataDirectory", DataDir);
+                host.UseSetting("AGENTUP_AUTH_DISABLED", "true");
                 var chromium = FindSystemChromium();
                 if (chromium is not null)
                     host.UseSetting("Browser:ExecutablePath", chromium);

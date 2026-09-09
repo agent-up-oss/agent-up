@@ -1,6 +1,7 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
-using AgentUp.CLI.Features.Workspaces.Controllers;
+using AgentUp.CLI.Shared.Providers;
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
@@ -10,13 +11,28 @@ namespace AgentUp.CLI.Tests.Features.Workspaces.Controller;
 [TestFixture]
 public class CurrentWorkspaceResolverTests
 {
+    private string _workspaceRoot = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _workspaceRoot = Path.Join(Path.GetTempPath(), "AgentUp-ResolverTests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_workspaceRoot);
+        File.WriteAllText(Path.Join(_workspaceRoot, "agent-up.json"), "{}");
+    }
+
+    [TearDown]
+    public void TearDown() => Directory.Delete(_workspaceRoot, recursive: true);
+
     [Test]
     public async Task ResolveAsync_findsWorkspaceForCurrentDirectory()
     {
-        var workspace = new WorkspaceDto("w1", "App", "/repo", "/repo/worktree", "main", "abc", "Running");
+        var nestedDirectory = Path.Join(_workspaceRoot, "src", "feature");
+        Directory.CreateDirectory(nestedDirectory);
+        var workspace = new WorkspaceDto("w1", "App", _workspaceRoot, _workspaceRoot, "main", "abc", "Running");
         var client = ClientReturning([workspace]);
 
-        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+        var result = await new CurrentWorkspaceResolver(client, nestedDirectory)
             .ResolveAsync("query failed", "missing");
 
         Assert.That(result.Succeeded, Is.True);
@@ -29,7 +45,7 @@ public class CurrentWorkspaceResolverTests
     {
         var client = ClientReturning([]);
 
-        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+        var result = await new CurrentWorkspaceResolver(client, _workspaceRoot)
             .ResolveAsync("query failed", "missing workspace");
 
         Assert.That(result.Succeeded, Is.False);
@@ -41,7 +57,7 @@ public class CurrentWorkspaceResolverTests
     {
         var client = ClientThrowing(new InvalidOperationException("server unavailable"));
 
-        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+        var result = await new CurrentWorkspaceResolver(client, _workspaceRoot)
             .ResolveAsync("query failed", "missing workspace");
 
         Assert.That(result.Succeeded, Is.False);
@@ -63,6 +79,21 @@ public class CurrentWorkspaceResolverTests
     private static WorkspaceApiClient ClientThrowing(Exception exception)
         => new(new HttpClient(new StubHandler(_ => throw exception)) { BaseAddress = new Uri("http://localhost") });
 
+    [Test]
+    public async Task ResolveAsync_returnsLoginHint_whenUnauthorized()
+    {
+        var client = new WorkspaceApiClient(new HttpClient(new UnauthorizedHandler())
+        {
+            BaseAddress = new Uri("http://localhost")
+        });
+
+        var result = await new CurrentWorkspaceResolver(client, _workspaceRoot)
+            .ResolveAsync("query failed", "missing workspace");
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Is.EqualTo(AuthenticationRequiredException.LoginHint));
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _response;
@@ -74,5 +105,28 @@ public class CurrentWorkspaceResolverTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(_response(request));
+    }
+
+    private sealed class UnauthorizedHandler : HttpMessageHandler
+    {
+        private readonly ConcurrentBag<HttpResponseMessage> _responses = new();
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized);
+            _responses.Add(response);
+            return Task.FromResult(response);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                foreach (var response in _responses)
+                    response.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

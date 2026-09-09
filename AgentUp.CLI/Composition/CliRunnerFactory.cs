@@ -1,10 +1,15 @@
+using System.Net.Http.Headers;
 using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
+using AgentUp.CLI.Features.Authentication.Controllers;
+using AgentUp.CLI.Features.Authentication.Providers;
+using AgentUp.CLI.Features.Authentication.Services;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Providers;
 using AgentUp.CLI.Features.Commits.Services;
 using AgentUp.CLI.Features.Workspaces.Controllers;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
+using AgentUp.CLI.Shared.Providers;
 
 namespace AgentUp.CLI.Composition;
 
@@ -13,8 +18,15 @@ public static class CliRunnerFactory
     public static WorkspacesController Create(string serverUrl, string workingDirectory, TextWriter? output = null)
     {
         var writer = output ?? Console.Out;
+        var normalizedServerUrl = ServerUrlNormalizer.Normalize(serverUrl);
 
-        var http = new HttpClient { BaseAddress = new Uri(serverUrl) };
+        var credentialsStore = new AuthenticationCredentialsStore();
+        var serverUri = SecureServerUrlProvider.ResolveServerUri(normalizedServerUrl);
+        var http = new HttpClient { BaseAddress = serverUri };
+        var token = credentialsStore.GetToken(normalizedServerUrl);
+        if (token is not null)
+            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
         var client = new WorkspaceApiClient(http);
         var resolver = new CurrentWorkspaceResolver(client, workingDirectory);
         var workspaceService = new WorkspaceCommandService(
@@ -24,6 +36,17 @@ public static class CliRunnerFactory
             resolver,
             workingDirectory);
         var workspaceOutput = new WorkspaceCommandOutputService(writer);
+
+        var authenticationService = new AuthenticationService(credentialsStore, serverUrl);
+        var authenticationCommands = new AuthenticationCommandService(
+            authenticationService,
+            new AuthenticationArgParser());
+        var authenticationOutput = new AuthenticationOutputService(writer);
+        var authentication = new AuthenticationController(
+            new AuthLoginCommand(authenticationCommands, authenticationOutput),
+            new AuthLogoutCommand(authenticationService, writer),
+            new AuthStatusCommand(authenticationCommands, authenticationOutput),
+            writer);
 
         var commitsGit = new CommitsGitProvider(workingDirectory);
         var commitsQueue = new CommitsQueueProvider(commitsGit);
@@ -52,6 +75,7 @@ public static class CliRunnerFactory
             new ClearCommand(workspaceService, writer),
             new ListCommand(workspaceService, workspaceOutput),
             new StatusCommand(workspaceService, workspaceOutput),
+            authentication,
             commits);
     }
 }

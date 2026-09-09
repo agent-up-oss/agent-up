@@ -1,6 +1,7 @@
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Interfaces;
 using AgentUp.CLI.Features.Workspaces.Providers;
+using AgentUp.CLI.Shared.Providers;
 
 namespace AgentUp.CLI.Features.Workspaces.Services;
 
@@ -33,7 +34,8 @@ public sealed class WorkspaceCommandService
             return WorkspaceCommandResult<StartedWorkspace>.Failed(loaded.Error);
 
         var config = loaded.Configuration!;
-        var git = await _identity.ReadAsync(_workingDirectory);
+        var workspaceRoot = loaded.WorkspaceRoot!;
+        var git = await _identity.ReadAsync(workspaceRoot);
         var displayName = string.IsNullOrWhiteSpace(config.Display?.Name) ? config.Name : config.Display.Name;
         var branch = string.IsNullOrWhiteSpace(config.Display?.Branch) ? git.Branch : config.Display.Branch;
         var applications = config.Applications ?? [];
@@ -47,7 +49,7 @@ public sealed class WorkspaceCommandService
             workspace = await _client.RegisterAsync(new RegisterWorkspaceRequest(
                 DisplayName: displayName,
                 RepositoryPath: git.RepositoryPath,
-                WorktreePath: _workingDirectory,
+                WorktreePath: workspaceRoot,
                 Branch: branch,
                 Commit: git.Commit)
             {
@@ -56,6 +58,10 @@ public sealed class WorkspaceCommandService
                 Dotnet = dotnet,
                 Docker = docker
             });
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<StartedWorkspace>.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
@@ -68,6 +74,10 @@ public sealed class WorkspaceCommandService
         try
         {
             await _client.StartWorkspaceAsync(workspace.Id);
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<StartedWorkspace>.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
@@ -89,6 +99,10 @@ public sealed class WorkspaceCommandService
         try
         {
             return WorkspaceCommandResult<IReadOnlyList<WorkspaceDto>>.Success(await _client.ListAsync());
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<IReadOnlyList<WorkspaceDto>>.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
@@ -123,6 +137,10 @@ public sealed class WorkspaceCommandService
 
             return WorkspaceCommandResult<int>.Success(removed);
         }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<int>.Failed(ex.Message);
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             return WorkspaceCommandResult<int>.Failed($"Error: Failed to clear workspaces: {ex.Message}");
@@ -144,6 +162,10 @@ public sealed class WorkspaceCommandService
         try
         {
             await _client.StopWorkspaceAsync(workspace.Id);
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<WorkspaceDto>.Failed(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {

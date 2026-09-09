@@ -14,8 +14,8 @@ public class WindowChromeBehaviorTests
 
         Assert.That(app.Window.WindowDecorations, Is.EqualTo(WindowDecorations.None));
         Assert.That(app.Window.FindControl<Border>("WindowChrome"), Is.Not.Null);
-        Assert.That(app.Window.FindControl<Button>("SidebarToggle"), Is.Not.Null);
-        Assert.That(app.Window.FindControl<Button>("ReloadButton"), Is.Not.Null);
+        Assert.That(ChromeTestSupport.FindDescendantByName<Button>(app.Window, "SidebarToggle"), Is.Not.Null);
+        Assert.That(ChromeTestSupport.FindDescendantByName<Button>(app.Window, "ReloadButton"), Is.Not.Null);
         Assert.That(app.Window.FindControl<Button>("MinimizeWindowButton"), Is.Not.Null);
         Assert.That(app.Window.FindControl<Button>("RestoreWindowButton"), Is.Not.Null);
         Assert.That(app.Window.FindControl<Button>("CloseWindowButton"), Is.Not.Null);
@@ -42,8 +42,8 @@ public class WindowChromeBehaviorTests
     {
         var app = await AppDriver.LaunchEmptyAsync();
 
-        Assert.That(app.Window.FindControl<TextBlock>("ServerStatusText")?.Text, Is.EqualTo("SERVER ONLINE"));
-        Assert.That(app.Window.FindControl<Border>("ServerStatusBadge")?.BorderBrush?.ToString(), Is.EqualTo("#ff00d66b"));
+        Assert.That(ChromeTestSupport.FindDescendantByName<TextBlock>(app.Window, "ServerStatusText")?.Text, Is.EqualTo("SERVER ONLINE"));
+        Assert.That(ChromeTestSupport.FindDescendantByName<Border>(app.Window, "ServerStatusBadge")?.BorderBrush?.ToString(), Is.EqualTo("#ff00d66b"));
     }
 
     [AvaloniaTest]
@@ -51,7 +51,7 @@ public class WindowChromeBehaviorTests
     {
         var app = await AppDriver.LaunchWithServerErrorAsync();
 
-        Assert.That(app.Window.FindControl<TextBlock>("ServerStatusText")?.Text, Is.EqualTo("SERVER OFFLINE"));
-        Assert.That(app.Window.FindControl<Border>("ServerStatusBadge")?.BorderBrush?.ToString(), Is.EqualTo("#ffd84f4f"));
+        Assert.That(ChromeTestSupport.FindDescendantByName<TextBlock>(app.Window, "ServerStatusText")?.Text, Is.EqualTo("SERVER OFFLINE"));
+        Assert.That(ChromeTestSupport.FindDescendantByName<Border>(app.Window, "ServerStatusBadge")?.BorderBrush?.ToString(), Is.EqualTo("#ffd84f4f"));
     }
 }

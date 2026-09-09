@@ -27,22 +27,49 @@ export function isPortInUse(port, host = '127.0.0.1') {
   });
 }
 
-export async function waitForPortAvailable(port, options = {}) {
+export async function ensurePortAvailable(port, options = {}) {
   const {
     host = '127.0.0.1',
-    maxAttempts = 60,
-    delayMs = 1000,
+    maxGraceAttempts = 5,
+    graceDelayMs = 200,
     log = console.log,
   } = options;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  for (let attempt = 1; attempt <= maxGraceAttempts; attempt += 1) {
     if (!(await isPortInUse(port, host))) {
       return;
     }
 
-    log(`[agent-up] waiting for WEB_PORT ${port} to become available (attempt ${attempt}/${maxAttempts})`);
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    if (attempt < maxGraceAttempts) {
+      log(`[agent-up] waiting for WEB_PORT ${port} to become available (attempt ${attempt}/${maxGraceAttempts})`);
+      await delay(graceDelayMs);
+    }
   }
 
-  throw new Error(`WEB_PORT ${port} is still in use after ${maxAttempts} attempts.`);
+  if (await isPortInUse(port, host)) {
+    throw new Error(
+      `WEB_PORT ${port} is already in use. Another workspace application may be bound to this port, or a previous dev server did not exit.`,
+    );
+  }
+}
+
+/** @deprecated Use ensurePortAvailable instead. */
+export async function waitForPortAvailable(port, options = {}) {
+  const {
+    maxAttempts,
+    delayMs,
+    maxGraceAttempts,
+    graceDelayMs,
+    ...rest
+  } = options;
+
+  return ensurePortAvailable(port, {
+    ...rest,
+    maxGraceAttempts: maxGraceAttempts ?? maxAttempts ?? 5,
+    graceDelayMs: graceDelayMs ?? delayMs ?? 200,
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

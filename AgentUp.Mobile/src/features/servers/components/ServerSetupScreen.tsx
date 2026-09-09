@@ -4,20 +4,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useServers } from '../controllers/ServersContext';
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
+import { getAuthenticationStatus, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
 
 export function ServerSetupScreen() {
   const { activeServer, saveServer } = useServers();
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState('');
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
   const connectionInFlight = useRef(false);
 
   const tryAndSave = async () => {
     if (connectionInFlight.current) return;
     connectionInFlight.current = true;
     setBusy(true); setStatus('Trying server…');
+    setLoginUrl(null);
+    setPassword('');
     try {
       const normalized = normalizeServerUrl(url);
+      const auth = await getAuthenticationStatus(normalized);
+      if (auth.authenticationRequired) {
+        ensureCredentialTransportAllowed(normalized);
+        setLoginUrl(normalized);
+        setStatus('Enter the server admin password.');
+        return;
+      }
       await probeServer(normalized);
       void recordServerConnectionAudit(normalized, 'success');
       saveServer(normalized); setUrl(''); setStatus(`Connected to ${normalized}`);
@@ -28,20 +40,38 @@ export function ServerSetupScreen() {
     } finally { connectionInFlight.current = false; setBusy(false); }
   };
 
+  const signIn = async () => {
+    if (!loginUrl || busy) return;
+    setBusy(true);
+    try {
+      const result = await login(loginUrl, password);
+      if (!result.accessToken) throw new Error('The server did not return an access token.');
+      saveServer(loginUrl, result.accessToken);
+      setPassword(''); setLoginUrl(null); setUrl(''); setStatus(`Signed in to ${loginUrl}`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'Could not sign in.'); }
+    finally { setBusy(false); connectionInFlight.current = false; }
+  };
+
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <Text accessibilityRole="header" style={styles.title}>Servers</Text>
     <Text style={styles.subtitle}>Connect this client to an Agent-Up Server.</Text>
     <View style={styles.card}>
       <Text style={styles.heading}>Add a server</Text>
-      <Text style={styles.detail}>Enter an HTTP or HTTPS base URL. No credentials are stored.</Text>
+      <Text style={styles.detail}>Use HTTPS for remote servers. Loopback HTTP URLs are allowed for local development. Login tokens stay in this client's local storage.</Text>
       <Text style={styles.label}>Server URL</Text>
       <TextInput accessibilityLabel="Server URL" autoCapitalize="none" autoCorrect={false} keyboardType="url"
-        placeholder="http://192.168.1.10:5000" placeholderTextColor="#718077" value={url} onChangeText={setUrl}
+        placeholder="https://agent-up.example.com" placeholderTextColor="#718077" value={url} onChangeText={setUrl}
         editable={!busy} onSubmitEditing={() => void tryAndSave()} style={styles.input} />
+      {loginUrl && <><Text style={styles.label}>Admin password</Text>
+        <TextInput accessibilityLabel="Admin password" secureTextEntry value={password} onChangeText={setPassword}
+          editable={!busy} onSubmitEditing={() => void signIn()} style={styles.input} /></>}
       <Pressable accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void tryAndSave()}
         style={[styles.button, (busy || !url.trim()) && styles.disabled]}>
         {busy ? <ActivityIndicator color="#000000" /> : <Text style={styles.buttonText}>Try and save</Text>}
       </Pressable>
+      {loginUrl && <Pressable accessibilityRole="button" disabled={busy || !password} onPress={() => void signIn()}
+        style={[styles.button, (busy || !password) && styles.disabled]}>
+        <Text style={styles.buttonText}>Sign in</Text></Pressable>}
       {!!status && <Text accessibilityRole="alert" style={styles.status}>{status}</Text>}
     </View>
     <View style={styles.current}><Text style={styles.currentLabel}>Current server</Text>
