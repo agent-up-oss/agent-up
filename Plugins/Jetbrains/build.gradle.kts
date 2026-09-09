@@ -45,7 +45,7 @@ intellijPlatform {
             <ul>
               <li>The Agent-Up CLI must be installed and available as <code>agent-up</code>, or configured under
                 <b>Settings | Tools | Agent-Up</b>.</li>
-              <li>The opened IDE project must be a local Git repository.</li>
+              <li>The opened IDE project or one of its parent directories must contain <code>agent-up.json</code>.</li>
               <li>The CLI must support <code>agent-up commits status --format json</code> and
                 <code>agent-up commits next --format json</code>.</li>
             </ul>

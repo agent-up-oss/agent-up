@@ -11,13 +11,28 @@ namespace AgentUp.CLI.Tests.Features.Workspaces.Controller;
 [TestFixture]
 public class CurrentWorkspaceResolverTests
 {
+    private string _workspaceRoot = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _workspaceRoot = Path.Join(Path.GetTempPath(), "AgentUp-ResolverTests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_workspaceRoot);
+        File.WriteAllText(Path.Join(_workspaceRoot, "agent-up.json"), "{}");
+    }
+
+    [TearDown]
+    public void TearDown() => Directory.Delete(_workspaceRoot, recursive: true);
+
     [Test]
     public async Task ResolveAsync_findsWorkspaceForCurrentDirectory()
     {
-        var workspace = new WorkspaceDto("w1", "App", "/repo", "/repo/worktree", "main", "abc", "Running");
+        var nestedDirectory = Path.Join(_workspaceRoot, "src", "feature");
+        Directory.CreateDirectory(nestedDirectory);
+        var workspace = new WorkspaceDto("w1", "App", _workspaceRoot, _workspaceRoot, "main", "abc", "Running");
         var client = ClientReturning([workspace]);
 
-        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+        var result = await new CurrentWorkspaceResolver(client, nestedDirectory)
             .ResolveAsync("query failed", "missing");
 
         Assert.That(result.Succeeded, Is.True);
@@ -30,7 +45,7 @@ public class CurrentWorkspaceResolverTests
     {
         var client = ClientReturning([]);
 
-        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+        var result = await new CurrentWorkspaceResolver(client, _workspaceRoot)
             .ResolveAsync("query failed", "missing workspace");
 
         Assert.That(result.Succeeded, Is.False);
@@ -42,7 +57,7 @@ public class CurrentWorkspaceResolverTests
     {
         var client = ClientThrowing(new InvalidOperationException("server unavailable"));
 
-        var result = await new CurrentWorkspaceResolver(client, "/repo/worktree")
+        var result = await new CurrentWorkspaceResolver(client, _workspaceRoot)
             .ResolveAsync("query failed", "missing workspace");
 
         Assert.That(result.Succeeded, Is.False);

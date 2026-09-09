@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using AgentUp.CLI.Features.Commits.Interfaces;
 using AgentUp.CLI.Features.Commits.Models;
+using AgentUp.CLI.Shared.Providers;
 
 namespace AgentUp.CLI.Features.Commits.Providers;
 
@@ -201,9 +202,11 @@ public sealed class CommitsGitProvider(string workingDirectory) : ICommitsGitPro
         int[]? allowedExitCodes = null,
         bool trimOutput = true)
     {
+        var workspaceRoot = WorkspaceRootProvider.Find(workingDirectory)
+            ?? throw new InvalidOperationException("agent-up.json was not found in the current directory or any parent directory.");
         var psi = new ProcessStartInfo("git")
         {
-            WorkingDirectory = workingDirectory,
+            WorkingDirectory = workspaceRoot,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false

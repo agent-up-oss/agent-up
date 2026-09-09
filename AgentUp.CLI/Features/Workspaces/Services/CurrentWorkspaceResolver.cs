@@ -17,6 +17,10 @@ public sealed class CurrentWorkspaceResolver
 
     public async Task<WorkspaceResolution> ResolveAsync(string queryFailureMessage, string missingWorkspaceMessage)
     {
+        var workspaceRoot = WorkspaceRootProvider.Find(_workingDirectory);
+        if (workspaceRoot is null)
+            return WorkspaceResolution.Failed("Error: agent-up.json not found in the current directory or any parent directory.");
+
         List<WorkspaceDto> workspaces;
         try
         {
@@ -32,7 +36,7 @@ public sealed class CurrentWorkspaceResolver
         }
 
         var workspace = workspaces.FirstOrDefault(w =>
-            string.Equals(w.WorktreePath, _workingDirectory, StringComparison.OrdinalIgnoreCase));
+            string.Equals(w.WorktreePath, workspaceRoot, StringComparison.OrdinalIgnoreCase));
 
         return workspace is null
             ? WorkspaceResolution.Failed(missingWorkspaceMessage)
