@@ -16,6 +16,7 @@ public sealed class ApplicationAuditPanelTests
         var app = await AppDriver.LaunchWithWorkspacesAsync([WorkspaceFixtures.WithApplications()]);
         var viewModel = (MainViewModel)app.Window.DataContext!;
         var auditTab = viewModel.SubTabs.OfType<AuditSubTabViewModel>().Single();
+        Assert.That(auditTab.Label, Is.EqualTo("Diagnostics"));
 
         viewModel.SelectedSubTab = auditTab;
         await HeadlessExtensions.FlushAsync();

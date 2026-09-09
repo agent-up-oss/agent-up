@@ -29,7 +29,7 @@ public sealed class AuditHttpController(AuditController audit) : ControllerBase
         CancellationToken ct = default)
     {
         var query = new DTOs.AuditEventQuery(
-            workspaceId, null, null, null, null, "frontend", null, null, null, null, limit, null, application, before, beforeEventId);
+            workspaceId, null, null, null, null, null, null, null, null, null, limit, null, application, before, beforeEventId);
         return Ok(await audit.QueryPageAsync(query, ct));
     }
 }
