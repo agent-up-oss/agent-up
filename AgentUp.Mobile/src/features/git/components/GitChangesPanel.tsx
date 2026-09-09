@@ -31,9 +31,15 @@ export function GitChangesPanel() {
 
   const nodes = useMemo(() => flattenChangeTree(tree), [tree]);
 
-  const gates = useRef<{ tree: RequestGate; diff: RequestGate } | null>(null);
-  gates.current ??= { tree: createRequestGate(), diff: createRequestGate() };
-  const { tree: treeGate, diff: diffGate } = gates.current;
+  const gates = useRef<{ tree: RequestGate; diff: RequestGate; commit: RequestGate } | null>(null);
+  gates.current ??= { tree: createRequestGate(), diff: createRequestGate(), commit: createRequestGate() };
+  const { tree: treeGate, diff: diffGate, commit: commitGate } = gates.current;
+
+  // The panel stays mounted when the selected workspace changes, so a commit started against the
+  // previous one can still be in flight. Its gate is advanced by the context change rather than by
+  // the commit itself: a ticket taken before the switch is stale afterwards, which a gate begun
+  // only at commit time could not express — starting late would instead make the stale reply win.
+  useEffect(() => { commitGate.begin(); }, [server, workspaceId, commitGate]);
 
   const load = useCallback(async () => {
     const ticket = treeGate.begin();
@@ -74,17 +80,20 @@ export function GitChangesPanel() {
   const commit = async () => {
     if (!server || !workspaceId || committing) return;
     const files = selectedFilePaths(nodes, selected);
+    const ticket = commitGate.current();
     setCommitting(true); setError(null); setStatus(null);
     try {
       const result = await commitFiles(server, workspaceId, files, message.trim());
+      if (!commitGate.isCurrent(ticket)) return;
       if (!result.succeeded) { setError(result.error ?? 'The commit failed.'); return; }
       setMessage('');
       setStatus(`Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`);
       await load();
     } catch (cause) {
+      if (!commitGate.isCurrent(ticket)) return;
       setError(cause instanceof Error ? cause.message : 'Could not commit.');
     } finally {
-      setCommitting(false);
+      if (commitGate.isCurrent(ticket)) setCommitting(false);
     }
   };
 

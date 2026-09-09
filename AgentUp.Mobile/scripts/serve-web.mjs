@@ -24,7 +24,15 @@ const contentTypes = {
 };
 
 export function resolveDistFile(root, urlPath) {
-  const pathname = decodeURIComponent(new URL(urlPath, 'http://localhost').pathname);
+  // decodeURIComponent throws URIError on a malformed escape such as "/%". The request handler
+  // resolves before its try block, so letting it throw would leave the response open.
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(urlPath, 'http://localhost').pathname);
+  } catch {
+    return null;
+  }
+
   const relativePath = pathname === '/' || pathname === '' ? 'index.html' : pathname.replace(/^\//, '');
   const candidates = [
     relativePath,

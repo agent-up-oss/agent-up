@@ -11,6 +11,10 @@ type WorkspacesController = {
   workspaces: Workspace[];
   selectedWorkspace: Workspace | null;
   loading: boolean;
+  // False until the first refresh for the current server has settled. Routes deep-linked to a
+  // workspace must wait for this: the list starts empty with loading false, so redirecting on a
+  // missing workspace before the first load would discard a valid link.
+  ready: boolean;
   error: string | null;
   selectWorkspace(id: string): void;
   refresh(): Promise<void>;
@@ -34,13 +38,19 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // useState setters are stable, so these are created once and keep their own generation and
   // active-server state across renders. All request sequencing lives in the providers.
   const refresherRef = useRef<WorkspaceRefresher | null>(null);
   refresherRef.current ??= createWorkspaceRefresh({
-    onLoading: setLoading,
+    onLoading: loadingNow => {
+      setLoading(loadingNow);
+      // A refresh that has stopped loading has settled, whether it loaded, failed, or found no
+      // server, so the routes can stop waiting and decide.
+      if (!loadingNow) setReady(true);
+    },
     onWorkspaces: loaded => {
       setWorkspaces(loaded);
       setError(null);
@@ -73,13 +83,14 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     workspaces,
     selectedWorkspace: workspaces.find(workspace => workspace.id === selectedId) ?? null,
     loading,
+    ready,
     error,
     selectWorkspace: id => setSelectedId(id),
     refresh,
     clone: request => actionsRef.current!.clone(server, request),
     start: id => actionsRef.current!.start(server, id),
     stop: id => actionsRef.current!.stop(server, id),
-  }), [server, workspaces, selectedId, loading, error, refresh]);
+  }), [server, workspaces, selectedId, loading, ready, error, refresh]);
 
   return <Context.Provider value={controller}>{children}</Context.Provider>;
 }
