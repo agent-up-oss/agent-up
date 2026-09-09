@@ -1,0 +1,128 @@
+using AgentUp.Server.Features.Git.DTOs;
+using AgentUp.Server.Features.Git.Interfaces;
+using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.DTOs;
+
+namespace AgentUp.Server.Features.Git.Services;
+
+public sealed class GitChangeTreeService
+{
+    private readonly WorkspaceQueryController _workspaces;
+    private readonly IGitWorkingTreeProvider _git;
+
+    public GitChangeTreeService(WorkspaceQueryController workspaces, IGitWorkingTreeProvider git)
+    {
+        _workspaces = workspaces;
+        _git = git;
+    }
+
+    public async Task<GitChangeTree?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+
+        var changes = await ReadChangesAsync(workspace, cancellationToken);
+        return new GitChangeTree(
+            workspace.Id,
+            workspace.Branch,
+            changes.Count,
+            BuildTree(changes));
+    }
+
+    public async Task<GitFileDiff?> GetFileDiffAsync(
+        string workspaceId,
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+
+        try
+        {
+            return await _git.GetFileDiffAsync(workspace.WorktreePath, filePath, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<GitCommitResult> CommitAsync(
+        string workspaceId,
+        GitCommitRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return GitCommitResult.NotFound();
+
+        try
+        {
+            var commit = await _git.CommitAsync(
+                workspace.WorktreePath,
+                request.Files ?? [],
+                request.Message ?? string.Empty,
+                cancellationToken);
+            return GitCommitResult.Success(commit);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return GitCommitResult.Failed(ex.Message);
+        }
+    }
+
+    private async Task<IReadOnlyList<GitChangeEntry>> ReadChangesAsync(
+        Workspace workspace,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _git.GetChangesAsync(workspace.WorktreePath, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return [];
+        }
+    }
+
+    private static GitChangeDirectory BuildTree(IReadOnlyList<GitChangeEntry> changes)
+        => BuildDirectory(
+            name: string.Empty,
+            path: string.Empty,
+            changes.Select(change => (Segments: SplitPath(change.Path), Change: change)).ToList(),
+            depth: 0);
+
+    private static GitChangeDirectory BuildDirectory(
+        string name,
+        string path,
+        IReadOnlyList<(string[] Segments, GitChangeEntry Change)> entries,
+        int depth)
+    {
+        var files = entries
+            .Where(entry => entry.Segments.Length == depth + 1)
+            .Select(entry => new GitChangeFile(entry.Segments[depth], entry.Change.Path, entry.Change.Status))
+            .OrderBy(file => file.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var directories = entries
+            .Where(entry => entry.Segments.Length > depth + 1)
+            .GroupBy(entry => entry.Segments[depth], StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => BuildDirectory(
+                group.Key,
+                Join(path, group.Key),
+                group.ToList(),
+                depth + 1))
+            .ToList();
+
+        return new GitChangeDirectory(name, path, directories, files);
+    }
+
+    private static string Join(string parent, string name)
+        => parent.Length == 0 ? name : $"{parent}/{name}";
+
+    private static string[] SplitPath(string path)
+        => path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+}

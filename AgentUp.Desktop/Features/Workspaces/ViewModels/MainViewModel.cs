@@ -8,6 +8,7 @@ using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Database.ViewModels;
+using AgentUp.Desktop.Features.Git.ViewModels;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
@@ -39,6 +40,7 @@ public sealed class MainViewModel : ReactiveObject
     public MetricsViewModel Metrics { get; }
     public DatabaseViewModel Database { get; }
     public ApplicationAuditViewModel Audit { get; }
+    public GitPanelViewModel Git { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
     public LoginViewModel Login { get; }
     public WindowChromeViewModel Chrome { get; } = new();
@@ -84,6 +86,7 @@ public sealed class MainViewModel : ReactiveObject
         MetricsViewModel metrics,
         DatabaseViewModel database,
         ApplicationAuditViewModel audit,
+        GitPanelViewModel git,
         FirstRunTutorialViewModel tutorial,
         LoginViewModel login,
         PortsController ports)
@@ -94,6 +97,7 @@ public sealed class MainViewModel : ReactiveObject
         Metrics = metrics;
         Database = database;
         Audit = audit;
+        Git = git;
         Tutorial = tutorial;
         Login = login;
         _ports = ports;
@@ -131,6 +135,7 @@ public sealed class MainViewModel : ReactiveObject
                 Metrics.Clear();
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
+                _ = Git.LoadAsync(ws?.Id);
             });
 
     private void CancelPendingMetricsLoad()
@@ -513,6 +518,12 @@ public sealed class MainViewModel : ReactiveObject
             15,
             Sidebar.RefreshCommand,
             "Reload workspaces");
+        yield return new ChromeIconButtonViewModel(
+            "GitPanelToggle",
+            "⑂",
+            15,
+            Git.ToggleCommand,
+            "Toggle Git changes panel");
         yield return _chromeServerStatus;
     }
 }

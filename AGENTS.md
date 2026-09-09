@@ -116,7 +116,7 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, process lifecycle, ports, Docker, browser lifecycle, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, Docker, browser lifecycle, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
 | `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, and install planning used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
@@ -162,6 +162,18 @@ AgentUp.Server/
     Applications/
       Controllers/
       DTOs/
+    SourceClones/     (repositories Agent-Up clones and registers for itself)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Providers/
+      Services/
+    Git/              (working-tree change tree, per-file diffs, selective commits)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Providers/
+      Services/
     Browser/
       Services/
       Profiles/
@@ -192,6 +204,13 @@ AgentUp.Desktop/
       ViewModels/
     Console/          (console output/logs for the selected application)
       Providers/
+      ViewModels/
+    Git/              (right-hand Git panel: change tree, file diff modal, commit box)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Providers/
+      Services/
       ViewModels/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
       DTOs/
@@ -342,6 +361,16 @@ AgentUp.Server.Tests/
       Unit/
       Provider/
       HTTP/
+    SourceClones/
+      Controller/
+      Unit/
+      Provider/
+      HTTP/
+    Git/
+      Controller/
+      Unit/
+      Provider/
+      HTTP/
 ```
 
 Prefer working only in the slice directly involved in the task.
@@ -384,6 +413,8 @@ The Server owns all orchestration:
 
 - Workspace registry.
 - Project path identity and optional Git worktree metadata.
+- Managed source clones and their storage root.
+- Git working-tree change trees, per-file diffs, and selective commits.
 - Process lifecycle.
 - Port allocation.
 - Docker lifecycle.
@@ -568,7 +599,7 @@ Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:
 
 Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
-Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest, install icons, production-only service-worker registration, and stable updater service worker synchronized. Ticket-number-prefixed branches are mobile release channels; their immutable GitHub pre-releases contain the complete Metro ZIP payload plus metadata with its SHA-256 digest and required files. The client must validate that metadata, digest, archive paths, and size limits before caching a release. The updater service worker changes only when its bootstrap protocol changes, never returns cached redirect responses, deletes superseded release caches after activation, and preserves the documented network recovery query path.
+Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest and install icons under `public/` synchronized with the exported PWA.
 
 Forbidden:
 
@@ -645,7 +676,17 @@ The sections below intentionally introduce each concept briefly and point to the
 
 A workspace is the unit of isolation for an agent or developer session. It is identified by project path and may include repository/worktree metadata, branch, commit, browser profile, Docker infrastructure, running processes, allocated ports, diagnostics, and event history. Non-Git project paths are valid and should display as `not on a git branch`.
 
+Workspaces may also be created by Agent-Up itself. The Server's `SourceClones` slice clones a repository at a branch into a Server-owned source clones root (`AGENTUP_SOURCE_CLONES_ROOT`, otherwise `sources` under the data directory) and registers the result, so Desktop and Mobile both list it. Only `http`, `https`, `ssh`, and `git` remotes plus the `user@host:path` form are accepted; `file://` and transport-helper remotes are rejected so a REST caller cannot make the Server read arbitrary local repositories.
+
 Read: `docs/user-docs/workspace.md`.
+
+## Git Changes
+
+The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, and a commit that stages only the requested paths. It is the human review-and-commit surface rendered by the Desktop Git panel and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
+
+Coding agents must still use the commit queue tools. The `Git` slice is a product surface for humans, not an escape hatch around `enqueue_commit`.
+
+Read: `docs/user-docs/git-changes.md`.
 
 ## Configuration
 

@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Diagnostics.CodeAnalysis;
+using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 
@@ -12,6 +13,9 @@ internal sealed class FakeHttpMessageHandler(
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         var path = request.RequestUri?.AbsolutePath ?? "";
+
+        if (GitRoutes.IsChangesRoute(path))
+            return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path))));
 
         if (outputLines is not null && path.EndsWith("/output"))
         {
@@ -55,6 +59,12 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
         var path = request.RequestUri?.AbsolutePath ?? "";
         RequestPaths.Add(path);
 
+        if (GitRoutes.IsChangesRoute(path))
+            return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path))));
+
+        if (request.Method == HttpMethod.Post && path == "/api/source-clones")
+            return Task.FromResult(CloneResponse());
+
         if (request.Method == HttpMethod.Post && TryGetWorkspaceAction(path, out var actionId, out var action))
         {
             switch (action)
@@ -83,6 +93,22 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
         }
 
         return Task.FromResult(Ok(_workspaces));
+    }
+
+    // Registers the cloned workspace so the next list request contains it, mirroring the Server
+    // registering a workspace for every managed source clone.
+    private HttpResponseMessage CloneResponse()
+    {
+        var cloned = new WorkspaceDto(
+            $"cloned-{_workspaces.Count + 1}",
+            "widgets",
+            "/clones/widgets",
+            "/clones/widgets",
+            "main",
+            "abc123",
+            "Stopped");
+        _workspaces = [.. _workspaces, cloned];
+        return Created(cloned);
     }
 
     private void UpdateWorkspaceState(string id, string state)
@@ -144,6 +170,10 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+    private static HttpResponseMessage Created<T>(T value) =>
+        new(System.Net.HttpStatusCode.Created) { Content = JsonContent.Create(value) };
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
     private static HttpResponseMessage NotFound() =>
         new(System.Net.HttpStatusCode.NotFound);
 
@@ -154,4 +184,20 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
     private static HttpResponseMessage Ok<T>(T value) =>
         new(System.Net.HttpStatusCode.OK) { Content = JsonContent.Create(value) };
+}
+
+internal static class GitRoutes
+{
+    public static bool IsChangesRoute(string path)
+        => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
+           && path.EndsWith("/git/changes", StringComparison.Ordinal);
+
+    public static string WorkspaceId(string path)
+    {
+        var parts = path.Trim('/').Split('/');
+        return parts.Length >= 3 ? Uri.UnescapeDataString(parts[2]) : string.Empty;
+    }
+
+    public static GitChangeTreeDto EmptyTree(string workspaceId)
+        => new(workspaceId, "main", 0, new GitChangeDirectoryDto(string.Empty, string.Empty, [], []));
 }

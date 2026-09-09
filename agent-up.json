@@ -12,8 +12,8 @@
     },
     {
       "name": "Mobile",
-      "command": "npm run web",
-      "install": "npm install --package-lock=false",
+      "command": "npm run serve:web",
+      "install": "npm run install:agent-up",
       "path": "AgentUp.Mobile",
       "ports": [
         { "variable": "WEB_PORT", "defaultPort": 8081, "protocol": "http" }

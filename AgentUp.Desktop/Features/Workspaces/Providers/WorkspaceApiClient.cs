@@ -25,6 +25,16 @@ public sealed class WorkspaceApiClient(HttpClient http) : IWorkspaceApiProvider
         return await response.Content.ReadFromJsonAsync<WorkspaceDto>(Options, ct);
     }
 
+    public async Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken ct = default)
+    {
+        using var response = await http.PostAsJsonAsync("/api/source-clones", request, ct);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadProblemDetailAsync(response));
+
+        var workspace = await response.Content.ReadFromJsonAsync<WorkspaceDto>(Options, ct);
+        return workspace ?? throw new InvalidOperationException("The server did not return the cloned workspace.");
+    }
+
     public async Task StartAsync(string workspaceId, CancellationToken ct = default)
     {
         using var response = await http.PostAsync(
