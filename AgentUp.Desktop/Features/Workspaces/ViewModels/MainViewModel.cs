@@ -13,6 +13,8 @@ using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
+using AgentUp.Desktop.Features.Validation.Controllers;
+using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 using ReactiveUI;
@@ -32,6 +34,8 @@ public sealed class MainViewModel : ReactiveObject
     private WorkspaceItemViewModel? _workspaceApplicationSubscription;
     private string? _lastSelectedHttpPortKey;
     private CancellationTokenSource? _metricsLoadCts;
+    private bool _isValidationOpen;
+    private readonly ValidationController? _validationController;
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -42,6 +46,9 @@ public sealed class MainViewModel : ReactiveObject
     public FirstRunTutorialViewModel Tutorial { get; }
     public LoginViewModel Login { get; }
     public WindowChromeViewModel Chrome { get; } = new();
+    public ValidationViewModel? Validation { get; }
+    public bool IsValidationOpen { get => _isValidationOpen; set => this.RaiseAndSetIfChanged(ref _isValidationOpen, value); }
+    public ReactiveCommand<Unit, Unit> ToggleValidationCommand { get; }
 
     private readonly ChromeServerStatusViewModel _chromeServerStatus;
 
@@ -86,7 +93,8 @@ public sealed class MainViewModel : ReactiveObject
         ApplicationAuditViewModel audit,
         FirstRunTutorialViewModel tutorial,
         LoginViewModel login,
-        PortsController ports)
+        PortsController ports,
+        ValidationViewModel? validation = null)
     {
         Sidebar = sidebar;
         Applications = applications;
@@ -97,11 +105,14 @@ public sealed class MainViewModel : ReactiveObject
         Tutorial = tutorial;
         Login = login;
         _ports = ports;
+        Validation = validation;
+        _validationController = validation is null ? null : new ValidationController(validation);
         _chromeServerStatus = new ChromeServerStatusViewModel(sidebar);
         UpdateChromeLeftItems(Login.IsVisible);
         Login.WhenAnyValue(viewModel => viewModel.IsVisible)
             .Subscribe(UpdateChromeLeftItems);
 
+        ToggleValidationCommand = ReactiveCommand.Create(() => { IsValidationOpen = !IsValidationOpen; if (IsValidationOpen) LoadValidation(); });
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
@@ -131,6 +142,7 @@ public sealed class MainViewModel : ReactiveObject
                 Metrics.Clear();
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
+                if (IsValidationOpen) LoadValidation();
             });
 
     private void CancelPendingMetricsLoad()
@@ -191,6 +203,7 @@ public sealed class MainViewModel : ReactiveObject
             {
                 RebuildSubTabs(app);
                 if (app is null) return;
+                if (IsValidationOpen) LoadValidation();
                 var workspaceId = Sidebar.SelectedWorkspace?.Id;
                 if (workspaceId is not null)
                 {
@@ -494,6 +507,13 @@ public sealed class MainViewModel : ReactiveObject
     {
         await Tutorial.InitializeAsync();
         await Sidebar.LoadAsync();
+    }
+
+
+    private void LoadValidation()
+    {
+        if (_validationController is not null && Sidebar.SelectedWorkspace?.Id is { } workspaceId && Applications.SelectedApplication?.Name is { } application)
+            _ = _validationController.LoadAsync(workspaceId, application);
     }
 
     private void UpdateChromeLeftItems(bool loginVisible)

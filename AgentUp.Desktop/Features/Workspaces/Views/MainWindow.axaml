@@ -542,6 +542,13 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
+                    <Button x:Name="ValidationToggleButton"
+                            Command="{Binding ToggleValidationCommand}"
+                            ToolTip.Tip="Open validation checks">
+                        <Border Classes="titleToolButton">
+                            <TextBlock Classes="chromeIcon" Text="✓" FontSize="16"/>
+                        </Border>
+                    </Button>
                     <Button x:Name="MinimizeWindowButton"
                             Click="OnMinimizeWindowClicked"
                             ToolTip.Tip="Minimize">
@@ -644,6 +651,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
         <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
@@ -1298,6 +1306,22 @@
                 </Border>
 
             </Panel>
+        </Border>
+        <Border Grid.Column="2" Width="360" Background="#050706" BorderBrush="#2b2b2b" BorderThickness="1,0,0,0" IsVisible="{Binding IsValidationOpen}" Padding="18">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
+                <DockPanel><TextBlock Text="Validation" Foreground="#2bf27a" FontSize="18" FontWeight="Bold"/><Button DockPanel.Dock="Right" Command="{Binding ToggleValidationCommand}"><TextBlock Text="×" Foreground="#f5fbf7" FontSize="20"/></Button></DockPanel>
+                <TextBlock Grid.Row="1" Text="Behavioral checks for the selected application" Foreground="#9fb2a8" FontSize="12"/>
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"><StackPanel Spacing="10">
+                    <TextBlock Text="{Binding Validation.Status}" Foreground="#9fb2a8" TextWrapping="Wrap"/>
+                    <ItemsControl ItemsSource="{Binding Validation.Flows}"><ItemsControl.ItemTemplate><DataTemplate>
+                        <Border Background="#0a0d0b" BorderBrush="#304039" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8"><StackPanel Spacing="7">
+                            <TextBlock Text="{Binding Name}" Foreground="#f5fbf7" FontWeight="Bold"/><TextBlock Text="{Binding Description}" Foreground="#aebcb3" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding InitialPath, StringFormat='Starts at {0}'}" Foreground="#789085" FontSize="11"/>
+                            <Button Command="{Binding RunCommand}" IsEnabled="{Binding !IsRunning}" HorizontalAlignment="Left"><Border Background="#0f7a45" CornerRadius="6" Padding="12,7"><TextBlock Text="▶ Play" Foreground="White" FontWeight="Bold"/></Border></Button>
+                        </StackPanel></Border>
+                    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                </StackPanel></ScrollViewer>
+            </Grid>
         </Border>
         </Grid>
 
