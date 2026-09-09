@@ -152,8 +152,16 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
 
     private static bool MatchesApplication(string? application, AuditEvent evt)
         => string.IsNullOrWhiteSpace(application)
-           || (evt.Details.TryGetValue("application", out var actual)
-               && string.Equals(application, actual, StringComparison.Ordinal));
+           || MatchesApplicationDetail(evt.Details, application, "application")
+           || MatchesApplicationDetail(evt.Details, application, "applicationName")
+           || MatchesApplicationDetail(evt.Details, application, "appName");
+
+    private static bool MatchesApplicationDetail(
+        IReadOnlyDictionary<string, string> details,
+        string application,
+        string key)
+        => details.TryGetValue(key, out var actual)
+           && string.Equals(application, actual, StringComparison.OrdinalIgnoreCase);
 
     private static bool MatchesScope(string? expected, string? actual)
     {

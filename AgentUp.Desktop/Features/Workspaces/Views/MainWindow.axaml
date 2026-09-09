@@ -50,7 +50,7 @@
         <!-- Audit sub-tab -->
         <DataTemplate DataType="portVm:AuditSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
-                <TextBlock Text="Audit" Foreground="#c2d2ca" FontSize="12" FontWeight="Bold"/>
+                <TextBlock Text="Diagnostics" Foreground="#c2d2ca" FontSize="12" FontWeight="Bold"/>
             </Border>
         </DataTemplate>
 

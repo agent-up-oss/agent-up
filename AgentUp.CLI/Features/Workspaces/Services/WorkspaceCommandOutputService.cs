@@ -75,6 +75,37 @@ public sealed class WorkspaceCommandOutputService
         return 0;
     }
 
+    public int WriteDiagnosticsResult(WorkspaceCommandResult<WorkspaceDiagnosticsDto> result)
+    {
+        if (!result.Succeeded)
+        {
+            _output.WriteLine(result.Error);
+            return 1;
+        }
+
+        var diagnostics = result.Value!;
+        _output.WriteLine($"Diagnostics: {diagnostics.WorkspaceName}");
+        _output.WriteLine($"Workspace:   {diagnostics.ProcessState}");
+        _output.WriteLine($"Health:      {diagnostics.Health ?? "not configured"}");
+        foreach (var app in diagnostics.Applications)
+        {
+            _output.WriteLine($"Application: {app.Name} ({app.ProcessState}, {app.Health ?? "no health check"})");
+            foreach (var line in app.Logs)
+                _output.WriteLine($"  log: {line}");
+            if (app.LogsTruncated)
+                _output.WriteLine("  log: … older lines omitted");
+        }
+
+        _output.WriteLine($"Diagnostic entries ({diagnostics.Entries.Count}):");
+        foreach (var entry in diagnostics.Entries)
+        {
+            var context = entry.Application is not null ? $" app={entry.Application}" : string.Empty;
+            context += entry.BrowserSession is not null ? $" browser={entry.BrowserSession}" : string.Empty;
+            _output.WriteLine($"  [{entry.State}] {entry.Category}/{entry.Severity}{context}: {entry.Message}");
+        }
+        return 0;
+    }
+
     private void WriteSection<T>(string title, IReadOnlyList<T> items, Func<T, string> format)
     {
         if (items.Count == 0)

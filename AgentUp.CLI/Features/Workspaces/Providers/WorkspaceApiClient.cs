@@ -55,4 +55,13 @@ public sealed class WorkspaceApiClient
         using var response = await _http.DeleteAsync($"/api/workspaces/{id}");
         await ServerApiResponseGuard.EnsureSuccessAsync(response);
     }
+
+    public async Task<WorkspaceDiagnosticsDto?> GetDiagnosticsAsync(string id)
+    {
+        using var response = await _http.GetAsync($"/api/diagnostics/workspaces/{Uri.EscapeDataString(id)}");
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        await ServerApiResponseGuard.EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<WorkspaceDiagnosticsDto>(Options);
+    }
 }
