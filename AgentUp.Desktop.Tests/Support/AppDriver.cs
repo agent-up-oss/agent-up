@@ -79,13 +79,14 @@ internal sealed class AppDriver
 
     public static async Task<AppDriver> LaunchWithWorkspacesAndOutputAsync(
         List<WorkspaceDto> workspaces,
-        Dictionary<string, List<string>> outputLines)
+        Dictionary<string, List<string>> outputLines,
+        Func<NativeWebView>? webViewFactory = null)
     {
         var handler = new FakeHttpMessageHandler(workspaces, outputLines);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
-        return await LaunchWithClientsAsync(workspaceClient, consoleClient, new GitApiClient(http));
+        return await LaunchWithClientsAsync(workspaceClient, consoleClient, new GitApiClient(http), webViewFactory);
     }
 
     private static async Task<AppDriver> LaunchAsync(

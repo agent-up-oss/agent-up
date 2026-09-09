@@ -80,6 +80,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal bool ArePortWebViewsHiddenForTests =>
         _webViews.Count == 0 || _webViews.Values.All(webView => !webView.IsVisible);
 
+    internal bool IsConsoleWebViewHiddenForTests =>
+        _consoleWebView is null || !_consoleWebView.IsVisible;
+
     private const string SelectionJs =
         "(function(){" +
         "if(!document.getElementById('_au_sel')){" +
@@ -231,7 +234,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         vm.Tutorial.WhenAnyValue(t => t.IsVisible)
             .CombineLatest(
                 vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible),
-                (tutorialVisible, deleteVisible) => tutorialVisible || deleteVisible)
+                vm.Sidebar.AddWorkspace.WhenAnyValue(a => a.IsVisible),
+                vm.Git.Diff.WhenAnyValue(d => d.IsVisible),
+                (tutorialVisible, deleteVisible, addVisible, diffVisible) =>
+                    tutorialVisible || deleteVisible || addVisible || diffVisible)
             .DistinctUntilChanged()
             .Subscribe(modalVisible =>
                 Dispatcher.UIThread.Post(() => ApplyModalOverlayWebViewVisibility(modalVisible)))
@@ -724,8 +730,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
            && ReferenceEquals(current, webView);
 
     private bool IsModalOverlayVisible()
-        => DataContext is MainViewModel vm
-           && (vm.Tutorial.IsVisible || vm.Sidebar.DeleteConfirmation.IsVisible);
+        => DataContext is MainViewModel vm && IsModalOverlayVisible(vm);
+
+    private static bool IsModalOverlayVisible(MainViewModel vm)
+        => vm.Tutorial.IsVisible
+           || vm.Sidebar.DeleteConfirmation.IsVisible
+           || vm.Sidebar.AddWorkspace.IsVisible
+           || vm.Git.Diff.IsVisible;
 
     private void ApplyModalOverlayWebViewVisibility(bool modalOverlayVisible)
     {
@@ -733,6 +744,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         foreach (var webView in _webViews.Values)
             webView.IsVisible = false;
+
+        SetConsoleWebViewVisible(!modalOverlayVisible && DataContext is MainViewModel { ShowConsole: true });
 
         if (modalOverlayVisible)
         {
@@ -745,6 +758,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (!_webViews.TryGetValue(_activeTabKey, out var active)) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
         active.IsVisible = true;
+    }
+
+    private void SetConsoleWebViewVisible(bool visible)
+    {
+        if (_consoleWebView is not null)
+            _consoleWebView.IsVisible = visible;
+        if (_consoleOverlay is not null)
+            _consoleOverlay.IsVisible = visible;
     }
 
     private void HandleBrowserCommand(BrowserCommand command)
@@ -810,7 +831,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                         if (!ReferenceEquals(_consoleWebView, wv) || !wv.IsVisible) return;
                         wv.IsVisible = false;
                         Dispatcher.UIThread.Post(
-                            () => { if (ReferenceEquals(_consoleWebView, wv)) wv.IsVisible = true; },
+                            () =>
+                            {
+                                if (ReferenceEquals(_consoleWebView, wv) && !IsModalOverlayVisible())
+                                    wv.IsVisible = true;
+                            },
                             DispatcherPriority.Background);
                     });
                 };
@@ -840,6 +865,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             var htmlPath = ConsoleHtmlPath();
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             NavigateConsoleWebView(_consoleWebView, new Uri("file://" + htmlPath));
+            SetConsoleWebViewVisible(!IsModalOverlayVisible());
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {

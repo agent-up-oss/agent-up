@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
@@ -8,6 +9,25 @@ namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
 [TestFixture]
 public sealed class AddWorkspaceOverlayTests
 {
+    [AvaloniaTest]
+    public async Task AddWorkspaceOverlay_hidesConsoleWebView_whileConsoleIsVisible()
+    {
+        var workspace = WorkspaceFixtures.WithApplications();
+        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1"]);
+        var driver = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output, () => new NativeWebView());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedSubTab = viewModel.SubTabs.OfType<ConsoleSubTabViewModel>().Single();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(driver.Window.IsConsoleWebViewHiddenForTests, Is.False);
+
+        await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("AddWorkspaceButton")!);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(driver.Window.FindControl<Grid>("AddWorkspaceOverlay")!.IsVisible, Is.True);
+        Assert.That(driver.Window.IsConsoleWebViewHiddenForTests, Is.True);
+    }
+
     [AvaloniaTest]
     public async Task AddWorkspaceButton_opensTheRepositoryAndBranchDialog()
     {

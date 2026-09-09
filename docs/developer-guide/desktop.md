@@ -91,7 +91,7 @@ Console output should render as one wrapped, multiline-selectable text surface f
 
 Generated tutorial sample dependencies should be pinned to known-compatible versions instead of `latest`, so the first-run flow does not break because of upstream package engine changes. The generated `agent-up.json` commands clear stale `node_modules` and `package-lock.json` before installing, so rerunning the tutorial does not keep an incompatible Vite or native bundler package from an older sample. The generated Postgres command starts the Compose service and then streams `docker compose logs -f database`, so the Desktop console shows database readiness instead of only detached Compose status lines.
 
-Native WebView surfaces must be hidden while the first-run tutorial is visible. Native browser widgets can render outside normal XAML z-order, so the Desktop explicitly hides active WebViews and browser error banners during onboarding and restores the active WebView after the tutorial closes.
+Native WebView surfaces must be hidden while any in-window modal overlay is visible, including the first-run tutorial, add-workspace dialog, workspace delete confirmation, and Git file diff. Native browser widgets can render outside normal XAML z-order, so the Desktop explicitly hides active port and console WebViews and browser error banners during those overlays and restores the active WebView after the overlay closes.
 
 While the tutorial overlay is visible, Desktop reloads the workspace list and asks the active browser view to reload after every step transition. This keeps the application state behind the overlay current without letting Desktop own workspace orchestration.
 
