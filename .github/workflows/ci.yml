@@ -75,13 +75,27 @@ jobs:
 
       - name: Install Ubuntu browser test dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
-          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
-            sudo apt-get install -y libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev
+          apt_install() {
+            local attempt
+            for attempt in 1 2 3; do
+              if sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 "$@"; then
+                return 0
+              fi
+              echo "apt install attempt $attempt/3 failed; repairing package state before retry"
+              sudo dpkg --configure -a
+              sudo apt-get -f install -y -o Acquire::Retries=3
+              sleep $((attempt * 5))
+            done
+            return 1
+          }
+
+          sudo apt-get update -o Acquire::Retries=3
+          apt_install xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
+          if apt-cache policy libwebkit2gtk-4.1-0 | grep -q 'Candidate: [^()]'; then
+            apt_install libwebkit2gtk-4.1-0
             webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.1.so/{print $NF; exit}')"
           else
-            sudo apt-get install -y libwebkit2gtk-4.0-37 libwebkit2gtk-4.0-dev
+            apt_install libwebkit2gtk-4.0-37
             webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.0.so/{print $NF; exit}')"
           fi
           if [ -n "$webkit_lib" ] && [ ! -e /usr/local/lib/libwebkit2gtk.so ]; then
