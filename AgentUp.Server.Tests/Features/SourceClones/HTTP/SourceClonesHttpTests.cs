@@ -15,6 +15,9 @@ public sealed class SourceClonesHttpTests
     private string _dataDirectory = null!;
     private string _clonesRoot = null!;
     private string? _previousRoot;
+    // The root factory owns the host; disposing it also disposes the derived factory that
+    // WithWebHostBuilder returns, so it has to outlive SetUp rather than be scoped to it.
+    private WebApplicationFactory<Program> _rootFactory = null!;
     private WebApplicationFactory<Program> _factory = null!;
 
     [SetUp]
@@ -24,8 +27,8 @@ public sealed class SourceClonesHttpTests
         _clonesRoot = Path.Join(_dataDirectory, "managed-sources");
         _previousRoot = Environment.GetEnvironmentVariable(SourceCloneRootProvider.RootEnvironmentVariable);
         Environment.SetEnvironmentVariable(SourceCloneRootProvider.RootEnvironmentVariable, _clonesRoot);
-        using var factory = new WebApplicationFactory<Program>();
-        _factory = factory.WithWebHostBuilder(builder =>
+        _rootFactory = new WebApplicationFactory<Program>();
+        _factory = _rootFactory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Storage:DataDirectory", _dataDirectory);
             // The Server requires a bearer token unless authentication is disabled, and these
@@ -37,7 +40,7 @@ public sealed class SourceClonesHttpTests
     [TearDown]
     public void TearDown()
     {
-        _factory.Dispose();
+        _rootFactory.Dispose();
         Environment.SetEnvironmentVariable(SourceCloneRootProvider.RootEnvironmentVariable, _previousRoot);
         if (Directory.Exists(_dataDirectory))
             Directory.Delete(_dataDirectory, recursive: true);

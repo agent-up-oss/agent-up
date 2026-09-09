@@ -68,9 +68,15 @@ timeout, problem-detail, and unreachable-server handling.
 A request takes a `ServerSession` — the Server's URL together with the access
 token stored for it — rather than a bare URL. The Server requires a bearer token
 unless it was started with `AGENTUP_AUTH_DISABLED=true`, so the transport adds
-the `Authorization` header whenever the session carries a token. Workspace
-refreshes and long-running actions compare sessions by URL, so signing in to the
-Server the user is already on does not count as switching servers.
+the `Authorization` header whenever the session carries a token.
+
+Work that outlives its own request must check that its session is still the
+active one before it writes shared state. `WorkspaceRefresher.isActive` compares
+the whole session, URL and token alike, so a clone still running when the
+credential changes does not refresh with the credential the Server has since
+stopped accepting. The Git screen guards its change-tree and file-diff loads the
+same way through `createRequestGate`, keeping each independent so opening a file
+does not discard the tree that is still loading.
 
 ## Local development
 

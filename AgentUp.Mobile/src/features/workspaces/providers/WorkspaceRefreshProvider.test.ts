@@ -168,3 +168,18 @@ test('isActive becomes true as soon as a refresh starts, before it settles', asy
   release([]);
   await pending;
 });
+
+test('a session whose access token changed is no longer active', async () => {
+  const recorded = recorder();
+  const refresher = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([]));
+
+  await refresher.refresh({ url: 'http://a', accessToken: 'first' });
+
+  assert.equal(refresher.isActive({ url: 'http://a', accessToken: 'first' }), true);
+  assert.equal(
+    refresher.isActive({ url: 'http://a', accessToken: 'second' }),
+    false,
+    'work holding the previous credential must not refresh with it',
+  );
+  assert.equal(refresher.isActive({ url: 'http://a' }), false);
+});

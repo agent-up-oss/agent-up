@@ -20,6 +20,9 @@ public sealed class GitChangesHttpTests
 
     private string _dataDirectory = null!;
     private string _repository = null!;
+    // The root factory owns the host; disposing it also disposes the derived factory that
+    // WithWebHostBuilder returns, so it has to outlive SetUp rather than be scoped to it.
+    private WebApplicationFactory<Program> _rootFactory = null!;
     private WebApplicationFactory<Program> _factory = null!;
 
     [SetUp]
@@ -31,8 +34,8 @@ public sealed class GitChangesHttpTests
         Directory.CreateDirectory(Path.Join(_repository, "src"));
         await File.WriteAllTextAsync(Path.Join(_repository, "src", "main.cs"), "// main\n");
         await TestGitRepository.CommitAllAsync(_repository, "initial");
-        using var factory = new WebApplicationFactory<Program>();
-        _factory = factory.WithWebHostBuilder(builder =>
+        _rootFactory = new WebApplicationFactory<Program>();
+        _factory = _rootFactory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Storage:DataDirectory", _dataDirectory);
             // The Server requires a bearer token unless authentication is disabled, and these
@@ -44,7 +47,7 @@ public sealed class GitChangesHttpTests
     [TearDown]
     public void TearDown()
     {
-        _factory.Dispose();
+        _rootFactory.Dispose();
         if (Directory.Exists(_dataDirectory))
             Directory.Delete(_dataDirectory, recursive: true);
     }
