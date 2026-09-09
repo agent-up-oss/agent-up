@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Browser.Providers;
-using Avalonia.Platform.Storage;
 
 namespace AgentUp.Desktop.Tests.Features.Browser.Provider;
 
@@ -59,21 +58,23 @@ public sealed class WebViewFilePickerProviderTests
         });
     }
 
+    // Avalonia's IStorageFile cannot be implemented outside Avalonia, so the file-reading
+    // contract is covered here at its stream boundary and end to end against the real platform
+    // storage provider in AgentUp.Tests.
     [Test]
-    public async Task ReadFilesAsync_encodesEachSelectedFileWithItsMimeType()
+    public async Task ReadBoundedContentAsync_encodesTheWholeStreamAsBase64()
     {
-        var files = await WebViewFilePickerProvider.ReadFilesAsync(
-        [
-            new StubStorageFile("notes.txt", Encoding.UTF8.GetBytes("hello")),
-            new StubStorageFile("logo.png", [0x89, 0x50, 0x4E, 0x47])
-        ]);
+        var content = Encoding.UTF8.GetBytes("agent-up upload");
+        using var source = new CountingStream(content, content.Length);
+
+        var result = await WebViewFilePickerProvider.ReadBoundedContentAsync(
+            source,
+            WebViewFilePickerProvider.MaximumFileBytes);
 
         Assert.Multiple(() =>
         {
-            Assert.That(files.Select(file => file.Name), Is.EqualTo(new[] { "notes.txt", "logo.png" }));
-            Assert.That(files.Select(file => file.MimeType), Is.EqualTo(new[] { "text/plain", "image/png" }));
-            Assert.That(files[0].Base64Content, Is.EqualTo(Convert.ToBase64String(Encoding.UTF8.GetBytes("hello"))));
-            Assert.That(files[1].Base64Content, Is.EqualTo(Convert.ToBase64String(new byte[] { 0x89, 0x50, 0x4E, 0x47 })));
+            Assert.That(result.Base64, Is.EqualTo(Convert.ToBase64String(content)));
+            Assert.That(result.Bytes, Is.EqualTo(content.Length));
         });
     }
 
@@ -81,63 +82,16 @@ public sealed class WebViewFilePickerProviderTests
     // being read. Reading it whole first and rejecting it afterwards would let a single
     // selection exhaust Desktop's memory before the limit ever applied.
     [Test]
-    public void ReadFilesAsync_refusesAnOversizedFileBeforeBufferingAllOfIt()
+    public void ReadBoundedContentAsync_refusesAnOversizedStreamBeforeBufferingAllOfIt()
     {
-        const long fileSize = 512L * 1024 * 1024;
-        var oversized = new StubStorageFile("huge.bin", fileSize);
+        using var source = new CountingStream(null, 512L * 1024 * 1024);
 
-        Assert.ThrowsAsync<InvalidDataException>(() => WebViewFilePickerProvider.ReadFilesAsync([oversized]));
-        Assert.That(oversized.BytesRead, Is.LessThan(64L * 1024 * 1024),
-            "The read must stop near the 32 MB per-file limit instead of draining the whole file");
-    }
+        Assert.ThrowsAsync<InvalidDataException>(() => WebViewFilePickerProvider.ReadBoundedContentAsync(
+            source,
+            WebViewFilePickerProvider.MaximumFileBytes));
 
-    private sealed class StubStorageFile : IStorageFile
-    {
-        private readonly byte[]? _content;
-        private readonly long _length;
-        private CountingStream? _stream;
-
-        internal StubStorageFile(string name, byte[] content)
-        {
-            Name = name;
-            _content = content;
-            _length = content.Length;
-        }
-
-        internal StubStorageFile(string name, long length)
-        {
-            Name = name;
-            _length = length;
-        }
-
-        internal long BytesRead => _stream?.BytesRead ?? 0;
-
-        public string Name { get; }
-
-        public Uri Path => new($"file:///selected/{Name}");
-
-        public bool CanBookmark => false;
-
-        public Task<StorageItemProperties> GetBasicPropertiesAsync()
-            => Task.FromResult(new StorageItemProperties((ulong)_length));
-
-        public Task<string?> SaveBookmarkAsync() => Task.FromResult<string?>(null);
-
-        public Task<IStorageFolder?> GetParentAsync() => Task.FromResult<IStorageFolder?>(null);
-
-        public Task DeleteAsync() => Task.CompletedTask;
-
-        public Task<IStorageItem?> MoveAsync(IStorageFolder destination) => Task.FromResult<IStorageItem?>(null);
-
-        public Task<Stream> OpenReadAsync()
-        {
-            _stream = new CountingStream(_content, _length);
-            return Task.FromResult<Stream>(_stream);
-        }
-
-        public Task<Stream> OpenWriteAsync() => throw new NotSupportedException();
-
-        public void Dispose() => _stream?.Dispose();
+        Assert.That(source.BytesRead, Is.LessThan(2 * WebViewFilePickerProvider.MaximumFileBytes),
+            "The read must stop near the per-file limit instead of draining the whole stream");
     }
 
     // Produces the requested number of bytes without ever materialising them, so the oversized
