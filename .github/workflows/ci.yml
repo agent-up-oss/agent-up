@@ -75,6 +75,12 @@ jobs:
 
       - name: Install Ubuntu browser test dependencies
         run: |
+          # Chrome is preinstalled on GitHub-hosted runners. Do not let its external
+          # apt repository block installation of the Ubuntu-hosted WebKit packages
+          # when Google's Release and Packages files are briefly out of sync.
+          sudo find /etc/apt/sources.list.d -type f \
+            -exec grep -Il 'dl.google.com/linux/chrome' {} + \
+            -delete
           sudo apt-get update
           sudo apt-get install -y xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
           if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
