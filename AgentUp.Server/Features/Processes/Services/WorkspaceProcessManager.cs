@@ -339,9 +339,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             }
             catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
             {
-                if (process.HasExited)
-                    await _registry.UpdateApplicationStateAsync(workspaceId, appName, StateFromExitCode(process.ExitCode));
-
+                // HasExited and ExitCode also throw when the process loses its native handle
+                // during a concurrent launch/kill. Do not probe the same invalid handle again.
                 _logger.LogWarning(ex, "Failed to kill workspace application process");
             }
 

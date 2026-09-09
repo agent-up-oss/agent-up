@@ -30,6 +30,8 @@ using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Validation.Providers;
+using AgentUp.Desktop.Features.Validation.ViewModels;
 
 namespace AgentUp.Desktop.Composition;
 
@@ -50,6 +52,11 @@ public static class MainViewModelFactory
         BaseAddress = new Uri("http://127.0.0.1:5000")
     };
 
+    private static readonly HttpClient DefaultValidationHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     private static readonly HttpClient DefaultDatabaseHttpClient = new()
     {
         BaseAddress = new Uri("http://127.0.0.1:5000")
@@ -61,6 +68,7 @@ public static class MainViewModelFactory
         MetricsApiClient? metricsClient = null,
         DatabaseApiClient? databaseClient = null,
         ApplicationAuditApiClient? auditClient = null,
+        ValidationFlowApiClient? validationClient = null,
         FirstRunTutorialViewModel? tutorial = null,
         LoginViewModel? login = null)
     {
@@ -87,7 +95,8 @@ public static class MainViewModelFactory
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
             login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
                 new AuthenticationApiClient(DefaultAuthHttpClient)))),
-            ports);
+            ports,
+            new ValidationViewModel(validationClient ?? new ValidationFlowApiClient(DefaultValidationHttpClient)));
     }
 
     public static MainViewModel Create(HttpClient http, LoginViewModel? login = null)
@@ -98,6 +107,7 @@ public static class MainViewModelFactory
             new MetricsApiClient(http),
             new DatabaseApiClient(http),
             new ApplicationAuditApiClient(http),
+            new ValidationFlowApiClient(http),
             login: login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
                 new AuthenticationApiClient(http)))));
     }

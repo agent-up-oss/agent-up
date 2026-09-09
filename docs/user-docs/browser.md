@@ -42,3 +42,7 @@ Inspection can include:
 - Screenshot.
 
 Accessibility data should be preferred over raw HTML.
+
+## Validation checks
+
+Use the check-mark button in the Desktop title bar to open Validation for the selected application. Each check shows the user journey it validates and can be played in the shared browser, where you can watch the recorded steps and their expected outcomes. Agents can edit or re-record an existing check without losing its identity, and export it as a Playwright test for headless CI.

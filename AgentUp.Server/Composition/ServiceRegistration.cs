@@ -50,6 +50,11 @@ using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Validation.Controllers;
+using AgentUp.Server.Features.Validation.Interfaces;
+using AgentUp.Server.Features.Validation.Providers;
+using AgentUp.Server.Features.Validation.Repositories;
+using AgentUp.Server.Features.Validation.Services;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
@@ -100,6 +105,7 @@ public static class ServiceRegistration
             .WithTools<OrchestrationMcpTools>()
             .WithTools<CommitQueueMcpTools>()
             .WithTools<BrowserMcpTools>()
+            .WithTools<ValidationMcpTools>()
             .WithTools<AuditMcpTools>()
             .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
@@ -173,6 +179,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
         builder.Services.AddSingleton<BrowserSessionStore>();
         builder.Services.AddSingleton<BrowserMcpService>();
+        builder.Services.AddSingleton<BrowserMcpTools>();
+        builder.Services.AddSingleton<PlaywrightFlowExporter>();
+        builder.Services.AddSingleton<IValidationFlowRepository>(_ => new JsonValidationFlowRepository(Path.Join(dataDir, "workspaces-validation.json")));
+        builder.Services.AddSingleton<ValidationFlowService>();
         builder.Services.AddSingleton<BrowserEventBus>();
         builder.Services.AddSingleton<BrowserRemoteDisplayService>();
         builder.Services.AddSingleton<IBrowserRemoteSessionProvider, IronRdpBrowserRemoteSessionProvider>();

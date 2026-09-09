@@ -46,7 +46,12 @@ public sealed class McpEndpointSessionProvider
         "browser_wait_for_selector",
         "browser_wait_for_text",
         "browser_wait_for_navigation",
-        "browser_screenshot"
+        "browser_screenshot",
+        "save_validation_flow",
+        "list_validation_flows",
+        "play_validation_flow",
+        "export_validation_flow",
+        "delete_validation_flow"
     };
 
     private static readonly HashSet<string> AuditTools = new(StringComparer.Ordinal)
@@ -71,7 +76,7 @@ public sealed class McpEndpointSessionProvider
         }
         else if (IsEndpoint(context, "/mcp/browser"))
         {
-            options.ServerInstructions = "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the shared workspace browser session visible in the Agent-Up Desktop app.";
+            options.ServerInstructions = "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the shared workspace browser session visible in the Agent-Up Desktop app. Record validation as a user-meaningful GUI journey with observable expectations, never as implementation detail; saved flows can be edited, re-recorded, replayed, and exported to Playwright.";
             KeepTools(options, BrowserTools);
             options.ResourceCollection?.Clear();
         }
