@@ -187,7 +187,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<BrowserMcpService>();
         builder.Services.AddSingleton<BrowserMcpTools>();
         builder.Services.AddSingleton<PlaywrightFlowExporter>();
-        builder.Services.AddSingleton<IValidationFlowRepository>(_ => new JsonValidationFlowRepository(Path.Join(dataDir, "workspaces-validation.json")));
+        builder.Services.AddSingleton<ValidationFlowPathProvider>();
+        builder.Services.AddSingleton<IValidationFlowRepository, ProjectValidationFlowRepository>();
         builder.Services.AddSingleton<ValidationFlowService>();
         builder.Services.AddSingleton<BrowserEventBus>();
         builder.Services.AddSingleton<BrowserRemoteDisplayService>();

@@ -1,30 +1,71 @@
 using System.Net;
-using System.Text;
 using System.Reactive.Linq;
+using System.Text;
 using AgentUp.Desktop.Features.Validation.Providers;
+using AgentUp.Desktop.Features.Validation.Services;
 using AgentUp.Desktop.Features.Validation.ViewModels;
+
 namespace AgentUp.Desktop.Tests.Features.Validation.Unit;
+
 public sealed class ValidationViewModelTests
 {
     [Test]
-    public async Task Load_exposes_selected_application_flows_and_play_calls_server()
+    public async Task Load_exposes_selected_application_flows_and_play_runs_local_replay()
     {
         var handler = new Handler();
-        var vm = new ValidationViewModel(new ValidationFlowApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://server/") }));
+        var api = new ValidationFlowApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://server/") });
+        var replay = new ValidationFlowReplayService(api, new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController());
+        replay.Connect(new FakeReplayHost());
+        var vm = new ValidationViewModel(api, replay);
         await vm.LoadAsync("ws", "shop");
         Assert.That(vm.Flows.Single().Name, Is.EqualTo("Checkout works"));
         await vm.Flows.Single().RunCommand.Execute().FirstAsync();
-        Assert.Multiple(() => { Assert.That(handler.LastMethod, Is.EqualTo(HttpMethod.Post)); Assert.That(handler.LastPath, Does.EndWith("/run")); Assert.That(vm.Status, Is.EqualTo("Validation passed.")); });
+        var flow = vm.Flows.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.LastGetPath, Does.EndWith("/validation-flows/flow"));
+            Assert.That(flow.IsExpanded, Is.True);
+            Assert.That(flow.RunState, Is.EqualTo(AgentUp.Desktop.Features.Validation.Models.ValidationRunState.Passed));
+            Assert.That(flow.ResultMessage, Does.Contain("passed"));
+            Assert.That(flow.Stages.Single().State, Is.EqualTo(AgentUp.Desktop.Features.Validation.Models.ValidationRunState.Passed));
+            Assert.That(flow.Stages.Single().Checks.Single().State, Is.EqualTo(AgentUp.Desktop.Features.Validation.Models.ValidationRunState.Passed));
+        });
     }
+
     private sealed class Handler : HttpMessageHandler
     {
-        public HttpMethod? LastMethod { get; private set; }
-        public string? LastPath { get; private set; }
+        public string? LastGetPath { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            LastMethod = request.Method; LastPath = request.RequestUri!.AbsolutePath;
-            var json = request.Method == HttpMethod.Get ? "[{\"id\":\"flow\",\"workspaceId\":\"ws\",\"application\":\"shop\",\"name\":\"Checkout works\",\"description\":\"Visible outcome\",\"initialPath\":\"/\",\"steps\":[],\"version\":1}]" : "{}";
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") });
+            if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/flow"))
+            {
+                LastGetPath = request.RequestUri.AbsolutePath;
+                const string flow =
+                    """
+                    {"id":"flow","workspaceId":"ws","application":"shop","name":"Checkout works","description":"Visible outcome","initialPath":"/","initialExpectations":[{"kind":"Text","value":"Cart"}],"steps":[],"version":1}
+                    """;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(flow, Encoding.UTF8, "application/json")
+                });
+            }
+
+            var list = "[{\"id\":\"flow\",\"workspaceId\":\"ws\",\"application\":\"shop\",\"name\":\"Checkout works\",\"description\":\"Visible outcome\",\"initialPath\":\"/\",\"initialExpectations\":[{\"kind\":\"Text\",\"value\":\"Cart\"}],\"steps\":[],\"version\":1}]";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(list, Encoding.UTF8, "application/json")
+            });
         }
+    }
+
+    private sealed class FakeReplayHost : AgentUp.Desktop.Features.Validation.Interfaces.IValidationReplayHost
+    {
+        public string? ResolveApplicationOrigin(string workspaceId, string application) => "http://127.0.0.1:5173";
+        public Task<bool> PrepareViewportAsync(string workspaceId, string application, string url, CancellationToken cancellationToken) => Task.FromResult(true);
+        public Task<string?> EvalAsync(string workspaceId, string script, CancellationToken cancellationToken)
+            => Task.FromResult<string?>(script.Contains("includes") ? "true" : "\"complete\"");
+        public Task NavigateAsync(string workspaceId, string url, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

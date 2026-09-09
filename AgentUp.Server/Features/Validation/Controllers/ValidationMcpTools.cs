@@ -7,7 +7,7 @@ namespace AgentUp.Server.Features.Validation.Controllers;
 public sealed class ValidationMcpTools(ValidationFlowService service)
 {
     [McpServerTool(Name="save_validation_flow", Title="Save Behavioral Validation Flow")]
-    [Description("Create or replace a replayable behavioral GUI flow. Record how a person gets from the initial application-relative place to an outcome and what the person should observe after each meaningful step. Describe user intent and visible GUI outcomes, not implementation details, DOM structure, component names, APIs, or incidental clicks. Reuse the returned id to edit or re-record a flow.")]
+    [Description("Create or replace a replayable behavioral GUI flow. Start from the user's goal, infer routes and controls from application source or router files when available, and only inspect the live page for controls you cannot infer cheaply. Do not inspect every route before recording. Perform the journey once in the browser, then save the flow with stable selector fallbacks plus user-meaningful descriptions and visible expectations after each step. Reuse the returned id to edit or re-record a flow.")]
     public Task<SaveValidationFlowResult> Save([Description("Workspace id.")] string workspaceId, [Description("Complete flow. Supply an existing id to replace that flow with a newly edited or re-recorded version.")] SaveValidationFlowRequest flow, CancellationToken cancellationToken) => service.SaveAsync(workspaceId, flow, cancellationToken);
 
     [McpServerTool(Name="list_validation_flows", Title="List Behavioral Validation Flows")]
@@ -15,7 +15,7 @@ public sealed class ValidationMcpTools(ValidationFlowService service)
     public Task<IReadOnlyList<ValidationFlow>> List(string workspaceId, string application, CancellationToken cancellationToken) => service.ListAsync(workspaceId, application, cancellationToken);
 
     [McpServerTool(Name="play_validation_flow", Title="Play Validation Flow")]
-    [Description("Replay a saved flow in the shared workspace browser so the user can watch it and verify each recorded expectation.")]
+    [Description("Replay a saved flow in the workspace browser the user can watch. Desktop Play runs in the embedded WebView with staged mouse movement, half-second attention pings, navigation, and page-load waits.")]
     public Task<ValidationRunResult> Play(string workspaceId, string flowId, CancellationToken cancellationToken) => service.RunAsync(workspaceId, flowId, cancellationToken);
 
     [McpServerTool(Name="export_validation_flow", Title="Export Playwright Check")]

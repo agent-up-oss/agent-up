@@ -34,7 +34,10 @@ public sealed class ValidationFlowServiceTests
 
     private sealed class MemoryRepository : IValidationFlowRepository
     {
-        public Task<IReadOnlyList<ValidationFlow>> LoadAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ValidationFlow>>([]);
-        public Task SaveAsync(IReadOnlyList<ValidationFlow> flows, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<IReadOnlyList<ValidationFlow>> LoadAsync(string workspaceId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ValidationFlow>>([]);
+
+        public Task SaveAsync(string workspaceId, IReadOnlyList<ValidationFlow> flows, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 }

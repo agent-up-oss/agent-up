@@ -34,7 +34,9 @@ using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Validation.Providers;
+using AgentUp.Desktop.Features.Validation.Services;
 using AgentUp.Desktop.Features.Validation.ViewModels;
 
 namespace AgentUp.Desktop.Composition;
@@ -94,6 +96,8 @@ public static class MainViewModelFactory
             auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));
         var git = new GitController(new GitChangeListService(
             gitClient ?? new GitApiClient(DefaultGitHttpClient)));
+        var validationApi = validationClient ?? new ValidationFlowApiClient(DefaultValidationHttpClient);
+        var validationReplay = new ValidationFlowReplayService(validationApi, new BrowserInteractionController());
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces),
@@ -109,7 +113,8 @@ public static class MainViewModelFactory
             login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
                 new AuthenticationApiClient(DefaultAuthHttpClient)))),
             ports,
-            new ValidationViewModel(validationClient ?? new ValidationFlowApiClient(DefaultValidationHttpClient)));
+            new ValidationViewModel(validationApi, validationReplay),
+            validationReplay);
     }
 
     public static MainViewModel Create(HttpClient http, LoginViewModel? login = null)

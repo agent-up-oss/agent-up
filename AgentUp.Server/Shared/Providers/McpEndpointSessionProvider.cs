@@ -76,7 +76,7 @@ public sealed class McpEndpointSessionProvider
         }
         else if (IsEndpoint(context, "/mcp/browser"))
         {
-            options.ServerInstructions = "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the shared workspace browser session visible in the Agent-Up Desktop app. Record validation as a user-meaningful GUI journey with observable expectations, never as implementation detail; saved flows can be edited, re-recorded, replayed, and exported to Playwright.";
+            options.ServerInstructions = "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the workspace browser the user watches in Desktop. When recording validation flows, start from the user's goal: infer routes, tabs, and labels from application source or router files when that is faster than live inspection, then perform the journey once and call save_validation_flow. Do not inspect every route before recording. Saved flows replay with staged mouse movement, half-second attention pings, navigation waits, and visible expectations.";
             KeepTools(options, BrowserTools);
             options.ResourceCollection?.Clear();
         }

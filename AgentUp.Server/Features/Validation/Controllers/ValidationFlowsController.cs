@@ -6,6 +6,11 @@ namespace AgentUp.Server.Features.Validation.Controllers;
 public sealed class ValidationFlowsController(ValidationFlowService service) : ControllerBase
 {
     [HttpGet] public async Task<IActionResult> List(string workspaceId, [FromQuery] string application, CancellationToken ct) => Ok(await service.ListAsync(workspaceId, application, ct));
+    [HttpGet("{id}")] public async Task<IActionResult> Get(string workspaceId, string id, CancellationToken ct)
+    {
+        var flow = await service.GetAsync(workspaceId, id, ct);
+        return flow is null ? NotFound() : Ok(flow);
+    }
     [HttpPut]
     public async Task<IActionResult> Save(string workspaceId, SaveValidationFlowRequest request, CancellationToken ct)
     {

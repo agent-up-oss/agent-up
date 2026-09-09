@@ -9,9 +9,14 @@ namespace AgentUp.Server.Features.Validation.Services;
 
 public sealed class ValidationFlowService(IValidationFlowRepository repository, WorkspaceQueryController workspaces, BrowserMcpTools browser, PlaywrightFlowExporter exporter)
 {
+    internal const string InitialStageId = "__initial__";
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     public async Task<IReadOnlyList<ValidationFlow>> ListAsync(string workspaceId, string application, CancellationToken ct = default) =>
-        (await repository.LoadAsync(ct)).Where(x => x.WorkspaceId == workspaceId && x.Application == application).OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        (await repository.LoadAsync(workspaceId, ct)).Where(x => x.Application == application).OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+    public async Task<ValidationFlow?> GetAsync(string workspaceId, string id, CancellationToken ct = default) =>
+        (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
 
     public async Task<SaveValidationFlowResult> SaveAsync(string workspaceId, SaveValidationFlowRequest request, CancellationToken ct = default)
     {
@@ -22,12 +27,12 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
         await _gate.WaitAsync(ct);
         try
         {
-            var flows = (await repository.LoadAsync(ct)).ToList();
+            var flows = (await repository.LoadAsync(workspaceId, ct)).ToList();
             var id = string.IsNullOrWhiteSpace(request.Id) ? Guid.NewGuid().ToString("N") : request.Id;
-            var existing = flows.FindIndex(x => x.Id == id && x.WorkspaceId == workspaceId);
+            var existing = flows.FindIndex(x => x.Id == id);
             var flow = new ValidationFlow(id!, workspaceId, request.Application.Trim(), request.Name.Trim(), request.Description.Trim(), request.InitialPath.Trim(), request.InitialExpectations ?? [], request.Steps, DateTimeOffset.UtcNow, existing < 0 ? 1 : flows[existing].Version + 1);
             if (existing < 0) flows.Add(flow); else flows[existing] = flow;
-            await repository.SaveAsync(flows, ct);
+            await repository.SaveAsync(workspaceId, flows, ct);
             return new SaveValidationFlowResult(true, flow);
         }
         finally { _gate.Release(); }
@@ -36,16 +41,26 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
     public async Task<bool> DeleteAsync(string workspaceId, string id, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
-        try { var flows = (await repository.LoadAsync(ct)).ToList(); var removed = flows.RemoveAll(x => x.WorkspaceId == workspaceId && x.Id == id) > 0; if (removed) await repository.SaveAsync(flows, ct); return removed; }
+        try
+        {
+            var flows = (await repository.LoadAsync(workspaceId, ct)).ToList();
+            var removed = flows.RemoveAll(x => x.Id == id) > 0;
+            if (removed)
+                await repository.SaveAsync(workspaceId, flows, ct);
+            return removed;
+        }
         finally { _gate.Release(); }
     }
 
     public async Task<PlaywrightExport?> ExportAsync(string workspaceId, string id, CancellationToken ct = default)
-    { var flow = (await repository.LoadAsync(ct)).SingleOrDefault(x => x.WorkspaceId == workspaceId && x.Id == id); return flow is null ? null : exporter.Export(flow); }
+    {
+        var flow = (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
+        return flow is null ? null : exporter.Export(flow);
+    }
 
     public async Task<ValidationRunResult> RunAsync(string workspaceId, string id, CancellationToken ct = default)
     {
-        var flow = (await repository.LoadAsync(ct)).SingleOrDefault(x => x.WorkspaceId == workspaceId && x.Id == id);
+        var flow = (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
         if (flow is null) return new(false, "Validation flow was not found.");
         var workspace = workspaces.GetById(workspaceId);
         var app = workspace?.Applications.SingleOrDefault(x => x.Name == flow.Application);
@@ -67,6 +82,11 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
                 _ => new McpToolResult(false, "Watched replay currently requires a selector fallback for click and fill steps.")
             };
             if (!result.Succeeded) return new(false, result.Message, step.Id);
+            if (step.Action is ValidationAction.Click or ValidationAction.Navigate)
+            {
+                var navigation = await browser.WaitForNavigation(workspaceId, 10_000, ct);
+                if (!navigation.Succeeded) return new(false, navigation.Message, step.Id);
+            }
             var error = await AssertAsync(workspaceId, step.Expectations ?? [], ct);
             if (error is not null) return new(false, error, step.Id);
         }
