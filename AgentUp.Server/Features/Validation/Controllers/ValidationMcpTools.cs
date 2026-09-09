@@ -8,7 +8,7 @@ public sealed class ValidationMcpTools(ValidationFlowService service)
 {
     [McpServerTool(Name="save_validation_flow", Title="Save Behavioral Validation Flow")]
     [Description("Create or replace a replayable behavioral GUI flow. Record how a person gets from the initial application-relative place to an outcome and what the person should observe after each meaningful step. Describe user intent and visible GUI outcomes, not implementation details, DOM structure, component names, APIs, or incidental clicks. Reuse the returned id to edit or re-record a flow.")]
-    public Task<ValidationFlow> Save([Description("Workspace id.")] string workspaceId, [Description("Complete flow. Supply an existing id to replace that flow with a newly edited or re-recorded version.")] SaveValidationFlowRequest flow, CancellationToken cancellationToken) => service.SaveAsync(workspaceId, flow, cancellationToken);
+    public Task<SaveValidationFlowResult> Save([Description("Workspace id.")] string workspaceId, [Description("Complete flow. Supply an existing id to replace that flow with a newly edited or re-recorded version.")] SaveValidationFlowRequest flow, CancellationToken cancellationToken) => service.SaveAsync(workspaceId, flow, cancellationToken);
 
     [McpServerTool(Name="list_validation_flows", Title="List Behavioral Validation Flows")]
     [Description("List the persisted behavioral Playwright checks for one application so an agent can review, edit, re-record, export, or replay them.")]

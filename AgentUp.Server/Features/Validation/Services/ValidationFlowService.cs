@@ -13,9 +13,12 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
     public async Task<IReadOnlyList<ValidationFlow>> ListAsync(string workspaceId, string application, CancellationToken ct = default) =>
         (await repository.LoadAsync(ct)).Where(x => x.WorkspaceId == workspaceId && x.Application == application).OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
-    public async Task<ValidationFlow> SaveAsync(string workspaceId, SaveValidationFlowRequest request, CancellationToken ct = default)
+    public async Task<SaveValidationFlowResult> SaveAsync(string workspaceId, SaveValidationFlowRequest request, CancellationToken ct = default)
     {
-        Validate(workspaceId, request);
+        var error = Validate(workspaceId, request);
+        if (error is not null)
+            return new SaveValidationFlowResult(false, Error: error);
+
         await _gate.WaitAsync(ct);
         try
         {
@@ -25,7 +28,7 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             var flow = new ValidationFlow(id!, workspaceId, request.Application.Trim(), request.Name.Trim(), request.Description.Trim(), request.InitialPath.Trim(), request.InitialExpectations ?? [], request.Steps, DateTimeOffset.UtcNow, existing < 0 ? 1 : flows[existing].Version + 1);
             if (existing < 0) flows.Add(flow); else flows[existing] = flow;
             await repository.SaveAsync(flows, ct);
-            return flow;
+            return new SaveValidationFlowResult(true, flow);
         }
         finally { _gate.Release(); }
     }
@@ -107,16 +110,36 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
         }
     }
 
-    private void Validate(string workspaceId, SaveValidationFlowRequest request)
+    private string? Validate(string workspaceId, SaveValidationFlowRequest request)
     {
-        if (workspaces.GetById(workspaceId) is null) throw new ArgumentException("Workspace was not found.");
-        if (!workspaces.HasApplication(workspaceId, request.Application)) throw new ArgumentException("Application was not found in this workspace.");
-        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 120) throw new ArgumentException("Name is required and cannot exceed 120 characters.");
-        if (!Uri.TryCreate(request.InitialPath, UriKind.Relative, out _) || !request.InitialPath.StartsWith('/')) throw new ArgumentException("InitialPath must be an application-relative path beginning with '/'.");
-        if (request.Steps.Count is < 1 or > 200) throw new ArgumentException("A flow requires 1 to 200 steps.");
-        if (request.InitialExpectations is null || request.InitialExpectations.Count == 0) throw new ArgumentException("The initial place requires at least one visible expectation.");
-        if (request.Steps.Any(x => string.IsNullOrWhiteSpace(x.Description))) throw new ArgumentException("Every step requires a GUI-level description.");
-        if (request.Steps.Any(x => x.Expectations is null || x.Expectations.Count == 0)) throw new ArgumentException("Every step requires at least one visible expectation.");
-        if (request.Steps.Any(x => x.Action is ValidationAction.Click or ValidationAction.Fill && string.IsNullOrWhiteSpace(x.Target?.Selector))) throw new ArgumentException("Click and fill steps require a stable selector fallback for watched replay.");
+        if (workspaces.GetById(workspaceId) is null)
+            return "Workspace was not found.";
+        if (!workspaces.HasApplication(workspaceId, request.Application))
+            return "Application was not found in this workspace.";
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 120)
+            return "Name is required and cannot exceed 120 characters.";
+        if (!IsSafeRelativePath(request.InitialPath))
+            return "InitialPath must be a local application-relative path beginning with one '/'.";
+        if (request.Steps.Count is < 1 or > 200)
+            return "A flow requires 1 to 200 steps.";
+        if (request.InitialExpectations is null || request.InitialExpectations.Count == 0)
+            return "The initial place requires at least one visible expectation.";
+        if (request.Steps.Any(step => string.IsNullOrWhiteSpace(step.Description)))
+            return "Every step requires a GUI-level description.";
+        if (request.Steps.Any(step => step.Expectations is null || step.Expectations.Count == 0))
+            return "Every step requires at least one visible expectation.";
+        if (request.Steps.Any(step => step.Action == ValidationAction.Navigate && !IsSafeRelativePath(step.Value)))
+            return "Navigate steps require a local application-relative path beginning with one '/'.";
+        if (request.Steps.Any(step => step.Action is ValidationAction.Click or ValidationAction.Fill && string.IsNullOrWhiteSpace(step.Target?.Selector)))
+            return "Click and fill steps require a stable selector fallback for watched replay.";
+        return null;
     }
+
+    private static bool IsSafeRelativePath(string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && path.StartsWith("/", StringComparison.Ordinal)
+        && !path.StartsWith("//", StringComparison.Ordinal)
+        && !path.Any(char.IsControl)
+        && Uri.TryCreate(path, UriKind.Relative, out _);
+
 }
