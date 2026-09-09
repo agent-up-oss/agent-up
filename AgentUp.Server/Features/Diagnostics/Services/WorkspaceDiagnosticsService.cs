@@ -133,8 +133,8 @@ public sealed class WorkspaceDiagnosticsService(
     private static string? AggregateHealth(IReadOnlyList<PortHealthChange>? ports)
     {
         if (ports is null || ports.Count == 0) return null;
-        if (ports.Any(port => port.State == "Unhealthy")) return "Unhealthy";
-        if (ports.Any(port => port.State == "Checking")) return "Checking";
+        if (ports.Any(port => port.HealthState == "Unhealthy")) return "Unhealthy";
+        if (ports.Any(port => port.HealthState == "Checking")) return "Checking";
         return "Healthy";
     }
 }
