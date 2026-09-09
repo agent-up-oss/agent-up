@@ -63,6 +63,24 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
+    public void Dismiss_HidesLoginAndClearsConnectionRetry()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowConnectionFailure("Could not reach the server.");
+
+        login.Dismiss();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(login.IsConnectionRetry, Is.False);
+            Assert.That(login.ErrorMessage, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task RetryConnectionCommand_CompletesConnectionRetry()
     {
         using var http = new DisposableTestHttpClient(_ =>

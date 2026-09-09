@@ -32,3 +32,12 @@ test('login allows loopback http urls', () => {
 test('login allows remote https urls', () => {
   assert.doesNotThrow(() => ensureCredentialTransportAllowed('https://agent-up.example.com'));
 });
+
+test('login disables redirects for credential-bearing requests', async () => {
+  let redirect: RequestRedirect | undefined;
+  await login('http://localhost:5000', 'secret', (async (_url, init) => {
+    redirect = init?.redirect;
+    return new Response(JSON.stringify({ authenticationRequired: true, accessToken: 'token' }));
+  }) as typeof fetch);
+  assert.equal(redirect, 'error');
+});

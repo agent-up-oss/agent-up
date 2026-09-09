@@ -6,6 +6,7 @@ namespace AgentUp.CLI.Features.Authentication.Providers;
 
 public sealed class AuthenticationCredentialsStore(string? baseDirectory = null)
 {
+    private static readonly TimeSpan LockRetryDelay = TimeSpan.FromMilliseconds(25);
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly string _filePath = Path.Join(
@@ -49,11 +50,7 @@ public sealed class AuthenticationCredentialsStore(string? baseDirectory = null)
         Directory.CreateDirectory(directory);
         RestrictDirectoryAccess(directory);
 
-        using var lockStream = new FileStream(
-            lockPath,
-            FileMode.OpenOrCreate,
-            FileAccess.ReadWrite,
-            FileShare.None);
+        using var lockStream = OpenLock(lockPath);
         return mutate(ReadDocument());
     }
 
@@ -131,5 +128,20 @@ public sealed class AuthenticationCredentialsStore(string? baseDirectory = null)
     {
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    }
+
+    private static FileStream OpenLock(string lockPath)
+    {
+        while (true)
+        {
+            try
+            {
+                return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException)
+            {
+                Thread.Sleep(LockRetryDelay);
+            }
+        }
     }
 }

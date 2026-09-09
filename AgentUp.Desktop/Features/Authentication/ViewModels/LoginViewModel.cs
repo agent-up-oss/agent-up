@@ -88,9 +88,16 @@ public sealed class LoginViewModel : ReactiveObject
     {
         if (!IsVisible) return;
 
-        IsVisible = false;
+        Dismiss();
         _retryConnection?.TrySetResult(false);
         _signIn?.TrySetResult(null);
+    }
+
+    public void Dismiss()
+    {
+        IsVisible = false;
+        IsConnectionRetry = false;
+        ErrorMessage = null;
     }
 
     public Task<string?> WaitForSignInAsync()

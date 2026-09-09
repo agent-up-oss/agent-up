@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using AgentUp.Desktop.Features.Authentication.Controllers;
@@ -41,7 +42,10 @@ public static class AppComposition
         try
         {
             if (!await authentication.IsRequiredAsync())
+            {
+                login.Dismiss();
                 return true;
+            }
 
             login.Show();
             var token = await login.WaitForSignInAsync();
@@ -54,7 +58,7 @@ public static class AppComposition
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             return true;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or JsonException)
         {
             login.ShowConnectionFailure(ex.Message);
             if (!await login.WaitForConnectionRetryAsync())

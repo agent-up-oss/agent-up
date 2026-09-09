@@ -25,4 +25,11 @@ public sealed class SecureServerUrlProviderTests
         Assert.Throws<InvalidOperationException>(() =>
             SecureServerUrlProvider.ResolveServerUri("http://192.168.1.10:5000"));
     }
+
+    [Test]
+    public void ResolveServerUri_rejectsRelativeUrls()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            SecureServerUrlProvider.ResolveServerUri("/api/workspaces"));
+    }
 }
