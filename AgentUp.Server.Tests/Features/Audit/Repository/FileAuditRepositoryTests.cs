@@ -57,6 +57,25 @@ public sealed class FileAuditRepositoryTests
         Assert.That(hostEvents.Select(evt => evt.Scope), Is.EqualTo(["host-server"]));
     }
 
+    [TestCase("application")]
+    [TestCase("applicationName")]
+    [TestCase("appName")]
+    public async Task EventRepository_FiltersAllSupportedApplicationContextKeys(string key)
+    {
+        var repository = new FileAuditEventRepository(_dir);
+        var evt = Event("workspace-a", "main") with
+        {
+            Details = new Dictionary<string, string> { [key] = "Web" }
+        };
+        await repository.AppendAsync(evt, CancellationToken.None);
+
+        var result = await repository.QueryAsync(
+            new AuditEventQuery("workspace-a", null, null, null, null, null, null, null, null, null, 10, Application: "web"),
+            CancellationToken.None);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+    }
+
     [Test]
     public async Task ArtifactRepository_SavesAndLoadsBytes()
     {

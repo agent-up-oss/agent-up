@@ -174,6 +174,31 @@ public sealed class WorkspaceCommandService
 
         return WorkspaceCommandResult<WorkspaceDto>.Success(workspace);
     }
+
+    public async Task<WorkspaceCommandResult<WorkspaceDiagnosticsDto>> GetCurrentDiagnosticsAsync()
+    {
+        var resolution = await _resolver.ResolveAsync(
+            "Error: Failed to query workspaces",
+            "Error: No workspace found for the current directory. Run 'agent-up start' first.");
+        if (!resolution.Succeeded)
+            return WorkspaceCommandResult<WorkspaceDiagnosticsDto>.Failed(resolution.Error);
+
+        try
+        {
+            var diagnostics = await _client.GetDiagnosticsAsync(resolution.Workspace!.Id);
+            return diagnostics is null
+                ? WorkspaceCommandResult<WorkspaceDiagnosticsDto>.Failed("Error: Workspace diagnostics were not found.")
+                : WorkspaceCommandResult<WorkspaceDiagnosticsDto>.Success(diagnostics);
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<WorkspaceDiagnosticsDto>.Failed(ex.Message);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            return WorkspaceCommandResult<WorkspaceDiagnosticsDto>.Failed($"Error: Failed to load diagnostics: {ex.Message}");
+        }
+    }
 }
 
 public sealed record WorkspaceCommandResult<T>(bool Succeeded, T? Value, string? Error)
