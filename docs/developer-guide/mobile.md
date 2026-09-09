@@ -105,8 +105,11 @@ The start, Android, iOS, and web scripts use Expo's LAN mode. Metro listens on
 all network interfaces and advertises the machine's LAN address so physical
 devices can connect.
 
-The web script passes the Server-allocated `WEB_PORT` to Expo when Mobile is
-launched from `agent-up.json`; otherwise it uses Expo's default port 8081.
+`agent-up.json` builds the production PWA during the application `install` step
+and serves the exported `dist/` output through `npm run serve:web`. The serve
+script passes the Server-allocated `WEB_PORT` when Mobile is launched from
+Agent-Up; otherwise it uses Expo's default port 8081. Use `npm run web` when you
+need the Metro development server with hot reload.
 Before Expo starts, the script waits briefly for a previous listener on that
 same application port to exit. Each application receives its own allocated port
 even when multiple apps declare the same port variable name.
