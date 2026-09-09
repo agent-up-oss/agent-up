@@ -48,6 +48,15 @@ public class ConsolePanelBehaviorTests
         Assert.That(html.IndexOf('\x1B'), Is.EqualTo(-1), "HTML should not contain ESC characters");
     }
 
+    [Test]
+    public void ShouldReloadConsoleWebView_WhenDestinationUriIsUnchanged()
+    {
+        var destination = new Uri("file:///tmp/agentup-console-1.html");
+
+        Assert.That(MainWindow.ShouldReloadConsoleWebView(destination, destination), Is.True);
+        Assert.That(MainWindow.ShouldReloadConsoleWebView(null, destination), Is.False);
+    }
+
     [AvaloniaTest]
     public async Task Panel_capsConsoleOutput_atMaxLines()
     {

@@ -102,7 +102,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         {
             if (existingByName.TryGetValue(app.Name, out var existing))
             {
-                applicationsChanged |= existing.UpdateFrom(app.Command, app.State, app.AllocatedPorts);
+                applicationsChanged |= existing.UpdateFrom(app.Command, app.State, app.AllocatedPorts, app.Database);
             }
             else
             {
@@ -160,7 +160,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     }
 
     private static WorkspaceApplicationViewModel CreateApplication(ApplicationDto app) =>
-        new(app.Name, app.Command, app.State, app.AllocatedPorts);
+        new(app.Name, app.Command, app.State, app.Database, app.AllocatedPorts);
 
     private static string LastPathSegment(string path)
         => path.TrimEnd('/', '\\')
