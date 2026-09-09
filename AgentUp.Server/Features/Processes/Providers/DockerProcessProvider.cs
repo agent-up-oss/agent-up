@@ -106,7 +106,7 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
 
     private void AddDockerEnvironmentArgs(List<string> runArgs, Workspace workspace, ApplicationInstance app)
     {
-        var portVariables = CreateWorkspacePortVariableMap(workspace);
+        var portVariables = CreateWorkspacePortVariableMap(workspace, app);
         foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
             AddEnvironment(runArgs, key, InterpolateWorkspacePorts(value, portVariables));
         AddEnvironment(runArgs, "AGENT_UP_AUDIT_ENDPOINT", GetContainerAuditEndpoint(_auditEndpoint));
@@ -126,10 +126,13 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         return new UriBuilder(uri) { Host = "host.agent-up" }.Uri.AbsoluteUri;
     }
 
-    private static Dictionary<string, string> CreateWorkspacePortVariableMap(Workspace workspace)
+    private static Dictionary<string, string> CreateWorkspacePortVariableMap(Workspace workspace, ApplicationInstance app)
     {
         var variables = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts).Where(mapping => mapping.Variable is not null))
+            variables[mapping.Variable!] = mapping.AllocatedPort.ToString();
+
+        foreach (var mapping in app.AllocatedPorts.Where(mapping => mapping.Variable is not null))
             variables[mapping.Variable!] = mapping.AllocatedPort.ToString();
 
         return variables;

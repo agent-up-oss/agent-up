@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { Workspace } from '../models/Workspace';
 import { createWorkspaceActions, type WorkspaceActionsApi } from './WorkspaceActionsProvider';
 import type { WorkspaceRefresher } from './WorkspaceRefreshProvider';
@@ -16,12 +17,16 @@ function workspace(id: string): Workspace {
   };
 }
 
+function at(url: string): ServerSession {
+  return { url };
+}
+
 // Stands in for the real refresher: the test drives which server is active, and the provider
 // records every refresh it is asked to perform.
 function fakeRefresher(active: { url: string | null }, refreshed: (string | null)[]): WorkspaceRefresher {
   return {
-    isActive: serverUrl => serverUrl === active.url,
-    refresh: async serverUrl => { refreshed.push(serverUrl); },
+    isActive: server => (server?.url ?? null) === active.url,
+    refresh: async server => { refreshed.push(server?.url ?? null); },
   };
 }
 
@@ -40,7 +45,7 @@ test('a clone that finishes while its server is active refreshes and selects the
   const selected: string[] = [];
   const actions = createWorkspaceActions(fakeRefresher(active, refreshed), api(), { onSelect: id => { selected.push(id); } });
 
-  const cloned = await actions.clone('http://a', { repository: 'https://example.test/acme/widgets.git', branch: 'main' });
+  const cloned = await actions.clone(at('http://a'), { repository: 'https://example.test/acme/widgets.git', branch: 'main' });
 
   assert.equal(cloned.id, 'cloned');
   assert.deepEqual(refreshed, ['http://a']);
@@ -58,7 +63,7 @@ test('a clone that finishes after the user switched servers neither refreshes no
     { onSelect: id => { selected.push(id); } },
   );
 
-  const pending = actions.clone('http://a', { repository: 'https://example.test/acme/widgets.git', branch: 'main' });
+  const pending = actions.clone(at('http://a'), { repository: 'https://example.test/acme/widgets.git', branch: 'main' });
 
   // The user moves to another server while the clone is still running.
   active.url = 'http://b';
@@ -92,13 +97,13 @@ test('start and stop refresh only while their server is still active', async () 
   const refreshed: (string | null)[] = [];
   const actions = createWorkspaceActions(fakeRefresher(active, refreshed), api(), { onSelect: () => {} });
 
-  await actions.start('http://a', 'ws-1');
-  await actions.stop('http://a', 'ws-1');
+  await actions.start(at('http://a'), 'ws-1');
+  await actions.stop(at('http://a'), 'ws-1');
   assert.deepEqual(refreshed, ['http://a', 'http://a']);
 
   active.url = 'http://b';
-  await actions.start('http://a', 'ws-1');
-  await actions.stop('http://a', 'ws-1');
+  await actions.start(at('http://a'), 'ws-1');
+  await actions.stop(at('http://a'), 'ws-1');
   assert.deepEqual(refreshed, ['http://a', 'http://a'], 'no further refresh for the server left behind');
 });
 

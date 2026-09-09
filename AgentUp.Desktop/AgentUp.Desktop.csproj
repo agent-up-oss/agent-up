@@ -19,13 +19,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LocalInstaller.Core" Version="1.0.2" />
+    <PackageReference Include="LocalInstaller.Core" Version="1.1.0" />
     <PackageReference Include="Avalonia" Version="12.1.2" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
     <PackageReference Include="Avalonia.Controls.WebView" Version="12.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
   </ItemGroup>
 
   <ItemGroup>

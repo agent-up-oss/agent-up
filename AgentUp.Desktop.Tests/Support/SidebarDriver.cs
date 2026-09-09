@@ -37,14 +37,14 @@ internal sealed class SidebarDriver(MainWindow window)
     public async Task CollapseAsync()
     {
         if (Vm.Sidebar.IsCollapsed) return;
-        var toggle = window.FindControl<Button>("SidebarToggle")!;
+        var toggle = ChromeTestSupport.FindDescendantByName<Button>(window, "SidebarToggle")!;
         await window.ClickControlAsync(toggle);
     }
 
     public async Task ExpandAsync()
     {
         if (Vm.Sidebar.IsExpanded) return;
-        var toggle = window.FindControl<Button>("SidebarToggle")!;
+        var toggle = ChromeTestSupport.FindDescendantByName<Button>(window, "SidebarToggle")!;
         await window.ClickControlAsync(toggle);
     }
 
@@ -56,7 +56,7 @@ internal sealed class SidebarDriver(MainWindow window)
 
     public async Task ClickReloadAsync()
     {
-        var button = window.FindControl<Button>("ReloadButton");
+        var button = ChromeTestSupport.FindDescendantByName<Button>(window, "ReloadButton");
         if (button is null)
             throw new InvalidOperationException("ReloadButton not found — sidebar must be expanded to use this overload.");
         await window.ClickControlAsync(button);
@@ -110,7 +110,10 @@ internal sealed class SidebarDriver(MainWindow window)
         Vm.Sidebar.DeleteConfirmation.IsVisible;
 
     public bool DeleteOverlayCoversContentOnly =>
-        window.FindControl<Grid>("WorkspaceDeleteOverlay")?.GetValue(Grid.RowProperty) is int row && row == 1;
+        window.FindControl<Border>("WindowChrome")?.IsVisible == true
+        && window.FindControl<Grid>("PageHost")?
+            .GetVisualDescendants()
+            .Any(control => control is Grid { Name: "WorkspaceDeleteOverlay" }) == true;
 
     public async Task ConfirmDeleteAsync()
     {

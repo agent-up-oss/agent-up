@@ -15,8 +15,12 @@ orchestration must remain in `AgentUp.Server`.
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
 the active selection in PWA local storage. Only one Server is active at a time;
 selecting another sidebar icon changes the client target and does not copy or
-own Server runtime state. A URL is saved only after the existing workspaces API
-responds successfully. Authentication credentials are not currently stored.
+own Server runtime state. A URL is saved only after the Server authentication
+status probe succeeds. If login is required, the client requests the single
+administrator password and stores the resulting access token with the Server
+selection; if authentication is disabled, it skips that login step. Remote
+servers must use HTTPS; loopback HTTP URLs remain supported for local
+development.
 
 As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
@@ -61,6 +65,19 @@ Both slices reach the Server through
 owns connectivity to a configured Server, so feature slices do not reimplement
 timeout, problem-detail, and unreachable-server handling.
 
+A request takes a `ServerSession` — the Server's URL together with the access
+token stored for it — rather than a bare URL. The Server requires a bearer token
+unless it was started with `AGENTUP_AUTH_DISABLED=true`, so the transport adds
+the `Authorization` header whenever the session carries a token.
+
+Work that outlives its own request must check that its session is still the
+active one before it writes shared state. `WorkspaceRefresher.isActive` compares
+the whole session, URL and token alike, so a clone still running when the
+credential changes does not refresh with the credential the Server has since
+stopped accepting. The Git screen guards its change-tree and file-diff loads the
+same way through `createRequestGate`, keeping each independent so opening a file
+does not discard the tree that is still loading.
+
 ## Local development
 
 Install dependencies with the repository Nix shell so the expected Node.js
@@ -90,6 +107,9 @@ devices can connect.
 
 The web script passes the Server-allocated `WEB_PORT` to Expo when Mobile is
 launched from `agent-up.json`; otherwise it uses Expo's default port 8081.
+Before Expo starts, the script waits briefly for a previous listener on that
+same application port to exit. Each application receives its own allocated port
+even when multiple apps declare the same port variable name.
 
 The same development server can open the app through Expo Go on a physical
 Android or iOS device:

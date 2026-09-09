@@ -5,7 +5,7 @@ import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
 
 export function WorkspaceListScreen() {
-  const { serverUrl, workspaces, selectedWorkspace, loading, error, selectWorkspace, refresh, clone } = useWorkspaces();
+  const { server, workspaces, selectedWorkspace, loading, error, selectWorkspace, refresh, clone } = useWorkspaces();
   const [adding, setAdding] = useState(false);
   const [repository, setRepository] = useState('');
   const [branch, setBranch] = useState('main');
@@ -38,7 +38,7 @@ export function WorkspaceListScreen() {
         </Pressable>
       </View>
       <Text style={styles.subtitle}>
-        {serverUrl ? `Connected to ${serverUrl}` : 'No server selected. Add one on the Servers tab.'}
+        {server ? `Connected to ${server.url}` : 'No server selected. Add one on the Servers tab.'}
       </Text>
 
       {loading && <ActivityIndicator color="#00d66b" />}

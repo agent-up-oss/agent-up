@@ -61,6 +61,9 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts).Where(mapping => mapping.Variable is not null))
             startInfo.Environment[mapping.Variable!] = mapping.AllocatedPort.ToString();
 
+        foreach (var mapping in app.AllocatedPorts.Where(mapping => mapping.Variable is not null))
+            startInfo.Environment[mapping.Variable!] = mapping.AllocatedPort.ToString();
+
         startInfo.Environment["AGENT_UP_AUDIT_ENDPOINT"] = _auditEndpoint;
         startInfo.Environment["AGENT_UP_WORKSPACE_ID"] = workspace.Id;
         startInfo.Environment["AGENT_UP_APPLICATION"] = app.Name;

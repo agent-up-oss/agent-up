@@ -1,42 +1,42 @@
-import { jsonBody, requestServerJson, ServerRequestError } from '@/features/servers/providers/ServerRequestProvider';
+import { jsonBody, requestServerJson, ServerRequestError, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { GitChangeTree, GitCommitResult, GitFileDiff } from '../models/GitChanges';
 
 const COMMIT_TIMEOUT_MS = 60000;
 
 export async function getChanges(
-  serverUrl: string,
+  server: ServerSession,
   workspaceId: string,
   request: typeof fetch = fetch,
 ): Promise<GitChangeTree | null> {
   return readOrNull<GitChangeTree>(
-    serverUrl,
+    server,
     `/api/workspaces/${encodeURIComponent(workspaceId)}/git/changes`,
     request,
   );
 }
 
 export async function getFileDiff(
-  serverUrl: string,
+  server: ServerSession,
   workspaceId: string,
   path: string,
   request: typeof fetch = fetch,
 ): Promise<GitFileDiff | null> {
   return readOrNull<GitFileDiff>(
-    serverUrl,
+    server,
     `/api/workspaces/${encodeURIComponent(workspaceId)}/git/file?path=${encodeURIComponent(path)}`,
     request,
   );
 }
 
 export async function commitFiles(
-  serverUrl: string,
+  server: ServerSession,
   workspaceId: string,
   files: string[],
   message: string,
   request: typeof fetch = fetch,
 ): Promise<GitCommitResult> {
   const result = await requestServerJson<GitCommitResult>(
-    serverUrl,
+    server,
     `/api/workspaces/${encodeURIComponent(workspaceId)}/git/commit`,
     jsonBody({ files, message }),
     COMMIT_TIMEOUT_MS,
@@ -46,9 +46,9 @@ export async function commitFiles(
   return result;
 }
 
-async function readOrNull<T>(serverUrl: string, path: string, request: typeof fetch): Promise<T | null> {
+async function readOrNull<T>(server: ServerSession, path: string, request: typeof fetch): Promise<T | null> {
   try {
-    return await requestServerJson<T>(serverUrl, path, { method: 'GET' }, undefined, request);
+    return await requestServerJson<T>(server, path, { method: 'GET' }, undefined, request);
   } catch (error) {
     if (error instanceof ServerRequestError && error.status === 404) return null;
     throw error;

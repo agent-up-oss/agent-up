@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Workspace } from '../models/Workspace';
+import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import { createWorkspaceRefresh, type WorkspaceRefreshSink } from './WorkspaceRefreshProvider';
+
+function at(url: string): ServerSession {
+  return { url };
+}
 
 function workspace(id: string): Workspace {
   return {
@@ -46,14 +51,14 @@ function recorder(): Recorded {
 test('a slow response for the previous server does not replace the current one', async () => {
   const recorded = recorder();
   let releaseSlow: (workspaces: Workspace[]) => void = () => {};
-  const list = (serverUrl: string) =>
-    serverUrl.endsWith('slow')
+  const list = (server: ServerSession) =>
+    server.url.endsWith('slow')
       ? new Promise<Workspace[]>(resolve => { releaseSlow = resolve; })
       : Promise.resolve([workspace('from-fast')]);
   const { refresh } = createWorkspaceRefresh(recorded.sink, list);
 
-  const slow = refresh('http://slow');
-  await refresh('http://fast');
+  const slow = refresh(at('http://slow'));
+  await refresh(at('http://fast'));
 
   releaseSlow([workspace('from-slow')]);
   await slow;
@@ -65,14 +70,14 @@ test('a slow response for the previous server does not replace the current one',
 test('a failure from the previous server does not replace the current one', async () => {
   const recorded = recorder();
   let failSlow: (cause: Error) => void = () => {};
-  const list = (serverUrl: string) =>
-    serverUrl.endsWith('slow')
+  const list = (server: ServerSession) =>
+    server.url.endsWith('slow')
       ? new Promise<Workspace[]>((_resolve, reject) => { failSlow = reject; })
       : Promise.resolve([workspace('from-fast')]);
   const { refresh } = createWorkspaceRefresh(recorded.sink, list);
 
-  const slow = refresh('http://slow');
-  await refresh('http://fast');
+  const slow = refresh(at('http://slow'));
+  await refresh(at('http://fast'));
 
   failSlow(new Error('Could not reach http://slow.'));
   await slow;
@@ -85,7 +90,7 @@ test('a response for the current server is applied', async () => {
   const recorded = recorder();
   const { refresh } = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([workspace('ws-1')]));
 
-  await refresh('http://localhost:5000');
+  await refresh(at('http://localhost:5000'));
 
   assert.deepEqual(recorded.applied, [['ws-1']]);
   assert.deepEqual(recorded.loading, [true, false]);
@@ -95,7 +100,7 @@ test('a failure for the current server is reported', async () => {
   const recorded = recorder();
   const { refresh } = createWorkspaceRefresh(recorded.sink, () => Promise.reject(new Error('Connection refused')));
 
-  await refresh('http://localhost:5000');
+  await refresh(at('http://localhost:5000'));
 
   assert.deepEqual(recorded.errors, ['Connection refused']);
   assert.deepEqual(recorded.loading, [true, false]);
@@ -121,7 +126,7 @@ test('a pending response is dropped once the server is deselected', async () => 
     () => new Promise<Workspace[]>(resolve => { release = resolve; }),
   );
 
-  const pending = refresh('http://localhost:5000');
+  const pending = refresh(at('http://localhost:5000'));
   await refresh(null);
 
   release([workspace('ws-1')]);
@@ -135,17 +140,17 @@ test('isActive tracks the server the newest refresh targeted', async () => {
   const recorded = recorder();
   const refresher = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([]));
 
-  assert.equal(refresher.isActive('http://a'), false, 'nothing is active before the first refresh');
+  assert.equal(refresher.isActive(at('http://a')), false, 'nothing is active before the first refresh');
 
-  await refresher.refresh('http://a');
-  assert.equal(refresher.isActive('http://a'), true);
+  await refresher.refresh(at('http://a'));
+  assert.equal(refresher.isActive(at('http://a')), true);
 
-  await refresher.refresh('http://b');
-  assert.equal(refresher.isActive('http://a'), false);
-  assert.equal(refresher.isActive('http://b'), true);
+  await refresher.refresh(at('http://b'));
+  assert.equal(refresher.isActive(at('http://a')), false);
+  assert.equal(refresher.isActive(at('http://b')), true);
 
   await refresher.refresh(null);
-  assert.equal(refresher.isActive('http://b'), false);
+  assert.equal(refresher.isActive(at('http://b')), false);
   assert.equal(refresher.isActive(null), true);
 });
 
@@ -157,9 +162,24 @@ test('isActive becomes true as soon as a refresh starts, before it settles', asy
     () => new Promise<Workspace[]>(resolve => { release = resolve; }),
   );
 
-  const pending = refresher.refresh('http://a');
-  assert.equal(refresher.isActive('http://a'), true);
+  const pending = refresher.refresh(at('http://a'));
+  assert.equal(refresher.isActive(at('http://a')), true);
 
   release([]);
   await pending;
+});
+
+test('a session whose access token changed is no longer active', async () => {
+  const recorded = recorder();
+  const refresher = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([]));
+
+  await refresher.refresh({ url: 'http://a', accessToken: 'first' });
+
+  assert.equal(refresher.isActive({ url: 'http://a', accessToken: 'first' }), true);
+  assert.equal(
+    refresher.isActive({ url: 'http://a', accessToken: 'second' }),
+    false,
+    'work holding the previous credential must not refresh with it',
+  );
+  assert.equal(refresher.isActive({ url: 'http://a' }), false);
 });

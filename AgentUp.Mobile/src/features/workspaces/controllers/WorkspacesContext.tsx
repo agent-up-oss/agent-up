@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { CloneSourceRequest, Workspace } from '../models/Workspace';
 import { cloneSourceRepository, listWorkspaces, startWorkspace, stopWorkspace } from '../providers/WorkspacesApiProvider';
 import { createWorkspaceActions, type WorkspaceActions } from '../providers/WorkspaceActionsProvider';
 import { createWorkspaceRefresh, type WorkspaceRefresher } from '../providers/WorkspaceRefreshProvider';
 
 type WorkspacesController = {
-  serverUrl: string | null;
+  server: ServerSession | null;
   workspaces: Workspace[];
   selectedWorkspace: Workspace | null;
   loading: boolean;
@@ -22,7 +23,14 @@ const Context = createContext<WorkspacesController | null>(null);
 
 export function WorkspacesProvider({ children }: PropsWithChildren) {
   const { activeServer } = useServers();
+  // The URL and the token both matter to a request, so the effect below re-runs when either
+  // changes: signing in must reload the workspaces that were refused while unauthenticated.
   const serverUrl = activeServer?.url ?? null;
+  const accessToken = activeServer?.accessToken;
+  const server = useMemo<ServerSession | null>(
+    () => (serverUrl ? { url: serverUrl, accessToken } : null),
+    [serverUrl, accessToken],
+  );
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,22 +64,22 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     { onSelect: setSelectedId },
   );
 
-  const refresh = useCallback(() => refresherRef.current!.refresh(serverUrl), [serverUrl]);
+  const refresh = useCallback(() => refresherRef.current!.refresh(server), [server]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
   const controller = useMemo<WorkspacesController>(() => ({
-    serverUrl,
+    server,
     workspaces,
     selectedWorkspace: workspaces.find(workspace => workspace.id === selectedId) ?? null,
     loading,
     error,
     selectWorkspace: id => setSelectedId(id),
     refresh,
-    clone: request => actionsRef.current!.clone(serverUrl, request),
-    start: id => actionsRef.current!.start(serverUrl, id),
-    stop: id => actionsRef.current!.stop(serverUrl, id),
-  }), [serverUrl, workspaces, selectedId, loading, error, refresh]);
+    clone: request => actionsRef.current!.clone(server, request),
+    start: id => actionsRef.current!.start(server, id),
+    stop: id => actionsRef.current!.stop(server, id),
+  }), [server, workspaces, selectedId, loading, error, refresh]);
 
   return <Context.Provider value={controller}>{children}</Context.Provider>;
 }

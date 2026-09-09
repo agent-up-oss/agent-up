@@ -26,7 +26,7 @@ test('listWorkspaces reads the workspace list', async () => {
     },
   ]);
 
-  const workspaces = await listWorkspaces('http://localhost:5000', fakeFetch(200, body, recorded));
+  const workspaces = await listWorkspaces({ url: 'http://localhost:5000' }, fakeFetch(200, body, recorded));
 
   assert.equal(workspaces.length, 1);
   assert.equal(workspaces[0].displayName, 'widgets');
@@ -46,7 +46,7 @@ test('cloneSourceRepository posts the repository and branch to the source clones
   });
 
   const workspace = await cloneSourceRepository(
-    'http://localhost:5000',
+    { url: 'http://localhost:5000' },
     { repository: 'https://example.test/acme/widgets.git', branch: 'main' },
     fakeFetch(201, body, recorded),
   );
@@ -64,7 +64,7 @@ test('cloneSourceRepository surfaces the server problem detail', async () => {
 
   await assert.rejects(
     () => cloneSourceRepository(
-      'http://localhost:5000',
+      { url: 'http://localhost:5000' },
       { repository: 'https://example.test/acme/widgets.git', branch: '--x' },
       fakeFetch(400, body, []),
     ),
@@ -76,8 +76,8 @@ test('startWorkspace and stopWorkspace escape the workspace id', async () => {
   const recorded: Recorded[] = [];
   const fetcher = fakeFetch(204, '', recorded);
 
-  await startWorkspace('http://localhost:5000', 'ws 1', fetcher);
-  await stopWorkspace('http://localhost:5000', 'ws 1', fetcher);
+  await startWorkspace({ url: 'http://localhost:5000' }, 'ws 1', fetcher);
+  await stopWorkspace({ url: 'http://localhost:5000' }, 'ws 1', fetcher);
 
   assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/start');
   assert.equal(recorded[1].url, 'http://localhost:5000/api/workspaces/ws%201/stop');

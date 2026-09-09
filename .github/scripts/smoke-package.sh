@@ -104,7 +104,7 @@ start_server_and_probe() {
   mkdir -p "$data_dir"
 
   chmod +x "$server" 2>/dev/null || true
-  Storage__DataDirectory="$data_dir" ASPNETCORE_URLS="$url" "$server" > "$work_dir/server.log" 2>&1 &
+  Storage__DataDirectory="$data_dir" ASPNETCORE_URLS="$url" AGENTUP_AUTH_DISABLED="true" "$server" > "$work_dir/server.log" 2>&1 &
   server_pid="$!"
 
   for _ in {1..60}; do

@@ -20,14 +20,14 @@ test('getChanges requests the workspace scoped changes route', async () => {
     root: { name: '', path: '', directories: [], files: [] },
   });
 
-  const tree = await getChanges('http://localhost:5000', 'ws 1', fakeFetch(200, body, recorded));
+  const tree = await getChanges({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
 
   assert.equal(tree?.branch, 'main');
   assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/git/changes');
 });
 
 test('getChanges returns null for an unknown workspace', async () => {
-  const tree = await getChanges('http://localhost:5000', 'missing', fakeFetch(404, '', []));
+  const tree = await getChanges({ url: 'http://localhost:5000' }, 'missing', fakeFetch(404, '', []));
 
   assert.equal(tree, null);
 });
@@ -36,7 +36,7 @@ test('getFileDiff escapes the path query parameter', async () => {
   const recorded: Recorded[] = [];
   const body = JSON.stringify({ path: 'src/a b.cs', status: 'Modified', isBinary: false, diff: '@@' });
 
-  const diff = await getFileDiff('http://localhost:5000', 'ws-1', 'src/a b.cs', fakeFetch(200, body, recorded));
+  const diff = await getFileDiff({ url: 'http://localhost:5000' }, 'ws-1', 'src/a b.cs', fakeFetch(200, body, recorded));
 
   assert.equal(diff?.diff, '@@');
   assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws-1/git/file?path=src%2Fa%20b.cs');
@@ -47,7 +47,7 @@ test('commitFiles posts the selected files and message', async () => {
   const body = JSON.stringify({ found: true, succeeded: true, commit: '0123456789abcdef', error: null });
 
   const result = await commitFiles(
-    'http://localhost:5000',
+    { url: 'http://localhost:5000' },
     'ws-1',
     ['src/app/main.cs'],
     'feat(App): add main',
@@ -67,7 +67,7 @@ test('commitFiles surfaces the server problem detail', async () => {
   const body = JSON.stringify({ detail: 'Commit message is required.' });
 
   await assert.rejects(
-    () => commitFiles('http://localhost:5000', 'ws-1', ['a.cs'], ' ', fakeFetch(400, body, [])),
+    () => commitFiles({ url: 'http://localhost:5000' }, 'ws-1', ['a.cs'], ' ', fakeFetch(400, body, [])),
     /Commit message is required\./,
   );
 });

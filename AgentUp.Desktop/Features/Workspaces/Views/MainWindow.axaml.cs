@@ -157,7 +157,16 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         "};" +
         "})();";
 
-    public MainWindow()
+    public MainWindow() : this(CreateServerHttpClient())
+    {
+    }
+
+    private static HttpClient CreateServerHttpClient() => new()
+    {
+        BaseAddress = new Uri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000")
+    };
+
+    public MainWindow(HttpClient serverHttp)
     {
         InitializeComponent();
         SetWindowIcon();
@@ -166,9 +175,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         PortPane.SizeChanged += OnPortPaneSizeChanged;
-        var serverUrl = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000";
-        _serverBaseUrl = serverUrl;
-        _serverHttp = new HttpClient { BaseAddress = new Uri(serverUrl) };
+        _serverBaseUrl = serverHttp.BaseAddress?.ToString().TrimEnd('/')
+            ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
+        _serverHttp = serverHttp;
     }
 
     private void SetWindowIcon()
@@ -213,10 +222,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
-
-        var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
-        _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
-        _workspaceEventClient.Start();
 
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
@@ -284,6 +289,18 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         _auditController ??= new ViewModelAuditController(_serverHttp);
         _auditController.Attach(vm, CaptureViewState);
+    }
+
+    internal void StartAuthenticatedServices()
+    {
+        if (DataContext is not MainViewModel vm)
+            return;
+
+        _workspaceEventClient?.Dispose();
+        var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
+        eventHttp.DefaultRequestHeaders.Authorization = _serverHttp.DefaultRequestHeaders.Authorization;
+        _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
+        _workspaceEventClient.Start();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -1264,8 +1281,20 @@ code {
         => CloseWindowButton.IsVisualAncestorOf(source)
            || MinimizeWindowButton.IsVisualAncestorOf(source)
            || RestoreWindowButton.IsVisualAncestorOf(source)
-           || SidebarToggle.IsVisualAncestorOf(source)
-           || ReloadButton.IsVisualAncestorOf(source);
+           || IsNamedChromeControl(source, "SidebarToggle")
+           || IsNamedChromeControl(source, "ReloadButton");
+
+    private static bool IsNamedChromeControl(Visual source, string name)
+    {
+        for (var current = source; current is not null; current = current.GetVisualParent() as Visual)
+        {
+            if (current is Control { Name: var controlName }
+                && string.Equals(controlName, name, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
 
     private void OnCloseWindowClicked(object? sender, RoutedEventArgs e) => Close();
 

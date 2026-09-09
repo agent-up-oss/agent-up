@@ -164,3 +164,19 @@ The Desktop does not own runtime state and should not duplicate orchestration ru
 Installed Desktop artifacts are paired with a local `AgentUp.Server` service. The installer or package service assets are responsible for installing and starting `agent-up-server`; the Desktop still behaves as a client and connects to `http://localhost:5000` by default.
 
 For development, `AGENTUP_SERVER_URL` can point Desktop at a manually started Server.
+
+Desktop uses a persistent integrated window chrome row for the full application
+lifetime. The centered Agent-Up logo and right-side window controls always stay
+visible. The content area below the chrome switches between pages such as sign-in
+and the workspace shell.
+
+Each page registers its own left-side chrome items through
+`WindowChromeViewModel.LeftItems`. The workspace page contributes the sidebar
+toggle, workspace refresh action, and server status badge. The sign-in page
+registers no chrome items.
+
+Desktop queries `/api/auth/status` before loading workspace state. When the
+Server requires authentication it shows an in-window administrator sign-in page
+that gates the main UI and uses the returned bearer token for REST and
+workspace-event requests. When the Server has authentication disabled, Desktop
+opens the main window directly.

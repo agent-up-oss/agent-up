@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
 import { commitFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
+import { createRequestGate, type RequestGate } from '../providers/RequestGateProvider';
 import {
   canCommitSelection,
   flattenChangeTree,
@@ -15,7 +16,7 @@ import {
 } from '../providers/GitChangeTreeProvider';
 
 export function GitChangesScreen() {
-  const { serverUrl, selectedWorkspace } = useWorkspaces();
+  const { server, selectedWorkspace } = useWorkspaces();
   const workspaceId = selectedWorkspace?.id ?? null;
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
@@ -31,40 +32,55 @@ export function GitChangesScreen() {
 
   const nodes = useMemo(() => flattenChangeTree(tree), [tree]);
 
+  // Changing workspace, server, or file starts a new request while the previous one may still be in
+  // flight. Without these gates an older reply would land on the newer context: another workspace's
+  // tree, or the previous file's diff under the open file's name.
+  const gates = useRef<{ tree: RequestGate; diff: RequestGate } | null>(null);
+  gates.current ??= { tree: createRequestGate(), diff: createRequestGate() };
+  const { tree: treeGate, diff: diffGate } = gates.current;
+
   const load = useCallback(async () => {
-    if (!serverUrl || !workspaceId) { setTree(null); setSelected([]); return; }
+    const ticket = treeGate.begin();
+    if (!server || !workspaceId) { setTree(null); setSelected([]); return; }
     setLoading(true); setError(null);
     try {
-      setTree(await getChanges(serverUrl, workspaceId));
+      const changes = await getChanges(server, workspaceId);
+      if (!treeGate.isCurrent(ticket)) return;
+      setTree(changes);
       setSelected([]);
     } catch (cause) {
+      if (!treeGate.isCurrent(ticket)) return;
       setTree(null);
       setError(cause instanceof Error ? cause.message : 'Could not load Git changes.');
     } finally {
-      setLoading(false);
+      if (treeGate.isCurrent(ticket)) setLoading(false);
     }
-  }, [serverUrl, workspaceId]);
+  }, [server, workspaceId, treeGate]);
 
   useEffect(() => { void load(); }, [load]);
 
   const openDiff = async (node: GitChangeNode) => {
-    if (!serverUrl || !workspaceId || node.isDirectory) return;
+    if (!server || !workspaceId || node.isDirectory) return;
+    const ticket = diffGate.begin();
     setDiffPath(node.path); setDiff(null); setDiffLoading(true);
     try {
-      setDiff(await getFileDiff(serverUrl, workspaceId, node.path));
+      const loaded = await getFileDiff(server, workspaceId, node.path);
+      if (!diffGate.isCurrent(ticket)) return;
+      setDiff(loaded);
     } catch (cause) {
+      if (!diffGate.isCurrent(ticket)) return;
       setDiff({ path: node.path, status: 'Modified', isBinary: false, diff: cause instanceof Error ? cause.message : 'Could not load the diff.' });
     } finally {
-      setDiffLoading(false);
+      if (diffGate.isCurrent(ticket)) setDiffLoading(false);
     }
   };
 
   const commit = async () => {
-    if (!serverUrl || !workspaceId || committing) return;
+    if (!server || !workspaceId || committing) return;
     const files = selectedFilePaths(nodes, selected);
     setCommitting(true); setError(null); setStatus(null);
     try {
-      const result = await commitFiles(serverUrl, workspaceId, files, message.trim());
+      const result = await commitFiles(server, workspaceId, files, message.trim());
       if (!result.succeeded) { setError(result.error ?? 'The commit failed.'); return; }
       setMessage('');
       setStatus(`Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`);
