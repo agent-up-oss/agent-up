@@ -14,23 +14,9 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#000000" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/agent-up-icon-192.png" />
-        <script dangerouslySetInnerHTML={{ __html: serviceWorkerRegistration }} />
         <ScrollViewStyleReset />
       </head>
       <body style={{ backgroundColor: '#000000' }}>{children}</body>
     </html>
   );
 }
-
-const serviceWorkerRegistration =
-  process.env.NODE_ENV === 'production'
-    ? `
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(error => {
-      console.error('Service worker registration failed:', error);
-    });
-  });
-}
-`
-    : '';

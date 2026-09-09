@@ -17,6 +17,10 @@ using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
+using AgentUp.Desktop.Features.Git.Controllers;
+using AgentUp.Desktop.Features.Git.Providers;
+using AgentUp.Desktop.Features.Git.Services;
+using AgentUp.Desktop.Features.Git.ViewModels;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Metrics.Providers;
 using AgentUp.Desktop.Features.Metrics.Services;
@@ -62,6 +66,11 @@ public static class MainViewModelFactory
         BaseAddress = new Uri("http://127.0.0.1:5000")
     };
 
+    private static readonly HttpClient DefaultGitHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
@@ -70,6 +79,7 @@ public static class MainViewModelFactory
         ApplicationAuditApiClient? auditClient = null,
         ValidationFlowApiClient? validationClient = null,
         FirstRunTutorialViewModel? tutorial = null,
+        GitApiClient? gitClient = null,
         LoginViewModel? login = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
@@ -82,6 +92,8 @@ public static class MainViewModelFactory
         var ports = new PortsController(new PortTabService());
         var audit = new ApplicationAuditController(new ApplicationAuditService(
             auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));
+        var git = new GitController(new GitChangeListService(
+            gitClient ?? new GitApiClient(DefaultGitHttpClient)));
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces),
@@ -90,6 +102,7 @@ public static class MainViewModelFactory
             new MetricsViewModel(metrics),
             new DatabaseViewModel(database),
             new ApplicationAuditViewModel(audit),
+            new GitPanelViewModel(git),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
@@ -108,6 +121,7 @@ public static class MainViewModelFactory
             new DatabaseApiClient(http),
             new ApplicationAuditApiClient(http),
             new ValidationFlowApiClient(http),
+            gitClient: new GitApiClient(http),
             login: login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
                 new AuthenticationApiClient(http)))));
     }

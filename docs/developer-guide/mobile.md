@@ -33,8 +33,7 @@ audit delivery must never replace the connection result shown to the user.
 
 Mobile surfaces follow the docs site's black, green, off-white, and muted
 gray-green visual system, including its compact 8px card and control radii.
-Use Expo-compatible native controls for platform interactions such as channel
-selection. Root application surfaces remain black through device safe areas so
+Root application surfaces remain black through device safe areas so
 iOS status-bar and Dynamic Island insets do not expose a different background.
 
 ## Project structure
@@ -44,6 +43,55 @@ UI under product-meaningful slices in `src/features/`, following the same
 feature-oriented convention as the .NET projects. Do not commit generated
 `android/` or `ios/` projects; Expo owns those platform details until a native
 customization requires an intentional prebuild.
+
+## Navigation
+
+The mobile client is a gated stack, not a bottom-tab shell.
+
+- `/connect` is the entry screen until a Server URL is saved successfully.
+- After connect, `/(main)` renders a persistent top nav bar and a collapsible
+  sidebar. Screen content renders below the nav bar. Each screen sets the nav
+  title, optional right action, and optional custom sidebar content through
+  `useShellConfig`.
+- The default sidebar lists workspaces for the active Server and lets the user
+  switch workspaces. The first workspace is selected automatically when the list
+  loads.
+- Workspace routes live under `/(main)/workspace/[workspaceId]/`. The dashboard
+  is the workspace home page. Agent chat and application spaces are deeper stack
+  routes.
+- Only the workspace agent screen uses a bottom bar. It switches between the
+  placeholder chat view and the existing Git changes panel.
+
+## Workspaces and Git slices
+
+`src/features/workspaces/` owns workspace selection, refresh, clone, and the
+workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in
+the root layout so every authenticated screen reads the same selection.
+
+`src/features/git/` owns the Git changes panel used by the agent Changes tab. It
+renders the Server's change tree as indented rows with per-file checkboxes,
+opens a file's diff in a modal, and commits the selected paths with the entered
+message. Tree flattening and directory/file selection are pure functions in
+`providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
+renderer.
+
+Both slices reach the Server through
+`src/features/servers/providers/ServerRequestProvider.ts`. The servers slice
+owns connectivity to a configured Server, so feature slices do not reimplement
+timeout, problem-detail, and unreachable-server handling.
+
+A request takes a `ServerSession` — the Server's URL together with the access
+token stored for it — rather than a bare URL. The Server requires a bearer token
+unless it was started with `AGENTUP_AUTH_DISABLED=true`, so the transport adds
+the `Authorization` header whenever the session carries a token.
+
+Work that outlives its own request must check that its session is still the
+active one before it writes shared state. `WorkspaceRefresher.isActive` compares
+the whole session, URL and token alike, so a clone still running when the
+credential changes does not refresh with the credential the Server has since
+stopped accepting. The Git screen guards its change-tree and file-diff loads the
+same way through `createRequestGate`, keeping each independent so opening a file
+does not discard the tree that is still loading.
 
 ## Local development
 
@@ -72,8 +120,13 @@ The start, Android, iOS, and web scripts use Expo's LAN mode. Metro listens on
 all network interfaces and advertises the machine's LAN address so physical
 devices can connect.
 
-The web script passes the Server-allocated `WEB_PORT` to Expo when Mobile is
-launched from `agent-up.json`; otherwise it uses Expo's default port 8081.
+`agent-up.json` builds the production PWA during the application `install` step
+and serves the exported `dist/` output through `npm run serve:web`. The export
+removes any existing `dist/` directory before writing a fresh static payload so
+removed routes and stale hashed assets are not carried forward. The serve script
+passes the Server-allocated `WEB_PORT` when Mobile is launched from Agent-Up;
+otherwise it uses Expo's default port 8081. Use `npm run web` when you need the
+Metro development server with hot reload.
 Before Expo starts, the script waits briefly for a previous listener on that
 same application port to exit. Each application receives its own allocated port
 even when multiple apps declare the same port variable name.
@@ -106,55 +159,19 @@ npm run typecheck
 npm run build:web
 ```
 
-Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata,
-install icons, and stable updater service worker live under `public/`;
-`src/app/+html.tsx` links the manifest and registers the service worker only in
-production exports. The service worker changes only with the bootstrap/update
-protocol, rather than being generated from each application payload. Bootstrap
-assets and cached navigation responses must be reconstructed without redirect
-metadata because Safari rejects redirected responses returned by a service worker. Service
-workers require HTTPS in deployment, except for browser-supported localhost
-development.
+Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata and
+install icons live under `public/`; `src/app/+html.tsx` links the manifest in
+production exports. The mobile client does not register a custom service worker.
+Installed and Agent-Up-served builds load the current static export from the
+network on each visit.
 
 Cloudflare Pages must use `AgentUp.Mobile/` as its root directory, run
 `npm run build:cloudflare` as the build command, and publish `dist/`. This is
 the sole public mobile npm script that does not enter `shell.nix`, because the
-Cloudflare build image supplies Node.js but does not supply Nix. The
-export entrypoint reads `CF_PAGES_BRANCH` and `CF_PAGES_COMMIT_SHA`, derives a
-numeric ticket channel from branch names such as `235-description`, and embeds
-the channel, seven-character commit SHA, and commit timestamp into the Metro bundle.
-`main` identifies as the `main` channel. Non-matching branches identify as
-development builds and are not presented as installed release channels.
+Cloudflare build image supplies Node.js but does not supply Nix. The export
+entrypoint passes Agent-Up audit environment variables into the Metro bundle
+when present.
 
-The same entrypoint falls back to GitHub Actions variables and then local Git,
-so local, channel-release, and Cloudflare exports use one version-identification
-path. Do not append Workbox generation to the Cloudflare command: `public/sw.js`
-is the stable updater and Expo copies it into `dist/`.
-
-## Branch release channels
-
-Branches whose names begin with a ticket number and hyphen, such as
-`235-avalonia-mobile-client`, publish mobile pre-releases. CI exports the Metro
-web build with its channel, seven-character commit SHA, and publication timestamp, then
-creates an immutable `rc-<channel>-<sha>` GitHub pre-release containing
-`agent-up-mobile-web.zip` and `release.json`. Metadata includes the archive's
-SHA-256 digest and required-file list, both of which are validated before a
-release is cached. Non-matching branches are not
-channels, and `main` remains the stable/default channel.
-
-The installed PWA queries GitHub Releases from its Settings screen. It can
-upgrade the active channel or switch to another channel by downloading and
-caching the complete archive before atomically changing the active-cache
-marker and reloading. A release older than the installed release on the same
-channel is not offered, so the UI cannot downgrade a channel.
-
-The web export also writes a bootstrap manifest for the initial installation.
-On first activation, the service worker caches that complete exported payload
-and records it as the active release. Later deployments to the installation
-URL must not change an installed PWA; only an explicit Settings update or
-channel switch replaces the active release cache.
-
-After activation, the service worker deletes superseded release caches. Opening
-the installed PWA with `?agent-up-recovery=1` clears the active release marker
-and caches before loading the stable network shell, providing an escape hatch
-when a channel payload is broken.
+`npm run serve:web` serves `dist/` for Agent-Up workspaces with
+`Cache-Control: no-store` so local rebuilds are visible without clearing site
+data.
