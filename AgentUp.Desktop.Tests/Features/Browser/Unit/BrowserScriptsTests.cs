@@ -6,6 +6,24 @@ namespace AgentUp.Desktop.Tests.Features.Browser.Unit;
 public class BrowserScriptsTests
 {
     [Test]
+    public void BeginMouseMove_uses_half_second_animation_timing()
+    {
+        var script = BrowserScripts.BeginMouseMove("button.save");
+        Assert.That(script, Does.Contain("500ms"));
+    }
+
+    [Test]
+    public void BeginAttentionPing_draws_expanding_ring()
+    {
+        var script = BrowserScripts.BeginAttentionPing("button.save");
+        Assert.Multiple(() =>
+        {
+            Assert.That(script, Does.Contain("__agentUpClickRing"));
+            Assert.That(script, Does.Contain("500ms"));
+        });
+    }
+
+    [Test]
     public void CompleteClick_cleansUpAndReportsMissingOrDisabledTargets()
     {
         var script = BrowserScripts.CompleteClick("button.save");

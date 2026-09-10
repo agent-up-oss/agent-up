@@ -21,7 +21,7 @@ public sealed class CdpBrowserExecutor(
             {
                 BrowserCommandKind.Navigate => await AttachPageStateAsync(await NavigateAsync(session, command, ct), session, command),
                 BrowserCommandKind.InspectPage => await InspectAsync(session, command),
-                BrowserCommandKind.Click => await AttachPageStateAsync(await EvalAsync(session, command, BrowserScriptProvider.Click(command.Selector!)), session, command),
+                BrowserCommandKind.Click => await AttachPageStateAsync(await StagedClickAsync(session, command, ct), session, command),
                 BrowserCommandKind.Fill => await AttachPageStateAsync(await EvalAsync(session, command, BrowserScriptProvider.Fill(command.Selector!, command.Text!)), session, command),
                 BrowserCommandKind.Press => await AttachPageStateAsync(await PressAsync(session, command), session, command),
                 BrowserCommandKind.WaitForSelector => await AttachPageStateAsync(await WaitForSelectorAsync(session, command, ct), session, command),
@@ -95,6 +95,45 @@ public sealed class CdpBrowserExecutor(
         string script)
     {
         var data = await session.Page.EvaluateExpressionAsync<string>(script);
+        return ParseEvalResult(command, data);
+    }
+
+    private static async Task<BrowserCommandResultDto> StagedClickAsync(
+        BrowserSessionState session,
+        BrowserCommandDto command,
+        CancellationToken ct)
+    {
+        var selector = command.Selector!;
+        var move = await EvalAsync(session, command, BrowserScriptProvider.BeginMouseMove(selector));
+        if (!move.Success) return move;
+        await Task.Delay(BrowserScriptProvider.AnimationMs, ct);
+
+        var ping = await EvalAsync(session, command, BrowserScriptProvider.BeginAttentionPing(selector));
+        if (!ping.Success) return ping;
+        await Task.Delay(BrowserScriptProvider.AnimationMs, ct);
+
+        return await EvalAsync(session, command, BrowserScriptProvider.CompleteClick(selector));
+    }
+
+    private static BrowserCommandResultDto ParseEvalResult(BrowserCommandDto command, string? data)
+    {
+        if (string.IsNullOrWhiteSpace(data))
+            return Fail(command, "Browser script returned no result.");
+
+        if (data.TrimStart().StartsWith('{'))
+        {
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(data);
+                if (document.RootElement.TryGetProperty("error", out var error))
+                    return Fail(command, error.GetString() ?? "Browser script failed.");
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return new BrowserCommandResultDto(command.CommandId, true, data, null);
+            }
+        }
+
         return new BrowserCommandResultDto(command.CommandId, true, data, null);
     }
 

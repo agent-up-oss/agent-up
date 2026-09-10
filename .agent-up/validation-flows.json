@@ -1,0 +1,259 @@
+{
+  "flows": [
+    {
+      "id": "1727d3d778744c3d959cba3a7afe5b45",
+      "application": "Docs",
+      "name": "Learn how Agent-Up workspaces are isolated",
+      "description": "A reader opens the workspace guide from the documentation overview and sees the worktree and runtime-isolation concepts.",
+      "initialPath": "/docs/",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Agent-Up",
+          "target": null
+        },
+        {
+          "kind": "Text",
+          "value": "What Agent-Up Solves",
+          "target": null
+        }
+      ],
+      "steps": [
+        {
+          "id": "open-workspace-guide",
+          "description": "Open the Workspace guide",
+          "action": "Click",
+          "target": {
+            "role": "link",
+            "name": "Workspace",
+            "label": null,
+            "testId": null,
+            "text": "Workspace",
+            "selector": "a[href=\u0027/docs/workspace\u0027]"
+          },
+          "value": null,
+          "expectations": [
+            {
+              "kind": "Url",
+              "value": "/docs/workspace",
+              "target": null
+            },
+            {
+              "kind": "Text",
+              "value": "Worktree Model",
+              "target": null
+            },
+            {
+              "kind": "Text",
+              "value": "Runtime Isolation",
+              "target": null
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-09-09T20:33:11.7112489+00:00",
+      "version": 1
+    },
+    {
+      "id": "aed4e443723948358f48684eaff710e6",
+      "application": "Docs",
+      "name": "Find the Playwright generation guide",
+      "description": "A contributor opens the Playwright guide from the developer guide and reaches the behavioral validation flow guidance.",
+      "initialPath": "/developer-guide/",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Developer Guide | Agent-Up",
+          "target": null
+        },
+        {
+          "kind": "Text",
+          "value": "Start Here",
+          "target": null
+        }
+      ],
+      "steps": [
+        {
+          "id": "open-playwright-guide",
+          "description": "Open the Playwright Generation guide",
+          "action": "Click",
+          "target": {
+            "role": "link",
+            "name": "Playwright Generation",
+            "label": null,
+            "testId": null,
+            "text": "Playwright Generation",
+            "selector": "a[href=\u0027/developer-guide/playwright\u0027]"
+          },
+          "value": null,
+          "expectations": [
+            {
+              "kind": "Url",
+              "value": "/developer-guide/playwright",
+              "target": null
+            },
+            {
+              "kind": "Text",
+              "value": "Automatic Assertions",
+              "target": null
+            },
+            {
+              "kind": "Text",
+              "value": "Behavioral validation flows",
+              "target": null
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-09-09T20:33:46.6828101+00:00",
+      "version": 1
+    },
+    {
+      "id": "7c802a22ef654b2b950e2531b592e683",
+      "application": "Mobile",
+      "name": "Reject an unsupported server URL scheme",
+      "description": "A user attempts to connect with a non-HTTP server URL and receives clear validation without leaving setup.",
+      "initialPath": "/connect",
+      "initialExpectations": [
+        {
+          "kind": "Text",
+          "value": "Connect to server",
+          "target": null
+        },
+        {
+          "kind": "Visible",
+          "value": "Server URL input",
+          "target": {
+            "role": null,
+            "name": null,
+            "label": "Server URL",
+            "testId": null,
+            "text": null,
+            "selector": "input[aria-label=\u0027Server URL\u0027]"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-unsupported-server-url",
+          "description": "Enter a server URL with an unsupported scheme",
+          "action": "Fill",
+          "target": {
+            "role": null,
+            "name": null,
+            "label": "Server URL",
+            "testId": null,
+            "text": null,
+            "selector": "input[aria-label=\u0027Server URL\u0027]"
+          },
+          "value": "ftp://agent-up.example.com",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Try and save",
+              "target": null
+            }
+          ]
+        },
+        {
+          "id": "submit-unsupported-server-url",
+          "description": "Try to save the unsupported server URL",
+          "action": "Click",
+          "target": {
+            "role": "button",
+            "name": "Try and save",
+            "label": null,
+            "testId": null,
+            "text": "Try and save",
+            "selector": "button"
+          },
+          "value": null,
+          "expectations": [
+            {
+              "kind": "Url",
+              "value": "/connect",
+              "target": null
+            },
+            {
+              "kind": "Text",
+              "value": "Server URLs must use http or https.",
+              "target": null
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-09-09T20:34:55.2237401+00:00",
+      "version": 1
+    },
+    {
+      "id": "0a37782764de4f13b53b506016852f09",
+      "application": "Mobile",
+      "name": "Require a clean server base URL",
+      "description": "A user enters a server URL containing query parameters and is told to provide only the base URL.",
+      "initialPath": "/connect",
+      "initialExpectations": [
+        {
+          "kind": "Text",
+          "value": "Connect to server",
+          "target": null
+        },
+        {
+          "kind": "Text",
+          "value": "Login tokens stay in this client\u0027s local storage.",
+          "target": null
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url-with-query",
+          "description": "Enter a server URL containing a query parameter",
+          "action": "Fill",
+          "target": {
+            "role": null,
+            "name": null,
+            "label": "Server URL",
+            "testId": null,
+            "text": null,
+            "selector": "input[aria-label=\u0027Server URL\u0027]"
+          },
+          "value": "https://agent-up.example.com?token=example",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Try and save",
+              "target": null
+            }
+          ]
+        },
+        {
+          "id": "submit-server-url-with-query",
+          "description": "Try to save the URL as a server",
+          "action": "Click",
+          "target": {
+            "role": "button",
+            "name": "Try and save",
+            "label": null,
+            "testId": null,
+            "text": "Try and save",
+            "selector": "button"
+          },
+          "value": null,
+          "expectations": [
+            {
+              "kind": "Url",
+              "value": "/connect",
+              "target": null
+            },
+            {
+              "kind": "Text",
+              "value": "Enter only the server base URL.",
+              "target": null
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-09-09T20:35:41.187019+00:00",
+      "version": 1
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +8,7 @@ import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
 import { getAuthenticationStatus, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
 
 export function ServerSetupScreen() {
+  const router = useRouter();
   const { activeServer, saveServer } = useServers();
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState('');
@@ -32,7 +34,7 @@ export function ServerSetupScreen() {
       }
       await probeServer(normalized);
       void recordServerConnectionAudit(normalized, 'success');
-      saveServer(normalized); setUrl(''); setStatus(`Connected to ${normalized}`);
+      saveServer(normalized); setUrl(''); setStatus(`Connected to ${normalized}`); router.replace('/(main)/workspace');
     } catch (error) {
       const candidate = tryNormalize(url);
       if (candidate) void recordServerConnectionAudit(candidate, 'failure', error instanceof Error ? error.message : String(error));
@@ -47,14 +49,14 @@ export function ServerSetupScreen() {
       const result = await login(loginUrl, password);
       if (!result.accessToken) throw new Error('The server did not return an access token.');
       saveServer(loginUrl, result.accessToken);
-      setPassword(''); setLoginUrl(null); setUrl(''); setStatus(`Signed in to ${loginUrl}`);
+      setPassword(''); setLoginUrl(null); setUrl(''); setStatus(`Signed in to ${loginUrl}`); router.replace('/(main)/workspace');
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Could not sign in.'); }
     finally { setBusy(false); connectionInFlight.current = false; }
   };
 
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-    <Text accessibilityRole="header" style={styles.title}>Servers</Text>
-    <Text style={styles.subtitle}>Connect this client to an Agent-Up Server.</Text>
+    <Text accessibilityRole="header" style={styles.title}>Connect to server</Text>
+    <Text style={styles.subtitle}>Sign in to an Agent-Up Server to open your workspaces.</Text>
     <View style={styles.card}>
       <Text style={styles.heading}>Add a server</Text>
       <Text style={styles.detail}>Use HTTPS for remote servers. Loopback HTTP URLs are allowed for local development. Login tokens stay in this client's local storage.</Text>
@@ -88,7 +90,7 @@ function tryNormalize(value: string): string | null {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000000' }, content: { padding: 20, paddingTop: 78, paddingBottom: 32, gap: 18 },
+  screen: { flex: 1, backgroundColor: '#000000' }, content: { padding: 20, paddingTop: 24, paddingBottom: 32, gap: 18 },
   title: { color: '#f5fbf7', fontSize: 36, lineHeight: 40, fontWeight: '800' }, subtitle: { color: '#aebcb3', fontSize: 17 },
   card: { padding: 20, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 14 },
   heading: { color: '#f5fbf7', fontSize: 20, fontWeight: '700' }, detail: { color: '#aebcb3', lineHeight: 21 },

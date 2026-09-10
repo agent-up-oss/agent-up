@@ -12,6 +12,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Input.Platform;
+using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.Media;
@@ -20,6 +21,7 @@ using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
+using AgentUp.Desktop.Features.Browser.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Shared.Providers;
@@ -65,7 +67,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal Func<IWebPopup> WebPopupFactory { get; set; } = () => new NativeWebDialogPopup();
     internal int OpenPopupCountForTests => _webPopups.Count;
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
+    // Seam over the native file dialog. No test runner can drive a GTK/AppKit/Win32 file
+    // chooser, so end-to-end tests substitute the chooser step and keep every other part of
+    // the upload bridge — script injection, the WebView message, IStorageFile reads, and the
+    // completion script — running against the real platform WebView and storage provider.
+    internal Func<FilePickerOpenOptions, Task<IReadOnlyList<IStorageFile>>> FilePicker { get; set; }
     internal BrowserViewportController BrowserViewport { get; }
+    internal WebViewFilePickerController BrowserFilePicker { get; }
     internal bool HasBrowserResourcesForTests =>
         _addressPollTimer.IsEnabled
         || HasWorkspaceBrowserResourcesForTests
@@ -79,6 +87,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal bool ArePortWebViewsHiddenForTests =>
         _webViews.Count == 0 || _webViews.Values.All(webView => !webView.IsVisible);
+
+    internal bool IsConsoleWebViewHiddenForTests =>
+        _consoleWebView is null || !_consoleWebView.IsVisible;
 
     private const string SelectionJs =
         "(function(){" +
@@ -168,6 +179,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         InitializeComponent();
         SetWindowIcon();
         BrowserViewport = new BrowserViewportController(NavigateTo, EvalAsync);
+        BrowserFilePicker = new WebViewFilePickerController();
+        FilePicker = options => StorageProvider.OpenFilePickerAsync(options);
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
@@ -220,6 +233,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
 
+        if (vm.ValidationReplay is not null)
+            vm.ConnectValidationReplay(BrowserViewport, vm.ValidationReplay);
+
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url, reloadIfSameUrl: true)))
@@ -236,7 +252,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         vm.Tutorial.WhenAnyValue(t => t.IsVisible)
             .CombineLatest(
                 vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible),
-                (tutorialVisible, deleteVisible) => tutorialVisible || deleteVisible)
+                vm.Sidebar.AddWorkspace.WhenAnyValue(a => a.IsVisible),
+                vm.Git.Diff.WhenAnyValue(d => d.IsVisible),
+                (tutorialVisible, deleteVisible, addVisible, diffVisible) =>
+                    tutorialVisible || deleteVisible || addVisible || diffVisible)
             .DistinctUntilChanged()
             .Subscribe(modalVisible =>
                 Dispatcher.UIThread.Post(() => ApplyModalOverlayWebViewVisibility(modalVisible)))
@@ -554,12 +573,18 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             });
 
             _ = webView.InvokeScript(SelectionJs);
+            _ = webView.InvokeScript(BrowserFilePicker.InstallScript);
             if (firstNavDone) return;
             firstNavDone = true;
             ForceFirstWebKitPaint(tabKey, webView);
         };
 
         webView.NewWindowRequested += (_, e) => HandleNewWindowRequested(workspaceId, tabKey, e);
+        webView.WebMessageReceived += (_, e) =>
+        {
+            if (BrowserFilePicker.TryParseRequest(e.Body, out var request) && request is not null)
+                _ = HandleFilePickerRequestAsync(tabKey, webView, request);
+        };
 
         return webView;
     }
@@ -614,6 +639,31 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         foreach (var popupId in _webPopups.Keys.Where(key => key.StartsWith($"{tabKeyOrWorkspacePrefix}:", StringComparison.Ordinal)).ToList())
             ClosePopup(popupId);
+    }
+
+    private async Task HandleFilePickerRequestAsync(
+        string tabKey,
+        NativeWebView webView,
+        WebViewFilePickerRequest request)
+    {
+        try
+        {
+            var files = await FilePicker(new FilePickerOpenOptions
+            {
+                AllowMultiple = request.Multiple,
+                Title = request.Multiple ? "Choose files to upload" : "Choose a file to upload"
+            });
+            if (!CanTouchWebView(tabKey, webView)) return;
+
+            var script = await BrowserFilePicker.BuildCompletionScriptAsync(request.RequestId, files);
+            await webView.InvokeScript(script);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException)
+        {
+            Trace.TraceWarning($"Could not select upload files: {ex.Message}");
+            if (CanTouchWebView(tabKey, webView))
+                await webView.InvokeScript(BrowserFilePicker.CancelScript(request.RequestId));
+        }
     }
 
     private void ForceFirstWebKitPaint(string tabKey, NativeWebView webView)
@@ -741,8 +791,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
            && ReferenceEquals(current, webView);
 
     private bool IsModalOverlayVisible()
-        => DataContext is MainViewModel vm
-           && (vm.Tutorial.IsVisible || vm.Sidebar.DeleteConfirmation.IsVisible);
+        => DataContext is MainViewModel vm && IsModalOverlayVisible(vm);
+
+    private static bool IsModalOverlayVisible(MainViewModel vm)
+        => vm.Tutorial.IsVisible
+           || vm.Sidebar.DeleteConfirmation.IsVisible
+           || vm.Sidebar.AddWorkspace.IsVisible
+           || vm.Git.Diff.IsVisible;
 
     private void ApplyModalOverlayWebViewVisibility(bool modalOverlayVisible)
     {
@@ -750,6 +805,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
         foreach (var webView in _webViews.Values)
             webView.IsVisible = false;
+
+        SetConsoleWebViewVisible(!modalOverlayVisible && DataContext is MainViewModel { ShowConsole: true });
 
         if (modalOverlayVisible)
         {
@@ -762,6 +819,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (!_webViews.TryGetValue(_activeTabKey, out var active)) return;
         if (DataContext is not MainViewModel { ShowPortView: true }) return;
         active.IsVisible = true;
+    }
+
+    private void SetConsoleWebViewVisible(bool visible)
+    {
+        if (_consoleWebView is not null)
+            _consoleWebView.IsVisible = visible;
+        if (_consoleOverlay is not null)
+            _consoleOverlay.IsVisible = visible;
     }
 
     private void HandleBrowserCommand(BrowserCommand command)
@@ -827,7 +892,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                         if (!ReferenceEquals(_consoleWebView, wv) || !wv.IsVisible) return;
                         wv.IsVisible = false;
                         Dispatcher.UIThread.Post(
-                            () => { if (ReferenceEquals(_consoleWebView, wv)) wv.IsVisible = true; },
+                            () =>
+                            {
+                                if (ReferenceEquals(_consoleWebView, wv) && !IsModalOverlayVisible())
+                                    wv.IsVisible = true;
+                            },
                             DispatcherPriority.Background);
                     });
                 };
@@ -857,6 +926,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             var htmlPath = ConsoleHtmlPath();
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             NavigateConsoleWebView(_consoleWebView, new Uri("file://" + htmlPath));
+            SetConsoleWebViewVisible(!IsModalOverlayVisible());
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
