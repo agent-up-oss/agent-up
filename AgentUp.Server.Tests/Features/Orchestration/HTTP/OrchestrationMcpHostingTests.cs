@@ -180,6 +180,7 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<IAuditEventRepository, InMemoryAuditEventRepository>();
         builder.Services.AddSingleton<IAuditArtifactRepository, InMemoryAuditArtifactRepository>();
         builder.Services.AddSingleton<IAuditIdentityProvider, FakeAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditEventBus>();
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(

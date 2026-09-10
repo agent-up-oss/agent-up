@@ -486,6 +486,7 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<IAuditEventRepository, NullAuditEventRepository>();
         builder.Services.AddSingleton<IAuditArtifactRepository, NullAuditArtifactRepository>();
         builder.Services.AddSingleton<IAuditIdentityProvider, NullAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditEventBus>();
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();

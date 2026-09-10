@@ -21,11 +21,16 @@ The canonical workspace snapshot is `GET /api/diagnostics/workspaces/{workspaceI
 
 Each event entry has a normalized category, severity, and `active` or `resolved` state. It also carries the affected application and browser-session identifier when the source supplied that context. Application context is accepted from the established `application`, `applicationName`, and `appName` audit detail keys.
 
-Diagnostics are exposed through Desktop, CLI `diagnostics`, and Orchestration MCP `get_workspace_diagnostics`. The Desktop Diagnostics tab loads paginated durable audit entries for the selected application with multiselect category filters; Stdout and Stderr are separate filters and both default to off so process log lines stay in the Console tab. Rows omit the raw audit outcome field and instead color the category and message from event kind, health state, stream, and message content. When a filtered page is empty, Desktop shows `No diagnostic entries in these categories: [<selected categories>]`. The Diagnostics toolbar toggles between live Server-Sent Events streaming and a paused mode; while paused, Refresh reloads the current page from the REST API. Changing filters, toggling streaming, or refreshing returns to page 1. Pagination uses « ‹ numbered page buttons ±3 around the current page › » plus first/last page jumps. Previous pages use the composite audit cursor; jumping forward or to the last page may require sequential page fetches until the cursor chain is known. Current process and health state remain visible in the application and port status controls.
+Diagnostics are exposed through Desktop, CLI `diagnostics`, and Orchestration MCP `get_workspace_diagnostics`. The Desktop Diagnostics tab keeps a bounded in-memory window of application audit events centered on the current page (±5 pages). Refresh and pagination fetch only that window from the Server on demand; live Server-Sent Events prepend matching events while you stay on page 1. Category toggles, search, and pagination run against the local window without loading the full audit history. Search filters as you type across action, kind, outcome, and detail text. Refresh reloads the current window from the Server even while streaming is enabled. Changing filters, search, toggling streaming, or refreshing returns to page 1 unless refresh explicitly reloads the current page. Pagination uses « ‹ numbered page buttons ±3 around the current page › » plus first/last page jumps on the filtered local result set.
 Orchestration MCP exposes `get_workspace_console` for a bounded live snapshot of application console output and the recent durable console audit trail for a workspace.
 Per-application audit pages use a composite timestamp and event-ID cursor so
-events sharing a timestamp are neither skipped nor repeated. Repository queries
-use the cursor timestamp to avoid loading newer daily audit files on later pages.
+events sharing a timestamp are neither skipped nor repeated. Application-scoped
+queries read compact per-application index files that store byte offsets into the
+canonical daily JSONL log, seek-read only matching rows, and lazily backfill an
+index the first time an application/day pair is queried. Workspace-wide queries
+without an application filter still use reverse JSONL scanning with a lightweight
+line prefilter. Initial Desktop load requests only the first filtered page from
+the Server and reuses the in-memory cache when you leave and return to the Diagnostics tab.
 The REST endpoint is `GET /api/audit/workspaces/{workspaceId}/applications/{application}`; live updates use `GET /api/audit/workspaces/{workspaceId}/applications/{application}/stream`.
 
 ## Metrics And Audit Scopes

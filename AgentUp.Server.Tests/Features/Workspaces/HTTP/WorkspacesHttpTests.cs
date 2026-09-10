@@ -85,6 +85,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IAuditEventRepository, InMemoryAuditEventRepository>();
         builder.Services.AddSingleton<IAuditArtifactRepository, InMemoryAuditArtifactRepository>();
         builder.Services.AddSingleton<IAuditIdentityProvider, FakeAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditEventBus>();
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();
@@ -401,6 +402,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IAuditEventRepository, InMemoryAuditEventRepository>();
         builder.Services.AddSingleton<IAuditArtifactRepository, InMemoryAuditArtifactRepository>();
         builder.Services.AddSingleton<IAuditIdentityProvider, FakeAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditEventBus>();
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<AppHealthCheckService>();

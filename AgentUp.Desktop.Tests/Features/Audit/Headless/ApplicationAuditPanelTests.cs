@@ -30,8 +30,8 @@ public sealed class ApplicationAuditPanelTests
             Assert.That(app.Window.FindControl<Button>("AuditNextPageButton"), Is.Not.Null);
             Assert.That(app.Window.FindControl<Button>("AuditLastPageButton"), Is.Not.Null);
             Assert.That(viewModel.Audit.StreamingButtonText, Is.EqualTo("Streaming Live"));
-            Assert.That(viewModel.Audit.CanRefresh, Is.False);
-            Assert.That(viewModel.Audit.PageJumpButtons, Has.Count.EqualTo(4));
+            Assert.That(viewModel.Audit.CanRefresh, Is.True);
+            Assert.That(viewModel.Audit.PageJumpButtons, Has.Count.EqualTo(1));
         });
     }
 }

@@ -1092,6 +1092,11 @@
                                                 <TextBlock Text="Refresh" Foreground="#f5fbf7" FontSize="11"/>
                                             </Border>
                                         </Button>
+                                        <TextBox x:Name="AuditSearchBox"
+                                                 Classes="addressBar"
+                                                 MinWidth="220"
+                                                 PlaceholderText="Search diagnostics"
+                                                 Text="{Binding Audit.SearchText, Mode=TwoWay}"/>
                                     </StackPanel>
                                     <TextBlock Text="Categories"
                                                Foreground="#8aa497"

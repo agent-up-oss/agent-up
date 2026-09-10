@@ -2,6 +2,7 @@ using System.Net;
 using System.Reactive.Linq;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Audit.Controllers;
+using AgentUp.Desktop.Features.Audit.DTOs;
 using AgentUp.Desktop.Features.Audit.Providers;
 using AgentUp.Desktop.Features.Audit.Services;
 using AgentUp.Desktop.Features.Audit.ViewModels;
@@ -12,10 +13,10 @@ namespace AgentUp.Desktop.Tests.Features.Audit.Unit;
 public sealed class ApplicationAuditViewModelTests
 {
     [Test]
-    public async Task LoadAsync_DisplaysOneBoundedPageAndExposesNextPage()
+    public async Task LoadAsync_DisplaysFirstFilteredPageFromLocalCache()
     {
         const string json = """
-            {"items":[{"eventId":"e1","timestamp":"2026-08-22T12:00:00Z","kind":"frontend","action":"load_failed","outcome":"failure","details":{"application":"web","message":"Load failed"}}],"nextBefore":"2026-08-22T12:00:00Z","nextBeforeEventId":"e1"}
+            {"items":[{"eventId":"e1","timestamp":"2026-08-22T12:00:00Z","kind":"frontend","action":"load_failed","outcome":"failure","details":{"application":"web","message":"Load failed"}}],"nextBefore":null,"nextBeforeEventId":null}
             """;
         using var http = new HttpClient(new StubHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) })) { BaseAddress = new Uri("http://localhost:5000") };
@@ -28,33 +29,54 @@ public sealed class ApplicationAuditViewModelTests
             Assert.That(vm.Events, Has.Count.EqualTo(1));
             Assert.That(vm.Events[0].Category, Is.EqualTo("Frontend"));
             Assert.That(vm.Events[0].Message, Is.EqualTo("Load failed"));
-            Assert.That(vm.CanGoNext, Is.True);
+            Assert.That(vm.CanGoNext, Is.False);
             Assert.That(vm.CurrentPage, Is.EqualTo(1));
         });
     }
 
     [Test]
-    public async Task NextPage_ReplacesEventsInsteadOfAppending()
+    public async Task NextPage_FetchesAdditionalWindowDataOnDemand()
     {
-        var responses = new Queue<string>([
-            """
-            {"items":[{"eventId":"e1","timestamp":"2026-08-22T12:00:00Z","kind":"frontend","action":"newest","outcome":"success","details":{"application":"web"}}],"nextBefore":"2026-08-22T12:00:00Z","nextBeforeEventId":"e1"}
-            """,
-            """
-            {"items":[{"eventId":"e0","timestamp":"2026-08-22T11:00:00Z","kind":"frontend","action":"older","outcome":"success","details":{"application":"web"}}],"nextBefore":null,"nextBeforeEventId":null}
-            """
-        ]);
-        using var http = new HttpClient(new StubHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(responses.Dequeue()) })) { BaseAddress = new Uri("http://localhost:5000") };
+        var requestCount = 0;
+        using var http = new HttpClient(new StubHandler(request =>
+        {
+            requestCount++;
+            var isContinuation = request.RequestUri!.Query.Contains("before=", StringComparison.Ordinal);
+            var items = isContinuation
+                ? Enumerable.Range(ApplicationAuditViewModel.PageSize, ApplicationAuditViewModel.PageSize)
+                : Enumerable.Range(0, ApplicationAuditViewModel.PageSize);
+            var payload = items.Select(index => new
+            {
+                eventId = $"e-{index}",
+                timestamp = "2026-08-22T12:00:00Z",
+                kind = "frontend",
+                action = $"event-{index}",
+                outcome = "success",
+                details = new Dictionary<string, string> { ["application"] = "web", ["message"] = $"event-{index}" }
+            });
+            var nextBefore = isContinuation ? (string?)null : "2026-08-22T12:00:00Z";
+            var nextBeforeEventId = isContinuation ? null : "e-last";
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    items = payload.ToList(),
+                    nextBefore,
+                    nextBeforeEventId
+                }))
+            };
+        })) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateViewModel(http);
 
         await vm.LoadAsync("ws-1", "web");
+        Assert.That(requestCount, Is.EqualTo(1));
         await vm.NextPageCommand.Execute().FirstAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(vm.Events, Has.Count.EqualTo(1));
-            Assert.That(vm.Events[0].Category, Is.EqualTo("Frontend"));
+            Assert.That(requestCount, Is.EqualTo(3));
+            Assert.That(vm.Events, Has.Count.EqualTo(ApplicationAuditViewModel.PageSize));
+            Assert.That(vm.Events[0].Message, Is.EqualTo("event-50"));
             Assert.That(vm.CurrentPage, Is.EqualTo(2));
             Assert.That(vm.CanGoPrevious, Is.True);
             Assert.That(vm.CanGoNext, Is.False);
@@ -102,51 +124,89 @@ public sealed class ApplicationAuditViewModelTests
     }
 
     [Test]
-    public async Task KindFilterSelection_ReloadsWithSelectedKinds()
+    public async Task KindFilterSelection_ReloadsWindowFromServer()
     {
-        var requestedQueries = new List<string>();
-        var secondLoad = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var http = new HttpClient(new AsyncStubHandler(request =>
+        var requestCount = 0;
+        using var http = new HttpClient(new AsyncStubHandler(_ =>
         {
-            requestedQueries.Add(request.RequestUri!.Query);
-            if (requestedQueries.Count == 2)
-                secondLoad.SetResult();
-            return Task.FromResult(JsonResponse("filtered-event", "web"));
+            requestCount++;
+            return Task.FromResult(JsonResponse([
+                Event("health-1", "health", "healthy check"),
+                Event("frontend-1", "frontend", "load complete")
+            ]));
         })) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateViewModel(http);
 
         await vm.LoadAsync("ws-1", "web");
         foreach (var filter in vm.KindFilters)
             filter.IsSelected = string.Equals(filter.Kind, "health", StringComparison.Ordinal);
-        await secondLoad.Task;
+        await WaitForLoadingAsync(vm);
 
-        Assert.That(requestedQueries[1], Does.Contain("kinds=health"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(requestCount, Is.EqualTo(2));
+            Assert.That(vm.Events, Has.Count.EqualTo(1));
+            Assert.That(vm.Events[0].Category, Is.EqualTo("Health"));
+            Assert.That(vm.CurrentPage, Is.EqualTo(1));
+        });
     }
 
     [Test]
-    public async Task StderrFilterSelection_ReloadsWithStreamQuery()
+    public async Task StderrFilterSelection_ReloadsWindowFromServer()
     {
-        var requestedQueries = new List<string>();
-        var stderrLoad = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var http = new HttpClient(new AsyncStubHandler(request =>
+        var requestCount = 0;
+        using var http = new HttpClient(new AsyncStubHandler(_ =>
         {
-            requestedQueries.Add(request.RequestUri!.Query);
-            if (request.RequestUri.Query.Contains("streams=stderr", StringComparison.Ordinal))
-                stderrLoad.TrySetResult();
-            return Task.FromResult(JsonResponse("filtered-event", "web"));
+            requestCount++;
+            return Task.FromResult(JsonResponse([
+                Event("stdout-1", "application", "ready", stream: "stdout"),
+                Event("stderr-1", "application", "brokers are down", stream: "stderr")
+            ]));
         })) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateViewModel(http);
 
         await vm.LoadAsync("ws-1", "web");
         foreach (var filter in vm.KindFilters)
             filter.IsSelected = string.Equals(filter.Stream, "stderr", StringComparison.Ordinal);
-        await stderrLoad.Task;
+        await WaitForLoadingAsync(vm);
 
-        var stderrQuery = requestedQueries.Last(query => query.Contains("streams=stderr", StringComparison.Ordinal));
         Assert.Multiple(() =>
         {
-            Assert.That(stderrQuery, Does.Contain("kinds=application"));
-            Assert.That(stderrQuery, Does.Contain("streams=stderr"));
+            Assert.That(requestCount, Is.EqualTo(2));
+            Assert.That(vm.Events, Has.Count.EqualTo(1));
+            Assert.That(vm.Events[0].Category, Is.EqualTo("Stderr"));
+            Assert.That(vm.Events[0].Message, Is.EqualTo("brokers are down"));
+        });
+    }
+
+    [Test]
+    public async Task SearchText_FiltersLocalCacheAsInputChanges()
+    {
+        using var http = new HttpClient(new StubHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    items = new[]
+                    {
+                        EventDto("e1", "frontend", "kafka failure"),
+                        EventDto("e2", "health", "Healthy")
+                    },
+                    nextBefore = (string?)null,
+                    nextBeforeEventId = (string?)null
+                }))
+            })) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateViewModel(http);
+
+        await vm.LoadAsync("ws-1", "web");
+        vm.SearchText = "kafka";
+        await WaitForLoadingAsync(vm);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Events, Has.Count.EqualTo(1));
+            Assert.That(vm.Events[0].Message, Is.EqualTo("kafka failure"));
+            Assert.That(vm.CurrentPage, Is.EqualTo(1));
         });
     }
 
@@ -161,9 +221,9 @@ public sealed class ApplicationAuditViewModelTests
             {
                 firstStarted.SetResult();
                 await releaseFirst.Task;
-                return JsonResponse("old-event", "old");
+                return JsonResponse([Event("old-event", "frontend", "old-event")]);
             }
-            return JsonResponse("new-event", "new");
+            return JsonResponse([Event("new-event", "frontend", "new-event")]);
         })) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateViewModel(http);
 
@@ -177,13 +237,17 @@ public sealed class ApplicationAuditViewModelTests
     }
 
     [Test]
-    public async Task ToggleStreaming_DisablesRefreshUntilStopped()
+    public async Task RefreshCommand_ReloadsCurrentWindowWhileStreaming()
     {
+        var requestCount = 0;
         using var http = new HttpClient(new StubHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            requestCount++;
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"items\":[],\"nextBefore\":null,\"nextBeforeEventId\":null}")
-            })) { BaseAddress = new Uri("http://localhost:5000") };
+            };
+        })) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateViewModel(http);
 
         await vm.LoadAsync("ws-1", "web");
@@ -191,19 +255,98 @@ public sealed class ApplicationAuditViewModelTests
         Assert.Multiple(() =>
         {
             Assert.That(vm.IsStreaming, Is.True);
-            Assert.That(vm.CanRefresh, Is.False);
-            Assert.That(vm.StreamingButtonText, Is.EqualTo("Streaming Live"));
+            Assert.That(vm.CanRefresh, Is.True);
+            Assert.That(requestCount, Is.EqualTo(1));
         });
 
-        await vm.ToggleStreamingCommand.Execute().FirstAsync();
+        await vm.RefreshCommand.Execute().FirstAsync();
+
+        Assert.That(requestCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GoToPageOutsideWindow_FetchesOnDemand()
+    {
+        var requestCount = 0;
+        using var http = new HttpClient(new StubHandler(request =>
+        {
+            requestCount++;
+            var isContinuation = request.RequestUri!.Query.Contains("before=", StringComparison.Ordinal);
+            var start = isContinuation
+                ? requestCount * ApplicationAuditViewModel.FetchPageSize
+                : 0;
+            var count = requestCount == 1
+                ? ApplicationAuditViewModel.PageSize
+                : ApplicationAuditViewModel.FetchPageSize;
+            var items = Enumerable.Range(start, count).Select(index => new
+            {
+                eventId = $"e-{index}",
+                timestamp = "2026-08-22T12:00:00Z",
+                kind = "frontend",
+                action = $"event-{index}",
+                outcome = "success",
+                details = new Dictionary<string, string> { ["application"] = "web", ["message"] = $"event-{index}" }
+            });
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    items = items.ToList(),
+                    nextBefore = "2026-08-22T12:00:00Z",
+                    nextBeforeEventId = $"e-{start + count - 1}"
+                }))
+            };
+        })) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateViewModel(http);
+
+        await vm.LoadAsync("ws-1", "web");
+        var initialRequests = requestCount;
+        for (var page = 1; page < 7; page++)
+            await vm.NextPageCommand.Execute().FirstAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(vm.IsStreaming, Is.False);
-            Assert.That(vm.CanRefresh, Is.True);
-            Assert.That(vm.StreamingButtonText, Is.EqualTo("Stopped Streaming"));
-            Assert.That(vm.CurrentPage, Is.EqualTo(1));
+            Assert.That(requestCount, Is.GreaterThan(initialRequests));
+            Assert.That(vm.CurrentPage, Is.EqualTo(7));
         });
+    }
+
+    [Test]
+    public async Task LoadAsync_ReusesLocalCacheWhenReturningToSameApplication()
+    {
+        var requestCount = 0;
+        using var http = new HttpClient(new StubHandler(_ =>
+        {
+            requestCount++;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    items = new[] { EventDto("e1", "frontend", "cached event") },
+                    nextBefore = (string?)null,
+                    nextBeforeEventId = (string?)null
+                }))
+            };
+        })) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateViewModel(http);
+
+        await vm.LoadAsync("ws-1", "web");
+        vm.Deactivate();
+        await vm.LoadAsync("ws-1", "web");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(requestCount, Is.EqualTo(1));
+            Assert.That(vm.Events, Has.Count.EqualTo(1));
+            Assert.That(vm.Events[0].Message, Is.EqualTo("cached event"));
+        });
+    }
+
+    private static async Task WaitForLoadingAsync(ApplicationAuditViewModel vm)
+    {
+        await Task.Delay(100);
+        for (var attempt = 0; attempt < 100 && vm.IsLoading; attempt++)
+            await Task.Delay(20);
     }
 
     private static ApplicationAuditViewModel CreateViewModel(HttpClient http, bool withStream = false)
@@ -214,23 +357,63 @@ public sealed class ApplicationAuditViewModelTests
             withStream ? new ApplicationAuditStreamClient(client.Http) : null);
     }
 
-    private static HttpResponseMessage JsonResponse(string action, string application)
+    private static ApplicationAuditEventDto Event(string eventId, string kind, string message, string? stream = null)
+    {
+        var details = new Dictionary<string, string> { ["application"] = "web", ["message"] = message };
+        if (stream is not null)
+            details["stream"] = stream;
+
+        return new ApplicationAuditEventDto(
+            eventId,
+            DateTimeOffset.Parse("2026-08-22T12:00:00Z"),
+            kind,
+            stream is null ? kind : "application_console_line",
+            "success",
+            details);
+    }
+
+    private static object EventDto(string eventId, string kind, string message, string? stream = null)
+    {
+        var details = new Dictionary<string, string> { ["application"] = "web", ["message"] = message };
+        if (stream is not null)
+            details["stream"] = stream;
+
+        return new
+        {
+            eventId,
+            timestamp = "2026-08-22T12:00:00Z",
+            kind,
+            action = stream is null ? kind : "application_console_line",
+            outcome = "success",
+            details
+        };
+    }
+
+    private static HttpResponseMessage JsonResponse(IReadOnlyList<ApplicationAuditEventDto> items)
         => new(HttpStatusCode.OK)
         {
             Content = new StringContent(JsonSerializer.Serialize(new
             {
-                items = new[]
+                items = items.Select(item => new
                 {
-                    new
-                    {
-                        eventId = action,
-                        timestamp = "2026-08-22T12:00:00Z",
-                        kind = "frontend",
-                        action,
-                        outcome = "success",
-                        details = new Dictionary<string, string> { ["application"] = application, ["message"] = action }
-                    }
-                },
+                    eventId = item.EventId,
+                    timestamp = item.Timestamp.ToString("O"),
+                    kind = item.Kind,
+                    action = item.Action,
+                    outcome = item.Outcome,
+                    details = item.Details
+                }),
+                nextBefore = (string?)null,
+                nextBeforeEventId = (string?)null
+            }))
+        };
+
+    private static HttpResponseMessage JsonResponse(object[] items)
+        => new(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new
+            {
+                items,
                 nextBefore = (string?)null,
                 nextBeforeEventId = (string?)null
             }))
