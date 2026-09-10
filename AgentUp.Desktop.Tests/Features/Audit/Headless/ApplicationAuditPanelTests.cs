@@ -24,11 +24,14 @@ public sealed class ApplicationAuditPanelTests
         Assert.Multiple(() =>
         {
             Assert.That(app.Window.FindControl<Grid>("AuditPanel")!.IsVisible, Is.True);
-            Assert.That(app.Window.FindControl<ListBox>("AuditEventList"), Is.Not.Null);
+            Assert.That(app.Window.FindControl<ItemsControl>("AuditEventList"), Is.Not.Null);
+            Assert.That(app.Window.FindControl<Button>("AuditFirstPageButton"), Is.Not.Null);
             Assert.That(app.Window.FindControl<Button>("AuditPreviousPageButton"), Is.Not.Null);
             Assert.That(app.Window.FindControl<Button>("AuditNextPageButton"), Is.Not.Null);
+            Assert.That(app.Window.FindControl<Button>("AuditLastPageButton"), Is.Not.Null);
             Assert.That(viewModel.Audit.StreamingButtonText, Is.EqualTo("Streaming Live"));
             Assert.That(viewModel.Audit.CanRefresh, Is.False);
+            Assert.That(viewModel.Audit.PageJumpButtons, Has.Count.EqualTo(4));
         });
     }
 }

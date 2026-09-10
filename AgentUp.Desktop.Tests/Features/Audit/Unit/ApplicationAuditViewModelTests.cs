@@ -29,7 +29,7 @@ public sealed class ApplicationAuditViewModelTests
             Assert.That(vm.Events[0].Category, Is.EqualTo("Frontend"));
             Assert.That(vm.Events[0].Message, Is.EqualTo("Load failed"));
             Assert.That(vm.CanGoNext, Is.True);
-            Assert.That(vm.PageLabel, Is.EqualTo("Page 1"));
+            Assert.That(vm.CurrentPage, Is.EqualTo(1));
         });
     }
 
@@ -55,7 +55,7 @@ public sealed class ApplicationAuditViewModelTests
         {
             Assert.That(vm.Events, Has.Count.EqualTo(1));
             Assert.That(vm.Events[0].Category, Is.EqualTo("Frontend"));
-            Assert.That(vm.PageLabel, Is.EqualTo("Page 2"));
+            Assert.That(vm.CurrentPage, Is.EqualTo(2));
             Assert.That(vm.CanGoPrevious, Is.True);
             Assert.That(vm.CanGoNext, Is.False);
         });
@@ -202,6 +202,7 @@ public sealed class ApplicationAuditViewModelTests
             Assert.That(vm.IsStreaming, Is.False);
             Assert.That(vm.CanRefresh, Is.True);
             Assert.That(vm.StreamingButtonText, Is.EqualTo("Stopped Streaming"));
+            Assert.That(vm.CurrentPage, Is.EqualTo(1));
         });
     }
 

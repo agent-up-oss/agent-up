@@ -28,8 +28,8 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
         new("Stream", "stream"),
     ];
 
-    private readonly Stack<(DateTimeOffset? Before, string? BeforeEventId)> _pageCursors = new();
-    private (DateTimeOffset? Before, string? BeforeEventId)? _nextPageCursor;
+    private readonly List<(DateTimeOffset? Before, string? BeforeEventId)> _pageStarts = [(null, null)];
+    private bool _hasNextPage;
     private string? _workspaceId;
     private string? _application;
     private CancellationTokenSource? _activeLoad;
@@ -37,9 +37,11 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
     private long _loadVersion;
     private bool _isLoading;
     private bool _isStreaming = true;
+    private int _currentPage = 1;
 
     public IReadOnlyList<DiagnosticKindFilterOption> KindFilters => _kindFilters;
     public ObservableCollection<ApplicationAuditEventViewModel> Events { get; } = [];
+    public ObservableCollection<DiagnosticPageJumpViewModel> PageJumpButtons { get; } = [];
 
     public bool IsStreaming
     {
@@ -56,11 +58,22 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
 
     public bool CanRefresh => !IsStreaming && !IsLoading;
 
-    public bool CanGoPrevious => _pageCursors.Count > 1;
+    public int CurrentPage
+    {
+        get => _currentPage;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _currentPage, value);
+        }
+    }
 
-    public bool CanGoNext => _nextPageCursor is not null;
+    public bool CanGoFirst => CurrentPage > 1;
 
-    public string PageLabel => $"Page {_pageCursors.Count}";
+    public bool CanGoPrevious => CurrentPage > 1;
+
+    public bool CanGoNext => _hasNextPage;
+
+    public bool CanGoLast => _hasNextPage;
 
     public bool IsLoading
     {
@@ -80,22 +93,28 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> ToggleStreamingCommand { get; }
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
+    public ReactiveCommand<Unit, Unit> FirstPageCommand { get; }
     public ReactiveCommand<Unit, Unit> PreviousPageCommand { get; }
     public ReactiveCommand<Unit, Unit> NextPageCommand { get; }
+    public ReactiveCommand<Unit, Unit> LastPageCommand { get; }
 
     public ApplicationAuditViewModel(ApplicationAuditController audit, ApplicationAuditStreamClient? stream = null)
     {
         _audit = audit;
         _stream = stream;
 
+        var canGoFirst = this.WhenAnyValue(x => x.CanGoFirst);
         var canGoPrevious = this.WhenAnyValue(x => x.CanGoPrevious);
         var canGoNext = this.WhenAnyValue(x => x.CanGoNext);
+        var canGoLast = this.WhenAnyValue(x => x.CanGoLast);
         var canRefresh = this.WhenAnyValue(x => x.CanRefresh);
 
-        ToggleStreamingCommand = ReactiveCommand.Create(ToggleStreaming);
+        ToggleStreamingCommand = ReactiveCommand.CreateFromTask(ToggleStreamingAsync);
         RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync, canRefresh);
+        FirstPageCommand = ReactiveCommand.CreateFromTask(GoFirstAsync, canGoFirst);
         PreviousPageCommand = ReactiveCommand.CreateFromTask(GoPreviousAsync, canGoPrevious);
         NextPageCommand = ReactiveCommand.CreateFromTask(GoNextAsync, canGoNext);
+        LastPageCommand = ReactiveCommand.CreateFromTask(GoLastAsync, canGoLast);
 
         foreach (var filter in _kindFilters)
             filter.WhenAnyValue(option => option.IsSelected)
@@ -136,41 +155,66 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
         _activeLoad = null;
     }
 
-    private void ToggleStreaming()
+    private async Task ToggleStreamingAsync()
     {
         IsStreaming = !IsStreaming;
-        if (IsStreaming)
-        {
-            StartStream();
-            return;
-        }
-
-        StopStream();
+        await ReloadFirstPageAsync();
     }
 
     private Task RefreshAsync()
         => _workspaceId is null || _application is null || IsStreaming
             ? Task.CompletedTask
-            : LoadCurrentPageAsync(_loadVersion, CancellationToken.None);
+            : ReloadFirstPageAsync();
 
-    private Task GoPreviousAsync()
+    private async Task ReloadFirstPageAsync()
     {
-        if (!CanGoPrevious)
-            return Task.CompletedTask;
+        if (_workspaceId is null || _application is null)
+            return;
 
-        _pageCursors.Pop();
-        RaisePaginationProperties();
-        return LoadCurrentPageAsync(_loadVersion, CancellationToken.None);
+        StopStream();
+        ResetPagination();
+        Events.Clear();
+        RaiseEmptyStateProperties();
+        await LoadCurrentPageAsync(_loadVersion, CancellationToken.None);
+        if (IsStreaming)
+            StartStream();
     }
 
-    private Task GoNextAsync()
-    {
-        if (_nextPageCursor is not { } next)
-            return Task.CompletedTask;
+    private Task GoFirstAsync()
+        => GoToPageAsync(1);
 
-        _pageCursors.Push(next);
-        RaisePaginationProperties();
-        return LoadCurrentPageAsync(_loadVersion, CancellationToken.None);
+    private Task GoPreviousAsync()
+        => CurrentPage <= 1 ? Task.CompletedTask : GoToPageAsync(CurrentPage - 1);
+
+    private Task GoNextAsync()
+        => !_hasNextPage ? Task.CompletedTask : GoToPageAsync(CurrentPage + 1);
+
+    private async Task GoLastAsync()
+    {
+        while (_hasNextPage)
+            await GoToPageAsync(CurrentPage + 1);
+    }
+
+    private async Task GoToPageAsync(int targetPage)
+    {
+        if (_workspaceId is null || _application is null || targetPage < 1)
+            return;
+
+        if (targetPage < CurrentPage)
+        {
+            CurrentPage = targetPage;
+            await LoadCurrentPageAsync(_loadVersion, CancellationToken.None);
+            return;
+        }
+
+        while (CurrentPage < targetPage)
+        {
+            if (!_hasNextPage)
+                return;
+
+            CurrentPage++;
+            await LoadCurrentPageAsync(_loadVersion, CancellationToken.None);
+        }
     }
 
     private void OnKindSelectionChanged()
@@ -184,9 +228,11 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
 
     private void ResetPagination()
     {
-        _pageCursors.Clear();
-        _pageCursors.Push((null, null));
-        _nextPageCursor = null;
+        _pageStarts.Clear();
+        _pageStarts.Add((null, null));
+        _hasNextPage = false;
+        CurrentPage = 1;
+        RebuildPageJumpButtons();
         RaisePaginationProperties();
     }
 
@@ -214,7 +260,7 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
 
         var workspaceId = _workspaceId;
         var application = _application;
-        var cursor = _pageCursors.Peek();
+        var cursor = _pageStarts[CurrentPage - 1];
         var kinds = SelectedKinds();
         var streams = SelectedStreams();
         if (kinds.Count == 0)
@@ -223,7 +269,8 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
                 return;
 
             Events.Clear();
-            _nextPageCursor = null;
+            _hasNextPage = false;
+            RebuildPageJumpButtons();
             RaisePaginationProperties();
             RaiseEmptyStateProperties();
             return;
@@ -250,9 +297,11 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
             foreach (var item in page.Items)
                 Events.Add(new ApplicationAuditEventViewModel(item));
 
-            _nextPageCursor = page.NextBefore is null
-                ? null
-                : (page.NextBefore, page.NextBeforeEventId);
+            _hasNextPage = page.NextBefore is not null;
+            if (_hasNextPage && _pageStarts.Count == CurrentPage)
+                _pageStarts.Add((page.NextBefore, page.NextBeforeEventId));
+
+            RebuildPageJumpButtons();
             RaisePaginationProperties();
             RaiseEmptyStateProperties();
         }
@@ -268,6 +317,21 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
         {
             if (version == _loadVersion)
                 IsLoading = false;
+        }
+    }
+
+    private void RebuildPageJumpButtons()
+    {
+        PageJumpButtons.Clear();
+        var start = Math.Max(1, CurrentPage - 3);
+        var end = CurrentPage + 3;
+        for (var page = start; page <= end; page++)
+        {
+            var targetPage = page;
+            PageJumpButtons.Add(new DiagnosticPageJumpViewModel(
+                targetPage,
+                targetPage == CurrentPage,
+                ReactiveCommand.CreateFromTask(() => GoToPageAsync(targetPage))));
         }
     }
 
@@ -334,12 +398,12 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
 
     private void OnStreamEvent(ApplicationAuditEventDto dto)
     {
-        if (!IsStreaming || _pageCursors.Count > 1)
+        if (!IsStreaming || CurrentPage > 1)
             return;
 
         Dispatcher.UIThread.Post(() =>
         {
-            if (!IsStreaming || _pageCursors.Count > 1)
+            if (!IsStreaming || CurrentPage > 1)
                 return;
 
             if (Events.Any(item => string.Equals(item.EventId, dto.EventId, StringComparison.Ordinal)))
@@ -368,9 +432,10 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
 
     private void RaisePaginationProperties()
     {
+        this.RaisePropertyChanged(nameof(CanGoFirst));
         this.RaisePropertyChanged(nameof(CanGoPrevious));
         this.RaisePropertyChanged(nameof(CanGoNext));
-        this.RaisePropertyChanged(nameof(PageLabel));
+        this.RaisePropertyChanged(nameof(CanGoLast));
     }
 
     private void RaiseEmptyStateProperties()
