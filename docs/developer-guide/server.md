@@ -6,6 +6,49 @@ title: Server
 
 `AgentUp.Server` owns all runtime state and performs all orchestration.
 
+## Workspace agents
+
+The authenticated `/api/workspaces/{workspaceId}/agent` surface schedules one
+ACP agent per workspace. Scheduling starts the configured ACP executable in the
+workspace worktree, performs ACP `initialize` and `session/new`, and retains the
+returned session ID. Prompts are serialized per workspace. A second agent is
+rejected until the current one is stopped.
+
+Message submission returns `202 Accepted` after the prompt has been handed to
+the workspace session; the completed turn arrives over SSE. A second prompt is
+rejected while a turn is running rather than being executed concurrently. Agent
+failures become structured operation errors or state events, and stopping an
+unresponsive adapter escalates from standard-input closure to process-tree
+termination after a bounded grace period.
+
+`GET .../events` is an authenticated Server-Sent Events stream. Events have a
+monotonic ID and the `after` query parameter replays retained events after a
+disconnect. ACP `session/update` notifications are forwarded without discarding
+their typed payload. `session/request_permission` requests are suspended until a
+client posts the selected ACP option to `.../permissions`. Unsupported ACP
+client-side requests fail explicitly rather than silently granting access.
+Permission responses are accepted only when their request ID is pending and the
+selected option was offered by that request. Slow SSE consumers are disconnected
+instead of silently losing events, allowing them to reconnect with `after` and
+replay from bounded Server history.
+
+The default commands are `codex-acp`, `agent acp` (Cursor Agent), and
+`claude-agent-acp`. Override executable names and argument arrays with
+`Agents:<Codex|Cursor|Claude>:Command` and `Agents:<...>:Arguments`. Agent-Up does
+not collect API keys or translate subscription credentials: each executable is
+responsible for its own supported interactive/pro-subscription login. An agent
+is shown as available only when its configured executable is on the Server
+service's `PATH` (or is configured as an existing absolute path).
+
+Agent-Up advertises no terminal-auth capability because the authenticated HTTP
+client cannot safely proxy an interactive terminal. It does support ACP agent-
+handled authentication methods: when `session/new` reports that authentication
+is required, the session remains scheduled, clients display the methods returned
+by `initialize`, and `POST .../authenticate` invokes only an advertised method
+before retrying `session/new`. Operators using Mobile against a remote Server
+should normally sign in on the Server machine first so browser-based login does
+not open in an unattended session.
+
 ## Responsibilities
 
 The Server manages:

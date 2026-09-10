@@ -12,6 +12,11 @@ The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
 orchestration must remain in `AgentUp.Server`.
 
+The workspace Agent screen is an ACP client UI. It selects an available Server-
+configured Codex, Cursor, or Claude adapter, sends prompts, reconnects to the SSE
+stream using the last event sequence, renders agent/tool/thought updates, and
+presents ACP permission options. It never launches a CLI or owns an ACP session.
+
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
 the active selection in PWA local storage. Only one Server is active at a time;
 selecting another sidebar icon changes the client target and does not copy or

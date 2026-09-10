@@ -13,6 +13,10 @@ using AgentUp.Server.Features.Authentication.Interfaces;
 using AgentUp.Server.Features.Authentication.Services;
 using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Agents.Controllers;
+using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.Providers;
+using AgentUp.Server.Features.Agents.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Providers;
@@ -120,6 +124,12 @@ public static class ServiceRegistration
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<AgentCommandProvider>();
+        builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
+        builder.Services.AddSingleton<AgentEventFrameProvider>();
+        builder.Services.AddSingleton<AgentEventService>();
+        builder.Services.AddSingleton<AgentSchedulingService>();
+        builder.Services.AddSingleton<AgentsController>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
         builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>

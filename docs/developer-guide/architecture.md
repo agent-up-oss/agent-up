@@ -168,10 +168,16 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 - Event recording.
 - Diagnostics and health monitoring.
 - Playwright generation.
+- ACP agent scheduling, with at most one agent process and session per workspace.
 - MCP server.
 - REST API.
 
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
+
+Desktop and Mobile render the workspace agent conversation and send prompts and
+permission decisions through the authenticated Server API. The Server owns the
+ACP subprocess, session identity, prompt serialization, cancellation, and event
+history. Clients must not start an agent CLI directly.
 
 `AgentUp.Mobile/` is an Expo and React Native client outside the .NET solution. One TypeScript codebase targets Android, iOS, and an installable web PWA. Like the Desktop, it displays Server-owned state and must not own orchestration.
 

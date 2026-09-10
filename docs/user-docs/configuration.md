@@ -87,3 +87,16 @@ The legacy `applications` list remains available for executable-plus-arguments c
 Applications, capability-backed applications, Docker capabilities, and legacy Docker services can declare `environmentFiles` for `.env`-style secrets and `environment` for inline non-secret values. Environment file paths are relative to the workspace root. File values are loaded when the Server launches the process and are not copied into saved workspace state; inline `environment` values are part of the workspace definition.
 
 Agent-Up applies local process environment values in this order: environment files, inline `environment`, then Server-allocated port variables. For Docker containers, Agent-Up passes environment files to Docker, interpolates `${VARIABLE}` references in inline `environment` values from the allocated workspace port map, and passes the resolved values as Docker `-e` arguments.
+
+## Workspace agent CLIs
+
+Workspace agent chat uses ACP executables installed on the Server machine. The
+defaults are `codex-acp`, Cursor's `agent acp`, and `claude-agent-acp`. Sign in
+with the corresponding CLI first; Agent-Up reuses the CLI's supported local
+subscription login and does not ask for or store an API token. An unavailable
+executable is disabled in the Desktop and Mobile agent picker.
+
+Server operators can override a command or its arguments in `appsettings.json`
+under `Agents:Codex`, `Agents:Cursor`, or `Agents:Claude`. Services may have a
+different `PATH` from an interactive terminal, so use an absolute command path
+when the installed service cannot discover an adapter.
