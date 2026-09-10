@@ -38,6 +38,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     private CancellationTokenSource? _metricsLoadCts;
     private bool _isValidationOpen;
     private readonly ValidationController? _validationController;
+    private CancellationTokenSource? _validationLoad;
     private Func<string, string, Task<string?>>? _validationEvalAsync;
 
     public WorkspaceListViewModel Sidebar { get; }
@@ -589,8 +590,16 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
     private void LoadValidation()
     {
-        if (_validationController is not null && Sidebar.SelectedWorkspace?.Id is { } workspaceId && Applications.SelectedApplication?.Name is { } application)
-            _ = _validationController.LoadAsync(workspaceId, application);
+        if (_validationController is null || Sidebar.SelectedWorkspace?.Id is not { } workspaceId || Applications.SelectedApplication?.Name is not { } application)
+            return;
+
+        // Selections change faster than the server answers. Without superseding the previous
+        // load, a slow earlier response can land last and repaint the panel with another
+        // application's flows. The old source is cancelled but not disposed: the request it
+        // still owns would fault on a disposed token.
+        var load = new CancellationTokenSource();
+        Interlocked.Exchange(ref _validationLoad, load)?.Cancel();
+        _ = _validationController.LoadAsync(workspaceId, application, load.Token);
     }
 
     private void UpdateChromeLeftItems(bool loginVisible)

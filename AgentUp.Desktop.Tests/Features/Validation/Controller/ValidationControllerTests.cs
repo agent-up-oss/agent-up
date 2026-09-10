@@ -12,7 +12,8 @@ public sealed class ValidationControllerTests{
     public async Task Load_forwards_workspace_and_application_boundary_values()
     {
         var handler = new Handler();
-        var api = new ValidationFlowApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://server/") });
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://server/") };
+        var api = new ValidationFlowApiClient(http);
         var controller = new ValidationController(new ValidationViewModel(
             api,
             new ValidationFlowReplayService(api, new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController())));

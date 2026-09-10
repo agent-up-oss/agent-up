@@ -140,7 +140,9 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             return "Name is required and cannot exceed 120 characters.";
         if (!IsSafeRelativePath(request.InitialPath))
             return "InitialPath must be a local application-relative path beginning with one '/'.";
-        if (request.Steps.Count is < 1 or > 200)
+        if (request.Description is null)
+            return "Description is required.";
+        if (request.Steps is null || request.Steps.Count is < 1 or > 200)
             return "A flow requires 1 to 200 steps.";
         if (request.InitialExpectations is null || request.InitialExpectations.Count == 0)
             return "The initial place requires at least one visible expectation.";

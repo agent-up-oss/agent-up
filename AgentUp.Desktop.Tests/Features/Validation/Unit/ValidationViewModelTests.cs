@@ -13,7 +13,8 @@ public sealed class ValidationViewModelTests
     public async Task Load_exposes_selected_application_flows_and_play_runs_local_replay()
     {
         var handler = new Handler();
-        var api = new ValidationFlowApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://server/") });
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://server/") };
+        var api = new ValidationFlowApiClient(http);
         var replay = new ValidationFlowReplayService(api, new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController());
         replay.Connect(new FakeReplayHost());
         var vm = new ValidationViewModel(api, replay);
