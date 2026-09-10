@@ -129,7 +129,8 @@ public sealed class AuditMcpToolsTests
             new InMemoryAuditEventRepository(),
             new FileAuditArtifactRepository(_dir),
             new FakeAuditIdentityProvider(),
-            new WorkspaceQueryController(ServerTestComposition.CreateRegistry())));
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new AuditEventBus()));
         var tools = new AuditMcpTools(controller);
 
         var result = await tools.LoadArtifact(artifactId);

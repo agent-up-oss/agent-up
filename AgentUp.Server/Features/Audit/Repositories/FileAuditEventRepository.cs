@@ -134,7 +134,8 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
            && Matches(query.RepositoryPath, evt.RepositoryPath)
            && Matches(query.Branch, evt.Branch)
            && Matches(query.Commit, evt.Commit)
-           && Matches(query.Kind, evt.Kind)
+           && MatchesKind(query.Kind, query.Kinds, evt.Kind)
+           && MatchesStream(query.Streams, evt)
            && Matches(query.Source, evt.Source)
            && Matches(query.Outcome, evt.Outcome)
            && MatchesApplication(query.Application, evt)
@@ -151,17 +152,19 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
                && string.CompareOrdinal(evt.EventId, query.BeforeEventId) < 0);
 
     private static bool MatchesApplication(string? application, AuditEvent evt)
-        => string.IsNullOrWhiteSpace(application)
-           || MatchesApplicationDetail(evt.Details, application, "application")
-           || MatchesApplicationDetail(evt.Details, application, "applicationName")
-           || MatchesApplicationDetail(evt.Details, application, "appName");
+        => AuditEventMatching.MatchesApplication(application, evt);
 
-    private static bool MatchesApplicationDetail(
-        IReadOnlyDictionary<string, string> details,
-        string application,
-        string key)
-        => details.TryGetValue(key, out var actual)
-           && string.Equals(application, actual, StringComparison.OrdinalIgnoreCase);
+    private static bool MatchesKind(string? kind, IReadOnlyList<string>? kinds, string? actual)
+    {
+        if (kinds is { Count: > 0 })
+            return kinds.Any(expected => string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase));
+
+        return string.IsNullOrWhiteSpace(kind)
+               || string.Equals(kind, actual, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesStream(IReadOnlyList<string>? streams, AuditEvent evt)
+        => AuditEventMatching.MatchesStreams(streams, evt);
 
     private static bool MatchesScope(string? expected, string? actual)
     {

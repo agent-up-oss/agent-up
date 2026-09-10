@@ -121,6 +121,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AuditWorkdirIdProvider>();
         builder.Services.AddSingleton<AuditGitStateProvider>();
         builder.Services.AddSingleton<IAuditIdentityProvider, AuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditEventBus>();
+        builder.Services.AddSingleton<ApplicationAuditStreamService>();
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<WorkspaceDiagnosticsService>();

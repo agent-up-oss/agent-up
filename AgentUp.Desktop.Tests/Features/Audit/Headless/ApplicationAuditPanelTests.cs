@@ -11,7 +11,7 @@ namespace AgentUp.Desktop.Tests.Features.Audit.Headless;
 public sealed class ApplicationAuditPanelTests
 {
     [AvaloniaTest]
-    public async Task AuditTab_ShowsNativePaginatedEventList()
+    public async Task AuditTab_ShowsStreamingControlsAndPagination()
     {
         var app = await AppDriver.LaunchWithWorkspacesAsync([WorkspaceFixtures.WithApplications()]);
         var viewModel = (MainViewModel)app.Window.DataContext!;
@@ -25,7 +25,10 @@ public sealed class ApplicationAuditPanelTests
         {
             Assert.That(app.Window.FindControl<Grid>("AuditPanel")!.IsVisible, Is.True);
             Assert.That(app.Window.FindControl<ListBox>("AuditEventList"), Is.Not.Null);
-            Assert.That(app.Window.FindControl<Button>("AuditLoadMoreButton"), Is.Not.Null);
+            Assert.That(app.Window.FindControl<Button>("AuditPreviousPageButton"), Is.Not.Null);
+            Assert.That(app.Window.FindControl<Button>("AuditNextPageButton"), Is.Not.Null);
+            Assert.That(viewModel.Audit.StreamingButtonText, Is.EqualTo("Streaming Live"));
+            Assert.That(viewModel.Audit.CanRefresh, Is.False);
         });
     }
 }

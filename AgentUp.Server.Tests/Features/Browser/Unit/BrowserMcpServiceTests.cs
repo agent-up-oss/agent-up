@@ -445,7 +445,8 @@ public sealed class BrowserMcpServiceTests
             events ?? new InMemoryAuditEventRepository(),
             artifacts ?? new InMemoryAuditArtifactRepository(),
             new FakeAuditIdentityProvider(),
-            new WorkspaceQueryController(registry)));
+            new WorkspaceQueryController(registry),
+            new AuditEventBus()));
 
     private static async Task<(WorkspaceRegistry Registry, string WorkspaceId)> RegistryWithWorkspaceAsync()
     {

@@ -266,6 +266,28 @@
             <Setter Property="Background" Value="#0f7a45"/>
         </Style>
 
+        <Style Selector="ToggleButton.filterChip">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.filterChipInner">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Padding" Value="13,7"/>
+        </Style>
+        <Style Selector="ToggleButton.filterChip:pointerover Border.filterChipInner">
+            <Setter Property="Background" Value="#0a0a0a"/>
+        </Style>
+        <Style Selector="ToggleButton.filterChip:checked Border.filterChipInner">
+            <Setter Property="Background" Value="#0f7a45"/>
+        </Style>
+
         <!-- Browser address bar -->
         <Style Selector="TextBox.addressBar">
             <Setter Property="Background" Value="#030303"/>
@@ -1015,26 +1037,69 @@
                                 </StackPanel>
                             </Grid>
 
-                            <Grid x:Name="AuditPanel" IsVisible="{Binding ShowAudit}" RowDefinitions="*,Auto">
-                                <ListBox x:Name="AuditEventList" Grid.Row="0" ItemsSource="{Binding Audit.Events}" Margin="16,12">
+                            <Grid x:Name="AuditPanel" IsVisible="{Binding ShowAudit}" RowDefinitions="Auto,Auto,*,Auto">
+                                <StackPanel Grid.Row="0" Margin="16,12,16,0" Spacing="8">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Command="{Binding Audit.ToggleStreamingCommand}">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Text="{Binding Audit.StreamingButtonText}" Foreground="#f5fbf7" FontSize="11"/>
+                                            </Border>
+                                        </Button>
+                                        <Button Command="{Binding Audit.RefreshCommand}" IsEnabled="{Binding Audit.CanRefresh}">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Text="Refresh" Foreground="#f5fbf7" FontSize="11"/>
+                                            </Border>
+                                        </Button>
+                                    </StackPanel>
+                                    <TextBlock Text="Categories"
+                                               Foreground="#8aa497"
+                                               FontSize="11"
+                                               FontWeight="Medium"/>
+                                    <ItemsControl ItemsSource="{Binding Audit.KindFilters}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ToggleButton Classes="filterChip"
+                                                              IsChecked="{Binding IsSelected}">
+                                                    <Border Classes="filterChipInner">
+                                                        <TextBlock Text="{Binding Label}" Foreground="#c2d2ca" FontSize="11"/>
+                                                    </Border>
+                                                </ToggleButton>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="{Binding Audit.EmptyMessage}"
+                                               IsVisible="{Binding Audit.ShowEmptyState}"
+                                               Foreground="#789085"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <ListBox x:Name="AuditEventList" Grid.Row="2" ItemsSource="{Binding Audit.Events}" Margin="16,8">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border BorderBrush="#163923" BorderThickness="0,0,0,1" Padding="10,9">
-                                                <Grid ColumnDefinitions="150,150,*" ColumnSpacing="12">
-                                                    <TextBlock Grid.Column="0" Text="{Binding Timestamp}" Foreground="#789085" FontSize="11"/>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{Binding Action}" Foreground="#f5fbf7" FontWeight="Bold" FontSize="12"/>
-                                                        <TextBlock Text="{Binding Outcome}" Foreground="#00b850" FontSize="11"/>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#aebcb3" FontSize="11" TextWrapping="Wrap"/>
+                                            <Border BorderBrush="#163923" BorderThickness="0,0,0,1" Padding="8,5">
+                                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Timestamp}" Foreground="#789085" FontSize="10" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Category}" Foreground="{Binding CategoryColor}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" MinWidth="56"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Message}" Foreground="{Binding MessageColor}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
-                                <Button x:Name="AuditLoadMoreButton" Grid.Row="1" IsVisible="{Binding Audit.HasMore}" Command="{Binding Audit.LoadMoreCommand}" Margin="20,8" HorizontalAlignment="Left">
-                                    <Border Classes="tutorialSecondaryButton"><TextBlock Text="Load older events" Foreground="#f5fbf7" FontSize="11"/></Border>
-                                </Button>
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="20,8">
+                                    <Button x:Name="AuditPreviousPageButton" Command="{Binding Audit.PreviousPageCommand}" IsEnabled="{Binding Audit.CanGoPrevious}">
+                                        <Border Classes="tutorialSecondaryButton"><TextBlock Text="Previous" Foreground="#f5fbf7" FontSize="11"/></Border>
+                                    </Button>
+                                    <TextBlock Text="{Binding Audit.PageLabel}" Foreground="#789085" FontSize="11" VerticalAlignment="Center"/>
+                                    <Button x:Name="AuditNextPageButton" Command="{Binding Audit.NextPageCommand}" IsEnabled="{Binding Audit.CanGoNext}">
+                                        <Border Classes="tutorialSecondaryButton"><TextBlock Text="Next" Foreground="#f5fbf7" FontSize="11"/></Border>
+                                    </Button>
+                                </StackPanel>
                             </Grid>
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->

@@ -21,11 +21,12 @@ The canonical workspace snapshot is `GET /api/diagnostics/workspaces/{workspaceI
 
 Each event entry has a normalized category, severity, and `active` or `resolved` state. It also carries the affected application and browser-session identifier when the source supplied that context. Application context is accepted from the established `application`, `applicationName`, and `appName` audit detail keys.
 
-Diagnostics are exposed through Desktop, CLI `diagnostics`, and Orchestration MCP `get_workspace_diagnostics`. The Desktop presents the selected application's durable diagnostic trail next to its Console and Metrics tabs; current process and health state remain visible in the application and port status controls.
+Diagnostics are exposed through Desktop, CLI `diagnostics`, and Orchestration MCP `get_workspace_diagnostics`. The Desktop Diagnostics tab loads paginated durable audit entries for the selected application with multiselect category filters; Stdout and Stderr are separate filters and both default to off so process log lines stay in the Console tab. Rows omit the raw audit outcome field and instead color the category and message from event kind, health state, stream, and message content. When a filtered page is empty, Desktop shows `No diagnostic entries in these categories: [<selected categories>]`. The Diagnostics toolbar toggles between live Server-Sent Events streaming and a paused mode; while paused, Refresh reloads the current page from the REST API. Previous and Next navigate one bounded page at a time instead of appending older rows. Current process and health state remain visible in the application and port status controls.
 Orchestration MCP exposes `get_workspace_console` for a bounded live snapshot of application console output and the recent durable console audit trail for a workspace.
 Per-application audit pages use a composite timestamp and event-ID cursor so
 events sharing a timestamp are neither skipped nor repeated. Repository queries
 use the cursor timestamp to avoid loading newer daily audit files on later pages.
+The REST endpoint is `GET /api/audit/workspaces/{workspaceId}/applications/{application}`; live updates use `GET /api/audit/workspaces/{workspaceId}/applications/{application}/stream`.
 
 ## Metrics And Audit Scopes
 

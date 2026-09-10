@@ -72,8 +72,8 @@ public static class MainViewModelFactory
         var database = new DatabaseController(new DatabaseExplorerService(
             databaseClient ?? new DatabaseApiClient(DefaultDatabaseHttpClient)));
         var ports = new PortsController(new PortTabService());
-        var audit = new ApplicationAuditController(new ApplicationAuditService(
-            auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));
+        var auditApi = auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient);
+        var audit = new ApplicationAuditController(new ApplicationAuditService(auditApi));
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces),
@@ -81,7 +81,9 @@ public static class MainViewModelFactory
             new ConsoleViewModel(console),
             new MetricsViewModel(metrics),
             new DatabaseViewModel(database),
-            new ApplicationAuditViewModel(audit),
+            new ApplicationAuditViewModel(
+                audit,
+                new ApplicationAuditStreamClient(auditApi.Http)),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),

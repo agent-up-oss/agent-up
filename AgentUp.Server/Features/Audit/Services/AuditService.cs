@@ -10,7 +10,8 @@ public sealed class AuditService(
     IAuditEventRepository events,
     IAuditArtifactRepository artifacts,
     IAuditIdentityProvider identities,
-    WorkspaceQueryController workspaces)
+    WorkspaceQueryController workspaces,
+    AuditEventBus eventBus)
 {
     public async Task<AuditEvent> RecordAsync(
         AuditRecordRequest request,
@@ -19,6 +20,7 @@ public sealed class AuditService(
         var identity = await ResolveIdentityAsync(request.WorkspaceId, cancellationToken);
         var evt = CreateEvent(request, identity, request.ArtifactIds ?? []);
         await events.AppendAsync(evt, cancellationToken);
+        eventBus.Publish(evt);
         return evt;
     }
 
@@ -54,6 +56,7 @@ public sealed class AuditService(
             },
             [artifact.ArtifactId]);
         await events.AppendAsync(evt, cancellationToken);
+        eventBus.Publish(evt);
         return (evt, artifact);
     }
 

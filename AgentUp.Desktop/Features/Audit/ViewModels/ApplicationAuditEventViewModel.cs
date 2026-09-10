@@ -2,12 +2,23 @@ using AgentUp.Desktop.Features.Audit.DTOs;
 
 namespace AgentUp.Desktop.Features.Audit.ViewModels;
 
-public sealed class ApplicationAuditEventViewModel(ApplicationAuditEventDto dto)
+public sealed class ApplicationAuditEventViewModel
 {
-    public string Timestamp => dto.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-    public string Action => dto.Action;
-    public string Outcome => dto.Outcome;
-    public string Details => string.Join(" · ", dto.Details
-        .Where(pair => !string.Equals(pair.Key, "application", StringComparison.Ordinal))
-        .Select(pair => $"{pair.Key}: {pair.Value}"));
+    public ApplicationAuditEventViewModel(ApplicationAuditEventDto dto)
+    {
+        EventId = dto.EventId;
+        Timestamp = dto.Timestamp.ToLocalTime().ToString("HH:mm:ss");
+        var presentation = DiagnosticEventPresentation.Present(dto);
+        Category = presentation.Category;
+        CategoryColor = presentation.CategoryColor;
+        Message = presentation.Message;
+        MessageColor = presentation.MessageColor;
+    }
+
+    public string EventId { get; }
+    public string Timestamp { get; }
+    public string Category { get; }
+    public string CategoryColor { get; }
+    public string Message { get; }
+    public string MessageColor { get; }
 }
