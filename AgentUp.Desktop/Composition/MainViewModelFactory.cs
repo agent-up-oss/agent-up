@@ -1,6 +1,10 @@
 using AgentUp.Desktop.Features.Applications.Controllers;
 using AgentUp.Desktop.Features.Applications.Services;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Agents.Controllers;
+using AgentUp.Desktop.Features.Agents.Providers;
+using AgentUp.Desktop.Features.Agents.Services;
+using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Audit.Providers;
 using AgentUp.Desktop.Features.Audit.Services;
@@ -72,6 +76,7 @@ public static class MainViewModelFactory
         ApplicationAuditApiClient? auditClient = null,
         FirstRunTutorialViewModel? tutorial = null,
         GitApiClient? gitClient = null,
+        AgentApiClient? agentClient = null,
         LoginViewModel? login = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
@@ -86,6 +91,7 @@ public static class MainViewModelFactory
             auditClient ?? new ApplicationAuditApiClient(DefaultAuditHttpClient)));
         var git = new GitController(new GitChangeListService(
             gitClient ?? new GitApiClient(DefaultGitHttpClient)));
+        var agents = new AgentsController(new AgentChatService(agentClient ?? new AgentApiClient(DefaultGitHttpClient)));
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces),
@@ -95,6 +101,7 @@ public static class MainViewModelFactory
             new DatabaseViewModel(database),
             new ApplicationAuditViewModel(audit),
             new GitPanelViewModel(git),
+            new AgentChatViewModel(agents),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
@@ -112,6 +119,7 @@ public static class MainViewModelFactory
             new DatabaseApiClient(http),
             new ApplicationAuditApiClient(http),
             gitClient: new GitApiClient(http),
+            agentClient: new AgentApiClient(http),
             login: login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
                 new AuthenticationApiClient(http)))));
     }

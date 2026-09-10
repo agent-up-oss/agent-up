@@ -6,6 +6,29 @@ title: Server
 
 `AgentUp.Server` owns all runtime state and performs all orchestration.
 
+## Workspace agents
+
+The authenticated `/api/workspaces/{workspaceId}/agent` surface schedules one
+ACP agent per workspace. Scheduling starts the configured ACP executable in the
+workspace worktree, performs ACP `initialize` and `session/new`, and retains the
+returned session ID. Prompts are serialized per workspace. A second agent is
+rejected until the current one is stopped.
+
+`GET .../events` is an authenticated Server-Sent Events stream. Events have a
+monotonic ID and the `after` query parameter replays retained events after a
+disconnect. ACP `session/update` notifications are forwarded without discarding
+their typed payload. `session/request_permission` requests are suspended until a
+client posts the selected ACP option to `.../permissions`. Unsupported ACP
+client-side requests fail explicitly rather than silently granting access.
+
+The default commands are `codex-acp`, `agent acp` (Cursor Agent), and
+`claude-agent-acp`. Override executable names and argument arrays with
+`Agents:<Codex|Cursor|Claude>:Command` and `Agents:<...>:Arguments`. Agent-Up does
+not collect API keys or translate subscription credentials: each executable is
+responsible for its own supported interactive/pro-subscription login. An agent
+is shown as available only when its configured executable is on the Server
+service's `PATH` (or is configured as an existing absolute path).
+
 ## Responsibilities
 
 The Server manages:

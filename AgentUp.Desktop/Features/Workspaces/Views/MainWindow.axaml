@@ -7,6 +7,7 @@
         xmlns:databaseVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         xmlns:databaseViewsVm="using:AgentUp.Desktop.Features.Database.ViewModels"
         xmlns:gitVm="using:AgentUp.Desktop.Features.Git.ViewModels"
+        xmlns:agentVm="using:AgentUp.Desktop.Features.Agents.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
@@ -916,6 +917,7 @@
                                 Background="#050505"
                                 BorderBrush="#2b2b2b"
                                 BorderThickness="0,0,0,1">
+                            <Grid ColumnDefinitions="*,Auto">
                             <ListBox x:Name="ApplicationTabs"
                                      ItemsSource="{Binding Applications.Applications}"
                                      SelectedItem="{Binding Applications.SelectedApplication}"
@@ -943,6 +945,8 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
+                            <Button Grid.Column="1" Command="{Binding ToggleAgentCommand}" Margin="8,6,14,6" Padding="14,7" Content="Agent"/>
+                            </Grid>
                         </Border>
 
                         <!-- Sub-navbar: Console + port tabs for the selected app -->
@@ -1027,6 +1031,25 @@
 
                         <!-- Content area -->
                         <Panel Grid.Row="3">
+
+                            <Border IsVisible="{Binding Agent.IsVisible}" Background="#000000" ZIndex="20" Padding="20">
+                                <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel><TextBlock Text="Workspace agent" Foreground="#f5fbf7" FontSize="20" FontWeight="Bold"/><TextBlock Text="{Binding Agent.State}" Foreground="#789085"/></StackPanel>
+                                        <Button Grid.Column="1" IsVisible="{Binding Agent.HasAgent}" Command="{Binding Agent.StopCommand}" Content="Stop agent"/>
+                                    </Grid>
+                                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Agent.Agents}" IsVisible="{Binding !Agent.HasAgent}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate><DataTemplate><Button Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}" CommandParameter="{Binding Agent}" IsEnabled="{Binding Available}" Padding="14,8"><StackPanel><TextBlock Text="{Binding DisplayName}"/><TextBlock Text="{Binding Available}" FontSize="10"/></StackPanel></Button></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ListBox Grid.Row="2" ItemsSource="{Binding Agent.Messages}" Background="#050505">
+                                        <ListBox.ItemTemplate><DataTemplate DataType="agentVm:AgentChatItemViewModel"><Border Padding="10" Margin="4" Background="#101712"><StackPanel><TextBlock Text="{Binding Role}" Foreground="#2bf27a" FontSize="10"/><TextBlock Text="{Binding Text}" Foreground="#e4eee8" TextWrapping="Wrap"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <ItemsControl Grid.Row="3" ItemsSource="{Binding Agent.PermissionOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                    <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Text="{Binding Agent.Message}" Watermark="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Command="{Binding Agent.SendCommand}" Content="Send" Padding="18,8"/></Grid>
+                                    <TextBlock Grid.Row="4" Text="{Binding Agent.Error}" Foreground="#e48989" VerticalAlignment="Top" Margin="0,-24,0,0"/>
+                                </Grid>
+                            </Border>
 
                             <!-- No applications configured -->
                             <StackPanel IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNull}}"

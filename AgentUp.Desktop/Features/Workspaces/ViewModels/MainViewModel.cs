@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
@@ -41,6 +42,7 @@ public sealed class MainViewModel : ReactiveObject
     public DatabaseViewModel Database { get; }
     public ApplicationAuditViewModel Audit { get; }
     public GitPanelViewModel Git { get; }
+    public AgentChatViewModel Agent { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
     public LoginViewModel Login { get; }
     public WindowChromeViewModel Chrome { get; } = new();
@@ -72,6 +74,7 @@ public sealed class MainViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> BrowserBackCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserForwardCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserReloadCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleAgentCommand { get; }
 
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
@@ -87,6 +90,7 @@ public sealed class MainViewModel : ReactiveObject
         DatabaseViewModel database,
         ApplicationAuditViewModel audit,
         GitPanelViewModel git,
+        AgentChatViewModel agent,
         FirstRunTutorialViewModel tutorial,
         LoginViewModel login,
         PortsController ports)
@@ -98,6 +102,7 @@ public sealed class MainViewModel : ReactiveObject
         Database = database;
         Audit = audit;
         Git = git;
+        Agent = agent;
         Tutorial = tutorial;
         Login = login;
         _ports = ports;
@@ -110,6 +115,7 @@ public sealed class MainViewModel : ReactiveObject
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
         BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
+        ToggleAgentCommand = ReactiveCommand.Create(() => Agent.IsVisible = !Agent.IsVisible);
 
         var selectedPortTab = this.WhenAnyValue(x => x.SelectedSubTab)
             .Select(tab => tab as PortSubTabViewModel);
@@ -136,6 +142,7 @@ public sealed class MainViewModel : ReactiveObject
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
                 _ = Git.LoadAsync(ws?.Id);
+                _ = Agent.LoadAsync(ws?.Id);
             });
 
     private void CancelPendingMetricsLoad()
