@@ -4,9 +4,21 @@ title: CI Configuration
 
 # CI Configuration
 
-The Agent-Up CI workflow runs on every push. This page documents the repository secrets and variables that control optional CI behavior. All signing and release steps degrade gracefully when credentials are absent — no secret is required for the workflow to complete.
+The Agent-Up CI workflow runs on every push. This page documents the repository secrets and variables that control CI behavior. Signing and release steps degrade gracefully when their credentials are absent; the Codecov upload token is required for the .NET test job.
 
 Secrets are set under **Settings → Secrets and variables → Actions → Secrets**. Variables are set under the **Variables** tab in the same location.
+
+## Code coverage
+
+| Secret | Value |
+|---|---|
+| `CODECOV_TOKEN` | Repository upload token from Codecov |
+
+The .NET test job uploads each test project's Cobertura output separately. Each
+upload has a test-project-specific Codecov flag, such as
+`agentup-server-tests`, so Codecov can filter the production-project coverage
+contributed by an individual test module. `AgentUp.Tests` combines its regular
+and headless E2E coverage under the `agentup-tests` flag.
 
 ## Signing — macOS
 
