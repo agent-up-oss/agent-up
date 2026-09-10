@@ -36,4 +36,25 @@ public sealed class AuditEventLogLinePrefilterTests
             Assert.That(AuditEventLogLinePrefilter.MightMatch(query, string.Empty), Is.False);
         });
     }
+
+    [Test]
+    public void MightMatch_MatchesJsonEscapedApplicationNames()
+    {
+        const string line = """{"EventId":"evt-1","WorkspaceId":"ws-1","Kind":"frontend","Details":{"application":"acme\\lab"}}""";
+        var query = new AuditEventQuery(
+            "ws-1",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            1,
+            Application: @"acme\lab");
+
+        Assert.That(AuditEventLogLinePrefilter.MightMatch(query, line), Is.True);
+    }
 }

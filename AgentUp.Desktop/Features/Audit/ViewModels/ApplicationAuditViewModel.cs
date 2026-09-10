@@ -45,6 +45,7 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
     private bool _isStreaming = true;
     private int _currentPage = 1;
     private CancellationTokenSource? _filterChangeDebounce;
+    private CancellationTokenSource? _searchChangeDebounce;
     private CancellationTokenSource? _streamViewDebounce;
     private string _searchText = string.Empty;
 
@@ -62,7 +63,7 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
 
             this.RaiseAndSetIfChanged(ref _searchText, value);
             ResetToFirstPage();
-            _ = ReloadWindowAsync(1, keepStream: true);
+            ScheduleSearchReload();
         }
     }
 
@@ -321,6 +322,28 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
         }
     }
 
+    private void ScheduleSearchReload()
+    {
+        _searchChangeDebounce?.Cancel();
+        _searchChangeDebounce?.Dispose();
+        _searchChangeDebounce = new CancellationTokenSource();
+        var token = _searchChangeDebounce.Token;
+        _ = DebouncedSearchReloadAsync(token);
+    }
+
+    private async Task DebouncedSearchReloadAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(50, cancellationToken);
+            await ReloadWindowAsync(1, keepStream: true);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            Trace.TraceInformation("Superseded audit search reload was cancelled.");
+        }
+    }
+
     private void ResetToFirstPage()
     {
         CurrentPage = 1;
@@ -519,6 +542,7 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
         CancellationToken cancellationToken)
     {
         var delay = TimeSpan.FromSeconds(1);
+        var initialDelay = delay;
         while (!cancellationToken.IsCancellationRequested && IsStreaming)
         {
             try
@@ -530,6 +554,7 @@ public sealed class ApplicationAuditViewModel : ReactiveObject
                     streams,
                     OnStreamEvent,
                     cancellationToken);
+                delay = initialDelay;
                 if (!await DelayAsync(delay, cancellationToken))
                     break;
                 if (delay < TimeSpan.FromSeconds(30))

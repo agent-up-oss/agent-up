@@ -4,7 +4,7 @@ namespace AgentUp.Server.Features.Audit.Providers;
 
 internal static class AuditEventLogReverseReader
 {
-    private const int ChunkSize = 4 * 1024 * 1024;
+    private const int ChunkSize = 256 * 1024;
 
     internal static async IAsyncEnumerable<string> ReadLinesReverseAsync(
         string path,

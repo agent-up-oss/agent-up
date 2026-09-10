@@ -9,8 +9,16 @@ internal static class AuditEventMatching
            || MatchesApplicationDetail(evt.Details, application, "appName");
 
     public static bool MatchesKinds(IReadOnlyList<string>? kinds, AuditEvent evt)
-        => kinds is not { Count: > 0 }
-           || kinds.Any(expected => string.Equals(expected, evt.Kind, StringComparison.OrdinalIgnoreCase));
+        => MatchesKind(null, kinds, evt.Kind);
+
+    public static bool MatchesKind(string? kind, IReadOnlyList<string>? kinds, string? actual)
+    {
+        if (kinds is { Count: > 0 })
+            return kinds.Any(expected => string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase));
+
+        return string.IsNullOrWhiteSpace(kind)
+               || string.Equals(kind, actual, StringComparison.OrdinalIgnoreCase);
+    }
 
     public static bool MatchesStreams(IReadOnlyList<string>? streams, AuditEvent evt)
     {

@@ -82,8 +82,8 @@ public sealed class FileAuditRepositoryTests
     {
         var repository = new FileAuditEventRepository(_dir);
         var timestamp = DateTimeOffset.Parse("2026-08-22T12:00:00Z");
-        for (var index = 0; index < 500; index++)
-            await repository.AppendAsync(CreateIndexedEvent(index, timestamp), CancellationToken.None);
+        foreach (var eventId in new[] { "event-005", "event-100", "event-003", "event-050", "event-999" })
+            await repository.AppendAsync(CreateEvent(eventId, timestamp), CancellationToken.None);
 
         var page = await repository.QueryAsync(
             new AuditEventQuery(
@@ -101,7 +101,7 @@ public sealed class FileAuditRepositoryTests
                 Application: "web"),
             CancellationToken.None);
 
-        Assert.That(page.Select(evt => evt.EventId), Is.EqualTo(["event-499", "event-498", "event-497"]));
+        Assert.That(page.Select(evt => evt.EventId), Is.EqualTo(["event-999", "event-100", "event-050"]));
     }
 
     [Test]
@@ -238,12 +238,19 @@ public sealed class FileAuditRepositoryTests
             "ws-1",
             AuditApplicationIndexPathsProvider.EncodeApplicationKey("web"),
             "2026-08-22.idx.jsonl");
+        var globalFile = Path.Join(auditDir, "events-2026-08-22.jsonl");
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(File.Exists(indexFile), Is.True);
-            Assert.That(File.ReadAllText(indexFile), Does.Contain("\"kind\":\"frontend\""));
-        });
+        Assert.That(File.Exists(indexFile), Is.True);
+        Assert.That(AuditEventIndexLineCodec.TryParse(File.ReadAllText(indexFile).Trim(), out var indexEntry), Is.True);
+        Assert.That(indexEntry!.Kind, Is.EqualTo("frontend"));
+
+        var indexedLine = await AuditEventOffsetLineReader.ReadLineAsync(
+            globalFile,
+            indexEntry.Offset,
+            indexEntry.Length,
+            CancellationToken.None);
+
+        Assert.That(indexedLine, Does.Contain("\"EventId\":\"event-1\""));
     }
 
     [Test]

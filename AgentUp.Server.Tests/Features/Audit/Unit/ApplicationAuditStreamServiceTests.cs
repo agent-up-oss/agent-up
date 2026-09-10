@@ -35,6 +35,7 @@ public sealed class ApplicationAuditStreamServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(context.Response.ContentType, Is.EqualTo("text/event-stream"));
+            Assert.That(context.Response.Headers.CacheControl.ToString(), Is.EqualTo("no-store"));
             Assert.That(body, Does.Contain("data: "));
             Assert.That(body, Does.Contain("\"eventId\":\"live\""));
             Assert.That(body, Does.Not.Contain("\"eventId\":\"ignored\""));

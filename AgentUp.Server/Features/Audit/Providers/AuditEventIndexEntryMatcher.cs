@@ -7,19 +7,10 @@ namespace AgentUp.Server.Features.Audit.Providers;
 internal static class AuditEventIndexEntryMatcher
 {
     internal static bool Matches(AuditEventQuery query, AuditEventIndexEntry entry)
-        => MatchesKind(query, entry.Kind)
+        => AuditEventMatching.MatchesKind(query.Kind, query.Kinds, entry.Kind)
            && MatchesStream(query, entry)
            && MatchesScope(query, entry.Scope)
            && IsBeforeCursor(query, entry);
-
-    private static bool MatchesKind(AuditEventQuery query, string actual)
-    {
-        if (query.Kinds is { Count: > 0 })
-            return query.Kinds.Any(expected => string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase));
-
-        return string.IsNullOrWhiteSpace(query.Kind)
-               || string.Equals(query.Kind, actual, StringComparison.OrdinalIgnoreCase);
-    }
 
     private static bool MatchesStream(AuditEventQuery query, AuditEventIndexEntry entry)
     {

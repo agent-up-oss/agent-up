@@ -393,13 +393,7 @@ public sealed class FileAuditEventRepository : IAuditEventRepository
         => AuditEventMatching.MatchesApplication(application, evt);
 
     private static bool MatchesKind(string? kind, IReadOnlyList<string>? kinds, string? actual)
-    {
-        if (kinds is { Count: > 0 })
-            return kinds.Any(expected => string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase));
-
-        return string.IsNullOrWhiteSpace(kind)
-               || string.Equals(kind, actual, StringComparison.OrdinalIgnoreCase);
-    }
+        => AuditEventMatching.MatchesKind(kind, kinds, actual);
 
     private static bool MatchesStream(IReadOnlyList<string>? streams, AuditEvent evt)
         => AuditEventMatching.MatchesStreams(streams, evt);

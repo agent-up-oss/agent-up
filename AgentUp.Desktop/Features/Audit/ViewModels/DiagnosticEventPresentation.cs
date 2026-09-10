@@ -20,20 +20,20 @@ internal static class DiagnosticEventPresentation
 
         var message = BuildMessage(dto);
         var messageTone = ClassifyMessage(message);
+        var outcome = dto.Outcome ?? string.Empty;
 
-        if (IsFailureOutcome(dto.Outcome))
+        if (IsFailureOutcome(outcome))
             return new DiagnosticPresentation(CategoryLabel(dto), ErrorColor, message, ErrorColor);
 
-        if (IsWarningOutcome(dto.Outcome) || messageTone == DiagnosticMessageTone.Warning)
+        if (IsWarningOutcome(outcome) || messageTone == DiagnosticMessageTone.Warning)
             return new DiagnosticPresentation(CategoryLabel(dto), WarningColor, message, WarningColor);
 
-        if (IsPositiveOutcome(dto.Outcome) && messageTone != DiagnosticMessageTone.Error)
+        if (IsPositiveOutcome(outcome) && messageTone != DiagnosticMessageTone.Error)
             return new DiagnosticPresentation(CategoryLabel(dto), SuccessColor, message, MessageDefaultColor);
 
         return messageTone switch
         {
             DiagnosticMessageTone.Error => new DiagnosticPresentation(CategoryLabel(dto), ErrorColor, message, ErrorColor),
-            DiagnosticMessageTone.Warning => new DiagnosticPresentation(CategoryLabel(dto), WarningColor, message, WarningColor),
             _ => new DiagnosticPresentation(CategoryLabel(dto), NeutralColor, message, MessageDefaultColor)
         };
     }
@@ -87,7 +87,9 @@ internal static class DiagnosticEventPresentation
     }
 
     private static string CategoryLabel(ApplicationAuditEventDto dto)
-        => dto.Kind.ToLowerInvariant() switch
+    {
+        var kind = dto.Kind ?? string.Empty;
+        return kind.ToLowerInvariant() switch
         {
             "frontend" => "Frontend",
             "application" => "Console",
@@ -96,8 +98,11 @@ internal static class DiagnosticEventPresentation
             "browser" => "Browser",
             "workspace" => "Workspace",
             "stream" => "Stream",
-            _ => string.IsNullOrWhiteSpace(dto.Kind) ? dto.Action : char.ToUpperInvariant(dto.Kind[0]) + dto.Kind[1..].ToLowerInvariant()
+            _ => string.IsNullOrWhiteSpace(kind)
+                ? dto.Action ?? string.Empty
+                : char.ToUpperInvariant(kind[0]) + kind[1..].ToLowerInvariant()
         };
+    }
 
     private static string BuildMessage(ApplicationAuditEventDto dto)
     {
@@ -105,10 +110,14 @@ internal static class DiagnosticEventPresentation
         if (!string.IsNullOrWhiteSpace(message))
             return message;
 
-        return string.Join(" · ", dto.Details
+        var details = dto.Details ?? EmptyDetails;
+        return string.Join(" · ", details
             .Where(pair => !IsHiddenDetailKey(pair.Key))
             .Select(pair => $"{pair.Key}: {pair.Value}"));
     }
+
+    private static readonly IReadOnlyDictionary<string, string> EmptyDetails =
+        new Dictionary<string, string>();
 
     private static bool IsHiddenDetailKey(string key)
         => key.Equals("application", StringComparison.OrdinalIgnoreCase)
@@ -117,7 +126,9 @@ internal static class DiagnosticEventPresentation
            || key.Equals("stream", StringComparison.OrdinalIgnoreCase);
 
     private static string? GetDetail(ApplicationAuditEventDto dto, string key)
-        => dto.Details.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
+        => dto.Details is not null
+           && dto.Details.TryGetValue(key, out var value)
+           && !string.IsNullOrWhiteSpace(value)
             ? value
             : null;
 

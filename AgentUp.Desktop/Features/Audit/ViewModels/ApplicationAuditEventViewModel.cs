@@ -7,7 +7,7 @@ public sealed class ApplicationAuditEventViewModel
     public ApplicationAuditEventViewModel(ApplicationAuditEventDto dto)
     {
         EventId = dto.EventId;
-        Timestamp = dto.Timestamp.ToLocalTime().ToString("HH:mm:ss");
+        Timestamp = FormatTimestamp(dto.Timestamp.ToLocalTime());
         var presentation = DiagnosticEventPresentation.Present(dto);
         Category = presentation.Category;
         CategoryColor = presentation.CategoryColor;
@@ -21,4 +21,12 @@ public sealed class ApplicationAuditEventViewModel
     public string CategoryColor { get; }
     public string Message { get; }
     public string MessageColor { get; }
+
+    private static string FormatTimestamp(DateTimeOffset localTimestamp)
+    {
+        if (localTimestamp.Date == DateTimeOffset.Now.Date)
+            return localTimestamp.ToString("HH:mm:ss");
+
+        return localTimestamp.ToString("yyyy-MM-dd HH:mm:ss");
+    }
 }

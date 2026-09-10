@@ -21,7 +21,7 @@ public sealed class ApplicationAuditStreamService(AuditEventBus eventBus)
         CancellationToken cancellationToken)
     {
         response.ContentType = "text/event-stream";
-        response.Headers.CacheControl = "no-cache";
+        response.Headers.CacheControl = "no-store";
         response.Headers.Connection = "keep-alive";
 
         await using var subscription = eventBus.Subscribe(evt =>

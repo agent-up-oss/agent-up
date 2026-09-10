@@ -14,14 +14,15 @@ namespace AgentUp.Server.Tests.Features.Diagnostics.HTTP;
 public sealed class WorkspaceDiagnosticsHttpTests
 {
     private string _dataDirectory = null!;
+    private WebApplicationFactory<Program> _parentFactory = null!;
     private WebApplicationFactory<Program> _factory = null!;
 
     [SetUp]
     public void SetUp()
     {
         _dataDirectory = Path.Join(Path.GetTempPath(), $"agent-up-diagnostics-http-{Guid.NewGuid():N}");
-        using var factory = new WebApplicationFactory<Program>();
-        _factory = factory.WithWebHostBuilder(builder =>
+        _parentFactory = new WebApplicationFactory<Program>();
+        _factory = _parentFactory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Storage:DataDirectory", _dataDirectory);
             builder.UseSetting("AGENTUP_AUTH_DISABLED", "true");
@@ -32,6 +33,7 @@ public sealed class WorkspaceDiagnosticsHttpTests
     public void TearDown()
     {
         _factory.Dispose();
+        _parentFactory.Dispose();
         if (Directory.Exists(_dataDirectory)) Directory.Delete(_dataDirectory, recursive: true);
     }
 
@@ -69,6 +71,31 @@ public sealed class WorkspaceDiagnosticsHttpTests
         using var client = _factory.CreateClient();
         using var response = await client.GetAsync("/api/diagnostics/workspaces/missing");
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Get_ReturnsBadRequestForOutOfRangeLimits()
+    {
+        using var client = _factory.CreateClient();
+        using var registrationResponse = await client.PostAsJsonAsync("/api/workspaces", new RegisterWorkspaceRequest(
+            "Shop", "/repo", "/repo", "main", "abc")
+        {
+            Applications = [new ApplicationDefinition("web", "npm start", ".", [])]
+        });
+        registrationResponse.EnsureSuccessStatusCode();
+        using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
+        var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
+
+        using var invalidLogLimit = await client.GetAsync(
+            $"/api/diagnostics/workspaces/{workspaceId}?logLimit=0");
+        using var invalidEntryLimit = await client.GetAsync(
+            $"/api/diagnostics/workspaces/{workspaceId}?entryLimit=501");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(invalidLogLimit.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(invalidEntryLimit.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        });
     }
 
     private static async Task RecordAsync(HttpClient client, string workspaceId, string application, string action)

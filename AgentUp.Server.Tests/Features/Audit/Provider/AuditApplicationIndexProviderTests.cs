@@ -52,6 +52,41 @@ public sealed class AuditApplicationIndexProviderTests
     }
 
     [Test]
+    public void IndexLineCodec_RoundTripsApplicationStream()
+    {
+        var evt = new AuditEvent(
+            "evt-stderr",
+            DateTimeOffset.Parse("2026-08-22T12:00:00Z"),
+            "application",
+            "web",
+            "application_console_line",
+            "success",
+            "ws-1",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            new Dictionary<string, string>
+            {
+                ["application"] = "web",
+                ["stream"] = "stderr"
+            },
+            [],
+            "workspace");
+
+        var line = AuditEventIndexLineCodec.Format(evt, 4321, 128);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(AuditEventIndexLineCodec.TryParse(line, out var entry), Is.True);
+            Assert.That(entry!.Stream, Is.EqualTo("stderr"));
+            Assert.That(entry.Kind, Is.EqualTo("application"));
+        });
+    }
+
+    [Test]
     public void IndexEntryMatcher_FiltersKindsStreamsAndCursor()
     {
         var entry = new AuditEventIndexEntry(
@@ -80,7 +115,40 @@ public sealed class AuditApplicationIndexProviderTests
             Kinds: ["application"],
             Streams: ["stderr"]);
 
-        Assert.That(AuditEventIndexEntryMatcher.Matches(query, entry), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(AuditEventIndexEntryMatcher.Matches(query, entry), Is.True);
+            Assert.That(AuditEventIndexEntryMatcher.Matches(query with { Kinds = ["frontend"] }, entry), Is.False);
+            Assert.That(AuditEventIndexEntryMatcher.Matches(query with { Streams = ["stdout"] }, entry), Is.False);
+            Assert.That(AuditEventIndexEntryMatcher.Matches(query with { BeforeEventId = "evt-a" }, entry), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task OffsetLineReader_ReadsSecondLineAtStoredOffset()
+    {
+        var path = Path.Join(Path.GetTempPath(), $"audit-offset-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var first = await AuditEventOffsetLineReader.AppendLineAsync(path, """{"EventId":"evt-1"}""", CancellationToken.None);
+            var second = await AuditEventOffsetLineReader.AppendLineAsync(path, """{"EventId":"evt-2"}""", CancellationToken.None);
+            Assert.That(first, Is.Not.Null);
+            Assert.That(second, Is.Not.Null);
+            Assert.That(second!.Value.Offset, Is.GreaterThan(0));
+
+            var line = await AuditEventOffsetLineReader.ReadLineAsync(
+                path,
+                second.Value.Offset,
+                second.Value.Length,
+                CancellationToken.None);
+
+            Assert.That(line, Is.EqualTo("""{"EventId":"evt-2"}"""));
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
     }
 
     [Test]

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace AgentUp.Server.Features.Audit.Providers;
 
 internal static class AuditEventLogLinePrefilter
@@ -38,5 +40,14 @@ internal static class AuditEventLogLinePrefilter
            || ContainsJsonStringValue(line, "appName", application);
 
     private static bool ContainsJsonStringValue(string line, string key, string value)
-        => line.Contains($"\"{key}\":\"{value}\"", StringComparison.OrdinalIgnoreCase);
+    {
+        if (line.Contains($"\"{key}\":\"{value}\"", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!value.Contains('"', StringComparison.Ordinal) && !value.Contains('\\', StringComparison.Ordinal))
+            return false;
+
+        var escaped = JsonSerializer.Serialize(value)[1..^1];
+        return line.Contains($"\"{key}\":\"{escaped}\"", StringComparison.OrdinalIgnoreCase);
+    }
 }
