@@ -16,17 +16,23 @@ public sealed class HeadlessBrowserCommandDispatcher(
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _workspaceLocks = new();
     private CancellationTokenSource? _cts;
     private Task? _loop;
+    private int _stopCalled;
 
     public Task StartAsync(CancellationToken ct)
     {
         _cts = new CancellationTokenSource();
+        Interlocked.Exchange(ref _stopCalled, 0);
         _loop = RunAsync(_cts.Token);
         return Task.CompletedTask;
     }
 
+    // Shutdown paths can stop a hosted service more than once (WebApplicationFactory
+    // disposal does), so this has to be idempotent: cancelling an already-disposed
+    // source throws ObjectDisposedException and fails the whole host shutdown.
     public async Task StopAsync(CancellationToken ct)
     {
         if (_cts is null) return;
+        if (Interlocked.Exchange(ref _stopCalled, 1) != 0) return;
         await _cts.CancelAsync();
         if (_loop is not null)
             try { await _loop.WaitAsync(ct); }

@@ -233,6 +233,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         base.OnDataContextChanged(e);
         if (DataContext is not MainViewModel vm) return;
 
+        if (vm.ValidationReplay is not null)
+            vm.ConnectValidationReplay(BrowserViewport, vm.ValidationReplay);
+
         _subscriptions.Clear();
         vm.BrowserNavigation.Subscribe(nav =>
             Dispatcher.UIThread.Post(() => HandleNavigation(nav.WorkspaceId, nav.Url, reloadIfSameUrl: true)))

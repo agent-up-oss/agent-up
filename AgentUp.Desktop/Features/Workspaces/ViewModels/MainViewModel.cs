@@ -14,13 +14,16 @@ using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
+using AgentUp.Desktop.Features.Validation.Controllers;
+using AgentUp.Desktop.Features.Validation.Interfaces;
+using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 
-public sealed class MainViewModel : ReactiveObject
+public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 {
     private SubTabViewModel? _selectedSubTab;
     private string? _addressBarUrl;
@@ -33,6 +36,10 @@ public sealed class MainViewModel : ReactiveObject
     private WorkspaceItemViewModel? _workspaceApplicationSubscription;
     private string? _lastSelectedHttpPortKey;
     private CancellationTokenSource? _metricsLoadCts;
+    private bool _isValidationOpen;
+    private readonly ValidationController? _validationController;
+    private CancellationTokenSource? _validationLoad;
+    private Func<string, string, Task<string?>>? _validationEvalAsync;
 
     public WorkspaceListViewModel Sidebar { get; }
     public ApplicationListViewModel Applications { get; }
@@ -44,6 +51,10 @@ public sealed class MainViewModel : ReactiveObject
     public FirstRunTutorialViewModel Tutorial { get; }
     public LoginViewModel Login { get; }
     public WindowChromeViewModel Chrome { get; } = new();
+    public ValidationViewModel? Validation { get; }
+    internal IValidationReplayConnector? ValidationReplay { get; }
+    public bool IsValidationOpen { get => _isValidationOpen; set => this.RaiseAndSetIfChanged(ref _isValidationOpen, value); }
+    public ReactiveCommand<Unit, Unit> ToggleValidationCommand { get; }
 
     private readonly ChromeServerStatusViewModel _chromeServerStatus;
 
@@ -89,7 +100,9 @@ public sealed class MainViewModel : ReactiveObject
         GitPanelViewModel git,
         FirstRunTutorialViewModel tutorial,
         LoginViewModel login,
-        PortsController ports)
+        PortsController ports,
+        ValidationViewModel? validation = null,
+        IValidationReplayConnector? validationReplay = null)
     {
         Sidebar = sidebar;
         Applications = applications;
@@ -101,11 +114,15 @@ public sealed class MainViewModel : ReactiveObject
         Tutorial = tutorial;
         Login = login;
         _ports = ports;
+        Validation = validation;
+        ValidationReplay = validationReplay;
+        _validationController = validation is null ? null : new ValidationController(validation);
         _chromeServerStatus = new ChromeServerStatusViewModel(sidebar);
         UpdateChromeLeftItems(Login.IsVisible);
         Login.WhenAnyValue(viewModel => viewModel.IsVisible)
             .Subscribe(UpdateChromeLeftItems);
 
+        ToggleValidationCommand = ReactiveCommand.Create(() => { IsValidationOpen = !IsValidationOpen; if (IsValidationOpen) LoadValidation(); });
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
@@ -135,6 +152,7 @@ public sealed class MainViewModel : ReactiveObject
                 Metrics.Clear();
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
+                if (IsValidationOpen) LoadValidation();
                 _ = Git.LoadAsync(ws?.Id);
             });
 
@@ -196,6 +214,7 @@ public sealed class MainViewModel : ReactiveObject
             {
                 RebuildSubTabs(app);
                 if (app is null) return;
+                if (IsValidationOpen) LoadValidation();
                 var workspaceId = Sidebar.SelectedWorkspace?.Id;
                 if (workspaceId is not null)
                 {
@@ -391,6 +410,73 @@ public sealed class MainViewModel : ReactiveObject
             _portUrls[origin] = url;
     }
 
+    internal string? GetApplicationHttpOrigin(string workspaceId, string applicationName) =>
+        ResolveApplicationOrigin(workspaceId, applicationName);
+
+    string? IValidationReplayHost.ResolveApplicationOrigin(string workspaceId, string application) =>
+        ResolveApplicationOrigin(workspaceId, application);
+
+    private string? ResolveApplicationOrigin(string workspaceId, string applicationName)
+    {
+        var workspace = Sidebar.Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+        var app = workspace?.Applications.FirstOrDefault(a => string.Equals(a.Name, applicationName, StringComparison.Ordinal));
+        var httpPort = app?.AllocatedPorts.FirstOrDefault(p =>
+            string.Equals(p.Protocol, "http", StringComparison.OrdinalIgnoreCase));
+        return httpPort is null ? null : $"http://127.0.0.1:{httpPort.AllocatedPort}";
+    }
+
+    internal void NavigateBrowserTo(string workspaceId, string url)
+        => _addressNavigations.OnNext((workspaceId, url));
+
+    Task IValidationReplayHost.NavigateAsync(string workspaceId, string url, CancellationToken cancellationToken)
+    {
+        NavigateBrowserTo(workspaceId, url);
+        return Task.CompletedTask;
+    }
+
+    Task<bool> IValidationReplayHost.PrepareViewportAsync(
+        string workspaceId,
+        string applicationName,
+        string url,
+        CancellationToken cancellationToken)
+        => PrepareValidationViewportAsync(workspaceId, applicationName, url, cancellationToken);
+
+    Task<string?> IValidationReplayHost.EvalAsync(string workspaceId, string script, CancellationToken cancellationToken)
+        => _validationEvalAsync?.Invoke(workspaceId, script) ?? Task.FromResult<string?>(null);
+
+    Task IValidationReplayHost.DelayAsync(TimeSpan delay, CancellationToken cancellationToken) =>
+        Task.Delay(delay, cancellationToken);
+
+    internal void ConnectValidationReplay(Browser.Controllers.BrowserViewportController viewport, IValidationReplayConnector replay)
+    {
+        _validationEvalAsync = viewport.EvalAsync;
+        replay.Connect(this);
+    }
+
+    internal async Task<bool> PrepareValidationViewportAsync(
+        string workspaceId,
+        string applicationName,
+        string url,
+        CancellationToken cancellationToken)
+    {
+        var workspace = Sidebar.Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+        if (workspace is null)
+            return false;
+
+        if (Sidebar.SelectedWorkspace?.Id != workspaceId)
+            Sidebar.SelectedWorkspace = workspace;
+
+        var matchingApp = Applications.Applications
+            .FirstOrDefault(a => string.Equals(a.Name, applicationName, StringComparison.Ordinal));
+        if (matchingApp is not null && Applications.SelectedApplication != matchingApp)
+            Applications.SelectedApplication = matchingApp;
+
+        SelectApplicationForUrl(workspaceId, url);
+        NavigateBrowserTo(workspaceId, url);
+        await Task.Delay(750, cancellationToken);
+        return true;
+    }
+
     internal bool SelectApplicationForUrl(string workspaceId, string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
@@ -499,6 +585,23 @@ public sealed class MainViewModel : ReactiveObject
     {
         await Tutorial.InitializeAsync();
         await Sidebar.LoadAsync();
+    }
+
+
+    private void LoadValidation()
+    {
+        if (_validationController is null || Sidebar.SelectedWorkspace?.Id is not { } workspaceId || Applications.SelectedApplication?.Name is not { } application)
+            return;
+
+        // Selections change faster than the server answers. Without superseding the previous
+        // load, a slow earlier response can land last and repaint the panel with another
+        // application's flows. The old source is cancelled but not disposed: the request it
+        // still owns would fault on a disposed token.
+        var cts = new CancellationTokenSource();
+        var previous = _validationLoad;
+        _validationLoad = cts;
+        previous?.Cancel();
+        _ = _validationController.LoadAsync(workspaceId, application, cts.Token);
     }
 
     private void UpdateChromeLeftItems(bool loginVisible)

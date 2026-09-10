@@ -515,7 +515,7 @@ User docs:
 
 AI agents interact with applications through Server-backed browser automation.
 
-Prefer structured inspection and accessibility data over raw HTML. Every interaction should be recordable as an event that can later support diagnostics, workflow inference, and Playwright generation.
+Prefer structured inspection and accessibility data over raw HTML. Every interaction should be recordable as an event that can later support diagnostics, workflow inference, and Playwright generation. Validation flows describe the user-meaningful route through the GUI and the visible expectations at each step, not implementation details; the Server persists versioned flows that agents can edit, re-record, replay in the Desktop WebView with staged mouse movement and attention pings, and export as port-independent Playwright tests for headless CI.
 
 Developer guides:
 
