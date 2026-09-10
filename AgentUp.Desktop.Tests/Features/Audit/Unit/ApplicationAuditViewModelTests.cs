@@ -342,6 +342,138 @@ public sealed class ApplicationAuditViewModelTests
         });
     }
 
+    [Test]
+    public async Task ToggleStreamingCommand_StopsStreamingAndUpdatesButtonText()
+    {
+        using var http = new HttpClient(new StubHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"items\":[],\"nextBefore\":null,\"nextBeforeEventId\":null}")
+            })) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateViewModel(http, withStream: true);
+
+        await vm.LoadAsync("ws-1", "web");
+        Assert.That(vm.IsStreaming, Is.True);
+        Assert.That(vm.StreamingButtonText, Is.EqualTo("Streaming Live"));
+
+        await vm.ToggleStreamingCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.IsStreaming, Is.False);
+            Assert.That(vm.StreamingButtonText, Is.EqualTo("Stopped Streaming"));
+        });
+    }
+
+    [Test]
+    public async Task FirstPageCommand_ReturnsToFirstPage()
+    {
+        using var http = new HttpClient(new StubHandler(request =>
+        {
+            var isContinuation = request.RequestUri!.Query.Contains("before=", StringComparison.Ordinal);
+            var start = isContinuation ? ApplicationAuditViewModel.PageSize : 0;
+            var count = isContinuation ? ApplicationAuditViewModel.FetchPageSize : ApplicationAuditViewModel.PageSize;
+            var items = Enumerable.Range(start, count).Select(index => new
+            {
+                eventId = $"e-{index}",
+                timestamp = "2026-08-22T12:00:00Z",
+                kind = "frontend",
+                action = $"event-{index}",
+                outcome = "success",
+                details = new Dictionary<string, string> { ["application"] = "web", ["message"] = $"event-{index}" }
+            });
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    items = items.ToList(),
+                    nextBefore = isContinuation ? null : "2026-08-22T12:00:00Z",
+                    nextBeforeEventId = isContinuation ? null : "e-last"
+                }))
+            };
+        })) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateViewModel(http);
+
+        await vm.LoadAsync("ws-1", "web");
+        await vm.NextPageCommand.Execute().FirstAsync();
+        await vm.FirstPageCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.CurrentPage, Is.EqualTo(1));
+            Assert.That(vm.Events[0].Message, Is.EqualTo("event-0"));
+        });
+    }
+
+    [Test]
+    public async Task SearchText_WithNoMatches_UsesSearchEmptyMessage()
+    {
+        using var http = new HttpClient(new StubHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    items = new[] { EventDto("e1", "frontend", "kafka failure") },
+                    nextBefore = (string?)null,
+                    nextBeforeEventId = (string?)null
+                }))
+            })) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateViewModel(http);
+
+        await vm.LoadAsync("ws-1", "web");
+        vm.SearchText = "missing-term";
+        await WaitForLoadingAsync(vm);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.ShowEmptyState, Is.True);
+            Assert.That(vm.EmptyMessage, Does.Contain("missing-term"));
+        });
+    }
+
+    [Test]
+    public async Task PageJumpButtons_IncludeCurrentPageAndNeighbors()
+    {
+        var requestCount = 0;
+        using var http = new HttpClient(new StubHandler(request =>
+        {
+            requestCount++;
+            var isContinuation = request.RequestUri!.Query.Contains("before=", StringComparison.Ordinal);
+            var start = isContinuation ? requestCount * ApplicationAuditViewModel.FetchPageSize : 0;
+            var count = requestCount == 1 ? ApplicationAuditViewModel.PageSize : ApplicationAuditViewModel.FetchPageSize;
+            var items = Enumerable.Range(start, count).Select(index => new
+            {
+                eventId = $"e-{index}",
+                timestamp = "2026-08-22T12:00:00Z",
+                kind = "frontend",
+                action = $"event-{index}",
+                outcome = "success",
+                details = new Dictionary<string, string> { ["application"] = "web", ["message"] = $"event-{index}" }
+            });
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    items = items.ToList(),
+                    nextBefore = "2026-08-22T12:00:00Z",
+                    nextBeforeEventId = $"e-{start + count - 1}"
+                }))
+            };
+        })) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateViewModel(http);
+
+        await vm.LoadAsync("ws-1", "web");
+        for (var page = 1; page < 4; page++)
+            await vm.NextPageCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.PageJumpButtons, Is.Not.Empty);
+            Assert.That(vm.PageJumpButtons.Single(button => button.IsCurrent).PageNumber, Is.EqualTo(vm.CurrentPage));
+            Assert.That(vm.PageJumpButtons.Any(button => button.PageNumber == vm.CurrentPage), Is.True);
+        });
+    }
+
     private static async Task WaitForLoadingAsync(ApplicationAuditViewModel vm)
     {
         await Task.Delay(100);

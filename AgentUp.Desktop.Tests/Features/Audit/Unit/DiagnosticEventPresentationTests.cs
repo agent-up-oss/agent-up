@@ -81,6 +81,83 @@ public sealed class DiagnosticEventPresentationTests
         Assert.That(presentation.CategoryColor, Is.EqualTo(DiagnosticEventPresentation.ErrorColor));
     }
 
+    [Test]
+    public void Present_UnhealthyHealthEvent_UsesRedCategory()
+    {
+        var presentation = DiagnosticEventPresentation.Present(Create(
+            "health",
+            "port_health_check",
+            "unhealthy",
+            new Dictionary<string, string>
+            {
+                ["appName"] = "api",
+                ["port"] = "8080",
+                ["state"] = "Unhealthy"
+            }));
+
+        Assert.That(presentation.CategoryColor, Is.EqualTo(DiagnosticEventPresentation.ErrorColor));
+    }
+
+    [Test]
+    public void Present_WarningOutcome_UsesWarningColor()
+    {
+        var presentation = DiagnosticEventPresentation.Present(Create(
+            "frontend",
+            "load_warning",
+            "warning",
+            new Dictionary<string, string> { ["message"] = "Slow response" }));
+
+        Assert.That(presentation.CategoryColor, Is.EqualTo(DiagnosticEventPresentation.WarningColor));
+    }
+
+    [Test]
+    public void Present_StdoutWarningMessage_UsesWarningColor()
+    {
+        var presentation = DiagnosticEventPresentation.Present(Create(
+            "application",
+            "application_console_line",
+            "success",
+            new Dictionary<string, string>
+            {
+                ["stream"] = "stdout",
+                ["message"] = "[WARN] Retrying connection"
+            }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(presentation.Category, Is.EqualTo("Stdout"));
+            Assert.That(presentation.MessageColor, Is.EqualTo(DiagnosticEventPresentation.WarningColor));
+        });
+    }
+
+    [Test]
+    public void Present_UnknownKind_UsesCapitalizedCategoryLabel()
+    {
+        var presentation = DiagnosticEventPresentation.Present(Create(
+            "customkind",
+            "custom_action",
+            "success",
+            new Dictionary<string, string> { ["message"] = "done" }));
+
+        Assert.That(presentation.Category, Is.EqualTo("Customkind"));
+    }
+
+    [Test]
+    public void Present_BuildsMessageFromVisibleDetailsWhenMessageMissing()
+    {
+        var presentation = DiagnosticEventPresentation.Present(Create(
+            "browser",
+            "navigation_failed",
+            "failure",
+            new Dictionary<string, string>
+            {
+                ["url"] = "/checkout",
+                ["statusCode"] = "500"
+            }));
+
+        Assert.That(presentation.Message, Does.Contain("url: /checkout"));
+    }
+
     private static ApplicationAuditEventDto Create(
         string kind,
         string action,
