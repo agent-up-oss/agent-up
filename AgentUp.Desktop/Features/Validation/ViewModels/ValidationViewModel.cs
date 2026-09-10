@@ -36,6 +36,7 @@ public sealed class ValidationViewModel(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Superseded by a newer selection; that load owns the panel state now.
+            return;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
         {

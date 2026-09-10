@@ -597,9 +597,11 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         // load, a slow earlier response can land last and repaint the panel with another
         // application's flows. The old source is cancelled but not disposed: the request it
         // still owns would fault on a disposed token.
-        var load = new CancellationTokenSource();
-        Interlocked.Exchange(ref _validationLoad, load)?.Cancel();
-        _ = _validationController.LoadAsync(workspaceId, application, load.Token);
+        var cts = new CancellationTokenSource();
+        var previous = _validationLoad;
+        _validationLoad = cts;
+        previous?.Cancel();
+        _ = _validationController.LoadAsync(workspaceId, application, cts.Token);
     }
 
     private void UpdateChromeLeftItems(bool loginVisible)
