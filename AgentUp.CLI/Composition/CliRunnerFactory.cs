@@ -75,6 +75,7 @@ public static class CliRunnerFactory
             new ClearCommand(workspaceService, writer),
             new ListCommand(workspaceService, workspaceOutput),
             new StatusCommand(workspaceService, workspaceOutput),
+            new DiagnosticsCommand(workspaceService, workspaceOutput),
             authentication,
             commits);
     }

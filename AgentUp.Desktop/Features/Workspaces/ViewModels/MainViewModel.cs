@@ -281,6 +281,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                     && Sidebar.SelectedWorkspace?.Id is { } workspaceId
                     && Applications.SelectedApplication?.Name is { } application)
                     _ = Audit.LoadAsync(workspaceId, application);
+                else
+                    Audit.Deactivate();
                 if (tab is DatabaseSubTabViewModel
                     && Sidebar.SelectedWorkspace?.Id is { } dbWorkspaceId
                     && Applications.SelectedApplication?.Name is { } dbApplication)

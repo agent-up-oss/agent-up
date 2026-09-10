@@ -29,7 +29,8 @@ public sealed class AuditServiceTests
             events,
             new InMemoryAuditArtifactRepository(),
             identity,
-            new WorkspaceQueryController(registry));
+            new WorkspaceQueryController(registry),
+            new AuditEventBus());
 
         var recorded = await service.RecordAsync(
             new AuditRecordRequest("browser", "mcp", "browser_click", "success", workspace.Id),
@@ -54,7 +55,8 @@ public sealed class AuditServiceTests
             events,
             artifacts,
             new FakeAuditIdentityProvider(),
-            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()));
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new AuditEventBus());
         var image = Convert.ToBase64String([1, 2, 3]);
 
         var result = await service.RecordScreenshotAsync(
@@ -86,7 +88,8 @@ public sealed class AuditServiceTests
             events,
             new InMemoryAuditArtifactRepository(),
             new FakeAuditIdentityProvider(),
-            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()));
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new AuditEventBus());
 
         await service.RecordAsync(
             new AuditRecordRequest(
@@ -122,7 +125,8 @@ public sealed class AuditServiceTests
             new InMemoryAuditEventRepository(),
             artifacts,
             new FakeAuditIdentityProvider(),
-            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()));
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new AuditEventBus());
         var saved = await artifacts.SaveAsync("evt", "browser-screenshot", "image/png", [1, 2, 3], CancellationToken.None);
 
         var withoutImage = await service.LoadArtifactAsync(saved.ArtifactId, includeImage: false, CancellationToken.None);

@@ -152,5 +152,6 @@ internal static class ServerTestComposition
             events ?? new InMemoryAuditEventRepository(),
             artifacts ?? new InMemoryAuditArtifactRepository(),
             identity ?? new FakeAuditIdentityProvider(),
-            new WorkspaceQueryController(registry ?? CreateRegistry())));
+            new WorkspaceQueryController(registry ?? CreateRegistry()),
+            new AuditEventBus()));
 }

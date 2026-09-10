@@ -23,13 +23,15 @@ public sealed class AuditHttpController(AuditController audit) : ControllerBase
     public async Task<ActionResult<DTOs.AuditEventPageDto>> QueryApplication(
         string workspaceId,
         string application,
+        [FromQuery] string[]? kinds,
+        [FromQuery] string[]? streams,
         [FromQuery] DateTimeOffset? before,
         [FromQuery] string? beforeEventId,
         [FromQuery, Range(1, 100)] int limit = 50,
         CancellationToken ct = default)
     {
         var query = new DTOs.AuditEventQuery(
-            workspaceId, null, null, null, null, "frontend", null, null, null, null, limit, null, application, before, beforeEventId);
+            workspaceId, null, null, null, null, null, null, null, null, null, limit, null, application, before, beforeEventId, kinds, streams);
         return Ok(await audit.QueryPageAsync(query, ct));
     }
 }

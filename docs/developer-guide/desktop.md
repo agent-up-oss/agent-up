@@ -117,7 +117,7 @@ Desktop sets a runtime `WindowIcon` from `media/logo.png` so Linux/Xorg window s
 +---------------------------------------------------------------+
 ```
 
-The left side shows workspace selection, health, branch, and running state. Running and starting workspaces always appear above stopping, stopped, or failed ones; within each group the Server orders by recent activity. Desktop preserves that order on reload and re-sorts live when workspace state changes. Sidebar collapse and reload are controlled from the title bar so the sidebar rail remains dedicated to workspace content. Expanded workspace rows fill the sidebar width, use the last segment of the repository path as the title, show the branch underneath, and expose the full repository path as the hover tooltip. The top area shows browser tabs, logs, and diagnostics. The center contains the embedded browser.
+The left side shows workspace selection, health, branch, and running state. Running and starting workspaces always appear above stopping, stopped, or failed ones; within each group the Server orders by recent activity. Desktop preserves that order on reload and re-sorts live when workspace state changes. Sidebar collapse and reload are controlled from the title bar so the sidebar rail remains dedicated to workspace content. Expanded workspace rows fill the sidebar width, use the last segment of the repository path as the title, show the branch underneath, and expose the full repository path as the hover tooltip. The top area shows browser tabs, logs, and diagnostics. The Diagnostics tab is the selected application's durable Server-owned diagnostic trail; application and port controls show current process and health state. The center contains the embedded browser.
 
 ## Application Tabs
 

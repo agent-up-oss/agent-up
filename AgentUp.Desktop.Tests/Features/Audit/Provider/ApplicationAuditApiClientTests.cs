@@ -7,7 +7,7 @@ namespace AgentUp.Desktop.Tests.Features.Audit.Provider;
 public sealed class ApplicationAuditApiClientTests
 {
     [Test]
-    public async Task GetPageAsync_EncodesIdentityAndCursor()
+    public async Task GetPageAsync_EncodesIdentityKindsAndCursor()
     {
         Uri? requested = null;
         using var http = new HttpClient(new StubHandler(request =>
@@ -18,9 +18,17 @@ public sealed class ApplicationAuditApiClientTests
         var client = new ApplicationAuditApiClient(http);
         var before = DateTimeOffset.Parse("2026-08-22T12:00:00Z");
 
-        await client.GetPageAsync("workspace one", "web/app", before, "event/one", 50, CancellationToken.None);
+        await client.GetPageAsync(
+            "workspace one",
+            "web/app",
+            ["health", "frontend"],
+            [],
+            before,
+            "event/one",
+            50,
+            CancellationToken.None);
 
-        Assert.That(requested!.PathAndQuery, Does.StartWith("/api/audit/workspaces/workspace%20one/applications/web%2Fapp?limit=50&before="));
+        Assert.That(requested!.PathAndQuery, Does.StartWith("/api/audit/workspaces/workspace%20one/applications/web%2Fapp?limit=50&kinds=health&kinds=frontend&before="));
         Assert.That(requested.PathAndQuery, Does.Contain("&beforeEventId=event%2Fone"));
     }
 

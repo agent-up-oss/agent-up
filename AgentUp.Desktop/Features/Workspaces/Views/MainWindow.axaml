@@ -52,7 +52,7 @@
         <!-- Audit sub-tab -->
         <DataTemplate DataType="portVm:AuditSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
-                <TextBlock Text="Audit" Foreground="#c2d2ca" FontSize="12" FontWeight="Bold"/>
+                <TextBlock Text="Diagnostics" Foreground="#c2d2ca" FontSize="12" FontWeight="Bold"/>
             </Border>
         </DataTemplate>
 
@@ -266,6 +266,70 @@
         </Style>
         <Style Selector="ListBoxItem:selected Border.subTab">
             <Setter Property="Background" Value="#0f7a45"/>
+        </Style>
+
+        <Style Selector="ToggleButton.filterChip">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="ChipBorder"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                CornerRadius="999"
+                                Padding="13,7">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.filterChip:pointerover /template/ Border#ChipBorder">
+            <Setter Property="Background" Value="#0a0a0a"/>
+        </Style>
+        <Style Selector="ToggleButton.filterChip:checked /template/ Border#ChipBorder">
+            <Setter Property="Background" Value="#0f7a45"/>
+        </Style>
+
+        <Style Selector="Border.auditTableHeader">
+            <Setter Property="BorderBrush" Value="#163923"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+        <Style Selector="Border.auditTableRow">
+            <Setter Property="BorderBrush" Value="#163923"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="8,5"/>
+        </Style>
+        <Style Selector="Button.auditPageJump">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinWidth" Value="24"/>
+        </Style>
+        <Style Selector="Button.auditPageJump:pointerover Border.auditPageJumpInner">
+            <Setter Property="Background" Value="#0a0a0a"/>
+        </Style>
+        <Style Selector="Border.auditPageJumpInner">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#2b4635"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Border.auditPageJumpInnerCurrent">
+            <Setter Property="Background" Value="#0f7a45"/>
+            <Setter Property="BorderBrush" Value="#0f7a45"/>
         </Style>
 
         <!-- Browser address bar -->
@@ -1086,26 +1150,104 @@
                                 </StackPanel>
                             </Grid>
 
-                            <Grid x:Name="AuditPanel" IsVisible="{Binding ShowAudit}" RowDefinitions="*,Auto">
-                                <ListBox x:Name="AuditEventList" Grid.Row="0" ItemsSource="{Binding Audit.Events}" Margin="16,12">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border BorderBrush="#163923" BorderThickness="0,0,0,1" Padding="10,9">
-                                                <Grid ColumnDefinitions="150,150,*" ColumnSpacing="12">
-                                                    <TextBlock Grid.Column="0" Text="{Binding Timestamp}" Foreground="#789085" FontSize="11"/>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{Binding Action}" Foreground="#f5fbf7" FontWeight="Bold" FontSize="12"/>
-                                                        <TextBlock Text="{Binding Outcome}" Foreground="#00b850" FontSize="11"/>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#aebcb3" FontSize="11" TextWrapping="Wrap"/>
-                                                </Grid>
+                            <Grid x:Name="AuditPanel" IsVisible="{Binding ShowAudit}" RowDefinitions="Auto,Auto,*,Auto">
+                                <StackPanel Grid.Row="0" Margin="16,12,16,0" Spacing="8">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Command="{Binding Audit.ToggleStreamingCommand}">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Text="{Binding Audit.StreamingButtonText}" Foreground="#f5fbf7" FontSize="11"/>
                                             </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                                <Button x:Name="AuditLoadMoreButton" Grid.Row="1" IsVisible="{Binding Audit.HasMore}" Command="{Binding Audit.LoadMoreCommand}" Margin="20,8" HorizontalAlignment="Left">
-                                    <Border Classes="tutorialSecondaryButton"><TextBlock Text="Load older events" Foreground="#f5fbf7" FontSize="11"/></Border>
-                                </Button>
+                                        </Button>
+                                        <Button Command="{Binding Audit.RefreshCommand}" IsEnabled="{Binding Audit.CanRefresh}">
+                                            <Border Classes="tutorialSecondaryButton">
+                                                <TextBlock Text="Refresh" Foreground="#f5fbf7" FontSize="11"/>
+                                            </Border>
+                                        </Button>
+                                        <TextBox x:Name="AuditSearchBox"
+                                                 Classes="addressBar"
+                                                 MinWidth="220"
+                                                 PlaceholderText="Search diagnostics"
+                                                 Text="{Binding Audit.SearchText, Mode=TwoWay}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Categories"
+                                               Foreground="#8aa497"
+                                               FontSize="11"
+                                               FontWeight="Medium"/>
+                                    <ItemsControl ItemsSource="{Binding Audit.KindFilters}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ToggleButton Classes="filterChip"
+                                                              IsChecked="{Binding IsSelected}">
+                                                    <TextBlock Text="{Binding Label}" Foreground="#c2d2ca" FontSize="11"/>
+                                                </ToggleButton>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="{Binding Audit.EmptyMessage}"
+                                               IsVisible="{Binding Audit.ShowEmptyState}"
+                                               Foreground="#789085"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <Grid Grid.Row="2" Margin="16,8,16,0" RowDefinitions="Auto,*">
+                                    <Border Grid.Row="0" Classes="auditTableHeader">
+                                        <Grid ColumnDefinitions="72,72,*" ColumnSpacing="10">
+                                            <TextBlock Grid.Column="0" Text="Time" Foreground="#789085" FontSize="10" FontWeight="Medium"/>
+                                            <TextBlock Grid.Column="1" Text="Type" Foreground="#789085" FontSize="10" FontWeight="Medium"/>
+                                            <TextBlock Grid.Column="2" Text="Message" Foreground="#789085" FontSize="10" FontWeight="Medium"/>
+                                        </Grid>
+                                    </Border>
+                                    <ScrollViewer Grid.Row="1">
+                                        <ItemsControl x:Name="AuditEventList" ItemsSource="{Binding Audit.Events}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Classes="auditTableRow">
+                                                        <Grid ColumnDefinitions="72,72,*" ColumnSpacing="10">
+                                                            <TextBlock Grid.Column="0" Text="{Binding Timestamp}" Foreground="#789085" FontSize="10" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Category}" Foreground="{Binding CategoryColor}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding Message}" Foreground="{Binding MessageColor}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="6" Margin="20,8" VerticalAlignment="Center">
+                                    <Button x:Name="AuditFirstPageButton" Classes="auditPageJump" Command="{Binding Audit.FirstPageCommand}" IsEnabled="{Binding Audit.CanGoFirst}" ToolTip.Tip="First page">
+                                        <Border Classes="auditPageJumpInner"><TextBlock Text="&#xAB;" Foreground="#f5fbf7" FontSize="11" HorizontalAlignment="Center"/></Border>
+                                    </Button>
+                                    <Button x:Name="AuditPreviousPageButton" Classes="auditPageJump" Command="{Binding Audit.PreviousPageCommand}" IsEnabled="{Binding Audit.CanGoPrevious}" ToolTip.Tip="Previous page">
+                                        <Border Classes="auditPageJumpInner"><TextBlock Text="&#x2039;" Foreground="#f5fbf7" FontSize="13" HorizontalAlignment="Center"/></Border>
+                                    </Button>
+                                    <ItemsControl ItemsSource="{Binding Audit.PageJumpButtons}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="4"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Classes="auditPageJump" Command="{Binding JumpCommand}">
+                                                    <Border Classes="auditPageJumpInner" Classes.auditPageJumpInnerCurrent="{Binding IsCurrent}">
+                                                        <TextBlock Text="{Binding PageNumber}" Foreground="#f5fbf7" FontSize="11" HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Button x:Name="AuditNextPageButton" Classes="auditPageJump" Command="{Binding Audit.NextPageCommand}" IsEnabled="{Binding Audit.CanGoNext}" ToolTip.Tip="Next page">
+                                        <Border Classes="auditPageJumpInner"><TextBlock Text="&#x203A;" Foreground="#f5fbf7" FontSize="13" HorizontalAlignment="Center"/></Border>
+                                    </Button>
+                                    <Button x:Name="AuditLastPageButton" Classes="auditPageJump" Command="{Binding Audit.LastPageCommand}" IsEnabled="{Binding Audit.CanGoLast}" ToolTip.Tip="Last page">
+                                        <Border Classes="auditPageJumpInner"><TextBlock Text="&#xBB;" Foreground="#f5fbf7" FontSize="11" HorizontalAlignment="Center"/></Border>
+                                    </Button>
+                                </StackPanel>
                             </Grid>
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->

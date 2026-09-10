@@ -12,6 +12,8 @@ using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Features.Diagnostics.Controllers;
+using AgentUp.Server.Features.Diagnostics.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
 using AgentUp.Server.Features.Orchestration.Providers;
@@ -104,6 +106,7 @@ public sealed class OrchestrationMcpHostingTests
         var tools = options.ToolCollection?.PrimitiveNames.ToArray() ?? [];
         Assert.That(tools, Does.Contain("start_workspace"));
         Assert.That(tools, Does.Contain("get_workspace_console"));
+        Assert.That(tools, Does.Contain("get_workspace_diagnostics"));
         Assert.That(tools, Does.Contain("get_agent_up_context"));
         Assert.That(tools, Does.Not.Contain("enqueue_commit"));
         Assert.That(options.ResourceCollection?.PrimitiveNames ?? [], Does.Contain("agent-up://context"));
@@ -152,6 +155,7 @@ public sealed class OrchestrationMcpHostingTests
             .WithTools<OrchestrationMcpTools>()
             .WithTools<BrowserMcpTools>()
             .WithTools<AuditMcpTools>()
+            .WithTools<DiagnosticsMcpTools>()
             .WithResources<OrchestrationMcpResources>();
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
@@ -176,6 +180,7 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<IAuditEventRepository, InMemoryAuditEventRepository>();
         builder.Services.AddSingleton<IAuditArtifactRepository, InMemoryAuditArtifactRepository>();
         builder.Services.AddSingleton<IAuditIdentityProvider, FakeAuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditEventBus>();
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton(sp => new WorkspaceStreamStateService(
@@ -209,6 +214,8 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<CommitsController>();
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<AuditController>(sp => ServerTestComposition.CreateAuditController());
+        builder.Services.AddSingleton<WorkspaceDiagnosticsService>();
+        builder.Services.AddSingleton<WorkspaceDiagnosticsController>();
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
 
         return builder.Build();

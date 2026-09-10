@@ -35,6 +35,8 @@ using AgentUp.Server.Features.Database.Controllers;
 using AgentUp.Server.Features.Database.Interfaces;
 using AgentUp.Server.Features.Database.Providers;
 using AgentUp.Server.Features.Database.Services;
+using AgentUp.Server.Features.Diagnostics.Controllers;
+using AgentUp.Server.Features.Diagnostics.Services;
 using AgentUp.Server.Features.Git.Interfaces;
 using AgentUp.Server.Features.Git.Providers;
 using AgentUp.Server.Features.Git.Services;
@@ -113,6 +115,7 @@ public static class ServiceRegistration
             .WithTools<BrowserMcpTools>()
             .WithTools<ValidationMcpTools>()
             .WithTools<AuditMcpTools>()
+            .WithTools<DiagnosticsMcpTools>()
             .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
 
@@ -130,8 +133,12 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AuditWorkdirIdProvider>();
         builder.Services.AddSingleton<AuditGitStateProvider>();
         builder.Services.AddSingleton<IAuditIdentityProvider, AuditIdentityProvider>();
+        builder.Services.AddSingleton<AuditEventBus>();
+        builder.Services.AddSingleton<ApplicationAuditStreamService>();
         builder.Services.AddSingleton<AuditService>();
         builder.Services.AddSingleton<AuditController>();
+        builder.Services.AddSingleton<WorkspaceDiagnosticsService>();
+        builder.Services.AddSingleton<WorkspaceDiagnosticsController>();
         builder.Services.AddHostedService<WorkspaceAuditSubscriber>();
         builder.Services.AddSingleton<IPortRangeStore>(_ =>
             new FilePortRangeStore(Path.Join(dataDir, "port-ranges.json")));

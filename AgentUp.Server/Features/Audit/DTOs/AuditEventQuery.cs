@@ -15,4 +15,6 @@ public sealed record AuditEventQuery(
     string? Scope = null,
     string? Application = null,
     DateTimeOffset? Before = null,
-    string? BeforeEventId = null);
+    string? BeforeEventId = null,
+    IReadOnlyList<string>? Kinds = null,
+    IReadOnlyList<string>? Streams = null);

@@ -62,6 +62,14 @@ Shows the state of the workspace in the current directory.
 dotnet run --project AgentUp.CLI -- status --server http://localhost:5001
 ```
 
+### diagnostics
+
+Shows the current workspace's process and health state, recent application logs, and relevant JavaScript, network, and browser errors. Diagnostic entries are marked `active` or `resolved` and identify the affected application or browser session when that context is available.
+
+```bash
+dotnet run --project AgentUp.CLI -- diagnostics --server http://localhost:5001
+```
+
 ### auth
 
 Authenticates the CLI with a Server that requires the admin password. Tokens are stored locally per server URL and attached automatically to later workspace commands.
