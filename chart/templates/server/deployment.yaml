@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-up-server
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: agent-up-server
+  template:
+    metadata:
+      labels:
+        app: agent-up-server
+      annotations:
+        checksum/capabilities: {{ .Values.capabilities | toJson | sha256sum }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      securityContext:
+        fsGroup: {{ .Values.server.securityContext.fsGroup }}
+        runAsUser: {{ .Values.server.securityContext.runAsUser }}
+        runAsNonRoot: {{ .Values.server.securityContext.runAsNonRoot }}
+      containers:
+        - name: agent-up-server
+          image: "{{ .Values.server.image.repository }}:{{ default .Chart.AppVersion .Values.server.image.tag }}"
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://0.0.0.0:8080
+            - name: Storage__DataDirectory
+              value: {{ .Values.server.dataDirectory | quote }}
+            - name: AGENTUP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default "agent-up-server-secrets" .Values.server.existingSecret }}
+                  key: {{ .Values.server.existingSecretKeys.adminPassword }}
+            - name: AGENTUP_CAPABILITY_INVENTORY_PATH
+              value: /etc/agent-up/capabilities.json
+          livenessProbe:
+            httpGet:
+              path: /api/auth/status
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/auth/status
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: agent-up-server-data
+              mountPath: {{ .Values.server.dataDirectory }}
+            - name: agent-up-capabilities
+              mountPath: /etc/agent-up/capabilities.json
+              subPath: capabilities.json
+              readOnly: true
+      volumes:
+        - name: agent-up-server-data
+          persistentVolumeClaim:
+            claimName: agent-up-server-data
+        - name: agent-up-capabilities
+          configMap:
+            name: agent-up-capabilities

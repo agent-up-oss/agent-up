@@ -13,3 +13,4 @@ release-artifacts/
 .env.*
 !.env.example
 tmp/
+*.tgz

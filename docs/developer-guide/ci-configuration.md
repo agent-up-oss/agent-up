@@ -94,6 +94,15 @@ The release job uses `GITHUB_TOKEN`, which GitHub provides automatically. No set
 
 Releases only run on `main` when semantic-release determines a new version is warranted based on [Conventional Commits](https://www.conventionalcommits.org/).
 
+The same release publishes the Server image and `agent-up-helm` chart to Docker Hub. Create the public repositories `themassiveone/agent-up-server` and `themassiveone/agent-up-helm` on Docker Hub, then add a token with write access.
+
+| Secret | Value |
+|---|---|
+| `DOCKERHUB_USERNAME` | Docker Hub username or organization account used to push |
+| `DOCKERHUB_TOKEN` | Docker Hub access token with write access to those repositories |
+
+If those secrets are missing, the GitHub release still succeeds until semantic-release reaches the container and chart publish steps, which then fail.
+
 LocalInstaller NuGet publishing is optional. Add `NUGET_API_KEY` to publish `LocalInstaller.Core`, `LocalInstaller.App`, `LocalInstaller.Packaging`, and `LocalInstaller.Smoke` packages from the `localinstaller.yml` release job; when the secret is absent, the GitHub release still publishes the NuGet package files and separately labeled sample installer assets.
 
 ## JetBrains Marketplace

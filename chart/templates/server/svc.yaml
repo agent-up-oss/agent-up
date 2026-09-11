@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-up-server
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: agent-up-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
