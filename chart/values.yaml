@@ -1,0 +1,31 @@
+namespace: agent-up
+platform:
+  apexDomain: massivecreationlab.com
+  disableSsl: false
+ingress:
+  host: ""
+  tlsSecretName: agent-up-tls
+  clusterIssuer: letsencrypt-prod
+imagePullSecrets: []
+server:
+  image:
+    repository: docker.io/themassiveone/agent-up-server
+    tag: ""
+    pullPolicy: Always
+  existingSecret: ""
+  existingSecretKeys:
+    adminPassword: AGENTUP_ADMIN_PASSWORD
+  adminPassword: ""
+  storage: 10Gi
+  dataDirectory: /var/lib/agent-up
+  securityContext:
+    fsGroup: 1654
+    runAsUser: 1654
+    runAsNonRoot: true
+capabilities:
+  docker:
+    disabled: true
+    versions: []
+  dotnet:
+    disabled: true
+    versions: []

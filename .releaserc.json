@@ -25,6 +25,20 @@
           { "path": "release-artifacts/manifest.json",                    "label": "Release manifest" }
         ]
       }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "verifyConditionsCmd": "./.github/scripts/verify-container.sh AgentUp.Server agent-up-server",
+        "publishCmd": "./.github/scripts/build-container.sh AgentUp.Server agent-up-server ${nextRelease.version}"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "verifyConditionsCmd": "./.github/scripts/verify-chart.sh",
+        "publishCmd": "./.github/scripts/publish-chart.sh ${nextRelease.version}"
+      }
     ]
   ]
 }
