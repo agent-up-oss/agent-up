@@ -26,7 +26,7 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_stagesFilesAndReturnsZero()
     {
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs", "b.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs", "b.cs"]);
         var git = new FakeCommitsGitProvider();
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
@@ -40,7 +40,7 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_outputContainsSliceAndMessage()
     {
-        var entry = new CommitEntry("MySlice", "feat(Slice): msg", ["a.cs"], []);
+        var entry = new CommitEntry("MySlice", "feat(Slice): msg", ["a.cs"]);
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
@@ -54,7 +54,7 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_outputSuggestsGitCommitCommand()
     {
-        var entry = new CommitEntry("Slice", "feat(Slice): the feature", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): the feature", ["a.cs"]);
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
@@ -67,8 +67,8 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_multipleEntries_popsFirstAndShowsRemaining()
     {
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"], []),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"]),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
         ]);
         using var output = new StringWriter();
         var command = BuildCommand(output, queue);
@@ -84,8 +84,8 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_multipleEntries_doesNotStageSecondEntryFiles()
     {
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"], []),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"]),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
         ]);
         var git = new FakeCommitsGitProvider();
         using var output = new StringWriter();
@@ -99,7 +99,7 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_lastEntry_outputIndicatesQueueIsEmpty()
     {
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"]);
         using var output = new StringWriter();
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
@@ -112,7 +112,7 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_whenStagedChangesExist_returnsOneWithError()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"]);
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
         var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
 
@@ -126,7 +126,7 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_jsonFormat_singleEntry_writesCommitMessageAndRemainingCount()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["a.cs"]);
         var command = BuildCommand(output, new CommitsQueue(1, [entry]));
 
         var code = await command.RunAsync(["--format", "json"]);
@@ -160,7 +160,7 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_jsonFormat_whenStagedChangesExist_returnsBlockedResult()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"], []);
+        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"]);
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
         var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
 

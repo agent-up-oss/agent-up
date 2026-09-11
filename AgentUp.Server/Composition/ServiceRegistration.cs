@@ -28,6 +28,11 @@ using AgentUp.Server.Features.Browser.Providers;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Commits.Controllers;
+using AgentUp.Server.Features.Verification.Controllers;
+using AgentUp.Server.Features.Verification.Services;
+using AgentUp.Verification.Features.Verification.Interfaces;
+using AgentUp.Verification.Features.Verification.Providers;
+using AgentUp.Verification.Features.Verification.Services;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Providers;
 using AgentUp.Server.Features.Commits.Services;
@@ -112,6 +117,7 @@ public static class ServiceRegistration
             })
             .WithTools<OrchestrationMcpTools>()
             .WithTools<CommitQueueMcpTools>()
+            .WithTools<VerificationMcpTools>()
             .WithTools<BrowserMcpTools>()
             .WithTools<ValidationMcpTools>()
             .WithTools<AuditMcpTools>()
@@ -188,6 +194,26 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
+
+        // Verification owns test selection and proof. It never reads the commit queue, so
+        // the commit module stays optional; the queue contributes changed content only
+        // through the IChangedContentSource seam below.
+        builder.Services.AddSingleton<PathGlobProvider>();
+        builder.Services.AddSingleton<ContentHashProvider>();
+        builder.Services.AddSingleton<GitChangeOutputParser>();
+        builder.Services.AddSingleton<GitDirectoryProvider>();
+        builder.Services.AddSingleton<IVerificationClock, VerificationClock>();
+        builder.Services.AddSingleton<IPlatformCapabilityProvider, PlatformCapabilityProvider>();
+        builder.Services.AddSingleton<IVerificationConfigurationLoader, VerificationConfigurationLoader>();
+        builder.Services.AddSingleton<IReceiptLedgerStore, FileReceiptLedgerStore>();
+        builder.Services.AddSingleton<ICheckRunner, ProcessCheckRunner>();
+        builder.Services.AddSingleton<IChangedContentSource, GitChangedContentSource>();
+        builder.Services.AddSingleton<CheckPlanProvider>();
+        builder.Services.AddSingleton<VerificationPlanService>();
+        builder.Services.AddSingleton<VerificationRunService>();
+        builder.Services.AddSingleton<VerificationGuardService>();
+        builder.Services.AddSingleton<VerificationReportService>();
+        builder.Services.AddSingleton<VerificationMcpService>();
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();
         builder.Services.AddSingleton<BrowserSessionStore>();

@@ -31,17 +31,6 @@ public sealed class CommitsArgParserTests
     }
 
     [Test]
-    public void Parse_withTests_collectsTestCommands()
-    {
-        var parser = new CommitsArgParser();
-
-        var (request, error) = parser.Parse(["--slice", "S", "--message", "msg", "--files", "a.cs", "--tests", "cmd1", "cmd2"]);
-
-        Assert.That(error, Is.Null);
-        Assert.That(request!.Tests, Is.EqualTo(new[] { "cmd1", "cmd2" }));
-    }
-
-    [Test]
     public void Parse_missingSlice_returnsError()
     {
         var parser = new CommitsArgParser();
@@ -90,9 +79,13 @@ public sealed class CommitsArgParserTests
     {
         var parser = new CommitsArgParser();
 
-        var (request, _) = parser.Parse(["--slice", "S", "--message", "msg", "--files", "a.cs", "--tests", "cmd"]);
+        var (request, error) = parser.Parse(["--message", "msg", "--files", "a.cs", "--slice", "S"]);
 
-        Assert.That(request!.Files, Is.EqualTo(new[] { "a.cs" }));
-        Assert.That(request.Tests, Is.EqualTo(new[] { "cmd" }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(request!.Files, Is.EqualTo(new[] { "a.cs" }));
+            Assert.That(request!.Slice, Is.EqualTo("S"));
+        });
     }
 }

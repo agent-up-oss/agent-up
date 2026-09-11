@@ -27,7 +27,7 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_singleEntry_writesSliceAndMessage()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [new CommitEntry("MySlice", "feat(MySlice): thing", ["a.cs"], [])]);
+        var queue = new CommitsQueue(1, [new CommitEntry("MySlice", "feat(MySlice): thing", ["a.cs"])]);
         var command = BuildCommand(output, queue: queue);
 
         await command.RunAsync();
@@ -41,8 +41,8 @@ public sealed class CommitsStatusCommandTests
     {
         using var output = new StringWriter();
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"], []),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"]),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
         ]);
         var command = BuildCommand(output, queue: queue);
 
@@ -59,7 +59,7 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_unassignedFiles_writesWarning()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "msg", ["owned.cs"], [])]);
+        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "msg", ["owned.cs"])]);
         var command = BuildCommand(output, queue: queue, modifiedFiles: ["owned.cs", "unassigned.cs"]);
 
         await command.RunAsync();
@@ -72,7 +72,7 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_allFilesAssigned_noWarning()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "msg", ["a.cs", "b.cs"], [])]);
+        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "msg", ["a.cs", "b.cs"])]);
         var command = BuildCommand(output, queue: queue, modifiedFiles: ["a.cs", "b.cs"]);
 
         await command.RunAsync();
@@ -81,26 +81,12 @@ public sealed class CommitsStatusCommandTests
     }
 
     [Test]
-    public async Task RunAsync_entryWithTests_showsTestCount()
-    {
-        using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [
-            new CommitEntry("Slice", "msg", ["a.cs"], ["dotnet test Foo", "dotnet test Bar"])
-        ]);
-        var command = BuildCommand(output, queue: queue);
-
-        await command.RunAsync();
-
-        Assert.That(output.ToString(), Does.Contain("2 test command(s)"));
-    }
-
-    [Test]
     public async Task RunAsync_jsonFormat_writesQueueCountAndEntries()
     {
         using var output = new StringWriter();
         var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"], [], "entry-1", ReviewIssueId: "review-42"),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"], [])
+            new CommitEntry("First", "fix(First): first", ["a.cs"], "entry-1", ReviewIssueId: "review-42"),
+            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
         ]);
         var command = BuildCommand(output, queue: queue, operationState: new GitOperationState("merge", true));
 

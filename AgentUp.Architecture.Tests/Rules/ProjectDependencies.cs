@@ -14,12 +14,13 @@ public sealed class ProjectDependencies
     {
         AssertDoesNotDependOn("AgentUp.Capabilities.Abstractions", Except("AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.CommitPolicy", Except("AgentUp.CommitPolicy"));
+        AssertDoesNotDependOn("AgentUp.Verification", Except("AgentUp.Verification"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Common", Except("AgentUp.Capabilities.Common", "AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Dotnet", Except("AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Docker", Except("AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"));
+        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
-        AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions"));
+        AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions"));
     }
 
     private static void AssertDoesNotDependOn(string sourceAssembly, IReadOnlyCollection<string> allowedAssemblies)

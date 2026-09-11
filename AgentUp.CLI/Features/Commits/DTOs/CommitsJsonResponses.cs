@@ -12,7 +12,6 @@ public sealed record CommitsStatusEntryJson(
     string Slice,
     string Message,
     IReadOnlyList<string> Files,
-    IReadOnlyList<string> Tests,
     string? ReviewIssueId);
 
 public sealed record CommitsStatusSessionJson(

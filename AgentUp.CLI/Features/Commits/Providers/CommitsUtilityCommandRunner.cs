@@ -84,7 +84,6 @@ public sealed class CommitsUtilityCommandRunner(
             return command switch
             {
                 "message" => output.WriteEdit(await service.UpdateMessageAsync(EntryRef(args), RequiredValue(args, "--message"), cancellationToken), format),
-                "tests" => output.WriteEdit(await service.SetTestsAsync(EntryRef(args), ValuesAfter(args, "--set"), cancellationToken), format),
                 "files" => await FilesAsync(args, format, cancellationToken),
                 "remove" => output.WriteEdit(await service.RemoveAsync(EntryRef(args), cancellationToken), format),
                 "restore" => output.WriteEdit(await service.RestoreArchivedAsync(EntryRef(args), cancellationToken), format),

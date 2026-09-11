@@ -17,7 +17,7 @@ public sealed class CommitsControllerTests
     {
         var queue = new FakeCommitsQueueProvider();
         var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider()));
-        var request = new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"], []);
+        var request = new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]);
 
         var result = await controller.EnqueueAsync(WorktreePath, request);
 
@@ -29,7 +29,7 @@ public sealed class CommitsControllerTests
     public async Task GetStatusAsync_delegatesToService()
     {
         var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("Slice", "msg", ["a.cs"], [])
+            new CommitEntry("Slice", "msg", ["a.cs"])
         ]));
         var controller = new CommitsController(new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider()));
 

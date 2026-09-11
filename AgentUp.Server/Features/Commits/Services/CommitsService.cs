@@ -7,7 +7,6 @@ namespace AgentUp.Server.Features.Commits.Services;
 
 public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git, CommitPolicyProvider commitPolicy)
 {
-    private static readonly CommitBuildPlanProvider BuildPlan = new();
 
     public async Task<CommitsEnqueueResult> EnqueueAsync(string worktreePath, EnqueueRequest request, CancellationToken cancellationToken = default)
     {
@@ -31,9 +30,8 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 if (duplicate is not null)
                     throw new InvalidOperationException($"File '{duplicate}' is already assigned to another queued entry.");
 
-                var tests = ResolveConfiguredTests(worktreePath, request.Files, request.Tests);
                 var id = Guid.NewGuid().ToString("N");
-                var entry = new CommitEntry(request.Slice, request.Message, request.Files, tests, id, id, NormalizeOptional(request.ReviewIssueId));
+                var entry = new CommitEntry(request.Slice, request.Message, request.Files, id, id, NormalizeOptional(request.ReviewIssueId));
                 var patch = await git.GetDiffAsync(worktreePath, request.Files, ct);
                 await queue.SavePatchAsync(worktreePath, entry.PatchKey, patch, ct);
                 var updated = current with { Commits = [.. current.Commits, entry] };
@@ -88,7 +86,7 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             : new CommitsStatusSession(current.ActiveSession.EntryId, current.ActiveSession.Files);
         var operation = await git.GetOperationStateAsync(worktreePath, cancellationToken);
         var entries = current.Commits
-            .Select(e => new CommitEntryDto(e.Slice, e.Message, e.Files, e.Tests, e.Id, e.PatchId, e.ReviewIssueId))
+            .Select(e => new CommitEntryDto(e.Slice, e.Message, e.Files, e.Id, e.PatchId, e.ReviewIssueId))
             .ToList();
         return new CommitsStatusResult(entries, unassigned, session, operation);
     }
@@ -114,9 +112,6 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
 
     public Task<CommitEditResult> UpdateMessageAsync(string worktreePath, string entryRef, string message, CancellationToken cancellationToken = default)
         => UpdateEntryAsync(worktreePath, entryRef, entry => entry with { Message = message }, cancellationToken);
-
-    public Task<CommitEditResult> SetTestsAsync(string worktreePath, string entryRef, IReadOnlyList<string> tests, CancellationToken cancellationToken = default)
-        => UpdateEntryAsync(worktreePath, entryRef, entry => entry with { Tests = tests }, cancellationToken);
 
     public async Task<CommitEditResult> AddFilesAsync(string worktreePath, string entryRef, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         => await queue.WithLockAsync(worktreePath, async ct =>
@@ -320,14 +315,6 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
         if (operation.Blocking)
             throw new InvalidOperationException($"A Git {operation.Kind} is in progress. Finish or abort it before using the commit queue.");
     }
-
-    private static IReadOnlyList<string> ResolveConfiguredTests(string worktreePath, IReadOnlyList<string> files, IReadOnlyList<string> requestedTests)
-    {
-        var config = CommitsConfigurationLoader.Load(worktreePath);
-        var resolved = BuildPlan.ResolveCommands(config, files);
-        return requestedTests.Concat(resolved).Distinct(StringComparer.Ordinal).ToList();
-    }
-
     private static void EnsureReviewIssueIsUnassigned(CommitsQueue current, string? reviewIssueId)
     {
         var normalized = NormalizeOptional(reviewIssueId);
