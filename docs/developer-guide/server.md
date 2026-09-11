@@ -33,21 +33,28 @@ instead of silently losing events, allowing them to reconnect with `after` and
 replay from bounded Server history.
 
 The Codex, Cursor, and Claude capability adapters discover installed ACP
-adapters from Agent-Up inventory, `PATH`, well-known locations such as
-`~/.local/bin` and Cursor Agent version installs under
-`~/.local/share/cursor-agent/versions`, and platform package-manager records.
-Launch plans are `codex-acp`, Cursor's `agent acp` or `cursor-agent acp`, and
-`claude-agent-acp` or `claude-code-acp`. The interactive `codex` and `claude`
-CLIs are not ACP servers, and installing the Cursor IDE does not install the
-Cursor Agent CLI. Override executable names and argument arrays with
+adapters from the command declared on that capability's inventory entry. Server
+and Desktop installments share `AGENTUP_CAPABILITY_INVENTORY_PATH`,
+`/etc/agent-up/capabilities.json`, `~/.config/agent-up/capabilities.json`,
+`~/.config/agent-up/capabilities.local.json`, and `.agent-up-dev/capabilities.json`
+found by walking up from the Server working directory. Those files are merged
+by capability id so a Home Manager version list does not hide ACP commands.
+`command` may be a PATH name or a rooted path on disk; `arguments` and optional
+`versionArguments` travel with it. Discovery then probes that declared command
+on `PATH` and in well-known locations such as `~/.local/bin`. Adapters do not
+hardcode ACP executable names. The interactive `codex` and `claude` CLIs are not
+ACP servers, and installing the Cursor IDE does not install the Cursor Agent
+CLI. Override executable names and argument arrays with
 `Agents:<Codex|Cursor|Claude>:Command` and `Agents:<...>:Arguments`. Agent-Up does
 not collect API keys or translate subscription credentials: each executable is
 responsible for its own supported interactive/pro-subscription login. An agent
-is shown as available when its capability adapter discovers an installed CLI, or
-when `Agents:<Kind>:Command` points at an existing executable. Live-CLI Provider
-smoke tests discover those installed executables, and Server Agents HTTP smoke
-asserts the workspace agent picker matches that discovery without skipping when
-a CLI is absent.
+is shown as available when its capability adapter discovers the inventory
+command, or when `Agents:<Kind>:Command` points at an existing executable.
+Live-CLI Provider smoke tests discover those installed executables, and Server
+Agents HTTP smoke asserts the workspace agent picker matches that discovery
+without skipping when a CLI is absent. `nix-shell shell.nix` writes a local
+inventory under `.agent-up-dev` so developer workstations can exercise the
+adapters without a packaged installment.
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP
 client cannot safely proxy an interactive terminal. It does support ACP agent-

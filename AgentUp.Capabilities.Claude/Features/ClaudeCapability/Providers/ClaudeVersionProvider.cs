@@ -8,27 +8,24 @@ namespace AgentUp.Capabilities.Claude.Features.ClaudeCapability.Providers;
 public sealed class ClaudeVersionProvider(CapabilityCliLocator locator) : IClaudeVersionProvider
 {
     private readonly CapabilityInventoryFileProvider _inventory = new();
-
-    public static IReadOnlyList<CapabilityCliCandidate> Candidates { get; } =
-    [
-        new("claude-agent-acp", ["--version"], []),
-        new("claude-code-acp", ["--version"], [])
-    ];
-
-    public static IReadOnlyList<CapabilityPackageProbe> PackageProbes { get; } =
-    [
-        new("brew", ["list", "--versions", "claude-code"], "brew:claude-code", "claude-code", "macos"),
-        new("winget", ["list", "--id", "Anthropic.ClaudeCode", "--exact"], "winget:Anthropic.ClaudeCode", "Anthropic.ClaudeCode", "windows")
-    ];
+    private IReadOnlyList<CapabilityCliCandidate> _candidates = [];
 
     public async Task<IReadOnlyList<CapabilityInstalledVersion>> DiscoverAsync(CancellationToken cancellationToken)
     {
-        var discovered = new List<CapabilityInstalledVersion>();
-        discovered.AddRange(await _inventory.LoadAsync("claude", cancellationToken));
-        discovered.AddRange(await locator.DiscoverAsync("claude", Candidates, PackageProbes, cancellationToken));
-        return discovered;
+        _candidates = await CandidatesAsync(cancellationToken);
+        if (_candidates.Count == 0)
+            return [];
+
+        return await locator.DiscoverAsync("claude", _candidates, [], cancellationToken);
     }
 
     public CapabilityCliLaunch ResolveLaunch(IReadOnlyList<CapabilityInstalledVersion> installedVersions) =>
-        locator.ResolveLaunch(Candidates, installedVersions);
+        locator.ResolveLaunch(_candidates, installedVersions);
+
+    private async Task<IReadOnlyList<CapabilityCliCandidate>> CandidatesAsync(CancellationToken cancellationToken)
+    {
+        var entry = (await _inventory.LoadAllAsync(cancellationToken))
+            .FirstOrDefault(item => item.Id.Equals("claude", StringComparison.OrdinalIgnoreCase));
+        return CapabilityCliCandidateFactory.FromDeclaredCommand(entry?.Command, entry?.Arguments, entry?.VersionArguments);
+    }
 }

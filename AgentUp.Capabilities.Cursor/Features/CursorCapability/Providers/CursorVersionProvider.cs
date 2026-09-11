@@ -8,26 +8,24 @@ namespace AgentUp.Capabilities.Cursor.Features.CursorCapability.Providers;
 public sealed class CursorVersionProvider(CapabilityCliLocator locator) : ICursorVersionProvider
 {
     private readonly CapabilityInventoryFileProvider _inventory = new();
-
-    public static IReadOnlyList<CapabilityCliCandidate> Candidates { get; } =
-    [
-        new("agent", ["--version"], ["acp"]),
-        new("cursor-agent", ["--version"], ["acp"])
-    ];
-
-    public static IReadOnlyList<CapabilityPackageProbe> PackageProbes { get; } =
-    [
-        new("brew", ["list", "--versions", "cursor-cli"], "brew:cursor-cli", "cursor-cli", "macos")
-    ];
+    private IReadOnlyList<CapabilityCliCandidate> _candidates = [];
 
     public async Task<IReadOnlyList<CapabilityInstalledVersion>> DiscoverAsync(CancellationToken cancellationToken)
     {
-        var discovered = new List<CapabilityInstalledVersion>();
-        discovered.AddRange(await _inventory.LoadAsync("cursor", cancellationToken));
-        discovered.AddRange(await locator.DiscoverAsync("cursor", Candidates, PackageProbes, cancellationToken));
-        return discovered;
+        _candidates = await CandidatesAsync(cancellationToken);
+        if (_candidates.Count == 0)
+            return [];
+
+        return await locator.DiscoverAsync("cursor", _candidates, [], cancellationToken);
     }
 
     public CapabilityCliLaunch ResolveLaunch(IReadOnlyList<CapabilityInstalledVersion> installedVersions) =>
-        locator.ResolveLaunch(Candidates, installedVersions);
+        locator.ResolveLaunch(_candidates, installedVersions);
+
+    private async Task<IReadOnlyList<CapabilityCliCandidate>> CandidatesAsync(CancellationToken cancellationToken)
+    {
+        var entry = (await _inventory.LoadAllAsync(cancellationToken))
+            .FirstOrDefault(item => item.Id.Equals("cursor", StringComparison.OrdinalIgnoreCase));
+        return CapabilityCliCandidateFactory.FromDeclaredCommand(entry?.Command, entry?.Arguments, entry?.VersionArguments);
+    }
 }

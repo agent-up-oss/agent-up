@@ -25,55 +25,39 @@ public sealed class ClaudeVersionProviderTests
         Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, _previousInventoryPath);
 
     [Test]
-    public async Task DiscoverAsync_findsClaudeAgentAcpAdapter()
+    public async Task DiscoverAsync_usesInventoryDeclaredCommand()
     {
+        var path = WriteInventory("""[{ "id": "claude", "versions": ["dev"], "command": "claude-agent-acp" }]""");
+        Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, path);
         var commands = new RecordingCommandRunner();
         commands.Results[("claude-agent-acp", "--version")] = new CapabilityCommandResult(0, "0.5.0\n", "");
-        var locator = new CapabilityCliLocator(
-            commands,
-            new FakeSearchPaths(),
-            new FakeProbe(),
-            "ubuntu");
 
-        var versions = await new ClaudeVersionProvider(locator).DiscoverAsync(CancellationToken.None);
+        var versions = await new ClaudeVersionProvider(Locator(commands)).DiscoverAsync(CancellationToken.None);
 
         Assert.That(versions.Single(version => version.Location == "claude-agent-acp").Version, Is.EqualTo("0.5.0"));
     }
 
     [Test]
-    public void ResolveLaunch_usesClaudeAgentAcpBinary()
-    {
-        var locator = new CapabilityCliLocator(
-            new RecordingCommandRunner(),
-            new FakeSearchPaths(),
-            new FakeProbe(),
-            "ubuntu");
-        var launch = new ClaudeVersionProvider(locator).ResolveLaunch([
-            new("claude", "0.5.0", "claude-agent-acp", AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityVersionSource.System, false)
-        ]);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(launch.FileName, Is.EqualTo("claude-agent-acp"));
-            Assert.That(launch.Arguments, Is.Empty);
-        });
-    }
-
-    [Test]
-    public async Task DiscoverAsync_doesNotTreatInteractiveClaudeCliAsAcp()
+    public async Task DiscoverAsync_ignoresInteractiveCliWhenInventoryHasNoCommand()
     {
         var commands = new RecordingCommandRunner();
         commands.Results[("claude", "--version")] = new CapabilityCommandResult(0, "2.0.1\n", "");
-        var locator = new CapabilityCliLocator(
-            commands,
-            new FakeSearchPaths(),
-            new FakeProbe(),
-            "ubuntu");
 
-        var versions = await new ClaudeVersionProvider(locator).DiscoverAsync(CancellationToken.None);
+        var versions = await new ClaudeVersionProvider(Locator(commands)).DiscoverAsync(CancellationToken.None);
 
-        Assert.That(versions.Select(version => version.Location), Does.Not.Contain("claude"));
+        Assert.That(versions, Is.Empty);
     }
+
+    private static string WriteInventory(string json)
+    {
+        var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString(), "capabilities.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, json);
+        return path;
+    }
+
+    private static CapabilityCliLocator Locator(ICapabilityCommandRunner commands) =>
+        new(commands, new FakeSearchPaths(), new FakeProbe(), "ubuntu");
 
     private sealed class RecordingCommandRunner : ICapabilityCommandRunner
     {

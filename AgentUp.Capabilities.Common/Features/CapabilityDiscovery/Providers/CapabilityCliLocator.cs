@@ -53,7 +53,9 @@ public sealed class CapabilityCliLocator
             .Select(version => Match(candidates, version.Location))
             .FirstOrDefault(match => match is not null);
 
-        return preferred ?? new CapabilityCliLaunch(candidates[0].FileName, candidates[0].LaunchArguments);
+        return preferred ?? (candidates.Count == 0
+            ? new CapabilityCliLaunch("", [])
+            : new CapabilityCliLaunch(candidates[0].FileName, candidates[0].LaunchArguments));
     }
 
     private async Task<IReadOnlyList<CapabilityInstalledVersion>> DiscoverCliAsync(
@@ -130,9 +132,12 @@ public sealed class CapabilityCliLocator
 
     private static IReadOnlyList<string> FileNames(string fileName)
     {
-        if (OperatingSystem.IsWindows() && !fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            return [fileName, fileName + ".exe"];
-        return [fileName];
+        var name = Path.GetFileName(fileName);
+        if (string.IsNullOrWhiteSpace(name))
+            name = fileName;
+        if (OperatingSystem.IsWindows() && !name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            return [name, name + ".exe"];
+        return [name];
     }
 
     private static string? ParseVersion(string output)

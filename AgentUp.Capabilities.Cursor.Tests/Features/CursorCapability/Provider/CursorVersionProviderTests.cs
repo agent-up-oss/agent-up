@@ -25,51 +25,46 @@ public sealed class CursorVersionProviderTests
         Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, _previousInventoryPath);
 
     [Test]
-    public async Task DiscoverAsync_findsWellKnownAgentBinary()
+    public async Task DiscoverAsync_usesInventoryDeclaredCommand()
     {
-        var path = "/home/dev/.local/bin/agent";
-        var locator = new CapabilityCliLocator(
-            new RecordingCommandRunner(),
-            new FakeSearchPaths("/home/dev/.local/bin"),
-            new FakeProbe(path),
-            "ubuntu");
-
-        var versions = await new CursorVersionProvider(locator).DiscoverAsync(CancellationToken.None);
-
-        Assert.That(versions.Select(version => version.Location), Does.Contain(path));
-    }
-
-    [Test]
-    public async Task DiscoverAsync_findsAgentOnPath()
-    {
+        var path = WriteInventory("""[{ "id": "cursor", "versions": ["dev"], "command": "agent", "arguments": ["acp"] }]""");
+        Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, path);
         var commands = new RecordingCommandRunner();
         commands.Results[("agent", "--version")] = new CapabilityCommandResult(0, "2026.01.09-abc\n", "");
-        var locator = new CapabilityCliLocator(
-            commands,
-            new FakeSearchPaths(),
-            new FakeProbe(),
-            "ubuntu");
 
-        var versions = await new CursorVersionProvider(locator).DiscoverAsync(CancellationToken.None);
+        var versions = await new CursorVersionProvider(Locator(commands, new FakeSearchPaths(), new FakeProbe())).DiscoverAsync(CancellationToken.None);
 
         Assert.That(versions.Single(version => version.Location == "agent").Version, Is.EqualTo("2026.01.09-abc"));
     }
 
     [Test]
-    public async Task DiscoverAsync_findsCursorAgentAliasOnPath()
+    public async Task DiscoverAsync_findsInventoryCommandInWellKnownDirectory()
     {
-        var commands = new RecordingCommandRunner();
-        commands.Results[("cursor-agent", "--version")] = new CapabilityCommandResult(0, "2026.09.02-c22c1a3\n", "");
-        var locator = new CapabilityCliLocator(
-            commands,
-            new FakeSearchPaths(),
-            new FakeProbe(),
-            "ubuntu");
+        var inventory = WriteInventory("""[{ "id": "cursor", "versions": ["dev"], "command": "agent", "arguments": ["acp"] }]""");
+        Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, inventory);
+        var agent = "/home/dev/.local/bin/agent";
 
-        var versions = await new CursorVersionProvider(locator).DiscoverAsync(CancellationToken.None);
+        var versions = await new CursorVersionProvider(Locator(
+            new RecordingCommandRunner(),
+            new FakeSearchPaths("/home/dev/.local/bin"),
+            new FakeProbe(agent))).DiscoverAsync(CancellationToken.None);
 
-        Assert.That(versions.Single(version => version.Location == "cursor-agent").Version, Is.EqualTo("2026.09.02-c22c1a3"));
+        Assert.That(versions.Select(version => version.Location), Does.Contain(agent));
     }
+
+    private static string WriteInventory(string json)
+    {
+        var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString(), "capabilities.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, json);
+        return path;
+    }
+
+    private static CapabilityCliLocator Locator(
+        ICapabilityCommandRunner commands,
+        ICapabilitySearchPathProvider searchPaths,
+        ICapabilityExecutableProbe probe) =>
+        new(commands, searchPaths, probe, "ubuntu");
 
     private sealed class RecordingCommandRunner : ICapabilityCommandRunner
     {

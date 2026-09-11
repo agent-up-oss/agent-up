@@ -51,6 +51,30 @@ public sealed class CapabilityCliLocatorTests
     }
 
     [Test]
+    public async Task DiscoverAsync_returnsNothingWhenNoCandidatesAreDeclared()
+    {
+        var locator = Create(new RecordingCommandRunner(), new FakeExecutableProbe(), new FakeSearchPaths(), "ubuntu");
+
+        var versions = await locator.DiscoverAsync("codex", [], [], CancellationToken.None);
+
+        Assert.That(versions, Is.Empty);
+    }
+
+    [Test]
+    public void ResolveLaunch_returnsEmptyCommandWhenNoCandidatesAreDeclared()
+    {
+        var locator = Create(new RecordingCommandRunner(), new FakeExecutableProbe(), new FakeSearchPaths(), "ubuntu");
+
+        var launch = locator.ResolveLaunch([], []);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.FileName, Is.Empty);
+            Assert.That(launch.Arguments, Is.Empty);
+        });
+    }
+
+    [Test]
     public void ResolveLaunch_prefersRootedPathAndMatchingArguments()
     {
         var locator = Create(new RecordingCommandRunner(), new FakeExecutableProbe(), new FakeSearchPaths(), "ubuntu");

@@ -25,41 +25,58 @@ public sealed class CodexVersionProviderTests
         Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, _previousInventoryPath);
 
     [Test]
-    public async Task DiscoverAsync_findsCodexAcpAdapter()
+    public async Task DiscoverAsync_usesInventoryDeclaredCommand()
     {
+        var path = WriteInventory("""[{ "id": "codex", "versions": ["dev"], "command": "codex-acp", "arguments": [] }]""");
+        Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, path);
         var commands = new RecordingCommandRunner();
         commands.Results[("codex-acp", "--version")] = new CapabilityCommandResult(0, "0.16.0\n", "");
-        var versions = await new CodexVersionProvider(Locator(commands, "ubuntu")).DiscoverAsync(CancellationToken.None);
+
+        var versions = await new CodexVersionProvider(Locator(commands)).DiscoverAsync(CancellationToken.None);
 
         Assert.That(versions.Single(version => version.Location == "codex-acp").Version, Is.EqualTo("0.16.0"));
     }
 
     [Test]
-    public async Task DiscoverAsync_doesNotTreatInteractiveCodexCliAsAcp()
+    public async Task DiscoverAsync_ignoresInteractiveCliWhenInventoryHasNoCommand()
     {
         var commands = new RecordingCommandRunner();
         commands.Results[("codex", "--version")] = new CapabilityCommandResult(0, "codex-cli 0.40.0\n", "");
-        var versions = await new CodexVersionProvider(Locator(commands, "ubuntu")).DiscoverAsync(CancellationToken.None);
 
-        Assert.That(versions.Select(version => version.Location), Does.Not.Contain("codex"));
+        var versions = await new CodexVersionProvider(Locator(commands)).DiscoverAsync(CancellationToken.None);
+
+        Assert.That(versions, Is.Empty);
     }
 
     [Test]
-    public void ResolveLaunch_usesCodexAcpBinary()
+    public async Task ResolveLaunch_usesInventoryArguments()
     {
-        var launch = new CodexVersionProvider(Locator(new RecordingCommandRunner(), "ubuntu")).ResolveLaunch([
-            new("codex", "0.16.0", "codex-acp", AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityVersionSource.System, false)
+        var path = WriteInventory("""[{ "id": "codex", "versions": ["dev"], "command": "/opt/codex-acp", "arguments": ["serve"] }]""");
+        Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, path);
+        var provider = new CodexVersionProvider(Locator(new RecordingCommandRunner()));
+        await provider.DiscoverAsync(CancellationToken.None);
+
+        var launch = provider.ResolveLaunch([
+            new("codex", "dev", "/opt/codex-acp", AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityVersionSource.System, false)
         ]);
 
         Assert.Multiple(() =>
         {
-            Assert.That(launch.FileName, Is.EqualTo("codex-acp"));
-            Assert.That(launch.Arguments, Is.Empty);
+            Assert.That(launch.FileName, Is.EqualTo("/opt/codex-acp"));
+            Assert.That(launch.Arguments, Is.EqualTo(new[] { "serve" }));
         });
     }
 
-    private static CapabilityCliLocator Locator(ICapabilityCommandRunner commands, string platform) =>
-        new(commands, new FakeSearchPaths(), new FakeProbe(), platform);
+    private static string WriteInventory(string json)
+    {
+        var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString(), "capabilities.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, json);
+        return path;
+    }
+
+    private static CapabilityCliLocator Locator(ICapabilityCommandRunner commands) =>
+        new(commands, new FakeSearchPaths(), new FakeProbe(), "ubuntu");
 
     private sealed class RecordingCommandRunner : ICapabilityCommandRunner
     {

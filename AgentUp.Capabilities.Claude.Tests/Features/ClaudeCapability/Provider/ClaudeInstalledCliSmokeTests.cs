@@ -10,15 +10,12 @@ namespace AgentUp.Capabilities.Claude.Tests.Features.ClaudeCapability.Provider;
 public sealed class ClaudeInstalledCliSmokeTests
 {
     [Test]
-    public async Task DiscoverAsync_includesWellKnownExecutablesWhenTheyAreInstalled()
+    public async Task DiscoverAsync_usesConfiguredInventoryCommandWhenPresent()
     {
         var versions = await Adapter().DiscoverAsync(TestContext.CurrentContext.CancellationToken);
-        var locations = versions.Select(version => version.Location).ToArray();
 
         Assert.Multiple(() =>
         {
-            foreach (var path in WellKnownExecutables())
-                Assert.That(locations, Does.Contain(path), $"Installed Claude CLI '{path}' was not discovered.");
             foreach (var version in versions)
             {
                 Assert.That(version.CapabilityId, Is.EqualTo("claude"));
@@ -46,7 +43,7 @@ public sealed class ClaudeInstalledCliSmokeTests
     }
 
     [Test]
-    public async Task CreateLaunchPlanAsync_usesAKnownAcpCandidateWhenInstalled()
+    public async Task CreateLaunchPlanAsync_usesConfiguredCommandWhenInstalled()
     {
         var adapter = Adapter();
         var installed = await adapter.DiscoverAsync(TestContext.CurrentContext.CancellationToken);
@@ -58,7 +55,9 @@ public sealed class ClaudeInstalledCliSmokeTests
         }
 
         var plan = await adapter.CreateLaunchPlanAsync(Declaration(), installed, TestContext.CurrentContext.CancellationToken);
-        AssertKnownLaunch(plan.Command, plan.Arguments);
+        Assert.That(plan.Command, Is.Not.WhiteSpace);
+        if (Path.IsPathRooted(plan.Command))
+            Assert.That(File.Exists(plan.Command), Is.True);
     }
 
     private static ClaudeCapabilityAdapter Adapter() =>
@@ -66,39 +65,4 @@ public sealed class ClaudeInstalledCliSmokeTests
 
     private static CapabilityDeclaration Declaration() =>
         new("workspace-agent", "claude", new Dictionary<string, string>(), new Dictionary<string, string>());
-
-    private static IReadOnlyList<string> WellKnownExecutables()
-    {
-        var probe = new CapabilityExecutableProbe();
-        var names = ClaudeVersionProvider.Candidates.SelectMany(CandidateFileNames);
-        return new CapabilitySearchPathProvider().Directories()
-            .SelectMany(directory => names.Select(name => Path.Join(directory, name)))
-            .Where(probe.IsExecutable)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-    }
-
-    private static IReadOnlyList<string> CandidateFileNames(CapabilityCliCandidate candidate)
-    {
-        if (OperatingSystem.IsWindows() && !candidate.FileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            return [candidate.FileName, candidate.FileName + ".exe"];
-        return [candidate.FileName];
-    }
-
-    private static void AssertKnownLaunch(string fileName, IReadOnlyList<string>? arguments)
-    {
-        var name = Path.GetFileName(fileName);
-        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            name = name[..^4];
-        var candidate = ClaudeVersionProvider.Candidates
-            .FirstOrDefault(item => item.FileName.Equals(name, StringComparison.OrdinalIgnoreCase));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(candidate, Is.Not.Null, $"Launch command '{fileName}' is not a known Claude ACP candidate.");
-            Assert.That(arguments ?? [], Is.EqualTo(candidate!.LaunchArguments));
-            if (Path.IsPathRooted(fileName))
-                Assert.That(File.Exists(fileName), Is.True, $"Launch command '{fileName}' does not exist.");
-        });
-    }
 }
