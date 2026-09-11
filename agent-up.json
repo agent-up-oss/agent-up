@@ -7,7 +7,10 @@
       "install": "npm install --package-lock=false",
       "path": "docs",
       "ports": [
-        { "variable": "PORT", "defaultPort": 3000 }
+        {
+          "variable": "PORT",
+          "defaultPort": 3000
+        }
       ]
     },
     {
@@ -16,7 +19,11 @@
       "install": "npm run install:agent-up",
       "path": "AgentUp.Mobile",
       "ports": [
-        { "variable": "WEB_PORT", "defaultPort": 8081, "protocol": "http" }
+        {
+          "variable": "WEB_PORT",
+          "defaultPort": 8081,
+          "protocol": "http"
+        }
       ]
     },
     {
@@ -25,7 +32,11 @@
       "install": "npm install --package-lock=false",
       "path": "Examples/full-stack-react/web",
       "ports": [
-        { "variable": "WEB_PORT", "defaultPort": 5600, "protocol": "http" }
+        {
+          "variable": "WEB_PORT",
+          "defaultPort": 5600,
+          "protocol": "http"
+        }
       ]
     },
     {
@@ -33,7 +44,9 @@
       "command": "npm run dev",
       "install": "npm install --package-lock=false",
       "path": "Examples/full-stack-react/api",
-      "environmentFiles": ["Examples/full-stack-react/database.env"],
+      "environmentFiles": [
+        "Examples/full-stack-react/database.env"
+      ],
       "ports": [
         {
           "variable": "API_PORT",
@@ -50,52 +63,537 @@
       "name": "Database",
       "image": "postgres:16",
       "database": true,
-      "environmentFiles": ["Examples/full-stack-react/database.env"],
-      "ports": [
-        { "variable": "POSTGRES_PORT", "defaultPort": 5432, "protocol": "tcp" }
+      "environmentFiles": [
+        "Examples/full-stack-react/database.env"
       ],
-      "volumes": ["agent-up-full-stack-pgdata:/var/lib/postgresql/data"]
+      "ports": [
+        {
+          "variable": "POSTGRES_PORT",
+          "defaultPort": 5432,
+          "protocol": "tcp"
+        }
+      ],
+      "volumes": [
+        "agent-up-full-stack-pgdata:/var/lib/postgresql/data"
+      ]
     }
   ],
   "prompts": {
     "commitPolicy": "Scope every commit message to the queued slice. Production changes in Server, CLI, Tray, InstallerApp, Installers, or Desktop are customer-facing and should be fix or feat unless they are true no-behavior source refactors. Use test for test-only changes and PackageSmoke changes, unless they are queued with same-slice fix or feat production changes. Use refactor for internal no-behavior source changes. Use chore only for maintenance, packaging, CI, or tooling changes that do not affect customer runtime behavior."
   },
-  "commits": {
-    "build": ["dotnet build agent-up.sln"],
-    "test": ["dotnet test AgentUp.Architecture.Tests"],
-    "projects": {
-      "AgentUp.Capabilities.Abstractions": {
-        "test": ["dotnet test AgentUp.Capabilities.Abstractions.Tests"]
+  "verification": {
+    "enforcement": "warn",
+    "always": [
+      "build",
+      "architecture"
+    ],
+    "checks": {
+      "build": {
+        "command": "dotnet build agent-up.sln",
+        "tier": "fast"
       },
-      "AgentUp.Capabilities.Common": {
-        "test": ["dotnet test AgentUp.Capabilities.Common.Tests"],
-        "dependsOn": ["AgentUp.Capabilities.Abstractions"]
+      "architecture": {
+        "command": "dotnet test AgentUp.Architecture.Tests",
+        "tier": "fast"
       },
-      "AgentUp.Capabilities.Dotnet": {
-        "test": ["dotnet test AgentUp.Capabilities.Dotnet.Tests"],
-        "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
+      "verification": {
+        "command": "dotnet test AgentUp.Verification.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Verification",
+          "AgentUp.Verification.Tests"
+        ]
       },
-      "AgentUp.Capabilities.Docker": {
-        "test": ["dotnet test AgentUp.Capabilities.Docker.Tests"],
-        "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
+      "commit-policy": {
+        "command": "dotnet test AgentUp.CommitPolicy.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.CommitPolicy",
+          "AgentUp.CommitPolicy.Tests"
+        ]
       },
-      "AgentUp.CommitPolicy": {
-        "test": ["dotnet test AgentUp.CommitPolicy.Tests"]
+      "capabilities-abstractions": {
+        "command": "dotnet test AgentUp.Capabilities.Abstractions.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Abstractions.Tests"
+        ]
       },
-      "AgentUp.Server": {
-        "test": ["dotnet test AgentUp.Server.Tests"],
-        "dependsOn": ["AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"]
+      "capabilities-common": {
+        "command": "dotnet test AgentUp.Capabilities.Common.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Capabilities.Common.Tests",
+          "AgentUp.Capabilities.Abstractions"
+        ]
       },
-      "AgentUp.CLI": {
-        "test": ["dotnet test AgentUp.CLI.Tests"],
-        "dependsOn": ["AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions"]
+      "capabilities-dotnet": {
+        "command": "dotnet test AgentUp.Capabilities.Dotnet.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Dotnet",
+          "AgentUp.Capabilities.Dotnet.Tests",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common"
+        ]
       },
-      "AgentUp.Desktop": {
-        "test": ["dotnet test AgentUp.Desktop.Tests"]
+      "capabilities-docker": {
+        "command": "dotnet test AgentUp.Capabilities.Docker.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Docker",
+          "AgentUp.Capabilities.Docker.Tests",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common"
+        ]
       },
-      "AgentUp.Mobile": {
-        "test": []
+      "server": {
+        "command": "dotnet test AgentUp.Server.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.Server.Tests",
+          "AgentUp.Browser.Streaming",
+          "AgentUp.CommitPolicy",
+          "AgentUp.Verification",
+          "AgentUp.InstallerConfig",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Dotnet",
+          "AgentUp.Capabilities.Docker"
+        ]
+      },
+      "desktop": {
+        "command": "dotnet test AgentUp.Desktop.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Desktop",
+          "AgentUp.Desktop.Tests",
+          "AgentUp.InstallerConfig"
+        ]
+      },
+      "cli": {
+        "command": "dotnet test AgentUp.CLI.Tests",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.CLI",
+          "AgentUp.CLI.Tests",
+          "AgentUp.CommitPolicy",
+          "AgentUp.Verification",
+          "AgentUp.InstallerConfig",
+          "AgentUp.Capabilities.Abstractions"
+        ]
+      },
+      "cross-product-e2e": {
+        "command": "dotnet test AgentUp.Tests",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Tests",
+          "AgentUp.Desktop",
+          "AgentUp.Server",
+          "AgentUp.InstallerApp"
+        ]
+      },
+      "mobile": {
+        "command": "npm test",
+        "workingDirectory": "AgentUp.Mobile",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Mobile"
+        ]
+      },
+      "web-audit": {
+        "command": "npm test",
+        "workingDirectory": "AgentUp.WebAudit",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.WebAudit"
+        ]
+      },
+      "linux-smoke": {
+        "command": "./.github/scripts/smoke-package.sh ubuntu linux-x64 release-artifacts",
+        "tier": "platform",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "packaging",
+          "scripts",
+          "AgentUp.Packaging",
+          "AgentUp.PackageSmoke",
+          "AgentUp.InstallerApp",
+          "AgentUp.InstallerConfig",
+          "AgentUp.Tray"
+        ]
+      },
+      "macos-smoke": {
+        "command": "./.github/scripts/smoke-package.sh macos osx-arm64 release-artifacts",
+        "tier": "platform",
+        "platforms": [
+          "macos"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "packaging",
+          "scripts",
+          "AgentUp.Packaging",
+          "AgentUp.PackageSmoke",
+          "AgentUp.InstallerApp",
+          "AgentUp.InstallerConfig",
+          "AgentUp.Tray"
+        ]
+      },
+      "windows-smoke": {
+        "command": "./.github/scripts/smoke-package.sh windows win-x64 release-artifacts",
+        "tier": "platform",
+        "platforms": [
+          "windows"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "packaging",
+          "scripts",
+          "AgentUp.Packaging",
+          "AgentUp.PackageSmoke",
+          "AgentUp.InstallerApp",
+          "AgentUp.InstallerConfig",
+          "AgentUp.Tray"
+        ]
       }
-    }
+    },
+    "paths": [
+      {
+        "match": "AgentUp.Verification/**",
+        "checks": [
+          "verification",
+          "server",
+          "cli"
+        ]
+      },
+      {
+        "match": "AgentUp.Verification.Tests/**",
+        "checks": [
+          "verification"
+        ]
+      },
+      {
+        "match": "AgentUp.CommitPolicy/**",
+        "checks": [
+          "commit-policy",
+          "server",
+          "cli"
+        ]
+      },
+      {
+        "match": "AgentUp.CommitPolicy.Tests/**",
+        "checks": [
+          "commit-policy"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Abstractions/**",
+        "checks": [
+          "capabilities-abstractions",
+          "capabilities-common",
+          "capabilities-dotnet",
+          "capabilities-docker",
+          "server",
+          "cli"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Abstractions.Tests/**",
+        "checks": [
+          "capabilities-abstractions"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Common/**",
+        "checks": [
+          "capabilities-common",
+          "capabilities-dotnet",
+          "capabilities-docker"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Common.Tests/**",
+        "checks": [
+          "capabilities-common"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Dotnet/**",
+        "checks": [
+          "capabilities-dotnet",
+          "server"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Dotnet.Tests/**",
+        "checks": [
+          "capabilities-dotnet"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Docker/**",
+        "checks": [
+          "capabilities-docker",
+          "server"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Docker.Tests/**",
+        "checks": [
+          "capabilities-docker"
+        ]
+      },
+      {
+        "match": "AgentUp.Server/**",
+        "checks": [
+          "server",
+          "cross-product-e2e"
+        ]
+      },
+      {
+        "match": "AgentUp.Server.Tests/**",
+        "checks": [
+          "server"
+        ]
+      },
+      {
+        "match": "AgentUp.Desktop/**",
+        "checks": [
+          "desktop",
+          "cross-product-e2e"
+        ]
+      },
+      {
+        "match": "AgentUp.Desktop.Tests/**",
+        "checks": [
+          "desktop"
+        ]
+      },
+      {
+        "match": "AgentUp.CLI/**",
+        "checks": [
+          "cli"
+        ]
+      },
+      {
+        "match": "AgentUp.CLI.Tests/**",
+        "checks": [
+          "cli"
+        ]
+      },
+      {
+        "match": "AgentUp.Tests/**",
+        "checks": [
+          "cross-product-e2e"
+        ]
+      },
+      {
+        "match": "AgentUp.Architecture.Tests/**",
+        "checks": [
+          "architecture"
+        ]
+      },
+      {
+        "match": "AgentUp.Browser.Streaming/**",
+        "checks": [
+          "server"
+        ]
+      },
+      {
+        "match": "AgentUp.Tray/**",
+        "checks": [
+          "linux-smoke",
+          "macos-smoke",
+          "windows-smoke"
+        ]
+      },
+      {
+        "match": "AgentUp.InstallerConfig/**",
+        "checks": [
+          "server",
+          "desktop",
+          "cli",
+          "linux-smoke",
+          "macos-smoke",
+          "windows-smoke"
+        ]
+      },
+      {
+        "match": "AgentUp.InstallerApp/**",
+        "checks": [
+          "cross-product-e2e",
+          "linux-smoke",
+          "macos-smoke",
+          "windows-smoke"
+        ]
+      },
+      {
+        "match": "AgentUp.Packaging/**",
+        "checks": [
+          "linux-smoke",
+          "macos-smoke",
+          "windows-smoke"
+        ]
+      },
+      {
+        "match": "AgentUp.PackageSmoke/**",
+        "checks": [
+          "linux-smoke",
+          "macos-smoke",
+          "windows-smoke"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile/**",
+        "checks": [
+          "mobile"
+        ]
+      },
+      {
+        "match": "AgentUp.WebAudit/**",
+        "checks": [
+          "web-audit",
+          "mobile"
+        ]
+      },
+      {
+        "match": "packaging/**",
+        "checks": [
+          "linux-smoke",
+          "macos-smoke",
+          "windows-smoke"
+        ]
+      },
+      {
+        "match": "scripts/**",
+        "checks": [
+          "linux-smoke",
+          "macos-smoke",
+          "windows-smoke"
+        ]
+      },
+      {
+        "match": "chart/**",
+        "checks": []
+      },
+      {
+        "match": "Plugins/**",
+        "checks": []
+      },
+      {
+        "match": "agent-up.sln",
+        "checks": [
+          "build",
+          "architecture"
+        ]
+      },
+      {
+        "match": "Directory.Build.props",
+        "checks": [
+          "build",
+          "architecture"
+        ]
+      },
+      {
+        "match": "agent-up.json",
+        "checks": [
+          "verification",
+          "cli",
+          "server"
+        ]
+      },
+      {
+        "match": ".agent-up/**",
+        "checks": [
+          "server"
+        ]
+      },
+      {
+        "match": "coverlet.runsettings",
+        "checks": [
+          "build"
+        ]
+      },
+      {
+        "match": "shell.nix",
+        "checks": [
+          "mobile"
+        ]
+      },
+      {
+        "match": "package.json",
+        "checks": []
+      },
+      {
+        "match": ".github/**",
+        "checks": []
+      },
+      {
+        "match": "Examples/**",
+        "checks": []
+      },
+      {
+        "match": "Demo/**",
+        "checks": []
+      },
+      {
+        "match": "media/**",
+        "checks": []
+      },
+      {
+        "match": "docs/**",
+        "checks": []
+      },
+      {
+        "match": "**/*.md",
+        "checks": []
+      },
+      {
+        "match": ".gitignore",
+        "checks": []
+      },
+      {
+        "match": ".gitmodules",
+        "checks": []
+      },
+      {
+        "match": ".dockerignore",
+        "checks": []
+      },
+      {
+        "match": ".env.example",
+        "checks": []
+      },
+      {
+        "match": ".releaserc.json",
+        "checks": []
+      },
+      {
+        "match": ".coderabbit.yaml",
+        "checks": []
+      },
+      {
+        "match": "LICENSE",
+        "checks": []
+      },
+      {
+        "match": "run-desktop.sh",
+        "checks": []
+      },
+      {
+        "match": "run-desktop-tests.sh",
+        "checks": []
+      },
+      {
+        "match": "run-installer.sh",
+        "checks": []
+      }
+    ]
   }
 }

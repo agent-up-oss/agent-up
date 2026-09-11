@@ -125,7 +125,8 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
-| `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues; also owns `agent-up.json`'s `commits` configuration schema and the build/test command resolution (including transitive project dependents) used by both queues |
+| `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
+| `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agentup verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
 | `LocalInstaller.App` | Product-neutral Avalonia installer dashboard over platform installer adapters and installer-owned capability catalog state; no compile-time dependency on `AgentUp.Capabilities.*` |
 | `LocalInstaller.Packaging` | Product-neutral release artifact staging, package metadata generation, and native packaging tool orchestration |
@@ -576,12 +577,13 @@ This applies to every production/test project pair once created:
 | `AgentUp.Capabilities.Docker` | `AgentUp.Capabilities.Docker.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
+| `AgentUp.Verification` | `AgentUp.Verification.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
 | `LocalInstaller.Packaging` | `LocalInstaller.Packaging.Tests` |
 | `LocalInstaller.Smoke` | `LocalInstaller.Smoke.Tests` |
 
-`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, and test taxonomy rules. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, test taxonomy rules, MCP endpoint tool-allowlist completeness, and verification path-rule coverage for every production and test project. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
@@ -667,6 +669,84 @@ Use layered tests with clear ownership:
 `Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
 
 Avoid duplicate tests that assert the same rule through multiple layers.
+
+# Verification
+
+Test selection is not an agent decision. The `verification` section of `agent-up.json` maps
+changed paths to named checks through static glob rules, and the runtime resolves them; an
+agent can see the required set but cannot narrow it.
+
+Use the MCP verification tools on the `/mcp/verification` server:
+
+| Tool | When |
+|---|---|
+| `plan_verification` | See which checks the current changes require, and which rule selected each |
+| `run_verification` | At the end of a task, before enqueueing commits. Runs every required check and records a receipt per check |
+| `run_verification_check` | Re-run one check by id after a targeted fix |
+| `guard_verification` | Report whether every required check has a passing receipt matching the current file contents |
+
+Developers use the CLI equivalents: `agentup verify plan`, `agentup verify run [<check-id>]`,
+and `agentup verify guard [--run] [--format hook]`.
+
+## Receipts
+
+A receipt records the command, the exit code, and the content hash of every changed file
+that check covered. The guard recomputes those hashes and requires an exact match, so
+running the checks and then continuing to edit leaves the receipt **stale** rather than
+satisfying. Receipts live in `.git/agent-up/verification/receipts.json` - outside the
+working tree, because a committed receipt would travel in a pull request and satisfy
+another machine's guard against bytes it never tested.
+
+Order matters: **run verification before enqueueing commits.** `enqueue_commit` restores
+tracked files to their pre-change state, so a receipt produced afterwards would cover a
+working tree that no longer holds the change.
+
+## Running the guard at the end of a run
+
+`verify guard` executes nothing - it hashes changed files and reads the receipt ledger - so
+it is cheap enough to wire into a client-side `Stop` hook:
+
+```json
+"hooks": {
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        { "type": "command", "command": "agentup verify guard --format hook" }
+      ]
+    }
+  ]
+}
+```
+
+The hook is silent when every required check is proven, and exits 2 with the unproven
+checks on stderr otherwise. `--run` additionally executes what is missing; that is
+deliberately opt-in, because running suites inside a Stop hook makes every turn end slow
+and turns a hook timeout into a false failure.
+
+## Configuration
+
+`verification.checks` defines named checks; `verification.paths` maps globs to check ids in
+order, and every match contributes. `verification.always` lists checks required for any
+change at all, in the order they should run. A check declares a `tier` (`fast`, `slow`,
+`platform`), optional `platforms`, optional `ciOnly`, and `inputs` - the dependency closure
+whose changed files belong in its covered map.
+
+Rules to keep:
+
+- Every production and test project must be reachable by a path rule. `AgentUp.Architecture.Tests`
+  enforces this, so a new project cannot be invisible to the gate.
+- A path that genuinely requires nothing declares `"checks": []`. A changed file matching no
+  rule is a hard failure meaning the map is incomplete, not a pass.
+- A malformed `verification` section, an unknown tier or platform, and a dangling check id all
+  throw. A gate that fails open is not a gate.
+- `enforcement` is `warn` or `block`. Keep a repository on `warn` while its path map is being
+  completed, then switch to `block`.
+- Checks whose `platforms` exclude this machine, or that are `ciOnly`, are reported *skipped
+  with a reason* and never counted as satisfied. They stay required where they can run.
+
+The commit queue owns no test metadata. Queue entries carry a slice, message, and files;
+receipts are the only record of what was proven.
 
 # Content Sections
 
@@ -790,8 +870,7 @@ MCP servers cannot register server-side post-job lifecycle hooks. Claude Code us
 dotnet run --project AgentUp.CLI -- commits enqueue \
   --slice <SliceName> \
   --message "<conventional commit message>" \
-  --files <file1> [file2 ...] \
-  [--tests "<test command>"]
+  --files <file1> [file2 ...]
 ```
 
 The CLI example above is developer-only. Agents use `enqueue_commit`.
@@ -807,7 +886,6 @@ Queued entries must be manipulated through the commit queue commands:
 ```bash
 agentup commits inspect <entry>
 agentup commits message <entry> --message "<conventional commit message>"
-agentup commits tests <entry> --set "<test command>"
 agentup commits files <entry> --add <file1> [file2 ...]
 agentup commits files <entry> --remove <file1> [file2 ...]
 agentup commits remove <entry>

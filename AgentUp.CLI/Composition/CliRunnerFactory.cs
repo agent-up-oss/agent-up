@@ -6,6 +6,10 @@ using AgentUp.CLI.Features.Authentication.Services;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Providers;
 using AgentUp.CLI.Features.Commits.Services;
+using AgentUp.CLI.Features.Verification.Controllers;
+using AgentUp.CLI.Features.Verification.Services;
+using AgentUp.Verification.Features.Verification.Providers;
+using AgentUp.Verification.Features.Verification.Services;
 using AgentUp.CLI.Features.Workspaces.Controllers;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
@@ -67,6 +71,27 @@ public static class CliRunnerFactory
             new CommitsClearCommand(commitsService, commitsOutput),
             commitsOutput);
 
+        // Verification reads Git directly and never touches the commit queue, so the
+        // commit module stays optional: a repository that does not use the queue still
+        // gets the full gate.
+        var verificationHashes = new ContentHashProvider();
+        var verificationLedger = new FileReceiptLedgerStore(new GitDirectoryProvider());
+        var verificationPlans = new VerificationPlanService(
+            new VerificationConfigurationLoader(),
+            new CheckPlanProvider(new PathGlobProvider(), new PlatformCapabilityProvider()),
+            [new GitChangedContentSource(verificationHashes, new GitChangeOutputParser())]);
+        var verificationRuns = new VerificationRunService(
+            verificationPlans, verificationLedger, new ProcessCheckRunner(), new VerificationClock());
+        var verificationGuards = new VerificationGuardService(verificationPlans, verificationLedger);
+        var verifyOutput = new VerifyOutputService(writer, Console.Error);
+        var verifyCommands = new VerifyCommandService(verificationPlans, verificationRuns, verificationGuards);
+        var verification = new VerificationController(
+            new VerifyPlanCommand(verifyCommands, verifyOutput),
+            new VerifyRunCommand(verifyCommands, verifyOutput),
+            new VerifyGuardCommand(verifyCommands, verifyOutput),
+            verifyOutput,
+            workingDirectory);
+
         return new WorkspacesController(
             serverUrl,
             writer,
@@ -77,6 +102,7 @@ public static class CliRunnerFactory
             new StatusCommand(workspaceService, workspaceOutput),
             new DiagnosticsCommand(workspaceService, workspaceOutput),
             authentication,
-            commits);
+            commits,
+            verification);
     }
 }

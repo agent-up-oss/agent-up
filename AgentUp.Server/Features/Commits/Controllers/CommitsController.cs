@@ -19,10 +19,6 @@ public sealed class CommitsController(CommitsService service)
 
     public Task<CommitEditResult> UpdateMessageAsync(string worktreePath, string entryRef, string message, CancellationToken cancellationToken = default)
         => service.UpdateMessageAsync(worktreePath, entryRef, message, cancellationToken);
-
-    public Task<CommitEditResult> SetTestsAsync(string worktreePath, string entryRef, IReadOnlyList<string> tests, CancellationToken cancellationToken = default)
-        => service.SetTestsAsync(worktreePath, entryRef, tests, cancellationToken);
-
     public Task<CommitEditResult> AddFilesAsync(string worktreePath, string entryRef, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
         => service.AddFilesAsync(worktreePath, entryRef, files, cancellationToken);
 

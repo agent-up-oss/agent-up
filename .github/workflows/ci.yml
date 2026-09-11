@@ -259,6 +259,7 @@ jobs:
           add_reports agentup_desktop_tests AgentUp.Desktop.Tests
           add_reports agentup_server_tests AgentUp.Server.Tests
           add_reports agentup_tests AgentUp.Tests
+          add_reports agentup_verification_tests AgentUp.Verification.Tests
 
       - name: Upload AgentUp.Architecture.Tests coverage
         uses: codecov/codecov-action@v5
@@ -358,6 +359,15 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_tests }}
           flags: agentup-tests
           name: AgentUp.Tests
+          fail_ci_if_error: true
+
+      - name: Upload AgentUp.Verification.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
+          flags: agentup-verification-tests
+          name: AgentUp.Verification.Tests
           fail_ci_if_error: true
           disable_search: true
 

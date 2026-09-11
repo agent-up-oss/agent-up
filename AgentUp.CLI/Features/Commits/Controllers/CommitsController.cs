@@ -40,7 +40,6 @@ public sealed class CommitsController(
             "inspect" => ct => inspect.RunAsync(remaining, ct),
             "edit" => ct => edit.RunAsync(remaining, ct),
             "message" => ct => entry.RunAsync("message", remaining, ct),
-            "tests" => ct => entry.RunAsync("tests", remaining, ct),
             "files" => ct => entry.RunAsync("files", remaining, ct),
             "remove" => ct => entry.RunAsync("remove", remaining, ct),
             "restore" => ct => entry.RunAsync("restore", remaining, ct),

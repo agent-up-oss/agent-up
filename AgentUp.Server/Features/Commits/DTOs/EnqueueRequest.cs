@@ -4,5 +4,4 @@ public sealed record EnqueueRequest(
     string Slice,
     string Message,
     IReadOnlyList<string> Files,
-    IReadOnlyList<string> Tests,
     string? ReviewIssueId = null);

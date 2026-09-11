@@ -1,0 +1,134 @@
+using AgentUp.CLI.Features.Verification.DTOs;
+using AgentUp.Verification.Features.Verification.Models;
+
+namespace AgentUp.CLI.Features.Verification.Services;
+
+/// <summary>
+/// Renders verification results for the CLI.
+/// </summary>
+public sealed class VerifyOutputService(TextWriter output, TextWriter error)
+{
+    private const int BlockingExitCode = 2;
+
+    public int WritePlan(VerifyPlanResult result)
+        => result.Plan is null ? WriteError(result.Error ?? "Verification failed.") : WritePlan(result.Plan);
+
+    public int WriteRun(VerifyRunResult result)
+        => result.Error is null ? WriteRun(result.Outcomes) : WriteError(result.Error);
+
+    public int WriteGuard(VerifyGuardResult result, VerifyOutputFormat format)
+        => result.Report is null ? WriteError(result.Error ?? "Verification failed.") : WriteGuard(result.Report, format);
+
+    private int WritePlan(VerificationPlan plan)
+    {
+        if (plan.ChangedFiles.Count == 0)
+        {
+            output.WriteLine("Nothing changed, so no checks are required.");
+            return 0;
+        }
+
+        output.WriteLine($"{plan.Checks.Count} check(s) required by {plan.ChangedFiles.Count} changed file(s):");
+        foreach (var line in plan.Checks.Select(FormatPlannedCheck))
+            output.WriteLine(line);
+
+        WriteUnmatched(plan.UnmatchedFiles, output);
+        return 0;
+    }
+
+    private int WriteRun(IReadOnlyList<CheckOutcome> outcomes)
+    {
+        if (outcomes.Count == 0)
+        {
+            output.WriteLine("Nothing to run: no check is required by the current changes.");
+            return 0;
+        }
+
+        foreach (var outcome in outcomes)
+            output.WriteLine($"  {Mark(outcome.Succeeded)} {outcome.CheckId} ({outcome.DurationMs} ms)");
+
+        var failed = outcomes.FirstOrDefault(outcome => !outcome.Succeeded);
+        if (failed is null)
+        {
+            output.WriteLine($"{outcomes.Count} check(s) passed and were recorded.");
+            return 0;
+        }
+
+        error.WriteLine($"Check '{failed.CheckId}' failed with exit code {failed.ExitCode}.");
+        error.WriteLine(failed.Output);
+        return 1;
+    }
+
+    private int WriteGuard(GuardReport report, VerifyOutputFormat format)
+        => format == VerifyOutputFormat.Hook ? WriteGuardForHook(report) : WriteGuardAsText(report);
+
+    public int WriteError(string message)
+    {
+        error.WriteLine(message);
+        return 1;
+    }
+
+    private int WriteGuardAsText(GuardReport report)
+    {
+        if (report.ChangedFileCount == 0)
+        {
+            output.WriteLine("Nothing changed, so no checks are required.");
+            return 0;
+        }
+
+        foreach (var verdict in report.Verdicts)
+            output.WriteLine($"  {Mark(!verdict.Blocking)} {verdict.CheckId}: {verdict.Detail}");
+
+        WriteUnmatched(report.UnmatchedFiles, output);
+
+        if (report.Satisfied)
+        {
+            output.WriteLine($"Every check required by {report.ChangedFileCount} changed file(s) is proven.");
+            return 0;
+        }
+
+        var target = report.ShouldBlock ? error : output;
+        target.WriteLine(report.ShouldBlock
+            ? "Unproven checks remain. Run 'agentup verify run'."
+            : "Unproven checks remain (enforcement is warn). Run 'agentup verify run'.");
+
+        return report.ShouldBlock ? BlockingExitCode : 0;
+    }
+
+    /// <summary>
+    /// Silent when there is nothing to say. A guard that prints on every success trains
+    /// everyone to ignore it.
+    /// </summary>
+    private int WriteGuardForHook(GuardReport report)
+    {
+        if (report.Satisfied || !report.ShouldBlock)
+            return 0;
+
+        error.WriteLine("[agent-up] Verification is incomplete for the changes in this run:");
+        foreach (var verdict in report.BlockingVerdicts)
+            error.WriteLine($"[agent-up]   {verdict.CheckId} - {verdict.Detail}");
+
+        WriteUnmatched(report.UnmatchedFiles, error, "[agent-up]   ");
+        error.WriteLine("[agent-up] Call the run_verification MCP tool, or run 'agentup verify run'.");
+        return BlockingExitCode;
+    }
+
+    private static void WriteUnmatched(IReadOnlyList<string> unmatched, TextWriter writer, string prefix = "  ")
+    {
+        if (unmatched.Count == 0)
+            return;
+
+        writer.WriteLine($"{prefix}{unmatched.Count} changed file(s) match no path rule, so the verification map is incomplete:");
+        foreach (var path in unmatched)
+            writer.WriteLine($"{prefix}  {path}");
+    }
+
+    private static string FormatPlannedCheck(PlannedCheck check)
+    {
+        var selection = string.Join(", ", check.SelectedBy);
+        return check.Runnable
+            ? $"  {check.CheckId}: {check.Definition.Command}  [{selection}]"
+            : $"  {check.CheckId}: skipped here ({check.SkipReason}), still required in CI  [{selection}]";
+    }
+
+    private static string Mark(bool ok) => ok ? "PASS" : "FAIL";
+}
