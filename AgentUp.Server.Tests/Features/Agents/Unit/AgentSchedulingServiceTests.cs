@@ -39,7 +39,7 @@ public sealed class AgentSchedulingServiceTests
         _payloads = new AgentEventFrameProvider();
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
         var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Agents:Codex:Command"] = command }).Build());
+            new Dictionary<string, string?> { ["Agents:Codex:Command"] = command }).Build(), []);
         _events = new AgentEventService(_payloads);
         _service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), commands,

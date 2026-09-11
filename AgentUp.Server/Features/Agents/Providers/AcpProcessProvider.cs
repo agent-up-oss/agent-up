@@ -9,6 +9,7 @@ namespace AgentUp.Server.Features.Agents.Providers;
 public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<AcpProcessProvider> logger) : IAgentProcessProvider
 {
     private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> _pending = new();
+    private readonly ConcurrentQueue<string> _stderr = new();
     private readonly SemaphoreSlim _writes = new(1, 1);
     private Process? _process;
     private Task? _reader;
@@ -20,10 +21,11 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
     public event Func<string, JsonElement, Task<JsonElement>>? Request;
     public event Action<string?>? Exited;
 
-    public Task StartAsync(AgentKind kind, string workingDirectory, CancellationToken cancellationToken)
+    public async Task StartAsync(AgentKind kind, string workingDirectory, CancellationToken cancellationToken)
     {
         if (_process is not null) throw new InvalidOperationException("The ACP process has already started.");
-        var command = commands.Get(kind);
+        var command = await commands.ResolveAsync(kind, cancellationToken)
+            ?? throw new InvalidOperationException($"{kind} ACP executable is not installed or is not on PATH.");
         var start = new ProcessStartInfo(command.FileName) {
             WorkingDirectory = workingDirectory, RedirectStandardInput = true,
             RedirectStandardOutput = true, RedirectStandardError = true,
@@ -47,18 +49,24 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         _process = process;
         _reader = ReadLoopAsync(process, _lifetime.Token);
         _errorReader = ReadErrorsAsync(process, _lifetime.Token);
-        return Task.CompletedTask;
     }
 
     public async Task<JsonElement> CallAsync(string method, object? parameters, CancellationToken cancellationToken)
     {
+        await EnsureRunningAsync(cancellationToken);
         var id = Interlocked.Increment(ref _nextId);
         var completion = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!_pending.TryAdd(id, completion)) throw new InvalidOperationException("Could not allocate an ACP request ID.");
         try {
             await WriteAsync(new { jsonrpc = "2.0", id, method, @params = parameters }, cancellationToken);
             return await completion.Task.WaitAsync(cancellationToken);
-        } finally { _pending.TryRemove(id, out _); }
+        }
+        catch (IOException exception)
+        {
+            await DrainStderrAsync(cancellationToken);
+            throw new InvalidOperationException(ExitError(_process), exception);
+        }
+        finally { _pending.TryRemove(id, out _); }
     }
 
     public Task NotifyAsync(string method, object? parameters, CancellationToken cancellationToken) =>
@@ -76,6 +84,16 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
             process.Kill(entireProcessTree: true);
             await process.WaitForExitAsync(cancellationToken);
         }
+    }
+
+    private async Task EnsureRunningAsync(CancellationToken cancellationToken)
+    {
+        var process = _process ?? throw new InvalidOperationException("The ACP process is not running.");
+        if (!process.HasExited)
+            return;
+
+        await DrainStderrAsync(cancellationToken);
+        throw new InvalidOperationException(ExitError(process));
     }
 
     private async Task WriteAsync(object value, CancellationToken cancellationToken)
@@ -97,6 +115,7 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         if (!cancellationToken.IsCancellationRequested)
         {
             await process.WaitForExitAsync(cancellationToken);
+            await DrainStderrAsync(cancellationToken);
             HandleExit(process);
         }
     }
@@ -128,14 +147,43 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
 
     private async Task ReadErrorsAsync(Process process, CancellationToken cancellationToken)
     {
-        while (await process.StandardError.ReadLineAsync(cancellationToken) is { } line) logger.LogInformation("ACP: {Line}", line);
+        while (await process.StandardError.ReadLineAsync(cancellationToken) is { } line)
+        {
+            _stderr.Enqueue(line);
+            logger.LogWarning("ACP: {Line}", line);
+        }
+    }
+
+    private async Task DrainStderrAsync(CancellationToken cancellationToken)
+    {
+        if (_errorReader is null)
+            return;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
+        using var drain = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        try { await _errorReader.WaitAsync(drain.Token); }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogDebug("ACP stderr reader did not finish before the exit error was reported.");
+        }
     }
 
     private void HandleExit(Process process)
     {
-        var error = process.ExitCode == 0 ? null : $"Agent process exited with code {process.ExitCode}.";
+        var error = process.ExitCode == 0 ? null : ExitError(process);
+        if (error is not null)
+            logger.LogWarning("{Error}", error);
         foreach (var completion in _pending.Values) completion.TrySetException(new InvalidOperationException(error ?? "Agent process exited."));
         Exited?.Invoke(error);
+    }
+
+    private string ExitError(Process? process)
+    {
+        var code = process is { HasExited: true } ? process.ExitCode : -1;
+        var lines = _stderr.ToArray();
+        if (lines.Length == 0)
+            return $"Agent process exited with code {code}.";
+        var tail = lines.Length <= 12 ? lines : lines[^12..];
+        return $"Agent process exited with code {code}: {string.Join(" ", tail.Select(line => line.Trim()).Where(line => line.Length > 0))}";
     }
 
     public async ValueTask DisposeAsync()

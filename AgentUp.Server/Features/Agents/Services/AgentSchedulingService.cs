@@ -17,6 +17,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly AgentEventService events;
     private readonly ILogger<AgentSchedulingService> logger;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
+    private IReadOnlyList<AgentDescriptor> _descriptors = Enum.GetValues<AgentKind>()
+        .Select(kind => new AgentDescriptor(kind, false, DisplayName(kind)))
+        .ToArray();
 
     public AgentSchedulingService(
         WorkspaceQueryController workspaces,
@@ -35,12 +38,20 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         workspaces.WorkspaceRemoved += HandleWorkspaceRemoved;
     }
 
-    public AgentSessionDto? Get(string workspaceId)
+    public AgentSessionDto? Get(string workspaceId) => SessionDto(workspaceId);
+
+    public async Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        _descriptors = await DescriptorsAsync(cancellationToken);
+        return SessionDto(workspaceId);
+    }
+
+    private AgentSessionDto? SessionDto(string workspaceId)
     {
         if (workspaces.GetById(workspaceId) is null) return null;
         var session = _sessions.GetValueOrDefault(workspaceId);
         return new AgentSessionDto(workspaceId, session?.Kind, session?.State ?? "idle",
-            session?.AcpSessionId, session?.Error, Descriptors(), session?.AuthMethods ?? []);
+            session?.AcpSessionId, session?.Error, _descriptors, session?.AuthMethods ?? []);
     }
 
     public async Task<AgentScheduleResult> ScheduleAsync(string workspaceId, AgentKind kind, CancellationToken cancellationToken)
@@ -55,7 +66,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     {
         var workspace = workspaces.GetById(workspaceId);
         if (workspace is null) return new AgentScheduleResult(null, false, null);
-        if (!commands.IsAvailable(kind)) throw new InvalidOperationException($"{kind} ACP executable is not installed or is not on PATH.");
+        if (!await commands.IsAvailableAsync(kind, cancellationToken)) throw new InvalidOperationException($"{kind} ACP executable is not installed or is not on PATH.");
         if (_sessions.ContainsKey(workspaceId)) throw new InvalidOperationException("This workspace already has an agent. Stop it before selecting another agent.");
 
         var state = new AgentSessionState(kind, workspace.WorktreePath, processes.Create());
@@ -76,15 +87,17 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             state.AuthMethods = payloads.AuthMethods(initialized);
             events.Publish(workspaceId, "initialized", initialized);
             await CreateSessionAsync(state, cancellationToken);
-            events.Publish(workspaceId, "state", Get(workspaceId)!);
-            return new AgentScheduleResult(Get(workspaceId), true, null);
+            var scheduled = await GetAsync(workspaceId, cancellationToken);
+            events.Publish(workspaceId, "state", scheduled!);
+            return new AgentScheduleResult(scheduled, true, null);
         }
         catch (InvalidOperationException exception) when (state.AuthMethods.Count > 0 && state.AcpSessionId is null && state.State != "stopped")
         {
             state.State = "authentication_required";
             state.Error = exception.Message;
-            events.Publish(workspaceId, "state", Get(workspaceId)!);
-            return new AgentScheduleResult(Get(workspaceId), true, null);
+            var pendingAuth = await GetAsync(workspaceId, cancellationToken);
+            events.Publish(workspaceId, "state", pendingAuth!);
+            return new AgentScheduleResult(pendingAuth, true, null);
         }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException or OperationCanceledException)
         {
@@ -254,10 +267,20 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         { logger.LogWarning(exception, "Could not stop the agent for removed workspace {WorkspaceId}.", workspaceId); }
     }
 
-    private IReadOnlyList<AgentDescriptor> Descriptors() => Enum.GetValues<AgentKind>()
-        .Select(kind => new AgentDescriptor(kind, commands.IsAvailable(kind), kind switch {
-            AgentKind.Codex => "Codex", AgentKind.Cursor => "Cursor", AgentKind.Claude => "Claude", _ => $"{kind}"
-        })).ToArray();
+    private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
+    {
+        var descriptors = Enum.GetValues<AgentKind>().Select(async kind =>
+            new AgentDescriptor(kind, await commands.IsAvailableAsync(kind, cancellationToken), DisplayName(kind)));
+        return await Task.WhenAll(descriptors);
+    }
+
+    private static string DisplayName(AgentKind kind) => kind switch
+    {
+        AgentKind.Codex => "Codex",
+        AgentKind.Cursor => "Cursor",
+        AgentKind.Claude => "Claude",
+        _ => $"{kind}"
+    };
 
     public async ValueTask DisposeAsync()
     {

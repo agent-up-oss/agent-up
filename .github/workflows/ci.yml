@@ -238,6 +238,9 @@ jobs:
           add_reports agentup_cli_tests AgentUp.CLI.Tests
           add_reports agentup_capabilities_abstractions_tests AgentUp.Capabilities.Abstractions.Tests
           add_reports agentup_capabilities_common_tests AgentUp.Capabilities.Common.Tests
+          add_reports agentup_capabilities_claude_tests AgentUp.Capabilities.Claude.Tests
+          add_reports agentup_capabilities_codex_tests AgentUp.Capabilities.Codex.Tests
+          add_reports agentup_capabilities_cursor_tests AgentUp.Capabilities.Cursor.Tests
           add_reports agentup_capabilities_docker_tests AgentUp.Capabilities.Docker.Tests
           add_reports agentup_capabilities_dotnet_tests AgentUp.Capabilities.Dotnet.Tests
           add_reports agentup_commit_policy_tests AgentUp.CommitPolicy.Tests
@@ -283,6 +286,36 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
           flags: agentup-capabilities-common-tests
           name: AgentUp.Capabilities.Common.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Claude.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_claude_tests }}
+          flags: agentup-capabilities-claude-tests
+          name: AgentUp.Capabilities.Claude.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Codex.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_codex_tests }}
+          flags: agentup-capabilities-codex-tests
+          name: AgentUp.Capabilities.Codex.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_cursor_tests }}
+          flags: agentup-capabilities-cursor-tests
+          name: AgentUp.Capabilities.Cursor.Tests
           fail_ci_if_error: true
           disable_search: true
 

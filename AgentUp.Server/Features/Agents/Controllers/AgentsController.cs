@@ -5,6 +5,7 @@ namespace AgentUp.Server.Features.Agents.Controllers;
 
 public sealed class AgentsController(AgentSchedulingService scheduling, AgentEventService events)
 {
+    public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken) => scheduling.GetAsync(workspaceId, cancellationToken);
     public AgentSessionDto? Get(string workspaceId) => scheduling.Get(workspaceId);
     public Task<AgentScheduleResult> ScheduleAsync(string workspaceId, AgentKind kind, CancellationToken cancellationToken) => scheduling.ScheduleAsync(workspaceId, kind, cancellationToken);
     public Task<AgentActionResult> PromptAsync(string workspaceId, string message, CancellationToken cancellationToken) => scheduling.PromptAsync(workspaceId, message, cancellationToken);

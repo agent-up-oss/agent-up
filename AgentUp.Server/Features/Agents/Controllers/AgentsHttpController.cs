@@ -8,7 +8,8 @@ namespace AgentUp.Server.Features.Agents.Controllers;
 public sealed class AgentsHttpController(AgentsController agents) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<AgentSessionDto> Get(string workspaceId) => FoundResult(this, agents.Get(workspaceId));
+    public async Task<ActionResult<AgentSessionDto>> Get(string workspaceId, CancellationToken cancellationToken) =>
+        FoundResult(this, await agents.GetAsync(workspaceId, cancellationToken));
 
     [HttpPost]
     public async Task<IActionResult> Schedule(string workspaceId, ScheduleAgentRequest request)

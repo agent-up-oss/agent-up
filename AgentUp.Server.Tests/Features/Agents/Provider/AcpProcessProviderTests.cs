@@ -17,12 +17,33 @@ public sealed class AcpProcessProviderTests
             : new[] { "-c", "read line; printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":1}}'" };
         var values = new Dictionary<string, string?> { ["Agents:Codex:Command"] = command };
         for (var index = 0; index < arguments.Length; index++) values[$"Agents:Codex:Arguments:{index}"] = arguments[index];
-        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(values).Build());
+        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(values).Build(), []);
         await using var provider = new AcpProcessProvider(commands, NullLogger<AcpProcessProvider>.Instance);
         await provider.StartAsync(AgentKind.Codex, Path.GetTempPath(), CancellationToken.None);
 
         var result = await provider.CallAsync("initialize", new { protocolVersion = 1 }, CancellationToken.None);
 
         Assert.That(result.GetProperty("protocolVersion").GetInt32(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task CallAsync_includesStderrWhenTheAgentExits()
+    {
+        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var arguments = OperatingSystem.IsWindows()
+            ? new[] { "/d", "/s", "/c", "echo boom 1>&2 & exit 1" }
+            : new[] { "-c", "echo boom >&2; exit 1" };
+        var values = new Dictionary<string, string?> { ["Agents:Codex:Command"] = command };
+        for (var index = 0; index < arguments.Length; index++)
+            values[$"Agents:Codex:Arguments:{index}"] = arguments[index];
+        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(values).Build(), []);
+        await using var provider = new AcpProcessProvider(commands, NullLogger<AcpProcessProvider>.Instance);
+        await provider.StartAsync(AgentKind.Codex, Path.GetTempPath(), CancellationToken.None);
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await provider.CallAsync("initialize", new { protocolVersion = 1 }, CancellationToken.None));
+
+        Assert.That(exception!.Message, Does.Contain("code 1"));
+        Assert.That(exception.Message, Does.Contain("boom"));
     }
 }

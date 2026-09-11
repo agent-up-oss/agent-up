@@ -29,7 +29,6 @@ public sealed class SliceTestCoverage
         "AgentUp.Server/Features/Capabilities/Services requires AgentUp.Server.Tests/Features/Capabilities/Unit/*Tests.cs",
         "AgentUp.Capabilities.Common/Features/CapabilityInventory/Models requires AgentUp.Capabilities.Common.Tests/Features/CapabilityInventory/Unit/*Tests.cs",
         "AgentUp.Capabilities.Common/Features/CapabilityDiscovery/Models requires AgentUp.Capabilities.Common.Tests/Features/CapabilityDiscovery/Unit/*Tests.cs",
-        "AgentUp.Capabilities.Common/Features/CapabilityDiscovery/Providers requires AgentUp.Capabilities.Common.Tests/Features/CapabilityDiscovery/Provider/*Tests.cs",
         "AgentUp.Desktop/Features/Console/Controllers requires AgentUp.Desktop.Tests/Features/Console/Controller/*Tests.cs",
         "AgentUp.Desktop/Features/Console/Services requires AgentUp.Desktop.Tests/Features/Console/Unit/*Tests.cs",
         "AgentUp.Desktop/Features/Console/Providers requires AgentUp.Desktop.Tests/Features/Console/Provider/*Tests.cs",

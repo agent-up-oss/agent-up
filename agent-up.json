@@ -79,12 +79,24 @@
         "test": ["dotnet test AgentUp.Capabilities.Docker.Tests"],
         "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
       },
+      "AgentUp.Capabilities.Codex": {
+        "test": ["dotnet test AgentUp.Capabilities.Codex.Tests"],
+        "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
+      },
+      "AgentUp.Capabilities.Cursor": {
+        "test": ["dotnet test AgentUp.Capabilities.Cursor.Tests"],
+        "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
+      },
+      "AgentUp.Capabilities.Claude": {
+        "test": ["dotnet test AgentUp.Capabilities.Claude.Tests"],
+        "dependsOn": ["AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"]
+      },
       "AgentUp.CommitPolicy": {
         "test": ["dotnet test AgentUp.CommitPolicy.Tests"]
       },
       "AgentUp.Server": {
         "test": ["dotnet test AgentUp.Server.Tests"],
-        "dependsOn": ["AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"]
+        "dependsOn": ["AgentUp.CommitPolicy", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Claude"]
       },
       "AgentUp.CLI": {
         "test": ["dotnet test AgentUp.CLI.Tests"],

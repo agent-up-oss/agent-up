@@ -90,11 +90,17 @@ Agent-Up applies local process environment values in this order: environment fil
 
 ## Workspace agent CLIs
 
-Workspace agent chat uses ACP executables installed on the Server machine. The
-defaults are `codex-acp`, Cursor's `agent acp`, and `claude-agent-acp`. Sign in
-with the corresponding CLI first; Agent-Up reuses the CLI's supported local
-subscription login and does not ask for or store an API token. An unavailable
-executable is disabled in the Desktop and Mobile agent picker.
+Workspace agent chat uses first-party Codex, Cursor, and Claude capability
+adapters on the Server. Those adapters look for the matching ACP CLI in Agent-Up
+inventory, `PATH`, well-known install locations such as `~/.local/bin` and
+Cursor Agent version installs under `~/.local/share/cursor-agent/versions`, and
+platform package records. Typical launches are `codex-acp`, Cursor's `agent acp`
+or `cursor-agent acp`, and `claude-agent-acp`. The interactive `codex` and
+`claude` CLIs are not ACP servers, and the Cursor IDE is not the Cursor Agent
+CLI (`agent`). Sign in with the corresponding CLI first; Agent-Up reuses the
+CLI's supported local subscription login and does not ask for or store an API
+token. An unavailable executable is disabled in the Desktop and Mobile agent
+picker.
 
 Server operators can override a command or its arguments in `appsettings.json`
 under `Agents:Codex`, `Agents:Cursor`, or `Agents:Claude`. Services may have a

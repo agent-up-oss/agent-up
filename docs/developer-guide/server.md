@@ -32,13 +32,22 @@ selected option was offered by that request. Slow SSE consumers are disconnected
 instead of silently losing events, allowing them to reconnect with `after` and
 replay from bounded Server history.
 
-The default commands are `codex-acp`, `agent acp` (Cursor Agent), and
-`claude-agent-acp`. Override executable names and argument arrays with
+The Codex, Cursor, and Claude capability adapters discover installed ACP
+adapters from Agent-Up inventory, `PATH`, well-known locations such as
+`~/.local/bin` and Cursor Agent version installs under
+`~/.local/share/cursor-agent/versions`, and platform package-manager records.
+Launch plans are `codex-acp`, Cursor's `agent acp` or `cursor-agent acp`, and
+`claude-agent-acp` or `claude-code-acp`. The interactive `codex` and `claude`
+CLIs are not ACP servers, and installing the Cursor IDE does not install the
+Cursor Agent CLI. Override executable names and argument arrays with
 `Agents:<Codex|Cursor|Claude>:Command` and `Agents:<...>:Arguments`. Agent-Up does
 not collect API keys or translate subscription credentials: each executable is
 responsible for its own supported interactive/pro-subscription login. An agent
-is shown as available only when its configured executable is on the Server
-service's `PATH` (or is configured as an existing absolute path).
+is shown as available when its capability adapter discovers an installed CLI, or
+when `Agents:<Kind>:Command` points at an existing executable. Live-CLI Provider
+smoke tests discover those installed executables, and Server Agents HTTP smoke
+asserts the workspace agent picker matches that discovery without skipping when
+a CLI is absent.
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP
 client cannot safely proxy an interactive terminal. It does support ACP agent-
