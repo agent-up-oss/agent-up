@@ -25,6 +25,7 @@ internal static class ArchitectureFixture
     [
         "AgentUp.Server.Tests",
         "AgentUp.Browser.Streaming.Tests",
+        "AgentUp.Tray.Tests",
         "AgentUp.CommitPolicy.Tests",
         "AgentUp.Verification.Tests",
         "AgentUp.Capabilities.Abstractions.Tests",

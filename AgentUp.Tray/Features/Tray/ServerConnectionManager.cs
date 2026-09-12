@@ -16,11 +16,23 @@ public sealed class ServerConnectionManager : IDisposable
     public IObservable<ServiceState> State => _state;
     public ServiceState CurrentState => _state.Value;
 
-    public ServerConnectionManager() : this(ResolveServerUri()) { }
+    public ServerConnectionManager()
+        : this(ResolveServerUri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL")))
+    {
+    }
 
     public ServerConnectionManager(Uri serverUri)
+        : this(new HttpClient { BaseAddress = serverUri, Timeout = HttpTimeout })
     {
-        _http = new HttpClient { BaseAddress = serverUri, Timeout = HttpTimeout };
+    }
+
+    /// <summary>
+    /// Takes the client so the poll, restart and shutdown requests can be observed without
+    /// a real server.
+    /// </summary>
+    public ServerConnectionManager(HttpClient http)
+    {
+        _http = http;
     }
 
     public Task StartAsync(CancellationToken ct = default)
@@ -79,11 +91,8 @@ public sealed class ServerConnectionManager : IDisposable
                 return;
             }
 
-            var current = _state.Value;
-            if (success && current != ServiceState.Restarting)
-                _state.OnNext(ServiceState.Connected);
-            else if (!success && current is ServiceState.Connected or ServiceState.Restarting)
-                _state.OnNext(ServiceState.Disconnected);
+            if (ServiceStateTransition.Next(_state.Value, success) is { } next)
+                _state.OnNext(next);
 
             try { await Task.Delay(PollInterval, ct); }
             catch (OperationCanceledException) { return; }
@@ -97,7 +106,7 @@ public sealed class ServerConnectionManager : IDisposable
             try { await Task.Delay(HeartbeatInterval, ct); }
             catch (OperationCanceledException) { return; }
 
-            if (_state.Value != ServiceState.Connected)
+            if (!ServiceStateTransition.ShouldHeartbeat(_state.Value))
                 continue;
 
             try
@@ -111,13 +120,23 @@ public sealed class ServerConnectionManager : IDisposable
         }
     }
 
-    private static Uri ResolveServerUri()
-    {
-        var env = Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL");
-        if (!string.IsNullOrWhiteSpace(env) && Uri.TryCreate(env, UriKind.Absolute, out var uri))
-            return uri;
-        return DefaultServerUri;
-    }
+    /// <summary>
+    /// Resolves the server URI from a configured value, falling back to the local default.
+    /// Takes the raw value rather than reading the environment, so the fallback rules are
+    /// testable without mutating process state.
+    /// </summary>
+    /// <remarks>
+    /// The scheme has to be checked, not just absoluteness: Uri.TryCreate accepts
+    /// "localhost:5000" as absolute with "localhost" as the scheme, so a value like that
+    /// would otherwise be used verbatim and leave the tray permanently disconnected
+    /// instead of falling back.
+    /// </remarks>
+    public static Uri ResolveServerUri(string? configuredUrl)
+        => !string.IsNullOrWhiteSpace(configuredUrl)
+           && Uri.TryCreate(configuredUrl, UriKind.Absolute, out var uri)
+           && uri.Scheme is "http" or "https"
+            ? uri
+            : DefaultServerUri;
 
     public void Dispose()
     {

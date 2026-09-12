@@ -759,6 +759,23 @@ from every report, which means that suite never ran. A file whose project is cov
 which has no entry of its own simply has no executable code - a changed interface or enum
 must not fail the gate.
 
+Within one check only the newest run is read. The test runner adds a GUID folder per run
+and never removes the previous one, so a check run twice leaves two reports; the older one
+numbers the file as it was before the edit, and merging it in would report lines that have
+since moved as uncovered. Across checks that protection does not apply, so every check that
+collects coverage has to be current - which is what `verification.always` and receipt
+staleness already guarantee. Re-running one suite by hand and then the gate does not: run
+the plan, not a single check.
+
+What `coverage.exclude` is for, and what it is not: a file belongs there when a coverage
+number about it carries no information - an entry point, generated or composition-only
+code, or a body that is nothing but a platform call which cannot be made on another host.
+`AgentUp.Tray` shows the intended shape: the Windows Run-key *format* rules and the macOS
+plist and load/unload *sequence* are injected and fully covered, while the two files that
+do nothing but call the platform (`WindowsAutoStartRegistrar.cs` reaching the registry,
+`LaunchctlProcess.cs` starting launchctl) are excluded by name. Split the decidable part
+out and cover it; never exclude a file to avoid writing a test.
+
 `codecov.yml` sets the same 90% patch target so the Codecov status matches. It is
 complementary, not a substitute: Codecov cannot gate a local run.
 

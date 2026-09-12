@@ -172,6 +172,14 @@
           "AgentUp.Capabilities.Docker"
         ]
       },
+      "tray": {
+        "command": "dotnet test AgentUp.Tray.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/tray",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Tray",
+          "AgentUp.Tray.Tests"
+        ]
+      },
       "desktop": {
         "command": "dotnet test AgentUp.Desktop.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/desktop",
         "tier": "fast",
@@ -449,9 +457,18 @@
       {
         "match": "AgentUp.Tray/**",
         "checks": [
+          "tray",
+          "patch-coverage",
           "linux-smoke",
           "macos-smoke",
           "windows-smoke"
+        ]
+      },
+      {
+        "match": "AgentUp.Tray.Tests/**",
+        "checks": [
+          "tray",
+          "patch-coverage"
         ]
       },
       {
@@ -658,14 +675,17 @@
       "AgentUp.Capabilities.Common/**/*.cs",
       "AgentUp.Capabilities.Dotnet/**/*.cs",
       "AgentUp.Capabilities.Docker/**/*.cs",
-      "AgentUp.Browser.Streaming/**/*.cs"
+      "AgentUp.Browser.Streaming/**/*.cs",
+      "AgentUp.Tray/**/*.cs"
     ],
     "exclude": [
       "**/Composition/**",
       "**/Program.cs",
       "**/App.axaml.cs",
       "**/Properties/**",
-      "**/Resources/**"
+      "**/Resources/**",
+      "AgentUp.Tray/Features/AutoStart/WindowsAutoStartRegistrar.cs",
+      "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
     ]
   }
 }
