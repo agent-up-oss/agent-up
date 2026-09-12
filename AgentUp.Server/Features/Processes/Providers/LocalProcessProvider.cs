@@ -58,6 +58,9 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
             startInfo.Environment[key] = value;
 
+        foreach (var (key, value) in app.RuntimeEnvironment)
+            startInfo.Environment[key] = value;
+
         foreach (var mapping in workspace.Applications.SelectMany(a => a.AllocatedPorts).Where(mapping => mapping.Variable is not null))
             startInfo.Environment[mapping.Variable!] = mapping.AllocatedPort.ToString();
 

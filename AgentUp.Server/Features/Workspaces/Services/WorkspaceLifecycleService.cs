@@ -4,6 +4,7 @@ using System.Text.Json;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Browser.Controllers;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -16,6 +17,7 @@ public sealed class WorkspaceLifecycleService
     private readonly WorkspaceRegistry _registry;
     private readonly ProcessesController _processes;
     private readonly BrowserLifecycleController _browser;
+    private readonly DesktopApplicationsController _desktopApplications;
     private readonly AppHealthController _healthChecks;
     private readonly AppMetricsController _metricsPulls;
     private readonly WorkspaceStreamStateController _streamState;
@@ -27,6 +29,7 @@ public sealed class WorkspaceLifecycleService
         WorkspaceRegistry registry,
         ProcessesController processes,
         BrowserLifecycleController browser,
+        DesktopApplicationsController desktopApplications,
         AppHealthController healthChecks,
         AppMetricsController metricsPulls,
         WorkspaceStreamStateController streamState,
@@ -36,6 +39,7 @@ public sealed class WorkspaceLifecycleService
         _registry = registry;
         _processes = processes;
         _browser = browser;
+        _desktopApplications = desktopApplications;
         _healthChecks = healthChecks;
         _metricsPulls = metricsPulls;
         _streamState = streamState;
@@ -92,6 +96,8 @@ public sealed class WorkspaceLifecycleService
             {
                 await _registry.ReallocatePortsAsync(id);
                 workspace = _registry.GetById(id)!;
+                foreach (var app in workspace.Applications.Where(app => app.Kind == ApplicationKind.Desktop))
+                    app.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, app, CancellationToken.None);
                 await _processes.LaunchWorkspaceAsync(workspace);
                 await _registry.UpdateStateAsync(id, WorkspaceState.Running);
                 await _registry.UpdateLastErrorAsync(id, null);
@@ -107,6 +113,7 @@ public sealed class WorkspaceLifecycleService
             catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
             {
                 _logger.LogError(ex, "Workspace failed to start");
+                await _desktopApplications.StopWorkspaceAsync(id, CancellationToken.None);
                 await _registry.UpdateLastErrorAsync(id, ex.Message);
                 await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
                 return WorkspaceLifecycleResult.Failed("Workspace could not be started.");
@@ -144,6 +151,7 @@ public sealed class WorkspaceLifecycleService
                 _healthChecks.StopForWorkspace(id);
                 _metricsPulls.StopForWorkspace(id);
                 await _processes.KillWorkspaceAsync(id);
+                await _desktopApplications.StopWorkspaceAsync(id, CancellationToken.None);
                 await _registry.UpdateStateAsync(id, WorkspaceState.Stopped);
                 foreach (var app in workspace.Applications)
                     await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Stopped);

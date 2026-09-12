@@ -5,9 +5,11 @@ using AgentUp.Server.Features.Validation.DTOs;
 using AgentUp.Server.Features.Validation.Interfaces;
 using AgentUp.Server.Features.Validation.Providers;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
 namespace AgentUp.Server.Features.Validation.Services;
 
-public sealed class ValidationFlowService(IValidationFlowRepository repository, WorkspaceQueryController workspaces, BrowserMcpTools browser, PlaywrightFlowExporter exporter)
+public sealed class ValidationFlowService(IValidationFlowRepository repository, WorkspaceQueryController workspaces, BrowserMcpTools browser, PlaywrightFlowExporter exporter, DesktopMcpTools? desktop = null)
 {
     internal const string InitialStageId = "__initial__";
 
@@ -64,6 +66,8 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
         if (flow is null) return new(false, "Validation flow was not found.");
         var workspace = workspaces.GetById(workspaceId);
         var app = workspace?.Applications.SingleOrDefault(x => x.Name == flow.Application);
+        if (app?.Kind == ApplicationKind.Desktop)
+            return await RunDesktopAsync(workspaceId, flow, ct);
         var port = app?.AllocatedPorts.FirstOrDefault(x => x.Protocol.Equals("http", StringComparison.OrdinalIgnoreCase));
         if (port is null) return new(false, "The flow application has no allocated HTTP port.");
         var origin = $"http://127.0.0.1:{port.AllocatedPort}";
@@ -91,6 +95,60 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             if (error is not null) return new(false, error, step.Id);
         }
         return new(true, $"Validation '{flow.Name}' passed.");
+    }
+
+    private async Task<ValidationRunResult> RunDesktopAsync(string workspaceId, ValidationFlow flow, CancellationToken ct)
+    {
+        if (desktop is null) return new(false, "Desktop validation is unavailable.");
+        var inspected = await desktop.Inspect(workspaceId, flow.Application);
+        if (!inspected.Succeeded) return new(false, inspected.Message);
+        var generation = ReadGeneration(inspected.Data);
+        if (generation is null) return new(false, "Desktop inspection returned no session generation.");
+        var initialError = await AssertDesktopAsync(workspaceId, flow.Application, flow.InitialExpectations, ct);
+        if (initialError is not null) return new(false, initialError);
+        foreach (var step in flow.Steps)
+        {
+            var result = await RunDesktopStepAsync(workspaceId, flow.Application, generation.Value, step, ct);
+            if (!result.Succeeded) return new(false, result.Message, step.Id);
+            var error = await AssertDesktopAsync(workspaceId, flow.Application, step.Expectations ?? [], ct);
+            if (error is not null) return new(false, error, step.Id);
+        }
+        return new(true, $"Validation '{flow.Name}' passed.");
+    }
+
+    private async Task<string?> AssertDesktopAsync(string workspaceId, string application, IReadOnlyList<ValidationAssertion> assertions, CancellationToken ct)
+    {
+        var inspected = await desktop!.Inspect(workspaceId, application);
+        if (!inspected.Succeeded) return inspected.Message;
+        if (assertions.Any(assertion => assertion.Kind is not (ValidationExpectation.Running or ValidationExpectation.Visible)))
+            return "Desktop validation currently supports Running and framebuffer Visible expectations.";
+        if (assertions.Any(assertion => assertion.Kind == ValidationExpectation.Visible))
+        {
+            var screenshot = await desktop.Screenshot(workspaceId, application, ct);
+            if (screenshot.IsError == true) return "Desktop framebuffer was not visible.";
+        }
+        return null;
+    }
+
+    private async Task<McpToolResult> RunDesktopStepAsync(string workspaceId, string application, long generation, ValidationStep step, CancellationToken ct)
+    {
+        if (desktop is null) return new(false, "Desktop validation is unavailable.");
+        return step.Action switch
+        {
+            ValidationAction.Click when step.Target is { X: { } x, Y: { } y } =>
+                await desktop.Click(workspaceId, application, generation, x, y, 0, ct),
+            ValidationAction.Fill when step.Target is { X: { } x, Y: { } y } =>
+                await desktop.Fill(workspaceId, application, generation, x, y, step.Value ?? string.Empty, ct),
+            ValidationAction.Press => await desktop.Press(workspaceId, application, generation, step.Value ?? "Enter", ct),
+            _ => new McpToolResult(false, "Desktop validation supports coordinate click/fill and key press steps.")
+        };
+    }
+
+    private static long? ReadGeneration(object? data)
+    {
+        if (data is null) return null;
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(data));
+        return document.RootElement.TryGetProperty("generation", out var value) ? value.GetInt64() : null;
     }
 
     private async Task<string?> AssertAsync(string workspaceId, IReadOnlyList<ValidationAssertion> assertions, CancellationToken ct)
@@ -138,7 +196,9 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             return "Application was not found in this workspace.";
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 120)
             return "Name is required and cannot exceed 120 characters.";
-        if (!IsSafeRelativePath(request.InitialPath))
+        var desktopApplication = workspaces.GetById(workspaceId)?.Applications
+            .FirstOrDefault(application => application.Name == request.Application)?.Kind == ApplicationKind.Desktop;
+        if (!desktopApplication && !IsSafeRelativePath(request.InitialPath))
             return "InitialPath must be a local application-relative path beginning with one '/'.";
         if (request.Description is null)
             return "Description is required.";
@@ -150,10 +210,15 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             return "Every step requires a GUI-level description.";
         if (request.Steps.Any(step => step.Expectations is null || step.Expectations.Count == 0))
             return "Every step requires at least one visible expectation.";
-        if (request.Steps.Any(step => step.Action == ValidationAction.Navigate && !IsSafeRelativePath(step.Value)))
+        if (request.Steps.Any(step => step.Action == ValidationAction.Navigate && (desktopApplication || !IsSafeRelativePath(step.Value))))
             return "Navigate steps require a local application-relative path beginning with one '/'.";
-        if (request.Steps.Any(step => step.Action is ValidationAction.Click or ValidationAction.Fill && string.IsNullOrWhiteSpace(step.Target?.Selector)))
-            return "Click and fill steps require a stable selector fallback for watched replay.";
+        if (request.Steps.Any(step => step.Action is ValidationAction.Click or ValidationAction.Fill
+                                      && (desktopApplication
+                                          ? step.Target?.X is null || step.Target.Y is null
+                                          : string.IsNullOrWhiteSpace(step.Target?.Selector))))
+            return desktopApplication
+                ? "Desktop click and fill steps require logical framebuffer X and Y coordinates."
+                : "Click and fill steps require a stable selector fallback for watched replay.";
         return null;
     }
 

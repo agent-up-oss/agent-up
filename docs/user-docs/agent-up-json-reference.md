@@ -15,6 +15,7 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 | `name` | string | Yes | none | Human-readable project name shown for the workspace. |
 | `display` | [Display](#display-object) | No | derived workspace visuals | Optional Desktop-only workspace list label overrides. |
 | `applications` | array of [Application](#application-object) | No | `[]` | Legacy local process applications launched directly from executable-plus-arguments commands. |
+| `desktopApplications` | array of [Desktop Application](#desktop-application-object) | No | `[]` | Linux graphical applications hosted on Server-owned virtual displays and streamed to Desktop and Mobile. |
 | `services` | array of [Docker Service](#docker-service-object) | No | `[]` | Legacy Docker service definitions. |
 | `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications launched through the Agent-Up .NET capability. |
 | `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers launched through the Agent-Up Docker capability. |
@@ -116,6 +117,34 @@ Example:
   ]
 }
 ```
+
+## Desktop Application Object
+
+Used in `desktopApplications`. Desktop applications use the same validated executable-plus-arguments launch contract as local applications. The Server currently requires Linux with Xvfb and XTest libraries, starts an isolated virtual display for each running application, injects `DISPLAY`, and streams framebuffer updates only to ticketed viewers.
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `name` | string | Yes | none | Application display name used by Desktop, Mobile, REST, validation, and MCP. |
+| `command` | string | Yes | none | Allowlisted executable-plus-arguments command. Shell expressions remain forbidden. |
+| `install` | string or null | No | none | Idempotent command run before every application launch. |
+| `path` | string or null | No | workspace root | Workspace-relative working directory. |
+| `window` | object | No | `1280x800` | Fixed logical framebuffer with integer `width` and `height`; supported bounds are 320–3840 by 240–2160. |
+| `runtime` | string | No | `linux` | Allowlisted compatibility runtime. Only `linux` is currently supported. |
+| `ports` | array of [Port](#port-object) | No | `[]` | Optional Server-allocated network ports exposed by the graphical process. |
+| `environment` | object of string values | No | `{}` | Inline process environment variables. `DISPLAY` is Server-owned and injected at launch. |
+| `environmentFiles` | array of strings | No | `[]` | Workspace-relative `.env`-style files loaded at launch. |
+
+```json
+{
+  "name": "Editor",
+  "command": "dotnet run --project src/Editor",
+  "install": "dotnet restore src/Editor",
+  "path": ".",
+  "window": { "width": 1440, "height": 900 }
+}
+```
+
+Desktop and Mobile request session-scoped viewer tickets from the authenticated REST API. MCP exposes `desktop_inspect`, `desktop_screenshot`, `desktop_click`, `desktop_fill`, and `desktop_press`. Screenshot and input responses include a session generation; coordinate input from an older generation is rejected after restart. Desktop validation flows use coordinate targets (`x` and `y`) with `Running` and framebuffer `Visible` expectations. Existing HTTP application tabs and Browser MCP remain direct and unchanged.
 
 ## .NET Application Object
 

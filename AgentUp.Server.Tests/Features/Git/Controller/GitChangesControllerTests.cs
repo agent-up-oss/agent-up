@@ -37,6 +37,28 @@ public sealed class GitChangesControllerTests
     }
 
     [Test]
+    public async Task GetHead_returnsNotFoundForAnUnknownWorkspace()
+    {
+        var (controller, _) = await CreateControllerAsync(new FakeGitWorkingTreeProvider());
+
+        var result = await controller.GetHead("missing");
+
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+
+    [Test]
+    public async Task GetHead_returnsTheLiveBranch()
+    {
+        var git = new FakeGitWorkingTreeProvider { Branch = "topic" };
+        git.LocalBranches.Add("topic");
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.GetHead(workspaceId);
+
+        Assert.That(OkValue<GitHeadState>(result).Branch, Is.EqualTo("topic"));
+    }
+
+    [Test]
     public async Task GetFileDiff_returnsNotFoundForAFileWithoutChanges()
     {
         var (controller, workspaceId) = await CreateControllerAsync(new FakeGitWorkingTreeProvider());
@@ -84,6 +106,28 @@ public sealed class GitChangesControllerTests
         Assert.That(git.CommittedFiles, Is.EqualTo(new[] { "src/app/main.cs" }));
     }
 
+    [Test]
+    public async Task Discard_returnsTheMutationResult()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.Discard(workspaceId, new GitFilesRequest(["src/app/main.cs"]));
+
+        Assert.That(OkValue<GitMutationResult>(result).Succeeded, Is.True);
+        Assert.That(git.DiscardedFiles, Is.EqualTo(new[] { "src/app/main.cs" }));
+    }
+
+    [Test]
+    public async Task SwitchBranch_returnsNotFoundForAnUnknownWorkspace()
+    {
+        var (controller, _) = await CreateControllerAsync(new FakeGitWorkingTreeProvider());
+
+        var result = await controller.SwitchBranch("missing", new GitBranchRequest("topic", false));
+
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+
     private static T OkValue<T>(IActionResult result) where T : class
         => (result as OkObjectResult)?.Value as T
            ?? throw new AssertionException($"Expected a 200 OK result carrying {typeof(T).Name}, got {result.GetType().Name}.");
@@ -99,7 +143,7 @@ public sealed class GitChangesControllerTests
             Branch: "main",
             Commit: "abc123"));
 
-        var controller = new GitChangesController(new GitChangeTreeService(workspaces, git))
+        var controller = new GitChangesController(new GitChangeTreeService(workspaces, git, new FakeWorkspacePromptGuard()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

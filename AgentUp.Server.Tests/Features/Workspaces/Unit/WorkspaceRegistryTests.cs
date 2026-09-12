@@ -459,6 +459,35 @@ public class WorkspaceRegistryTests
         Assert.That(app.Args, Is.EqualTo(new[] { "redpanda", "start", "--smp", "1" }));
     }
 
+    [Test]
+    public void Register_rejects_an_unknown_desktop_runtime()
+    {
+        var request = new RegisterWorkspaceRequest("Desktop", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".", Runtime: "wine")]
+        };
+
+        var error = Assert.ThrowsAsync<InvalidOperationException>(async () => await _registry.RegisterAsync(request));
+
+        Assert.That(error!.Message, Does.Contain("runtime must currently be 'linux'"));
+    }
+
+    [Test]
+    public void Register_rejects_an_unsafe_desktop_window_size()
+    {
+        var request = new RegisterWorkspaceRequest("Desktop", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications =
+            [
+                new DesktopApplicationDefinition("Editor", "dotnet run", ".", new DesktopWindowDefinition(10, 800))
+            ]
+        };
+
+        var error = Assert.ThrowsAsync<InvalidOperationException>(async () => await _registry.RegisterAsync(request));
+
+        Assert.That(error!.Message, Does.Contain("window width must be between 320 and 3840"));
+    }
+
     private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
         ServerTestComposition.CreateRegistry(adapters);
 

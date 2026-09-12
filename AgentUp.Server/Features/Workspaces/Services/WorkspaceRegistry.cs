@@ -13,6 +13,7 @@ namespace AgentUp.Server.Features.Workspaces.Services;
 
 public sealed class WorkspaceRegistry : IHostedService
 {
+    public event Action<string>? WorkspaceRemoved;
     private readonly ConcurrentDictionary<string, Workspace> _workspaces = new();
     private readonly IWorkspaceRepository _repository;
     private readonly PortsController _ports;
@@ -108,6 +109,21 @@ public sealed class WorkspaceRegistry : IHostedService
                     AllocatedPorts = AllocatePorts(d.Ports),
                     Database = d.Database
                 })
+                .Concat(request.DesktopApplications.Select(d => new ApplicationInstance
+                {
+                    Name = d.Name,
+                    Kind = ApplicationKind.Desktop,
+                    Command = d.Command,
+                    Install = d.Install,
+                    Path = d.Path,
+                    Environment = d.Environment,
+                    EnvironmentFiles = d.EnvironmentFiles,
+                    Ports = d.Ports ?? [],
+                    AllocatedPorts = AllocatePorts(d.Ports),
+                    DesktopWidth = ValidateDesktopDimension(d.Window?.Width ?? 1280, 320, 3840, "width"),
+                    DesktopHeight = ValidateDesktopDimension(d.Window?.Height ?? 800, 240, 2160, "height"),
+                    DesktopRuntime = ValidateDesktopRuntime(d.Runtime)
+                }))
                 .Concat(request.Services.Select(s => new ApplicationInstance
                 {
                     Name = s.Name,
@@ -200,9 +216,24 @@ public sealed class WorkspaceRegistry : IHostedService
         await _ports.ReleaseAsync(id);
         await _repository.SaveAllAsync(GetAll());
         _bus.Publish(new WorkspaceStateChangedEvent(id, "Removed", []));
+        WorkspaceRemoved?.Invoke(id);
         return true;
     }
 
     private static void TouchActivity(Workspace workspace) =>
         workspace.LastActivityAtUtc = DateTimeOffset.UtcNow;
+
+    private static string ValidateDesktopRuntime(string runtime)
+    {
+        if (!string.Equals(runtime, "linux", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Desktop application runtime must currently be 'linux'.");
+        return "linux";
+    }
+
+    private static int ValidateDesktopDimension(int value, int minimum, int maximum, string name)
+    {
+        if (value < minimum || value > maximum)
+            throw new InvalidOperationException($"Desktop application window {name} must be between {minimum} and {maximum}.");
+        return value;
+    }
 }

@@ -7,6 +7,7 @@ title: Architecture
 Agent-Up has core runtime component areas plus product-specific installer entrypoints:
 
 - `AgentUp.Server`
+- `AgentUp.Browser.Streaming`
 - `AgentUp.Desktop`
 - `AgentUp.Mobile`
 - `AgentUp.WebAudit`
@@ -28,6 +29,9 @@ agent-up.sln
 AgentUp.Server/
   AgentUp.Server.csproj
 
+AgentUp.Browser.Streaming/
+  AgentUp.Browser.Streaming.csproj
+
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
 
@@ -39,6 +43,15 @@ AgentUp.Capabilities.Dotnet/
 
 AgentUp.Capabilities.Docker/
   AgentUp.Capabilities.Docker.csproj
+
+AgentUp.Capabilities.Codex/
+  AgentUp.Capabilities.Codex.csproj
+
+AgentUp.Capabilities.Cursor/
+  AgentUp.Capabilities.Cursor.csproj
+
+AgentUp.Capabilities.Claude/
+  AgentUp.Capabilities.Claude.csproj
 
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
@@ -58,6 +71,9 @@ AgentUp.PackageSmoke/
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
 
+AgentUp.Browser.Streaming.Tests/
+  AgentUp.Browser.Streaming.Tests.csproj
+
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
 
@@ -69,6 +85,15 @@ AgentUp.Capabilities.Dotnet.Tests/
 
 AgentUp.Capabilities.Docker.Tests/
   AgentUp.Capabilities.Docker.Tests.csproj
+
+AgentUp.Capabilities.Codex.Tests/
+  AgentUp.Capabilities.Codex.Tests.csproj
+
+AgentUp.Capabilities.Cursor.Tests/
+  AgentUp.Capabilities.Cursor.Tests.csproj
+
+AgentUp.Capabilities.Claude.Tests/
+  AgentUp.Capabilities.Claude.Tests.csproj
 
 AgentUp.Desktop.Tests/
   AgentUp.Desktop.Tests.csproj
@@ -152,7 +177,7 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 ## Component Responsibilities
 
-`AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, and install planning. First-party adapters such as `AgentUp.Capabilities.Dotnet` and `AgentUp.Capabilities.Docker` own ecosystem discovery, version reconciliation, validation, and launch planning.
+`AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, install planning, CLI executable discovery, and capability inventory. First-party adapters such as `AgentUp.Capabilities.Dotnet`, `AgentUp.Capabilities.Docker`, `AgentUp.Capabilities.Codex`, `AgentUp.Capabilities.Cursor`, and `AgentUp.Capabilities.Claude` own ecosystem discovery, version reconciliation, validation, and launch planning. Codex, Cursor, and Claude launch plans come from inventory-declared `command`/`arguments` shared by Server and Desktop installments, not from hardcoded executable names.
 
 `LocalInstaller.App` is the product-neutral Avalonia installer dashboard. It presents independent component management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI. The app owns its installer-facing catalog and installed-module contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects. Product entrypoints such as `AgentUp.InstallerApp` register typed LocalInstaller manifests through the fluent API and should keep `Program.cs` limited to product and installer-option configuration.
 
@@ -168,10 +193,18 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 - Event recording.
 - Diagnostics and health monitoring.
 - Playwright generation.
+- ACP agent scheduling, with at most one agent process and session per workspace.
 - MCP server.
 - REST API.
 
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
+
+Desktop and Mobile render the workspace agent conversation and send prompts and
+permission decisions through the authenticated Server API. Clients present ACP
+session updates as conversation, thought, tool progress, context chrome, and
+permission decisions rather than as an untyped event log. The Server owns the
+ACP subprocess, session identity, prompt serialization, cancellation, and event
+history. Clients must not start an agent CLI directly.
 
 `AgentUp.Mobile/` is an Expo and React Native client outside the .NET solution. One TypeScript codebase targets Android, iOS, and an installable web PWA. Like the Desktop, it displays Server-owned state and must not own orchestration.
 

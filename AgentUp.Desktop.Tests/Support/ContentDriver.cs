@@ -122,4 +122,10 @@ internal sealed class ContentDriver(MainWindow window)
         Vm.Applications.SelectedApplication = Vm.Applications.Applications[index];
         await HeadlessExtensions.FlushAsync();
     }
+
+    public async Task SelectApplicationTabAsync()
+    {
+        Vm.SelectedShellTab = WorkspaceShellTab.Application;
+        await HeadlessExtensions.FlushAsync();
+    }
 }

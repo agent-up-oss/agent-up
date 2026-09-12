@@ -296,6 +296,28 @@ public sealed class ValidationFlowServiceTests
         });
     }
 
+    [Test]
+    public async Task Save_accepts_desktop_coordinates_and_running_expectations_without_a_web_path()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+        var service = new ValidationFlowService(
+            new MemoryRepository(), new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter());
+        var request = new SaveValidationFlowRequest(
+            null, "Editor", "Open dialog", "User opens the dialog", string.Empty,
+            [new ValidationAssertion(ValidationExpectation.Running, "true")],
+            [new ValidationStep("open", "Open the dialog", ValidationAction.Click,
+                new ValidationTarget(Name: "Open", X: 100, Y: 80),
+                Expectations: [new ValidationAssertion(ValidationExpectation.Running, "true")])]);
+
+        var result = await service.SaveAsync(workspace.Id, request);
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+    }
+
     // BrowserMcpTools is sealed with non-virtual members, so the browser-driven half of RunAsync
     // has no seam; only the two guards above are reachable without a real browser session.
     private static async Task<(ValidationFlowService Service, string WorkspaceId)> CreateAsync(string? secondApplication = null)

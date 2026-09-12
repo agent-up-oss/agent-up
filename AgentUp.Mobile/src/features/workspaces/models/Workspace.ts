@@ -1,6 +1,7 @@
 export type WorkspaceApplication = {
   name: string;
   state: string;
+  kind?: 'Process' | 'Desktop';
 };
 
 export type Workspace = {

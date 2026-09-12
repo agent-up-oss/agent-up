@@ -18,6 +18,8 @@ The Commits MCP server exposes Streamable HTTP at `/mcp/commits` and legacy SSE 
 
 The Browser MCP server exposes Streamable HTTP at `/mcp/browser` and legacy SSE compatibility at `/mcp/browser/sse` plus `/mcp/browser/message`. It owns browser navigation, inspection, interaction, wait, and screenshot tools.
 
+The Browser MCP endpoint also exposes `desktop_inspect`, `desktop_screenshot`, `desktop_click`, `desktop_fill`, and `desktop_press` for applications declared in `desktopApplications`. These tools address an explicit workspace application and session generation. Desktop screenshots use the Server-owned framebuffer; coordinate input from a stale generation is rejected after an application restart.
+
 The Audit MCP server exposes Streamable HTTP at `/mcp/audit` and legacy SSE compatibility at `/mcp/audit/sse` plus `/mcp/audit/message`. It owns durable audit history queries and Server-managed artifact loading.
 
 This is a breaking endpoint split. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint. MCP is a protocol surface, not a feature slice: tools and resources are thin controller-layer adapters owned by the feature slice whose capability they expose. Cross-capability workspace and context tools live in the `Orchestration` slice.

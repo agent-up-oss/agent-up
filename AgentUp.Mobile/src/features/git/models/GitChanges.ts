@@ -24,6 +24,7 @@ export type GitChangeTree = {
   branch: string;
   fileCount: number;
   root: GitChangeDirectory;
+  localBranches?: string[];
 };
 
 export type GitFileDiff = {
@@ -38,6 +39,17 @@ export type GitCommitResult = {
   succeeded: boolean;
   commit: string | null;
   error: string | null;
+};
+
+export type GitMutationResult = {
+  found: boolean;
+  succeeded: boolean;
+  error: string | null;
+};
+
+export type GitHeadState = {
+  branch: string;
+  localBranches: string[];
 };
 
 // One row of the flattened, indented directory listing the clients render.

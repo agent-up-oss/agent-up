@@ -40,4 +40,23 @@ public sealed class WorkspaceRegistrationBuilderTests
             Assert.That(request.Docker[0].Name, Is.EqualTo("Database"));
         });
     }
+
+    [Test]
+    public void Build_includes_desktop_applications()
+    {
+        var request = WorkspaceRegistrationBuilder.Build(
+            new AgentUpConfiguration("Desktop", DesktopApplications:
+            [
+                new DesktopApplicationDefinition("Editor", "dotnet run", ".", new DesktopWindowDefinition(1024, 768))
+            ]),
+            new WorkspaceIdentity("/repo", "main", "abc123"),
+            "/repo/worktree");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request.DesktopApplications, Has.Count.EqualTo(1));
+            Assert.That(request.DesktopApplications[0].Name, Is.EqualTo("Editor"));
+            Assert.That(request.DesktopApplications[0].Window, Is.EqualTo(new DesktopWindowDefinition(1024, 768)));
+        });
+    }
 }

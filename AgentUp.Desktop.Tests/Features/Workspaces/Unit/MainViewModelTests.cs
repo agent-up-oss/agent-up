@@ -10,7 +10,9 @@ using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Tests.Support;
 using AgentUp.Desktop.Features.Database.Providers;
+using AgentUp.Desktop.Features.Agents.Providers;
 using AgentUp.Desktop.Features.Git.Providers;
+using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -93,6 +95,64 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task InitializeAsync_landsOnOverview_insteadOfTheFirstApplication()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
+
+        await vm.InitializeAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Overview));
+            Assert.That(vm.ShowOverview, Is.True);
+            Assert.That(vm.ShowApplication, Is.False);
+            Assert.That(vm.Applications.SelectedApplication, Is.Not.Null);
+            Assert.That(vm.SelectedApplicationTab, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task SelectingAnApplicationTab_showsApplicationContentWithoutClearingSelectionOnShellTabs()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
+        await vm.InitializeAsync();
+        var selectedApp = vm.Applications.SelectedApplication;
+
+        vm.SelectedApplicationTab = selectedApp;
+        Assert.That(vm.ShowApplication, Is.True);
+        Assert.That(vm.ShowPortView, Is.True);
+
+        vm.SelectedShellTab = WorkspaceShellTab.Commit;
+        Assert.That(vm.ShowCommit, Is.True);
+        Assert.That(vm.Git.IsVisible, Is.True);
+        Assert.That(vm.Applications.SelectedApplication, Is.EqualTo(selectedApp));
+        Assert.That(vm.ShowPortView, Is.False);
+
+        vm.SelectedShellTab = WorkspaceShellTab.Agent;
+        Assert.That(vm.ShowAgent, Is.True);
+        Assert.That(vm.Agent.IsVisible, Is.True);
+        Assert.That(vm.IsValidationOpen, Is.True);
+    }
+
+    [Test]
+    public async Task InitializeAsync_opensValidationSidebar_forTheSelectedApplication()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
+
+        await vm.InitializeAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.IsValidationOpen, Is.True);
+            Assert.That(vm.Validation!.IsCollapsed, Is.False);
+            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Commit" }));
+        });
+    }
+
+    [Test]
     public async Task InitializeAsync_selectsFirstConfiguredPortSubTab_whenApplicationHasPorts()
     {
         var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
@@ -116,6 +176,11 @@ public class MainViewModelTests
         Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["3000:5100", "5000:5101", "Console", "Metrics", "Diagnostics"]));
         Assert.That(vm.SelectedSubTab, Is.TypeOf<PortSubTabViewModel>());
         Assert.That(((PortSubTabViewModel)vm.SelectedSubTab!).AllocatedPort, Is.EqualTo(5100));
+        Assert.That(vm.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Overview));
+        Assert.That(vm.ShowPortView, Is.False);
+
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
         Assert.That(vm.ShowPortView, Is.True);
     }
 
@@ -180,6 +245,7 @@ public class MainViewModelTests
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
         vm.UpdateAddressFromBrowser("ws-1", "http://localhost:3000/dashboard");
 
         Assert.That(vm.AddressBarUrl, Is.EqualTo("http://localhost:3000/dashboard"));
@@ -371,6 +437,10 @@ public class MainViewModelTests
 
         Assert.That(vm.SubTabs.Select(tab => tab.Label), Is.EqualTo(["Console", "Metrics", "Diagnostics"]));
         Assert.That(vm.SelectedSubTab, Is.TypeOf<ConsoleSubTabViewModel>());
+        Assert.That(vm.ShowConsole, Is.False);
+
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
         Assert.That(vm.ShowConsole, Is.True);
         Assert.That(vm.AddressBarUrl, Is.Null);
     }
@@ -683,8 +753,12 @@ public class MainViewModelTests
         {
             Assert.That(vm.SubTabs[0], Is.TypeOf<DatabaseSubTabViewModel>());
             Assert.That(vm.SelectedSubTab, Is.TypeOf<DatabaseSubTabViewModel>());
-            Assert.That(vm.ShowDatabase, Is.True);
+            Assert.That(vm.ShowDatabase, Is.False);
         });
+
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        Assert.That(vm.ShowDatabase, Is.True);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -698,7 +772,9 @@ public class MainViewModelTests
             consoleClient ?? NullConsoleClient(),
             databaseClient: NullDatabaseClient(),
             tutorial: tutorial,
-            gitClient: NullGitClient());
+            gitClient: NullGitClient(),
+            validationClient: NullValidationClient(),
+            agentClient: NullAgentClient());
 
     private static WorkspaceApiClient NullWorkspaceClient()
     {
@@ -725,6 +801,36 @@ public class MainViewModelTests
     };
 
     private static GitApiClient NullGitClient() => new(NullGitHttp);
+
+    private static readonly HttpClient NullValidationHttp = new(new NullValidationHandler())
+    {
+        BaseAddress = new Uri("http://localhost:0")
+    };
+
+    private static ValidationFlowApiClient NullValidationClient() => new(NullValidationHttp);
+
+    private static readonly HttpClient NullAgentHttp = new(new NullAgentHandler())
+    {
+        BaseAddress = new Uri("http://localhost:0")
+    };
+
+    private static AgentApiClient NullAgentClient() => new(NullAgentHttp);
+
+    private sealed class NullAgentHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+    }
+
+    private sealed class NullValidationHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(HttpTestResponses.Json(Array.Empty<object>()));
+    }
 
     private sealed class NullGitHandler : HttpMessageHandler
     {

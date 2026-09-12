@@ -204,6 +204,8 @@ case "$platform" in
           pkgs.libice
           pkgs.libsm
           pkgs.libx11
+          pkgs.xorg.libXtst
+          pkgs.xvfb
           pkgs.lttng-ust
           pkgs.openssl
           pkgs.stdenv.cc.cc.lib
@@ -240,6 +242,7 @@ case "$platform" in
             pkgs.libice
             pkgs.libsm
             pkgs.libx11
+            pkgs.xorg.libXtst
             pkgs.lttng-ust
             pkgs.openssl
             pkgs.stdenv.cc.cc.lib
@@ -250,7 +253,8 @@ case "$platform" in
           wrapProgram $out/opt/agent-up/desktop/AgentUp.Desktop \
             --prefix LD_LIBRARY_PATH : "$runtime_libs"
           wrapProgram $out/opt/agent-up/server/AgentUp.Server \
-            --prefix LD_LIBRARY_PATH : "$runtime_libs"
+            --prefix LD_LIBRARY_PATH : "$runtime_libs" \
+            --prefix PATH : "${pkgs.xvfb}/bin"
           wrapProgram $out/opt/agent-up/cli/AgentUp.CLI \
             --prefix LD_LIBRARY_PATH : "$runtime_libs"
           wrapProgram $out/opt/agent-up/tray/AgentUp.Tray \

@@ -12,6 +12,7 @@ public sealed class ApplicationViewModel : ReactiveObject
     public string Name { get; }
     public string Command { get; }
     public bool Database { get; }
+    public bool IsDesktop { get; }
     public IReadOnlyList<PortMappingDto> AllocatedPorts { get; }
 
     public string State
@@ -31,11 +32,13 @@ public sealed class ApplicationViewModel : ReactiveObject
         string command,
         string state,
         IReadOnlyList<PortMappingDto>? allocatedPorts = null,
-        bool database = false)
+        bool database = false,
+        bool isDesktop = false)
     {
         Name = name;
         Command = command;
         Database = database;
+        IsDesktop = isDesktop;
         _state = state;
         _stateColor = AppHealthLedRules.StateColor(state);
         AllocatedPorts = allocatedPorts ?? [];

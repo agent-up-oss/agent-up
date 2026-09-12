@@ -12,7 +12,7 @@
     "install:agent-up": "npm install --package-lock=false && npm run build:web",
     "build:web": "nix-shell ../shell.nix --run 'node scripts/export-web.mjs'",
     "build:cloudflare": "node scripts/export-web.mjs",
-    "test": "nix-shell ../shell.nix --run 'tsc --noEmit -p tsconfig.test.json && tsx --test src/features/servers/providers/*.test.ts src/features/authentication/providers/*.test.ts src/features/workspaces/providers/*.test.ts src/features/git/providers/*.test.ts src/features/telemetry/providers/*.test.ts && node --test scripts/*.test.mjs'",
+    "test": "nix-shell ../shell.nix --run 'tsc --noEmit -p tsconfig.test.json && tsx --test src/features/servers/providers/*.test.ts src/features/authentication/providers/*.test.ts src/features/workspaces/providers/*.test.ts src/features/git/providers/*.test.ts src/features/agents/providers/*.test.ts src/features/applications/providers/*.test.ts src/features/telemetry/providers/*.test.ts && node --test scripts/*.test.mjs'",
     "typecheck": "nix-shell ../shell.nix --run 'tsc --noEmit'"
   },
   "dependencies": {
@@ -28,7 +28,8 @@
     "react-native": "0.86.2",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-web": "~0.21.0"
+    "react-native-web": "~0.21.0",
+    "react-native-webview": "^13.15.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

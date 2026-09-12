@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Processes.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -29,4 +30,7 @@ public sealed class ProcessesController
 
     public async Task<IReadOnlyList<string>> GetOutputAsync(string workspaceId, string applicationName)
         => await _output.GetAsync(workspaceId, applicationName);
+
+    public WorkspaceRuntimeSnapshot GetRuntime(string workspaceId)
+        => _processes.GetRuntime(workspaceId);
 }

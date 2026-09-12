@@ -51,6 +51,31 @@ public sealed class GitControllerTests
         Assert.That(client.CommittedRequest.Message, Is.EqualTo("chore: touch"));
     }
 
+    [Test]
+    public async Task DiscardAsync_mapsTheSelectedFiles()
+    {
+        var client = new FakeGitApiProvider();
+        var controller = CreateController(client);
+
+        var result = await controller.DiscardAsync("ws-1", ["a.cs"]);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(client.DiscardedRequest!.Files, Is.EqualTo(new[] { "a.cs" }));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_mapsTheBranchName()
+    {
+        var client = new FakeGitApiProvider();
+        var controller = CreateController(client);
+
+        var result = await controller.SwitchBranchAsync("ws-1", "topic", true);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(client.BranchRequest!.Name, Is.EqualTo("topic"));
+        Assert.That(client.BranchRequest.Create, Is.True);
+    }
+
     private static GitController CreateController(FakeGitApiProvider client)
         => new(new GitChangeListService(client));
 }

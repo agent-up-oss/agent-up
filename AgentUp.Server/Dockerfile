@@ -1,6 +1,9 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base \
+    && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /var/lib/agent-up && chown -R $APP_UID /var/lib/agent-up
 USER $APP_UID
 

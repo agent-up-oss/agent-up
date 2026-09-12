@@ -10,6 +10,10 @@ using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
+using AgentUp.Server.Features.DesktopApplications.Interfaces;
+using AgentUp.Server.Features.DesktopApplications.Providers;
+using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Orchestration.Interfaces;
 using AgentUp.Server.Features.Orchestration.Providers;
@@ -20,6 +24,8 @@ using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.Interfaces;
+using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +45,14 @@ internal static class ServerTestComposition
         services.AddSingleton<AppMetricsPullService>();
         services.AddSingleton<AppMetricsController>();
         services.AddSingleton<BrowserLifecycleController>();
+        services.AddSingleton<PngFrameProvider>();
+        services.AddSingleton<IDesktopDisplayProvider, LinuxX11DesktopDisplayProvider>();
+        services.AddSingleton<DesktopInputMessageProvider>();
+        services.AddSingleton<DesktopViewerTicketProvider>();
+        services.AddSingleton<DesktopSessionService>();
+        services.AddSingleton<DesktopApplicationsController>();
+        services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
+        services.AddSingleton<WorkspaceOverviewService>();
         services.AddSingleton<WorkspaceLifecycleService>();
         services.AddSingleton<WorkspaceLifecycleController>();
         return services;
@@ -101,6 +115,12 @@ internal static class ServerTestComposition
             streamState,
             NullLogger<HeadlessBrowserSessionManager>.Instance);
         var browser = new BrowserLifecycleController(sessions, display);
+        var desktop = new DesktopApplicationsController(new DesktopSessionService(
+            new LinuxX11DesktopDisplayProvider(new PngFrameProvider()),
+            display,
+            new DesktopInputMessageProvider(),
+            new DesktopViewerTicketProvider(),
+            NullLogger<DesktopSessionService>.Instance));
         var registration = new OrchestrationRegistrationService(
             configuration ?? new AgentUpConfigurationProvider(),
             identity ?? new GitWorkspaceIdentityProvider());
@@ -108,6 +128,7 @@ internal static class ServerTestComposition
             registry,
             CreateProcessesController(processes),
             browser,
+            desktop,
             healthChecks,
             metricsPulls,
             new WorkspaceStreamStateController(streamState),

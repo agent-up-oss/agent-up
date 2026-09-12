@@ -13,4 +13,5 @@ release-artifacts/
 .env.*
 !.env.example
 tmp/
+.agent-up-dev/
 *.tgz

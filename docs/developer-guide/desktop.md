@@ -56,11 +56,11 @@ Desktop does not clone, validate remotes, or choose a destination directory. Tho
 
 ## Git Panel
 
-The Git icon in the title bar toggles a panel on the right of the selected workspace. The panel renders the Server's change tree as a flattened, indented list: directories first, then files, each row carrying a checkbox and a status marker.
+The Commit tab of the selected workspace is the Git review surface. It renders the Server's change tree as a flattened, indented list with a Changes checkbox at the root that selects every file, then directories, then files, each row carrying a checkbox and a status marker. Discard asks for confirmation, then restores or deletes the selected files. Branch switching is on the Overview tab, not in this panel.
 
 Selecting a file name opens its diff in a modal over the window. Selecting a directory checkbox selects every file beneath it, and a directory shows as checked exactly when all of its files are selected. Below the list are a commit message box and a Commit button that stays disabled until at least one file is selected and the message is non-empty.
 
-`GitPanelViewModel` owns selection propagation between directory and file rows; the flattened rows keep the Avalonia list simple while the Server keeps the tree shape. The panel reloads whenever the selected workspace changes and after a successful commit.
+`GitPanelViewModel` owns selection propagation between directory and file rows; the flattened rows keep the Avalonia list simple while the Server keeps the tree shape. The panel reloads whenever the selected workspace changes, after a successful commit or discard, and on a short poll while it is open. Checkboxes for files that are still present are kept across those reloads. The same view-model also drives the workspace branch dropdown and create-branch field.
 
 ## First-Run Tutorial
 
@@ -101,27 +101,26 @@ Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1` so onboarding d
 
 The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome with no outer frame border, subtle internal dividers where needed, green/teal active states and indicators, rounded workspace entries, and a browser-first runtime surface.
 
-The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Sidebar toggle, workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the sidebar/reload controls and is green when the Desktop can reach the Server and red when it cannot.
+The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the reload control and is green when the Desktop can reach the Server and red when it cannot.
 
 Desktop sets a runtime `WindowIcon` from `media/logo.png` so Linux/Xorg window switchers can display the app icon. The Desktop project must also declare `ApplicationIcon` pointing at `media/logo.ico`; Windows shell surfaces such as Alt+Tab use the executable icon resource rather than only Avalonia's runtime window icon.
 
 ```text
 +---------------------------------------------------------------+
-| ☰ ↺ SERVER ONLINE              Agent-Up               _  □  × |
+| ↺ SERVER ONLINE                  Agent-Up             _  □  × |
 +---------------------------------------------------------------+
-| Agents | Frontend  Admin  Swagger  Logs                       |
-| Agent1 |------------------------------------------------------|
-| Agent2 |                                                      |
-|        |        Active Browser Session                        |
-|        |                                                      |
+| Workspaces [+][‹] | Overview Agent Commit | apps | Validation [›] |
+| Agent1            |-----------------------------------------------|
+| Agent2            |        Overview, agent, commit, or app        |
+|                   |                                               |
 +---------------------------------------------------------------+
 ```
 
-The left side shows workspace selection, health, branch, and running state. Running and starting workspaces always appear above stopping, stopped, or failed ones; within each group the Server orders by recent activity. Desktop preserves that order on reload and re-sorts live when workspace state changes. Sidebar collapse and reload are controlled from the title bar so the sidebar rail remains dedicated to workspace content. Expanded workspace rows fill the sidebar width, use the last segment of the repository path as the title, show the branch underneath, and expose the full repository path as the hover tooltip. The top area shows browser tabs, logs, and diagnostics. The Diagnostics tab is the selected application's durable Server-owned diagnostic trail; application and port controls show current process and health state. The center contains the embedded browser.
+The left side shows workspace selection, health, branch, and running state. Running and starting workspaces always appear above stopping, stopped, or failed ones; within each group the Server orders by recent activity. Desktop preserves that order on reload and re-sorts live when workspace state changes. Workspace and validation sidebar collapse controls sit in each sidebar header, not in the title bar. Expanded workspace rows fill the sidebar width, use the last segment of the repository path as the title, show the branch underneath, and expose the full repository path as the hover tooltip. Selecting a workspace opens its Overview tab. The Overview tab shows workspace identity, the live branch picker, and Server-owned CPU, memory, storage, and process totals that stretch with the content pane. Switching workspaces shows a loading scaffold until the new overview arrives instead of keeping the previous workspace's metrics. Agent chat and Git commit review have their own tabs before a separator; application tabs follow that separator. Validation checks stay in a right sidebar that follows the currently selected application. Application port controls, Console, Metrics, and Diagnostics appear only after an application tab is selected. The center contains the embedded browser when an HTTP application port is selected.
 
-## Application Tabs
+## Workspace Tabs
 
-The first tab row lists the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application.
+The first tab row has two groups. Overview, Agent, and Commit are workspace surfaces. A small `|` separator follows them, then the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application. Switching to Overview, Agent, or Commit keeps the internally selected application so returning to an app tab restores its port, Console, or Metrics surface. The Validation sidebar stays open beside those surfaces and reloads for that selected application.
 
 For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console and Metrics remain available after the port tabs.
 
@@ -159,6 +158,8 @@ Within Desktop, each HTTP port tab keeps its own WebView state when switching ta
 
 Browser automation and inspection for agents should expose navigation, reload, semantic interaction, HTML/DOM capture, accessibility data, screenshots, history, and page metadata through Server-owned MCP contracts. Prefer structured inspection and accessibility data over raw HTML when generating diagnostics or automation.
 
+Applications whose Server DTO kind is `Desktop` use a separate application sub-tab. Desktop requests a session-scoped viewer ticket with its authenticated HTTP client, then hosts the returned Server viewer in a dedicated NativeWebView. This viewer is never used for ordinary HTTP ports. Workspace/application changes retry ticket acquisition so a tab selected while its process is starting connects once the Server reports it running.
+
 ## Thin Client Rule
 
 The Desktop does not own runtime state and should not duplicate orchestration rules from the Server.
@@ -175,8 +176,8 @@ visible. The content area below the chrome switches between pages such as sign-i
 and the workspace shell.
 
 Each page registers its own left-side chrome items through
-`WindowChromeViewModel.LeftItems`. The workspace page contributes the sidebar
-toggle, workspace refresh action, and server status badge. The sign-in page
+`WindowChromeViewModel.LeftItems`. The workspace page contributes the
+workspace refresh action and server status badge. The sign-in page
 registers no chrome items.
 
 Desktop queries `/api/auth/status` before loading workspace state. When the

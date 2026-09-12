@@ -86,6 +86,7 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         var segment = new ArraySegment<byte>(bytes);
         foreach (var entry in subs.Snapshot().Where(e => e.Socket.State == WebSocketState.Open))
         {
+            await entry.SendGate.WaitAsync(ct);
             try
             {
                 await entry.Socket.SendAsync(segment, WebSocketMessageType.Text, endOfMessage: true, ct);
@@ -93,6 +94,10 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
             catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
             {
                 logger.LogDebug(ex, "RDP control frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+            }
+            finally
+            {
+                entry.SendGate.Release();
             }
         }
     }
@@ -102,7 +107,6 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         _latestFrames[workspaceId] = frame.ToArray();
         _latestFrameAt[workspaceId] = DateTimeOffset.UtcNow;
         if (!_subscribers.TryGetValue(workspaceId, out var subs)) return;
-        var segment = new ArraySegment<byte>(frame);
         var nowTicks = DateTimeOffset.UtcNow.UtcTicks;
         var backgroundIntervalTicks = BackgroundSubscriberInterval.Ticks;
         // Filter deliverable subscribers in one LINQ pass: WS must be open, AND either
@@ -113,17 +117,26 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
             e.Socket.State == WebSocketState.Open
             && (e.Presence != PresenceState.Background
                 || nowTicks - e.LastFrameSentAtTicks >= backgroundIntervalTicks));
-        foreach (var entry in deliverable)
+        var sendable = await Task.WhenAll(deliverable.Select(async entry =>
+            (Entry: entry, Acquired: await entry.SendGate.WaitAsync(0, ct))));
+        foreach (var candidate in sendable.Where(candidate => candidate.Acquired))
+            _ = SendFrameAsync(candidate.Entry, workspaceId, frame, nowTicks, ct);
+    }
+
+    private async Task SendFrameAsync(SubscriberEntry entry, string workspaceId, byte[] frame, long nowTicks, CancellationToken ct)
+    {
+        try
         {
-            try
-            {
-                await entry.Socket.SendAsync(segment, WebSocketMessageType.Binary, endOfMessage: true, ct);
-                entry.LastFrameSentAtTicks = nowTicks;
-            }
-            catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
-            {
-                logger.LogDebug(ex, "RDP bitmap frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
-            }
+            await entry.Socket.SendAsync(new ArraySegment<byte>(frame), WebSocketMessageType.Binary, endOfMessage: true, ct);
+            entry.LastFrameSentAtTicks = nowTicks;
+        }
+        catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException or OperationCanceledException)
+        {
+            logger.LogDebug(ex, "Remote display frame send failed for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
+        }
+        finally
+        {
+            entry.SendGate.Release();
         }
     }
 

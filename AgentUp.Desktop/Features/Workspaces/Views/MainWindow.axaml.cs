@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Collections.Specialized;
 using System.Net;
+using System.Net.Http.Json;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
@@ -26,6 +27,7 @@ using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
@@ -284,6 +286,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .Where(show => show)
             .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveWebView))
             .DisposeWith(_subscriptions);
+        vm.WhenAnyValue(v => v.ShowDesktopView)
+            .Where(show => show)
+            .Subscribe(_show => Dispatcher.UIThread.Post(() => { _ = ShowDesktopApplicationAsync(vm); }))
+            .DisposeWith(_subscriptions);
         vm.WhenAnyValue(v => v.ShowPortView)
             .Subscribe(show => Dispatcher.UIThread.Post(() =>
             {
@@ -483,6 +489,37 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var navigationVersion = _navigationVersions.GetValueOrDefault(tabKey) + 1;
         _navigationVersions[tabKey] = navigationVersion;
         _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(destinationUrl), navigationVersion);
+    }
+
+    private async Task ShowDesktopApplicationAsync(MainViewModel viewModel)
+    {
+        var workspaceId = viewModel.Sidebar.SelectedWorkspace?.Id;
+        var application = viewModel.Applications.SelectedApplication;
+        if (workspaceId is null || application is not { IsDesktop: true }) return;
+
+        var path = $"api/desktop-applications/{Uri.EscapeDataString(workspaceId)}/{Uri.EscapeDataString(application.Name)}/viewer-ticket";
+        try
+        {
+            using var response = await _serverHttp.PostAsync(path, null);
+            response.EnsureSuccessStatusCode();
+            var ticket = await response.Content.ReadFromJsonAsync<DesktopViewerTicketResponse>();
+            if (ticket is null || !Uri.TryCreate(_serverHttp.BaseAddress, ticket.ViewerUrl, out var viewerUri))
+                throw new InvalidDataException("The Server returned an invalid desktop viewer URL.");
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var tabKey = $"{workspaceId}:desktop:{application.Name}";
+                ActivateTab(workspaceId, tabKey, IsModalOverlayVisible());
+                if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUri.ToString(), out var webView, out _)) return;
+                webView.IsVisible = !IsModalOverlayVisible();
+                NavigateWebView(webView, viewerUri);
+            });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidDataException or TaskCanceledException)
+        {
+            _webViewErrors[workspaceId] = $"Could not open the desktop application: {ex.Message}";
+            await Dispatcher.UIThread.InvokeAsync(() => UpdateErrorDisplay(workspaceId));
+        }
     }
 
     private static string TabKey(string workspaceId, Uri uri) => $"{workspaceId}:{uri.Port}";
@@ -817,7 +854,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         UpdateErrorDisplay(_activeWorkspaceId);
         if (_activeTabKey is null) return;
         if (!_webViews.TryGetValue(_activeTabKey, out var active)) return;
-        if (DataContext is not MainViewModel { ShowPortView: true }) return;
+        if (DataContext is not MainViewModel { ShowDisplayView: true }) return;
         active.IsVisible = true;
     }
 
@@ -849,7 +886,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         if (_isClosed) return;
         if (_activeWorkspaceId is null) return;
-        if (DataContext is not MainViewModel { ShowPortView: true }) return;
+        if (DataContext is not MainViewModel { ShowDisplayView: true }) return;
 
         if (_activeTabKey is null || !_webViews.TryGetValue(_activeTabKey, out var webView)) return;
         var src = webView.Source?.ToString();
@@ -1325,7 +1362,6 @@ code {
         => CloseWindowButton.IsVisualAncestorOf(source)
            || MinimizeWindowButton.IsVisualAncestorOf(source)
            || RestoreWindowButton.IsVisualAncestorOf(source)
-           || IsNamedChromeControl(source, "SidebarToggle")
            || IsNamedChromeControl(source, "ReloadButton");
 
     private static bool IsNamedChromeControl(Visual source, string name)

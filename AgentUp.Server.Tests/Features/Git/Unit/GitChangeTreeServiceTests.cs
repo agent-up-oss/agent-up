@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Git.DTOs;
+using AgentUp.Server.Features.Git.Interfaces;
 using AgentUp.Server.Features.Git.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -14,7 +15,7 @@ public sealed class GitChangeTreeServiceTests
     [Test]
     public async Task GetChangesAsync_returnsNullForAnUnknownWorkspace()
     {
-        var service = new GitChangeTreeService(
+        var service = CreateService(
             new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
             new FakeGitWorkingTreeProvider());
 
@@ -70,6 +71,29 @@ public sealed class GitChangeTreeServiceTests
         await service.GetChangesAsync(workspaceId);
 
         Assert.That(git.LastWorktreePath, Is.EqualTo(WorktreePath));
+    }
+
+    [Test]
+    public async Task GetHeadAsync_returnsTheLiveBranch()
+    {
+        var git = new FakeGitWorkingTreeProvider { Branch = "topic" };
+        git.LocalBranches.Add("topic");
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var head = await service.GetHeadAsync(workspaceId);
+
+        Assert.That(head!.Branch, Is.EqualTo("topic"));
+        Assert.That(head.LocalBranches, Does.Contain("topic"));
+    }
+
+    [Test]
+    public async Task GetHeadAsync_returnsNullForAnUnknownWorkspace()
+    {
+        var service = CreateService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        Assert.That(await service.GetHeadAsync("missing"), Is.Null);
     }
 
     [Test]
@@ -134,9 +158,71 @@ public sealed class GitChangeTreeServiceTests
     }
 
     [Test]
+    public async Task DiscardAsync_discardsOnlyTheSelectedFiles()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.DiscardAsync(workspaceId, new GitFilesRequest(["src/app/main.cs"]));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.DiscardedFiles, Is.EqualTo(new[] { "src/app/main.cs" }));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_createsTheRequestedBranch()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.SwitchBranchAsync(workspaceId, new GitBranchRequest("topic", true));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.SwitchedBranch, Is.EqualTo("topic"));
+        Assert.That(git.CreatedBranch, Is.True);
+    }
+
+    [Test]
+    public async Task DiscardAsync_reportsNotFoundForAnUnknownWorkspace()
+    {
+        var service = CreateService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        var result = await service.DiscardAsync("missing", new GitFilesRequest(["a.cs"]));
+
+        Assert.That(result.Found, Is.False);
+        Assert.That(result.Succeeded, Is.False);
+    }
+
+    [Test]
+    public async Task DiscardAsync_reportsGitFailures()
+    {
+        var git = new FakeGitWorkingTreeProvider { Failure = "not a git repository" };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.DiscardAsync(workspaceId, new GitFilesRequest(["a.cs"]));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Is.EqualTo("not a git repository"));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_reportsNotFoundForAnUnknownWorkspace()
+    {
+        var service = CreateService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        var result = await service.SwitchBranchAsync("missing", new GitBranchRequest("topic", false));
+
+        Assert.That(result.Found, Is.False);
+    }
+
+    [Test]
     public async Task CommitAsync_reportsNotFoundForAnUnknownWorkspace()
     {
-        var service = new GitChangeTreeService(
+        var service = CreateService(
             new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
             new FakeGitWorkingTreeProvider());
 
@@ -146,8 +232,73 @@ public sealed class GitChangeTreeServiceTests
         Assert.That(result.Succeeded, Is.False);
     }
 
+    [Test]
+    public async Task DiscardAsync_rejectsWhileAPromptIsRunning()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git, new FakeWorkspacePromptGuard { Running = true });
+
+        var result = await service.DiscardAsync(workspaceId, new GitFilesRequest(["src/app/main.cs"]));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("processing a prompt"));
+        Assert.That(git.DiscardedFiles, Is.Empty);
+    }
+
+    [Test]
+    public async Task CommitAsync_rejectsWhileAPromptIsRunning()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git, new FakeWorkspacePromptGuard { Running = true });
+
+        var result = await service.CommitAsync(workspaceId, new GitCommitRequest(["src/app/main.cs"], "feat(App): add main"));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("processing a prompt"));
+        Assert.That(git.CommittedFiles, Is.Empty);
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_rejectsWhileAPromptIsRunning()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git, new FakeWorkspacePromptGuard { Running = true });
+
+        var result = await service.SwitchBranchAsync(workspaceId, new GitBranchRequest("topic", false));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("processing a prompt"));
+        Assert.That(git.SwitchedBranch, Is.Null);
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_waitsUntilAnInFlightDiscardCompletes()
+    {
+        var git = new FakeGitWorkingTreeProvider
+        {
+            HoldDiscard = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously),
+            DiscardStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var discard = service.DiscardAsync(workspaceId, new GitFilesRequest(["src/app/main.cs"]));
+        await git.DiscardStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var switchBranch = service.SwitchBranchAsync(workspaceId, new GitBranchRequest("topic", false));
+
+        Assert.That(switchBranch.IsCompleted, Is.False);
+        Assert.That(git.SwitchedBranch, Is.Null);
+
+        git.HoldDiscard.SetResult();
+        await discard;
+        await switchBranch;
+
+        Assert.That(git.DiscardedFiles, Is.EqualTo(new[] { "src/app/main.cs" }));
+        Assert.That(git.SwitchedBranch, Is.EqualTo("topic"));
+    }
+
     private static async Task<(GitChangeTreeService Service, string WorkspaceId)> CreateServiceAsync(
-        FakeGitWorkingTreeProvider git)
+        FakeGitWorkingTreeProvider git,
+        IWorkspacePromptGuard? prompts = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(new RegisterWorkspaceRequest(
@@ -157,6 +308,12 @@ public sealed class GitChangeTreeServiceTests
             Branch: "main",
             Commit: "abc123"));
 
-        return (new GitChangeTreeService(workspaces, git), workspace.Id);
+        return (CreateService(workspaces, git, prompts), workspace.Id);
     }
+
+    private static GitChangeTreeService CreateService(
+        WorkspaceQueryController workspaces,
+        FakeGitWorkingTreeProvider git,
+        IWorkspacePromptGuard? prompts = null) =>
+        new(workspaces, git, prompts ?? new FakeWorkspacePromptGuard());
 }
