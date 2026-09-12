@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
+using AgentUp.Desktop.Composition;
 using AgentUp.InstallerConfig;
 
 namespace AgentUp.Desktop;
@@ -10,6 +11,7 @@ internal sealed class Program
     public static void Main(string[] args)
     {
         RepositoryDotEnv.LoadOptional();
+        using var sentry = SentryTelemetry.Initialize();
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

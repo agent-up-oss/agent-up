@@ -51,3 +51,5 @@ Application metrics endpoints are pull-based: declare `metrics` on a port in `ag
 ## Purpose
 
 Diagnostics make AI validation practical. An agent should be able to modify code, restart the workspace, inspect health, interact with the application, and retrieve evidence when something fails.
+
+Product crash reporting for Agent-Up itself is documented in [Product telemetry](./telemetry.md).

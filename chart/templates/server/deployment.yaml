@@ -43,6 +43,16 @@ spec:
                 secretKeyRef:
                   name: {{ default "agent-up-server-secrets" .Values.server.existingSecret }}
                   key: {{ .Values.server.existingSecretKeys.adminPassword }}
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (default "agent-up-server-secrets" .Values.server.existingSecret) .Values.server.existingSentrySecret }}
+                  key: {{ .Values.server.existingSecretKeys.sentryDsn | default "SENTRY_DSN" }}
+                  optional: true
+            - name: SENTRY_ENVIRONMENT
+              value: production
+            - name: SENTRY_RELEASE
+              value: {{ default .Chart.AppVersion .Values.server.image.tag | quote }}
             - name: AGENTUP_CAPABILITY_INVENTORY_PATH
               value: /etc/agent-up/capabilities.json
           livenessProbe:
