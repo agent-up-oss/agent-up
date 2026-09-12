@@ -14,8 +14,11 @@ orchestration must remain in `AgentUp.Server`.
 
 The workspace Agent screen is an ACP client UI. It selects an available Server-
 configured Codex, Cursor, or Claude adapter, sends prompts, reconnects to the SSE
-stream using the last event sequence, renders agent/tool/thought updates, and
-presents ACP permission options. It never launches a CLI or owns an ACP session.
+stream using the last event sequence, and presents the session as conversation,
+collapsible thoughts, tool progress, plan status, and live activity. Session
+title, mode, and token usage stay in context chrome rather than chat rows.
+`session/request_permission` is a blocking decision card that offers the ACP
+options instead of auto-granting. It never launches a CLI or owns an ACP session.
 
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
 the active selection in PWA local storage. Only one Server is active at a time;
@@ -65,7 +68,7 @@ The mobile client is a gated stack, not a bottom-tab shell.
   is the workspace home page. Agent chat and application spaces are deeper stack
   routes.
 - Only the workspace agent screen uses a bottom bar. It switches between the
-  placeholder chat view and the existing Git changes panel.
+  agent chat and the existing Git changes panel.
 
 ## Workspaces and Git slices
 

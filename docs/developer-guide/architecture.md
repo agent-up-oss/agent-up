@@ -193,7 +193,9 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
 
 Desktop and Mobile render the workspace agent conversation and send prompts and
-permission decisions through the authenticated Server API. The Server owns the
+permission decisions through the authenticated Server API. Clients present ACP
+session updates as conversation, thought, tool progress, context chrome, and
+permission decisions rather than as an untyped event log. The Server owns the
 ACP subprocess, session identity, prompt serialization, cancellation, and event
 history. Clients must not start an agent CLI directly.
 

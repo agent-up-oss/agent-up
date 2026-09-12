@@ -4,6 +4,7 @@ using System.Text.Json;
 using Avalonia.Threading;
 using AgentUp.Desktop.Features.Agents.Controllers;
 using AgentUp.Desktop.Features.Agents.DTOs;
+using AgentUp.Desktop.Features.Agents.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Agents.ViewModels;
@@ -11,8 +12,9 @@ namespace AgentUp.Desktop.Features.Agents.ViewModels;
 public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
-    private string? _workspaceId, _selectedAgent, _sessionId, _message, _error;
+    private string? _workspaceId, _selectedAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool;
     private string _state = "idle";
+    private string _activityLabel = "Idle";
     private bool _isVisible, _isBusy;
     private CancellationTokenSource? _stream;
     private long _lastSequence;
@@ -22,6 +24,13 @@ public sealed class AgentChatViewModel : ReactiveObject
     public ObservableCollection<AgentOptionViewModel> AuthenticationOptions { get; } = [];
     public string? SelectedAgent { get => _selectedAgent; private set => this.RaiseAndSetIfChanged(ref _selectedAgent, value); }
     public string State { get => _state; private set => this.RaiseAndSetIfChanged(ref _state, value); }
+    public string ActivityLabel { get => _activityLabel; private set => this.RaiseAndSetIfChanged(ref _activityLabel, value); }
+    public string? SessionTitle { get => _sessionTitle; private set => this.RaiseAndSetIfChanged(ref _sessionTitle, value); }
+    public string? Mode { get => _mode; private set => this.RaiseAndSetIfChanged(ref _mode, value); }
+    public string? Usage { get => _usage; private set => this.RaiseAndSetIfChanged(ref _usage, value); }
+    public string? PermissionTitle { get => _permissionTitle; private set => this.RaiseAndSetIfChanged(ref _permissionTitle, value); }
+    public string? PermissionDetail { get => _permissionDetail; private set => this.RaiseAndSetIfChanged(ref _permissionDetail, value); }
+    public string? ContextLine => string.Join("   ", new[] { SessionTitle, string.IsNullOrWhiteSpace(Mode) ? null : $"Mode · {Mode}", Usage }.Where(part => !string.IsNullOrWhiteSpace(part)));
     public string? Message { get => _message; set => this.RaiseAndSetIfChanged(ref _message, value); }
     public string? Error { get => _error; private set => this.RaiseAndSetIfChanged(ref _error, value); }
     public bool IsVisible { get => _isVisible; set => this.RaiseAndSetIfChanged(ref _isVisible, value); }
@@ -29,6 +38,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     public bool HasAgent => SelectedAgent is not null;
     public bool HasSession => _sessionId is not null;
     public bool HasPermission => PermissionOptions.Count > 0;
+    public bool HasContext => !string.IsNullOrWhiteSpace(ContextLine);
     public ReactiveCommand<string, Unit> SelectAgentCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
@@ -45,6 +55,8 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         _stream?.Cancel(); _stream?.Dispose(); _stream = null; _workspaceId = workspaceId; _lastSequence = 0;
         Messages.Clear(); PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear();
+        SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = _hintKind = _hintTool = null;
+        RefreshActivity();
         if (workspaceId is null) return;
         try { Apply(await _controller.GetAsync(workspaceId, CancellationToken.None)); StartStream(workspaceId); }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException) { Error = exception.Message; }
@@ -53,7 +65,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     private async Task SelectAsync(string agent) => await RunAsync(async id => Apply(await _controller.ScheduleAsync(id, agent, CancellationToken.None)));
     private async Task SendAsync()
     {
-        var text = Message?.Trim(); if (string.IsNullOrEmpty(text)) return;
+        var text = Message?.Trim(); if (string.IsNullOrEmpty(text) || HasPermission) return;
         Message = null; await RunAsync(id => _controller.SendAsync(id, text, CancellationToken.None));
     }
     private async Task StopAsync() => await RunAsync(async id => { await _controller.StopAsync(id, CancellationToken.None); Apply(null); });
@@ -75,6 +87,8 @@ public sealed class AgentChatViewModel : ReactiveObject
                 foreach (var method in session.AuthMethods ?? []) AuthenticationOptions.Add(new(method.Id, method.Name, ReactiveCommand.CreateFromTask(() => AuthenticateAsync(method.Id))));
             Error = session.Error;
         }
+        if (session?.State is not "running") _hintKind = _hintTool = null;
+        RefreshActivity();
         this.RaisePropertyChanged(nameof(HasAgent));
         this.RaisePropertyChanged(nameof(HasSession));
     }
@@ -106,17 +120,73 @@ public sealed class AgentChatViewModel : ReactiveObject
         _lastSequence = item.Sequence;
         if (item.Type == "state") { Apply(item.Payload.Deserialize<AgentSessionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })); return; }
         if (item.Type == "user_message") { Messages.Add(new("You", Text(item.Payload))); return; }
-        if (item.Type == "session_update") { var update = item.Payload.TryGetProperty("update", out var nested) ? nested : item.Payload; Append(Role(update), Text(update)); return; }
-        if (item.Type == "permission_request") AddPermission(item.Payload);
+        if (item.Type == "permission_request") { AddPermission(item.Payload); return; }
+        if (item.Type != "session_update") return;
+        ApplyPresented(AgentEventPresentationProvider.Present(AgentEventPresentationProvider.Unwrap(item.Payload)));
+    }
+    private void ApplyPresented(PresentedAgentUpdate presented)
+    {
+        if (presented.Kind == "ignore") return;
+        if (presented.Kind == "context")
+        {
+            if (presented.Title is not null) SessionTitle = presented.Title;
+            if (presented.Mode is not null) Mode = presented.Mode;
+            if (presented.Usage is not null) Usage = presented.Usage;
+            this.RaisePropertyChanged(nameof(ContextLine));
+            this.RaisePropertyChanged(nameof(HasContext));
+            if (presented.Compacting == true) { _hintKind = "Compacting"; RefreshActivity(); }
+            return;
+        }
+        if (presented.Kind == "tool") { UpsertTool(presented); _hintKind = "Tool"; _hintTool = presented.Title ?? _hintTool; RefreshActivity(); return; }
+        if (presented.Kind == "plan")
+        {
+            var text = presented.Text ?? "";
+            var existing = Messages.ToList().FindIndex(item => item.Role == "Plan");
+            var next = new AgentChatItemViewModel("Plan", text);
+            if (existing < 0) Messages.Add(next); else Messages[existing] = next;
+            _hintKind = "Plan"; RefreshActivity(); return;
+        }
+        if (presented.Kind == "message" && !string.IsNullOrWhiteSpace(presented.Text) && presented.Role is not null)
+        {
+            Append(presented.Role, presented.Text);
+            _hintKind = presented.Role;
+            RefreshActivity();
+        }
+    }
+    private void UpsertTool(PresentedAgentUpdate presented)
+    {
+        var existing = Messages.ToList().FindIndex(item => item.Role == "Tool" && item.ToolCallId == presented.ToolCallId);
+        var previous = existing >= 0 ? Messages[existing] : null;
+        var title = presented.Title ?? previous?.Text.Split('\n')[0] ?? "Tool";
+        var status = presented.Status ?? previous?.Status ?? "pending";
+        var body = presented.Text ?? (previous is null ? "" : string.Join('\n', previous.Text.Split('\n').Skip(1)));
+        var text = string.IsNullOrWhiteSpace(body) ? title : $"{title}\n{body}";
+        var next = new AgentChatItemViewModel("Tool", text, status, presented.ToolCallId);
+        if (existing < 0) Messages.Add(next); else Messages[existing] = next;
     }
     private void AddPermission(JsonElement payload)
     {
-        PermissionOptions.Clear(); var requestId = payload.GetProperty("requestId").GetString()!; var request = payload.GetProperty("request");
-        if (!request.TryGetProperty("options", out var options)) return;
-        foreach (var option in options.EnumerateArray()) { var id = option.GetProperty("optionId").GetString()!; var label = option.TryGetProperty("name", out var name) ? name.GetString()! : id; PermissionOptions.Add(new(id, label, ReactiveCommand.CreateFromTask(() => DecideAsync(requestId, id)))); }
+        PermissionOptions.Clear();
+        var prompt = AgentEventPresentationProvider.ParsePermission(payload);
+        PermissionTitle = prompt?.Title;
+        PermissionDetail = prompt?.Detail;
+        if (prompt is null) { this.RaisePropertyChanged(nameof(HasPermission)); RefreshActivity(); return; }
+        foreach (var option in prompt.Options)
+        {
+            var label = AgentEventPresentationProvider.OptionLabel(option.Name, option.Kind, option.OptionId);
+            PermissionOptions.Add(new(option.OptionId, label, ReactiveCommand.CreateFromTask(() => DecideAsync(prompt.RequestId, option.OptionId))));
+        }
         this.RaisePropertyChanged(nameof(HasPermission));
+        RefreshActivity();
     }
-    private async Task DecideAsync(string request, string option) { if (_workspaceId is null) return; await _controller.DecideAsync(_workspaceId, request, option, CancellationToken.None); PermissionOptions.Clear(); this.RaisePropertyChanged(nameof(HasPermission)); }
+    private async Task DecideAsync(string request, string option)
+    {
+        if (_workspaceId is null) return;
+        await _controller.DecideAsync(_workspaceId, request, option, CancellationToken.None);
+        PermissionOptions.Clear(); PermissionTitle = PermissionDetail = null;
+        this.RaisePropertyChanged(nameof(HasPermission));
+        RefreshActivity();
+    }
     private async Task AuthenticateAsync(string methodId) { if (_workspaceId is null) return; await RunAsync(id => _controller.AuthenticateAsync(id, methodId, CancellationToken.None)); }
     private void Append(string role, string text)
     {
@@ -125,23 +195,15 @@ public sealed class AgentChatViewModel : ReactiveObject
         if (last?.Role == role && role is "Agent" or "Thought") Messages[^1] = last with { Text = last.Text + text };
         else Messages.Add(new(role, text));
     }
-    private static string Role(JsonElement value)
+    private void RefreshActivity()
     {
-        var kind = value.TryGetProperty("sessionUpdate", out var update) ? update.GetString() ?? "" : "";
-        if (kind.Contains("thought", StringComparison.Ordinal)) return "Thought";
-        if (kind.Contains("tool", StringComparison.Ordinal)) return "Tool";
-        return kind.Contains("message", StringComparison.Ordinal) ? "Agent" : "Status";
+        ActivityLabel = AgentEventPresentationProvider.ActivityLabel(State, HasPermission, null, _hintKind, _hintTool);
     }
     private static string Text(JsonElement value)
     {
         if (value.ValueKind == JsonValueKind.String) return value.GetString() ?? "";
         if (value.ValueKind == JsonValueKind.Array) return string.Join("\n", value.EnumerateArray().Select(Text).Where(text => !string.IsNullOrWhiteSpace(text)));
         if (value.ValueKind != JsonValueKind.Object) return "";
-        var title = value.TryGetProperty("title", out var titleValue) ? titleValue.GetString() : null;
-        var content = value.TryGetProperty("text", out var text) ? text.GetString()
-            : value.TryGetProperty("content", out var nested) ? Text(nested)
-            : value.TryGetProperty("entries", out var entries) ? Text(entries) : null;
-        var status = value.TryGetProperty("status", out var statusValue) ? statusValue.GetString() : null;
-        return string.Join(" · ", new[] { title, content, status }.Where(part => !string.IsNullOrWhiteSpace(part)).Select(part => part!));
+        return value.TryGetProperty("text", out var text) ? Text(text) : value.TryGetProperty("content", out var nested) ? Text(nested) : "";
     }
 }

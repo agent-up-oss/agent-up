@@ -1,12 +1,18 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Agents.DTOs;
 
 namespace AgentUp.Server.Features.Agents.Providers;
 
 public sealed class AgentEventFrameProvider
 {
-    public JsonElement Payload(object value) => JsonSerializer.SerializeToElement(value);
-    public string Frame(AgentEventDto item) => $"id: {item.Sequence}\nevent: {item.Type}\ndata: {JsonSerializer.Serialize(item)}\n\n";
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public JsonElement Payload(object value) => JsonSerializer.SerializeToElement(value, JsonOptions);
+    public string Frame(AgentEventDto item) => $"id: {item.Sequence}\nevent: {item.Type}\ndata: {JsonSerializer.Serialize(item, JsonOptions)}\n\n";
     public IReadOnlySet<string> PermissionOptionIds(JsonElement request)
     {
         if (!request.TryGetProperty("options", out var options) || options.ValueKind != JsonValueKind.Array)

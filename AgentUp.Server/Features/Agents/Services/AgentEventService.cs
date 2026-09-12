@@ -5,6 +5,7 @@ using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace AgentUp.Server.Features.Agents.Services;
 
@@ -55,6 +56,7 @@ public sealed class AgentEventService(AgentEventFrameProvider frames)
     {
         response.StatusCode = 200; response.ContentType = "text/event-stream";
         response.Headers.CacheControl = "no-cache"; response.Headers.Append("X-Accel-Buffering", "no");
+        response.HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
         try
         {
             await foreach (var item in SubscribeAsync(workspaceId, after, cancellationToken))
