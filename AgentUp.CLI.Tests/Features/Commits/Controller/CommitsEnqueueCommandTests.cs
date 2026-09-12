@@ -89,24 +89,12 @@ public sealed class CommitsEnqueueCommandTests
     public async Task RunAsync_validArgs_outputIncludesTotalCount()
     {
         using var output = new StringWriter();
-        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"], [])]);
+        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"])]);
         var command = BuildCommand(output, new FakeCommitsQueueProvider(existing));
 
         await command.RunAsync(["--slice", "Second", "--message", "feat(Second): second", "--files", "y.cs"]);
 
         Assert.That(output.ToString(), Does.Contain("2"));
-    }
-
-    [Test]
-    public async Task RunAsync_withTestsFlag_parsesTestsIntoEntry()
-    {
-        using var output = new StringWriter();
-        var queue = new FakeCommitsQueueProvider();
-        var command = BuildCommand(output, queue);
-
-        await command.RunAsync(["--slice", "S", "--message", "fix(S): update queue", "--files", "a.cs", "--tests", "dotnet test Foo"]);
-
-        Assert.That(queue.Stored!.Commits[0].Tests, Is.EqualTo(new[] { "dotnet test Foo" }));
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

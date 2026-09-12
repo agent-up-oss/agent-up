@@ -24,7 +24,7 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
             var entry = result.Entries[i];
             output.WriteLine($"[{i + 1}] {entry.Slice}");
             output.WriteLine($"    {entry.Message}");
-            output.WriteLine($"    {entry.Files.Count} file(s){(entry.Tests.Count > 0 ? $", {entry.Tests.Count} test command(s)" : "")}");
+            output.WriteLine($"    {entry.Files.Count} file(s)");
         }
 
         if (result.ActiveSession is not null)
@@ -51,7 +51,7 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
     {
         output.WriteLine(json.Serialize(new CommitsStatusJson(
             result.Entries.Count,
-            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Id, entry.Slice, entry.Message, entry.Files, entry.Tests, entry.ReviewIssueId)).ToList(),
+            result.Entries.Select(entry => new CommitsStatusEntryJson(entry.Id, entry.Slice, entry.Message, entry.Files, entry.ReviewIssueId)).ToList(),
             result.UnassignedFiles,
             result.ActiveSession is null ? null : new CommitsStatusSessionJson(result.ActiveSession.EntryId, result.ActiveSession.Files),
             result.OperationState is null ? null : new GitOperationStateJson(result.OperationState.Kind, result.OperationState.Blocking))));
@@ -86,7 +86,6 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
         output.WriteLine($"[{result.Entry.Id}] {result.Entry.Slice}");
         output.WriteLine($"  {result.Entry.Message}");
         WriteFiles("Files", result.Entry.Files);
-        WriteFiles("Tests", result.Entry.Tests);
         if (result.Patch is not null)
             output.WriteLine(result.Patch);
         return 0;

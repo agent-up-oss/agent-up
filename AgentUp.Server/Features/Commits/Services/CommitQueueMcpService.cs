@@ -11,7 +11,6 @@ public sealed class CommitQueueMcpService(CommitsController commits)
         string slice,
         string message,
         IReadOnlyList<string> files,
-        IReadOnlyList<string>? tests,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(worktreePath))
@@ -25,7 +24,7 @@ public sealed class CommitQueueMcpService(CommitsController commits)
 
         try
         {
-            var result = await commits.EnqueueAsync(worktreePath, new EnqueueRequest(slice, message, files, tests ?? []), cancellationToken);
+            var result = await commits.EnqueueAsync(worktreePath, new EnqueueRequest(slice, message, files), cancellationToken);
             if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
                 return new McpToolResult(false, "Commit queue operation failed.");
 
@@ -47,7 +46,6 @@ public sealed class CommitQueueMcpService(CommitsController commits)
         string slice,
         string message,
         IReadOnlyList<string> files,
-        IReadOnlyList<string>? tests,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(worktreePath))
@@ -63,7 +61,7 @@ public sealed class CommitQueueMcpService(CommitsController commits)
 
         try
         {
-            var result = await commits.EnqueueAsync(worktreePath, new EnqueueRequest(slice, message, files, tests ?? [], reviewIssueId), cancellationToken);
+            var result = await commits.EnqueueAsync(worktreePath, new EnqueueRequest(slice, message, files, reviewIssueId), cancellationToken);
             if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
                 return new McpToolResult(false, "Commit queue operation failed.");
 
@@ -188,14 +186,6 @@ public sealed class CommitQueueMcpService(CommitsController commits)
 
         return EntryResultAsync(worktreePath, entryRef, () => commits.UpdateMessageAsync(worktreePath, entryRef, message, cancellationToken));
     }
-
-    public Task<McpToolResult> UpdateCommitTests(
-        string worktreePath,
-        string entryRef,
-        IReadOnlyList<string> tests,
-        CancellationToken cancellationToken)
-        => EntryResultAsync(worktreePath, entryRef, () => commits.SetTestsAsync(worktreePath, entryRef, tests, cancellationToken));
-
     public Task<McpToolResult> AddCommitFiles(
         string worktreePath,
         string entryRef,

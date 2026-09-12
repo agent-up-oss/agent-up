@@ -15,9 +15,8 @@ public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
         [Description("Short slice label identifying the logical unit of change, e.g. 'Commits' or 'UbuntuInstallation'.")] string slice,
         [Description("Conventional commit message scoped to the queued slice, e.g. fix(Commits): validate queue metadata. Use feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, chore for maintenance/packaging/CI/tooling with no customer runtime effect, refactor for internal no-behavior source changes, style for CSS/HTML only, and docs for documentation only.")] string message,
         [Description("Repo-relative file paths to include in this commit entry. At least one required.")] IReadOnlyList<string> files,
-        [Description("Optional test commands to attach to this entry, e.g. 'dotnet test'. The developer sees these as a checklist before committing. Merged with any build/test commands agent-up.json's commits configuration resolves for these files, including transitively dependent projects.")] IReadOnlyList<string>? tests,
         CancellationToken cancellationToken)
-        => service.EnqueueCommit(worktreePath, slice, message, files, tests, cancellationToken);
+        => service.EnqueueCommit(worktreePath, slice, message, files, cancellationToken);
 
     [McpServerTool(Name = "enqueue_review_fix_commit", Title = "Enqueue Review Fix Commit")]
     [Description("Use when fixing pull request review feedback. Enqueues exactly one review issue violation fix with a required stable reviewIssueId. Do not combine multiple review issues in one commit. Use a conventional commit message scoped to the queued slice. Use fix for user-facing fixes, test for test-only or smoke-validation changes, chore for maintenance/packaging/CI/tooling with no customer runtime effect, refactor for internal no-behavior source changes, style for CSS/HTML only, and docs for documentation only.")]
@@ -27,9 +26,8 @@ public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
         [Description("Short slice label identifying the logical unit of change, e.g. 'Commits'.")] string slice,
         [Description("Conventional commit message scoped to the queued slice, e.g. fix(Commits): validate queue metadata. Use feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, chore for maintenance/packaging/CI/tooling with no customer runtime effect, refactor for internal no-behavior source changes, style for CSS/HTML only, and docs for documentation only.")] string message,
         [Description("Repo-relative file paths to include in this review-fix commit entry. At least one required.")] IReadOnlyList<string> files,
-        [Description("Optional test commands to attach to this entry, e.g. 'dotnet test'.")] IReadOnlyList<string>? tests,
         CancellationToken cancellationToken)
-        => service.EnqueueReviewFixCommit(worktreePath, reviewIssueId, slice, message, files, tests, cancellationToken);
+        => service.EnqueueReviewFixCommit(worktreePath, reviewIssueId, slice, message, files, cancellationToken);
 
     [McpServerTool(Name = "get_commits_status", Title = "Get Commits Status")]
     [Description("Returns the current commit queue: queued entries with their files and messages, unassigned modified files, and any active edit session. Run this after enqueueing so the developer can see the queue before stopping.")]
@@ -69,15 +67,6 @@ public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
         [Description("Replacement conventional commit message using the correct Agent-Up prefix rules.")] string message,
         CancellationToken cancellationToken)
         => service.UpdateCommitMessage(worktreePath, entryRef, message, cancellationToken);
-
-    [McpServerTool(Name = "update_commit_tests", Title = "Update Commit Tests")]
-    [Description("Replaces the test commands attached to a queued entry without editing the queue file directly.")]
-    public Task<McpToolResult> UpdateCommitTests(
-        [Description("Absolute path to the repository worktree.")] string worktreePath,
-        [Description("Queued entry index, starting at 1, or queued entry id.")] string entryRef,
-        [Description("Replacement test commands for this queued entry.")] IReadOnlyList<string> tests,
-        CancellationToken cancellationToken)
-        => service.UpdateCommitTests(worktreePath, entryRef, tests, cancellationToken);
 
     [McpServerTool(Name = "add_commit_files", Title = "Add Commit Files")]
     [Description("Adds repo-relative files to a queued entry. Use when same-slice files were missed; files can only belong to one queued entry.")]

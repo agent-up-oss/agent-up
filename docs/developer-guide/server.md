@@ -137,6 +137,8 @@ still applies: a client served over HTTPS cannot fetch a plain-HTTP Server
 unless that Server is loopback-hosted, so a remote Server should be reachable
 over HTTPS.
 
+A clustered Server is published as `docker.io/themassiveone/agent-up-server` and installed from the `agent-up-helm` chart. That path is an installation concern only.
+
 This service shape is packaging and lifecycle behavior only. Runtime ownership remains unchanged: all orchestration stays in `AgentUp.Server`, and Desktop stays a client.
 
 This rule keeps concurrent agents, human developers, and automation clients aligned around the same running environment.

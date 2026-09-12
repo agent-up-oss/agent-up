@@ -14,7 +14,6 @@ public sealed class McpEndpointSessionProvider
         "get_commit_changes",
         "inspect_commit",
         "update_commit_message",
-        "update_commit_tests",
         "add_commit_files",
         "remove_commit_files",
         "remove_commit",
@@ -23,6 +22,14 @@ public sealed class McpEndpointSessionProvider
         "begin_commit_edit",
         "save_commit_edit",
         "abort_commit_edit"
+    };
+
+    private static readonly HashSet<string> VerificationTools = new(StringComparer.Ordinal)
+    {
+        "plan_verification",
+        "run_verification",
+        "run_verification_check",
+        "guard_verification"
     };
 
     private static readonly HashSet<string> OrchestrationTools = new(StringComparer.Ordinal)
@@ -69,6 +76,12 @@ public sealed class McpEndpointSessionProvider
         {
             options.ServerInstructions = "Agent-Up commit queue MCP server. Use these tools only for commit queue guard, inspection, enqueue, metadata edits, edit sessions, archive, restore, and clear operations.";
             KeepTools(options, CommitTools);
+            options.ResourceCollection?.Clear();
+        }
+        else if (IsEndpoint(context, "/mcp/verification"))
+        {
+            options.ServerInstructions = "Agent-Up verification MCP server. Test selection is owned by the static path rules in agent-up.json, not by you: plan_verification shows what the current changes require and you cannot narrow it. Run run_verification at the end of a task, before enqueueing commits, so receipts cover the code while it is still in the working tree. guard_verification reports whether every required check has a passing receipt matching the current file contents.";
+            KeepTools(options, VerificationTools);
             options.ResourceCollection?.Clear();
         }
         else if (IsEndpoint(context, "/mcp/orchestration"))

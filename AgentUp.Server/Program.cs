@@ -29,6 +29,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapMcp("/mcp/commits").WithMetadata(new AllowAnonymousAttribute());
+app.MapMcp("/mcp/verification").WithMetadata(new AllowAnonymousAttribute());
 app.MapMcp("/mcp/orchestration").WithMetadata(new AllowAnonymousAttribute());
 app.MapMcp("/mcp/browser").WithMetadata(new AllowAnonymousAttribute());
 app.MapMcp("/mcp/audit").WithMetadata(new AllowAnonymousAttribute());

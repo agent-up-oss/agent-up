@@ -12,6 +12,7 @@ internal static class ArchitectureFixture
         "AgentUp.Server",
         "AgentUp.Browser.Streaming",
         "AgentUp.CommitPolicy",
+        "AgentUp.Verification",
         "AgentUp.Capabilities.Abstractions",
         "AgentUp.Capabilities.Common",
         "AgentUp.Capabilities.Dotnet",
@@ -27,6 +28,7 @@ internal static class ArchitectureFixture
     [
         "AgentUp.Server.Tests",
         "AgentUp.CommitPolicy.Tests",
+        "AgentUp.Verification.Tests",
         "AgentUp.Capabilities.Abstractions.Tests",
         "AgentUp.Capabilities.Common.Tests",
         "AgentUp.Capabilities.Dotnet.Tests",

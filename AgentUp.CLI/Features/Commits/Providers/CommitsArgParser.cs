@@ -10,7 +10,6 @@ public sealed class CommitsArgParser : ICommitsArgParser
         string? slice = null;
         string? message = null;
         var files = new List<string>();
-        var tests = new List<string>();
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -28,12 +27,6 @@ public sealed class CommitsArgParser : ICommitsArgParser
                         files.Add(args[i++]);
                     i--;
                     break;
-                case "--tests":
-                    i++;
-                    while (i < args.Length && !args[i].StartsWith("--", StringComparison.Ordinal))
-                        tests.Add(args[i++]);
-                    i--;
-                    break;
                 default:
                     return (null, $"Unknown argument: {args[i]}");
             }
@@ -46,6 +39,6 @@ public sealed class CommitsArgParser : ICommitsArgParser
         if (files.Count == 0)
             return (null, "Missing required argument: --files (at least one file required)");
 
-        return (new EnqueueRequest(slice, message, files, tests), null);
+        return (new EnqueueRequest(slice, message, files), null);
     }
 }

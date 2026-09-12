@@ -1,6 +1,7 @@
 using System.Reflection;
 using AgentUp.CLI.Features.Authentication.Controllers;
 using AgentUp.CLI.Features.Commits.Controllers;
+using AgentUp.CLI.Features.Verification.Controllers;
 
 namespace AgentUp.CLI.Features.Workspaces.Controllers;
 
@@ -16,6 +17,7 @@ public sealed class WorkspacesController
     private readonly DiagnosticsCommand _diagnostics;
     private readonly AuthenticationController _authentication;
     private readonly CommitsController _commits;
+    private readonly VerificationController _verification;
 
     public WorkspacesController(
         string serverUrl,
@@ -27,7 +29,8 @@ public sealed class WorkspacesController
         StatusCommand status,
         DiagnosticsCommand diagnostics,
         AuthenticationController authentication,
-        CommitsController commits)
+        CommitsController commits,
+        VerificationController verification)
     {
         _serverUrl = serverUrl;
         _output = output;
@@ -39,12 +42,13 @@ public sealed class WorkspacesController
         _diagnostics = diagnostics;
         _authentication = authentication;
         _commits = commits;
+        _verification = verification;
     }
 
     public async Task<int> RunAsync(string[] args)
         => args.Any(arg => arg == "--version")
             ? PrintVersion(_output)
-            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _diagnostics, _authentication, _commits, _output)();
+            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _diagnostics, _authentication, _commits, _verification, _output)();
 
     private static Func<Task<int>> ResolveCommand(
         string[] args,
@@ -57,6 +61,7 @@ public sealed class WorkspacesController
         DiagnosticsCommand diagnostics,
         AuthenticationController authentication,
         CommitsController commits,
+        VerificationController verification,
         TextWriter output)
         => (args.FirstOrDefault(argument => !argument.StartsWith("--")) ?? "") switch
         {
@@ -69,6 +74,7 @@ public sealed class WorkspacesController
             "diagnostics" => diagnostics.RunAsync,
             "auth" => () => authentication.RunAsync(args.SkipWhile(a => a != "auth").Skip(1).ToArray()),
             "commits" => () => commits.RunAsync(args.SkipWhile(a => a != "commits").Skip(1).ToArray()),
+            "verify" => () => verification.RunAsync(args.SkipWhile(a => a != "verify").Skip(1).ToArray()),
             _ => () => Task.FromResult(PrintHelp(output, serverUrl))
         };
 
@@ -84,6 +90,7 @@ public sealed class WorkspacesController
         output.WriteLine("  diagnostics  Show workspace process, log, health, and browser diagnostics");
         output.WriteLine("  auth     Authenticate with the server (login, logout, status)");
         output.WriteLine("  commits  Manage the vertical-slice commit queue");
+        output.WriteLine("  verify   Plan, run, and guard the checks the current changes require");
         output.WriteLine("  version  Print the CLI version");
         output.WriteLine();
         output.WriteLine("Options:");

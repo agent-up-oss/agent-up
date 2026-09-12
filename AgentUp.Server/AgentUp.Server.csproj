@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.Browser.Streaming\AgentUp.Browser.Streaming.csproj" />
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
+    <ProjectReference Include="..\AgentUp.Verification\AgentUp.Verification.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Claude\AgentUp.Capabilities.Claude.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Codex\AgentUp.Capabilities.Codex.csproj" />

@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agent-up-ingress
+  namespace: {{ .Values.namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: {{ ternary "false" "true" .Values.platform.disableSsl | quote }}
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    {{- if not .Values.platform.disableSsl }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer | quote }}
+    {{- end }}
+    nginx.ingress.kubernetes.io/limit-rps: "5"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+spec:
+  ingressClassName: nginx
+  {{- if not .Values.platform.disableSsl }}
+  tls:
+    - hosts:
+        - {{ default (printf "agent-up.%s" .Values.platform.apexDomain) .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  {{- end }}
+  rules:
+    - host: {{ default (printf "agent-up.%s" .Values.platform.apexDomain) .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agent-up-server
+                port:
+                  number: 80
