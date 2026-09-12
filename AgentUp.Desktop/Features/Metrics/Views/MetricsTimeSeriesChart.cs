@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using AgentUp.Desktop.Shared.Models;
 using AgentUp.Desktop.Features.Metrics.ViewModels;
 
 namespace AgentUp.Desktop.Features.Metrics.Views;
@@ -40,7 +41,7 @@ public sealed class MetricsTimeSeriesChart : Control
         if (bounds.Width <= 1 || bounds.Height <= 1)
             return;
 
-        context.DrawRectangle(Brush("#060806"), null, bounds);
+        context.DrawRectangle(Brush(AgentUpThemeColors.Surface), null, bounds);
 
         var points = Points;
         if (points is null || points.Count == 0)
@@ -58,9 +59,9 @@ public sealed class MetricsTimeSeriesChart : Control
 
         var dataMax = points.Max(point => point.Value);
         var (axisMax, step) = MetricsAxisScaler.Compute(dataMax);
-        var gridPen = new Pen(Brush("#184820"), 1);
+        var gridPen = new Pen(Brush(AgentUpThemeColors.BorderSubtle), 1);
         var typeface = new Typeface(FontFamily.Default);
-        var labelBrush = Brush("#6f857a");
+        var labelBrush = Brush(AgentUpThemeColors.TextMuted);
         var unit = Unit;
 
         var tickCount = (int)Math.Round(axisMax / step);
@@ -86,8 +87,8 @@ public sealed class MetricsTimeSeriesChart : Control
 
         var slot = plot.Width / points.Count;
         var barWidth = Math.Max(4, slot * 0.62);
-        var accent = Color.Parse("#22c55e");
-        var accentDim = Color.Parse("#0f7a45");
+        var accent = Color.Parse(AgentUpThemeColors.StatusHealthy);
+        var accentDim = Color.Parse(AgentUpThemeColors.SurfaceSelectedStrong);
 
         for (var i = 0; i < points.Count; i++)
         {

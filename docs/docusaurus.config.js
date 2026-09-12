@@ -1,65 +1,68 @@
 // @ts-check
 
+const { agentUpTheme } = require('@agent-up/design-system/tokens');
+const voice = require('@agent-up/design-system/brand/voice.json');
+
 const agentUpCodeTheme = {
   plain: {
-    color: '#d8e7dc',
-    backgroundColor: '#020402',
+    color: agentUpTheme.colors.textSecondary,
+    backgroundColor: agentUpTheme.colors.surface,
   },
   styles: [
     {
       types: ['comment', 'prolog', 'doctype', 'cdata'],
       style: {
-        color: '#6f8d78',
+        color: agentUpTheme.colors.textMuted,
         fontStyle: 'italic',
       },
     },
     {
       types: ['punctuation'],
       style: {
-        color: '#8db89a',
+        color: agentUpTheme.colors.textMuted,
       },
     },
     {
       types: ['property', 'tag', 'constant', 'symbol', 'deleted'],
       style: {
-        color: '#2bf27a',
+        color: agentUpTheme.colors.accentSoft,
       },
     },
     {
       types: ['boolean', 'number'],
       style: {
-        color: '#7dffac',
+        color: agentUpTheme.colors.accentSoft,
       },
     },
     {
       types: ['selector', 'attr-name', 'string', 'char', 'builtin', 'inserted'],
       style: {
-        color: '#00d66b',
+        color: agentUpTheme.colors.accent,
       },
     },
     {
       types: ['operator', 'entity', 'url', 'variable'],
       style: {
-        color: '#9df8bc',
+        color: agentUpTheme.colors.textSecondary,
       },
     },
     {
       types: ['atrule', 'attr-value', 'function', 'class-name'],
       style: {
-        color: '#c9ffd8',
+        color: agentUpTheme.colors.textPrimary,
       },
     },
     {
       types: ['keyword'],
       style: {
-        color: '#08ef75',
+        color: agentUpTheme.colors.accentSoft,
         fontWeight: '700',
       },
     },
     {
       types: ['regex', 'important'],
       style: {
-        color: '#b4ffca',
+        color: agentUpTheme.colors.textSecondary,
       },
     },
   ],
@@ -68,7 +71,7 @@ const agentUpCodeTheme = {
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Agent-Up',
-  tagline: 'Workspace management for AI-assisted development',
+  tagline: voice.category,
   favicon: 'img/favicon.ico',
 
   url: 'https://agent-up.local',
@@ -152,6 +155,11 @@ const config = {
             label: 'Developer Guide',
           },
           {
+            to: '/design-system',
+            label: 'Design System',
+            position: 'left',
+          },
+          {
             href: 'https://github.com/themassiveone/agent-up',
             label: 'GitHub',
             position: 'right',
@@ -167,8 +175,8 @@ const config = {
                 html: `
                   <p class="footer-brand__name">Agent-Up</p>
                   <p class="footer-brand__tagline">
-                    Workspace management for AI-assisted development.
-                    Isolated agents, shared browser context, and server-owned runtime state.
+                    Local runtime control for AI-assisted development.
+                    Isolated workspaces, independent browser sessions, and Server-owned state.
                   </p>
                 `,
               },
@@ -196,6 +204,7 @@ const config = {
           {
             title: 'Project',
             items: [
+              { label: 'Design System', to: '/design-system' },
               { label: 'GitHub', href: 'https://github.com/themassiveone/agent-up' },
               { label: 'Contributing', href: 'https://github.com/themassiveone/agent-up/blob/main/CONTRIBUTING.md' },
               { label: 'Security', href: 'https://github.com/themassiveone/agent-up/blob/main/SECURITY.md' },

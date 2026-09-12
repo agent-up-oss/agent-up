@@ -1,0 +1,961 @@
+{
+  "surfaces": [
+    {
+      "id": "foundations",
+      "title": "Foundations",
+      "intro": "Black is the environment. Off-white carries hierarchy. Neutral gray creates structure. Green appears only for action, selection, progress, or health.",
+      "components": [
+        {
+          "id": "canvas",
+          "title": "Canvas",
+          "note": "Root window, page, and PWA chrome use the canvas token.",
+          "avalonia": "Window",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-theme",
+          "classes": [
+            "au-theme"
+          ],
+          "html": "<div class=\"au-theme\" style=\"min-height: 6rem; padding: 1.25rem;\">Quiet operational canvas.</div>"
+        },
+        {
+          "id": "swatch",
+          "title": "Color roles",
+          "note": "Never introduce a raw product color when a semantic role exists.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-swatch",
+          "classes": [
+            "au-cluster",
+            "au-swatch"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <span class=\"au-swatch\" style=\"background: var(--au-color-canvas)\" title=\"canvas\"></span>\n        <span class=\"au-swatch\" style=\"background: var(--au-color-surface)\" title=\"surface\"></span>\n        <span class=\"au-swatch\" style=\"background: var(--au-color-border-subtle)\" title=\"border\"></span>\n        <span class=\"au-swatch\" style=\"background: var(--au-color-text-primary)\" title=\"text\"></span>\n        <span class=\"au-swatch\" style=\"background: var(--au-color-accent)\" title=\"action\"></span>\n        <span class=\"au-swatch\" style=\"background: var(--au-color-status-healthy)\" title=\"healthy\"></span>\n        <span class=\"au-swatch\" style=\"background: var(--au-color-status-danger)\" title=\"danger\"></span>\n        <span class=\"au-swatch\" style=\"background: var(--au-color-focus)\" title=\"focus\"></span>\n      </div>"
+        },
+        {
+          "id": "type",
+          "title": "Typography",
+          "note": "Applications use platform sans-serif at these roles. Authored web uses Inter.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-heading",
+          "classes": [
+            "au-eyebrow",
+            "au-page-title",
+            "au-heading",
+            "au-muted",
+            "au-mono"
+          ],
+          "html": "<p class=\"au-eyebrow\">AI-assisted development workspaces</p>\n      <h1 class=\"au-page-title\">Workspaces</h1>\n      <h2 class=\"au-heading\">See the runtime. Trust the review.</h2>\n      <p class=\"au-muted\">Product screens use page title, not the marketing display size. Monospace is reserved for commands, paths, ports, logs, and diffs.</p>\n      <code class=\"au-mono\">agentup start · localhost:11200 · feat/checkout</code>"
+        }
+      ]
+    },
+    {
+      "id": "primitives",
+      "title": "Primitives",
+      "intro": "Shared controls compiled to web CSS, React Native style objects, and Avalonia styles. The HTML here is the structure Desktop infers.",
+      "components": [
+        {
+          "id": "button",
+          "title": "Buttons",
+          "note": "Primary fill is the only bright green action. Danger is red, never green.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-button",
+          "classes": [
+            "au-cluster",
+            "au-button",
+            "au-button--secondary",
+            "au-button--danger",
+            "au-button--compact"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-button\">Start workspace</button>\n        <button class=\"au-button au-button--secondary\">View diagnostics</button>\n        <button class=\"au-button au-button--danger\">Stop</button>\n        <button class=\"au-button au-button--compact\">Compact</button>\n      </div>"
+        },
+        {
+          "id": "input",
+          "title": "Field",
+          "note": "Focus uses blue, not green, so keyboard state stays distinct from health.",
+          "avalonia": "TextBox",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-input",
+          "classes": [
+            "au-stack",
+            "au-field-label",
+            "au-input"
+          ],
+          "html": "<label class=\"au-stack\"><span class=\"au-field-label\">Server URL</span><input class=\"au-input\" placeholder=\"https://agent-up.example.com\" /></label>"
+        },
+        {
+          "id": "badge",
+          "title": "Badges and status",
+          "note": "Combine color with a label. Do not use a green dot alone.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-badge",
+          "classes": [
+            "au-cluster",
+            "au-badge",
+            "au-badge--healthy",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-badge--warning",
+            "au-status-dot--warning",
+            "au-badge--danger",
+            "au-status-dot--danger",
+            "au-badge--info",
+            "au-status-dot--info"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        <span class=\"au-badge au-badge--warning\"><span class=\"au-status-dot au-status-dot--warning\"></span>Starting</span>\n        <span class=\"au-badge au-badge--danger\"><span class=\"au-status-dot au-status-dot--danger\"></span>Failed</span>\n        <span class=\"au-badge au-badge--info\"><span class=\"au-status-dot au-status-dot--info\"></span>MCP connected</span>\n      </div>"
+        },
+        {
+          "id": "checkbox",
+          "title": "Checkbox",
+          "note": "Checked uses the selected fill. Do not outline idle boxes in accent green.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-checkbox",
+          "classes": [
+            "au-cluster",
+            "au-checkbox",
+            "au-checkbox--checked"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <span class=\"au-checkbox\"></span>\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n      </div>"
+        },
+        {
+          "id": "card",
+          "title": "Cards",
+          "note": "Idle cards use a raised surface and a neutral border. Selected tints the fill; do not outline cards in accent green.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-card",
+          "classes": [
+            "au-grid",
+            "au-card",
+            "au-muted",
+            "au-card--selected",
+            "au-card--danger"
+          ],
+          "html": "<div class=\"au-grid\">\n        <div class=\"au-card\"><strong>Idle surface</strong><p class=\"au-muted\">Neutral structure.</p></div>\n        <div class=\"au-card au-card--selected\"><strong>Selected</strong><p class=\"au-muted\">Green means this item is active.</p></div>\n        <div class=\"au-card au-card--danger\"><strong>Failed</strong><p class=\"au-muted\">Error cards never inherit accent borders.</p></div>\n      </div>"
+        },
+        {
+          "id": "tabs",
+          "title": "Tabs",
+          "note": "Selected tabs use a brighter text and a muted underline, not a green fill.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-tab",
+          "classes": [
+            "au-tabs",
+            "au-tab",
+            "au-tab--selected"
+          ],
+          "html": "<div class=\"au-tabs\" role=\"tablist\">\n        <button class=\"au-tab au-tab--selected\" aria-selected=\"true\">Browser</button>\n        <button class=\"au-tab\">Console</button>\n        <button class=\"au-tab\">Metrics</button>\n        <button class=\"au-tab\">Diagnostics</button>\n      </div>"
+        },
+        {
+          "id": "callout",
+          "title": "Callout",
+          "note": "A left accent rule is enough. No glow.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-callout",
+          "classes": [
+            "au-callout"
+          ],
+          "html": "<aside class=\"au-callout\"><strong>Browser ownership:</strong> Desktop WebViews and Server automation are separate sessions bound to the same workspace runtime.</aside>"
+        },
+        {
+          "id": "code",
+          "title": "Code surface",
+          "note": "Code blocks use a neutral border. Do not force syntax into green.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-code",
+          "classes": [
+            "au-code"
+          ],
+          "html": "<pre class=\"au-code\">agentup start --worktree /srv/checkout-fix</pre>"
+        }
+      ]
+    },
+    {
+      "id": "chrome",
+      "title": "Desktop chrome",
+      "intro": "Integrated title bar: sidebar, reload, Server badge, wordmark, then minimize, restore, close. The chrome is part of the product, not a host decoration.",
+      "components": [
+        {
+          "id": "chrome",
+          "title": "Title bar",
+          "note": "Keep the mark small. Never add glow around the window.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chrome",
+          "classes": [
+            "au-chrome",
+            "au-cluster",
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-badge",
+            "au-badge--healthy",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-chrome-title",
+            "au-chrome-button",
+            "au-chrome-close"
+          ],
+          "html": "<div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>"
+        },
+        {
+          "id": "chrome-button",
+          "title": "Window controls",
+          "note": "Close hover is danger red. Other chrome hover uses the selected tint.",
+          "avalonia": "Border",
+          "desktopClass": "chromeButton",
+          "desktopHost": "Button",
+          "rootClass": "au-chrome-button",
+          "classes": [
+            "au-cluster",
+            "au-chrome-button",
+            "au-chrome-icon",
+            "au-chrome-close"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-chrome-button au-chrome-icon\">−</button>\n        <button class=\"au-chrome-button au-chrome-icon\">□</button>\n        <button class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</button>\n      </div>"
+        },
+        {
+          "id": "chrome-close",
+          "title": "Close control",
+          "note": "Only the close control uses danger on hover.",
+          "avalonia": "Border",
+          "desktopClass": "chromeClose",
+          "desktopHost": "Button",
+          "rootClass": "au-chrome-close",
+          "classes": [
+            "au-chrome-button",
+            "au-chrome-close",
+            "au-chrome-icon"
+          ],
+          "html": "<button class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</button>"
+        },
+        {
+          "id": "title-tool",
+          "title": "Title tools",
+          "note": "Sidebar and reload sit in the chrome so the workspace rail stays dedicated to workspaces.",
+          "avalonia": "Border",
+          "desktopClass": "titleToolButton",
+          "desktopHost": "Button",
+          "rootClass": "au-title-tool",
+          "classes": [
+            "au-cluster",
+            "au-title-tool",
+            "au-chrome-icon"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-title-tool au-chrome-icon\">☰</button>\n        <button class=\"au-title-tool au-chrome-icon\">↻</button>\n      </div>"
+        },
+        {
+          "id": "chrome-title",
+          "title": "Wordmark",
+          "note": "The product name in chrome is 13px bold, not a marketing title.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chrome-title",
+          "classes": [
+            "au-chrome-title"
+          ],
+          "html": "<strong class=\"au-chrome-title\">Agent-Up</strong>"
+        }
+      ]
+    },
+    {
+      "id": "workspaces",
+      "title": "Workspaces",
+      "intro": "A workspace is the managed runtime and source identity. Do not name every row after an agent unless that is the display name.",
+      "components": [
+        {
+          "id": "workspace",
+          "title": "Workspace row",
+          "note": "Idle rows stay on surface. Only the selected checkout uses the strong green fill. Start, identity, and delete are the same controls on Desktop and Mobile.",
+          "avalonia": "Border",
+          "desktopClass": "wsEntry",
+          "desktopHost": "ListBoxItem",
+          "rootClass": "au-workspace",
+          "classes": [
+            "au-stack",
+            "au-workspace",
+            "au-workspace--selected",
+            "au-lifecycle-button",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-workspace-name",
+            "au-workspace-branch",
+            "au-workspace-delete",
+            "au-status-dot--warning"
+          ],
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>"
+        },
+        {
+          "id": "workspace-name",
+          "title": "Workspace name",
+          "note": "The title lives inside the workspace row. Do not restyle it per surface.",
+          "avalonia": "TextBlock",
+          "desktopClass": "wsName",
+          "desktopHost": "",
+          "rootClass": "au-workspace-name",
+          "classes": [
+            "au-workspace-name"
+          ],
+          "html": "<strong class=\"au-workspace-name\">checkout-fix</strong>"
+        },
+        {
+          "id": "workspace-branch",
+          "title": "Workspace branch",
+          "note": "The subtitle stays muted inside the same row.",
+          "avalonia": "TextBlock",
+          "desktopClass": "wsBranch",
+          "desktopHost": "",
+          "rootClass": "au-workspace-branch",
+          "classes": [
+            "au-workspace-branch"
+          ],
+          "html": "<small class=\"au-workspace-branch\">feat/checkout</small>"
+        },
+        {
+          "id": "workspace-avatar",
+          "title": "Collapsed avatar",
+          "note": "Collapsed rail repeats selected/hover using the same semantic fills.",
+          "avalonia": "Border",
+          "desktopClass": "wsAvatar",
+          "desktopHost": "ListBoxItem",
+          "rootClass": "au-workspace-avatar",
+          "classes": [
+            "au-cluster",
+            "au-workspace-avatar",
+            "au-workspace-avatar--selected"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <div class=\"au-workspace-avatar au-workspace-avatar--selected\"></div>\n        <div class=\"au-workspace-avatar\"></div>\n      </div>"
+        },
+        {
+          "id": "workspace-add",
+          "title": "Add workspace",
+          "note": "The add control is a compact raised icon, not a primary CTA.",
+          "avalonia": "Border",
+          "desktopClass": "wsAddButton",
+          "desktopHost": "Button",
+          "rootClass": "au-workspace-add",
+          "classes": [
+            "au-workspace-add"
+          ],
+          "html": "<button class=\"au-workspace-add\">+</button>"
+        },
+        {
+          "id": "workspace-delete",
+          "title": "Remove workspace",
+          "note": "Delete stays quiet until hover, then uses danger text.",
+          "avalonia": "Button",
+          "desktopClass": "wsDeleteButton",
+          "desktopHost": "",
+          "rootClass": "au-workspace-delete",
+          "classes": [
+            "au-workspace-delete"
+          ],
+          "html": "<button class=\"au-workspace-delete\">×</button>"
+        },
+        {
+          "id": "lifecycle",
+          "title": "Lifecycle controls",
+          "note": "Start and stop are compact icon actions, not a second primary CTA.",
+          "avalonia": "Border",
+          "desktopClass": "wsLifecycleButton",
+          "desktopHost": "Button",
+          "rootClass": "au-lifecycle-button",
+          "classes": [
+            "au-cluster",
+            "au-lifecycle-button",
+            "au-workspace-add",
+            "au-workspace-delete"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-lifecycle-button\">▶</button>\n        <button class=\"au-workspace-add\">+</button>\n        <button class=\"au-workspace-delete\">×</button>\n      </div>"
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "title": "Applications",
+      "intro": "The first tab row lists applications in the selected workspace. Health is a LED plus label, not a green outline around the tab.",
+      "components": [
+        {
+          "id": "app-tab",
+          "title": "Application tabs",
+          "note": "Selected application tabs are neutral with a stronger underline. Green is reserved for the running health marker.",
+          "avalonia": "Border",
+          "desktopClass": "appTab",
+          "desktopHost": "ListBoxItem",
+          "rootClass": "au-app-tab",
+          "classes": [
+            "au-cluster",
+            "au-app-tab",
+            "au-app-tab--selected",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-status-dot--warning"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div>"
+        },
+        {
+          "id": "subtab",
+          "title": "Port and tool tabs",
+          "note": "The second row is a pill. Selected may use the strong selected fill because it is the active tool, not a structural border.",
+          "avalonia": "Border",
+          "desktopClass": "subTab",
+          "desktopHost": "ListBoxItem",
+          "rootClass": "au-subtab",
+          "classes": [
+            "au-cluster",
+            "au-subtab",
+            "au-subtab--selected"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div>"
+        }
+      ]
+    },
+    {
+      "id": "browser",
+      "title": "Browser",
+      "intro": "A workspace has independent human and automation browser sessions. Never describe them as a shared profile or shared storage.",
+      "components": [
+        {
+          "id": "address-bar",
+          "title": "Address bar",
+          "note": "Monospace URL, compact height, neutral field. Focus stays blue.",
+          "avalonia": "TextBox",
+          "desktopClass": "addressBar",
+          "desktopHost": "",
+          "rootClass": "au-address-bar",
+          "classes": [
+            "au-cluster",
+            "au-browser-button",
+            "au-address-bar"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-browser-button\">‹</button>\n        <button class=\"au-browser-button\">›</button>\n        <button class=\"au-browser-button\">↻</button>\n        <input class=\"au-address-bar\" value=\"http://localhost:11200/\" readonly />\n      </div>"
+        },
+        {
+          "id": "browser-button",
+          "title": "Browser chrome button",
+          "note": "Back, forward, and reload use the compact raised icon treatment.",
+          "avalonia": "Border",
+          "desktopClass": "browserButton",
+          "desktopHost": "Button",
+          "rootClass": "au-browser-button",
+          "classes": [
+            "au-browser-button"
+          ],
+          "html": "<button class=\"au-browser-button\">↻</button>"
+        },
+        {
+          "id": "error-banner",
+          "title": "Unreachable app",
+          "note": "Failure uses the danger surface. A green border would make an error look healthy.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-error-banner",
+          "classes": [
+            "au-error-banner"
+          ],
+          "html": "<div class=\"au-error-banner\"><strong>Could not reach app.</strong> The allocated HTTP port did not answer. Check the application console before retrying the browser.</div>"
+        }
+      ]
+    },
+    {
+      "id": "console",
+      "title": "Console",
+      "intro": "Application output is a selectable monospace surface on the canvas. Prefix install output with [install].",
+      "components": [
+        {
+          "id": "console",
+          "title": "Log surface",
+          "note": "Do not theme logs green. Keep them readable and copyable.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-console",
+          "classes": [
+            "au-console"
+          ],
+          "html": "<pre class=\"au-console\">[install] npm install\nlistening on http://127.0.0.1:11200\nready in 842 ms</pre>"
+        }
+      ]
+    },
+    {
+      "id": "git",
+      "title": "Git changes",
+      "intro": "The Git panel is the human review surface for the working tree. Coding agents still use the commit queue.",
+      "components": [
+        {
+          "id": "git-row",
+          "title": "Change tree",
+          "note": "Status color is additive: added, deleted, renamed, conflicted. Directories stay muted.",
+          "avalonia": "Border",
+          "desktopClass": "gitNodeRow",
+          "desktopHost": "",
+          "rootClass": "au-git-row",
+          "classes": [
+            "au-stack",
+            "au-git-row",
+            "au-git-row--selected",
+            "au-git-add",
+            "au-git-delete",
+            "au-git-rename",
+            "au-git-conflict"
+          ],
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-git-row au-git-row--selected\">src/</div>\n        <div class=\"au-git-row au-git-add\">+ AgentChatScreen.tsx</div>\n        <div class=\"au-git-row au-git-delete\">− obsolete.css</div>\n        <div class=\"au-git-row au-git-rename\">pricing.tsx → storefront.tsx</div>\n        <div class=\"au-git-row au-git-conflict\">! agent-up.json</div>\n      </div>"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "title": "Diagnostics",
+      "intro": "Diagnostics are Server-owned events: console, exceptions, failed requests, health, and process status.",
+      "components": [
+        {
+          "id": "audit-table",
+          "title": "Event table",
+          "note": "Rows are dense and neutral. Severity uses semantic text color plus a label.",
+          "avalonia": "Border",
+          "desktopClass": "auditTableRow",
+          "desktopHost": "",
+          "rootClass": "au-audit-row",
+          "classes": [
+            "au-panel",
+            "au-audit-header",
+            "au-audit-row"
+          ],
+          "html": "<div class=\"au-panel\">\n        <div class=\"au-audit-header\">Time · Kind · Message</div>\n        <div class=\"au-audit-row\">12:01 · process · listening on 11200</div>\n        <div class=\"au-audit-row\" style=\"color: var(--au-color-text-danger)\">12:02 · browser · net::ERR_CONNECTION_REFUSED</div>\n      </div>"
+        },
+        {
+          "id": "page-jump",
+          "title": "Pagination",
+          "note": "The current page may use the selected fill; other pages stay outlined.",
+          "avalonia": "Border",
+          "desktopClass": "auditPageJumpInner",
+          "desktopHost": "",
+          "rootClass": "au-page-jump",
+          "classes": [
+            "au-cluster",
+            "au-page-jump",
+            "au-page-jump--current"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-page-jump\">1</button>\n        <button class=\"au-page-jump au-page-jump--current\">2</button>\n        <button class=\"au-page-jump\">3</button>\n      </div>"
+        },
+        {
+          "id": "audit-header",
+          "title": "Audit header",
+          "note": "Table headers stay muted and structurally neutral.",
+          "avalonia": "Border",
+          "desktopClass": "auditTableHeader",
+          "desktopHost": "",
+          "rootClass": "au-audit-header",
+          "classes": [
+            "au-audit-header"
+          ],
+          "html": "<div class=\"au-audit-header\">Time · Kind · Message</div>"
+        },
+        {
+          "id": "page-jump-current",
+          "title": "Current page",
+          "note": "The current page uses the selected fill.",
+          "avalonia": "Border",
+          "desktopClass": "auditPageJumpInnerCurrent",
+          "desktopHost": "",
+          "rootClass": "au-page-jump--current",
+          "classes": [
+            "au-page-jump",
+            "au-page-jump--current"
+          ],
+          "html": "<button class=\"au-page-jump au-page-jump--current\">2</button>"
+        }
+      ]
+    },
+    {
+      "id": "metrics",
+      "title": "Metrics",
+      "intro": "Summary cards and charts sit on the surface with a neutral border. The series uses healthy green, not decorative glow.",
+      "components": [
+        {
+          "id": "metrics-card",
+          "title": "Summary card",
+          "note": "One value, one label. Green only if the value represents health.",
+          "avalonia": "Border",
+          "desktopClass": "metricsSummaryCard",
+          "desktopHost": "",
+          "rootClass": "au-metrics-card",
+          "classes": [
+            "au-metrics-card",
+            "au-eyebrow"
+          ],
+          "html": "<div class=\"au-metrics-card\"><span class=\"au-eyebrow\">p95</span><strong>128 ms</strong></div>"
+        },
+        {
+          "id": "metrics-chart",
+          "title": "Time series",
+          "note": "Grid lines are border-subtle. The plot uses status-healthy.",
+          "avalonia": "Border",
+          "desktopClass": "metricsChartCard",
+          "desktopHost": "",
+          "rootClass": "au-metrics-chart",
+          "classes": [
+            "au-metrics-chart"
+          ],
+          "html": "<div class=\"au-metrics-chart\">CPU · memory · request duration</div>"
+        }
+      ]
+    },
+    {
+      "id": "validation",
+      "title": "Validation",
+      "intro": "Validation flows describe the user-meaningful route through the GUI. Passed, failed, and running must not share one green.",
+      "components": [
+        {
+          "id": "validation-stage",
+          "title": "Stages",
+          "note": "Passed uses healthy, failed uses danger, running uses warning.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-validation-stage",
+          "classes": [
+            "au-stack",
+            "au-validation-stage",
+            "au-validation-stage--passed",
+            "au-validation-stage--running",
+            "au-validation-stage--failed"
+          ],
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-validation-stage au-validation-stage--passed\">Sign in · passed</div>\n        <div class=\"au-validation-stage au-validation-stage--running\">Open checkout · running</div>\n        <div class=\"au-validation-stage au-validation-stage--failed\">Pay · failed</div>\n      </div>"
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "title": "Sign-in and first-run",
+      "intro": "Authentication is a quiet raised card on the canvas. Green is the Sign in action and the small mark, not the card outline.",
+      "components": [
+        {
+          "id": "sign-in",
+          "title": "Sign-in card",
+          "note": "The focused field uses platform/focus blue. The card border stays neutral.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-sign-in",
+          "classes": [
+            "au-sign-in",
+            "au-stack",
+            "au-eyebrow",
+            "au-page-title",
+            "au-field-label",
+            "au-input",
+            "au-button"
+          ],
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Desktop</p>\n        <h2 class=\"au-page-title\">Sign in</h2>\n        <span class=\"au-field-label\">Admin password</span>\n        <input class=\"au-input\" placeholder=\"Administrator password\" />\n        <button class=\"au-button\" type=\"button\">Sign in</button>\n      </form>"
+        },
+        {
+          "id": "tutorial",
+          "title": "Tutorial actions",
+          "note": "First-run next/back are compact product buttons, not marketing CTAs.",
+          "avalonia": "Border",
+          "desktopClass": "tutorialButton",
+          "desktopHost": "Button",
+          "rootClass": "au-tutorial-button",
+          "classes": [
+            "au-cluster",
+            "au-tutorial-button",
+            "au-tutorial-button--secondary"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-tutorial-button\">Next</button>\n        <button class=\"au-tutorial-button au-tutorial-button--secondary\">Skip</button>\n      </div>"
+        },
+        {
+          "id": "tutorial-secondary",
+          "title": "Tutorial secondary",
+          "note": "Skip and back stay on the raised surface.",
+          "avalonia": "Border",
+          "desktopClass": "tutorialSecondaryButton",
+          "desktopHost": "Button",
+          "rootClass": "au-tutorial-button--secondary",
+          "classes": [
+            "au-tutorial-button",
+            "au-tutorial-button--secondary"
+          ],
+          "html": "<button class=\"au-tutorial-button au-tutorial-button--secondary\">Skip</button>"
+        }
+      ]
+    },
+    {
+      "id": "database",
+      "title": "Database explorer",
+      "intro": "SQL and result grids are monospace technical surfaces with the same quiet borders as the rest of Desktop.",
+      "components": [
+        {
+          "id": "db-list",
+          "title": "Object list",
+          "note": "Selected objects use the strong selected fill.",
+          "avalonia": "Border",
+          "desktopClass": "dbListItem",
+          "desktopHost": "ListBoxItem",
+          "rootClass": "au-list-item",
+          "classes": [
+            "au-stack",
+            "au-list-item",
+            "au-list-item--selected"
+          ],
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-list-item au-list-item--selected\">orders</div>\n        <div class=\"au-list-item\">customers</div>\n      </div>"
+        },
+        {
+          "id": "sql-editor",
+          "title": "SQL editor",
+          "note": "Editor chrome is an input surface, not an accent panel.",
+          "avalonia": "TextBox",
+          "desktopClass": "sqlEditor",
+          "desktopHost": "",
+          "rootClass": "au-code-editor",
+          "classes": [
+            "au-code-editor"
+          ],
+          "html": "<textarea class=\"au-code-editor\">select * from orders limit 20;</textarea>"
+        },
+        {
+          "id": "db-run",
+          "title": "Run query",
+          "note": "Run is a selected-strong action until hover, where it becomes the primary accent.",
+          "avalonia": "Button",
+          "desktopClass": "dbRunButton",
+          "desktopHost": "",
+          "rootClass": "au-db-run",
+          "classes": [
+            "au-db-run"
+          ],
+          "html": "<button class=\"au-db-run\">Run</button>"
+        },
+        {
+          "id": "db-header-cell",
+          "title": "Result header",
+          "note": "Grid headers are muted raised cells with structural borders.",
+          "avalonia": "Border",
+          "desktopClass": "dbHeaderCell",
+          "desktopHost": "",
+          "rootClass": "au-db-header-cell",
+          "classes": [
+            "au-db-header-cell"
+          ],
+          "html": "<div class=\"au-db-header-cell\">id</div>"
+        },
+        {
+          "id": "db-data-cell",
+          "title": "Result cell",
+          "note": "Result values stay monospace on the surface token.",
+          "avalonia": "Border",
+          "desktopClass": "dbDataCell",
+          "desktopHost": "",
+          "rootClass": "au-db-data-cell",
+          "classes": [
+            "au-db-data-cell"
+          ],
+          "html": "<div class=\"au-db-data-cell\">1042</div>"
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "title": "Mobile",
+      "intro": "Mobile uses the same catalog components as Desktop. Primary actions stay 44px; compact chrome keeps catalog size.",
+      "components": [
+        {
+          "id": "mobile-bar",
+          "title": "Top bar",
+          "note": "The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-bar",
+          "classes": [
+            "au-mobile-bar",
+            "au-cluster"
+          ],
+          "html": "<div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>"
+        },
+        {
+          "id": "drawer",
+          "title": "Navigation drawer",
+          "note": "The Mobile overlay rail is a raised surface over the canvas. Desktop keeps the canvas rail because it is already a pane.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-drawer",
+          "classes": [
+            "au-drawer"
+          ],
+          "html": "<div class=\"au-drawer\" style=\"padding: 1rem; min-height: 8rem;\">Workspaces</div>"
+        },
+        {
+          "id": "mobile-tab-bar",
+          "title": "Bottom tabs",
+          "note": "Selected tabs use the catalog subtab selected fill.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-tab-bar",
+          "classes": [
+            "au-mobile-tab-bar",
+            "au-cluster",
+            "au-subtab",
+            "au-subtab--selected"
+          ],
+          "html": "<div class=\"au-mobile-tab-bar au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">Chat</button>\n        <button class=\"au-subtab\">Changes</button>\n      </div>"
+        },
+        {
+          "id": "mobile-list",
+          "title": "Workspace list",
+          "note": "The Mobile list is the workspace row, not a second card language.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-workspace",
+          "classes": [
+            "au-stack",
+            "au-workspace",
+            "au-workspace--selected",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-workspace-name",
+            "au-workspace-branch",
+            "au-button"
+          ],
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n        </div>\n        <button class=\"au-button\" type=\"button\">Clone</button>\n      </div>"
+        }
+      ]
+    },
+    {
+      "id": "marketing",
+      "title": "Marketing",
+      "intro": "The product is the illustration. One headline, one outcome, and a visible Available / Preview / Experimental / Planned label.",
+      "components": [
+        {
+          "id": "product-frame",
+          "title": "Product frame",
+          "note": "Campaign crops should come from this chrome, not an invented dashboard.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-product-frame",
+          "classes": [
+            "au-product-frame",
+            "au-product-frame__chrome",
+            "au-product-frame__actions",
+            "au-example__preview"
+          ],
+          "html": "<div class=\"au-product-frame\">\n        <div class=\"au-product-frame__chrome\"><span>☰ ↻</span><strong>Agent-Up</strong><span class=\"au-product-frame__actions\">− □ ×</span></div>\n        <div class=\"au-example__preview\">Real product surface, not a neon diagram.</div>\n      </div>"
+        },
+        {
+          "id": "proof",
+          "title": "Proof strip",
+          "note": "Three claims, one focal point. No ambient glow.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-proof",
+          "classes": [
+            "au-proof",
+            "au-eyebrow"
+          ],
+          "html": "<div class=\"au-proof\">\n        <div><p class=\"au-eyebrow\">One promise</p><h3>Parallel runtimes without collisions.</h3></div>\n        <div><p class=\"au-eyebrow\">One focal point</p><h3>Green identifies the active path.</h3></div>\n        <div><p class=\"au-eyebrow\">One truth</p><h3>Label lifecycle visibly.</h3></div>\n      </div>"
+        },
+        {
+          "id": "do-dont",
+          "title": "Do and don't",
+          "note": "Retired neon treatments are not available as marketing primitives.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-do-dont",
+          "classes": [
+            "au-do-dont",
+            "au-card",
+            "au-do-dont__label",
+            "au-do-dont__label--do",
+            "au-do-dont__label--dont"
+          ],
+          "html": "<div class=\"au-do-dont\">\n        <div class=\"au-card\"><div class=\"au-do-dont__label au-do-dont__label--do\">✓ Do</div><p>Use a real product crop and one meaningful green marker.</p></div>\n        <div class=\"au-card\"><div class=\"au-do-dont__label au-do-dont__label--dont\">× Don't</div><p>Do not outline every card, heading, and connector in luminous green.</p></div>\n      </div>"
+        }
+      ]
+    },
+    {
+      "id": "voice",
+      "title": "Voice",
+      "intro": "Product writing is direct and accountable. Lead with what a developer can do, then explain Server ownership.",
+      "components": [
+        {
+          "id": "voice-card",
+          "title": "Positioning",
+          "note": "Campaign taglines may vary, but they reconnect to the runtime control plane identity.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-card",
+          "classes": [
+            "au-card",
+            "au-eyebrow"
+          ],
+          "html": "<div class=\"au-card\"><p class=\"au-eyebrow\">Category</p><p>Local runtime control plane for AI-assisted development.</p></div>"
+        }
+      ]
+    },
+    {
+      "id": "brand",
+      "title": "Brand",
+      "intro": "The AU mark stays compact in product chrome. Pair it with the exact Agent-Up wordmark in authored marketing.",
+      "components": [
+        {
+          "id": "lockup",
+          "title": "Lockup",
+          "note": "Safe space is at least one internal stroke. No outer glow.",
+          "avalonia": "StackPanel",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-logo-lockup",
+          "classes": [
+            "au-logo-lockup"
+          ],
+          "html": "<div class=\"au-logo-lockup\"><span>AU</span><span>Agent-Up</span></div>"
+        }
+      ]
+    },
+    {
+      "id": "governance",
+      "title": "Governance",
+      "intro": "HTML and CSS are canonical. Generated Avalonia styles, React Native objects, and web CSS are checked for exact freshness.",
+      "components": [
+        {
+          "id": "contract",
+          "title": "Consumer contract",
+          "note": "Never edit dist/. Change src/, rebuild, and review Desktop, Mobile, docs, and marketing.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-code",
+          "classes": [
+            "au-code"
+          ],
+          "html": "<pre class=\"au-code\">@import '@agent-up/design-system/styles.css';\nimport { agentUpTheme } from '@agent-up/design-system/native';\n&lt;StyleInclude Source=\"/DesignSystem/AgentUpStyles.axaml\" /&gt;</pre>"
+        }
+      ]
+    }
+  ]
+}

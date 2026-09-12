@@ -13,6 +13,7 @@ Agent-Up is a workspace manager, not an application framework. The Server owns o
 
 - [Design Principles](./design-principles.md) defines the constraints that shape the implementation.
 - [Architecture](./architecture.md) explains the major components and ownership boundaries.
+- [AUDebug](./au-debug.md) hosts repo Desktop, Mobile, and docs for visual inspection.
 - [Server](./server.md) describes the single source of truth.
 - [MCP](./mcp.md) covers the automation interface.
 - [Event Recording](./event-recording.md) and [Playwright Generation](./playwright.md) describe validation and test generation.

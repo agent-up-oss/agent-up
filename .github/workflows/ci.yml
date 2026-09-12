@@ -268,6 +268,7 @@ jobs:
             AgentUp.Browser.Streaming.Tests \
             AgentUp.CommitPolicy.Tests \
             AgentUp.Desktop.Tests \
+            AgentUp.AUDebug.Tests \
             AgentUp.InstallerConfig.Tests \
             AgentUp.Server.Tests \
             AgentUp.Tray.Tests \
@@ -392,6 +393,17 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
           flags: agentup-desktop-tests
           name: AgentUp.Desktop.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.AUDebug.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_audebug_tests }}
+          flags: agentup-audebug-tests
+          name: AgentUp.AUDebug.Tests
           fail_ci_if_error: true
           disable_search: true
 

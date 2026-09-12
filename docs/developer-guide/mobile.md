@@ -6,7 +6,8 @@ title: Mobile development
 
 `AgentUp.Mobile/` is a single Expo and React Native TypeScript client for
 Android, iOS, and the installable web PWA. It lives at the repository root but
-is not part of `agent-up.sln`.
+is not part of `agent-up.sln`. Use [`au-debug`](au-debug.md) to host Mobile web
+next to Desktop and docs when comparing product UI.
 
 The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
@@ -39,9 +40,12 @@ Server's injected audit endpoint. Outside a managed launch, audit delivery
 falls back to the Server URL being tested;
 audit delivery must never replace the connection result shown to the user.
 
-Mobile surfaces follow the docs site's black, green, off-white, and muted
-gray-green visual system, including its compact 8px card and control radii.
-Root application surfaces remain black through device safe areas so
+Mobile surfaces consume the canonical `@agent-up/design-system` React Native
+binding generated from the shared HTML/CSS contract. Screens apply `auBox` and
+`auText` for catalog components (workspace rows, sign-in card, page title,
+field labels, buttons, inputs, tabs) instead of restating fill, radius, or
+green borders from color tokens. Connect uses the same centered sign-in card
+as Desktop. Root application surfaces remain black through device safe areas so
 iOS status-bar and Dynamic Island insets do not expose a different background.
 
 ## Project structure
@@ -125,7 +129,10 @@ Every public npm script except `build:cloudflare` enters the repository `shell.n
 shell is a development requirement and supplies Node.js and the native
 Linux libraries required by Expo's downloaded React Native DevTools binary on
 NixOS. It also fetches the DotSlash-managed binary when needed and patches its
-Electron executables to use the Nix dynamic linker.
+Electron executables to use the Nix dynamic linker. Start, Android, iOS, and web
+scripts invoke the Expo CLI from `AgentUp.Mobile/node_modules/.bin`, and TypeScript
+commands through `npx`, because `nix-shell` replaces `PATH` and a global `expo`
+or `tsc` command is not present.
 
 Start the web client, which is the default local development path on every
 supported desktop operating system:

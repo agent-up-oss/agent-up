@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveExpoCli } from './expo-cli.mjs';
 
 export const distDirectory = 'dist';
 
@@ -24,17 +24,10 @@ export function cleanDist(directory = distDirectory) {
   }
 }
 
-const executable = process.platform === 'win32' ? 'expo.cmd' : 'expo';
-const expo = join('node_modules', '.bin', executable);
-
 function runExport() {
-  if (!existsSync(expo)) {
-    throw new Error('Expo is not installed. Run npm ci before exporting the web build.');
-  }
-
   console.log('Exporting AgentUp.Mobile web build.');
   cleanDist();
-  const result = spawnSync(expo, ['export', '--platform', 'web'], {
+  const result = spawnSync(resolveExpoCli(), ['export', '--platform', 'web'], {
     stdio: 'inherit',
     env: webExportEnv(),
   });

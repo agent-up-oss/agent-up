@@ -70,11 +70,17 @@ AgentUp.Desktop/
 AgentUp.Mobile/
   package.json
 
+AgentUp.DesignSystem/
+  package.json
+
 AgentUp.WebAudit/
   package.json
 
 AgentUp.CLI/
   AgentUp.CLI.csproj
+
+AgentUp.AUDebug/
+  AgentUp.AUDebug.csproj
 
 AgentUp.CommitPolicy/
   AgentUp.CommitPolicy.csproj
@@ -118,6 +124,9 @@ AgentUp.Desktop.Tests/
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
 
+AgentUp.AUDebug.Tests/
+  AgentUp.AUDebug.Tests.csproj
+
 AgentUp.CommitPolicy.Tests/
   AgentUp.CommitPolicy.Tests.csproj
 
@@ -144,8 +153,10 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Claude` | First-party Claude ACP adapter, Claude Code CLI discovery, validation, and ACP launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
+| `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia resource and style bindings consumed by Agent-Up surfaces and external marketing repositories |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
+| `AgentUp.AUDebug` | Maintainer visual-debug CLI (`au-debug`) that hosts repo Desktop, Mobile, and docs together for screenshot and UI-flow inspection |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agentup verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -260,6 +271,14 @@ AgentUp.CLI/
       Models/
       Providers/
       Services/
+
+AgentUp.AUDebug/
+  Features/
+    Host/             (au-debug up/down/status, session, log mux, 30s readiness watchdog)
+    Desktop/          (desktop screenshot, login, start-workspace)
+    Mobile/           (mobile screenshot, login)
+    Docs/             (docs screenshot)
+    Test/             (scoped and full visual-iteration test runs)
 
 LocalInstaller.Core/
   Features/
@@ -482,6 +501,12 @@ The CLI is a thin developer convenience wrapper over Server capabilities.
 
 It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/cli.md`.
 
+## AUDebug
+
+`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Server, Desktop, Mobile web export, and docs site together so agents can screenshot and drive login/workspace flows without using a packaged install. It is not an orchestration owner and is not a packaged product.
+
+Full guide: `docs/developer-guide/au-debug.md`.
+
 ## Mobile
 
 The mobile client is a single Expo and React Native TypeScript project that targets Android, iOS, and an installable web PWA. It lives in `AgentUp.Mobile/` at the repository root and is not part of `agent-up.sln`.
@@ -605,6 +630,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Capabilities.Claude` | `AgentUp.Capabilities.Claude.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
+| `AgentUp.AUDebug` | `AgentUp.AUDebug.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
@@ -627,7 +653,7 @@ All architecture rules must pass. Fix any violation before considering the task 
 
 Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:web` from that directory. Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
-Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
+Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
 Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest and install icons under `public/` synchronized with the exported PWA.
 
@@ -937,6 +963,10 @@ The CLI is a convenience client for humans. It forwards commands to the Server a
 
 Read: `docs/user-docs/cli.md`.
 
+## AUDebug
+
+`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Read: `docs/developer-guide/au-debug.md`.
+
 ## MCP
 
 The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources, orchestration tools, and live workspace console snapshots; Browser MCP at `/mcp/browser` for browser automation; Audit MCP at `/mcp/audit` for durable action history and artifacts; and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
@@ -1097,6 +1127,26 @@ Read: `docs/developer-guide/packaging.md`.
 ## Design Principles
 
 Agent-Up must remain framework agnostic, cross-platform, declarative, and zero-touch for application source code.
+
+`AgentUp.DesignSystem/` is the single source of truth for all Agent-Up product UI,
+documentation, screenshots, illustrations, and marketing presentation. Its
+canonical sources are HTML/CSS plus the structured brand voice contract; its
+generated React Native objects and Avalonia resources **and styles** are hard
+dependencies of Mobile and Desktop. Mobile applies compiled component styles
+(`auBox` / `auText`); Desktop applies generated Avalonia styles through catalog
+classes. Never add a raw product color to Desktop, Mobile, docs, or marketing
+when a semantic design-system role exists. Never restyle a catalog control from
+tokens when a component style already exists. Never edit
+generated files under `AgentUp.DesignSystem/dist/`; change the canonical CSS or
+HTML catalog and regenerate them.
+
+Desktop is the reference rendering. Use black canvas, raised gray surfaces so cards and fields read as containers, neutral structural borders, off-white hierarchy, and green only for action, selected workspace fill, progress, or healthy state. Product screens use page-title and field-label, not marketing display type. Selected cards tint; they do not outline in green. Ambient neon glow, decorative green grids, and green outlines around every
+surface are retired. Public claims must follow the naming, positioning, and
+`Available`/`Preview`/`Experimental`/`Planned` lifecycle language in
+`AgentUp.DesignSystem/brand/voice.json`. Real current product screenshots are
+preferred over reconstructed interfaces; planned UI must be labeled visibly.
+
+Read: `docs/developer-guide/design-system.md`.
 
 Read: `docs/developer-guide/design-principles.md`.
 

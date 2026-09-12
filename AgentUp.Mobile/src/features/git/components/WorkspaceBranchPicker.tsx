@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitHeadState } from '../models/GitChanges';
 import { getHeadState, switchBranch } from '../providers/GitApiProvider';
@@ -106,7 +107,7 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
             value={name}
             onChangeText={setName}
             placeholder="new-branch"
-            placeholderTextColor="#718077"
+            placeholderTextColor={agentUpTheme.colors.textFaint}
             style={styles.input}
           />
           <Pressable
@@ -135,35 +136,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#287038',
-    borderRadius: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#050505',
+    ...auBox('input'),
   },
-  branch: { flex: 1, color: '#2bf27a', fontWeight: '700' },
-  chevron: { color: '#789085' },
+  branch: { flex: 1, ...auText('workspaceName') },
+  chevron: auText('muted'),
   plus: {
+    ...auBox('workspaceAdd'),
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#287038',
   },
-  plusText: { color: '#2bf27a', fontSize: 20, fontWeight: '700', lineHeight: 22 },
-  menu: { borderWidth: 1, borderColor: '#287038', borderRadius: 8, backgroundColor: '#050505', overflow: 'hidden' },
+  plusText: { ...auText('accent'), fontSize: 20, fontWeight: '700', lineHeight: 22 },
+  menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 0 },
   option: { paddingHorizontal: 12, paddingVertical: 10 },
-  optionActive: { backgroundColor: '#08150d' },
-  optionText: { color: '#aebcb3' },
-  optionTextActive: { color: '#2bf27a', fontWeight: '700' },
+  optionActive: auBox('cardSelected'),
+  optionText: auText('muted'),
+  optionTextActive: auText('workspaceName'),
   create: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, minHeight: 40, borderRadius: 8, borderWidth: 1, borderColor: '#287038', paddingHorizontal: 10, color: '#f5fbf7' },
-  createButton: { minHeight: 40, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#00d66b' },
-  createButtonText: { color: '#000000', fontWeight: '800' },
+  input: { flex: 1, ...auBox('input'), ...auText('input') },
+  createButton: { ...auBox('button', 'buttonCompact'), alignItems: 'center', justifyContent: 'center' },
+  createButtonText: auText('button', 'buttonCompact'),
   cancel: { minHeight: 40, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: '#aebcb3', fontWeight: '700' },
+  cancelText: auText('buttonSecondary', 'buttonCompact'),
   disabled: { opacity: 0.38 },
-  error: { color: '#d84f4f', lineHeight: 21 },
+  error: { ...auText('badgeDanger'), lineHeight: 21 },
 });

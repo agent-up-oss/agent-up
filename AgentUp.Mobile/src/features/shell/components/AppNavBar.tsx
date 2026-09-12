@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppShell } from '../controllers/AppShellContext';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function AppNavBar() {
   const insets = useSafeAreaInsets();
@@ -14,9 +15,7 @@ export function AppNavBar() {
         accessibilityLabel="Open sidebar"
         onPress={openSidebar}
         style={styles.stackButton}>
-        <Text style={styles.stackIcon}>▰</Text>
-        <Text style={styles.stackIcon}>▰</Text>
-        <Text style={styles.stackIcon}>▰</Text>
+        <Text style={styles.stackIcon}>☰</Text>
       </Pressable>
       <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{config.title}</Text>
       {rightAction
@@ -34,43 +33,27 @@ export function AppNavBar() {
 
 const styles = StyleSheet.create({
   bar: {
+    ...auBox('mobileBar'),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#287038',
-    backgroundColor: '#000000',
+    gap: agentUpTheme.spacing[3],
   },
   stackButton: {
-    width: 42,
-    height: 42,
+    ...auBox('titleTool'),
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#050505',
   },
-  stackIcon: { color: '#2bf27a', fontSize: 10, lineHeight: 8 },
+  stackIcon: { ...auText('chromeIcon'), fontSize: 16, lineHeight: 18 },
   title: {
+    ...auText('pageTitle'),
+    fontSize: agentUpTheme.typography.sizeMd,
     flex: 1,
-    color: '#f5fbf7',
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: '800',
   },
   rightButton: {
-    minHeight: 36,
-    paddingHorizontal: 12,
+    ...auBox('button', 'buttonSecondary', 'buttonCompact'),
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#050505',
   },
-  rightButtonText: { color: '#2bf27a', fontWeight: '700', fontSize: 13 },
-  rightSpacer: { width: 42 },
+  rightButtonText: { ...auText('buttonSecondary', 'buttonCompact') },
+  rightSpacer: { width: agentUpTheme.controls.heightTouch },
 });

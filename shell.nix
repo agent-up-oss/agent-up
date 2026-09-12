@@ -108,6 +108,14 @@ pkgs.mkShell {
       pkgs.systemd
     ]}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+    # nix-shell replaces PATH, so the npm script's node_modules/.bin is lost.
+    # Keep the local Expo CLI visible for Expo and Metro commands.
+    for bin in "$PWD/node_modules/.bin" "$PWD/AgentUp.Mobile/node_modules/.bin"; do
+      if [ -d "$bin" ]; then
+        export PATH="$bin:$PATH"
+      fi
+    done
+
     # DotSlash downloads React Native DevTools after npm install. Patch its
     # Electron executables in the user cache so they use the Nix linker.
     for mobileRoot in "$PWD" "$PWD/AgentUp.Mobile"; do

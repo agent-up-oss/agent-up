@@ -1,15 +1,16 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.card}>
+        <Text style={styles.eyebrow}>Agent-Up</Text>
         <Text accessibilityRole="header" style={styles.title}>
-          Agent-Up
+          Your development workspaces
         </Text>
-        <Text style={styles.subtitle}>Your development workspaces, wherever you are.</Text>
         <Text style={styles.detail}>
           Expo client ready for Android, iOS, and the installable web app.
         </Text>
@@ -24,32 +25,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#000000',
+    padding: agentUpTheme.spacing[6],
+    backgroundColor: agentUpTheme.colors.canvas,
   },
   card: {
+    ...auBox('signIn'),
     width: '100%',
-    maxWidth: 560,
-    gap: 12,
-    padding: 32,
-    borderWidth: 1,
-    borderColor: '#287038',
-    borderRadius: 8,
-    backgroundColor: '#050505',
+    maxWidth: 416,
+    gap: agentUpTheme.spacing[3],
   },
-  title: {
-    color: '#f5fbf7',
-    fontSize: 36,
-    fontWeight: '700',
-  },
-  subtitle: {
-    color: '#f5fbf7',
-    fontSize: 20,
-    lineHeight: 28,
-  },
-  detail: {
-    color: '#aebcb3',
-    fontSize: 15,
-    lineHeight: 22,
-  },
+  eyebrow: auText('eyebrow'),
+  title: auText('pageTitle'),
+  detail: auText('muted'),
 });

@@ -3,6 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function WorkspaceEmptyScreen() {
   const { server, loading, error, refresh, clone } = useWorkspaces();
@@ -42,15 +43,18 @@ export function WorkspaceEmptyScreen() {
   return (
     <>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.subtitle}>
-          {server ? `Connected to ${server.url}` : 'Connect to a server to manage workspaces.'}
-        </Text>
-        {loading && <ActivityIndicator color="#00d66b" />}
-        {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-        <Text style={styles.empty}>No workspaces on this server yet. Clone a repository to get started.</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Reload workspaces" onPress={() => void refresh()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Reload</Text>
-        </Pressable>
+        <View style={styles.card}>
+          <Text accessibilityRole="header" style={styles.title}>No workspaces</Text>
+          <Text style={styles.empty}>Clone a repository with Add to get started.</Text>
+          <Text style={styles.subtitle}>
+            {server ? `Connected to ${server.url}` : 'Connect to a server to manage workspaces.'}
+          </Text>
+          {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
+          {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+          <Pressable accessibilityRole="button" accessibilityLabel="Reload workspaces" onPress={() => void refresh()} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Reload</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
@@ -62,11 +66,11 @@ export function WorkspaceEmptyScreen() {
             </Text>
             <Text style={styles.label}>Repository</Text>
             <TextInput accessibilityLabel="Repository" autoCapitalize="none" autoCorrect={false}
-              placeholder="https://github.com/acme/widgets.git" placeholderTextColor="#718077"
+              placeholder="https://github.com/acme/widgets.git" placeholderTextColor={agentUpTheme.colors.textFaint}
               value={repository} onChangeText={setRepository} editable={!cloning} style={styles.input} />
             <Text style={styles.label}>Branch</Text>
             <TextInput accessibilityLabel="Branch" autoCapitalize="none" autoCorrect={false}
-              placeholder="main" placeholderTextColor="#718077"
+              placeholder="main" placeholderTextColor={agentUpTheme.colors.textFaint}
               value={branch} onChangeText={setBranch} editable={!cloning} style={styles.input} />
             {!!cloneError && <Text accessibilityRole="alert" style={styles.error}>{cloneError}</Text>}
             <View style={styles.dialogActions}>
@@ -76,7 +80,7 @@ export function WorkspaceEmptyScreen() {
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Clone" disabled={!canConfirm}
                 onPress={() => void confirmClone()} style={[styles.button, !canConfirm && styles.disabled]}>
-                {cloning ? <ActivityIndicator color="#000000" /> : <Text style={styles.buttonText}>Clone</Text>}
+                {cloning ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Clone</Text>}
               </Pressable>
             </View>
           </View>
@@ -87,20 +91,29 @@ export function WorkspaceEmptyScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 32, gap: 14 },
-  subtitle: { color: '#aebcb3', fontSize: 14 },
-  empty: { color: '#aebcb3', lineHeight: 22 },
-  error: { color: '#d84f4f', lineHeight: 21 },
-  label: { color: '#f5fbf7', fontWeight: '700' },
-  input: { minHeight: 48, borderRadius: 8, borderWidth: 1, borderColor: '#287038', paddingHorizontal: 14, color: '#f5fbf7', backgroundColor: '#080808' },
-  button: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#00d66b' },
-  buttonText: { color: '#000000', fontWeight: '800' },
-  secondaryButton: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
-  secondaryButtonText: { color: '#f5fbf7', fontWeight: '700' },
-  disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.72)' },
-  dialog: { width: '100%', maxWidth: 480, padding: 20, borderRadius: 10, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 10 },
-  dialogTitle: { color: '#f5fbf7', fontSize: 22, fontWeight: '800' },
-  dialogDetail: { color: '#aebcb3', lineHeight: 21 },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: agentUpTheme.spacing[6],
+    paddingBottom: agentUpTheme.spacing[8],
+    gap: 14,
+  },
+  card: { ...auBox('signIn'), width: '100%', maxWidth: 416, gap: agentUpTheme.spacing[3] },
+  title: auText('pageTitle'),
+  subtitle: auText('muted'),
+  empty: auText('muted'),
+  error: auText('badgeDanger'),
+  label: auText('fieldLabel'),
+  input: { ...auBox('input'), ...auText('input') },
+  button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
+  buttonText: auText('button'),
+  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  secondaryButtonText: auText('buttonSecondary'),
+  disabled: auBox('buttonDisabled'),
+  modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
+  dialog: { ...auBox('card'), width: '100%', maxWidth: 480, gap: 10 },
+  dialogTitle: auText('pageTitle'),
+  dialogDetail: auText('muted'),
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
 });

@@ -1,0 +1,120 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Generated from src/agent-up.css by scripts/build.mjs. Do not edit. -->
+  <Color x:Key="AgentUpColorCanvas">#000000</Color>
+  <SolidColorBrush x:Key="AgentUpColorCanvasBrush" Color="{StaticResource AgentUpColorCanvas}"/>
+  <Color x:Key="AgentUpColorSurface">#121212</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceBrush" Color="{StaticResource AgentUpColorSurface}"/>
+  <Color x:Key="AgentUpColorSurfaceRaised">#1c1c1c</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceRaisedBrush" Color="{StaticResource AgentUpColorSurfaceRaised}"/>
+  <Color x:Key="AgentUpColorSurfaceHover">#252525</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceHoverBrush" Color="{StaticResource AgentUpColorSurfaceHover}"/>
+  <Color x:Key="AgentUpColorSurfaceSelected">#0d4f32</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedBrush" Color="{StaticResource AgentUpColorSurfaceSelected}"/>
+  <Color x:Key="AgentUpColorSurfaceSelectedStrong">#0f7a45</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedStrongBrush" Color="{StaticResource AgentUpColorSurfaceSelectedStrong}"/>
+  <Color x:Key="AgentUpColorSurfaceSelectedSoft">#102418</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedSoftBrush" Color="{StaticResource AgentUpColorSurfaceSelectedSoft}"/>
+  <Color x:Key="AgentUpColorSurfaceInput">#161616</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceInputBrush" Color="{StaticResource AgentUpColorSurfaceInput}"/>
+  <Color x:Key="AgentUpColorSurfaceDanger">#140f0f</Color>
+  <SolidColorBrush x:Key="AgentUpColorSurfaceDangerBrush" Color="{StaticResource AgentUpColorSurfaceDanger}"/>
+  <Color x:Key="AgentUpColorBorderSubtle">#2b2b2b</Color>
+  <SolidColorBrush x:Key="AgentUpColorBorderSubtleBrush" Color="{StaticResource AgentUpColorBorderSubtle}"/>
+  <Color x:Key="AgentUpColorBorderStrong">#3c3c3c</Color>
+  <SolidColorBrush x:Key="AgentUpColorBorderStrongBrush" Color="{StaticResource AgentUpColorBorderStrong}"/>
+  <Color x:Key="AgentUpColorBorderSelected">#287038</Color>
+  <SolidColorBrush x:Key="AgentUpColorBorderSelectedBrush" Color="{StaticResource AgentUpColorBorderSelected}"/>
+  <Color x:Key="AgentUpColorBorderDanger">#552d2d</Color>
+  <SolidColorBrush x:Key="AgentUpColorBorderDangerBrush" Color="{StaticResource AgentUpColorBorderDanger}"/>
+  <Color x:Key="AgentUpColorTextPrimary">#f5fbf7</Color>
+  <SolidColorBrush x:Key="AgentUpColorTextPrimaryBrush" Color="{StaticResource AgentUpColorTextPrimary}"/>
+  <Color x:Key="AgentUpColorTextSecondary">#c2d2ca</Color>
+  <SolidColorBrush x:Key="AgentUpColorTextSecondaryBrush" Color="{StaticResource AgentUpColorTextSecondary}"/>
+  <Color x:Key="AgentUpColorTextMuted">#8a9a92</Color>
+  <SolidColorBrush x:Key="AgentUpColorTextMutedBrush" Color="{StaticResource AgentUpColorTextMuted}"/>
+  <Color x:Key="AgentUpColorTextFaint">#718077</Color>
+  <SolidColorBrush x:Key="AgentUpColorTextFaintBrush" Color="{StaticResource AgentUpColorTextFaint}"/>
+  <Color x:Key="AgentUpColorTextDanger">#e48989</Color>
+  <SolidColorBrush x:Key="AgentUpColorTextDangerBrush" Color="{StaticResource AgentUpColorTextDanger}"/>
+  <Color x:Key="AgentUpColorTextWarning">#ffd66b</Color>
+  <SolidColorBrush x:Key="AgentUpColorTextWarningBrush" Color="{StaticResource AgentUpColorTextWarning}"/>
+  <Color x:Key="AgentUpColorTextInfo">#8bb7ff</Color>
+  <SolidColorBrush x:Key="AgentUpColorTextInfoBrush" Color="{StaticResource AgentUpColorTextInfo}"/>
+  <Color x:Key="AgentUpColorAccent">#00b850</Color>
+  <SolidColorBrush x:Key="AgentUpColorAccentBrush" Color="{StaticResource AgentUpColorAccent}"/>
+  <Color x:Key="AgentUpColorAccentBright">#00d66b</Color>
+  <SolidColorBrush x:Key="AgentUpColorAccentBrightBrush" Color="{StaticResource AgentUpColorAccentBright}"/>
+  <Color x:Key="AgentUpColorAccentSoft">#2bf27a</Color>
+  <SolidColorBrush x:Key="AgentUpColorAccentSoftBrush" Color="{StaticResource AgentUpColorAccentSoft}"/>
+  <Color x:Key="AgentUpColorAccentHover">#13a35d</Color>
+  <SolidColorBrush x:Key="AgentUpColorAccentHoverBrush" Color="{StaticResource AgentUpColorAccentHover}"/>
+  <Color x:Key="AgentUpColorStatusHealthy">#22c55e</Color>
+  <SolidColorBrush x:Key="AgentUpColorStatusHealthyBrush" Color="{StaticResource AgentUpColorStatusHealthy}"/>
+  <Color x:Key="AgentUpColorStatusInfo">#4fa3d8</Color>
+  <SolidColorBrush x:Key="AgentUpColorStatusInfoBrush" Color="{StaticResource AgentUpColorStatusInfo}"/>
+  <Color x:Key="AgentUpColorStatusWarning">#e0a128</Color>
+  <SolidColorBrush x:Key="AgentUpColorStatusWarningBrush" Color="{StaticResource AgentUpColorStatusWarning}"/>
+  <Color x:Key="AgentUpColorStatusDanger">#d84f4f</Color>
+  <SolidColorBrush x:Key="AgentUpColorStatusDangerBrush" Color="{StaticResource AgentUpColorStatusDanger}"/>
+  <Color x:Key="AgentUpColorFocus">#00a8e8</Color>
+  <SolidColorBrush x:Key="AgentUpColorFocusBrush" Color="{StaticResource AgentUpColorFocus}"/>
+  <Color x:Key="AgentUpColorOnAccent">#000000</Color>
+  <SolidColorBrush x:Key="AgentUpColorOnAccentBrush" Color="{StaticResource AgentUpColorOnAccent}"/>
+  <Color x:Key="AgentUpColorScrim">#B8000000</Color>
+  <SolidColorBrush x:Key="AgentUpColorScrimBrush" Color="{StaticResource AgentUpColorScrim}"/>
+  <Color x:Key="AgentUpColorOverlay">#6607110f</Color>
+  <SolidColorBrush x:Key="AgentUpColorOverlayBrush" Color="{StaticResource AgentUpColorOverlay}"/>
+  <Color x:Key="AgentUpColorTransparent">#00000000</Color>
+  <SolidColorBrush x:Key="AgentUpColorTransparentBrush" Color="{StaticResource AgentUpColorTransparent}"/>
+  <FontFamily x:Key="AgentUpFontSans">Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif</FontFamily>
+  <FontFamily x:Key="AgentUpFontMono">JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace</FontFamily>
+  <x:Double x:Key="AgentUpFontSizeXs">12</x:Double>
+  <x:Double x:Key="AgentUpFontSizeSm">14</x:Double>
+  <x:Double x:Key="AgentUpFontSizeMd">16</x:Double>
+  <x:Double x:Key="AgentUpFontSizeLg">20</x:Double>
+  <x:Double x:Key="AgentUpFontSizeXl">28</x:Double>
+  <x:Double x:Key="AgentUpFontSizeDisplay">44</x:Double>
+  <x:Double x:Key="AgentUpLineTight">1.08</x:Double>
+  <x:Double x:Key="AgentUpLineNormal">1.5</x:Double>
+  <x:Double x:Key="AgentUpLineRelaxed">1.7</x:Double>
+  <FontWeight x:Key="AgentUpWeightRegular">Regular</FontWeight>
+  <FontWeight x:Key="AgentUpWeightMedium">Medium</FontWeight>
+  <FontWeight x:Key="AgentUpWeightSemibold">SemiBold</FontWeight>
+  <FontWeight x:Key="AgentUpWeightBold">Bold</FontWeight>
+  <FontWeight x:Key="AgentUpWeightBlack">ExtraBold</FontWeight>
+  <x:Double x:Key="AgentUpSpace1">4</x:Double>
+  <Thickness x:Key="AgentUpThickness1">4</Thickness>
+  <x:Double x:Key="AgentUpSpace2">8</x:Double>
+  <Thickness x:Key="AgentUpThickness2">8</Thickness>
+  <x:Double x:Key="AgentUpSpace3">12</x:Double>
+  <Thickness x:Key="AgentUpThickness3">12</Thickness>
+  <x:Double x:Key="AgentUpSpace4">16</x:Double>
+  <Thickness x:Key="AgentUpThickness4">16</Thickness>
+  <x:Double x:Key="AgentUpSpace5">20</x:Double>
+  <Thickness x:Key="AgentUpThickness5">20</Thickness>
+  <x:Double x:Key="AgentUpSpace6">24</x:Double>
+  <Thickness x:Key="AgentUpThickness6">24</Thickness>
+  <x:Double x:Key="AgentUpSpace8">32</x:Double>
+  <Thickness x:Key="AgentUpThickness8">32</Thickness>
+  <x:Double x:Key="AgentUpSpace10">40</x:Double>
+  <Thickness x:Key="AgentUpThickness10">40</Thickness>
+  <x:Double x:Key="AgentUpSpace12">48</x:Double>
+  <Thickness x:Key="AgentUpThickness12">48</Thickness>
+  <x:Double x:Key="AgentUpSpace16">64</x:Double>
+  <Thickness x:Key="AgentUpThickness16">64</Thickness>
+  <x:Double x:Key="AgentUpRadiusXs">4</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusXs">4</CornerRadius>
+  <x:Double x:Key="AgentUpRadiusSm">6</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusSm">6</CornerRadius>
+  <x:Double x:Key="AgentUpRadiusMd">8</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusMd">8</CornerRadius>
+  <x:Double x:Key="AgentUpRadiusLg">10</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusLg">10</CornerRadius>
+  <x:Double x:Key="AgentUpRadiusXl">12</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusXl">12</CornerRadius>
+  <x:Double x:Key="AgentUpStroke">1</x:Double>
+  <x:Double x:Key="AgentUpStrokeStrong">2</x:Double>
+  <x:Double x:Key="AgentUpControlHeightCompact">32</x:Double>
+  <x:Double x:Key="AgentUpControlHeight">44</x:Double>
+  <x:Double x:Key="AgentUpControlHeightTouch">44</x:Double>
+</ResourceDictionary>

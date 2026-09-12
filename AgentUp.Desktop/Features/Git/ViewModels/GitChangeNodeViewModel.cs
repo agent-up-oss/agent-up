@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Shared.Models;
 using System.Reactive;
 using Avalonia;
 using ReactiveUI;
@@ -21,8 +22,8 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
     public bool IsFile => !IsDirectory;
     public Thickness Indent => new(Depth * IndentPerLevel, 0, 0, 0);
     public string Glyph => IsDirectory ? "▸" : StatusGlyph(Status);
-    public string GlyphColor => IsDirectory ? "#789085" : StatusColor(Status);
-    public string NameColor => IsDirectory ? "#9fb2a8" : "#f5fbf7";
+    public string GlyphColor => IsDirectory ? AgentUpThemeColors.TextMuted : StatusColor(Status);
+    public string NameColor => IsDirectory ? AgentUpThemeColors.TextMuted : AgentUpThemeColors.TextPrimary;
     public string ToolTip => IsDirectory ? Path : $"{Path} — {Status}";
 
     public bool IsSelected
@@ -83,10 +84,10 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
 
     private static string StatusColor(string status) => status switch
     {
-        "Added" or "Untracked" => "#2bf27a",
-        "Deleted" => "#d84f4f",
-        "Renamed" => "#4fa3d8",
-        "Conflicted" => "#e0a33c",
-        _ => "#c6ddd2"
+        "Added" or "Untracked" => AgentUpThemeColors.AccentSoft,
+        "Deleted" => AgentUpThemeColors.StatusDanger,
+        "Renamed" => AgentUpThemeColors.StatusInfo,
+        "Conflicted" => AgentUpThemeColors.StatusWarning,
+        _ => AgentUpThemeColors.TextSecondary
     };
 }

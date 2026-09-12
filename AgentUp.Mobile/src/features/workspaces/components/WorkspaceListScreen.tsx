@@ -3,6 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function WorkspaceListScreen() {
   const { server, workspaces, selectedWorkspace, loading, error, selectWorkspace, refresh, clone } = useWorkspaces();
@@ -33,7 +34,7 @@ export function WorkspaceListScreen() {
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.headerRow}>
         <Text accessibilityRole="header" style={styles.title}>Workspaces</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Add workspace" onPress={openDialog} style={styles.addButton}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Add workspace" onPress={openDialog} style={styles.addButton} hitSlop={12}>
           <Text style={styles.addIcon}>+</Text>
         </Pressable>
       </View>
@@ -41,7 +42,7 @@ export function WorkspaceListScreen() {
         {server ? `Connected to ${server.url}` : 'No server selected. Add one on the Servers tab.'}
       </Text>
 
-      {loading && <ActivityIndicator color="#00d66b" />}
+      {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
       {workspaces.map(workspace => {
@@ -50,13 +51,12 @@ export function WorkspaceListScreen() {
           accessibilityState={{ selected: isSelected }}
           accessibilityLabel={`Select workspace ${workspace.displayName}`}
           onPress={() => selectWorkspace(workspace.id)}
-          style={[styles.card, isSelected && styles.selectedCard]}>
+          style={[styles.row, isSelected && styles.selectedRow]}>
+          <View style={stateDot(workspace.state)} />
           <View style={styles.cardHeader}>
-            <View style={[styles.stateDot, { backgroundColor: stateColor(workspace.state) }]} />
             <Text numberOfLines={1} style={styles.cardTitle}>{workspace.displayName}</Text>
+            <Text numberOfLines={1} style={styles.cardBranch}>{workspace.branch}</Text>
           </View>
-          <Text numberOfLines={1} style={styles.cardBranch}>{workspace.branch}</Text>
-          <Text numberOfLines={1} style={styles.cardPath}>{workspace.worktreePath}</Text>
         </Pressable>;
       })}
 
@@ -78,12 +78,12 @@ export function WorkspaceListScreen() {
 
           <Text style={styles.label}>Repository</Text>
           <TextInput accessibilityLabel="Repository" autoCapitalize="none" autoCorrect={false}
-            placeholder="https://github.com/acme/widgets.git" placeholderTextColor="#718077"
+            placeholder="https://github.com/acme/widgets.git" placeholderTextColor={agentUpTheme.colors.textFaint}
             value={repository} onChangeText={setRepository} editable={!cloning} style={styles.input} />
 
           <Text style={styles.label}>Branch</Text>
           <TextInput accessibilityLabel="Branch" autoCapitalize="none" autoCorrect={false}
-            placeholder="main" placeholderTextColor="#718077"
+            placeholder="main" placeholderTextColor={agentUpTheme.colors.textFaint}
             value={branch} onChangeText={setBranch} editable={!cloning} style={styles.input} />
 
           {!!cloneError && <Text accessibilityRole="alert" style={styles.error}>{cloneError}</Text>}
@@ -95,7 +95,7 @@ export function WorkspaceListScreen() {
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Clone" disabled={!canConfirm}
               onPress={() => void confirmClone()} style={[styles.button, !canConfirm && styles.disabled]}>
-              {cloning ? <ActivityIndicator color="#000000" /> : <Text style={styles.buttonText}>Clone</Text>}
+              {cloning ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Clone</Text>}
             </Pressable>
           </View>
         </View>
@@ -104,40 +104,38 @@ export function WorkspaceListScreen() {
   </SafeAreaView>;
 }
 
-function stateColor(state: string): string {
-  if (state === 'Running') return '#00d66b';
-  if (state === 'Starting' || state === 'Stopping') return '#e0a33c';
-  if (state === 'Failed') return '#d84f4f';
-  return '#718077';
+function stateDot(state: string) {
+  if (state === 'Running') return auBox('statusDot', 'statusDotHealthy');
+  if (state === 'Starting' || state === 'Stopping') return auBox('statusDot', 'statusDotWarning');
+  if (state === 'Failed') return auBox('statusDot', 'statusDotDanger');
+  return auBox('statusDot');
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000000' },
-  content: { padding: 20, paddingTop: 78, paddingBottom: 32, gap: 14 },
+  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: agentUpTheme.spacing[3] },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: '#f5fbf7', fontSize: 32, lineHeight: 36, fontWeight: '800' },
-  addButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
-  addIcon: { color: '#2bf27a', fontSize: 26, lineHeight: 30, fontWeight: '800' },
-  subtitle: { color: '#aebcb3', fontSize: 14 },
-  card: { padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 5 },
-  selectedCard: { borderColor: '#2bf27a', backgroundColor: '#08150d' },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stateDot: { width: 8, height: 8, borderRadius: 4 },
-  cardTitle: { color: '#f5fbf7', fontSize: 17, fontWeight: '700', flexShrink: 1 },
-  cardBranch: { color: '#9fb2a8', fontSize: 13 },
-  cardPath: { color: '#718077', fontSize: 11 },
-  empty: { color: '#aebcb3', lineHeight: 21 },
-  error: { color: '#d84f4f', lineHeight: 21 },
-  label: { color: '#f5fbf7', fontWeight: '700' },
-  input: { minHeight: 48, borderRadius: 8, borderWidth: 1, borderColor: '#287038', paddingHorizontal: 14, color: '#f5fbf7', backgroundColor: '#080808' },
-  button: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#00d66b' },
-  buttonText: { color: '#000000', fontWeight: '800' },
-  secondaryButton: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
-  secondaryButtonText: { color: '#f5fbf7', fontWeight: '700' },
-  disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.72)' },
-  dialog: { width: '100%', maxWidth: 480, padding: 20, borderRadius: 10, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 10 },
-  dialogTitle: { color: '#f5fbf7', fontSize: 22, fontWeight: '800' },
-  dialogDetail: { color: '#aebcb3', lineHeight: 21 },
+  title: auText('pageTitle'),
+  addButton: { ...auBox('workspaceAdd'), alignItems: 'center', justifyContent: 'center' },
+  addIcon: auText('workspaceAdd'),
+  subtitle: auText('muted'),
+  row: { ...auBox('workspace'), flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[3] },
+  selectedRow: auBox('workspaceSelected'),
+  cardHeader: { flex: 1, gap: 2 },
+  cardTitle: auText('workspaceName'),
+  cardBranch: auText('workspaceBranch'),
+  empty: auText('muted'),
+  error: auText('badgeDanger'),
+  label: auText('fieldLabel'),
+  input: { ...auBox('input'), ...auText('input') },
+  button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
+  buttonText: auText('button'),
+  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: auText('buttonSecondary'),
+  disabled: auBox('buttonDisabled'),
+  modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
+  dialog: { ...auBox('card'), width: '100%', maxWidth: 480, gap: agentUpTheme.spacing[3] },
+  dialogTitle: auText('pageTitle'),
+  dialogDetail: auText('muted'),
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
 });

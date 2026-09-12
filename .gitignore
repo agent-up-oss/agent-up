@@ -17,3 +17,4 @@ TestResults/
 tmp/
 .agent-up-dev/
 *.tgz
+**/TestResults/**

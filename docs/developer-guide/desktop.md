@@ -6,6 +6,8 @@ title: Desktop
 
 `AgentUp.Desktop` is the human UI for Agent-Up.
 
+For visual comparison against Mobile and the docs design-system page during UI work, use [`au-debug`](au-debug.md) rather than a packaged Desktop install.
+
 Technology:
 
 - .NET 10
@@ -99,7 +101,16 @@ Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1` so onboarding d
 
 ## Browser Experience
 
-The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome with no outer frame border, subtle internal dividers where needed, green/teal active states and indicators, rounded workspace entries, and a browser-first runtime surface.
+Desktop is the reference rendering for the shared
+[`@agent-up/design-system`](./design-system.md): compact dark chrome with no outer
+frame border, neutral internal dividers, semantic green active states and health
+indicators, rounded workspace entries, and a browser-first runtime surface. Desktop
+applies generated Avalonia styles inferred from the HTML/CSS catalog rather than
+restating that structure as a second theme. `MainWindow` may keep Fluent
+ControlTemplates, caret/selection brushes, and optical glyph margins that CSS
+cannot express. Catalog classes such as `wsEntry` and `appTab` get their fill,
+radius, and hover/selected treatment from `AgentUpStyles.axaml`. The docs marketing page and Mobile
+client consume the same canonical HTML/CSS contract and generated bindings.
 
 The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the reload control and is green when the Desktop can reach the Server and red when it cannot.
 
@@ -180,6 +191,7 @@ registers no chrome items.
 
 Desktop queries `/api/auth/status` before loading workspace state. When the
 Server requires authentication it shows an in-window administrator sign-in page
-that gates the main UI and uses the returned bearer token for REST and
+that uses the catalog sign-in card, page title, and field label, then gates the
+main UI and uses the returned bearer token for REST and
 workspace-event requests. When the Server has authentication disabled, Desktop
 opens the main window directly.
