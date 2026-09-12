@@ -93,6 +93,13 @@ stopped accepting. The Git screen guards its change-tree and file-diff loads the
 same way through `createRequestGate`, keeping each independent so opening a file
 does not discard the tree that is still loading.
 
+Production web exports forward `SENTRY_DSN_MOBILE` as `EXPO_PUBLIC_SENTRY_DSN`.
+Set that variable on the Cloudflare Pages project under
+**Workers & Pages → project → Settings → Environment variables** for
+Production (and Preview if preview deploys should report). Trigger a new
+deployment after adding it. The root layout initializes Sentry only when that
+value is set. See [Product telemetry](./telemetry.md).
+
 ## Local development
 
 Install dependencies with the repository Nix shell so the expected Node.js
@@ -170,7 +177,8 @@ Cloudflare Pages must use `AgentUp.Mobile/` as its root directory, run
 the sole public mobile npm script that does not enter `shell.nix`, because the
 Cloudflare build image supplies Node.js but does not supply Nix. The export
 entrypoint passes Agent-Up audit environment variables into the Metro bundle
-when present.
+when present. Add `SENTRY_DSN_MOBILE` under
+**Settings → Environment variables** so production exports initialize Sentry.
 
 `npm run serve:web` serves `dist/` for Agent-Up workspaces with
 `Cache-Control: no-store` so local rebuilds are visible without clearing site

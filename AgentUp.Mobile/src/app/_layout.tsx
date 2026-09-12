@@ -1,9 +1,16 @@
 import { Stack } from 'expo-router';
+import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ServersProvider } from '@/features/servers/controllers/ServersContext';
 import { WorkspacesProvider } from '@/features/workspaces/controllers/WorkspacesContext';
+import { initializeSentry } from '@/features/telemetry/providers/SentryTelemetryInit';
+
+initializeSentry({
+  appVersion: Constants.expoConfig?.version,
+  platform: Platform.OS,
+});
 
 export default function RootLayout() {
   return (

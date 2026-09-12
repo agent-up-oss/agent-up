@@ -17,3 +17,4 @@ Agent-Up is a workspace manager, not an application framework. The Server owns o
 - [MCP](./mcp.md) covers the automation interface.
 - [Event Recording](./event-recording.md) and [Playwright Generation](./playwright.md) describe validation and test generation.
 - [CI Configuration](./ci-configuration.md) documents repository secrets and variables for signing and release.
+- [Product telemetry](./telemetry.md) describes Sentry error reporting for Agent-Up processes.
