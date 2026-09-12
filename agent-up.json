@@ -185,6 +185,15 @@
           "AgentUp.Capabilities.Abstractions"
         ]
       },
+      "au-debug": {
+        "command": "dotnet test AgentUp.AUDebug.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/au-debug",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.AUDebug",
+          "AgentUp.AUDebug.Tests",
+          "AgentUp.InstallerConfig"
+        ]
+      },
       "cross-product-e2e": {
         "command": "dotnet test AgentUp.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cross-product-e2e",
         "tier": "slow",
@@ -419,6 +428,20 @@
         ]
       },
       {
+        "match": "AgentUp.AUDebug/**",
+        "checks": [
+          "au-debug",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.AUDebug.Tests/**",
+        "checks": [
+          "au-debug",
+          "patch-coverage"
+        ]
+      },
+      {
         "match": "AgentUp.Tests/**",
         "checks": [
           "cross-product-e2e",
@@ -642,6 +665,12 @@
       {
         "match": "run-installer.sh",
         "checks": []
+      },
+      {
+        "match": "au-debug",
+        "checks": [
+          "au-debug"
+        ]
       }
     ]
   },
@@ -652,6 +681,7 @@
       "AgentUp.Server/**/*.cs",
       "AgentUp.Desktop/**/*.cs",
       "AgentUp.CLI/**/*.cs",
+      "AgentUp.AUDebug/**/*.cs",
       "AgentUp.Verification/**/*.cs",
       "AgentUp.CommitPolicy/**/*.cs",
       "AgentUp.Capabilities.Abstractions/**/*.cs",

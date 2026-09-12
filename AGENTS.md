@@ -70,6 +70,9 @@ AgentUp.WebAudit/
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
+AgentUp.AUDebug/
+  AgentUp.AUDebug.csproj
+
 AgentUp.CommitPolicy/
   AgentUp.CommitPolicy.csproj
 
@@ -103,6 +106,9 @@ AgentUp.Desktop.Tests/
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
 
+AgentUp.AUDebug.Tests/
+  AgentUp.AUDebug.Tests.csproj
+
 AgentUp.CommitPolicy.Tests/
   AgentUp.CommitPolicy.Tests.csproj
 
@@ -129,6 +135,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia resource and style bindings consumed by Agent-Up surfaces and external marketing repositories |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
+| `AgentUp.AUDebug` | Maintainer visual-debug CLI (`au-debug`) that hosts repo Desktop, Mobile, and docs together for screenshot and UI-flow inspection |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agentup verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -243,6 +250,13 @@ AgentUp.CLI/
       Models/
       Providers/
       Services/
+
+AgentUp.AUDebug/
+  Features/
+    Host/             (au-debug up/down/status, session, log mux, 30s readiness watchdog)
+    Desktop/          (desktop screenshot, login, start-workspace)
+    Mobile/           (mobile screenshot, login)
+    Docs/             (docs screenshot)
 
 LocalInstaller.Core/
   Features/
@@ -464,6 +478,12 @@ The CLI is a thin developer convenience wrapper over Server capabilities.
 
 It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/cli.md`.
 
+## AUDebug
+
+`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Server, Desktop, Mobile web export, and docs site together so agents can screenshot and drive login/workspace flows without using a packaged install. It is not an orchestration owner and is not a packaged product.
+
+Full guide: `docs/developer-guide/au-debug.md`.
+
 ## Mobile
 
 The mobile client is a single Expo and React Native TypeScript project that targets Android, iOS, and an installable web PWA. It lives in `AgentUp.Mobile/` at the repository root and is not part of `agent-up.sln`.
@@ -581,6 +601,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Capabilities.Docker` | `AgentUp.Capabilities.Docker.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
+| `AgentUp.AUDebug` | `AgentUp.AUDebug.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
@@ -845,6 +866,10 @@ Read: `docs/developer-guide/desktop.md`.
 The CLI is a convenience client for humans. It forwards commands to the Server and owns no runtime state.
 
 Read: `docs/user-docs/cli.md`.
+
+## AUDebug
+
+`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Read: `docs/developer-guide/au-debug.md`.
 
 ## MCP
 

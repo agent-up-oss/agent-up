@@ -6,6 +6,8 @@ title: Desktop
 
 `AgentUp.Desktop` is the human UI for Agent-Up.
 
+For visual comparison against Mobile and the docs design-system page during UI work, use [`au-debug`](au-debug.md) rather than a packaged Desktop install.
+
 Technology:
 
 - .NET 10

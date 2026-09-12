@@ -21,6 +21,7 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions"));
+        AssertDoesNotDependOn("AgentUp.AUDebug", Except("AgentUp.AUDebug"));
     }
 
     private static void AssertDoesNotDependOn(string sourceAssembly, IReadOnlyCollection<string> allowedAssemblies)

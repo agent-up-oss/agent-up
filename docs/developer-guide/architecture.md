@@ -12,6 +12,7 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 - `AgentUp.DesignSystem`
 - `AgentUp.WebAudit`
 - `AgentUp.CLI`
+- `AgentUp.AUDebug`
 - `AgentUp.InstallerApp`
 - `AgentUp.Packaging`
 - `AgentUp.PackageSmoke`
@@ -50,6 +51,9 @@ AgentUp.DesignSystem/
 AgentUp.CLI/
   AgentUp.CLI.csproj
 
+AgentUp.AUDebug/
+  AgentUp.AUDebug.csproj
+
 AgentUp.InstallerApp/
   AgentUp.InstallerApp.csproj
 
@@ -79,6 +83,9 @@ AgentUp.Desktop.Tests/
 
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
+
+AgentUp.AUDebug.Tests/
+  AgentUp.AUDebug.Tests.csproj
 
 AgentUp.Architecture.Tests/
   AgentUp.Architecture.Tests.csproj
@@ -191,6 +198,8 @@ Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and cli
 Mobile development environment and platform commands are documented in [Mobile development](mobile.md).
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
+
+`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Desktop, Mobile web export, and docs site for screenshot and UI-flow inspection. It is not packaged and does not own Server orchestration. See [AUDebug](au-debug.md).
 
 `LocalInstaller.Core` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 

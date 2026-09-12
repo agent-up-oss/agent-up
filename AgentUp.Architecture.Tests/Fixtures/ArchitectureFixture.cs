@@ -18,7 +18,8 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Dotnet",
         "AgentUp.Capabilities.Docker",
         "AgentUp.Desktop",
-        "AgentUp.CLI"
+        "AgentUp.CLI",
+        "AgentUp.AUDebug"
     ];
 
     public static readonly string[] TestProjects =
@@ -32,6 +33,7 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Docker.Tests",
         "AgentUp.Desktop.Tests",
         "AgentUp.CLI.Tests",
+        "AgentUp.AUDebug.Tests",
         "AgentUp.Tests",
         "AgentUp.Architecture.Tests"
     ];

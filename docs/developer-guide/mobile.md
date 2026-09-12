@@ -6,7 +6,8 @@ title: Mobile development
 
 `AgentUp.Mobile/` is a single Expo and React Native TypeScript client for
 Android, iOS, and the installable web PWA. It lives at the repository root but
-is not part of `agent-up.sln`.
+is not part of `agent-up.sln`. Use [`au-debug`](au-debug.md) to host Mobile web
+next to Desktop and docs when comparing product UI.
 
 The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
