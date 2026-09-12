@@ -273,4 +273,19 @@ public sealed class PatchCoverageServiceTests
             Assert.That(result.Percentage, Is.EqualTo(50d));
         });
     }
+
+    [TestCase(-1d)]
+    [TestCase(101d)]
+    [TestCase(double.NaN)]
+    public void MeasureAsync_rejectsAMinimumOverrideOutsideZeroToOneHundred(double minimum)
+    {
+        // Same hole as the slice floor: the loader bounds what it reads, --min does not.
+        var service = ServiceOver(
+            CoverageDomain.Configuration().Build(),
+            ChangedLinesBuilder.Changing(CoverageDomain.ServerSource, 10).Build(),
+            new FileCoverageBuilder(CoverageDomain.ServerSource).Covered(10).Build());
+
+        Assert.That(async () => await service.MeasureAsync(Root, minimumOverride: minimum),
+            Throws.InstanceOf<CoverageConfigurationException>());
+    }
 }

@@ -85,7 +85,8 @@
     "enforcement": "warn",
     "always": [
       "build",
-      "architecture"
+      "architecture",
+      "slice-coverage"
     ],
     "checks": {
       "build": {
@@ -149,6 +150,22 @@
           "AgentUp.Capabilities.Common"
         ]
       },
+      "installer-config": {
+        "command": "dotnet test AgentUp.InstallerConfig.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/installer-config",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.InstallerConfig",
+          "AgentUp.InstallerConfig.Tests"
+        ]
+      },
+      "browser-streaming": {
+        "command": "dotnet test AgentUp.Browser.Streaming.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/browser-streaming",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Browser.Streaming",
+          "AgentUp.Browser.Streaming.Tests"
+        ]
+      },
       "capabilities-codex": {
         "command": "dotnet test AgentUp.Capabilities.Codex.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-codex",
         "tier": "fast",
@@ -196,6 +213,14 @@
           "AgentUp.Capabilities.Codex",
           "AgentUp.Capabilities.Cursor",
           "AgentUp.Capabilities.Claude"
+        ]
+      },
+      "tray": {
+        "command": "dotnet test AgentUp.Tray.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/tray",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Tray",
+          "AgentUp.Tray.Tests"
         ]
       },
       "desktop": {
@@ -300,6 +325,12 @@
         "command": "dotnet run --project AgentUp.CLI -- verify coverage",
         "tier": "fast",
         "order": 100
+      },
+      "slice-coverage": {
+        "command": "dotnet run --project AgentUp.CLI -- verify slices",
+        "tier": "fast",
+        "ciOnly": true,
+        "order": 101
       }
     },
     "paths": [
@@ -512,27 +543,52 @@
       {
         "match": "AgentUp.Browser.Streaming/**",
         "checks": [
+          "browser-streaming",
           "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Browser.Streaming.Tests/**",
+        "checks": [
+          "browser-streaming",
           "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Tray/**",
         "checks": [
+          "tray",
+          "patch-coverage",
           "linux-smoke",
           "macos-smoke",
           "windows-smoke"
         ]
       },
       {
+        "match": "AgentUp.Tray.Tests/**",
+        "checks": [
+          "tray",
+          "patch-coverage"
+        ]
+      },
+      {
         "match": "AgentUp.InstallerConfig/**",
         "checks": [
+          "installer-config",
           "server",
           "desktop",
           "cli",
           "linux-smoke",
           "macos-smoke",
           "windows-smoke",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.InstallerConfig.Tests/**",
+        "checks": [
+          "installer-config",
           "patch-coverage"
         ]
       },
@@ -717,6 +773,7 @@
   },
   "coverage": {
     "minimum": 90,
+    "sliceMinimum": 70,
     "reportDirectory": "artifacts/coverage",
     "include": [
       "AgentUp.Server/**/*.cs",
@@ -731,14 +788,27 @@
       "AgentUp.Capabilities.Codex/**/*.cs",
       "AgentUp.Capabilities.Cursor/**/*.cs",
       "AgentUp.Capabilities.Claude/**/*.cs",
-      "AgentUp.Browser.Streaming/**/*.cs"
+      "AgentUp.Browser.Streaming/**/*.cs",
+      "AgentUp.Tray/**/*.cs",
+      "AgentUp.InstallerConfig/**/*.cs"
     ],
     "exclude": [
       "**/Composition/**",
       "**/Program.cs",
       "**/App.axaml.cs",
       "**/Properties/**",
-      "**/Resources/**"
+      "**/Resources/**",
+      "AgentUp.Tray/Features/AutoStart/WindowsAutoStartRegistrar.cs",
+      "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
+    ],
+    "sliceExemptions": [
+      "AgentUp.Server/Features/Database",
+      "AgentUp.Server/Features/Ports",
+      "AgentUp.Desktop/Features/Browser",
+      "AgentUp.Desktop/Features/Metrics",
+      "AgentUp.CLI/Features/Authentication",
+      "AgentUp.Desktop/Features/FirstRun",
+      "AgentUp.Server/Features/Commits"
     ]
   }
 }

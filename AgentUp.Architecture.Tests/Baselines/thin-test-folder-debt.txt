@@ -1,0 +1,18 @@
+# Required test-kind folders holding a single test: present, so the structural rule
+# passes, but not actually covering the slice.
+#
+# Entries are removed as the tests are written; SliceTestCoverage fails on an entry that is
+# already satisfied, so this file cannot drift into fiction. Additions require review.
+AgentUp.CLI.Tests/Features/Authentication/Unit covers AgentUp.CLI/Features/Authentication/Models with 1 test
+AgentUp.CLI.Tests/Features/Authentication/Unit covers AgentUp.CLI/Features/Authentication/Services with 1 test
+AgentUp.Capabilities.Common.Tests/Features/CapabilityDistribution/Provider covers AgentUp.Capabilities.Common/Features/CapabilityDistribution/Providers with 1 test
+AgentUp.Desktop.Tests/Features/Agents/Controller covers AgentUp.Desktop/Features/Agents/Controllers with 1 test
+AgentUp.Desktop.Tests/Features/Audit/Controller covers AgentUp.Desktop/Features/Audit/Controllers with 1 test
+AgentUp.Desktop.Tests/Features/Database/Controller covers AgentUp.Desktop/Features/Database/Controllers with 1 test
+AgentUp.Desktop.Tests/Features/Metrics/Provider covers AgentUp.Desktop/Features/Metrics/Providers with 1 test
+AgentUp.Desktop.Tests/Features/Validation/Controller covers AgentUp.Desktop/Features/Validation/Controllers with 1 test
+AgentUp.Desktop.Tests/Features/Validation/Provider covers AgentUp.Desktop/Features/Validation/Providers with 1 test
+AgentUp.Server.Tests/Features/Agents/Controller covers AgentUp.Server/Features/Agents/Controllers with 1 test
+AgentUp.Server.Tests/Features/Metrics/Provider covers AgentUp.Server/Features/Metrics/Providers with 1 test
+AgentUp.Server.Tests/Features/Metrics/Unit covers AgentUp.Server/Features/Metrics/Services with 1 test
+AgentUp.Server.Tests/Features/Validation/Controller covers AgentUp.Server/Features/Validation/Controllers with 1 test

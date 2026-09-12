@@ -1,0 +1,28 @@
+# Feature slices with production code in a type folder and no tests in the matching
+# test-kind folder. Each line is a slice that needs tests, not a rule to keep.
+#
+# Entries are removed as the tests are written; SliceTestCoverage fails on an entry that is
+# already satisfied, so this file cannot drift into fiction. Additions require review.
+AgentUp.CLI/Features/Workspaces/Models requires AgentUp.CLI.Tests/Features/Workspaces/Unit/*Tests.cs
+AgentUp.CLI/Features/Workspaces/Services requires AgentUp.CLI.Tests/Features/Workspaces/Unit/*Tests.cs
+AgentUp.Capabilities.Common/Features/CapabilityDiscovery/Models requires AgentUp.Capabilities.Common.Tests/Features/CapabilityDiscovery/Unit/*Tests.cs
+AgentUp.Capabilities.Common/Features/CapabilityInventory/Models requires AgentUp.Capabilities.Common.Tests/Features/CapabilityInventory/Unit/*Tests.cs
+AgentUp.Desktop/Features/Applications/Controllers requires AgentUp.Desktop.Tests/Features/Applications/Controller/*Tests.cs
+AgentUp.Desktop/Features/Applications/Services requires AgentUp.Desktop.Tests/Features/Applications/Unit/*Tests.cs
+AgentUp.Desktop/Features/Browser/Controllers requires AgentUp.Desktop.Tests/Features/Browser/Controller/*Tests.cs
+AgentUp.Desktop/Features/Console/Controllers requires AgentUp.Desktop.Tests/Features/Console/Controller/*Tests.cs
+AgentUp.Desktop/Features/Console/Providers requires AgentUp.Desktop.Tests/Features/Console/Provider/*Tests.cs
+AgentUp.Desktop/Features/FirstRun/Controllers requires AgentUp.Desktop.Tests/Features/FirstRun/Controller/*Tests.cs
+AgentUp.Desktop/Features/FirstRun/Services requires AgentUp.Desktop.Tests/Features/FirstRun/Unit/*Tests.cs
+AgentUp.Desktop/Features/Ports/Controllers requires AgentUp.Desktop.Tests/Features/Ports/Controller/*Tests.cs
+AgentUp.Desktop/Features/Ports/Services requires AgentUp.Desktop.Tests/Features/Ports/Unit/*Tests.cs
+AgentUp.Desktop/Features/Workspaces/Controllers requires AgentUp.Desktop.Tests/Features/Workspaces/Controller/*Tests.cs
+AgentUp.Server/Features/Applications/Controllers requires AgentUp.Server.Tests/Features/Applications/Controller/*Tests.cs
+AgentUp.Server/Features/Capabilities/Controllers requires AgentUp.Server.Tests/Features/Capabilities/Controller/*Tests.cs
+AgentUp.Server/Features/Capabilities/Services requires AgentUp.Server.Tests/Features/Capabilities/Unit/*Tests.cs
+AgentUp.Server/Features/Ports/Controllers requires AgentUp.Server.Tests/Features/Ports/Controller/*Tests.cs
+AgentUp.Server/Features/Ports/Models requires AgentUp.Server.Tests/Features/Ports/Unit/*Tests.cs
+AgentUp.Server/Features/Ports/Providers requires AgentUp.Server.Tests/Features/Ports/Provider/*Tests.cs
+AgentUp.Server/Features/Ports/Services requires AgentUp.Server.Tests/Features/Ports/Unit/*Tests.cs
+AgentUp.Server/Features/Processes/Controllers requires AgentUp.Server.Tests/Features/Processes/Controller/*Tests.cs
+AgentUp.Server/Features/Workspaces/Controllers requires AgentUp.Server.Tests/Features/Workspaces/Controller/*Tests.cs

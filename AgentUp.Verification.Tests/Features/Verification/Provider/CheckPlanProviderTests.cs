@@ -245,4 +245,44 @@ public sealed class CheckPlanProviderTests
         Assert.That(plan.Checks.Select(check => check.CheckId),
             Is.EqualTo(new[] { VerificationDomain.ServerUnitCheck, "patch-coverage" }));
     }
+
+    [Test]
+    public void CreatePlan_letsADeclaredOrderMoveAnAlwaysCheckAfterTheSuites()
+    {
+        // slice-coverage is required for every change, so it belongs in "always", but it
+        // reads the reports the suites write, so leading them would measure the last run.
+        var configuration = VerificationDomain.Configuration()
+            .WithCheck(new CheckBuilder("aa-build").WithCommand("dotnet build"))
+            .WithCheck(new CheckBuilder("aa-slice-coverage").WithCommand("verify slices").WithOrder(101))
+            .WithoutAlways()
+            .WithAlways("aa-build", "aa-slice-coverage")
+            .Build();
+
+        var plan = ProviderOn(VerificationDomain.Linux).CreatePlan(
+            configuration,
+            ChangeSetBuilder.Changing(VerificationDomain.ServerSource).Build());
+
+        Assert.That(plan.Checks.Select(check => check.CheckId),
+            Is.EqualTo(new[] { "aa-build", VerificationDomain.ServerUnitCheck, "aa-slice-coverage" }));
+    }
+
+    [Test]
+    public void CreatePlan_keepsTheDeclaredAlwaysOrderAmongChecksWithTheSameOrder()
+    {
+        // The tie-break has to be the declared position, not the id: a build that sorts
+        // after the suite it has to precede would otherwise run second.
+        var configuration = VerificationDomain.Configuration()
+            .WithCheck(new CheckBuilder("zz-build").WithCommand("dotnet build"))
+            .WithCheck(new CheckBuilder("aa-lint").WithCommand("dotnet format"))
+            .WithoutAlways()
+            .WithAlways("zz-build", "aa-lint")
+            .Build();
+
+        var plan = ProviderOn(VerificationDomain.Linux).CreatePlan(
+            configuration,
+            ChangeSetBuilder.Changing(VerificationDomain.ServerSource).Build());
+
+        Assert.That(plan.Checks.Select(check => check.CheckId).Take(2),
+            Is.EqualTo(new[] { "zz-build", "aa-lint" }));
+    }
 }
