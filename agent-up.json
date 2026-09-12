@@ -149,6 +149,14 @@
           "AgentUp.Capabilities.Common"
         ]
       },
+      "installer-config": {
+        "command": "dotnet test AgentUp.InstallerConfig.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/installer-config",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.InstallerConfig",
+          "AgentUp.InstallerConfig.Tests"
+        ]
+      },
       "browser-streaming": {
         "command": "dotnet test AgentUp.Browser.Streaming.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/browser-streaming",
         "tier": "fast",
@@ -474,12 +482,20 @@
       {
         "match": "AgentUp.InstallerConfig/**",
         "checks": [
+          "installer-config",
           "server",
           "desktop",
           "cli",
           "linux-smoke",
           "macos-smoke",
           "windows-smoke",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.InstallerConfig.Tests/**",
+        "checks": [
+          "installer-config",
           "patch-coverage"
         ]
       },
@@ -676,7 +692,8 @@
       "AgentUp.Capabilities.Dotnet/**/*.cs",
       "AgentUp.Capabilities.Docker/**/*.cs",
       "AgentUp.Browser.Streaming/**/*.cs",
-      "AgentUp.Tray/**/*.cs"
+      "AgentUp.Tray/**/*.cs",
+      "AgentUp.InstallerConfig/**/*.cs"
     ],
     "exclude": [
       "**/Composition/**",

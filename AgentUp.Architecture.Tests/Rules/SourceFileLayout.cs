@@ -30,7 +30,7 @@ public sealed class SourceFileLayout
     {
         var parts = ArchitectureFixture.Parts(root, path);
         // Bare classlibs (no vertical-slice layout) are exempt from this rule.
-        if (parts[0] == "AgentUp.Browser.Streaming") return true;
+        if (ArchitectureFixture.BareClassLibraries.Contains(parts[0])) return true;
         return parts.Length >= 3 && parts[1] is "Features" or "Shared" or "Composition";
     }
 }

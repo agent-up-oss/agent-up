@@ -620,6 +620,21 @@ Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for a
 
 Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` should have matching `Controller/`, `Unit/`, and `Provider/` test-kind coverage. Existing gaps are tracked as explicit architecture-test debt; new or expanded slices must not add to that baseline.
 
+Every production project owns a test project of the same name plus `.Tests`, so a change to
+it selects one suite rather than being covered incidentally by another project's tests. The
+exception is `AgentUp.InstallerApp`, `AgentUp.Packaging` and `AgentUp.PackageSmoke`: each is
+a `Program.cs` handing manifests to a LocalInstaller builder, with nothing to assert but the
+builder chain itself. `ArchitectureFixture.CompositionOnlyProjects` names them and
+`EntryPointProjects` holds them to that shape - a file with logic in one of them fails the
+rule, so the code moves to a tested project or the project gains a test project and joins
+`ProductionProjects`.
+
+A type does not get tested from another project's suite because that suite happens to
+reference it. `RepositoryDotEnv` lived in `AgentUp.InstallerConfig` and was tested from
+`AgentUp.Server.Tests/Features/Authentication/`, which left its parsing rules almost
+entirely unexercised and meant a change to it selected no suite that was actually about it.
+Tests belong with the project that owns the type.
+
 ```text
 AgentUp.Server.Tests/
   Features/

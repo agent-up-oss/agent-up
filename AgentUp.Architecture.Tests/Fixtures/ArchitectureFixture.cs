@@ -18,7 +18,32 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Dotnet",
         "AgentUp.Capabilities.Docker",
         "AgentUp.Desktop",
-        "AgentUp.CLI"
+        "AgentUp.CLI",
+        "AgentUp.InstallerConfig"
+    ];
+
+    /// <summary>
+    /// Projects that are plain class libraries rather than vertical slices, so the
+    /// Features/Shared layout rules do not apply to them. Named here rather than inside a
+    /// rule so the whole set of exemptions is reviewable in one place.
+    /// </summary>
+    public static readonly string[] BareClassLibraries =
+    [
+        "AgentUp.Browser.Streaming",
+        "AgentUp.InstallerConfig"
+    ];
+
+    /// <summary>
+    /// Projects that exist only to compose other projects into an executable: a Program.cs
+    /// that wires manifests into a LocalInstaller builder, plus manifests of their own.
+    /// They carry no logic to test, and <see cref="Rules.EntryPointProjects"/> keeps that
+    /// true.
+    /// </summary>
+    public static readonly string[] CompositionOnlyProjects =
+    [
+        "AgentUp.InstallerApp",
+        "AgentUp.Packaging",
+        "AgentUp.PackageSmoke"
     ];
 
     public static readonly string[] TestProjects =
@@ -33,6 +58,7 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Dotnet.Tests",
         "AgentUp.Capabilities.Docker.Tests",
         "AgentUp.Desktop.Tests",
+        "AgentUp.InstallerConfig.Tests",
         "AgentUp.CLI.Tests",
         "AgentUp.Tests",
         "AgentUp.Architecture.Tests"
