@@ -74,6 +74,26 @@ public sealed class HostControllerTests
     }
 
     [Test]
+    public async Task MobileScreenshot_routesToMobile()
+    {
+        using var output = new StringWriter();
+        var exit = await Controller(output).RunAsync(["mobile", "screenshot"]);
+
+        Assert.That(exit, Is.EqualTo(0));
+        Assert.That(output.ToString(), Does.Contain("screenshot:"));
+    }
+
+    [Test]
+    public async Task DocsScreenshot_routesToDocs()
+    {
+        using var output = new StringWriter();
+        var exit = await Controller(output).RunAsync(["docs", "screenshot"]);
+
+        Assert.That(exit, Is.EqualTo(0));
+        Assert.That(output.ToString(), Does.Contain("screenshot:"));
+    }
+
+    [Test]
     public async Task Status_routesToHost()
     {
         using var output = new StringWriter();

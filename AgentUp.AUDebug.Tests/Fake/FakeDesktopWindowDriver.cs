@@ -11,6 +11,7 @@ public sealed class FakeDesktopWindowDriver : IDesktopWindowDriver
     public string? LastCapturePath { get; private set; }
     public bool DelayUntilCanceled { get; set; }
     public bool WindowPresent { get; set; } = true;
+    public Exception? CaptureException { get; set; }
 
     public async Task WaitForWindowAsync(CancellationToken cancellationToken)
     {
@@ -29,6 +30,8 @@ public sealed class FakeDesktopWindowDriver : IDesktopWindowDriver
     {
         Captures++;
         LastCapturePath = outputPath;
+        if (CaptureException is not null)
+            throw CaptureException;
         if (DelayUntilCanceled)
             await Task.Delay(Timeout.Infinite, cancellationToken);
     }

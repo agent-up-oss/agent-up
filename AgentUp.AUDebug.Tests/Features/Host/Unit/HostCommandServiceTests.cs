@@ -138,6 +138,51 @@ public sealed class HostCommandServiceTests
         });
     }
 
+    [Test]
+    public async Task Up_attached_waitsThenStops()
+    {
+        var supervisor = new FakeSupervisor();
+        var service = Service(new FakeSessionStore(), supervisor, new FakeReadyProbe());
+
+        var result = await service.UpAsync(Command(detach: false), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(0));
+            Assert.That(result.Message, Does.Contain("au-debug stopped"));
+            Assert.That(supervisor.Waits, Is.EqualTo(1));
+            Assert.That(supervisor.Stops, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Down_timeout_returnsFailure()
+    {
+        var supervisor = new FakeSupervisor { Live = true, DelayUntilCanceled = true };
+        var sessions = new FakeSessionStore { Session = supervisor.Session };
+        var service = Service(sessions, supervisor, new FakeReadyProbe());
+
+        var result = await service.DownAsync(Command(timeout: TimeSpan.FromMilliseconds(40)), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("Timed out"));
+        Assert.That(result.Message, Does.Contain("down"));
+    }
+
+    [Test]
+    public async Task Status_timeout_returnsFailure()
+    {
+        var supervisor = new FakeSupervisor { Live = true };
+        var probe = new FakeReadyProbe { DelayUntilCanceled = true };
+        var service = Service(new FakeSessionStore { Session = supervisor.Session }, supervisor, probe);
+
+        var result = await service.StatusAsync(Command(timeout: TimeSpan.FromMilliseconds(40)), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("Timed out"));
+        Assert.That(result.Message, Does.Contain("status"));
+    }
+
     private static HostCommandService Service(
         FakeSessionStore sessions,
         FakeSupervisor supervisor,

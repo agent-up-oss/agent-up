@@ -56,6 +56,37 @@ public sealed class DesktopCommandServiceTests
         Assert.That(result.Message, Does.Contain("Timed out"));
     }
 
+    [Test]
+    public async Task Screenshot_mapsDriverErrors()
+    {
+        var windows = new FakeDesktopWindowDriver { CaptureException = new InvalidOperationException("no window") };
+        var result = await Service(windows, new FakeWorkspaceClient(), new FakeEnvironment())
+            .ScreenshotAsync(Command("screenshot"), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Is.EqualTo("no window"));
+    }
+
+    [Test]
+    public async Task StartWorkspace_requiresPassword()
+    {
+        var result = await Service(new FakeDesktopWindowDriver(), new FakeWorkspaceClient(), new FakeEnvironment { AdminPassword = null })
+            .StartWorkspaceAsync(Command("start-workspace", password: null), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("AGENTUP_ADMIN_PASSWORD"));
+    }
+
+    [Test]
+    public async Task StartWorkspace_requiresName()
+    {
+        var result = await Service(new FakeDesktopWindowDriver(), new FakeWorkspaceClient(), new FakeEnvironment())
+            .StartWorkspaceAsync(new DebugCommandDto("desktop", "desktop", "start-workspace", null, "test", TimeSpan.FromSeconds(30), false), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("requires a workspace name"));
+    }
+
     private static DesktopCommandService Service(
         FakeDesktopWindowDriver windows,
         FakeWorkspaceClient client,

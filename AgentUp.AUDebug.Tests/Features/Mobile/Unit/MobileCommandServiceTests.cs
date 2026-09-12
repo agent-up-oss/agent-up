@@ -55,6 +55,38 @@ public sealed class MobileCommandServiceTests
         });
     }
 
+    [Test]
+    public async Task Login_timeout_returnsFailure()
+    {
+        var surface = new FakeMobileSurfaceDriver { DelayUntilCanceled = true };
+        var result = await new MobileCommandService(
+            new FakeWebScreenshotDriver(),
+            surface,
+            new FakeSessionStore(),
+            new FakeEnvironment()).LoginAsync(
+            new DebugCommandDto("mobile", "mobile", "login", null, "test", TimeSpan.FromMilliseconds(30), false),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("Timed out"));
+    }
+
+    [Test]
+    public async Task Screenshot_mapsDriverErrors()
+    {
+        var shots = new FakeWebScreenshotDriver { CaptureException = new InvalidOperationException("cdp failed") };
+        var result = await new MobileCommandService(
+            shots,
+            new FakeMobileSurfaceDriver(),
+            new FakeSessionStore(),
+            new FakeEnvironment()).ScreenshotAsync(
+            new DebugCommandDto("mobile", "mobile", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Is.EqualTo("cdp failed"));
+    }
+
     private static DebugCommandDto Command(string? password = "test")
         => new("mobile", "mobile", "login", null, password, TimeSpan.FromSeconds(30), false);
 }

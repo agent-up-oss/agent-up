@@ -18,6 +18,7 @@ public sealed class FakeSupervisor : IHostProcessSupervisor
 
     public bool Live { get; set; }
     public bool ThrowTimeout { get; set; }
+    public bool DelayUntilCanceled { get; set; }
     public int Starts { get; private set; }
     public int Stops { get; private set; }
     public int Waits { get; private set; }
@@ -30,11 +31,12 @@ public sealed class FakeSupervisor : IHostProcessSupervisor
         return Task.FromResult(Session);
     }
 
-    public Task StopAsync(HostSessionDto session, CancellationToken cancellationToken)
+    public async Task StopAsync(HostSessionDto session, CancellationToken cancellationToken)
     {
         Stops++;
+        if (DelayUntilCanceled)
+            await Task.Delay(Timeout.Infinite, cancellationToken);
         Live = false;
-        return Task.CompletedTask;
     }
 
     public Task WaitAsync(CancellationToken cancellationToken)

@@ -34,6 +34,37 @@ public sealed class HostReadyProbeProviderTests
         Assert.That(ready, Is.False);
     }
 
+    [Test]
+    public void WaitAsync_alreadyCanceled_throws()
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromMilliseconds(50) };
+        using var timeout = new CancellationTokenSource();
+        timeout.Cancel();
+
+        Assert.That(
+            async () => await new HostReadyProbeProvider(http).WaitAsync("http://127.0.0.1:1/", timeout.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public async Task CheckAsync_returnsFalseWhenHttpClientTimesOut()
+    {
+        using var listener = new HttpListener();
+        var prefix = $"http://127.0.0.1:{GetFreePort()}/";
+        listener.Prefixes.Add(prefix);
+        listener.Start();
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromMilliseconds(80) };
+            var ready = await new HostReadyProbeProvider(http).CheckAsync(prefix, CancellationToken.None);
+            Assert.That(ready, Is.False);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
     private static int GetFreePort()
     {
         using var socket = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);

@@ -9,25 +9,32 @@ public sealed class FakeMobileSurfaceDriver : IMobileSurfaceDriver
     public string UserDataDirectory { get; set; } = "/tmp/chrome-mobile";
     public string? ServerUrl { get; private set; }
     public string? Password { get; private set; }
+    public bool DelayUntilCanceled { get; set; }
 
-    public Task LoginAsync(string serverUrl, string password, CancellationToken cancellationToken)
+    public async Task LoginAsync(string serverUrl, string password, CancellationToken cancellationToken)
     {
         ServerUrl = serverUrl;
         Password = password;
+        if (DelayUntilCanceled)
+            await Task.Delay(Timeout.Infinite, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
     }
 }
 
 public sealed class FakeWebScreenshotDriver : IWebScreenshotDriver
 {
     public List<(string Url, string Path, string? UserDataDirectory)> Captures { get; } = [];
+    public bool DelayUntilCanceled { get; set; }
+    public Exception? CaptureException { get; set; }
 
-    public Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken, string? userDataDirectory = null)
+    public async Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken, string? userDataDirectory = null)
     {
         Captures.Add((url, outputPath, userDataDirectory));
+        if (CaptureException is not null)
+            throw CaptureException;
+        if (DelayUntilCanceled)
+            await Task.Delay(Timeout.Infinite, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
     }
 }
 

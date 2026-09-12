@@ -27,12 +27,12 @@ public class WindowChromeBehaviorTests
     }
 
     [AvaloniaTest]
-    public void Application_appliesCanonicalButtonStyleInferredFromCss()
+    public async Task Application_appliesCanonicalButtonStyleInferredFromCss()
     {
-        var window = new Window { Width = 200, Height = 80 };
+        var app = await AppDriver.LaunchEmptyAsync();
         var button = new Button { Classes = { "au-button" }, Content = "Start workspace" };
-        window.Content = button;
-        window.Show();
+        app.Window.Content = button;
+        await HeadlessExtensions.FlushAsync();
 
         Assert.That(button.MinHeight, Is.EqualTo(44d));
         Assert.That(button.Background, Is.TypeOf<SolidColorBrush>());
@@ -40,12 +40,12 @@ public class WindowChromeBehaviorTests
     }
 
     [AvaloniaTest]
-    public void Application_appliesCanonicalWorkspaceEntryStyleInferredFromCss()
+    public async Task Application_appliesCanonicalWorkspaceEntryStyleInferredFromCss()
     {
-        var window = new Window { Width = 280, Height = 80 };
+        var app = await AppDriver.LaunchEmptyAsync();
         var entry = new Border { Classes = { "wsEntry" }, Width = 240, Height = 48 };
-        window.Content = entry;
-        window.Show();
+        app.Window.Content = entry;
+        await HeadlessExtensions.FlushAsync();
 
         Assert.That(entry.Background, Is.TypeOf<SolidColorBrush>());
         Assert.That(((SolidColorBrush)entry.Background!).Color, Is.EqualTo(Color.Parse("#1c1c1c")));
@@ -53,12 +53,12 @@ public class WindowChromeBehaviorTests
     }
 
     [AvaloniaTest]
-    public void Application_appliesCanonicalWorkspaceNameStyleInferredFromCss()
+    public async Task Application_appliesCanonicalWorkspaceNameStyleInferredFromCss()
     {
-        var window = new Window { Width = 280, Height = 80 };
+        var app = await AppDriver.LaunchEmptyAsync();
         var name = new TextBlock { Classes = { "wsName" }, Text = "checkout-fix" };
-        window.Content = name;
-        window.Show();
+        app.Window.Content = name;
+        await HeadlessExtensions.FlushAsync();
 
         Assert.That(name.FontSize, Is.EqualTo(14d));
         Assert.That(name.Foreground, Is.TypeOf<SolidColorBrush>());

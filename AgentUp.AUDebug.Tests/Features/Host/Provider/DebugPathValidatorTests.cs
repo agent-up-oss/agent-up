@@ -14,6 +14,7 @@ public sealed class DebugPathValidatorTests
 
         Assert.That(() => validator.JoinUnderRoot("..", "etc"), Throws.InvalidOperationException);
         Assert.That(validator.SessionDirectory, Does.StartWith(Path.GetFullPath(root)));
+        Assert.That(validator.EnsureUnderRoot(root), Is.EqualTo(Path.GetFullPath(root)));
     }
 
     [Test]
@@ -31,5 +32,6 @@ public sealed class DebugPathValidatorTests
         File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
 
         Assert.That(RepositoryRootProvider.Find(nested), Is.EqualTo(Path.GetFullPath(root)));
+        Assert.That(RepositoryRootProvider.Find(Path.Join(Path.GetTempPath(), "au-debug-root-missing", Guid.NewGuid().ToString("N"))), Is.Null);
     }
 }

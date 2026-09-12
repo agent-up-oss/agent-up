@@ -54,6 +54,16 @@ public sealed class HostSessionStoreTests
         Assert.That(tail, Is.EqualTo($"c{Environment.NewLine}d"));
     }
 
+    [Test]
+    public void ReadLogTail_missingFile_isEmpty()
+    {
+        var root = CreateTempRoot();
+        var paths = new DebugPathValidator(root);
+        var log = Path.Join(paths.LogsDirectory, "missing.log");
+
+        Assert.That(new HostSessionStore(paths).ReadLogTail(log, 4), Is.EqualTo(string.Empty));
+    }
+
     private static string CreateTempRoot()
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-session", Guid.NewGuid().ToString("N"));

@@ -17,12 +17,12 @@ public sealed class FakeReadyProbe : IHostReadyProbe
         await Task.Delay(Timeout.Infinite, cancellationToken);
     }
 
-    public Task<bool> CheckAsync(string url, CancellationToken cancellationToken)
+    public async Task<bool> CheckAsync(string url, CancellationToken cancellationToken)
     {
         Urls.Add(url);
-        cancellationToken.ThrowIfCancellationRequested();
         if (DelayUntilCanceled)
-            return Task.FromResult(false);
-        return Task.FromResult(Ready.GetValueOrDefault(url, true));
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Ready.GetValueOrDefault(url, true);
     }
 }

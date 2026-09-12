@@ -111,4 +111,39 @@ public sealed class DebugArgParserTests
         var (_, error) = _parser.Parse(["desktop", "start-workspace"]);
         Assert.That(error, Does.Contain("requires a workspace name"));
     }
+
+    [Test]
+    public void Parse_passwordWithoutValue_returnsError()
+    {
+        var (_, error) = _parser.Parse(["mobile", "login", "--password"]);
+        Assert.That(error, Does.Contain("--password requires a value"));
+    }
+
+    [Test]
+    public void Parse_extraHostArgs_returnsError()
+    {
+        var (_, error) = _parser.Parse(["up", "now"]);
+        Assert.That(error, Does.Contain("does not take extra arguments"));
+    }
+
+    [Test]
+    public void Parse_unknownCommand_returnsError()
+    {
+        var (_, error) = _parser.Parse(["explode"]);
+        Assert.That(error, Does.Contain("unknown command"));
+    }
+
+    [Test]
+    public void Parse_surfaceWithoutAction_returnsError()
+    {
+        var (_, error) = _parser.Parse(["desktop"]);
+        Assert.That(error, Does.Contain("requires an action"));
+    }
+
+    [Test]
+    public void Parse_screenshotExtraArgs_returnsError()
+    {
+        var (_, error) = _parser.Parse(["docs", "screenshot", "extra"]);
+        Assert.That(error, Does.Contain("does not take extra arguments"));
+    }
 }

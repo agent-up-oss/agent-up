@@ -78,4 +78,68 @@ public sealed class XdoToolDesktopDriverTests
             async () => await driver.CaptureAsync("/tmp/au-debug-desktop/.git/agent-up/au-debug/screenshots/x.png", CancellationToken.None),
             Throws.InvalidOperationException);
     }
+
+    [Test]
+    public async Task Capture_keepsHexWindowIds()
+    {
+        var processes = new FakeProcessRunner { NextResult = new(0, "0xabc\n", "") };
+        var environment = new FakeEnvironment();
+        environment.Executables["xdotool"] = "/bin/xdotool";
+        environment.Executables["import"] = "/bin/import";
+        var paths = new FakePathValidator("/tmp/au-debug-desktop");
+        Directory.CreateDirectory(paths.ScreenshotsDirectory);
+        var driver = new XdoToolDesktopDriver(processes, environment, paths);
+
+        await driver.CaptureAsync(Path.Join(paths.ScreenshotsDirectory, "desktop.png"), CancellationToken.None);
+
+        Assert.That(
+            processes.Ran.Any(command => command.FileName == "import" && command.Arguments.Contains("0xabc")),
+            Is.True);
+    }
+
+    [Test]
+    public async Task Capture_reportsImportFailure()
+    {
+        var processes = new FakeProcessRunner { NextResult = new(0, "4242\n", "") };
+        processes.OnRun = command =>
+        {
+            if (command.FileName == "import")
+                processes.NextResult = new(1, "", "import boom");
+        };
+        var environment = new FakeEnvironment();
+        environment.Executables["xdotool"] = "/bin/xdotool";
+        environment.Executables["import"] = "/bin/import";
+        var paths = new FakePathValidator("/tmp/au-debug-desktop");
+        Directory.CreateDirectory(paths.ScreenshotsDirectory);
+        var driver = new XdoToolDesktopDriver(processes, environment, paths);
+
+        Assert.That(
+            async () => await driver.CaptureAsync(Path.Join(paths.ScreenshotsDirectory, "desktop.png"), CancellationToken.None),
+            Throws.InvalidOperationException.With.Message.Contains("import boom"));
+    }
+
+    [Test]
+    public async Task HasWindow_fallsBackToNixShellWhenToolsAreMissing()
+    {
+        var processes = new FakeProcessRunner { NextResult = new(0, "4242\n", "") };
+        var driver = new XdoToolDesktopDriver(processes, new FakeEnvironment(), new FakePathValidator("/tmp/au-debug-desktop"));
+
+        Assert.That(await driver.HasWindowAsync(CancellationToken.None), Is.True);
+        Assert.That(processes.Ran[0].FileName, Is.EqualTo("nix-shell"));
+        Assert.That(processes.Ran[0].Arguments, Does.Contain("xdotool"));
+    }
+
+    [Test]
+    public void WaitForWindow_cancelsWhileSearching()
+    {
+        var processes = new FakeProcessRunner { NextResult = new(0, "", "") };
+        var environment = new FakeEnvironment();
+        environment.Executables["xdotool"] = "/bin/xdotool";
+        var driver = new XdoToolDesktopDriver(processes, environment, new FakePathValidator("/tmp/au-debug-desktop"));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(40));
+
+        Assert.That(
+            async () => await driver.WaitForWindowAsync(timeout.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+    }
 }

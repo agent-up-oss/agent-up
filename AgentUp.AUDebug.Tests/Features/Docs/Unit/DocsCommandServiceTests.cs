@@ -23,7 +23,7 @@ public sealed class DocsCommandServiceTests
     [Test]
     public async Task Screenshot_mapsDriverErrors()
     {
-        var shots = new ThrowingShots();
+        var shots = new FakeWebScreenshotDriver { CaptureException = new InvalidOperationException("boom") };
         var result = await new DocsCommandService(shots, new FakeSessionStore())
             .ScreenshotAsync(
                 new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
@@ -33,9 +33,16 @@ public sealed class DocsCommandServiceTests
         Assert.That(result.Message, Does.Contain("boom"));
     }
 
-    private sealed class ThrowingShots : AgentUp.AUDebug.Shared.Interfaces.IWebScreenshotDriver
+    [Test]
+    public async Task Screenshot_timeout_returnsFailure()
     {
-        public Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken, string? userDataDirectory = null)
-            => throw new InvalidOperationException("boom");
+        var shots = new FakeWebScreenshotDriver { DelayUntilCanceled = true };
+        var result = await new DocsCommandService(shots, new FakeSessionStore())
+            .ScreenshotAsync(
+                new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromMilliseconds(30), false),
+                CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("Timed out"));
     }
 }

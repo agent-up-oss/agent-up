@@ -212,6 +212,23 @@ public sealed class ValidationRunStateViewModelTests
         Assert.That(item.Stages.Select(x => x.State), Is.All.EqualTo(ValidationRunState.Pending));
     }
 
+    [TestCase(ValidationRunState.Pending, "○", "#8a9a92")]
+    [TestCase(ValidationRunState.Running, "●", "#e0a128")]
+    [TestCase(ValidationRunState.Passed, "✓", "#2bf27a")]
+    [TestCase(ValidationRunState.Failed, "✗", "#d84f4f")]
+    public void Flow_showsAGlyphAndColourForEveryRunState(ValidationRunState state, string glyph, string color)
+    {
+        var item = Item();
+        Move(item, state);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(item.RunState, Is.EqualTo(state));
+            Assert.That(item.StatusGlyph, Is.EqualTo(glyph));
+            Assert.That(item.StatusColor, Is.EqualTo(color));
+        });
+    }
+
     [TestCase(true, ValidationRunState.Passed)]
     [TestCase(false, ValidationRunState.Failed)]
     public void Flow_completeFlowRecordsTheOutcomeAndMessage(bool passed, ValidationRunState expected)
@@ -264,6 +281,13 @@ public sealed class ValidationRunStateViewModelTests
         else if (state is ValidationRunState.Passed) stage.SetPassed();
         else if (state is ValidationRunState.Failed) stage.SetFailed();
         else stage.Reset();
+    }
+
+    private static void Move(ValidationFlowItemViewModel item, ValidationRunState state)
+    {
+        if (state is ValidationRunState.Running) item.BeginFlow();
+        else if (state is ValidationRunState.Passed) item.CompleteFlow(true, "ok");
+        else if (state is ValidationRunState.Failed) item.CompleteFlow(false, "failed");
     }
 
     private static ValidationStageViewModel Stage() =>
