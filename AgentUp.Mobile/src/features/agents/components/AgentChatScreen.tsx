@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GitChangesPanel } from '@/features/git/components/GitChangesPanel';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 type AgentTab = 'chat' | 'changes';
 
@@ -59,20 +60,20 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000000' },
+  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { flex: 1 },
   chatContent: { padding: 20, gap: 12 },
   changesContent: { padding: 20, paddingBottom: 32 },
-  chatTitle: { color: '#f5fbf7', fontSize: 24, fontWeight: '800' },
-  chatPlaceholder: { color: '#aebcb3', lineHeight: 22 },
+  chatTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 24, fontWeight: '800' },
+  chatPlaceholder: { color: agentUpTheme.colors.textMuted, lineHeight: 22 },
   bottomBar: {
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 14,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#287038',
-    backgroundColor: '#000000',
+    borderTopColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.canvas,
   },
   tabButton: {
     flex: 1,
@@ -81,10 +82,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#050505',
+    borderColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.surface,
   },
-  tabButtonActive: { borderColor: '#2bf27a', backgroundColor: '#08150d' },
-  tabLabel: { color: '#aebcb3', fontWeight: '700' },
-  tabLabelActive: { color: '#2bf27a' },
+  tabButtonActive: { borderColor: agentUpTheme.colors.accentSoft, backgroundColor: agentUpTheme.colors.surfaceSelected },
+  tabLabel: { color: agentUpTheme.colors.textMuted, fontWeight: '700' },
+  tabLabelActive: { color: agentUpTheme.colors.accentSoft },
 });

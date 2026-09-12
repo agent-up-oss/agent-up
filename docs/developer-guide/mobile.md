@@ -31,8 +31,9 @@ Server's injected audit endpoint. Outside a managed launch, audit delivery
 falls back to the Server URL being tested;
 audit delivery must never replace the connection result shown to the user.
 
-Mobile surfaces follow the docs site's black, green, off-white, and muted
-gray-green visual system, including its compact 8px card and control radii.
+Mobile surfaces consume the canonical `@agent-up/design-system` React Native
+binding generated from the shared HTML/CSS contract. They follow its black,
+neutral-structure, semantic-green visual system and compact 8px control radii.
 Root application surfaces remain black through device safe areas so
 iOS status-bar and Dynamic Island insets do not expose a different background.
 

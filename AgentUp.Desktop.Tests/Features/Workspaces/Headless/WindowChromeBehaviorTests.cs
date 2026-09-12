@@ -1,5 +1,7 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using Avalonia.Media;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
@@ -7,6 +9,18 @@ namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
 [TestFixture]
 public class WindowChromeBehaviorTests
 {
+    [AvaloniaTest]
+    public void Application_resolvesCanonicalDesignSystemBrushes()
+    {
+        var application = Application.Current ?? throw new InvalidOperationException("Avalonia application is unavailable.");
+        Assert.That(application.TryFindResource("AgentUpColorCanvasBrush", out var canvas), Is.True);
+        Assert.That(canvas, Is.TypeOf<SolidColorBrush>());
+        Assert.That(((SolidColorBrush)canvas!).Color, Is.EqualTo(Color.Parse("#000000")));
+        Assert.That(application.TryFindResource("AgentUpColorAccentBrush", out var accent), Is.True);
+        Assert.That(accent, Is.TypeOf<SolidColorBrush>());
+        Assert.That(((SolidColorBrush)accent!).Color, Is.EqualTo(Color.Parse("#00b850")));
+    }
+
     [AvaloniaTest]
     public async Task Window_usesIntegratedChrome_insteadOfSystemDecorations()
     {

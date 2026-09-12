@@ -20,8 +20,8 @@ public sealed class WebViewErrorBannerTests
             new Uri("http://localhost:3000/missing"));
 
         Assert.That(html, Does.Contain("background: #000000"));
-        Assert.That(html, Does.Contain("border: 1px solid #287038"));
-        Assert.That(html, Does.Contain("color: #00d66b"));
+        Assert.That(html, Does.Contain("border: 1px solid #2b2b2b"));
+        Assert.That(html, Does.Contain("color: #2bf27a"));
         Assert.That(html, Does.Contain("Not found 404"));
         Assert.That(html, Does.Contain("http://localhost:3000/missing"));
         Assert.That(html, Does.Not.Contain("Agent-Up browser"));

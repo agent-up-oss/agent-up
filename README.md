@@ -11,7 +11,7 @@
 </p>
 <p align="center">
   <a href="https://github.com/agent-up-oss/agent-up/">
-    <img width="80%" src="media/screenshot.png" alt="screenshot">
+    <img width="80%" src="media/screenshot.png" alt="Agent-Up showing isolated workspaces, an allocated port, application tabs, and the workspace browser surface">
   </a>
 </p>
 
@@ -135,6 +135,16 @@ dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:500
 - [Current limitations](docs/user-docs/limitations.md)
 - [Roadmap](docs/user-docs/roadmap.md)
 - [Developer guide](docs/developer-guide/index.md)
+- [Design system](docs/developer-guide/design-system.md)
+
+## Design And Marketing
+
+`AgentUp.DesignSystem/` is the single source of truth for Agent-Up product UI,
+documentation, screenshots, and marketing presentation. Its canonical HTML/CSS
+contract compiles to the React Native and Avalonia bindings consumed by Mobile
+and Desktop. The public responsive showcase is linked from the documentation
+site footer at `/design-system`; implementation and external-repository usage are
+defined in the [design-system developer guide](docs/developer-guide/design-system.md).
 
 Build the docs locally:
 

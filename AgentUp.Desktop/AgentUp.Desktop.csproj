@@ -33,7 +33,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpThemeColors.g.cs" Link="Shared/Models/AgentUpThemeColors.g.cs" />
     <AvaloniaResource Include="../media/logo.png" Link="media/logo.png" />
+    <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpTheme.axaml" Link="DesignSystem/AgentUpTheme.axaml" />
     <Content Include="../media/logo.png" Link="media/logo.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

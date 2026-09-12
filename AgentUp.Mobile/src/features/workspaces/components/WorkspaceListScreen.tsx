@@ -3,6 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 export function WorkspaceListScreen() {
   const { server, workspaces, selectedWorkspace, loading, error, selectWorkspace, refresh, clone } = useWorkspaces();
@@ -41,7 +42,7 @@ export function WorkspaceListScreen() {
         {server ? `Connected to ${server.url}` : 'No server selected. Add one on the Servers tab.'}
       </Text>
 
-      {loading && <ActivityIndicator color="#00d66b" />}
+      {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
       {workspaces.map(workspace => {
@@ -78,12 +79,12 @@ export function WorkspaceListScreen() {
 
           <Text style={styles.label}>Repository</Text>
           <TextInput accessibilityLabel="Repository" autoCapitalize="none" autoCorrect={false}
-            placeholder="https://github.com/acme/widgets.git" placeholderTextColor="#718077"
+            placeholder="https://github.com/acme/widgets.git" placeholderTextColor={agentUpTheme.colors.textFaint}
             value={repository} onChangeText={setRepository} editable={!cloning} style={styles.input} />
 
           <Text style={styles.label}>Branch</Text>
           <TextInput accessibilityLabel="Branch" autoCapitalize="none" autoCorrect={false}
-            placeholder="main" placeholderTextColor="#718077"
+            placeholder="main" placeholderTextColor={agentUpTheme.colors.textFaint}
             value={branch} onChangeText={setBranch} editable={!cloning} style={styles.input} />
 
           {!!cloneError && <Text accessibilityRole="alert" style={styles.error}>{cloneError}</Text>}
@@ -95,7 +96,7 @@ export function WorkspaceListScreen() {
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Clone" disabled={!canConfirm}
               onPress={() => void confirmClone()} style={[styles.button, !canConfirm && styles.disabled]}>
-              {cloning ? <ActivityIndicator color="#000000" /> : <Text style={styles.buttonText}>Clone</Text>}
+              {cloning ? <ActivityIndicator color={agentUpTheme.colors.canvas} /> : <Text style={styles.buttonText}>Clone</Text>}
             </Pressable>
           </View>
         </View>
@@ -105,39 +106,39 @@ export function WorkspaceListScreen() {
 }
 
 function stateColor(state: string): string {
-  if (state === 'Running') return '#00d66b';
-  if (state === 'Starting' || state === 'Stopping') return '#e0a33c';
-  if (state === 'Failed') return '#d84f4f';
-  return '#718077';
+  if (state === 'Running') return agentUpTheme.colors.accent;
+  if (state === 'Starting' || state === 'Stopping') return agentUpTheme.colors.statusWarning;
+  if (state === 'Failed') return agentUpTheme.colors.statusDanger;
+  return agentUpTheme.colors.textFaint;
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000000' },
+  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { padding: 20, paddingTop: 78, paddingBottom: 32, gap: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: '#f5fbf7', fontSize: 32, lineHeight: 36, fontWeight: '800' },
-  addButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
-  addIcon: { color: '#2bf27a', fontSize: 26, lineHeight: 30, fontWeight: '800' },
-  subtitle: { color: '#aebcb3', fontSize: 14 },
-  card: { padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 5 },
-  selectedCard: { borderColor: '#2bf27a', backgroundColor: '#08150d' },
+  title: { color: agentUpTheme.colors.textPrimary, fontSize: 32, lineHeight: 36, fontWeight: '800' },
+  addButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface },
+  addIcon: { color: agentUpTheme.colors.accentSoft, fontSize: 26, lineHeight: 30, fontWeight: '800' },
+  subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 14 },
+  card: { padding: 16, borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, gap: 5 },
+  selectedCard: { borderColor: agentUpTheme.colors.accentSoft, backgroundColor: agentUpTheme.colors.surfaceSelected },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stateDot: { width: 8, height: 8, borderRadius: 4 },
-  cardTitle: { color: '#f5fbf7', fontSize: 17, fontWeight: '700', flexShrink: 1 },
-  cardBranch: { color: '#9fb2a8', fontSize: 13 },
-  cardPath: { color: '#718077', fontSize: 11 },
-  empty: { color: '#aebcb3', lineHeight: 21 },
-  error: { color: '#d84f4f', lineHeight: 21 },
-  label: { color: '#f5fbf7', fontWeight: '700' },
-  input: { minHeight: 48, borderRadius: 8, borderWidth: 1, borderColor: '#287038', paddingHorizontal: 14, color: '#f5fbf7', backgroundColor: '#080808' },
-  button: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#00d66b' },
-  buttonText: { color: '#000000', fontWeight: '800' },
-  secondaryButton: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
-  secondaryButtonText: { color: '#f5fbf7', fontWeight: '700' },
+  cardTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 17, fontWeight: '700', flexShrink: 1 },
+  cardBranch: { color: agentUpTheme.colors.textMuted, fontSize: 13 },
+  cardPath: { color: agentUpTheme.colors.textFaint, fontSize: 11 },
+  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
+  error: { color: agentUpTheme.colors.statusDanger, lineHeight: 21 },
+  label: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
+  input: { minHeight: 48, borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, paddingHorizontal: 14, color: agentUpTheme.colors.textPrimary, backgroundColor: agentUpTheme.colors.surfaceRaised },
+  button: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: agentUpTheme.colors.accent },
+  buttonText: { color: agentUpTheme.colors.canvas, fontWeight: '800' },
+  secondaryButton: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface },
+  secondaryButtonText: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
   disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.72)' },
-  dialog: { width: '100%', maxWidth: 480, padding: 20, borderRadius: 10, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 10 },
-  dialogTitle: { color: '#f5fbf7', fontSize: 22, fontWeight: '800' },
-  dialogDetail: { color: '#aebcb3', lineHeight: 21 },
+  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: agentUpTheme.colors.scrim },
+  dialog: { width: '100%', maxWidth: 480, padding: 20, borderRadius: 10, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, gap: 10 },
+  dialogTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 22, fontWeight: '800' },
+  dialogDetail: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
 });

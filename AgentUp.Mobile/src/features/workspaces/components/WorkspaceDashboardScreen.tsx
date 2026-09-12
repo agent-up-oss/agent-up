@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 type WorkspaceDashboardScreenProps = {
   workspace: Workspace;
@@ -40,7 +41,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>{workspace.branch} · {workspace.state}</Text>
 
-      {loading && <ActivityIndicator color="#00d66b" />}
+      {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
       <Pressable accessibilityRole="button" accessibilityLabel="Open workspace agent chat" onPress={openAgent} style={styles.agentCard}>
@@ -93,40 +94,40 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
 }
 
 function applicationStateColor(state: string): string {
-  if (state === 'Running') return '#00d66b';
-  if (state === 'Starting' || state === 'Stopping') return '#e0a33c';
-  if (state === 'Failed') return '#d84f4f';
-  return '#718077';
+  if (state === 'Running') return agentUpTheme.colors.accent;
+  if (state === 'Starting' || state === 'Stopping') return agentUpTheme.colors.statusWarning;
+  if (state === 'Failed') return agentUpTheme.colors.statusDanger;
+  return agentUpTheme.colors.textFaint;
 }
 
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 32, gap: 18 },
-  subtitle: { color: '#aebcb3', fontSize: 14 },
-  error: { color: '#d84f4f', lineHeight: 21 },
+  subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 14 },
+  error: { color: agentUpTheme.colors.statusDanger, lineHeight: 21 },
   agentCard: {
     padding: 18,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#2bf27a',
-    backgroundColor: '#08150d',
+    borderColor: agentUpTheme.colors.accentSoft,
+    backgroundColor: agentUpTheme.colors.surfaceSelected,
     gap: 8,
   },
-  agentTitle: { color: '#f5fbf7', fontSize: 22, fontWeight: '800' },
-  agentDetail: { color: '#aebcb3', lineHeight: 21 },
-  agentAction: { color: '#2bf27a', fontWeight: '700' },
+  agentTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 22, fontWeight: '800' },
+  agentDetail: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
+  agentAction: { color: agentUpTheme.colors.accentSoft, fontWeight: '700' },
   section: { gap: 10 },
-  sectionTitle: { color: '#f5fbf7', fontSize: 18, fontWeight: '800' },
-  empty: { color: '#aebcb3', lineHeight: 21 },
+  sectionTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 18, fontWeight: '800' },
+  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
   listCard: {
     padding: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#050505',
+    borderColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.surface,
     gap: 4,
   },
   listHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stateDot: { width: 8, height: 8, borderRadius: 4 },
-  listTitle: { color: '#f5fbf7', fontSize: 16, fontWeight: '700' },
-  listDetail: { color: '#9fb2a8', fontSize: 13 },
+  listTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 16, fontWeight: '700' },
+  listDetail: { color: agentUpTheme.colors.textMuted, fontSize: 13 },
 });

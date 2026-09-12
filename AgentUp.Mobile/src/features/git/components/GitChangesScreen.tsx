@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GitChangesPanel } from './GitChangesPanel';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 /** @deprecated Use GitChangesPanel inside the agent Changes tab. */
 export function GitChangesScreen() {
@@ -14,6 +15,6 @@ export function GitChangesScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000000' },
+  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { padding: 20, paddingBottom: 32 },
 });

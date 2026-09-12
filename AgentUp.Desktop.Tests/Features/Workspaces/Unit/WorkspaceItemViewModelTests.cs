@@ -24,12 +24,12 @@ public class WorkspaceItemViewModelTests
     }
 
     [Test]
-    [TestCase("Running", "#00d66b")]
-    [TestCase("Failed", "#b85a5a")]
-    [TestCase("Stopped", "#5a5a72")]
-    [TestCase("Starting", "#5a5a72")]
-    [TestCase("Stopping", "#5a5a72")]
-    [TestCase("Unknown", "#5a5a72")]
+    [TestCase("Running", "#22c55e")]
+    [TestCase("Failed", "#d84f4f")]
+    [TestCase("Stopped", "#8a9a92")]
+    [TestCase("Starting", "#8a9a92")]
+    [TestCase("Stopping", "#8a9a92")]
+    [TestCase("Unknown", "#8a9a92")]
     public void StateColor_reflectsWorkspaceState(string state, string expectedColor)
     {
         var vm = new WorkspaceItemViewModel("id", "App", "main", "/repo", "/worktree", state);

@@ -1,0 +1,43 @@
+.page { min-height: 100vh; }
+.hero { background: var(--au-color-canvas); }
+.section { scroll-margin-top: 7rem; }
+.sectionBody { display: grid; gap: var(--au-space-8); margin-top: var(--au-space-8); }
+.localNav { position: sticky; top: var(--ifm-navbar-height); z-index: 9; padding-block: var(--au-space-3); background: color-mix(in srgb, var(--au-color-canvas) 94%, transparent); border-block: 1px solid var(--au-color-border-subtle); backdrop-filter: blur(12px); }
+.localNav a { color: var(--au-color-text-muted); font-size: var(--au-font-size-sm); font-weight: var(--au-weight-bold); text-decoration: none; }
+.localNav a:hover { color: var(--au-color-text-primary); }
+.demoShell { display: grid; grid-template-columns: 11rem minmax(0, 1fr); min-height: 25rem; }
+.demoShell aside { padding: var(--au-space-4); border-right: 1px solid var(--au-color-border-subtle); }
+.workspace { display: flex; align-items: center; gap: var(--au-space-2); margin-top: var(--au-space-3); padding: var(--au-space-3); border-radius: var(--au-radius-md); color: var(--au-color-text-secondary); }
+.workspace small { display: block; color: var(--au-color-text-muted); }
+.workspaceActive { color: var(--au-color-text-primary); background: var(--au-color-surface-selected-strong); }
+.demoMain { min-width: 0; }
+.demoContent { min-height: 20rem; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: clamp(1.5rem, 5vw, 4rem); }
+.demoContent h3 { margin: var(--au-space-5) 0 var(--au-space-2); font-size: var(--au-font-size-xl); }
+.demoContent p { max-width: 30rem; color: var(--au-color-text-muted); }
+.swatch { display: grid; grid-template-columns: 3rem minmax(0, 1fr); align-items: center; column-gap: var(--au-space-3); }
+.swatchColor { grid-row: span 2; width: 3rem; height: 3rem; border: 1px solid var(--au-color-border-strong); border-radius: var(--au-radius-md); }
+.swatch h3, .swatch code { min-width: 0; overflow-wrap: anywhere; }
+.swatch p, .swatch > span { grid-column: 1 / -1; }
+.typeSpecimen { display: grid; gap: var(--au-space-4); padding-block: var(--au-space-8); }
+.typeHero { max-width: 15ch; margin: 0; color: var(--au-color-text-primary); font-size: clamp(2.5rem, 7vw, 5rem); line-height: 0.98; font-weight: var(--au-weight-black); letter-spacing: -0.035em; }
+.componentLab { display: grid; gap: var(--au-space-6); max-width: 58rem; }
+.surfaceGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--au-space-4); }
+.surfaceGrid article { display: grid; align-content: start; gap: var(--au-space-4); }
+.surfaceGrid :global(.au-badge) { justify-self: start; }
+.surfaceGrid li { margin-block: var(--au-space-2); color: var(--au-color-text-muted); }
+.voiceGrid { display: grid; gap: var(--au-space-4); }
+.voiceCopy { max-width: 54rem; margin: 0; font-size: clamp(1.2rem, 3vw, 2rem); line-height: 1.35; font-weight: var(--au-weight-semibold); }
+.logoStage { min-height: 20rem; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: var(--au-space-8); padding: clamp(1.5rem, 6vw, 4rem); background: var(--au-color-surface); border: 1px solid var(--au-color-border-subtle); border-radius: var(--au-radius-md); }
+.logoStage :global(.au-logo-lockup) { font-size: clamp(2rem, 7vw, 5rem); }
+.logoStage img { width: 0.9em; height: 0.9em; }
+.governanceFlow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--au-space-3); padding: var(--au-space-6); background: var(--au-color-surface); border: 1px solid var(--au-color-border-subtle); border-radius: var(--au-radius-md); }
+.governanceFlow span { padding: var(--au-space-3) var(--au-space-4); background: var(--au-color-surface-raised); border: 1px solid var(--au-color-border-strong); border-radius: var(--au-radius-md); font-weight: var(--au-weight-bold); }
+.governanceFlow b { color: var(--au-color-accent-soft); }
+
+@media (max-width: 760px) {
+  .localNav { position: static; }
+  .demoShell { grid-template-columns: 1fr; }
+  .demoShell aside { border-right: 0; border-bottom: 1px solid var(--au-color-border-subtle); }
+  .surfaceGrid, .logoStage { grid-template-columns: 1fr; }
+  .demoContent { min-height: 16rem; }
+}

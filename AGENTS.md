@@ -61,6 +61,9 @@ AgentUp.Desktop/
 AgentUp.Mobile/
   package.json
 
+AgentUp.DesignSystem/
+  package.json
+
 AgentUp.WebAudit/
   package.json
 
@@ -123,6 +126,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
+| `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia bindings consumed by Agent-Up surfaces and external marketing repositories |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
@@ -993,6 +997,24 @@ Read: `docs/developer-guide/packaging.md`.
 ## Design Principles
 
 Agent-Up must remain framework agnostic, cross-platform, declarative, and zero-touch for application source code.
+
+`AgentUp.DesignSystem/` is the single source of truth for all Agent-Up product UI,
+documentation, screenshots, illustrations, and marketing presentation. Its
+canonical sources are HTML/CSS plus the structured brand voice contract; its
+generated React Native and Avalonia bindings are hard dependencies of Mobile and
+Desktop. Never add a raw product color to Desktop, Mobile, docs, or marketing
+when a semantic design-system role exists. Never edit generated files under
+`AgentUp.DesignSystem/dist/`; change the canonical CSS and regenerate them.
+
+Desktop is the reference rendering. Use black canvas, neutral structural borders,
+off-white hierarchy, and green only for action, selection, progress, or healthy
+state. Ambient neon glow, decorative green grids, and green outlines around every
+surface are retired. Public claims must follow the naming, positioning, and
+`Available`/`Preview`/`Experimental`/`Planned` lifecycle language in
+`AgentUp.DesignSystem/brand/voice.json`. Real current product screenshots are
+preferred over reconstructed interfaces; planned UI must be labeled visibly.
+
+Read: `docs/developer-guide/design-system.md`.
 
 Read: `docs/developer-guide/design-principles.md`.
 

@@ -5,12 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { useAppShell } from '../controllers/AppShellContext';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 function workspaceStateColor(state: string): string {
-  if (state === 'Running') return '#00d66b';
-  if (state === 'Starting' || state === 'Stopping') return '#e0a33c';
-  if (state === 'Failed') return '#d84f4f';
-  return '#718077';
+  if (state === 'Running') return agentUpTheme.colors.accent;
+  if (state === 'Starting' || state === 'Stopping') return agentUpTheme.colors.statusWarning;
+  if (state === 'Failed') return agentUpTheme.colors.statusDanger;
+  return agentUpTheme.colors.textFaint;
 }
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
@@ -81,17 +82,17 @@ export function WorkspaceSidebar() {
 
 const styles = StyleSheet.create({
   modal: { flex: 1, flexDirection: 'row' },
-  scrim: { position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.68)' },
+  scrim: { position: 'absolute', inset: 0, backgroundColor: agentUpTheme.colors.scrim },
   sidebar: {
     width: 280,
     height: '100%',
     paddingHorizontal: 16,
-    backgroundColor: '#050505',
+    backgroundColor: agentUpTheme.colors.surface,
     borderRightWidth: 1,
-    borderRightColor: '#287038',
+    borderRightColor: agentUpTheme.colors.borderSelected,
   },
   defaultContent: { flex: 1, gap: 12 },
-  sectionLabel: { color: '#aebcb3', fontSize: 11, textTransform: 'uppercase', fontWeight: '700' },
+  sectionLabel: { color: agentUpTheme.colors.textMuted, fontSize: 11, textTransform: 'uppercase', fontWeight: '700' },
   workspaceList: { gap: 8, paddingBottom: 12 },
   workspaceRow: {
     flexDirection: 'row',
@@ -100,25 +101,25 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#080808',
+    borderColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.surfaceRaised,
   },
-  workspaceRowSelected: { borderColor: '#2bf27a', backgroundColor: '#08150d' },
+  workspaceRowSelected: { borderColor: agentUpTheme.colors.accentSoft, backgroundColor: agentUpTheme.colors.surfaceSelected },
   stateDot: { width: 8, height: 8, borderRadius: 4 },
   workspaceText: { flex: 1, gap: 2 },
-  workspaceName: { color: '#f5fbf7', fontWeight: '700' },
-  workspaceBranch: { color: '#9fb2a8', fontSize: 12 },
-  empty: { color: '#aebcb3', lineHeight: 20 },
-  serverFooter: { marginTop: 'auto', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#287038' },
-  serverUrl: { color: '#f5fbf7', fontSize: 12, lineHeight: 16 },
+  workspaceName: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
+  workspaceBranch: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
+  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 20 },
+  serverFooter: { marginTop: 'auto', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: agentUpTheme.colors.borderSelected },
+  serverUrl: { color: agentUpTheme.colors.textPrimary, fontSize: 12, lineHeight: 16 },
   footerButton: {
     minHeight: 40,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#080808',
+    borderColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.surfaceRaised,
   },
-  footerButtonText: { color: '#2bf27a', fontWeight: '700' },
+  footerButtonText: { color: agentUpTheme.colors.accentSoft, fontWeight: '700' },
 });

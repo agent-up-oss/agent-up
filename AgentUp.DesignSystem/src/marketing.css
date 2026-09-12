@@ -1,0 +1,19 @@
+/* Canonical reusable marketing compositions. Product UI remains the visual source. */
+.au-marketing-hero { min-height: min(50rem, calc(100svh - 4rem)); display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(34rem, 1.15fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); padding-block: clamp(4rem, 9vw, 8rem); }
+.au-product-frame { overflow: hidden; min-width: 0; color: var(--au-color-text-primary); background: var(--au-color-canvas); border: 1px solid var(--au-color-border-strong); border-radius: var(--au-radius-md); box-shadow: var(--au-shadow-raised); }
+.au-product-frame__chrome { min-height: 2.5rem; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 var(--au-space-3); border-bottom: 1px solid var(--au-color-border-subtle); font-size: var(--au-font-size-sm); font-weight: var(--au-weight-bold); }
+.au-product-frame__actions { justify-self: end; color: var(--au-color-text-muted); letter-spacing: 0.5em; }
+.au-proof { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; overflow: hidden; background: var(--au-color-border-subtle); border: 1px solid var(--au-color-border-subtle); border-radius: var(--au-radius-md); }
+.au-proof > * { min-width: 0; padding: var(--au-space-5); background: var(--au-color-surface); }
+.au-logo-lockup { display: inline-flex; align-items: center; gap: var(--au-space-3); color: var(--au-color-text-primary); font-weight: var(--au-weight-black); }
+.au-logo-lockup img, .au-logo-mark { width: 1.75rem; height: 1.75rem; object-fit: contain; }
+.au-do-dont { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--au-space-4); }
+.au-do-dont__label { display: flex; align-items: center; gap: var(--au-space-2); margin-bottom: var(--au-space-3); font-weight: var(--au-weight-bold); }
+.au-do-dont__label--do { color: var(--au-color-status-healthy); }
+.au-do-dont__label--dont { color: var(--au-color-status-danger); }
+
+@media (max-width: 860px) {
+  .au-marketing-hero { min-height: auto; grid-template-columns: 1fr; }
+  .au-proof { grid-template-columns: 1fr; }
+  .au-do-dont { grid-template-columns: 1fr; }
+}

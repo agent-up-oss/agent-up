@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ServersProvider } from '@/features/servers/controllers/ServersContext';
 import { WorkspacesProvider } from '@/features/workspaces/controllers/WorkspacesContext';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 export default function RootLayout() {
   return (
@@ -11,7 +12,7 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <ServersProvider>
         <WorkspacesProvider>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#000000' } }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: agentUpTheme.colors.canvas } }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="connect" />
             <Stack.Screen name="(main)" />
@@ -23,5 +24,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#000000' },
+  safeArea: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
 });

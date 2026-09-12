@@ -10,10 +10,10 @@
     "web": "nix-shell ../shell.nix --run 'node scripts/start-web.mjs'",
     "serve:web": "nix-shell ../shell.nix --run 'node scripts/serve-web.mjs'",
     "install:agent-up": "npm install --package-lock=false && npm run build:web",
-    "build:web": "nix-shell ../shell.nix --run 'node scripts/export-web.mjs'",
+    "build:web": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && node scripts/export-web.mjs'",
     "build:cloudflare": "node scripts/export-web.mjs",
-    "test": "nix-shell ../shell.nix --run 'tsc --noEmit -p tsconfig.test.json && tsx --test src/features/servers/providers/*.test.ts src/features/authentication/providers/*.test.ts src/features/workspaces/providers/*.test.ts src/features/git/providers/*.test.ts && node --test scripts/*.test.mjs'",
-    "typecheck": "nix-shell ../shell.nix --run 'tsc --noEmit'"
+    "test": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && tsc --noEmit -p tsconfig.test.json && tsx --test src/features/servers/providers/*.test.ts src/features/authentication/providers/*.test.ts src/features/workspaces/providers/*.test.ts src/features/git/providers/*.test.ts && node --test scripts/*.test.mjs'",
+    "typecheck": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && tsc --noEmit'"
   },
   "dependencies": {
     "@agent-up/audit": "file:../AgentUp.WebAudit",
@@ -27,7 +27,8 @@
     "react-native": "0.86.2",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-web": "~0.21.0"
+    "react-native-web": "~0.21.0",
+    "@agent-up/design-system": "file:../AgentUp.DesignSystem"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

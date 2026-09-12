@@ -1,0 +1,71 @@
+---
+title: Design System
+sidebar_position: 12
+---
+
+# Design system
+
+`AgentUp.DesignSystem/` is the single source of truth for Agent-Up product UI,
+documentation, and marketing presentation. Its canonical format is HTML and CSS
+so another repository can consume the same contract through an npm dependency or
+an Agent-Up Git submodule.
+
+The public showcase is available at [/design-system](/design-system). It is linked
+from the site footer rather than the primary product navigation.
+
+## Ownership and sources
+
+- `src/agent-up.css` owns semantic colors, typography, spacing, shape,
+  accessibility defaults, layout primitives, and reusable interface components.
+- `src/marketing.css` owns campaign and product-frame compositions.
+- `brand/voice.json` owns product naming, positioning, capability lifecycle
+  language, and editorial principles.
+- `scripts/build.mjs` deterministically copies web assets and compiles the CSS
+  custom properties into React Native and Avalonia bindings under `dist/`.
+
+Files under `AgentUp.DesignSystem/dist/` are generated definition artifacts. Do
+not edit them directly. Change the canonical CSS, run the design-system build,
+and review every consumer.
+
+## Consumer boundaries
+
+The documentation site imports the CSS package directly. Mobile imports
+`agentUpTheme` from `@agent-up/design-system/native`. Desktop includes the
+generated `AgentUpTheme.axaml` resource dictionary and resolves semantic brushes
+from it.
+
+These are hard dependencies rather than examples copied into each project. A
+change to the canonical CSS is incomplete until all generated bindings are
+current and the Desktop, Mobile, docs, design showcase, and marketing-template
+checks pass.
+
+## Visual rules
+
+Desktop is the reference rendering:
+
+- Black is the uninterrupted canvas.
+- Neutral gray borders define structure.
+- Off-white and muted gray-green establish text hierarchy.
+- Green is limited to primary action, selection, progress, and healthy state.
+- Blue focus remains distinct from green success.
+- Red identifies errors, failures, and destructive actions.
+- Ambient neon glow, decorative green grids, and green borders around every
+  surface are retired.
+- Product UI and real product screenshots are preferred to speculative
+  illustrations.
+
+Mobile translates that hierarchy to touch-safe control sizes. Documentation
+prioritizes reading. Marketing gets one focal point, one outcome, and a visible
+`Available`, `Preview`, `Experimental`, or `Planned` label when it describes a
+capability.
+
+## Commands
+
+```bash
+npm --prefix AgentUp.DesignSystem run build
+npm --prefix AgentUp.DesignSystem run check
+npm --prefix AgentUp.DesignSystem test
+```
+
+The `check` command fails when a generated web, React Native, or Avalonia binding
+does not exactly match the canonical CSS.

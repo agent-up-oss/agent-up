@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Headless;
+using Avalonia.Markup.Xaml.Styling;
 using Avalonia.ReactiveUI;
 using Avalonia.Themes.Fluent;
 
@@ -11,6 +12,10 @@ public class TestApp : Application
 {
     public override void Initialize()
     {
+        Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://AgentUp.Desktop/"))
+        {
+            Source = new Uri("avares://AgentUp.Desktop/DesignSystem/AgentUpTheme.axaml")
+        });
         Styles.Add(new FluentTheme());
     }
 

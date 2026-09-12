@@ -1,3 +1,4 @@
+import { agentUpTheme } from '@agent-up/design-system/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
@@ -105,7 +106,7 @@ export function GitChangesPanel() {
     <View style={styles.panel}>
       <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
 
-      {loading && <ActivityIndicator color="#00d66b" />}
+      {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
       {!loading && !error && nodes.length === 0 && selectedWorkspace &&
@@ -136,12 +137,12 @@ export function GitChangesPanel() {
 
       <Text style={styles.label}>Commit message</Text>
       <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
-        editable={!committing} placeholder="fix(App): correct the port probe" placeholderTextColor="#718077"
+        editable={!committing} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
         style={styles.messageInput} />
 
       <Pressable accessibilityRole="button" accessibilityLabel="Commit" disabled={!canCommit}
         onPress={() => void commit()} style={[styles.button, !canCommit && styles.disabled]}>
-        {committing ? <ActivityIndicator color="#000000" /> : <Text style={styles.buttonText}>Commit</Text>}
+        {committing ? <ActivityIndicator color={agentUpTheme.colors.canvas} /> : <Text style={styles.buttonText}>Commit</Text>}
       </Pressable>
 
       <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
@@ -149,7 +150,7 @@ export function GitChangesPanel() {
           <View style={styles.dialog}>
             <Text accessibilityRole="header" numberOfLines={2} style={styles.dialogTitle}>{diffPath}</Text>
             {diffLoading
-              ? <ActivityIndicator color="#00d66b" />
+              ? <ActivityIndicator color={agentUpTheme.colors.accent} />
               : <ScrollView horizontal style={styles.diffScroll}>
                   <ScrollView>
                     <Text style={styles.diffText}>{diffText(diff)}</Text>
@@ -174,29 +175,29 @@ function diffText(diff: GitFileDiff | null): string {
 
 const styles = StyleSheet.create({
   panel: { gap: 12 },
-  summary: { color: '#789085', fontSize: 12 },
-  empty: { color: '#aebcb3', lineHeight: 21 },
-  error: { color: '#d84f4f', lineHeight: 21 },
-  status: { color: '#2bf27a', lineHeight: 21 },
-  tree: { borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', paddingVertical: 6 },
+  summary: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
+  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
+  error: { color: agentUpTheme.colors.statusDanger, lineHeight: 21 },
+  status: { color: agentUpTheme.colors.accentSoft, lineHeight: 21 },
+  tree: { borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, paddingVertical: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10, paddingVertical: 5 },
-  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: '#287038', alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: { backgroundColor: '#0f7a45', borderColor: '#2bf27a' },
-  checkmark: { color: '#f5fbf7', fontSize: 12, lineHeight: 14 },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: agentUpTheme.colors.surfaceSelectedStrong, borderColor: agentUpTheme.colors.accentSoft },
+  checkmark: { color: agentUpTheme.colors.textPrimary, fontSize: 12, lineHeight: 14 },
   glyph: { width: 14, fontSize: 12, fontWeight: '800' },
   nameButton: { flexShrink: 1 },
-  directoryName: { color: '#9fb2a8', fontSize: 14, fontWeight: '700' },
-  fileName: { color: '#f5fbf7', fontSize: 14 },
-  label: { color: '#f5fbf7', fontWeight: '700' },
-  messageInput: { minHeight: 90, borderRadius: 8, borderWidth: 1, borderColor: '#287038', padding: 12, color: '#f5fbf7', backgroundColor: '#080808', textAlignVertical: 'top' },
-  button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#00d66b' },
-  buttonText: { color: '#000000', fontWeight: '800' },
-  secondaryButton: { minHeight: 44, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
-  secondaryButtonText: { color: '#f5fbf7', fontWeight: '700' },
+  directoryName: { color: agentUpTheme.colors.textMuted, fontSize: 14, fontWeight: '700' },
+  fileName: { color: agentUpTheme.colors.textPrimary, fontSize: 14 },
+  label: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
+  messageInput: { minHeight: 90, borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, padding: 12, color: agentUpTheme.colors.textPrimary, backgroundColor: agentUpTheme.colors.surfaceRaised, textAlignVertical: 'top' },
+  button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: agentUpTheme.colors.accent },
+  buttonText: { color: agentUpTheme.colors.canvas, fontWeight: '800' },
+  secondaryButton: { minHeight: 44, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface },
+  secondaryButtonText: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
   disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.72)' },
-  dialog: { width: '100%', maxWidth: 620, maxHeight: '85%', padding: 18, borderRadius: 10, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 12 },
-  dialogTitle: { color: '#f5fbf7', fontSize: 16, fontWeight: '800' },
+  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: agentUpTheme.colors.scrim },
+  dialog: { width: '100%', maxWidth: 620, maxHeight: '85%', padding: 18, borderRadius: 10, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, gap: 12 },
+  dialogTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 16, fontWeight: '800' },
   diffScroll: { flexGrow: 0 },
-  diffText: { color: '#c6ddd2', fontSize: 12, fontFamily: 'monospace' },
+  diffText: { color: agentUpTheme.colors.textSecondary, fontSize: 12, fontFamily: 'monospace' },
 });

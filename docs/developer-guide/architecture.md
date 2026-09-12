@@ -9,6 +9,7 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 - `AgentUp.Server`
 - `AgentUp.Desktop`
 - `AgentUp.Mobile`
+- `AgentUp.DesignSystem`
 - `AgentUp.WebAudit`
 - `AgentUp.CLI`
 - `AgentUp.InstallerApp`
@@ -42,6 +43,9 @@ AgentUp.Capabilities.Docker/
 
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
+
+AgentUp.DesignSystem/
+  package.json
 
 AgentUp.CLI/
   AgentUp.CLI.csproj
@@ -85,6 +89,13 @@ AgentUp.Tests/
 
 `AgentUp.Mobile/` also lives at the repository root, but it is an Expo project
 and is not referenced by `agent-up.sln`.
+
+`AgentUp.DesignSystem/` is the repository's canonical HTML/CSS product,
+documentation, and marketing contract. It is outside `agent-up.sln`; Desktop
+includes its generated Avalonia resources and C# constants, while Mobile and docs
+consume it as the local `@agent-up/design-system` package. External marketing
+repositories may consume the same package through a Git submodule and `file:`
+dependency instead of copying styles or brand rules.
 
 `AgentUp.WebAudit/` is the separately publishable `@agent-up/audit` TypeScript
 browser client and is also outside `agent-up.sln`. It submits events only; the

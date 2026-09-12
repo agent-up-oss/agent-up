@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 export function WelcomeScreen() {
   return (
@@ -25,7 +26,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#000000',
+    backgroundColor: agentUpTheme.colors.canvas,
   },
   card: {
     width: '100%',
@@ -33,22 +34,22 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 32,
     borderWidth: 1,
-    borderColor: '#287038',
+    borderColor: agentUpTheme.colors.borderSelected,
     borderRadius: 8,
-    backgroundColor: '#050505',
+    backgroundColor: agentUpTheme.colors.surface,
   },
   title: {
-    color: '#f5fbf7',
+    color: agentUpTheme.colors.textPrimary,
     fontSize: 36,
     fontWeight: '700',
   },
   subtitle: {
-    color: '#f5fbf7',
+    color: agentUpTheme.colors.textPrimary,
     fontSize: 20,
     lineHeight: 28,
   },
   detail: {
-    color: '#aebcb3',
+    color: agentUpTheme.colors.textMuted,
     fontSize: 15,
     lineHeight: 22,
   },

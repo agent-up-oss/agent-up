@@ -18,6 +18,7 @@ using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Shared.Models;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
@@ -91,11 +92,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal bool IsConsoleWebViewHiddenForTests =>
         _consoleWebView is null || !_consoleWebView.IsVisible;
 
-    private const string SelectionJs =
+    private static readonly string SelectionJs =
         "(function(){" +
         "if(!document.getElementById('_au_sel')){" +
         "var st=document.createElement('style');st.id='_au_sel';" +
-        "st.textContent='::selection{background-color:#0f7a45!important;color:#f5fbf7!important}';" +
+        $"st.textContent='::selection{{background-color:{AgentUpThemeColors.SurfaceSelectedStrong}!important;color:{AgentUpThemeColors.TextPrimary}!important}}';" +
         "(document.head||document.documentElement).appendChild(st);}" +
         "var active=false;" +
         "window._selStart=function(x,y){" +
@@ -991,8 +992,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 html, body {
   min-height: 100%;
   margin: 0;
-  background: #000000;
-  color: #f5fbf7;
+  background: {{AgentUpThemeColors.Canvas}};
+  color: {{AgentUpThemeColors.TextPrimary}};
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 body {
@@ -1002,31 +1003,30 @@ body {
 }
 .panel {
   width: min(620px, 100%);
-  border: 1px solid #287038;
+  border: 1px solid {{AgentUpThemeColors.BorderSubtle}};
   border-radius: 8px;
-  background: #050505;
-  box-shadow: 0 0 34px rgba(0, 184, 80, 0.18);
+  background: {{AgentUpThemeColors.Surface}};
   padding: 28px;
 }
 h1 {
   margin: 0 0 10px;
-  color: #f5fbf7;
+  color: {{AgentUpThemeColors.TextPrimary}};
   font-size: 30px;
   line-height: 1.1;
 }
 .detail {
   display: block;
   margin: 0 0 18px;
-  color: #b0c8b8;
+  color: {{AgentUpThemeColors.TextSecondary}};
   font-size: 14px;
 }
 code {
   display: block;
   padding: 12px;
-  border: 1px solid #184820;
+  border: 1px solid {{AgentUpThemeColors.BorderSubtle}};
   border-radius: 7px;
-  background: #000000;
-  color: #00d66b;
+  background: {{AgentUpThemeColors.Canvas}};
+  color: {{AgentUpThemeColors.AccentSoft}};
   font-family: Consolas, "Courier New", monospace;
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -1049,9 +1049,9 @@ code {
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>");
         sb.Append("* { margin: 0; padding: 0; box-sizing: border-box; }");
-        sb.Append("html, body { height: 100%; overflow: hidden; background: #000000; }");
-        sb.Append("::selection { background-color: #0f7a45; color: #f5fbf7; }");
-        sb.Append("#content { display: block; width: 100%; height: 100%; background: #000000; color: #c7d9d0; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }");
+        sb.Append($"html, body {{ height: 100%; overflow: hidden; background: {AgentUpThemeColors.Canvas}; }}");
+        sb.Append($"::selection {{ background-color: {AgentUpThemeColors.SurfaceSelectedStrong}; color: {AgentUpThemeColors.TextPrimary}; }}");
+        sb.Append($"#content {{ display: block; width: 100%; height: 100%; background: {AgentUpThemeColors.Canvas}; color: {AgentUpThemeColors.TextSecondary}; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }}");
         sb.Append("</style></head><body>");
         sb.Append("<pre id=\"content\" tabindex=\"-1\">");
         foreach (var line in lines)

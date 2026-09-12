@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AgentUp.Desktop.Shared.Models;
 
 namespace AgentUp.Desktop.Features.Browser.Resources;
 
@@ -58,7 +59,7 @@ internal static class BrowserScripts
         $"if(!window.__agentUpMouse)window.__agentUpMouse={{x:Math.round(window.innerWidth/2),y:Math.round(window.innerHeight/2)}};" +
         $"var m=document.getElementById('__agentUpMouse');" +
         $"if(!m){{m=document.createElement('div');m.id='__agentUpMouse';document.documentElement.appendChild(m);}}" +
-        $"m.style.cssText='position:fixed;left:'+window.__agentUpMouse.x+'px;top:'+window.__agentUpMouse.y+'px;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:999px;background:#14d86f;box-shadow:0 0 0 2px rgba(0,0,0,.45),0 0 18px rgba(20,216,111,.7);z-index:2147483647;pointer-events:none;transition:left {AnimationMs}ms linear,top {AnimationMs}ms linear;';" +
+        $"m.style.cssText='position:fixed;left:'+window.__agentUpMouse.x+'px;top:'+window.__agentUpMouse.y+'px;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:999px;background:{AgentUpThemeColors.AccentBright};box-shadow:0 0 0 2px color-mix(in srgb,{AgentUpThemeColors.Canvas} 45%,transparent),0 0 18px color-mix(in srgb,{AgentUpThemeColors.AccentBright} 70%,transparent);z-index:2147483647;pointer-events:none;transition:left {AnimationMs}ms linear,top {AnimationMs}ms linear;';" +
         $"requestAnimationFrame(function(){{m.style.left=x+'px';m.style.top=y+'px';window.__agentUpMouse={{x:x,y:y}};}});" +
         $"return JSON.stringify({{ok:true}});" +
         $"}})()";
@@ -73,7 +74,7 @@ internal static class BrowserScripts
         $"var c=document.getElementById('__agentUpClickRing');" +
         $"if(c)c.remove();" +
         $"c=document.createElement('div');c.id='__agentUpClickRing';document.documentElement.appendChild(c);" +
-        $"c.style.cssText='position:fixed;left:'+x+'px;top:'+y+'px;width:64px;height:64px;margin:-32px 0 0 -32px;border:3px solid rgba(20,216,111,.95);border-radius:999px;z-index:2147483646;pointer-events:none;transform:scale(.35);opacity:.95;transition:transform {AnimationMs}ms ease-out,opacity {AnimationMs}ms ease-out;';" +
+        $"c.style.cssText='position:fixed;left:'+x+'px;top:'+y+'px;width:64px;height:64px;margin:-32px 0 0 -32px;border:3px solid {AgentUpThemeColors.AccentBright};border-radius:999px;z-index:2147483646;pointer-events:none;transform:scale(.35);opacity:.95;transition:transform {AnimationMs}ms ease-out,opacity {AnimationMs}ms ease-out;';" +
         $"requestAnimationFrame(function(){{c.style.transform='scale(1.8)';c.style.opacity='0';}});" +
         $"return JSON.stringify({{ok:true}});" +
         $"}})()";

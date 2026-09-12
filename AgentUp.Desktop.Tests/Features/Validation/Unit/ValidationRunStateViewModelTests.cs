@@ -9,8 +9,8 @@ namespace AgentUp.Desktop.Tests.Features.Validation.Unit;
 // colour a viewer sees for each state is the observable contract, not an implementation detail.
 public sealed class ValidationRunStateViewModelTests
 {
-    [TestCase(ValidationRunState.Pending, "○", "#789085")]
-    [TestCase(ValidationRunState.Running, "●", "#f5d042")]
+    [TestCase(ValidationRunState.Pending, "○", "#8a9a92")]
+    [TestCase(ValidationRunState.Running, "●", "#e0a128")]
     [TestCase(ValidationRunState.Passed, "✓", "#2bf27a")]
     [TestCase(ValidationRunState.Failed, "✗", "#d84f4f")]
     public void Check_showsAGlyphAndColourForEveryRunState(ValidationRunState state, string glyph, string color)
@@ -26,8 +26,8 @@ public sealed class ValidationRunStateViewModelTests
         });
     }
 
-    [TestCase(ValidationRunState.Pending, "○", "#789085")]
-    [TestCase(ValidationRunState.Running, "●", "#f5d042")]
+    [TestCase(ValidationRunState.Pending, "○", "#8a9a92")]
+    [TestCase(ValidationRunState.Running, "●", "#e0a128")]
     [TestCase(ValidationRunState.Passed, "✓", "#2bf27a")]
     [TestCase(ValidationRunState.Failed, "✗", "#d84f4f")]
     public void Stage_showsAGlyphAndColourForEveryRunState(ValidationRunState state, string glyph, string color)

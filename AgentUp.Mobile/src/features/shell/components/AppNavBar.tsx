@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppShell } from '../controllers/AppShellContext';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 export function AppNavBar() {
   const insets = useSafeAreaInsets();
@@ -40,8 +41,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#287038',
-    backgroundColor: '#000000',
+    borderBottomColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.canvas,
   },
   stackButton: {
     width: 42,
@@ -50,13 +51,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#050505',
+    borderColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.surface,
   },
-  stackIcon: { color: '#2bf27a', fontSize: 10, lineHeight: 8 },
+  stackIcon: { color: agentUpTheme.colors.accentSoft, fontSize: 10, lineHeight: 8 },
   title: {
     flex: 1,
-    color: '#f5fbf7',
+    color: agentUpTheme.colors.textPrimary,
     fontSize: 20,
     lineHeight: 24,
     fontWeight: '800',
@@ -68,9 +69,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#050505',
+    borderColor: agentUpTheme.colors.borderSelected,
+    backgroundColor: agentUpTheme.colors.surface,
   },
-  rightButtonText: { color: '#2bf27a', fontWeight: '700', fontSize: 13 },
+  rightButtonText: { color: agentUpTheme.colors.accentSoft, fontWeight: '700', fontSize: 13 },
   rightSpacer: { width: 42 },
 });
