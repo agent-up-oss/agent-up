@@ -24,4 +24,17 @@ public sealed class GitChangeListService
         string message,
         CancellationToken cancellationToken = default)
         => await _client.CommitAsync(workspaceId, new GitCommitRequestDto(files, message), cancellationToken);
+
+    public Task<GitMutationResultDto> DiscardAsync(
+        string workspaceId,
+        IReadOnlyList<string> files,
+        CancellationToken cancellationToken = default)
+        => _client.DiscardAsync(workspaceId, new GitFilesRequestDto(files), cancellationToken);
+
+    public Task<GitMutationResultDto> SwitchBranchAsync(
+        string workspaceId,
+        string name,
+        bool create,
+        CancellationToken cancellationToken = default)
+        => _client.SwitchBranchAsync(workspaceId, new GitBranchRequestDto(name, create), cancellationToken);
 }

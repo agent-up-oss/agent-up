@@ -5,11 +5,24 @@ import type { GitChangeDirectory, GitChangeNode, GitChangeTree } from '../models
 // mirroring the directory mode of a commit window.
 export function flattenChangeTree(tree: GitChangeTree | null): GitChangeNode[] {
   if (!tree) return [];
-  return flattenDirectory(tree.root, 0, true);
+  const children = flattenDirectory(tree.root, 1, true);
+  if (children.length === 0) return [];
+  return [
+    {
+      key: 'root:changes',
+      name: 'Changes',
+      path: '',
+      depth: 0,
+      isDirectory: true,
+      status: null,
+    },
+    ...children,
+  ];
 }
 
 export function filePathsUnder(nodes: GitChangeNode[], node: GitChangeNode): string[] {
   if (!node.isDirectory) return [node.path];
+  if (node.path.length === 0) return allFilePaths(nodes);
   const prefix = `${node.path}/`;
   return nodes
     .filter(candidate => !candidate.isDirectory && candidate.path.startsWith(prefix))
@@ -40,6 +53,19 @@ export function selectedFilePaths(nodes: GitChangeNode[], selected: string[]): s
   return nodes
     .filter(node => !node.isDirectory && selected.includes(node.path))
     .map(node => node.path);
+}
+
+export function allFilePaths(nodes: GitChangeNode[]): string[] {
+  return nodes.filter(node => !node.isDirectory).map(node => node.path);
+}
+
+export function retainSelectedPaths(nodes: GitChangeNode[], selected: string[]): string[] {
+  const files = new Set(allFilePaths(nodes));
+  return selected.filter(path => files.has(path));
+}
+
+export function canDiscardSelection(selectedCount: number, busy: boolean): boolean {
+  return selectedCount > 0 && !busy;
 }
 
 // Commit is offered only for a non-empty selection with a non-blank message.

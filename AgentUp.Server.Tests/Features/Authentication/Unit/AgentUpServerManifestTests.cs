@@ -12,4 +12,12 @@ public sealed class AgentUpServerManifestTests
 
         Assert.That(manifest.EnvironmentVariables, Does.Not.ContainKey("AGENTUP_AUTH_DISABLED"));
     }
+
+    [Test]
+    public void EnvironmentVariables_doesNotShipSentryDsnByDefault()
+    {
+        var manifest = new AgentUpServerManifest();
+
+        Assert.That(manifest.EnvironmentVariables, Does.Not.ContainKey("SENTRY_DSN"));
+    }
 }

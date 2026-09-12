@@ -13,8 +13,10 @@ server:
     tag: ""
     pullPolicy: Always
   existingSecret: ""
+  existingSentrySecret: ""
   existingSecretKeys:
     adminPassword: AGENTUP_ADMIN_PASSWORD
+    sentryDsn: SENTRY_DSN
   adminPassword: ""
   storage: 10Gi
   dataDirectory: /var/lib/agent-up

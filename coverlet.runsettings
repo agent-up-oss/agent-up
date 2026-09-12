@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
+  <NUnit>
+    <DefaultTimeout>30000</DefaultTimeout>
+  </NUnit>
   <DataCollectionRunSettings>
     <DataCollectors>
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>cobertura</Format>
+        </Configuration>
+      </DataCollector>
+      <DataCollector friendlyName="blame" enabled="True">
+        <Configuration>
+          <CollectDumpOnTestSessionHang TestTimeout="1m" HangDumpType="None" />
         </Configuration>
       </DataCollector>
     </DataCollectors>

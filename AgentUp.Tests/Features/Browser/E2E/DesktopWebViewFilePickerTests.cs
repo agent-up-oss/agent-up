@@ -134,7 +134,7 @@ public sealed class DesktopWebViewFilePickerTests
         await _desktop.WaitForScriptAsync("window.__pending()", "0", "The page did not start with an empty request map");
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task FilePicker_singleSelection_reachesThePageAndUploadsTheRealFileBytes()
     {
         var picked = await ResolvePlatformFilesAsync(_notePath);
@@ -174,7 +174,7 @@ public sealed class DesktopWebViewFilePickerTests
         });
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task FilePicker_multipleSelection_deliversEveryFileInOrder()
     {
         var picked = await ResolvePlatformFilesAsync(_notePath, _diagramPath);
@@ -197,7 +197,7 @@ public sealed class DesktopWebViewFilePickerTests
         });
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task FilePicker_cancelledSelection_leavesTheInputEmptyAndDropsTheRequest()
     {
         await CaptureFilePickerAsync([]);
@@ -218,7 +218,7 @@ public sealed class DesktopWebViewFilePickerTests
         });
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task FilePicker_untrustedClick_neverOpensTheNativePicker()
     {
         var picked = await ResolvePlatformFilesAsync(_notePath);

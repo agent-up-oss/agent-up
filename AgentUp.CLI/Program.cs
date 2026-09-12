@@ -2,6 +2,7 @@ using AgentUp.CLI.Composition;
 using AgentUp.InstallerConfig;
 
 RepositoryDotEnv.LoadOptional();
+using var sentry = SentryTelemetry.Initialize();
 
 if (IsAuthCommand(args) && !HasExplicitServerArg(args))
 {

@@ -1325,7 +1325,6 @@ code {
         => CloseWindowButton.IsVisualAncestorOf(source)
            || MinimizeWindowButton.IsVisualAncestorOf(source)
            || RestoreWindowButton.IsVisualAncestorOf(source)
-           || IsNamedChromeControl(source, "SidebarToggle")
            || IsNamedChromeControl(source, "ReloadButton");
 
     private static bool IsNamedChromeControl(Visual source, string name)

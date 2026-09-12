@@ -37,15 +37,20 @@ internal sealed class SidebarDriver(MainWindow window)
     public async Task CollapseAsync()
     {
         if (Vm.Sidebar.IsCollapsed) return;
-        var toggle = ChromeTestSupport.FindDescendantByName<Button>(window, "SidebarToggle")!;
-        await window.ClickControlAsync(toggle);
+        await window.ClickControlAsync(FindSidebarToggle());
     }
 
     public async Task ExpandAsync()
     {
         if (Vm.Sidebar.IsExpanded) return;
-        var toggle = ChromeTestSupport.FindDescendantByName<Button>(window, "SidebarToggle")!;
-        await window.ClickControlAsync(toggle);
+        await window.ClickControlAsync(FindSidebarToggle());
+    }
+
+    private Button FindSidebarToggle()
+    {
+        var name = Vm.Sidebar.IsCollapsed ? "SidebarToggleCollapsed" : "SidebarToggle";
+        return window.FindControl<Button>(name)
+            ?? throw new InvalidOperationException($"{name} was not found.");
     }
 
     public async Task SelectWorkspaceAtIndexAsync(int index)

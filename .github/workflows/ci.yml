@@ -67,321 +67,18 @@ jobs:
       - name: Lint and package chart
         run: ./.github/scripts/verify-chart.sh
 
-  dotnet-build-test:
-    name: .NET build, tests, and payloads
+  dotnet-build:
+    name: .NET payloads
     runs-on: ubuntu-latest
     needs: version
     permissions:
-      actions: read
       contents: read
-      checks: write
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
-
-      - name: Build
-        run: |
-          dotnet build "agent-up.sln" --configuration Release
-
-      - name: Install Ubuntu browser test dependencies
-        run: |
-          apt_install() {
-            local attempt
-            for attempt in 1 2 3; do
-              if sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 "$@"; then
-                return 0
-              fi
-              echo "apt install attempt $attempt/3 failed; repairing package state before retry"
-              sudo dpkg --configure -a
-              sudo apt-get -f install -y -o Acquire::Retries=3
-              sleep $((attempt * 5))
-            done
-            return 1
-          }
-
-          sudo apt-get update -o Acquire::Retries=3
-          apt_install xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
-          if apt-cache policy libwebkit2gtk-4.1-0 | grep -q 'Candidate: [^()]'; then
-            apt_install libwebkit2gtk-4.1-0
-            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.1.so/{print $NF; exit}')"
-          else
-            apt_install libwebkit2gtk-4.0-37
-            webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.0.so/{print $NF; exit}')"
-          fi
-          if [ -n "$webkit_lib" ] && [ ! -e /usr/local/lib/libwebkit2gtk.so ]; then
-            sudo ln -s "$webkit_lib" /usr/local/lib/libwebkit2gtk.so
-            sudo ldconfig
-          fi
-
-          # Use the pre-installed Chrome if available; otherwise kick off Chromium in the
-          # background so it installs in parallel with the non-E2E test run below.
-          chromium_exe="$(command -v google-chrome-stable 2>/dev/null \
-            || command -v google-chrome 2>/dev/null \
-            || command -v chromium 2>/dev/null \
-            || command -v chromium-browser 2>/dev/null \
-            || true)"
-          if [ -n "$chromium_exe" ]; then
-            echo "PUPPETEER_EXECUTABLE_PATH=$chromium_exe" >> "$GITHUB_ENV"
-            echo "Found pre-installed Chromium: $chromium_exe"
-          else
-            echo "No pre-installed Chromium found — installing in background"
-            sudo apt-get install -y --no-install-recommends chromium > /tmp/chromium-install.log 2>&1 &
-            printf '%s' "$!" > /tmp/chromium-install.pid
-          fi
-
-      - name: Run tests
-        shell: bash
-        run: |
-          found_tests=false
-
-          while IFS= read -r -d "" test_project; do
-            found_tests=true
-            test_project_name="$(basename "$(dirname "$test_project")")"
-            test_command=(
-              dotnet test "$test_project"
-              --configuration Release
-              --no-build
-              --results-directory "artifacts/test-results/$test_project_name"
-              --settings "coverlet.runsettings"
-              --logger "trx;LogFileName=test-results.trx"
-              --collect:"XPlat Code Coverage"
-            )
-
-            if [ "$test_project_name" = "AgentUp.Tests" ]; then
-              # Exclude HeadlessE2E — those run after Chromium is confirmed ready below.
-              test_command+=(--blame-hang --blame-hang-timeout 120s --filter "Category!=HeadlessE2E")
-              test_status=1
-              for attempt in 1 2; do
-                echo "Running AgentUp.Tests (non-E2E) on Ubuntu attempt $attempt/2"
-                if LIBGL_ALWAYS_SOFTWARE=1 \
-                  GALLIUM_DRIVER=llvmpipe \
-                  WEBKIT_DISABLE_COMPOSITING_MODE=1 \
-                  WEBKIT_DISABLE_DMABUF_RENDERER=1 \
-                  WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 \
-                  dbus-run-session xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" "${test_command[@]}"; then
-                  test_status=0
-                  break
-                else
-                  test_status=$?
-                  echo "=== WebKit/GTK subprocesses still running after attempt $attempt ==="
-                  pgrep -la -f "WebKit|webkit|WebProcess|NetworkProcess" 2>/dev/null || echo "(none)"
-                  echo "=== dmesg tail (crash context) ==="
-                  dmesg 2>/dev/null | tail -20 || true
-                  echo "=== Killing lingering WebKit subprocesses before retry ==="
-                  pkill -9 -f "WebKitWebProcess|WebKitNetworkProcess|webkit_webproc" 2>/dev/null || true
-                  sleep 2
-                fi
-              done
-              if [ "$test_status" -ne 0 ]; then
-                exit "$test_status"
-              fi
-            else
-              "${test_command[@]}"
-            fi
-          done < <(find . -name "*Tests.csproj" -print0 | sort -z)
-
-          if [ "$found_tests" = false ]; then
-            echo "No test projects found"
-            exit 1
-          fi
-
-          # If Chromium was being installed in the background, wait for it now.
-          if [ -f /tmp/chromium-install.pid ]; then
-            chromium_pid="$(cat /tmp/chromium-install.pid)"
-            echo "Waiting for background Chromium installation (PID $chromium_pid)…"
-            while kill -0 "$chromium_pid" 2>/dev/null; do sleep 2; done
-            echo "Chromium installation finished. Log:"
-            cat /tmp/chromium-install.log || true
-            chromium_exe="$(command -v chromium 2>/dev/null || command -v chromium-browser 2>/dev/null || true)"
-            if [ -n "$chromium_exe" ]; then
-              export PUPPETEER_EXECUTABLE_PATH="$chromium_exe"
-            fi
-          fi
-
-          # Run HeadlessE2E tests now that Chromium is confirmed available.
-          chromium_exe="${PUPPETEER_EXECUTABLE_PATH:-}"
-          if [ -z "$chromium_exe" ]; then
-            echo "No Chromium binary found — HeadlessE2E tests cannot run"
-            exit 1
-          else
-            echo "Running HeadlessE2E tests with $chromium_exe"
-            PUPPETEER_EXECUTABLE_PATH="$chromium_exe" \
-            LIBGL_ALWAYS_SOFTWARE=1 \
-            GALLIUM_DRIVER=llvmpipe \
-            WEBKIT_DISABLE_DMABUF_RENDERER=1 \
-            WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 \
-            dbus-run-session xvfb-run -a --server-args="-screen 0 1280x720x24 -ac +extension GLX +render -noreset" \
-            dotnet test "AgentUp.Tests/AgentUp.Tests.csproj" \
-              --configuration Release \
-              --no-build \
-              --results-directory "artifacts/test-results/AgentUp.Tests" \
-              --settings "coverlet.runsettings" \
-              --logger "trx;LogFileName=e2e-results.trx" \
-              --collect:"XPlat Code Coverage" \
-              --filter "Category=HeadlessE2E" \
-              --blame-hang \
-              --blame-hang-timeout 300s
-          fi
-
-      - name: Locate module coverage reports
-        id: coverage-reports
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          add_reports() {
-            local output_name="$1"
-            local test_project_name="$2"
-            local search_root="artifacts/test-results/$test_project_name"
-            local reports
-
-            reports="$(find "$search_root" -type f -name 'coverage.cobertura.xml' -print | sort | paste -sd, -)"
-            if [ -z "$reports" ]; then
-              echo "No Cobertura coverage reports found for $test_project_name under $search_root" >&2
-              return 1
-            fi
-
-            echo "$output_name=$reports" >> "$GITHUB_OUTPUT"
-          }
-
-          add_reports agentup_architecture_tests AgentUp.Architecture.Tests
-          add_reports agentup_cli_tests AgentUp.CLI.Tests
-          add_reports agentup_capabilities_abstractions_tests AgentUp.Capabilities.Abstractions.Tests
-          add_reports agentup_capabilities_common_tests AgentUp.Capabilities.Common.Tests
-          add_reports agentup_capabilities_docker_tests AgentUp.Capabilities.Docker.Tests
-          add_reports agentup_capabilities_dotnet_tests AgentUp.Capabilities.Dotnet.Tests
-          add_reports agentup_commit_policy_tests AgentUp.CommitPolicy.Tests
-          add_reports agentup_desktop_tests AgentUp.Desktop.Tests
-          add_reports agentup_server_tests AgentUp.Server.Tests
-          add_reports agentup_tests AgentUp.Tests
-          add_reports agentup_verification_tests AgentUp.Verification.Tests
-
-      - name: Upload AgentUp.Architecture.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_architecture_tests }}
-          flags: agentup-architecture-tests
-          name: AgentUp.Architecture.Tests
-          fail_ci_if_error: true
-          disable_search: true
-          verbose: true
-
-      - name: Upload AgentUp.CLI.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_cli_tests }}
-          flags: agentup-cli-tests
-          name: AgentUp.CLI.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
-          flags: agentup-capabilities-abstractions-tests
-          name: AgentUp.Capabilities.Abstractions.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Common.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
-          flags: agentup-capabilities-common-tests
-          name: AgentUp.Capabilities.Common.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Docker.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_docker_tests }}
-          flags: agentup-capabilities-docker-tests
-          name: AgentUp.Capabilities.Docker.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_dotnet_tests }}
-          flags: agentup-capabilities-dotnet-tests
-          name: AgentUp.Capabilities.Dotnet.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.CommitPolicy.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_commit_policy_tests }}
-          flags: agentup-commit-policy-tests
-          name: AgentUp.CommitPolicy.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Desktop.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
-          flags: agentup-desktop-tests
-          name: AgentUp.Desktop.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Server.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_server_tests }}
-          flags: agentup-server-tests
-          name: AgentUp.Server.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_tests }}
-          flags: agentup-tests
-          name: AgentUp.Tests
-          fail_ci_if_error: true
-
-      - name: Upload AgentUp.Verification.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
-          flags: agentup-verification-tests
-          name: AgentUp.Verification.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Enforce patch coverage
-        shell: bash
-        run: |
-          # The suites above wrote Cobertura reports under artifacts/test-results. The
-          # coverage gate searches its report directory recursively, so making the whole
-          # tree visible there is enough; it then measures only the lines this change
-          # touched, against the minimum in agent-up.json.
-          mkdir -p artifacts/coverage
-          cp -r artifacts/test-results/. artifacts/coverage/
-
-          dotnet run --project AgentUp.CLI --configuration Release --no-build -- verify coverage
 
       - name: Generate SBOM
         run: |
@@ -391,6 +88,9 @@ jobs:
 
       - name: Publish .NET CI artifacts
         shell: bash
+        env:
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
+          SENTRY_DSN_CLI: ${{ secrets.SENTRY_DSN_CLI }}
         run: |
           ./.github/scripts/publish-dotnet-ci-artifacts.sh "${{ needs.version.outputs.version }}" "artifacts/dotnet-ci"
 
@@ -456,13 +156,277 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  dotnet-tests:
+    name: .NET tests
+    runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Run tests
+        shell: bash
+        env:
+          COLLECT_COVERAGE: "0"
+        run: ./.github/scripts/run-dotnet-tests.sh
+
       - name: Test Report
         uses: dorny/test-reporter@v3
         if: ${{ !cancelled() }}
         with:
           name: .NET Tests (Agent-Up)
+          path: "**/test-results.trx"
+          reporter: dotnet-trx
+
+  dotnet-gui-tests:
+    name: .NET GUI tests
+    runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install Ubuntu browser test dependencies
+        shell: bash
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
+
+      - name: Run GUI tests
+        shell: bash
+        run: ./.github/scripts/run-dotnet-gui-tests.sh
+
+      - name: Test Report
+        uses: dorny/test-reporter@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: .NET GUI Tests (Agent-Up)
           path: "**/test-results.trx,**/e2e-results.trx"
           reporter: dotnet-trx
+
+      - name: Locate AgentUp.Tests coverage reports
+        id: coverage-reports
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: ./.github/scripts/locate-coverage-reports.sh AgentUp.Tests
+
+      - name: Upload AgentUp.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_tests }}
+          flags: agentup-tests
+          name: AgentUp.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+  dotnet-coverage:
+    name: .NET coverage
+    runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Run tests with coverage
+        shell: bash
+        run: ./.github/scripts/run-dotnet-tests.sh
+
+      - name: Locate module coverage reports
+        id: coverage-reports
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          ./.github/scripts/locate-coverage-reports.sh \
+            AgentUp.Architecture.Tests \
+            AgentUp.CLI.Tests \
+            AgentUp.Capabilities.Abstractions.Tests \
+            AgentUp.Capabilities.Common.Tests \
+            AgentUp.Capabilities.Claude.Tests \
+            AgentUp.Capabilities.Codex.Tests \
+            AgentUp.Capabilities.Cursor.Tests \
+            AgentUp.Capabilities.Docker.Tests \
+            AgentUp.Capabilities.Dotnet.Tests \
+            AgentUp.CommitPolicy.Tests \
+            AgentUp.Desktop.Tests \
+            AgentUp.Server.Tests \
+            AgentUp.Verification.Tests
+
+      - name: Upload AgentUp.Architecture.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_architecture_tests }}
+          flags: agentup-architecture-tests
+          name: AgentUp.Architecture.Tests
+          fail_ci_if_error: true
+          disable_search: true
+          verbose: true
+
+      - name: Upload AgentUp.CLI.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_cli_tests }}
+          flags: agentup-cli-tests
+          name: AgentUp.CLI.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
+          flags: agentup-capabilities-abstractions-tests
+          name: AgentUp.Capabilities.Abstractions.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Common.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
+          flags: agentup-capabilities-common-tests
+          name: AgentUp.Capabilities.Common.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Claude.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_claude_tests }}
+          flags: agentup-capabilities-claude-tests
+          name: AgentUp.Capabilities.Claude.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Codex.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_codex_tests }}
+          flags: agentup-capabilities-codex-tests
+          name: AgentUp.Capabilities.Codex.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_cursor_tests }}
+          flags: agentup-capabilities-cursor-tests
+          name: AgentUp.Capabilities.Cursor.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Docker.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_docker_tests }}
+          flags: agentup-capabilities-docker-tests
+          name: AgentUp.Capabilities.Docker.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_dotnet_tests }}
+          flags: agentup-capabilities-dotnet-tests
+          name: AgentUp.Capabilities.Dotnet.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.CommitPolicy.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_commit_policy_tests }}
+          flags: agentup-commit-policy-tests
+          name: AgentUp.CommitPolicy.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Desktop.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
+          flags: agentup-desktop-tests
+          name: AgentUp.Desktop.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Server.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_server_tests }}
+          flags: agentup-server-tests
+          name: AgentUp.Server.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Verification.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
+          flags: agentup-verification-tests
+          name: AgentUp.Verification.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Enforce patch coverage
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          # This job collected Cobertura reports under artifacts/test-results. The
+          # coverage gate searches its report directory recursively, so making the whole
+          # tree visible there is enough; it then measures only the lines this change
+          # touched, against the minimum in agent-up.json.
+          mkdir -p artifacts/coverage
+          cp -r artifacts/test-results/. artifacts/coverage/
+
+          dotnet build AgentUp.CLI/AgentUp.CLI.csproj --configuration Release
+          dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify coverage
 
   jetbrains-plugin:
     name: JetBrains plugin
@@ -501,7 +465,7 @@ jobs:
   platform:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    needs: [dotnet-build-test, version]
+    needs: [dotnet-build, dotnet-tests, dotnet-gui-tests, dotnet-coverage, version]
     permissions:
       contents: read
       actions: write
@@ -607,6 +571,8 @@ jobs:
 
       - name: Package release artifact
         shell: bash
+        env:
+          SENTRY_DSN_SERVER: ${{ secrets.SENTRY_DSN_SERVER }}
         run: |
           tool_suffix=""
           if [ "${{ runner.os }}" = "Windows" ]; then

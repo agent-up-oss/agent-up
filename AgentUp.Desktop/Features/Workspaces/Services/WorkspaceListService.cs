@@ -32,4 +32,7 @@ public sealed class WorkspaceListService
 
     public async Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
         => await _client.CleanupTutorialWorkspacesAsync(cancellationToken);
+
+    public async Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => await _client.GetOverviewAsync(workspaceId, cancellationToken);
 }

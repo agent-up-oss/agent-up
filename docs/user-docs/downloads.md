@@ -85,6 +85,8 @@ Home Manager also registers a `systemd --user` service named `agent-up-server.se
 
 Home Manager installs can declare capability versions with `programs.agent-up.capabilities` using the same shape.
 
+The generated inventory is the installment config for both Server and Desktop. Besides version ids, entries may include `command`, `arguments`, and `versionArguments` so workspace ACP agents launch a PATH name or a rooted binary on disk.
+
 The Nix package includes `agent-up-installer`. On NixOS this opens the same dashboard used on other platforms, but it is lookup-only: it shows installed Agent-Up commands and declared capability versions from `/etc/agent-up/capabilities.json` or `~/.config/agent-up/capabilities.json`, and install or version-management changes must still be made in NixOS or Home Manager configuration.
 
 The tarball also exports `packages.x86_64-linux.agent-up`, `packages.x86_64-linux.default`, and `overlays.default`.
