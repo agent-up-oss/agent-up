@@ -23,6 +23,7 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
+using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Browser.Streaming;
@@ -480,6 +481,8 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<ProcessOutputService>();
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
+        builder.Services.AddSingleton<WorkspaceOverviewService>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<BrowserRemoteDisplayService>();
         builder.Services.AddSingleton<BrowserEventBus>();

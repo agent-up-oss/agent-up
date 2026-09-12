@@ -30,7 +30,12 @@ kubectl create secret generic agent-up-server-secrets -n agent-up \
   --from-literal=AGENTUP_ADMIN_PASSWORD=YOUR_ADMIN_PASSWORD
 ```
 
-The default existing secret key is `AGENTUP_ADMIN_PASSWORD`.
+GitOps can keep the DSN in a second generated Secret and set
+`server.existingSentrySecret`. The default existing secret key is
+`AGENTUP_ADMIN_PASSWORD`. The optional `SENTRY_DSN` key is injected when
+present (`optional: true`). Do not put a DSN in Helm values. The chart also
+sets `SENTRY_ENVIRONMENT=production` and `SENTRY_RELEASE` from the Server
+image tag, or `Chart.AppVersion` when the tag is empty.
 
 ## Capabilities
 

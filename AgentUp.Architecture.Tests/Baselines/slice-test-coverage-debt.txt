@@ -6,7 +6,6 @@
 AgentUp.CLI/Features/Workspaces/Models requires AgentUp.CLI.Tests/Features/Workspaces/Unit/*Tests.cs
 AgentUp.CLI/Features/Workspaces/Services requires AgentUp.CLI.Tests/Features/Workspaces/Unit/*Tests.cs
 AgentUp.Capabilities.Common/Features/CapabilityDiscovery/Models requires AgentUp.Capabilities.Common.Tests/Features/CapabilityDiscovery/Unit/*Tests.cs
-AgentUp.Capabilities.Common/Features/CapabilityDiscovery/Providers requires AgentUp.Capabilities.Common.Tests/Features/CapabilityDiscovery/Provider/*Tests.cs
 AgentUp.Capabilities.Common/Features/CapabilityInventory/Models requires AgentUp.Capabilities.Common.Tests/Features/CapabilityInventory/Unit/*Tests.cs
 AgentUp.Desktop/Features/Applications/Controllers requires AgentUp.Desktop.Tests/Features/Applications/Controller/*Tests.cs
 AgentUp.Desktop/Features/Applications/Services requires AgentUp.Desktop.Tests/Features/Applications/Unit/*Tests.cs

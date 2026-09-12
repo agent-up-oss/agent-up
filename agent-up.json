@@ -166,6 +166,36 @@
           "AgentUp.Browser.Streaming.Tests"
         ]
       },
+      "capabilities-codex": {
+        "command": "dotnet test AgentUp.Capabilities.Codex.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-codex",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Codex",
+          "AgentUp.Capabilities.Codex.Tests",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common"
+        ]
+      },
+      "capabilities-cursor": {
+        "command": "dotnet test AgentUp.Capabilities.Cursor.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-cursor",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Cursor",
+          "AgentUp.Capabilities.Cursor.Tests",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common"
+        ]
+      },
+      "capabilities-claude": {
+        "command": "dotnet test AgentUp.Capabilities.Claude.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-claude",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Claude",
+          "AgentUp.Capabilities.Claude.Tests",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common"
+        ]
+      },
       "server": {
         "command": "dotnet test AgentUp.Server.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
@@ -177,8 +207,12 @@
           "AgentUp.Verification",
           "AgentUp.InstallerConfig",
           "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common",
           "AgentUp.Capabilities.Dotnet",
-          "AgentUp.Capabilities.Docker"
+          "AgentUp.Capabilities.Docker",
+          "AgentUp.Capabilities.Codex",
+          "AgentUp.Capabilities.Cursor",
+          "AgentUp.Capabilities.Claude"
         ]
       },
       "tray": {
@@ -339,6 +373,9 @@
           "capabilities-common",
           "capabilities-dotnet",
           "capabilities-docker",
+          "capabilities-codex",
+          "capabilities-cursor",
+          "capabilities-claude",
           "server",
           "cli",
           "patch-coverage"
@@ -357,6 +394,10 @@
           "capabilities-common",
           "capabilities-dotnet",
           "capabilities-docker",
+          "capabilities-codex",
+          "capabilities-cursor",
+          "capabilities-claude",
+          "server",
           "patch-coverage"
         ]
       },
@@ -394,6 +435,51 @@
         "match": "AgentUp.Capabilities.Docker.Tests/**",
         "checks": [
           "capabilities-docker",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Codex/**",
+        "checks": [
+          "capabilities-codex",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Codex.Tests/**",
+        "checks": [
+          "capabilities-codex",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Cursor/**",
+        "checks": [
+          "capabilities-cursor",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Cursor.Tests/**",
+        "checks": [
+          "capabilities-cursor",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Claude/**",
+        "checks": [
+          "capabilities-claude",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Claude.Tests/**",
+        "checks": [
+          "capabilities-claude",
           "patch-coverage"
         ]
       },
@@ -699,6 +785,9 @@
       "AgentUp.Capabilities.Common/**/*.cs",
       "AgentUp.Capabilities.Dotnet/**/*.cs",
       "AgentUp.Capabilities.Docker/**/*.cs",
+      "AgentUp.Capabilities.Codex/**/*.cs",
+      "AgentUp.Capabilities.Cursor/**/*.cs",
+      "AgentUp.Capabilities.Claude/**/*.cs",
       "AgentUp.Browser.Streaming/**/*.cs",
       "AgentUp.Tray/**/*.cs",
       "AgentUp.InstallerConfig/**/*.cs"
@@ -713,7 +802,6 @@
       "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
     ],
     "sliceExemptions": [
-      "AgentUp.Capabilities.Common/Features/CapabilityDiscovery",
       "AgentUp.Server/Features/Database",
       "AgentUp.Server/Features/Ports",
       "AgentUp.Desktop/Features/Browser",

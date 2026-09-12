@@ -45,5 +45,8 @@ public class WorkspaceListViewModelOrderingTests
 
         public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<WorkspaceOverviewDto?>(null);
     }
 }

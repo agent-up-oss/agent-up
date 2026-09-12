@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 RepositoryDotEnv.LoadOptional();
 
 var builder = WebApplication.CreateBuilder(args);
+SentryTelemetry.Configure(builder);
 
 builder.Host.UseSystemd();
 builder.Host.UseWindowsService(options =>

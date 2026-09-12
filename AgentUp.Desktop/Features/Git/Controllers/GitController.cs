@@ -24,4 +24,17 @@ public sealed class GitController
         string message,
         CancellationToken cancellationToken = default)
         => await _changes.CommitAsync(workspaceId, files, message, cancellationToken);
+
+    public Task<GitMutationResultDto> DiscardAsync(
+        string workspaceId,
+        IReadOnlyList<string> files,
+        CancellationToken cancellationToken = default)
+        => _changes.DiscardAsync(workspaceId, files, cancellationToken);
+
+    public Task<GitMutationResultDto> SwitchBranchAsync(
+        string workspaceId,
+        string name,
+        bool create,
+        CancellationToken cancellationToken = default)
+        => _changes.SwitchBranchAsync(workspaceId, name, create, cancellationToken);
 }

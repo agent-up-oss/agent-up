@@ -12,6 +12,14 @@ The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
 orchestration must remain in `AgentUp.Server`.
 
+The workspace Agent screen is an ACP client UI. It selects an available Server-
+configured Codex, Cursor, or Claude adapter, sends prompts, reconnects to the SSE
+stream using the last event sequence, and presents the session as conversation,
+collapsible thoughts, tool progress, plan status, and live activity. Session
+title, mode, and token usage stay in context chrome rather than chat rows.
+`session/request_permission` is a blocking decision card that offers the ACP
+options instead of auto-granting. It never launches a CLI or owns an ACP session.
+
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
 the active selection in PWA local storage. Only one Server is active at a time;
 selecting another sidebar icon changes the client target and does not copy or
@@ -60,18 +68,21 @@ The mobile client is a gated stack, not a bottom-tab shell.
   is the workspace home page. Agent chat and application spaces are deeper stack
   routes.
 - Only the workspace agent screen uses a bottom bar. It switches between the
-  placeholder chat view and the existing Git changes panel.
+  agent chat and the existing Git changes panel.
 
 ## Workspaces and Git slices
 
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
 workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in
-the root layout so every authenticated screen reads the same selection.
+the root layout so every authenticated screen reads the same selection. The
+dashboard hosts a compact Git branch dropdown above the application list.
 
-`src/features/git/` owns the Git changes panel used by the agent Changes tab. It
-renders the Server's change tree as indented rows with per-file checkboxes,
-opens a file's diff in a modal, and commits the selected paths with the entered
-message. Tree flattening and directory/file selection are pure functions in
+`src/features/git/` owns the Git changes panel used by the agent Changes tab and
+the workspace branch picker. The changes panel renders the Server's change tree
+as indented rows with a Changes checkbox at the root, opens a file's diff in a
+modal, and commits or discards the selected paths after discard confirmation. The panel polls the Server
+while it is open and keeps checkboxes for files that are still present. Tree
+flattening and directory/file selection are pure functions in
 `providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
 renderer.
 
@@ -92,6 +103,13 @@ credential changes does not refresh with the credential the Server has since
 stopped accepting. The Git screen guards its change-tree and file-diff loads the
 same way through `createRequestGate`, keeping each independent so opening a file
 does not discard the tree that is still loading.
+
+Production web exports forward `SENTRY_DSN_MOBILE` as `EXPO_PUBLIC_SENTRY_DSN`.
+Set that variable on the Cloudflare Pages project under
+**Workers & Pages → project → Settings → Environment variables** for
+Production (and Preview if preview deploys should report). Trigger a new
+deployment after adding it. The root layout initializes Sentry only when that
+value is set. See [Product telemetry](./telemetry.md).
 
 ## Local development
 
@@ -170,7 +188,8 @@ Cloudflare Pages must use `AgentUp.Mobile/` as its root directory, run
 the sole public mobile npm script that does not enter `shell.nix`, because the
 Cloudflare build image supplies Node.js but does not supply Nix. The export
 entrypoint passes Agent-Up audit environment variables into the Metro bundle
-when present.
+when present. Add `SENTRY_DSN_MOBILE` under
+**Settings → Environment variables** so production exports initialize Sentry.
 
 `npm run serve:web` serves `dist/` for Agent-Up workspaces with
 `Cache-Control: no-store` so local rebuilds are visible without clearing site

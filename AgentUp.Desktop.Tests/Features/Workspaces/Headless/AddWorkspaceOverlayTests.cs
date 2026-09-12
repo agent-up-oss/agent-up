@@ -16,6 +16,7 @@ public sealed class AddWorkspaceOverlayTests
         var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1"]);
         var driver = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output, () => new NativeWebView());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Application;
         viewModel.SelectedSubTab = viewModel.SubTabs.OfType<ConsoleSubTabViewModel>().Single();
         await HeadlessExtensions.FlushAsync();
 

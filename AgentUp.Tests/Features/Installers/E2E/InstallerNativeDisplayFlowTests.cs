@@ -20,7 +20,7 @@ public sealed class InstallerNativeDisplayFlowTests
             await Dispatcher.UIThread.InvokeAsync(() => window.Close());
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task Installer_dashboardInstallsComponentAndCatalogModule_onNativeDisplayBackend()
     {
         _window = await Dispatcher.UIThread.InvokeAsync(() =>

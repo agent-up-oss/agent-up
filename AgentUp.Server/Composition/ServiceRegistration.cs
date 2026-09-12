@@ -1,6 +1,16 @@
 using System.Text.Json.Serialization;
 using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
+using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Interfaces;
+using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Providers;
+using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Services;
+using AgentUp.Capabilities.Codex.Features.CodexCapability.Interfaces;
+using AgentUp.Capabilities.Codex.Features.CodexCapability.Providers;
+using AgentUp.Capabilities.Codex.Features.CodexCapability.Services;
+using AgentUp.Capabilities.Common.Features.CapabilityDiscovery.Providers;
+using AgentUp.Capabilities.Cursor.Features.CursorCapability.Interfaces;
+using AgentUp.Capabilities.Cursor.Features.CursorCapability.Providers;
+using AgentUp.Capabilities.Cursor.Features.CursorCapability.Services;
 using AgentUp.Capabilities.Docker.Features.DockerCapability.Interfaces;
 using AgentUp.Capabilities.Docker.Features.DockerCapability.Providers;
 using AgentUp.Capabilities.Docker.Features.DockerCapability.Services;
@@ -13,6 +23,10 @@ using AgentUp.Server.Features.Authentication.Interfaces;
 using AgentUp.Server.Features.Authentication.Services;
 using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Agents.Controllers;
+using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.Providers;
+using AgentUp.Server.Features.Agents.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Providers;
@@ -127,6 +141,12 @@ public static class ServiceRegistration
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<AgentCommandProvider>();
+        builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
+        builder.Services.AddSingleton<AgentEventFrameProvider>();
+        builder.Services.AddSingleton<AgentEventService>();
+        builder.Services.AddSingleton<AgentSchedulingService>();
+        builder.Services.AddSingleton<AgentsController>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
         builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
@@ -160,8 +180,15 @@ public static class ServiceRegistration
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IDotnetVersionProvider, DotnetVersionProvider>();
         builder.Services.AddSingleton<IDockerVersionProvider, DockerVersionProvider>();
+        builder.Services.AddSingleton<CapabilityCliLocator>();
+        builder.Services.AddSingleton<ICodexVersionProvider, CodexVersionProvider>();
+        builder.Services.AddSingleton<ICursorVersionProvider, CursorVersionProvider>();
+        builder.Services.AddSingleton<IClaudeVersionProvider, ClaudeVersionProvider>();
         builder.Services.AddSingleton<ICapabilityAdapter, DotnetCapabilityAdapter>();
         builder.Services.AddSingleton<ICapabilityAdapter, DockerCapabilityAdapter>();
+        builder.Services.AddSingleton<ICapabilityAdapter, CodexCapabilityAdapter>();
+        builder.Services.AddSingleton<ICapabilityAdapter, CursorCapabilityAdapter>();
+        builder.Services.AddSingleton<ICapabilityAdapter, ClaudeCapabilityAdapter>();
         builder.Services.AddSingleton<CapabilityReconciliationService>();
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<ConsoleSecretRedactor>();
@@ -172,6 +199,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
+        builder.Services.AddSingleton<WorkspaceOverviewService>();
         builder.Services.AddSingleton<WorkspaceProcessManager>();
         builder.Services.AddSingleton<IWorkspaceProcessManager>(sp => sp.GetRequiredService<WorkspaceProcessManager>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceProcessManager>());
@@ -270,6 +299,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton(sp =>
             new HeadlessBrowserSessionAccessor(sp.GetRequiredService<HeadlessBrowserSessionManager>()));
         builder.Services.AddSingleton<IGitWorkingTreeProvider, GitWorkingTreeProvider>();
+        builder.Services.AddSingleton<IWorkspacePromptGuard, WorkspaceAgentPromptGuard>();
         builder.Services.AddSingleton<GitChangeTreeService>();
         builder.Services.AddSingleton<ISourceCloneRootProvider>(_ => new SourceCloneRootProvider(dataDir));
         builder.Services.AddSingleton<ISourceCloneTargetProvider, SourceCloneTargetProvider>();

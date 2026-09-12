@@ -1,28 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
-import { commitFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
+import { commitFiles, discardFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
 import { createRequestGate, type RequestGate } from '../providers/RequestGateProvider';
 import {
   canCommitSelection,
+  canDiscardSelection,
   flattenChangeTree,
   isDirectorySelected,
+  retainSelectedPaths,
   selectedFilePaths,
   statusColor,
   statusGlyph,
   toggleNodeSelection,
 } from '../providers/GitChangeTreeProvider';
 
-export function GitChangesPanel() {
+const POLL_MS = 2500;
+
+export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?: string } = {}) {
   const { server, selectedWorkspace } = useWorkspaces();
-  const workspaceId = selectedWorkspace?.id ?? null;
+  const workspaceId = workspaceIdProp ?? selectedWorkspace?.id ?? null;
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [committing, setCommitting] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [diff, setDiff] = useState<GitFileDiff | null>(null);
@@ -31,35 +35,57 @@ export function GitChangesPanel() {
 
   const nodes = useMemo(() => flattenChangeTree(tree), [tree]);
 
-  const gates = useRef<{ tree: RequestGate; diff: RequestGate; commit: RequestGate } | null>(null);
-  gates.current ??= { tree: createRequestGate(), diff: createRequestGate(), commit: createRequestGate() };
-  const { tree: treeGate, diff: diffGate, commit: commitGate } = gates.current;
+  const gates = useRef<{ tree: RequestGate; diff: RequestGate; mutate: RequestGate } | null>(null);
+  gates.current ??= { tree: createRequestGate(), diff: createRequestGate(), mutate: createRequestGate() };
+  const { tree: treeGate, diff: diffGate, mutate: mutateGate } = gates.current;
+  const inflightLoads = useRef(0);
+  const mutating = useRef(false);
 
-  // The panel stays mounted when the selected workspace changes, so a commit started against the
-  // previous one can still be in flight. Its gate is advanced by the context change rather than by
-  // the commit itself: a ticket taken before the switch is stale afterwards, which a gate begun
-  // only at commit time could not express — starting late would instead make the stale reply win.
-  useEffect(() => { commitGate.begin(); }, [server, workspaceId, commitGate]);
+  useEffect(() => {
+    mutateGate.begin();
+    mutating.current = false;
+    setBusy(false);
+  }, [server, workspaceId, mutateGate]);
 
-  const load = useCallback(async () => {
+  const selectionWorkspace = useRef<string | null>(null);
+
+  const load = useCallback(async (silent = false) => {
+    if (silent && inflightLoads.current > 0) return;
     const ticket = treeGate.begin();
-    if (!server || !workspaceId) { setTree(null); setSelected([]); return; }
-    setLoading(true); setError(null);
+    if (!server || !workspaceId) {
+      selectionWorkspace.current = null;
+      setTree(null);
+      setSelected([]);
+      return;
+    }
+    if (!silent) { setLoading(true); setError(null); }
+    inflightLoads.current += 1;
     try {
       const changes = await getChanges(server, workspaceId);
       if (!treeGate.isCurrent(ticket)) return;
       setTree(changes);
-      setSelected([]);
+      setSelected(current => {
+        const keep = selectionWorkspace.current === workspaceId ? current : [];
+        selectionWorkspace.current = workspaceId;
+        return retainSelectedPaths(flattenChangeTree(changes), keep);
+      });
+      if (silent) setError(null);
     } catch (cause) {
       if (!treeGate.isCurrent(ticket)) return;
-      setTree(null);
+      if (!silent) setTree(null);
       setError(cause instanceof Error ? cause.message : 'Could not load Git changes.');
     } finally {
-      if (treeGate.isCurrent(ticket)) setLoading(false);
+      inflightLoads.current = Math.max(0, inflightLoads.current - 1);
+      if (treeGate.isCurrent(ticket) && !silent) setLoading(false);
     }
   }, [server, workspaceId, treeGate]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(false); }, [load]);
+  useEffect(() => {
+    if (!server || !workspaceId) return;
+    const timer = setInterval(() => { void load(true); }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [server, workspaceId, load]);
 
   const openDiff = async (node: GitChangeNode) => {
     if (!server || !workspaceId || node.isDirectory) return;
@@ -77,41 +103,66 @@ export function GitChangesPanel() {
     }
   };
 
-  const commit = async () => {
-    if (!server || !workspaceId || committing) return;
-    const files = selectedFilePaths(nodes, selected);
-    const ticket = commitGate.current();
-    setCommitting(true); setError(null); setStatus(null);
+  const runMutation = async (action: () => Promise<{ succeeded: boolean; error?: string | null; commit?: string | null }>, onSuccess: (result: { commit?: string | null }) => string) => {
+    if (!server || !workspaceId || busy || mutating.current) return false;
+    mutating.current = true;
+    const ticket = mutateGate.current();
+    setBusy(true); setError(null); setStatus(null);
     try {
-      const result = await commitFiles(server, workspaceId, files, message.trim());
-      if (!commitGate.isCurrent(ticket)) return;
-      if (!result.succeeded) { setError(result.error ?? 'The commit failed.'); return; }
-      setMessage('');
-      setStatus(`Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`);
-      await load();
+      const result = await action();
+      if (!mutateGate.isCurrent(ticket)) return false;
+      if (!result.succeeded) { setError(result.error ?? 'The Git operation failed.'); return false; }
+      setStatus(onSuccess(result));
+      await load(true);
+      return true;
     } catch (cause) {
-      if (!commitGate.isCurrent(ticket)) return;
-      setError(cause instanceof Error ? cause.message : 'Could not commit.');
+      if (!mutateGate.isCurrent(ticket)) return false;
+      setError(cause instanceof Error ? cause.message : 'The Git operation failed.');
+      return false;
     } finally {
-      if (commitGate.isCurrent(ticket)) setCommitting(false);
+      mutating.current = false;
+      if (mutateGate.isCurrent(ticket)) setBusy(false);
     }
   };
 
   const selectedCount = selectedFilePaths(nodes, selected).length;
   const fileCount = nodes.filter(node => !node.isDirectory).length;
-  const canCommit = !committing && canCommitSelection(selectedCount, message);
+  const files = selectedFilePaths(nodes, selected);
+  const canCommit = !busy && canCommitSelection(selectedCount, message);
+  const canDiscard = canDiscardSelection(selectedCount, busy);
 
   return (
     <View style={styles.panel}>
-      <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
+          <Pressable disabled={!canDiscard} onPress={() => {
+            Alert.alert(
+              'Discard selected files?',
+              files.join('\n'),
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Discard',
+                  style: 'destructive',
+                  onPress: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
+                },
+              ],
+            );
+          }}
+            style={[styles.discardButton, !canDiscard && styles.disabled]}>
+            <Text style={styles.discardText}>Discard</Text>
+          </Pressable>
+        </View>
+      </View>
 
       {loading && <ActivityIndicator color="#00d66b" />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
-      {!loading && !error && nodes.length === 0 && selectedWorkspace &&
-        <Text style={styles.empty}>No uncommitted changes.</Text>}
 
-      <View style={styles.tree}>
+      <ScrollView style={styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
+        {!loading && !error && nodes.length === 0 && selectedWorkspace &&
+          <Text style={styles.empty}>No uncommitted changes.</Text>}
         {nodes.map(node => {
           const checked = node.isDirectory
             ? isDirectorySelected(nodes, node, selected)
@@ -132,17 +183,20 @@ export function GitChangesPanel() {
             </View>
           );
         })}
-      </View>
+      </ScrollView>
 
+      <View style={styles.footer}>
       <Text style={styles.label}>Commit message</Text>
       <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
-        editable={!committing} placeholder="fix(App): correct the port probe" placeholderTextColor="#718077"
+        editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor="#718077"
         style={styles.messageInput} />
 
       <Pressable accessibilityRole="button" accessibilityLabel="Commit" disabled={!canCommit}
-        onPress={() => void commit()} style={[styles.button, !canCommit && styles.disabled]}>
-        {committing ? <ActivityIndicator color="#000000" /> : <Text style={styles.buttonText}>Commit</Text>}
+        onPress={() => void runMutation(async () => { const result = await commitFiles(server!, workspaceId!, files, message.trim()); if (result.succeeded) setMessage(''); return result; }, result => `Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`)}
+        style={[styles.button, !canCommit && styles.disabled]}>
+        <Text style={styles.buttonText}>Commit</Text>
       </Pressable>
+      </View>
 
       <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
         <View style={styles.modalScrim}>
@@ -173,12 +227,18 @@ function diffText(diff: GitFileDiff | null): string {
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 12 },
+  panel: { flex: 1, gap: 12 },
+  header: { gap: 4, paddingBottom: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  discardButton: { minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#8d3c3c' },
+  discardText: { color: '#e48989', fontWeight: '700', fontSize: 12 },
   summary: { color: '#789085', fontSize: 12 },
   empty: { color: '#aebcb3', lineHeight: 21 },
   error: { color: '#d84f4f', lineHeight: 21 },
   status: { color: '#2bf27a', lineHeight: 21 },
-  tree: { borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', paddingVertical: 6 },
+  tree: { flex: 1, minHeight: 80, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
+  treeContent: { paddingVertical: 6, flexGrow: 1 },
+  footer: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10, paddingVertical: 5 },
   checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: '#287038', alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: '#0f7a45', borderColor: '#2bf27a' },

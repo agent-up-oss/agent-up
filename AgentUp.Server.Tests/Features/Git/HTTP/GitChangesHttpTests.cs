@@ -148,6 +148,73 @@ public sealed class GitChangesHttpTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    [Test]
+    public async Task GetChangesAsync_reportsTheLiveBranchList()
+    {
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        var tree = await client.GetFromJsonAsync<GitChangeTree>($"/api/workspaces/{workspaceId}/git/changes", Json);
+
+        Assert.That(tree!.Branch, Is.EqualTo("main"));
+        Assert.That(tree.LocalBranches, Does.Contain("main"));
+    }
+
+    [Test]
+    public async Task GetHead_returnsTheLiveBranchList()
+    {
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        var head = await client.GetFromJsonAsync<GitHeadState>($"/api/workspaces/{workspaceId}/git/head", Json);
+
+        Assert.That(head!.Branch, Is.EqualTo("main"));
+        Assert.That(head.LocalBranches, Does.Contain("main"));
+    }
+
+    [Test]
+    public async Task Discard_restoresTheSelectedTrackedFile()
+    {
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+        await File.WriteAllTextAsync(Path.Join(_repository, "src", "main.cs"), "// changed\n");
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/git/discard",
+            new GitFilesRequest(["src/main.cs"]));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await File.ReadAllTextAsync(Path.Join(_repository, "src", "main.cs")), Is.EqualTo("// main\n"));
+    }
+
+    [Test]
+    public async Task Branch_createsAndSwitchesToTheRequestedBranch()
+    {
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/git/branch",
+            new GitBranchRequest("topic", true));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var tree = await client.GetFromJsonAsync<GitChangeTree>($"/api/workspaces/{workspaceId}/git/changes", Json);
+        Assert.That(tree!.Branch, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task Branch_returnsBadRequestForAnUnsafeName()
+    {
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/git/branch",
+            new GitBranchRequest("-c", false));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
     private async Task<string> RegisterAsync(HttpClient client)
     {
         using var response = await client.PostAsJsonAsync("/api/workspaces", new RegisterWorkspaceRequest(

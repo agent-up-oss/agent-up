@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Reactive;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Features.Validation.Services;
@@ -6,22 +7,65 @@ using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Validation.ViewModels;
 
-public sealed class ValidationViewModel(
-    ValidationFlowApiClient client,
-    ValidationFlowReplayService replay) : ReactiveObject
+public sealed class ValidationViewModel : ReactiveObject
 {
+    private readonly ValidationFlowApiClient _client;
+    private readonly ValidationFlowReplayService _replay;
     private string? _activeFlowId;
     private string? _status;
+    private bool _isCollapsed;
+
+    public ValidationViewModel(
+        ValidationFlowApiClient client,
+        ValidationFlowReplayService replay)
+    {
+        _client = client;
+        _replay = replay;
+        ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
+    }
 
     public ObservableCollection<ValidationFlowItemViewModel> Flows { get; } = [];
     public string? Status { get => _status; private set => this.RaiseAndSetIfChanged(ref _status, value); }
     public string? ActiveFlowId { get => _activeFlowId; private set => this.RaiseAndSetIfChanged(ref _activeFlowId, value); }
 
+    public bool IsCollapsed
+    {
+        get => _isCollapsed;
+        set
+        {
+            if (_isCollapsed == value) return;
+            _isCollapsed = value;
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(IsExpanded));
+            this.RaisePropertyChanged(nameof(Width));
+            this.RaisePropertyChanged(nameof(ToggleIcon));
+        }
+    }
+
+    public bool IsExpanded => !_isCollapsed;
+    public double Width => _isCollapsed ? 56 : 360;
+    public string ToggleIcon => _isCollapsed ? "‹" : "›";
+    public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
+
+    public void Clear()
+    {
+        Flows.Clear();
+        Status = "Select an application to see validation checks.";
+        ActiveFlowId = null;
+    }
+
+    public void BeginLoad()
+    {
+        Flows.Clear();
+        Status = "Loading checks…";
+        ActiveFlowId = null;
+    }
+
     public async Task LoadAsync(string workspaceId, string application, CancellationToken cancellationToken = default)
     {
         try
         {
-            var flows = await client.ListAsync(workspaceId, application, cancellationToken);
+            var flows = await _client.ListAsync(workspaceId, application, cancellationToken);
 
             // A load the caller superseded must not repaint the panel for a selection the user
             // has already moved off, so check before touching the collection.
@@ -53,7 +97,7 @@ public sealed class ValidationViewModel(
         ActiveFlowId = item.Flow.Id;
         try
         {
-            await replay.RunAsync(workspaceId, item.Flow.Id, item);
+            await _replay.RunAsync(workspaceId, item.Flow.Id, item);
         }
         catch (OperationCanceledException)
         {

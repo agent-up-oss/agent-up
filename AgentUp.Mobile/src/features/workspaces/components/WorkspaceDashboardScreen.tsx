@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { WorkspaceBranchPicker } from '@/features/git/components/WorkspaceBranchPicker';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
@@ -38,7 +39,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.subtitle}>{workspace.branch} · {workspace.state}</Text>
+      <Text style={styles.subtitle}>{workspace.state}</Text>
 
       {loading && <ActivityIndicator color="#00d66b" />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
@@ -50,6 +51,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
       </Pressable>
 
       <View style={styles.section}>
+        <WorkspaceBranchPicker workspaceId={workspace.id} />
         <Text style={styles.sectionTitle}>Applications</Text>
         {applications.length === 0
           ? <Text style={styles.empty}>No applications configured.</Text>

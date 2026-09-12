@@ -31,6 +31,7 @@ using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Models;
+using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
@@ -224,6 +225,41 @@ public class WorkspacesHttpTests
     }
 
     [Test]
+    public async Task GetOverview_ReturnsWorkspaceResources_AfterRegistration()
+    {
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
+            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"))).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/overview");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var overview = await response.Content.ReadFromJsonAsync<WorkspaceOverviewDto>(JsonOptions);
+        Assert.Multiple(() =>
+        {
+            Assert.That(overview!.Id, Is.EqualTo(created.Id));
+            Assert.That(overview.DisplayName, Is.EqualTo("A"));
+            Assert.That(overview.RepositoryPath, Is.EqualTo("/r"));
+            Assert.That(overview.WorktreePath, Is.EqualTo("/r/a"));
+            Assert.That(overview.Branch, Is.EqualTo("main"));
+            Assert.That(overview.Commit, Is.EqualTo("c1"));
+            Assert.That(overview.State, Is.EqualTo("Stopped"));
+            Assert.That(overview.CpuPercent, Is.EqualTo(0));
+            Assert.That(overview.MemoryBytes, Is.EqualTo(0));
+            Assert.That(overview.StorageBytes, Is.EqualTo(0));
+            Assert.That(overview.ProcessCount, Is.EqualTo(0));
+            Assert.That(overview.ApplicationCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task GetOverview_ReturnsNotFound_ForUnknownId()
+    {
+        var response = await _client.GetAsync("/api/workspaces/does-not-exist/overview");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
     public async Task GetById_ReturnsNotFound_ForUnknownId()
     {
         var response = await _client.GetAsync("/api/workspaces/does-not-exist");
@@ -305,9 +341,14 @@ public class WorkspacesHttpTests
             ""));
         var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, new KillFailingWorkspaceProcessManager());
         var eventBus = new WorkspaceEventBus();
+        var overview = new WorkspaceOverviewService(
+            new WorkspaceQueryController(registry),
+            ServerTestComposition.CreateProcessesController(new KillFailingWorkspaceProcessManager()),
+            new WorkspaceDiskUsageProvider());
         var controller = new WorkspacesController(registry, lifecycle, new WorkspaceEventStreamService(
             eventBus,
-            new AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider()));
+            new AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider()),
+            overview);
 
         await controller.CleanupTutorialWorkspaces();
 
