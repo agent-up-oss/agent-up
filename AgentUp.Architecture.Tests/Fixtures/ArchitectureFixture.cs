@@ -21,12 +21,39 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Cursor",
         "AgentUp.Capabilities.Claude",
         "AgentUp.Desktop",
-        "AgentUp.CLI"
+        "AgentUp.CLI",
+        "AgentUp.InstallerConfig"
+    ];
+
+    /// <summary>
+    /// Projects that are plain class libraries rather than vertical slices, so the
+    /// Features/Shared layout rules do not apply to them. Named here rather than inside a
+    /// rule so the whole set of exemptions is reviewable in one place.
+    /// </summary>
+    public static readonly string[] BareClassLibraries =
+    [
+        "AgentUp.Browser.Streaming",
+        "AgentUp.InstallerConfig"
+    ];
+
+    /// <summary>
+    /// Projects that exist only to compose other projects into an executable: a Program.cs
+    /// that wires manifests into a LocalInstaller builder, plus manifests of their own.
+    /// They carry no logic to test, and <see cref="Rules.EntryPointProjects"/> keeps that
+    /// true.
+    /// </summary>
+    public static readonly string[] CompositionOnlyProjects =
+    [
+        "AgentUp.InstallerApp",
+        "AgentUp.Packaging",
+        "AgentUp.PackageSmoke"
     ];
 
     public static readonly string[] TestProjects =
     [
         "AgentUp.Server.Tests",
+        "AgentUp.Browser.Streaming.Tests",
+        "AgentUp.Tray.Tests",
         "AgentUp.CommitPolicy.Tests",
         "AgentUp.Verification.Tests",
         "AgentUp.Capabilities.Abstractions.Tests",
@@ -37,6 +64,7 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Cursor.Tests",
         "AgentUp.Capabilities.Claude.Tests",
         "AgentUp.Desktop.Tests",
+        "AgentUp.InstallerConfig.Tests",
         "AgentUp.CLI.Tests",
         "AgentUp.Tests",
         "AgentUp.Architecture.Tests"
@@ -221,4 +249,25 @@ internal static class ArchitectureFixture
 
     public static string Relative(string root, string path)
         => Path.GetRelativePath(root, path);
+
+    /// <summary>
+    /// Reads an accepted-debt baseline: one violation per line, blank lines and lines
+    /// starting with '#' ignored.
+    /// </summary>
+    /// <remarks>
+    /// Throws when the file is missing rather than returning nothing. A baseline that
+    /// silently reads as empty turns its rule from a ratchet into a rule that passes
+    /// everything, which is the failure this suite exists to prevent.
+    /// </remarks>
+    public static HashSet<string> LoadBaseline(string root, string relativePath)
+    {
+        var path = Path.Join(root, relativePath);
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Baseline '{relativePath}' is missing.", path);
+
+        return File.ReadAllLines(path)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#'))
+            .ToHashSet(StringComparer.Ordinal);
+    }
 }

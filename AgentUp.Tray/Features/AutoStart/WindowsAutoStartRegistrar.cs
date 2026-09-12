@@ -4,7 +4,6 @@ using Microsoft.Win32;
 namespace AgentUp.Tray.Features.AutoStart;
 
 [SupportedOSPlatform("windows")]
-
 public sealed class WindowsAutoStartRegistrar : IAutoStartRegistrar
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -20,18 +19,15 @@ public sealed class WindowsAutoStartRegistrar : IAutoStartRegistrar
     public bool IsRegistered()
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: false);
-        return key?.GetValue(ValueName) is string registered
-            && string.Equals(registered, QuotedExePath, StringComparison.OrdinalIgnoreCase);
+        return WindowsRunKeyValue.Matches(key?.GetValue(ValueName) as string, _exePath);
     }
 
     public void Register()
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true)
             ?? throw new InvalidOperationException($"Cannot open registry key {RunKey}.");
-        key.SetValue(ValueName, QuotedExePath);
+        key.SetValue(ValueName, WindowsRunKeyValue.Format(_exePath));
     }
-
-    private string QuotedExePath => $"\"{_exePath}\"";
 
     public void Unregister()
     {

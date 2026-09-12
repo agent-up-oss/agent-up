@@ -6,6 +6,8 @@ docs/build
 .docusaurus
 artifacts/
 release-artifacts/
+# dotnet test writes here when no --results-directory is given.
+TestResults/
 **/obj/**
 **/bin/**
 *DotSettings.user

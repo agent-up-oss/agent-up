@@ -265,9 +265,12 @@ jobs:
             AgentUp.Capabilities.Cursor.Tests \
             AgentUp.Capabilities.Docker.Tests \
             AgentUp.Capabilities.Dotnet.Tests \
+            AgentUp.Browser.Streaming.Tests \
             AgentUp.CommitPolicy.Tests \
             AgentUp.Desktop.Tests \
+            AgentUp.InstallerConfig.Tests \
             AgentUp.Server.Tests \
+            AgentUp.Tray.Tests \
             AgentUp.Verification.Tests
 
       - name: Upload AgentUp.Architecture.Tests coverage
@@ -414,6 +417,39 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
+      - name: Upload AgentUp.Browser.Streaming.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_browser_streaming_tests }}
+          flags: agentup-browser-streaming-tests
+          name: AgentUp.Browser.Streaming.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Tray.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_tray_tests }}
+          flags: agentup-tray-tests
+          name: AgentUp.Tray.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.InstallerConfig.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_installer_config_tests }}
+          flags: agentup-installer-config-tests
+          name: AgentUp.InstallerConfig.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
       - name: Enforce patch coverage
         if: ${{ !cancelled() }}
         shell: bash
@@ -427,6 +463,16 @@ jobs:
 
           dotnet build AgentUp.CLI/AgentUp.CLI.csproj --configuration Release
           dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify coverage
+
+      - name: Enforce per-slice coverage
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          # Reads the reports the step above copied into artifacts/coverage. This only
+          # holds where every suite has run, which is why the check is ciOnly: on a dev
+          # machine the architecture suite instruments every assembly with no hits, so a
+          # slice whose own suite was not selected would read as uncovered.
+          dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify slices
 
   jetbrains-plugin:
     name: JetBrains plugin

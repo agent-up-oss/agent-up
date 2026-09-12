@@ -15,6 +15,7 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Capabilities.Abstractions", Except("AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.CommitPolicy", Except("AgentUp.CommitPolicy"));
         AssertDoesNotDependOn("AgentUp.Verification", Except("AgentUp.Verification"));
+        AssertDoesNotDependOn("AgentUp.Browser.Streaming", Except("AgentUp.Browser.Streaming"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Common", Except("AgentUp.Capabilities.Common", "AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Dotnet", Except("AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Docker", Except("AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));

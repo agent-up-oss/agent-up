@@ -8,6 +8,8 @@ internal sealed class CoverageConfigurationBuilder
     private string _reportDirectory = "artifacts/coverage";
     private readonly List<string> _include = [];
     private readonly List<string> _exclude = [];
+    private double _sliceMinimum;
+    private readonly List<string> _sliceExemptions = [];
 
     public CoverageConfigurationBuilder WithMinimum(double minimum)
     {
@@ -33,6 +35,18 @@ internal sealed class CoverageConfigurationBuilder
         return this;
     }
 
+    public CoverageConfigurationBuilder WithSliceMinimum(double minimum)
+    {
+        _sliceMinimum = minimum;
+        return this;
+    }
+
+    public CoverageConfigurationBuilder WithSliceExemptions(params string[] slices)
+    {
+        _sliceExemptions.AddRange(slices);
+        return this;
+    }
+
     public CoverageConfigurationBuilder WithoutInclude()
     {
         _include.Clear();
@@ -40,5 +54,5 @@ internal sealed class CoverageConfigurationBuilder
     }
 
     public CoverageConfiguration Build()
-        => new(_minimum, _reportDirectory, _include, _exclude);
+        => new(_minimum, _reportDirectory, _include, _exclude, _sliceMinimum, _sliceExemptions);
 }
