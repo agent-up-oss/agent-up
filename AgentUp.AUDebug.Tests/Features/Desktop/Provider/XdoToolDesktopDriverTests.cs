@@ -21,6 +21,12 @@ public sealed class XdoToolDesktopDriverTests
         await driver.CaptureAsync(Path.Join(paths.ScreenshotsDirectory, "desktop.png"), CancellationToken.None);
 
         Assert.That(processes.Ran.Any(command => command.FileName == "import"), Is.True);
+        Assert.That(
+            processes.Ran.Any(command =>
+                command.FileName == "import"
+                && command.Arguments.Any(argument => argument.StartsWith("0x", StringComparison.Ordinal))),
+            Is.True);
+        Assert.That(processes.Ran.Any(command => command.Arguments.Contains("--onlyvisible")), Is.True);
         Assert.That(processes.Ran.Any(command => command.Arguments.Contains("--class")), Is.True);
         Assert.That(processes.Ran.Any(command => command.Arguments.Contains(DebugLayout.DesktopWindowClass)), Is.True);
         Assert.That(processes.Ran.All(command => command.Environment!["DISPLAY"] == ":0"), Is.True);
@@ -36,7 +42,17 @@ public sealed class XdoToolDesktopDriverTests
 
         await driver.LoginAsync("secret", CancellationToken.None);
 
-        Assert.That(processes.Ran.Any(command => command.StandardInput == "secret"), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(processes.Ran.Any(command => command.StandardInput == "secret"), Is.True);
+            Assert.That(
+                processes.Ran.Any(command =>
+                    command.Arguments.Contains("mousemove")
+                    && command.Arguments.Contains(DebugLayout.DesktopLoginFieldX.ToString())
+                    && command.Arguments.Contains(DebugLayout.DesktopLoginButtonY.ToString())),
+                Is.True);
+            Assert.That(processes.Ran.Any(command => command.Arguments.Contains("click")), Is.True);
+        });
     }
 
     [Test]

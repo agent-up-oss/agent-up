@@ -78,11 +78,18 @@ export function emitStyles(rules, tokens, index) {
       if (!parsed || layoutOnly.has(parsed.baseClass)) continue;
       for (const avaloniaSelector of avaloniaSelectors(parsed, index)) {
         add(avaloniaSelector, allowedSetters(avaloniaSelector, setters));
+        const hostType = avaloniaSelector.split(/[:.\s]/)[0];
+        if (hostType === 'Border' || hostType === 'StackPanel') {
+          add(avaloniaSelector.replace(/^(Border|StackPanel)/, 'TextBlock'), allowedSetters('TextBlock', setters));
+        }
         if (avaloniaSelector.startsWith('Button.') && templateSetters.length) {
           add(`${avaloniaSelector} /template/ ContentPresenter`, allowedSetters('ContentPresenter', templateSetters));
         }
       }
     }
+  }
+  for (const [selector, setters] of styleMap) {
+    styleMap.set(selector, resolveLetterSpacing(setters, tokens));
   }
   const lines = [
     '<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">',
@@ -216,7 +223,7 @@ function declarationsToSetters(declarations, tokens) {
   if (borderBrush) setters.push(['BorderBrush', borderBrush]);
   if (letterSpacing) {
     const spacing = letterSpacingValue(letterSpacing, tokens, fontSizePx);
-    if (spacing != null) setters.push(['LetterSpacing', spacing]);
+    setters.push(['LetterSpacing', spacing ?? pendingEm(letterSpacing)]);
   }
   return setters.filter(([, value]) => value);
 }
@@ -284,6 +291,31 @@ function lengthValue(value, tokens) {
 function lengthNumber(value, tokens) {
   const token = varName(value);
   if (token) return toPx(tokens[token]);
+  return toPx(value);
+}
+
+function pendingEm(value) {
+  const em = String(value).trim().match(/^(-?[0-9.]+)em$/);
+  return em ? String(value).trim() : null;
+}
+
+function resolveLetterSpacing(setters, tokens) {
+  const map = new Map(setters);
+  const pending = map.get('LetterSpacing');
+  const em = pending?.match(/^(-?[0-9.]+)em$/);
+  if (!em) return setters;
+  const fontSizePx = fontSizeFromSetter(map.get('FontSize'), tokens) ?? 16;
+  map.set('LetterSpacing', formatNumber(Number(em[1]) * fontSizePx));
+  return [...map];
+}
+
+function fontSizeFromSetter(value, tokens) {
+  if (!value) return null;
+  const token = String(value).match(/AgentUpFontSize(\w+)/);
+  if (token) {
+    const name = `font-size-${token[1].replace(/^[A-Z]/, letter => letter.toLowerCase()).replaceAll(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
+    return toPx(tokens[name]);
+  }
   return toPx(value);
 }
 

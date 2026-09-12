@@ -91,32 +91,38 @@ export const agentUpTheme = Object.freeze({
       color: "#2bf27a",
       fontSize: 12,
       fontWeight: '800',
+      letterSpacing: 1.44,
       textTransform: 'uppercase',
     }),
     display: Object.freeze({
       color: "#f5fbf7",
       fontSize: 44,
       fontWeight: '800',
+      letterSpacing: -1.1,
     }),
     title: Object.freeze({
       color: "#f5fbf7",
       fontSize: 32,
       fontWeight: '800',
+      letterSpacing: -0.8,
     }),
     heading: Object.freeze({
       color: "#f5fbf7",
       fontSize: 20,
       fontWeight: '700',
+      letterSpacing: -0.5,
     }),
     pageTitle: Object.freeze({
       color: "#f5fbf7",
       fontSize: 22,
       fontWeight: '700',
+      letterSpacing: -0.44,
     }),
     fieldLabel: Object.freeze({
       color: "#8a9a92",
       fontSize: 12,
       fontWeight: '700',
+      letterSpacing: 0.48,
       textTransform: 'uppercase',
     }),
     lede: Object.freeze({
@@ -161,6 +167,9 @@ export const agentUpTheme = Object.freeze({
       fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
       fontSize: 14,
       fontWeight: '700',
+    }),
+    buttonDisabled: Object.freeze({
+      opacity: 0.38,
     }),
     buttonSecondary: Object.freeze({
       color: "#f5fbf7",
@@ -349,6 +358,11 @@ export const agentUpTheme = Object.freeze({
       fontSize: 13,
       fontWeight: '700',
     }),
+    chromeTitle: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '700',
+    }),
     titleTool: Object.freeze({
       width: 32,
       height: 30,
@@ -427,6 +441,9 @@ export const agentUpTheme = Object.freeze({
       borderColor: "#3c3c3c",
       borderRadius: 6,
     }),
+    lifecycleButtonDisabled: Object.freeze({
+      opacity: 0.45,
+    }),
     appTab: Object.freeze({
       paddingHorizontal: 13.6,
       paddingVertical: 8.8,
@@ -436,6 +453,8 @@ export const agentUpTheme = Object.freeze({
       borderColor: "#00000000",
       borderBottomWidth: 2,
       borderBottomColor: "#00000000",
+      fontSize: 14,
+      fontWeight: '700',
     }),
     appTabSelected: Object.freeze({
       color: "#f5fbf7",
@@ -450,6 +469,8 @@ export const agentUpTheme = Object.freeze({
       borderWidth: 0,
       borderColor: "#00000000",
       borderRadius: 999,
+      fontSize: 12,
+      fontWeight: '700',
     }),
     subtabSelected: Object.freeze({
       color: "#f5fbf7",
@@ -608,6 +629,9 @@ export const agentUpTheme = Object.freeze({
       fontSize: 12,
       fontWeight: '700',
     }),
+    tutorialButtonDisabled: Object.freeze({
+      backgroundColor: "#252525",
+    }),
     tutorialButtonSecondary: Object.freeze({
       color: "#f5fbf7",
       backgroundColor: "#1c1c1c",
@@ -728,6 +752,7 @@ export const agentUpTheme = Object.freeze({
       borderBottomColor: "#2b2b2b",
       fontSize: 14,
       fontWeight: '700',
+      letterSpacing: 7,
     }),
     proof: Object.freeze({
       backgroundColor: "#2b2b2b",
@@ -750,7 +775,7 @@ export const agentUpTheme = Object.freeze({
   }),
 });
 const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","paddingHorizontal","paddingVertical","opacity"]);
-const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","textTransform"]);
+const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","textTransform","letterSpacing"]);
 function auPick(names, keys) {
   const out = {};
   for (const name of names) {

@@ -35,7 +35,7 @@ public sealed class DocsCommandServiceTests
 
     private sealed class ThrowingShots : AgentUp.AUDebug.Shared.Interfaces.IWebScreenshotDriver
     {
-        public Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken)
+        public Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken, string? userDataDirectory = null)
             => throw new InvalidOperationException("boom");
     }
 }

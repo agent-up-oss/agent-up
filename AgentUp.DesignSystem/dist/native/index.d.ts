@@ -51,4 +51,5 @@ export declare function auText(...names: Array<string | false | null | undefined
   opacity?: number;
   fontFamily?: string;
   textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';
+  letterSpacing?: number;
 };

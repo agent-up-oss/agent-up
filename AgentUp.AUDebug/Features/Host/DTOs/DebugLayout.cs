@@ -12,5 +12,8 @@ public static class DebugLayout
     public const string MobileUrl = "http://127.0.0.1:10102";
     public const string DesktopWindowName = "Agent-Up";
     public const string DesktopWindowClass = "AgentUp.Desktop";
+    public const int DesktopLoginFieldX = 550;
+    public const int DesktopLoginFieldY = 420;
+    public const int DesktopLoginButtonY = 478;
     public const string ServerReadyPath = "/api/auth/status";
 }

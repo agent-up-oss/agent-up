@@ -32,6 +32,12 @@ export function emitNative(tokens, rules) {
       components[name] = { ...components[name], ...style };
     }
   }
+  for (const style of Object.values(components)) {
+    if (style.letterSpacingEm != null && style.fontSize != null) {
+      style.letterSpacing = formatNumber(style.letterSpacingEm * Number(style.fontSize));
+    }
+    delete style.letterSpacingEm;
+  }
   const componentBlock = Object.entries(components).map(([name, style]) =>
     `    ${name}: Object.freeze({\n${Object.entries(style).map(([key, value]) => `      ${key}: ${value},`).join('\n')}\n    }),`
   ).join('\n');
@@ -132,6 +138,7 @@ function rnStyle(declarations, tokens) {
       case 'letter-spacing': {
         const em = String(value).trim().match(/^(-?[0-9.]+)em$/);
         if (em && style.fontSize != null) style.letterSpacing = formatNumber(Number(em[1]) * Number(style.fontSize));
+        else if (em) style.letterSpacingEm = Number(em[1]);
         else {
           const px = nativeLiteral(value, tokens);
           if (px != null) style.letterSpacing = px;

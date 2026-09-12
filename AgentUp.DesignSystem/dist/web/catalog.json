@@ -208,10 +208,11 @@
             "au-badge--healthy",
             "au-status-dot",
             "au-status-dot--healthy",
+            "au-chrome-title",
             "au-chrome-button",
             "au-chrome-close"
           ],
-          "html": "<div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong>Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>"
+          "html": "<div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>"
         },
         {
           "id": "chrome-button",
@@ -258,6 +259,19 @@
             "au-chrome-icon"
           ],
           "html": "<div class=\"au-cluster\">\n        <button class=\"au-title-tool au-chrome-icon\">☰</button>\n        <button class=\"au-title-tool au-chrome-icon\">↻</button>\n      </div>"
+        },
+        {
+          "id": "chrome-title",
+          "title": "Wordmark",
+          "note": "The product name in chrome is 13px bold, not a marketing title.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chrome-title",
+          "classes": [
+            "au-chrome-title"
+          ],
+          "html": "<strong class=\"au-chrome-title\">Agent-Up</strong>"
         }
       ]
     },
@@ -729,6 +743,32 @@
             "au-db-run"
           ],
           "html": "<button class=\"au-db-run\">Run</button>"
+        },
+        {
+          "id": "db-header-cell",
+          "title": "Result header",
+          "note": "Grid headers are muted raised cells with structural borders.",
+          "avalonia": "Border",
+          "desktopClass": "dbHeaderCell",
+          "desktopHost": "",
+          "rootClass": "au-db-header-cell",
+          "classes": [
+            "au-db-header-cell"
+          ],
+          "html": "<div class=\"au-db-header-cell\">id</div>"
+        },
+        {
+          "id": "db-data-cell",
+          "title": "Result cell",
+          "note": "Result values stay monospace on the surface token.",
+          "avalonia": "Border",
+          "desktopClass": "dbDataCell",
+          "desktopHost": "",
+          "rootClass": "au-db-data-cell",
+          "classes": [
+            "au-db-data-cell"
+          ],
+          "html": "<div class=\"au-db-data-cell\">1042</div>"
         }
       ]
     },

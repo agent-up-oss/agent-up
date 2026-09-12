@@ -126,10 +126,11 @@ export function inferAvaloniaType(className) {
     return 'Button';
   }
   if (/(au-input|au-address-bar|au-code-editor|au-console|au-code$)/.test(className)) return 'TextBox';
-  if (/(au-eyebrow|au-display|au-title|au-page-title|au-heading|au-lede|au-muted|au-mono|au-accent|au-field-label|au-chrome-icon|au-chrome-title|au-workspace-name|au-workspace-branch)/.test(className)) return 'TextBlock';
+  if (/(au-eyebrow|au-display|au-title|au-page-title|au-heading|au-lede|au-muted|au-mono|au-accent|au-field-label|au-chrome-icon|au-chrome-title|au-workspace-name|au-workspace-branch|au-git-add|au-git-delete|au-git-rename|au-git-conflict|au-logo-lockup|au-do-dont__label)/.test(className)) return 'TextBlock';
   return 'Border';
 }
 
 export const layoutOnly = new Set([
   'au-container', 'au-stack', 'au-cluster', 'au-grid', 'au-section', 'au-reading',
+  'au-marketing-hero',
 ]);

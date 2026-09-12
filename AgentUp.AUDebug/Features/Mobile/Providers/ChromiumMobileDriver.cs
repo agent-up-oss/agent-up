@@ -26,9 +26,12 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
         _paths = paths;
     }
 
+    public string UserDataDirectory
+        => _paths.EnsureUnderRoot(Path.Join(_paths.SessionDirectory, "chrome-mobile"));
+
     public async Task LoginAsync(string serverUrl, string password, CancellationToken cancellationToken)
     {
-        var userData = _paths.EnsureUnderRoot(Path.Join(_paths.SessionDirectory, "chrome-mobile"));
+        var userData = UserDataDirectory;
         Directory.CreateDirectory(userData);
         var command = ChromiumCommand(userData);
         using var browser = _processes.Start(command);

@@ -54,7 +54,7 @@ public sealed class MobileCommandService
     private async Task<CommandResultDto> CaptureAsync(CancellationToken cancellationToken)
     {
         var path = _sessions.ScreenshotPath("mobile");
-        await _screenshots.CaptureAsync($"{DebugLayout.MobileUrl}/connect", path, cancellationToken);
+        await _screenshots.CaptureAsync($"{DebugLayout.MobileUrl}/", path, cancellationToken, _surface.UserDataDirectory);
         return CommandResultDto.Ok("Wrote Mobile screenshot.", path);
     }
 
@@ -66,7 +66,7 @@ public sealed class MobileCommandService
 
         await _surface.LoginAsync(DebugLayout.ServerUrl, password, cancellationToken);
         var path = _sessions.ScreenshotPath("mobile");
-        await _screenshots.CaptureAsync($"{DebugLayout.MobileUrl}/", path, cancellationToken);
+        await _screenshots.CaptureAsync($"{DebugLayout.MobileUrl}/", path, cancellationToken, _surface.UserDataDirectory);
         return CommandResultDto.Ok("Submitted Mobile sign-in.", path);
     }
 }

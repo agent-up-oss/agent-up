@@ -34,6 +34,24 @@ public sealed class MobileCommandServiceTests
             Assert.That(surface.ServerUrl, Is.EqualTo(DebugLayout.ServerUrl));
             Assert.That(surface.Password, Is.EqualTo("test"));
             Assert.That(shots.Captures, Has.Count.EqualTo(1));
+            Assert.That(shots.Captures[0].Url, Is.EqualTo($"{DebugLayout.MobileUrl}/"));
+            Assert.That(shots.Captures[0].UserDataDirectory, Is.EqualTo(surface.UserDataDirectory));
+        });
+    }
+
+    [Test]
+    public async Task Screenshot_usesLoginProfileAndRootUrl()
+    {
+        var surface = new FakeMobileSurfaceDriver();
+        var shots = new FakeWebScreenshotDriver();
+        var result = await new MobileCommandService(shots, surface, new FakeSessionStore(), new FakeEnvironment())
+            .ScreenshotAsync(new DebugCommandDto("mobile", "mobile", "screenshot", null, null, TimeSpan.FromSeconds(30), false), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(0));
+            Assert.That(shots.Captures[0].Url, Is.EqualTo($"{DebugLayout.MobileUrl}/"));
+            Assert.That(shots.Captures[0].UserDataDirectory, Is.EqualTo(surface.UserDataDirectory));
         });
     }
 

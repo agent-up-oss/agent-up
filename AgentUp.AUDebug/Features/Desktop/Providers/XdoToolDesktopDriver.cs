@@ -47,7 +47,7 @@ public sealed class XdoToolDesktopDriver : IDesktopWindowDriver
         var result = await RunToolAsync(
             "import",
             "imagemagick",
-            ["-window", windowId, destination],
+            ["-window", ToX11WindowId(windowId), destination],
             cancellationToken);
         if (result.ExitCode != 0)
             throw new InvalidOperationException($"Desktop screenshot failed: {result.StandardError}");
@@ -57,11 +57,29 @@ public sealed class XdoToolDesktopDriver : IDesktopWindowDriver
     {
         var windowId = await RequireWindowAsync(cancellationToken);
         await RunToolAsync("xdotool", "xdotool", ["windowactivate", "--sync", windowId], cancellationToken);
-        await RunToolAsync("xdotool", "xdotool", ["mousemove", "--window", windowId, "640", "420"], cancellationToken);
-        await RunToolAsync("xdotool", "xdotool", ["click", "1"], cancellationToken);
+        await ClickAsync(windowId, DebugLayout.DesktopLoginFieldX, DebugLayout.DesktopLoginFieldY, cancellationToken);
+        await RunToolAsync("xdotool", "xdotool", ["key", "--window", windowId, "ctrl+a"], cancellationToken);
         await RunToolAsync("xdotool", "xdotool", ["type", "--clearmodifiers", "--file", "-"], cancellationToken, password);
-        await RunToolAsync("xdotool", "xdotool", ["mousemove", "--window", windowId, "640", "520"], cancellationToken);
+        await ClickAsync(windowId, DebugLayout.DesktopLoginFieldX, DebugLayout.DesktopLoginButtonY, cancellationToken);
+    }
+
+    private async Task ClickAsync(string windowId, int x, int y, CancellationToken cancellationToken)
+    {
+        await RunToolAsync(
+            "xdotool",
+            "xdotool",
+            ["mousemove", "--window", windowId, x.ToString(), y.ToString()],
+            cancellationToken);
         await RunToolAsync("xdotool", "xdotool", ["click", "1"], cancellationToken);
+    }
+
+    private static string ToX11WindowId(string windowId)
+    {
+        if (windowId.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            return windowId;
+
+        return "0x" + ulong.Parse(windowId, System.Globalization.CultureInfo.InvariantCulture)
+            .ToString("x", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private async Task<string> RequireWindowAsync(CancellationToken cancellationToken)
@@ -73,7 +91,7 @@ public sealed class XdoToolDesktopDriver : IDesktopWindowDriver
         var result = await RunToolAsync(
             "xdotool",
             "xdotool",
-            ["search", "--class", DebugLayout.DesktopWindowClass],
+            ["search", "--onlyvisible", "--class", DebugLayout.DesktopWindowClass],
             cancellationToken);
         var line = result.StandardOutput
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)

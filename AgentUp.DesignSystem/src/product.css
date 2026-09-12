@@ -122,6 +122,8 @@
   background: var(--au-color-transparent);
   border: 0;
   border-bottom: 2px solid var(--au-color-transparent);
+  font-size: var(--au-font-size-sm);
+  font-weight: var(--au-weight-bold);
 }
 .au-app-tab:hover { background: var(--au-color-surface-raised); color: var(--au-color-text-primary); }
 .au-app-tab--selected {
@@ -136,6 +138,8 @@
   background: var(--au-color-transparent);
   border: 0;
   border-radius: var(--au-radius-pill);
+  font-size: var(--au-font-size-xs);
+  font-weight: var(--au-weight-bold);
 }
 .au-subtab:hover { background: var(--au-color-surface-raised); color: var(--au-color-text-primary); }
 .au-subtab--selected {

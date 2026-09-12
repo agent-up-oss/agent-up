@@ -6,6 +6,7 @@ namespace AgentUp.AUDebug.Tests.Fake;
 
 public sealed class FakeMobileSurfaceDriver : IMobileSurfaceDriver
 {
+    public string UserDataDirectory { get; set; } = "/tmp/chrome-mobile";
     public string? ServerUrl { get; private set; }
     public string? Password { get; private set; }
 
@@ -20,11 +21,11 @@ public sealed class FakeMobileSurfaceDriver : IMobileSurfaceDriver
 
 public sealed class FakeWebScreenshotDriver : IWebScreenshotDriver
 {
-    public List<(string Url, string Path)> Captures { get; } = [];
+    public List<(string Url, string Path, string? UserDataDirectory)> Captures { get; } = [];
 
-    public Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken)
+    public Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken, string? userDataDirectory = null)
     {
-        Captures.Add((url, outputPath));
+        Captures.Add((url, outputPath, userDataDirectory));
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }
