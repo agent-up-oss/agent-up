@@ -77,6 +77,47 @@ public sealed class CoverageConfiguration
     }
 
     [Test]
+    public void Codecov_ignores_everything_the_local_gate_excludes()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var ignored = ReadCodecovIgnores(root);
+
+        // Codecov measures the same change from the same reports but applies its own ignore
+        // list. A glob missing here fails a pull request the local gate passed, on lines
+        // this repository has already decided carry no information - which is how a gate
+        // stops being believed. Extra entries are fine: agent-up.json narrows itself with
+        // 'coverage.include' instead, so codecov.yml has to exclude test projects by hand.
+        var missing = ReadGlobs(root, "exclude")
+            .Where(glob => !ignored.Contains(glob))
+            .Order(StringComparer.Ordinal)
+            .Select(glob => $"codecov.yml does not ignore '{glob}'")
+            .ToArray();
+
+        Assert.That(missing, Is.Empty,
+            "Add the glob to the 'ignore' list in codecov.yml so both views of coverage agree.");
+    }
+
+    /// <summary>
+    /// The quoted entries of codecov.yml's top-level "ignore" list. Read by hand rather
+    /// than with a YAML parser, which the suite would otherwise need a dependency for.
+    /// </summary>
+    private static HashSet<string> ReadCodecovIgnores(string root)
+    {
+        var path = Path.Join(root, "codecov.yml");
+        if (!File.Exists(path))
+            throw new FileNotFoundException("codecov.yml is missing.", path);
+
+        return File.ReadAllLines(path)
+            .SkipWhile(line => line.TrimEnd() != "ignore:")
+            .Skip(1)
+            .TakeWhile(line => line.StartsWith(' ') || line.Length == 0)
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("- ", StringComparison.Ordinal))
+            .Select(line => line[2..].Trim().Trim('"', '\''))
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    [Test]
     public void Coverage_exclusions_stay_reviewable_rather_than_open_ended()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);

@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text.Json;
 using AgentUp.Browser.Streaming.Models;
 using Microsoft.Extensions.Logging;
@@ -11,10 +10,9 @@ public sealed class BrowserInputDispatcher(
     HeadlessBrowserSessionManager manager,
     BrowserRemoteDisplayService display,
     BrowserInputParser parser,
+    CursorBroadcastTracker cursors,
     ILogger<BrowserInputDispatcher> logger)
 {
-    private readonly ConcurrentDictionary<string, string> _lastCursorByWorkspace = new();
-
     public async Task DispatchAsync(string workspaceId, string json, CancellationToken ct)
     {
         var session = accessor.GetSession(workspaceId);
@@ -63,10 +61,8 @@ public sealed class BrowserInputDispatcher(
         var y = command.Y;
         await session.Page.Mouse.MoveAsync(x, y).WaitAsync(ct);
         var cursor = await ReadCursorAsync(session.Page, x, y, ct);
-        if (!_lastCursorByWorkspace.TryGetValue(workspaceId, out var last) ||
-            !string.Equals(last, cursor, StringComparison.Ordinal))
+        if (cursors.ShouldBroadcast(workspaceId, cursor))
         {
-            _lastCursorByWorkspace[workspaceId] = cursor;
             await display.BroadcastTextAsync(workspaceId, JsonSerializer.Serialize(new
             {
                 type = "cursor",

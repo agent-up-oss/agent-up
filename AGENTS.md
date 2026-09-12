@@ -821,8 +821,12 @@ do nothing but call the platform (`WindowsAutoStartRegistrar.cs` reaching the re
 `LaunchctlProcess.cs` starting launchctl) are excluded by name. Split the decidable part
 out and cover it; never exclude a file to avoid writing a test.
 
-`codecov.yml` sets the same 90% patch target so the Codecov status matches. It is
-complementary, not a substitute: Codecov cannot gate a local run.
+`codecov.yml` sets the same 90% patch target, and its `ignore` list must contain every
+`coverage.exclude` glob - `AgentUp.Architecture.Tests` enforces that, because a glob missing
+there fails a pull request the local gate passed, on lines this repository has already
+decided carry no information. The two numbers are still not identical: Codecov counts
+partially-covered branches, and this gate counts lines, so Codecov can read a little lower.
+It is complementary, not a substitute: Codecov cannot gate a local run.
 
 ## Per-slice coverage
 
