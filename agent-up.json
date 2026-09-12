@@ -190,6 +190,7 @@
           "AgentUp.Verification",
           "AgentUp.InstallerConfig",
           "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common",
           "AgentUp.Capabilities.Dotnet",
           "AgentUp.Capabilities.Docker",
           "AgentUp.Capabilities.Codex",
@@ -365,6 +366,7 @@
           "capabilities-codex",
           "capabilities-cursor",
           "capabilities-claude",
+          "server",
           "patch-coverage"
         ]
       },

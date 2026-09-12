@@ -12,6 +12,7 @@ namespace AgentUp.Server.Features.Agents.Services;
 public sealed class AgentEventService(AgentEventFrameProvider frames)
 {
     private readonly ConcurrentDictionary<string, AgentEventStreamState> _streams = new();
+    private readonly object _lifecycle = new();
     private long _sequence;
 
     public AgentEventDto Publish(string workspaceId, string type, object payload)
@@ -39,12 +40,16 @@ public sealed class AgentEventService(AgentEventFrameProvider frames)
             FullMode = BoundedChannelFullMode.Wait, SingleReader = true, SingleWriter = false
         });
         var id = Guid.NewGuid();
-        var stream = _streams.GetOrAdd(workspaceId, _ => new AgentEventStreamState());
+        AgentEventStreamState stream;
         AgentEventDto[] replay;
-        lock (stream.SyncRoot)
+        lock (_lifecycle)
         {
-            replay = stream.History.Where(item => item.Sequence > after).ToArray();
-            stream.Subscribers[id] = channel;
+            stream = _streams.GetOrAdd(workspaceId, _ => new AgentEventStreamState());
+            lock (stream.SyncRoot)
+            {
+                replay = stream.History.Where(item => item.Sequence > after).ToArray();
+                stream.Subscribers[id] = channel;
+            }
         }
         try {
             foreach (var item in replay) yield return item;
@@ -70,8 +75,12 @@ public sealed class AgentEventService(AgentEventFrameProvider frames)
 
     public void Remove(string workspaceId)
     {
-        if (!_streams.TryRemove(workspaceId, out var stream))
-            return;
+        AgentEventStreamState? stream;
+        lock (_lifecycle)
+        {
+            if (!_streams.TryRemove(workspaceId, out stream))
+                return;
+        }
 
         lock (stream.SyncRoot)
         {

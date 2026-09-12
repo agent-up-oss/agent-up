@@ -1726,7 +1726,8 @@
                                 <Button x:Name="GitDiscardButton"
                                         Command="{Binding Git.DiscardCommand}"
                                         Content="Discard"
-                                        Padding="8,4"/>
+                                        Padding="8,4"
+                                        IsVisible="{Binding !Git.IsConfirmingDiscard}"/>
                                 <Button x:Name="GitRefreshButton"
                                         Command="{Binding Git.RefreshCommand}"
                                         ToolTip.Tip="Reload Git changes">
@@ -1752,6 +1753,23 @@
                                    Foreground="#2bf27a"
                                    FontSize="11"
                                    TextWrapping="Wrap"/>
+                        <StackPanel IsVisible="{Binding Git.IsConfirmingDiscard}" Spacing="6">
+                            <TextBlock x:Name="GitDiscardConfirmMessage"
+                                       Text="{Binding Git.DiscardConfirmMessage}"
+                                       Foreground="#e48989"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button x:Name="GitCancelDiscardButton"
+                                        Command="{Binding Git.CancelDiscardCommand}"
+                                        Content="Cancel"
+                                        Padding="8,4"/>
+                                <Button x:Name="GitConfirmDiscardButton"
+                                        Command="{Binding Git.ConfirmDiscardCommand}"
+                                        Content="Confirm discard"
+                                        Padding="8,4"/>
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

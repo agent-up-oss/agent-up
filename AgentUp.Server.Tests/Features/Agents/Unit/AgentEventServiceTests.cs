@@ -33,11 +33,30 @@ public sealed class AgentEventServiceTests
         Assert.That(await events.MoveNextAsync(), Is.True);
 
         service.Remove("ws");
+        Assert.That(await events.MoveNextAsync(), Is.False);
+
         service.Publish("ws", "two", new { value = 2 });
 
         await using var after = service.SubscribeAsync("ws", 0, timeout.Token).GetAsyncEnumerator(timeout.Token);
         Assert.That(await after.MoveNextAsync(), Is.True);
         Assert.That(after.Current.Type, Is.EqualTo("two"));
+    }
+
+    [Test]
+    public async Task SubscribeAsync_doesNotAttachToARemovedStream()
+    {
+        var service = new AgentEventService(new AgentEventFrameProvider());
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var cycles = Enumerable.Range(0, 20).Select(async _ =>
+        {
+            service.Publish("ws", "seed", new { value = 1 });
+            await using var events = service.SubscribeAsync("ws", 0, timeout.Token).GetAsyncEnumerator(timeout.Token);
+            Assert.That(await events.MoveNextAsync(), Is.True);
+            service.Remove("ws");
+            Assert.That(await events.MoveNextAsync(), Is.False);
+        });
+
+        await Task.WhenAll(cycles);
     }
 
     [Test]

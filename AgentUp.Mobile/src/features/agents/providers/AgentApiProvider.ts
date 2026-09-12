@@ -1,5 +1,6 @@
 import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import { jsonBody, requestServerJson } from '@/features/servers/providers/ServerRequestProvider';
+import { ensureCredentialTransportAllowed } from '@/features/authentication/providers/AuthenticationProvider';
 import type { AgentEvent, AgentKind, AgentSession } from '../models/AgentSession';
 
 const root = (workspaceId: string) => `/api/workspaces/${encodeURIComponent(workspaceId)}/agent`;
@@ -41,6 +42,8 @@ export async function streamAgentEvents(
   server: ServerSession, workspaceId: string, after: number, onEvent: (event: AgentEvent) => void, signal: AbortSignal,
   request: typeof fetch = fetch,
 ) {
+  if (server.accessToken)
+    ensureCredentialTransportAllowed(server.url);
   const response = await request(`${server.url}${root(workspaceId)}/events?after=${after}`, {
     headers: { Accept: 'text/event-stream', ...(server.accessToken ? { Authorization: `Bearer ${server.accessToken}` } : {}) }, signal,
   });

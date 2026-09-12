@@ -23,6 +23,10 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
 
     public IReadOnlyList<string> DiscardedFiles { get; private set; } = [];
 
+    public TaskCompletionSource? HoldDiscard { get; set; }
+
+    public TaskCompletionSource? DiscardStarted { get; set; }
+
     public string? SwitchedBranch { get; private set; }
 
     public bool CreatedBranch { get; private set; }
@@ -63,11 +67,15 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
             : Task.FromException<string>(new InvalidOperationException(Failure));
     }
 
-    public Task DiscardAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+    public async Task DiscardAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
         LastWorktreePath = worktreePath;
         DiscardedFiles = files;
-        return Failure is null ? Task.CompletedTask : Task.FromException(new InvalidOperationException(Failure));
+        DiscardStarted?.TrySetResult();
+        if (HoldDiscard is not null)
+            await HoldDiscard.Task.WaitAsync(cancellationToken);
+        if (Failure is not null)
+            throw new InvalidOperationException(Failure);
     }
 
     public Task SwitchBranchAsync(string worktreePath, string name, bool create, CancellationToken cancellationToken = default)

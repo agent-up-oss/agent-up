@@ -296,6 +296,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton(sp =>
             new HeadlessBrowserSessionAccessor(sp.GetRequiredService<HeadlessBrowserSessionManager>()));
         builder.Services.AddSingleton<IGitWorkingTreeProvider, GitWorkingTreeProvider>();
+        builder.Services.AddSingleton<IWorkspacePromptGuard, WorkspaceAgentPromptGuard>();
         builder.Services.AddSingleton<GitChangeTreeService>();
         builder.Services.AddSingleton<ISourceCloneRootProvider>(_ => new SourceCloneRootProvider(dataDir));
         builder.Services.AddSingleton<ISourceCloneTargetProvider, SourceCloneTargetProvider>();

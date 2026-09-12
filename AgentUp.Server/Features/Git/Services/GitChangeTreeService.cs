@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AgentUp.Server.Features.Git.DTOs;
 using AgentUp.Server.Features.Git.Interfaces;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -7,13 +8,20 @@ namespace AgentUp.Server.Features.Git.Services;
 
 public sealed class GitChangeTreeService
 {
+    private const string PromptRunningError = "Cannot change files while the workspace agent is processing a prompt.";
     private readonly WorkspaceQueryController _workspaces;
     private readonly IGitWorkingTreeProvider _git;
+    private readonly IWorkspacePromptGuard _prompts;
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _mutations = new();
 
-    public GitChangeTreeService(WorkspaceQueryController workspaces, IGitWorkingTreeProvider git)
+    public GitChangeTreeService(
+        WorkspaceQueryController workspaces,
+        IGitWorkingTreeProvider git,
+        IWorkspacePromptGuard prompts)
     {
         _workspaces = workspaces;
         _git = git;
+        _prompts = prompts;
     }
 
     public async Task<GitChangeTree?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
@@ -60,67 +68,101 @@ public sealed class GitChangeTreeService
         }
     }
 
-    public async Task<GitCommitResult> CommitAsync(
+    public Task<GitCommitResult> CommitAsync(
         string workspaceId,
         GitCommitRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var workspace = _workspaces.GetById(workspaceId);
-        if (workspace is null)
-            return GitCommitResult.NotFound();
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    var commit = await _git.CommitAsync(
+                        workspace.WorktreePath,
+                        request.Files ?? [],
+                        request.Message ?? string.Empty,
+                        cancellationToken);
+                    return GitCommitResult.Success(commit);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitCommitResult.Failed(ex.Message);
+                }
+            },
+            GitCommitResult.NotFound,
+            GitCommitResult.Failed,
+            cancellationToken);
 
-        try
-        {
-            var commit = await _git.CommitAsync(
-                workspace.WorktreePath,
-                request.Files ?? [],
-                request.Message ?? string.Empty,
-                cancellationToken);
-            return GitCommitResult.Success(commit);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return GitCommitResult.Failed(ex.Message);
-        }
-    }
-
-    public async Task<GitMutationResult> DiscardAsync(
+    public Task<GitMutationResult> DiscardAsync(
         string workspaceId,
         GitFilesRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var workspace = _workspaces.GetById(workspaceId);
-        if (workspace is null)
-            return GitMutationResult.NotFound();
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    await _git.DiscardAsync(workspace.WorktreePath, request.Files ?? [], cancellationToken);
+                    return GitMutationResult.Success();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitMutationResult.Failed(ex.Message);
+                }
+            },
+            GitMutationResult.NotFound,
+            GitMutationResult.Failed,
+            cancellationToken);
 
-        try
-        {
-            await _git.DiscardAsync(workspace.WorktreePath, request.Files ?? [], cancellationToken);
-            return GitMutationResult.Success();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return GitMutationResult.Failed(ex.Message);
-        }
-    }
-
-    public async Task<GitMutationResult> SwitchBranchAsync(
+    public Task<GitMutationResult> SwitchBranchAsync(
         string workspaceId,
         GitBranchRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    await _git.SwitchBranchAsync(workspace.WorktreePath, request.Name ?? string.Empty, request.Create, cancellationToken);
+                    return GitMutationResult.Success();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitMutationResult.Failed(ex.Message);
+                }
+            },
+            GitMutationResult.NotFound,
+            GitMutationResult.Failed,
+            cancellationToken);
+
+    private async Task<T> MutateAsync<T>(
+        string workspaceId,
+        Func<Workspace, Task<T>> action,
+        Func<T> notFound,
+        Func<string, T> failed,
+        CancellationToken cancellationToken)
     {
         var workspace = _workspaces.GetById(workspaceId);
         if (workspace is null)
-            return GitMutationResult.NotFound();
+            return notFound();
 
+        var gate = _mutations.GetOrAdd(workspace.Id, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
         try
         {
-            await _git.SwitchBranchAsync(workspace.WorktreePath, request.Name ?? string.Empty, request.Create, cancellationToken);
-            return GitMutationResult.Success();
+            workspace = _workspaces.GetById(workspaceId);
+            if (workspace is null)
+                return notFound();
+            if (_prompts.IsPromptRunning(workspaceId))
+                return failed(PromptRunningError);
+            return await action(workspace);
         }
-        catch (InvalidOperationException ex)
+        finally
         {
-            return GitMutationResult.Failed(ex.Message);
+            gate.Release();
         }
     }
 

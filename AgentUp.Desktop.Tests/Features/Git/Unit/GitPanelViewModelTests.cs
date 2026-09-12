@@ -118,7 +118,7 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
-    public async Task DiscardCommand_sendsSelectedFilesAndReloadsTheTree()
+    public async Task DiscardCommand_requestsConfirmationWithoutDiscarding()
     {
         var client = new FakeGitApiProvider { Tree = SampleTree() };
         var panel = CreatePanel(client);
@@ -127,8 +127,25 @@ public sealed class GitPanelViewModelTests
 
         await panel.DiscardCommand.Execute().FirstAsync();
 
+        Assert.That(panel.IsConfirmingDiscard, Is.True);
+        Assert.That(panel.DiscardConfirmMessage, Does.Contain("README.md"));
+        Assert.That(client.DiscardedRequest, Is.Null);
+    }
+
+    [Test]
+    public async Task ConfirmDiscardCommand_sendsSelectedFilesAndReloadsTheTree()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+
+        await panel.DiscardCommand.Execute().FirstAsync();
+        await panel.ConfirmDiscardCommand.Execute().FirstAsync();
+
         Assert.That(client.DiscardedRequest!.Files, Is.EqualTo(new[] { "README.md" }));
         Assert.That(panel.StatusMessage, Does.Contain("Discarded"));
+        Assert.That(panel.IsConfirmingDiscard, Is.False);
     }
 
     [Test]
@@ -180,6 +197,7 @@ public sealed class GitPanelViewModelTests
         panel.Nodes[5].IsSelected = true;
 
         await panel.DiscardCommand.Execute().FirstAsync();
+        await panel.ConfirmDiscardCommand.Execute().FirstAsync();
 
         Assert.That(panel.ErrorMessage, Is.EqualTo("dirty index"));
     }
@@ -207,6 +225,7 @@ public sealed class GitPanelViewModelTests
         panel.Nodes[5].IsSelected = true;
 
         await panel.DiscardCommand.Execute().FirstAsync();
+        await panel.ConfirmDiscardCommand.Execute().FirstAsync();
 
         Assert.That(panel.ErrorMessage, Does.Contain("Could not discard"));
     }
@@ -220,6 +239,7 @@ public sealed class GitPanelViewModelTests
         panel.Nodes[5].IsSelected = true;
 
         await panel.DiscardCommand.Execute().FirstAsync();
+        await panel.ConfirmDiscardCommand.Execute().FirstAsync();
 
         Assert.That(panel.ErrorMessage, Is.EqualTo("The discard failed."));
     }

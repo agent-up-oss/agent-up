@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Net.Sockets;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using AgentUp.Server.Features.Agents.Controllers;
@@ -33,8 +32,7 @@ public sealed class AgentsHttpTests
     [SetUp]
     public async Task SetUp()
     {
-        var port = FreePort();
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = [$"--urls=http://127.0.0.1:{port}"] });
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = ["--urls=http://127.0.0.1:0"] });
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> {
             ["Agents:Codex:Command"] = "/definitely-missing/codex-acp"
         });
@@ -58,7 +56,7 @@ public sealed class AgentsHttpTests
         _app = builder.Build();
         _app.MapControllers();
         await _app.StartAsync();
-        _client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+        _client = new HttpClient { BaseAddress = new Uri(_app.Urls.Single().TrimEnd('/') + "/") };
     }
 
     [TearDown]
@@ -166,11 +164,4 @@ public sealed class AgentsHttpTests
 
     private Task<Workspace> RegisterAsync() => _app.Services.GetRequiredService<WorkspaceQueryController>().RegisterAsync(
         new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc"));
-
-    private static int FreePort()
-    {
-        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
-        return ((System.Net.IPEndPoint)socket.LocalEndPoint!).Port;
-    }
 }

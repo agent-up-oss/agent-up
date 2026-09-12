@@ -147,8 +147,15 @@ pkgs.mkShell {
       case "$os" in Linux*) OS=linux ;; Darwin*) OS=darwin ;; *) OS="" ;; esac
       case "$arch" in x86_64|amd64) ARCH=x64 ;; arm64|aarch64) ARCH=arm64 ;; *) ARCH="" ;; esac
       if [ -n "$OS" ] && [ -n "$ARCH" ]; then
-        eval "$(curl -fsSL https://cursor.com/install | grep '^DOWNLOAD_URL=')"
-        if [ -n "$DOWNLOAD_URL" ] && curl -fsSL "$DOWNLOAD_URL" | tar --strip-components=1 -xzf - -C "$devRoot/cursor-agent"; then
+        download_url="$(curl -fsSL https://cursor.com/install | grep '^DOWNLOAD_URL=' | head -n1 | cut -d= -f2- | tr -d '"')"
+        case "$download_url" in
+          https://*) ;;
+          *) download_url="" ;;
+        esac
+        if printf '%s' "$download_url" | grep -Eq '[[:space:];|&`$()]'; then
+          download_url=""
+        fi
+        if [ -n "$download_url" ] && curl -fsSL "$download_url" | tar --strip-components=1 -xzf - -C "$devRoot/cursor-agent"; then
           :
         else
           echo "warning: Cursor Agent CLI download failed; Cursor discovery will stay empty until it succeeds"

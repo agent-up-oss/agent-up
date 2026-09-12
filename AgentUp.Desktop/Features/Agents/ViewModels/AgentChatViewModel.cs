@@ -20,6 +20,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     private Task? _streamLoop;
     private int _loadGeneration;
     private long _lastSequence;
+    private Task _stopStream = Task.CompletedTask;
     public ObservableCollection<AgentChatItemViewModel> Messages { get; } = [];
     public ObservableCollection<AgentDescriptorDto> Agents { get; } = [];
     public ObservableCollection<AgentOptionViewModel> PermissionOptions { get; } = [];
@@ -76,7 +77,8 @@ public sealed class AgentChatViewModel : ReactiveObject
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException)
         {
-            Error = exception.Message;
+            if (generation == _loadGeneration)
+                Error = exception.Message;
         }
     }
 
@@ -128,7 +130,7 @@ public sealed class AgentChatViewModel : ReactiveObject
                     await Dispatcher.UIThread.InvokeAsync(() => Accept(item));
                 await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
             }
-            catch (Exception exception) when (exception is HttpRequestException or IOException)
+            catch (Exception exception) when (exception is HttpRequestException or IOException or JsonException)
             {
                 await Dispatcher.UIThread.InvokeAsync(() => Error = exception.Message);
                 await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
@@ -219,7 +221,8 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         if (string.IsNullOrWhiteSpace(text)) return;
         var last = Messages.LastOrDefault();
-        if (last?.Role == role && role is "Agent" or "Thought") Messages[^1] = last with { Text = last.Text + text };
+        if (last is { } item && item.Role == role && role is "Agent" or "Thought")
+            Messages[^1] = item with { Text = item.Text + text };
         else Messages.Add(new(role, text));
     }
     private void RefreshActivity()
@@ -227,27 +230,33 @@ public sealed class AgentChatViewModel : ReactiveObject
         ActivityLabel = AgentEventPresentationProvider.ActivityLabel(State, HasPermission, null, _hintKind, _hintTool);
     }
 
-    private async Task StopStreamAsync()
+    private Task StopStreamAsync()
     {
-        if (_stream is null)
+        _stopStream = StopCapturedStreamAsync(_stopStream);
+        return _stopStream;
+    }
+
+    private async Task StopCapturedStreamAsync(Task previous)
+    {
+        await previous;
+        var stream = _stream;
+        var loop = _streamLoop;
+        _stream = null;
+        _streamLoop = null;
+        if (stream is null)
             return;
 
-        await _stream.CancelAsync();
-        if (_streamLoop is not null)
+        await stream.CancelAsync();
+        if (loop is not null)
         {
-            try
-            {
-                await _streamLoop;
-            }
+            try { await loop; }
             catch (OperationCanceledException)
             {
-                _streamLoop = null;
+                loop = null;
             }
         }
 
-        _stream.Dispose();
-        _stream = null;
-        _streamLoop = null;
+        stream.Dispose();
     }
 
     private void NotifyComputedChatState()

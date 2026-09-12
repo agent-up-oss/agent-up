@@ -91,7 +91,11 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             events.Publish(workspaceId, "state", scheduled!);
             return new AgentScheduleResult(scheduled, true, null);
         }
-        catch (InvalidOperationException exception) when (state.AuthMethods.Count > 0 && state.AcpSessionId is null && state.State != "stopped")
+        catch (InvalidOperationException exception) when (
+            state.AuthMethods.Count > 0 &&
+            state.AcpSessionId is null &&
+            state.State != "stopped" &&
+            exception.Message != MissingSessionId)
         {
             state.State = "authentication_required";
             state.Error = exception.Message;
@@ -141,10 +145,19 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private async Task CreateSessionAsync(AgentSessionState state, CancellationToken cancellationToken)
     {
         var session = await state.Process.CallAsync("session/new", new { cwd = state.WorkingDirectory, mcpServers = Array.Empty<object>() }, cancellationToken);
-        state.AcpSessionId = session.GetProperty("sessionId").GetString()
-            ?? throw new InvalidOperationException("The ACP agent did not return a session ID.");
+        state.AcpSessionId = ReadSessionId(session);
         state.State = "ready";
         state.Error = null;
+    }
+
+    private static string ReadSessionId(JsonElement session)
+    {
+        if (!session.TryGetProperty("sessionId", out var value) || value.ValueKind != JsonValueKind.String)
+            throw new InvalidOperationException(MissingSessionId);
+        var sessionId = value.GetString();
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new InvalidOperationException(MissingSessionId);
+        return sessionId;
     }
 
     public async Task<AgentActionResult> PromptAsync(string workspaceId, string message, CancellationToken cancellationToken)
@@ -260,7 +273,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     {
         if (!_sessions.TryGetValue(workspaceId, out var current) || !ReferenceEquals(current, state)) return;
         state.State = "stopped"; state.Error = error;
-        logger.LogInformation("Agent for workspace {WorkspaceId} exited: {Error}", workspaceId, error);
+        if (error is null)
+            logger.LogInformation("Agent for workspace {WorkspaceId} exited.", workspaceId);
+        else
+            logger.LogInformation("Agent for workspace {WorkspaceId} exited with an error.", workspaceId);
         var snapshot = Get(workspaceId);
         if (snapshot is not null) events.Publish(workspaceId, "state", snapshot);
     }
@@ -280,6 +296,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             new AgentDescriptor(kind, await commands.IsAvailableAsync(kind, cancellationToken), DisplayName(kind)));
         return await Task.WhenAll(descriptors);
     }
+
+    private const string MissingSessionId = "The ACP agent did not return a session ID.";
 
     private static string DisplayName(AgentKind kind) => kind switch
     {

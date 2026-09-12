@@ -58,6 +58,24 @@ public sealed class AgentChatViewModelTests
         Assert.That(view.HasPermission, Is.False);
     }
 
+    [Test]
+    public async Task LoadAsync_ignoresErrorsFromSupersededLoads()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new ChatApiFake
+        {
+            FirstGetHang = hang,
+            GetFailures = { ["ws-1"] = new HttpRequestException("stale workspace") }
+        };
+        var view = CreateView(fake);
+        var first = view.LoadAsync("ws-1");
+        await view.LoadAsync("ws-2");
+        hang.SetResult();
+        await first;
+
+        Assert.That(view.Error, Is.Null);
+    }
+
     private static AgentChatViewModel CreateView(IAgentApiProvider provider)
         => new(new AgentsController(new AgentChatService(provider)));
 }
@@ -66,12 +84,19 @@ internal sealed class ChatApiFake : IAgentApiProvider
 {
     public Exception? SendFailure { get; set; }
     public TaskCompletionSource? EventsHang { get; set; }
+    public TaskCompletionSource? FirstGetHang { get; set; }
+    public Dictionary<string, Exception> GetFailures { get; } = new(StringComparer.Ordinal);
     public string? LastWorkspace { get; private set; }
+    private int _gets;
 
-    public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
+    public async Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
     {
+        if (Interlocked.Increment(ref _gets) == 1 && FirstGetHang is not null)
+            await FirstGetHang.Task;
         LastWorkspace = workspaceId;
-        return Task.FromResult<AgentSessionDto?>(new AgentSessionDto(workspaceId, null, "idle", null, null, [], []));
+        if (GetFailures.TryGetValue(workspaceId, out var failure))
+            throw failure;
+        return new AgentSessionDto(workspaceId, null, "idle", null, null, [], []);
     }
 
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)

@@ -64,6 +64,46 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    [TestCaseSource(nameof(MissingSessionIds))]
+    public async Task Schedule_disposesTheProcessWhenSessionIdIsMissing(object payload)
+    {
+        _process.SessionNewResult = JsonSerializer.SerializeToElement(payload);
+
+        var result = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Error, Does.Contain("session ID"));
+            Assert.That(_process.DisposeCalls, Is.EqualTo(1));
+            Assert.That(_service.Get(_workspace.Id)!.SessionId, Is.Null);
+            Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("idle"));
+        });
+    }
+
+    [Test]
+    public async Task Schedule_doesNotTreatAMissingSessionIdAsAuthentication()
+    {
+        _process.AdvertiseAuthMethods = true;
+        _process.SessionNewResult = JsonSerializer.SerializeToElement(new { });
+
+        var result = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Error, Does.Contain("session ID"));
+            Assert.That(_process.DisposeCalls, Is.EqualTo(1));
+            Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("idle"));
+        });
+    }
+
+    private static object[] MissingSessionIds =>
+    [
+        new object(),
+        new { sessionId = 12 },
+        new { sessionId = "  " }
+    ];
+
+    [Test]
     public async Task Prompt_isAcceptedImmediatelyAndConcurrentPromptIsRejected()
     {
         await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
@@ -291,8 +331,11 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public string? WorkingDirectory { get; private set; }
     public bool HoldPrompt { get; set; }
     public bool RequireAuthentication { get; set; }
+    public bool AdvertiseAuthMethods { get; set; }
     public bool Authenticated { get; private set; }
     public int StopCalls { get; private set; }
+    public int DisposeCalls { get; private set; }
+    public JsonElement? SessionNewResult { get; set; }
     public Exception? AuthenticateFailure { get; set; }
     public Exception? PromptFailure { get; set; }
     public Exception? NotifyFailure { get; set; }
@@ -318,8 +361,9 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
                 return await _prompt.Task.WaitAsync(cancellationToken);
             }
         }
-        if (method == "session/new") return JsonSerializer.SerializeToElement(new { sessionId = "session-1" });
-        return RequireAuthentication
+        if (method == "session/new")
+            return SessionNewResult ?? JsonSerializer.SerializeToElement(new { sessionId = "session-1" });
+        return RequireAuthentication || AdvertiseAuthMethods
             ? JsonSerializer.SerializeToElement(new { protocolVersion = 1, authMethods = new[] { new { id = "chatgpt", name = "ChatGPT subscription", description = "Use an existing subscription." } } })
             : JsonSerializer.SerializeToElement(new { protocolVersion = 1 });
     }
@@ -333,7 +377,11 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         StopCalls++;
         return StopFailure is null ? Task.CompletedTask : Task.FromException(StopFailure);
     }
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        DisposeCalls++;
+        return ValueTask.CompletedTask;
+    }
     public void CompletePrompt() => _prompt!.TrySetResult(JsonSerializer.SerializeToElement(new { stopReason = "end_turn" }));
     public Task SendNotificationAsync(string method, JsonElement payload) => Notification?.Invoke(method, payload) ?? Task.CompletedTask;
     public void Exit(string? error) => Exited?.Invoke(error);

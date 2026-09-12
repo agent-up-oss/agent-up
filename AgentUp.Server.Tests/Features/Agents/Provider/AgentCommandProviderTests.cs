@@ -12,7 +12,7 @@ public sealed class AgentCommandProviderTests
     [Test]
     public async Task ResolveAsync_usesConfiguredAbsoluteExecutable()
     {
-        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var command = RootedShellCommand();
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
             ["Agents:Codex:Command"] = command, ["Agents:Codex:Arguments:0"] = "serve"
         }).Build();
@@ -58,7 +58,7 @@ public sealed class AgentCommandProviderTests
     [Test]
     public async Task ResolveAsync_prefersRootedConfigurationOverCapability()
     {
-        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var command = RootedShellCommand();
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
             ["Agents:Cursor:Command"] = command
         }).Build();
@@ -106,6 +106,11 @@ public sealed class AgentCommandProviderTests
 
         Assert.That(result, Is.Null);
     }
+
+    private static string RootedShellCommand() =>
+        OperatingSystem.IsWindows()
+            ? Path.Join(Environment.SystemDirectory, "cmd.exe")
+            : "/bin/sh";
 
     private sealed class FakeAgentCapabilityAdapter(string capabilityId, string? fileName = null, IReadOnlyList<string>? arguments = null) : ICapabilityAdapter
     {

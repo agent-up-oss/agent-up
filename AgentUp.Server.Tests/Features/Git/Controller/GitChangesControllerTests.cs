@@ -143,7 +143,7 @@ public sealed class GitChangesControllerTests
             Branch: "main",
             Commit: "abc123"));
 
-        var controller = new GitChangesController(new GitChangeTreeService(workspaces, git))
+        var controller = new GitChangesController(new GitChangeTreeService(workspaces, git, new FakeWorkspacePromptGuard()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

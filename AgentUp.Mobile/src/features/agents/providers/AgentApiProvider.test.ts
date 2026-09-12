@@ -34,6 +34,26 @@ test('stream sends authentication, resumes after cursor, and flushes final frame
   assert.deepEqual(received, [8]);
 });
 
+test('stream rejects a remote HTTP URL before attaching the bearer token', async () => {
+  let called = false;
+  const request = async () => {
+    called = true;
+    return new Response(null, { status: 204 });
+  };
+  await assert.rejects(
+    () => streamAgentEvents(
+      { url: 'http://192.168.1.10:5000', accessToken: 'secret' },
+      'ws',
+      0,
+      () => undefined,
+      new AbortController().signal,
+      request as typeof fetch,
+    ),
+    /HTTPS is required/,
+  );
+  assert.equal(called, false);
+});
+
 test('schedule and authenticate use workspace-scoped authenticated JSON requests', async () => {
   const calls: { url: string; init?: RequestInit }[] = [];
   const request = async (input: string | URL | Request, init?: RequestInit) => {

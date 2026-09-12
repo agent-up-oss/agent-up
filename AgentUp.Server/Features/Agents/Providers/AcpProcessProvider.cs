@@ -154,7 +154,6 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         {
             _stderr.Enqueue(line);
             TrimStderr();
-            logger.LogWarning("ACP: {Line}", line);
         }
     }
 
@@ -162,10 +161,8 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
     {
         while (_stderr.Count > 12)
         {
-            if (!_stderr.TryDequeue(out var discarded))
+            if (!_stderr.TryDequeue(out _))
                 return;
-
-            logger.LogTrace("Dropped oldest ACP stderr line: {Line}", discarded);
         }
     }
 
@@ -186,7 +183,7 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
     {
         var error = process.ExitCode == 0 ? null : ExitError(process);
         if (error is not null)
-            logger.LogWarning("{Error}", error);
+            logger.LogWarning("ACP process exited with a non-zero status.");
         foreach (var completion in _pending.Values) completion.TrySetException(new InvalidOperationException(error ?? "Agent process exited."));
         Exited?.Invoke(error);
     }

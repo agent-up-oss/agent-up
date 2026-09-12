@@ -29,7 +29,7 @@ Selecting a file name opens its diff in a modal. Close the modal to return to th
 
 Each file has a checkbox, and only checked files are committed. The list starts with a Changes checkbox that selects or clears every file at once. A directory checkbox selects or clears every file beneath it, and it shows as checked exactly when all of its files are selected.
 
-The change list refreshes on its own while the Git view is open and keeps the checkboxes for files that are still present. Discard restores selected tracked files from HEAD and deletes selected untracked files.
+The change list refreshes on its own while the Git view is open and keeps the checkboxes for files that are still present. Discard asks you to confirm the selected paths, then restores selected tracked files from HEAD and deletes selected untracked files.
 
 Branch switching lives on the workspace home screen, not in the Git view. A dropdown above the application list shows the live branch, lets you switch to another local branch, and has a `+` control that opens a field to create a branch from the current HEAD. Switching refuses to run when Git itself would refuse, such as when the worktree has conflicting changes.
 

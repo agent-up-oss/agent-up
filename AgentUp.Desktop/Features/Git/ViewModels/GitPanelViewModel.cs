@@ -27,6 +27,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private string? _errorMessage;
     private string? _statusMessage;
     private int _selectedFileCount;
+    private bool _isConfirmingDiscard;
+    private string? _discardConfirmMessage;
     private CancellationTokenSource? _watch;
 
     public ObservableCollection<GitChangeNodeViewModel> Nodes { get; } = [];
@@ -39,9 +41,17 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         _git = git;
         RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsVisible = !IsVisible; });
-        DiscardCommand = ReactiveCommand.CreateFromTask(
-            DiscardAsync,
-            this.WhenAnyValue(x => x.SelectedFileCount, x => x.IsBusy, (selected, busy) => selected > 0 && !busy));
+        DiscardCommand = ReactiveCommand.Create(
+            RequestDiscardConfirm,
+            this.WhenAnyValue(
+                x => x.SelectedFileCount,
+                x => x.IsBusy,
+                x => x.IsConfirmingDiscard,
+                (selected, busy, confirming) => selected > 0 && !busy && !confirming));
+        ConfirmDiscardCommand = ReactiveCommand.CreateFromTask(
+            ConfirmDiscardAsync,
+            this.WhenAnyValue(x => x.IsConfirmingDiscard, x => x.IsBusy, (confirming, busy) => confirming && !busy));
+        CancelDiscardCommand = ReactiveCommand.Create(CancelDiscardConfirm);
         BeginCreateBranchCommand = ReactiveCommand.Create(() => { IsCreatingBranch = true; });
         CancelCreateBranchCommand = ReactiveCommand.Create(() =>
         {
@@ -155,9 +165,23 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     public bool ShowEmptyState => Nodes.Count == 0 && !IsLoading && ErrorMessage is null;
 
+    public bool IsConfirmingDiscard
+    {
+        get => _isConfirmingDiscard;
+        private set => this.RaiseAndSetIfChanged(ref _isConfirmingDiscard, value);
+    }
+
+    public string? DiscardConfirmMessage
+    {
+        get => _discardConfirmMessage;
+        private set => this.RaiseAndSetIfChanged(ref _discardConfirmMessage, value);
+    }
+
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
     public ReactiveCommand<Unit, Unit> DiscardCommand { get; }
+    public ReactiveCommand<Unit, Unit> ConfirmDiscardCommand { get; }
+    public ReactiveCommand<Unit, Unit> CancelDiscardCommand { get; }
     public ReactiveCommand<Unit, Unit> BeginCreateBranchCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelCreateBranchCommand { get; }
     public ReactiveCommand<Unit, Unit> CreateBranchCommand { get; }
@@ -235,6 +259,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         IsLoading = false;
         ErrorMessage = null;
         StatusMessage = null;
+        CancelDiscardConfirm();
         Diff.Hide();
         RaiseListProperties();
     }
@@ -287,6 +312,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
         SelectedFileCount = Nodes.Count(candidate => candidate.IsFile && candidate.IsSelected);
         StatusMessage = null;
+        CancelDiscardConfirm();
     }
 
     private void ApplySelection(GitChangeNodeViewModel node)
@@ -305,7 +331,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         if (_workspaceId is null)
             return;
 
-        var files = Nodes.Where(node => node.IsFile && node.IsSelected).Select(node => node.Path).ToList();
+        var files = SelectedFiles();
         IsBusy = true;
         ErrorMessage = null;
         StatusMessage = null;
@@ -332,12 +358,36 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         }
     }
 
+    private void RequestDiscardConfirm()
+    {
+        var files = SelectedFiles();
+        if (files.Count == 0)
+            return;
+
+        IsConfirmingDiscard = true;
+        DiscardConfirmMessage = files.Count == 1
+            ? $"Discard {files[0]}? This cannot be undone."
+            : $"Discard {files.Count} files?\n{string.Join('\n', files)}\nThis cannot be undone.";
+    }
+
+    private void CancelDiscardConfirm()
+    {
+        IsConfirmingDiscard = false;
+        DiscardConfirmMessage = null;
+    }
+
+    private Task ConfirmDiscardAsync()
+    {
+        CancelDiscardConfirm();
+        return DiscardAsync();
+    }
+
     private async Task DiscardAsync()
     {
         if (_workspaceId is null)
             return;
 
-        var files = Nodes.Where(node => node.IsFile && node.IsSelected).Select(node => node.Path).ToList();
+        var files = SelectedFiles();
         IsBusy = true;
         ErrorMessage = null;
         StatusMessage = null;
@@ -541,6 +591,9 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         this.RaisePropertyChanged(nameof(SelectionSummary));
         this.RaisePropertyChanged(nameof(ShowEmptyState));
     }
+
+    private List<string> SelectedFiles() =>
+        Nodes.Where(node => node.IsFile && node.IsSelected).Select(node => node.Path).ToList();
 
     private static string ShortCommit(string? commit)
         => string.IsNullOrWhiteSpace(commit) ? "HEAD" : commit[..Math.Min(8, commit.Length)];

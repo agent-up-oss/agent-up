@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
 import { commitFiles, discardFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
@@ -136,7 +136,20 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
-          <Pressable disabled={!canDiscard} onPress={() => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`)}
+          <Pressable disabled={!canDiscard} onPress={() => {
+            Alert.alert(
+              'Discard selected files?',
+              files.join('\n'),
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Discard',
+                  style: 'destructive',
+                  onPress: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
+                },
+              ],
+            );
+          }}
             style={[styles.discardButton, !canDiscard && styles.disabled]}>
             <Text style={styles.discardText}>Discard</Text>
           </Pressable>

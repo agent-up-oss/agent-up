@@ -80,7 +80,7 @@ dashboard hosts a compact Git branch dropdown above the application list.
 `src/features/git/` owns the Git changes panel used by the agent Changes tab and
 the workspace branch picker. The changes panel renders the Server's change tree
 as indented rows with a Changes checkbox at the root, opens a file's diff in a
-modal, and commits or discards the selected paths. The panel polls the Server
+modal, and commits or discards the selected paths after discard confirmation. The panel polls the Server
 while it is open and keeps checkboxes for files that are still present. Tree
 flattening and directory/file selection are pure functions in
 `providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
