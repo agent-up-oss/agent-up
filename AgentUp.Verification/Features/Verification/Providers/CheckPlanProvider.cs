@@ -1,5 +1,6 @@
 using AgentUp.Verification.Features.Verification.Interfaces;
 using AgentUp.Verification.Features.Verification.Models;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Verification.Features.Verification.Providers;
 
@@ -47,7 +48,8 @@ public sealed class CheckPlanProvider(PathGlobProvider globs, IPlatformCapabilit
             .Select(selection => selection.CheckId)
             .Distinct(StringComparer.Ordinal)
             .Except(configuration.Always, StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal);
+            .OrderBy(OrderOf(configuration))
+            .ThenBy(checkId => checkId, StringComparer.Ordinal);
 
         var requiredIds = configuration.Always
             .Distinct(StringComparer.Ordinal)
@@ -67,6 +69,13 @@ public sealed class CheckPlanProvider(PathGlobProvider globs, IPlatformCapabilit
 
         return new VerificationPlan(checks, normalized, unmatched);
     }
+
+    /// <summary>
+    /// Declared order for a check, so one that consumes another's output can be made to
+    /// follow it. Unknown ids sort first and are filtered out later anyway.
+    /// </summary>
+    private static Func<string, int> OrderOf(VerificationConfiguration configuration)
+        => checkId => configuration.Checks.TryGetValue(checkId, out var check) ? check.Order : 0;
 
     private IReadOnlyList<VerificationPathRule> MatchingRules(
         VerificationConfiguration configuration,

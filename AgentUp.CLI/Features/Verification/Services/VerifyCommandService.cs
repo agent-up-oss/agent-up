@@ -1,4 +1,6 @@
 using AgentUp.CLI.Features.Verification.DTOs;
+using AgentUp.Verification.Features.Coverage.Models;
+using AgentUp.Verification.Features.Coverage.Services;
 using AgentUp.Verification.Features.Verification.Models;
 using AgentUp.Verification.Features.Verification.Services;
 
@@ -11,8 +13,29 @@ namespace AgentUp.CLI.Features.Verification.Services;
 public sealed class VerifyCommandService(
     VerificationPlanService plans,
     VerificationRunService runs,
-    VerificationGuardService guards)
+    VerificationGuardService guards,
+    PatchCoverageService coverage)
 {
+    /// <summary>
+    /// Measures coverage of the changed lines. Reads the reports a previous test run wrote;
+    /// it does not run tests itself, so the suites must have collected coverage first.
+    /// </summary>
+    public async Task<VerifyCoverageResult> CoverageAsync(
+        string worktreePath,
+        double? minimumOverride,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return new VerifyCoverageResult(
+                await coverage.MeasureAsync(worktreePath, minimumOverride, cancellationToken), null);
+        }
+        catch (CoverageConfigurationException exception)
+        {
+            return new VerifyCoverageResult(null, exception.Message);
+        }
+    }
+
     public async Task<VerifyPlanResult> PlanAsync(string worktreePath, CancellationToken cancellationToken)
     {
         try

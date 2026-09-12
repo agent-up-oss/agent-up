@@ -5,6 +5,7 @@ using AgentUp.Server.Tests.Fake;
 using AgentUp.Verification.Features.Verification.Models;
 using AgentUp.Verification.Features.Verification.Providers;
 using AgentUp.Verification.Features.Verification.Services;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Server.Tests.Features.Verification.Controller;
 
@@ -21,8 +22,8 @@ public sealed class VerificationMcpToolsTests
             ["architecture"],
             new Dictionary<string, CheckDefinition>(StringComparer.Ordinal)
             {
-                ["architecture"] = new("architecture", "dotnet test Arch", null, CheckTier.Fast, [], false, []),
-                ["server"] = new("server", "dotnet test Server", null, CheckTier.Fast, [], false, ["AgentUp.Server"])
+                ["architecture"] = new("architecture", "dotnet test Arch", null, CheckTier.Fast, [], false, 0, []),
+                ["server"] = new("server", "dotnet test Server", null, CheckTier.Fast, [], false, 0, ["AgentUp.Server"])
             },
             [new VerificationPathRule("AgentUp.Server/**", ["server"])]);
 

@@ -2,6 +2,7 @@ using AgentUp.Verification.Features.Verification.Providers;
 using AgentUp.Verification.Features.Verification.Services;
 using AgentUp.Verification.Tests.Fake;
 using AgentUp.Verification.Tests.Support;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Verification.Tests.Features.Verification.Unit;
 

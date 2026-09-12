@@ -93,11 +93,11 @@
         "tier": "fast"
       },
       "architecture": {
-        "command": "dotnet test AgentUp.Architecture.Tests",
+        "command": "dotnet test AgentUp.Architecture.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/architecture",
         "tier": "fast"
       },
       "verification": {
-        "command": "dotnet test AgentUp.Verification.Tests",
+        "command": "dotnet test AgentUp.Verification.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/verification",
         "tier": "fast",
         "inputs": [
           "AgentUp.Verification",
@@ -105,7 +105,7 @@
         ]
       },
       "commit-policy": {
-        "command": "dotnet test AgentUp.CommitPolicy.Tests",
+        "command": "dotnet test AgentUp.CommitPolicy.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/commit-policy",
         "tier": "fast",
         "inputs": [
           "AgentUp.CommitPolicy",
@@ -113,7 +113,7 @@
         ]
       },
       "capabilities-abstractions": {
-        "command": "dotnet test AgentUp.Capabilities.Abstractions.Tests",
+        "command": "dotnet test AgentUp.Capabilities.Abstractions.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-abstractions",
         "tier": "fast",
         "inputs": [
           "AgentUp.Capabilities.Abstractions",
@@ -121,7 +121,7 @@
         ]
       },
       "capabilities-common": {
-        "command": "dotnet test AgentUp.Capabilities.Common.Tests",
+        "command": "dotnet test AgentUp.Capabilities.Common.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-common",
         "tier": "fast",
         "inputs": [
           "AgentUp.Capabilities.Common",
@@ -130,7 +130,7 @@
         ]
       },
       "capabilities-dotnet": {
-        "command": "dotnet test AgentUp.Capabilities.Dotnet.Tests",
+        "command": "dotnet test AgentUp.Capabilities.Dotnet.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-dotnet",
         "tier": "fast",
         "inputs": [
           "AgentUp.Capabilities.Dotnet",
@@ -140,7 +140,7 @@
         ]
       },
       "capabilities-docker": {
-        "command": "dotnet test AgentUp.Capabilities.Docker.Tests",
+        "command": "dotnet test AgentUp.Capabilities.Docker.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-docker",
         "tier": "fast",
         "inputs": [
           "AgentUp.Capabilities.Docker",
@@ -150,7 +150,7 @@
         ]
       },
       "server": {
-        "command": "dotnet test AgentUp.Server.Tests",
+        "command": "dotnet test AgentUp.Server.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",
@@ -165,7 +165,7 @@
         ]
       },
       "desktop": {
-        "command": "dotnet test AgentUp.Desktop.Tests",
+        "command": "dotnet test AgentUp.Desktop.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/desktop",
         "tier": "fast",
         "inputs": [
           "AgentUp.Desktop",
@@ -174,7 +174,7 @@
         ]
       },
       "cli": {
-        "command": "dotnet test AgentUp.CLI.Tests",
+        "command": "dotnet test AgentUp.CLI.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cli",
         "tier": "fast",
         "inputs": [
           "AgentUp.CLI",
@@ -186,7 +186,7 @@
         ]
       },
       "cross-product-e2e": {
-        "command": "dotnet test AgentUp.Tests",
+        "command": "dotnet test AgentUp.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cross-product-e2e",
         "tier": "slow",
         "inputs": [
           "AgentUp.Tests",
@@ -261,6 +261,11 @@
           "AgentUp.InstallerConfig",
           "AgentUp.Tray"
         ]
+      },
+      "patch-coverage": {
+        "command": "dotnet run --project AgentUp.CLI -- verify coverage",
+        "tier": "fast",
+        "order": 100
       }
     },
     "paths": [
@@ -269,13 +274,15 @@
         "checks": [
           "verification",
           "server",
-          "cli"
+          "cli",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Verification.Tests/**",
         "checks": [
-          "verification"
+          "verification",
+          "patch-coverage"
         ]
       },
       {
@@ -283,13 +290,15 @@
         "checks": [
           "commit-policy",
           "server",
-          "cli"
+          "cli",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.CommitPolicy.Tests/**",
         "checks": [
-          "commit-policy"
+          "commit-policy",
+          "patch-coverage"
         ]
       },
       {
@@ -300,13 +309,15 @@
           "capabilities-dotnet",
           "capabilities-docker",
           "server",
-          "cli"
+          "cli",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Capabilities.Abstractions.Tests/**",
         "checks": [
-          "capabilities-abstractions"
+          "capabilities-abstractions",
+          "patch-coverage"
         ]
       },
       {
@@ -314,83 +325,96 @@
         "checks": [
           "capabilities-common",
           "capabilities-dotnet",
-          "capabilities-docker"
+          "capabilities-docker",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Capabilities.Common.Tests/**",
         "checks": [
-          "capabilities-common"
+          "capabilities-common",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Capabilities.Dotnet/**",
         "checks": [
           "capabilities-dotnet",
-          "server"
+          "server",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Capabilities.Dotnet.Tests/**",
         "checks": [
-          "capabilities-dotnet"
+          "capabilities-dotnet",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Capabilities.Docker/**",
         "checks": [
           "capabilities-docker",
-          "server"
+          "server",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Capabilities.Docker.Tests/**",
         "checks": [
-          "capabilities-docker"
+          "capabilities-docker",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Server/**",
         "checks": [
           "server",
-          "cross-product-e2e"
+          "cross-product-e2e",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Server.Tests/**",
         "checks": [
-          "server"
+          "server",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Desktop/**",
         "checks": [
           "desktop",
-          "cross-product-e2e"
+          "cross-product-e2e",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Desktop.Tests/**",
         "checks": [
-          "desktop"
+          "desktop",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.CLI/**",
         "checks": [
-          "cli"
+          "cli",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.CLI.Tests/**",
         "checks": [
-          "cli"
+          "cli",
+          "patch-coverage"
         ]
       },
       {
         "match": "AgentUp.Tests/**",
         "checks": [
-          "cross-product-e2e"
+          "cross-product-e2e",
+          "patch-coverage"
         ]
       },
       {
@@ -402,7 +426,8 @@
       {
         "match": "AgentUp.Browser.Streaming/**",
         "checks": [
-          "server"
+          "server",
+          "patch-coverage"
         ]
       },
       {
@@ -421,7 +446,8 @@
           "cli",
           "linux-smoke",
           "macos-smoke",
-          "windows-smoke"
+          "windows-smoke",
+          "patch-coverage"
         ]
       },
       {
@@ -430,7 +456,8 @@
           "cross-product-e2e",
           "linux-smoke",
           "macos-smoke",
-          "windows-smoke"
+          "windows-smoke",
+          "patch-coverage"
         ]
       },
       {
@@ -505,13 +532,15 @@
         "checks": [
           "verification",
           "cli",
-          "server"
+          "server",
+          "patch-coverage"
         ]
       },
       {
         "match": ".agent-up/**",
         "checks": [
-          "server"
+          "server",
+          "patch-coverage"
         ]
       },
       {
@@ -519,6 +548,10 @@
         "checks": [
           "build"
         ]
+      },
+      {
+        "match": "codecov.yml",
+        "checks": []
       },
       {
         "match": "shell.nix",
@@ -594,6 +627,29 @@
         "match": "run-installer.sh",
         "checks": []
       }
+    ]
+  },
+  "coverage": {
+    "minimum": 90,
+    "reportDirectory": "artifacts/coverage",
+    "include": [
+      "AgentUp.Server/**/*.cs",
+      "AgentUp.Desktop/**/*.cs",
+      "AgentUp.CLI/**/*.cs",
+      "AgentUp.Verification/**/*.cs",
+      "AgentUp.CommitPolicy/**/*.cs",
+      "AgentUp.Capabilities.Abstractions/**/*.cs",
+      "AgentUp.Capabilities.Common/**/*.cs",
+      "AgentUp.Capabilities.Dotnet/**/*.cs",
+      "AgentUp.Capabilities.Docker/**/*.cs",
+      "AgentUp.Browser.Streaming/**/*.cs"
+    ],
+    "exclude": [
+      "**/Composition/**",
+      "**/Program.cs",
+      "**/App.axaml.cs",
+      "**/Properties/**",
+      "**/Resources/**"
     ]
   }
 }

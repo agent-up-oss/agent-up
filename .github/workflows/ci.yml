@@ -371,6 +371,18 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
+      - name: Enforce patch coverage
+        shell: bash
+        run: |
+          # The suites above wrote Cobertura reports under artifacts/test-results. The
+          # coverage gate searches its report directory recursively, so making the whole
+          # tree visible there is enough; it then measures only the lines this change
+          # touched, against the minimum in agent-up.json.
+          mkdir -p artifacts/coverage
+          cp -r artifacts/test-results/. artifacts/coverage/
+
+          dotnet run --project AgentUp.CLI --configuration Release --no-build -- verify coverage
+
       - name: Generate SBOM
         run: |
           dotnet tool install --global CycloneDX

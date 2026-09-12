@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace AgentUp.Verification.Features.Verification.Providers;
+namespace AgentUp.Verification.Shared.Providers;
 
 /// <summary>
 /// Matches repo-relative paths against the glob syntax used by verification path rules.

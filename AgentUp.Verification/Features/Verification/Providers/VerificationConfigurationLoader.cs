@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AgentUp.Verification.Features.Verification.Interfaces;
 using AgentUp.Verification.Features.Verification.Models;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Verification.Features.Verification.Providers;
 
@@ -100,6 +101,7 @@ public sealed class VerificationConfigurationLoader : IVerificationConfiguration
         var tier = ReadTier(id, element);
         var platforms = ReadStringArray(element, "platforms");
         var ciOnly = ReadBoolean(element, "ciOnly");
+        var order = ReadInteger(element, "order");
         var inputs = ReadStringArray(element, "inputs")
             .Select(PathGlobProvider.Normalize)
             .ToArray();
@@ -112,7 +114,7 @@ public sealed class VerificationConfigurationLoader : IVerificationConfiguration
                 $"Expected one of: {string.Join(", ", KnownPlatforms)}.");
         }
 
-        return new CheckDefinition(id, command, workingDirectory, tier, platforms, ciOnly, inputs);
+        return new CheckDefinition(id, command, workingDirectory, tier, platforms, ciOnly, order, inputs);
     }
 
     private static IReadOnlyList<VerificationPathRule> ReadPaths(JsonElement section)
@@ -204,6 +206,13 @@ public sealed class VerificationConfigurationLoader : IVerificationConfiguration
         => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
+
+    private static int ReadInteger(JsonElement element, string name)
+        => element.TryGetProperty(name, out var value)
+           && value.ValueKind == JsonValueKind.Number
+           && value.TryGetInt32(out var parsed)
+            ? parsed
+            : 0;
 
     private static bool ReadBoolean(JsonElement element, string name)
         => element.TryGetProperty(name, out var value)

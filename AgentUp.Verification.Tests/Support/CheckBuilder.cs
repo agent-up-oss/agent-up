@@ -17,6 +17,7 @@ internal sealed class CheckBuilder(string id)
     private CheckTier _tier = CheckTier.Fast;
     private IReadOnlyList<string> _platforms = [];
     private bool _ciOnly;
+    private int _order;
     private IReadOnlyList<string> _inputs = [];
 
     public string Id => id;
@@ -51,6 +52,12 @@ internal sealed class CheckBuilder(string id)
         return this;
     }
 
+    public CheckBuilder WithOrder(int order)
+    {
+        _order = order;
+        return this;
+    }
+
     public CheckBuilder WithInputs(params string[] inputs)
     {
         _inputs = inputs;
@@ -58,5 +65,5 @@ internal sealed class CheckBuilder(string id)
     }
 
     public CheckDefinition Build()
-        => new(id, _command, _workingDirectory, _tier, _platforms, _ciOnly, _inputs);
+        => new(id, _command, _workingDirectory, _tier, _platforms, _ciOnly, _order, _inputs);
 }

@@ -3,8 +3,11 @@ using AgentUp.CLI.Features.Verification.Services;
 using AgentUp.CLI.Tests.Fake;
 using AgentUp.Verification.Features.Verification.Interfaces;
 using AgentUp.Verification.Features.Verification.Models;
+using AgentUp.Verification.Features.Coverage.Models;
+using AgentUp.Verification.Features.Coverage.Services;
 using AgentUp.Verification.Features.Verification.Providers;
 using AgentUp.Verification.Features.Verification.Services;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.CLI.Tests.Features.Verification.Controller;
 
@@ -20,7 +23,7 @@ public sealed class VerificationControllerTests
             [],
             new Dictionary<string, CheckDefinition>(StringComparer.Ordinal)
             {
-                ["cli"] = new("cli", "dotnet test AgentUp.CLI.Tests", null, CheckTier.Fast, [], false, ["AgentUp.CLI"])
+                ["cli"] = new("cli", "dotnet test AgentUp.CLI.Tests", null, CheckTier.Fast, [], false, 0, ["AgentUp.CLI"])
             },
             [new VerificationPathRule("AgentUp.CLI/**", ["cli"])]);
 
@@ -47,12 +50,19 @@ public sealed class VerificationControllerTests
         var runs = new VerificationRunService(plans, ledger, runner, new FakeVerificationClock());
         var guards = new VerificationGuardService(plans, ledger);
         var outputService = new VerifyOutputService(output, error);
-        var commands = new VerifyCommandService(plans, runs, guards);
+        var globs = new PathGlobProvider();
+        var coverage = new PatchCoverageService(
+            new StubCoverageConfigurationLoader(CoverageConfiguration.Empty),
+            new StaticCoverageReportReader(CoverageReport.Empty),
+            [new StaticChangedLineSource(ChangedLines.None)],
+            globs);
+        var commands = new VerifyCommandService(plans, runs, guards, coverage);
 
         return new VerificationController(
             new VerifyPlanCommand(commands, outputService),
             new VerifyRunCommand(commands, outputService),
             new VerifyGuardCommand(commands, outputService),
+            new VerifyCoverageCommand(commands, outputService),
             outputService,
             Worktree);
     }
@@ -193,5 +203,57 @@ public sealed class VerificationControllerTests
             Assert.That(code, Is.EqualTo(1));
             Assert.That(error.ToString(), Does.Contain("not valid JSON"));
         });
+    }
+
+    [Test]
+    public async Task RunAsync_coverageReportsThatTheGateDoesNotApplyWithNoCoverageSection()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        var code = await controller.RunAsync(["coverage"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.Zero);
+            Assert.That(output.ToString(), Does.Contain("does not apply"));
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_coverageAcceptsAMinimumOverride()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        var code = await controller.RunAsync(["coverage", "--min", "50"]);
+
+        Assert.That(code, Is.Zero, "A parsed override must not fail the command.");
+    }
+
+    [Test]
+    public async Task RunAsync_coverageIgnoresAnUnparseableMinimum()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        var code = await controller.RunAsync(["coverage", "--min", "not-a-number"]);
+
+        Assert.That(code, Is.Zero, "An unparseable override falls back to the configured minimum.");
+    }
+
+    [Test]
+    public async Task RunAsync_helpMentionsTheCoverageSubcommand()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        await controller.RunAsync(["wat"]);
+
+        Assert.That(error.ToString(), Does.Contain("coverage"));
     }
 }

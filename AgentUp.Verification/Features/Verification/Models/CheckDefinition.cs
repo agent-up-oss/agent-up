@@ -13,6 +13,11 @@ namespace AgentUp.Verification.Features.Verification.Models;
 /// Empty means every platform.
 /// </param>
 /// <param name="CiOnly">When true the check is required in CI but never blocks a local run.</param>
+/// <param name="Order">
+/// Sort key among selected checks, ascending, ties broken by id. Lets a check that
+/// consumes another check's output run after it - patch coverage must follow the suites
+/// that write the coverage reports, which id order alone would not guarantee.
+/// </param>
 /// <param name="Inputs">
 /// Repo-relative path prefixes whose changed files belong in this check's covered map —
 /// the check's dependency closure. Empty means the check covers nothing by itself and
@@ -25,4 +30,5 @@ public sealed record CheckDefinition(
     CheckTier Tier,
     IReadOnlyList<string> Platforms,
     bool CiOnly,
+    int Order,
     IReadOnlyList<string> Inputs);
