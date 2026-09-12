@@ -1,7 +1,17 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
-RUN mkdir -p /var/lib/agent-up && chown -R $APP_UID /var/lib/agent-up
+USER root
+COPY ["AgentUp.Server/install-runtime-tools.sh", "/tmp/install-runtime-tools.sh"]
+COPY ["AgentUp.Server/runtime-tools/", "/tmp/runtime-tools/"]
+RUN chmod +x /tmp/install-runtime-tools.sh \
+    && /tmp/install-runtime-tools.sh /tmp/runtime-tools \
+    && rm /tmp/install-runtime-tools.sh \
+    && rm -rf /tmp/runtime-tools \
+    && mkdir -p /var/lib/agent-up \
+    && chown -R $APP_UID /var/lib/agent-up
+ENV PATH="/opt/agent-up/bin:${PATH}"
+ENV AGENTUP_CAPABILITY_INVENTORY_PATH=/etc/agent-up/capabilities.json
 USER $APP_UID
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -11,10 +21,14 @@ COPY ["Directory.Build.props", "Directory.Build.props"]
 COPY ["AgentUp.Server/AgentUp.Server.csproj", "AgentUp.Server/"]
 COPY ["AgentUp.Browser.Streaming/AgentUp.Browser.Streaming.csproj", "AgentUp.Browser.Streaming/"]
 COPY ["AgentUp.CommitPolicy/AgentUp.CommitPolicy.csproj", "AgentUp.CommitPolicy/"]
+COPY ["AgentUp.Verification/AgentUp.Verification.csproj", "AgentUp.Verification/"]
 COPY ["AgentUp.Capabilities.Abstractions/AgentUp.Capabilities.Abstractions.csproj", "AgentUp.Capabilities.Abstractions/"]
 COPY ["AgentUp.Capabilities.Common/AgentUp.Capabilities.Common.csproj", "AgentUp.Capabilities.Common/"]
 COPY ["AgentUp.Capabilities.Dotnet/AgentUp.Capabilities.Dotnet.csproj", "AgentUp.Capabilities.Dotnet/"]
 COPY ["AgentUp.Capabilities.Docker/AgentUp.Capabilities.Docker.csproj", "AgentUp.Capabilities.Docker/"]
+COPY ["AgentUp.Capabilities.Codex/AgentUp.Capabilities.Codex.csproj", "AgentUp.Capabilities.Codex/"]
+COPY ["AgentUp.Capabilities.Cursor/AgentUp.Capabilities.Cursor.csproj", "AgentUp.Capabilities.Cursor/"]
+COPY ["AgentUp.Capabilities.Claude/AgentUp.Capabilities.Claude.csproj", "AgentUp.Capabilities.Claude/"]
 COPY ["AgentUp.InstallerConfig/AgentUp.InstallerConfig.csproj", "AgentUp.InstallerConfig/"]
 RUN dotnet restore "AgentUp.Server/AgentUp.Server.csproj"
 COPY . .

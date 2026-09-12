@@ -70,4 +70,17 @@ public sealed class GitSourceCloneProviderTests
 
         Assert.That(exception!.Message, Does.Contain("does-not-exist"));
     }
+
+    [Test]
+    public void CloneAsync_reportsAMissingGitExecutableAsAStructuredFailure()
+    {
+        var destination = Path.Join(_root, "clones", "widgets");
+        var provider = new GitSourceCloneProvider(Path.Join(_root, "definitely-missing-git"));
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.CloneAsync(new SourceCloneTarget(_origin, "main", "widgets", destination)));
+
+        Assert.That(exception!.Message, Does.StartWith("git could not be started:"));
+        Assert.That(exception.InnerException, Is.Not.Null);
+    }
 }

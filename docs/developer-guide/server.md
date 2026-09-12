@@ -137,7 +137,7 @@ still applies: a client served over HTTPS cannot fetch a plain-HTTP Server
 unless that Server is loopback-hosted, so a remote Server should be reachable
 over HTTPS.
 
-A clustered Server is published as `docker.io/themassiveone/agent-up-server` and installed from the `agent-up-helm` chart. That path is an installation concern only.
+A clustered Server is published as `docker.io/themassiveone/agent-up-server` and installed from the `agent-up-helm` chart. That path is an installation concern only. The image includes `git` for source clones and Git review, plus the Codex, Cursor, and Claude ACP CLIs under `/opt/agent-up/bin`. Chart defaults enable those three ACP capabilities with rooted `command` paths so the agent picker can discover them after install.
 
 This service shape is packaging and lifecycle behavior only. Runtime ownership remains unchanged: all orchestration stays in `AgentUp.Server`, and Desktop stays a client.
 
