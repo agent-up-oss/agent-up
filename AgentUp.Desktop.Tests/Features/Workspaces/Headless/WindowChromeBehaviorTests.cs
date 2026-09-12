@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using Avalonia.VisualTree;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
@@ -16,6 +17,10 @@ public class WindowChromeBehaviorTests
         Assert.That(app.Window.FindControl<Border>("WindowChrome"), Is.Not.Null);
         Assert.That(ChromeTestSupport.FindDescendantByName<Button>(app.Window, "SidebarToggle"), Is.Not.Null);
         Assert.That(ChromeTestSupport.FindDescendantByName<Button>(app.Window, "ReloadButton"), Is.Not.Null);
+        Assert.That(app.Window.FindControl<Border>("WindowChrome")!
+            .GetVisualDescendants()
+            .OfType<Button>()
+            .Any(button => button.Name == "SidebarToggle"), Is.False);
         Assert.That(app.Window.FindControl<Button>("MinimizeWindowButton"), Is.Not.Null);
         Assert.That(app.Window.FindControl<Button>("RestoreWindowButton"), Is.Not.Null);
         Assert.That(app.Window.FindControl<Button>("CloseWindowButton"), Is.Not.Null);

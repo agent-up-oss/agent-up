@@ -55,6 +55,15 @@ AgentUp.Capabilities.Dotnet/
 AgentUp.Capabilities.Docker/
   AgentUp.Capabilities.Docker.csproj
 
+AgentUp.Capabilities.Codex/
+  AgentUp.Capabilities.Codex.csproj
+
+AgentUp.Capabilities.Cursor/
+  AgentUp.Capabilities.Cursor.csproj
+
+AgentUp.Capabilities.Claude/
+  AgentUp.Capabilities.Claude.csproj
+
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
@@ -94,6 +103,15 @@ AgentUp.Capabilities.Dotnet.Tests/
 AgentUp.Capabilities.Docker.Tests/
   AgentUp.Capabilities.Docker.Tests.csproj
 
+AgentUp.Capabilities.Codex.Tests/
+  AgentUp.Capabilities.Codex.Tests.csproj
+
+AgentUp.Capabilities.Cursor.Tests/
+  AgentUp.Capabilities.Cursor.Tests.csproj
+
+AgentUp.Capabilities.Claude.Tests/
+  AgentUp.Capabilities.Claude.Tests.csproj
+
 AgentUp.Desktop.Tests/
   AgentUp.Desktop.Tests.csproj
 
@@ -116,11 +134,14 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, Docker, browser lifecycle, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, Docker, browser lifecycle, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
-| `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, and install planning used by first-party and future external capabilities |
+| `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, install planning, capability inventory, and CLI executable discovery used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
 | `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
+| `AgentUp.Capabilities.Codex` | First-party Codex ACP adapter, Codex CLI discovery, validation, and ACP launch planning |
+| `AgentUp.Capabilities.Cursor` | First-party Cursor ACP adapter, Cursor Agent CLI discovery, validation, and ACP launch planning |
+| `AgentUp.Capabilities.Claude` | First-party Claude ACP adapter, Claude Code CLI discovery, validation, and ACP launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
@@ -427,6 +448,7 @@ The Server owns all orchestration:
 - Diagnostics.
 - Health monitoring.
 - Playwright generation.
+- One ACP agent session per workspace, including process lifecycle, prompts, permission decisions, and event streaming.
 - MCP server.
 - REST API.
 
@@ -578,6 +600,9 @@ This applies to every production/test project pair once created:
 | `AgentUp.Capabilities.Common` | `AgentUp.Capabilities.Common.Tests` |
 | `AgentUp.Capabilities.Dotnet` | `AgentUp.Capabilities.Dotnet.Tests` |
 | `AgentUp.Capabilities.Docker` | `AgentUp.Capabilities.Docker.Tests` |
+| `AgentUp.Capabilities.Codex` | `AgentUp.Capabilities.Codex.Tests` |
+| `AgentUp.Capabilities.Cursor` | `AgentUp.Capabilities.Cursor.Tests` |
+| `AgentUp.Capabilities.Claude` | `AgentUp.Capabilities.Claude.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
@@ -665,13 +690,15 @@ Use layered tests with clear ownership:
 - Controller tests verify slice-external communication boundaries such as controllers, command parsers, CLI command surfaces, MCP tools, and MCP resources with repositories and providers mocked or faked.
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
 - Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
-- Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them.
+- Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them. Codex, Cursor, and Claude Provider smoke tests discover the ACP CLIs declared in capability inventory and present on the machine, and assert both the installed and missing outcomes; Server Agents HTTP smoke uses those same live adapters and asserts the workspace agent picker matches that discovery. These tests must not skip based on whether a CLI is present.
 - Headless tests verify Avalonia UI behavior without native display dependencies.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 
 `Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
 
 Avoid duplicate tests that assert the same rule through multiple layers.
+
+NUnit tests default to a 30-second per-test timeout from `coverlet.runsettings`. Tests that must run longer, such as capability CLI smoke and native-display E2E, set `[Timeout]` / `[CancelAfter]` on the fixture or method. A 1-minute testhost hang dump aborts a stuck session so a single hung test cannot run forever; it is not a 1-minute budget for a full project run.
 
 # Verification
 
@@ -982,7 +1009,7 @@ Scope commit messages to the queued slice, for example `fix(UbuntuInstallation):
 
 The Agent-Up main release workflow publishes `@agent-up/audit` to npm with the planned release version when `NPM_TOKEN` is configured. The same release also publishes the Server container and `agent-up-helm` chart to Docker Hub (`themassiveone/agent-up-server` and `themassiveone/agent-up-helm`) when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured. Helm `capabilities` values list every first-party capability as an object with `disabled` and `versions`, then write enabled entries to Agent-Up capability inventory the same way NixOS `services.agent-up.capabilities` does.
 
-Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, and PackageSmoke artifacts from the Ubuntu build job so native release runners do not restore, build, or test product .NET projects. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
+Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, and PackageSmoke artifacts from the Ubuntu .NET payload job so native release runners do not restore, build, or test product .NET projects. Native package jobs wait on the payload, test, GUI test, and coverage jobs plus version. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
 
 The standalone LocalInstaller repository owns the LocalInstaller release workflow. It plans versions with semantic-release using `localinstaller-v${version}` tags, builds/tests/packs `localinstaller.sln` with the planned `LocalInstallerVersion`, publishes self-contained `LocalInstaller.Sample.*` payloads from the Ubuntu build leg, packages those sample payloads on native Ubuntu, macOS, and Windows runners through `LocalInstaller.Sample.Packager`, smoke-validates them through `LocalInstaller.Sample.Smoke`, and creates a `main`-only GitHub release containing `LocalInstaller.*.nupkg` plus sample native installer assets. NuGet publishing is optional and must run only when `NUGET_API_KEY` is configured.
 
@@ -998,7 +1025,7 @@ All `LocalInstaller.Smoke` process execution must pass through validated command
 
 macOS `.pkg` artifacts install only `Agent-Up Installer.app`. The installer app owns the dashboard install and maintenance flow and contains a bundled offline payload with Desktop, Server, and CLI bits; it may also resolve an online latest payload when that capability is implemented. Desktop, Server, CLI, launchd registration, symlinks, validation, and uninstall behavior must stay in the InstallerApp/macOS adapter path, not in direct macOS package components. macOS installed-service smoke is skipped until InstallerApp-driven service installation is enabled in CI after package installation.
 
-Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. NixOS installs Agent-Up declaratively through generated NixOS/Home Manager module options; `AgentUp.InstallerApp` is still shipped as a lookup-only dashboard through `agent-up-installer`, with install/update/uninstall actions disabled and capability versions read from Agent-Up capability inventory. Runtime capability lookup reads `AGENTUP_CAPABILITY_INVENTORY_PATH` when set, then falls back to `/etc/agent-up/capabilities.json` and `~/.config/agent-up/capabilities.json`; first-party capability discovery also probes common platform package-manager records for .NET and Docker. Installed-service smoke launches one .NET app and one Docker app through capability declarations and validates individual app stop/start plus workspace stop unless `AGENTUP_CAPABILITY_SMOKE_SKIP_REAL=1` is set for constrained runs; the generated .NET smoke app is restored and built before `agent-up start` so lifecycle validation does not depend on first-run SDK restore/build timing. The Docker sample uses `nginx:alpine` on Linux and macOS and a matching Windows IIS image on Windows runners, with `AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE` available for CI pre-pull/override. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
+Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. NixOS installs Agent-Up declaratively through generated NixOS/Home Manager module options; `AgentUp.InstallerApp` is still shipped as a lookup-only dashboard through `agent-up-installer`, with install/update/uninstall actions disabled and capability versions read from Agent-Up capability inventory. Runtime capability lookup reads `AGENTUP_CAPABILITY_INVENTORY_PATH` when set, then `/etc/agent-up/capabilities.json`, `~/.config/agent-up/capabilities.local.json`, `~/.config/agent-up/capabilities.json`, and `.agent-up-dev/capabilities.json` walking up from the Server working directory, merging entries by capability id. Earlier files win for a field; later files fill unspecified fields, so the user overlay takes precedence over the user installment file. Server and Desktop installments share that inventory; entries may declare `command`, `arguments`, and `versionArguments` so Codex, Cursor, and Claude adapters launch a PATH name or a rooted version on disk instead of a hardcoded executable. First-party .NET and Docker discovery still probes common platform package-manager records. `nix-shell shell.nix` writes a local inventory under `.agent-up-dev` for workstation ACP testing. Installed-service smoke launches one .NET app and one Docker app through capability declarations and validates individual app stop/start plus workspace stop unless `AGENTUP_CAPABILITY_SMOKE_SKIP_REAL=1` is set for constrained runs; the generated .NET smoke app is restored and built before `agent-up start` so lifecycle validation does not depend on first-run SDK restore/build timing. The Docker sample uses `nginx:alpine` on Linux and macOS and a matching Windows IIS image on Windows runners, with `AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE` available for CI pre-pull/override. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 
 Read: `docs/developer-guide/packaging.md`.
 

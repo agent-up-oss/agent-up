@@ -4,7 +4,8 @@ public sealed record GitChangeTreeDto(
     string WorkspaceId,
     string Branch,
     int FileCount,
-    GitChangeDirectoryDto Root);
+    GitChangeDirectoryDto Root,
+    IReadOnlyList<string>? LocalBranches = null);
 
 public sealed record GitChangeDirectoryDto(
     string Name,

@@ -48,7 +48,7 @@ public sealed class DesktopOAuthSignInFlowTests
         await _desktop.WaitForScriptAsync(StatusScript, "signed-out", "The workspace page did not start signed out");
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task OAuth_redirectSignIn_completesInsideTheWorkspaceWebView()
     {
         await _desktop.RunNavigatingScriptAsync("window.__signIn()");
@@ -71,7 +71,7 @@ public sealed class DesktopOAuthSignInFlowTests
         });
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task OAuth_popupSignIn_authorizesInANativePopupAndSignsInTheWorkspacePage()
     {
         var popupsBefore = _desktop.Window.OpenPopupCountForTests;
@@ -103,7 +103,7 @@ public sealed class DesktopOAuthSignInFlowTests
         });
     }
 
-    [Test, CancelAfter(60000)]
+    [Test, CancelAfter(60000), Timeout(60000)]
     public async Task OAuth_popupForNonHttpScheme_isRefusedWithoutOpeningAWindow()
     {
         var popupsBefore = _desktop.Window.OpenPopupCountForTests;

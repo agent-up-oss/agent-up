@@ -18,7 +18,10 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Capabilities.Common", Except("AgentUp.Capabilities.Common", "AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Dotnet", Except("AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Docker", Except("AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Codex", Except("AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Cursor", Except("AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Claude", Except("AgentUp.Capabilities.Claude", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
+        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Claude"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions"));
     }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { commitFiles, getChanges, getFileDiff } from './GitApiProvider';
+import { commitFiles, discardFiles, getChanges, getFileDiff, getHeadState, switchBranch } from './GitApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -32,6 +32,17 @@ test('getChanges returns null for an unknown workspace', async () => {
   assert.equal(tree, null);
 });
 
+test('getHeadState requests the workspace scoped head route', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ branch: 'main', localBranches: ['main', 'topic'] });
+
+  const head = await getHeadState({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
+
+  assert.equal(head?.branch, 'main');
+  assert.deepEqual(head?.localBranches, ['main', 'topic']);
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/git/head');
+});
+
 test('getFileDiff escapes the path query parameter', async () => {
   const recorded: Recorded[] = [];
   const body = JSON.stringify({ path: 'src/a b.cs', status: 'Modified', isBinary: false, diff: '@@' });
@@ -61,6 +72,32 @@ test('commitFiles posts the selected files and message', async () => {
     files: ['src/app/main.cs'],
     message: 'feat(App): add main',
   });
+});
+
+test('discardFiles posts the selected files', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ found: true, succeeded: true, error: null });
+
+  const result = await discardFiles(
+    { url: 'http://localhost:5000' },
+    'ws-1',
+    ['src/app/main.cs'],
+    fakeFetch(200, body, recorded),
+  );
+
+  assert.equal(result.succeeded, true);
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws-1/git/discard');
+  assert.deepEqual(JSON.parse(String(recorded[0].init.body)), { files: ['src/app/main.cs'] });
+});
+
+test('switchBranch posts the requested branch name', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ found: true, succeeded: true, error: null });
+
+  await switchBranch({ url: 'http://localhost:5000' }, 'ws-1', 'topic', true, fakeFetch(200, body, recorded));
+
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws-1/git/branch');
+  assert.deepEqual(JSON.parse(String(recorded[0].init.body)), { name: 'topic', create: true });
 });
 
 test('commitFiles surfaces the server problem detail', async () => {

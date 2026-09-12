@@ -33,6 +33,44 @@ public sealed class ValidationViewModelTests
         });
     }
 
+    [Test]
+    public async Task ToggleCommand_collapsesTheSidebarRail()
+    {
+        var vm = new ValidationViewModel(
+            new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+            new ValidationFlowReplayService(
+                new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+                new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController()));
+
+        Assert.That(vm.IsExpanded, Is.True);
+        Assert.That(vm.Width, Is.EqualTo(360));
+
+        await vm.ToggleCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.IsCollapsed, Is.True);
+            Assert.That(vm.IsExpanded, Is.False);
+            Assert.That(vm.Width, Is.EqualTo(56));
+            Assert.That(vm.ToggleIcon, Is.EqualTo("‹"));
+        });
+    }
+
+    [Test]
+    public void Clear_asksTheUserToSelectAnApplication()
+    {
+        var vm = new ValidationViewModel(
+            new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+            new ValidationFlowReplayService(
+                new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+                new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController()));
+
+        vm.Clear();
+
+        Assert.That(vm.Status, Is.EqualTo("Select an application to see validation checks."));
+        Assert.That(vm.Flows, Is.Empty);
+    }
+
     private sealed class Handler : HttpMessageHandler
     {
         public string? LastGetPath { get; private set; }

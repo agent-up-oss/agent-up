@@ -13,6 +13,7 @@ namespace AgentUp.Server.Features.Workspaces.Services;
 
 public sealed class WorkspaceRegistry : IHostedService
 {
+    public event Action<string>? WorkspaceRemoved;
     private readonly ConcurrentDictionary<string, Workspace> _workspaces = new();
     private readonly IWorkspaceRepository _repository;
     private readonly PortsController _ports;
@@ -200,6 +201,7 @@ public sealed class WorkspaceRegistry : IHostedService
         await _ports.ReleaseAsync(id);
         await _repository.SaveAllAsync(GetAll());
         _bus.Publish(new WorkspaceStateChangedEvent(id, "Removed", []));
+        WorkspaceRemoved?.Invoke(id);
         return true;
     }
 

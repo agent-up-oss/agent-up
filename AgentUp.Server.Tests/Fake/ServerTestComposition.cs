@@ -20,6 +20,8 @@ using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.Interfaces;
+using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +41,8 @@ internal static class ServerTestComposition
         services.AddSingleton<AppMetricsPullService>();
         services.AddSingleton<AppMetricsController>();
         services.AddSingleton<BrowserLifecycleController>();
+        services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
+        services.AddSingleton<WorkspaceOverviewService>();
         services.AddSingleton<WorkspaceLifecycleService>();
         services.AddSingleton<WorkspaceLifecycleController>();
         return services;

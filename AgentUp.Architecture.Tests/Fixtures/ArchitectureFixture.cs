@@ -17,6 +17,9 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Common",
         "AgentUp.Capabilities.Dotnet",
         "AgentUp.Capabilities.Docker",
+        "AgentUp.Capabilities.Codex",
+        "AgentUp.Capabilities.Cursor",
+        "AgentUp.Capabilities.Claude",
         "AgentUp.Desktop",
         "AgentUp.CLI"
     ];
@@ -30,6 +33,9 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Common.Tests",
         "AgentUp.Capabilities.Dotnet.Tests",
         "AgentUp.Capabilities.Docker.Tests",
+        "AgentUp.Capabilities.Codex.Tests",
+        "AgentUp.Capabilities.Cursor.Tests",
+        "AgentUp.Capabilities.Claude.Tests",
         "AgentUp.Desktop.Tests",
         "AgentUp.CLI.Tests",
         "AgentUp.Tests",

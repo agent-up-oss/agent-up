@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Processes.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -300,6 +301,42 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     {
         foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             await _output.AppendAsync(workspaceId, appName, "[err] " + line.TrimEnd('\r'), ProcessOutputStream.Stderr);
+    }
+
+    public WorkspaceRuntimeSnapshot GetRuntime(string workspaceId)
+    {
+        var samples = _processes
+            .Where(entry => entry.Key.Item1 == workspaceId)
+            .Select(entry => TryReadRuntime(entry.Value))
+            .Where(sample => sample is not null)
+            .Select(sample => sample!)
+            .ToList();
+
+        return new WorkspaceRuntimeSnapshot(
+            samples.Sum(sample => sample.CpuPercent),
+            samples.Sum(sample => sample.MemoryBytes),
+            samples.Count);
+    }
+
+    private static WorkspaceRuntimeSnapshot? TryReadRuntime(Process process)
+    {
+        try
+        {
+            process.Refresh();
+            if (process.HasExited)
+                return null;
+
+            var memoryBytes = process.WorkingSet64;
+            var elapsedMilliseconds = (DateTime.Now - process.StartTime).TotalMilliseconds;
+            var cpuPercent = elapsedMilliseconds > 0
+                ? process.TotalProcessorTime.TotalMilliseconds / elapsedMilliseconds / Environment.ProcessorCount * 100
+                : 0;
+            return new WorkspaceRuntimeSnapshot(cpuPercent, memoryBytes, 1);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return null;
+        }
     }
 
     public async Task KillAsync(string workspaceId)

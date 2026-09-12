@@ -15,7 +15,18 @@ internal sealed class FakeHttpMessageHandler(
         var path = request.RequestUri?.AbsolutePath ?? "";
 
         if (GitRoutes.IsChangesRoute(path))
-            return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path))));
+        {
+            var workspace = workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
+            return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path), workspace?.Branch)));
+        }
+
+        if (OverviewRoutes.IsOverviewRoute(path))
+        {
+            var workspace = workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
+            return workspace is null
+                ? Task.FromResult(NotFound())
+                : Task.FromResult(Ok(OverviewRoutes.From(workspace)));
+        }
 
         if (outputLines is not null && path.EndsWith("/output"))
         {
@@ -24,11 +35,21 @@ internal sealed class FakeHttpMessageHandler(
             return Task.FromResult(Ok(lines));
         }
 
+        if (ValidationRoutes.IsFlowListRoute(path))
+            return Task.FromResult(Ok(Array.Empty<object>()));
+
+        if (path.Contains("/agent", StringComparison.Ordinal))
+            return Task.FromResult(NotFound());
+
         return Task.FromResult(Ok(workspaces));
     }
 
     private static HttpResponseMessage Ok<T>(T value) =>
         new(System.Net.HttpStatusCode.OK) { Content = JsonContent.Create(value) };
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+    private static HttpResponseMessage NotFound() =>
+        new(System.Net.HttpStatusCode.NotFound);
 
     // /api/workspaces/{id}/applications/{name}/output → "id/name"
     private static string ExtractOutputKey(string path)
@@ -60,7 +81,18 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
         RequestPaths.Add(path);
 
         if (GitRoutes.IsChangesRoute(path))
-            return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path))));
+        {
+            var gitWorkspace = _workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
+            return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path), gitWorkspace?.Branch)));
+        }
+
+        if (OverviewRoutes.IsOverviewRoute(path))
+        {
+            var overviewWorkspace = _workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
+            return overviewWorkspace is null
+                ? Task.FromResult(NotFound())
+                : Task.FromResult(Ok(OverviewRoutes.From(overviewWorkspace)));
+        }
 
         if (request.Method == HttpMethod.Post && path == "/api/source-clones")
             return Task.FromResult(CloneResponse());
@@ -91,6 +123,12 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
                 ? Task.FromResult(NotFound())
                 : Task.FromResult(Ok(workspace));
         }
+
+        if (ValidationRoutes.IsFlowListRoute(path))
+            return Task.FromResult(Ok(Array.Empty<object>()));
+
+        if (path.Contains("/agent", StringComparison.Ordinal))
+            return Task.FromResult(NotFound());
 
         return Task.FromResult(Ok(_workspaces));
     }
@@ -198,6 +236,38 @@ internal static class GitRoutes
         return parts.Length >= 3 ? Uri.UnescapeDataString(parts[2]) : string.Empty;
     }
 
-    public static GitChangeTreeDto EmptyTree(string workspaceId)
-        => new(workspaceId, "main", 0, new GitChangeDirectoryDto(string.Empty, string.Empty, [], []));
+    public static GitChangeTreeDto EmptyTree(string workspaceId, string? branch = null)
+    {
+        var name = string.IsNullOrWhiteSpace(branch) ? "main" : branch;
+        return new(workspaceId, name, 0, new GitChangeDirectoryDto(string.Empty, string.Empty, [], []), [name]);
+    }
+}
+
+internal static class OverviewRoutes
+{
+    public static bool IsOverviewRoute(string path)
+        => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
+           && path.EndsWith("/overview", StringComparison.Ordinal);
+
+    public static WorkspaceOverviewDto From(WorkspaceDto workspace)
+        => new(
+            workspace.Id,
+            workspace.DisplayName,
+            workspace.RepositoryPath,
+            workspace.WorktreePath,
+            workspace.Branch,
+            workspace.Commit,
+            workspace.State,
+            0,
+            0,
+            0,
+            0,
+            workspace.Applications.Count);
+}
+
+internal static class ValidationRoutes
+{
+    public static bool IsFlowListRoute(string path)
+        => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
+           && path.EndsWith("/validation-flows", StringComparison.Ordinal);
 }
