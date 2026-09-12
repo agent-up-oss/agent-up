@@ -69,7 +69,7 @@ export default function DesignSystemPage() {
 
   return <Layout title="Design System" description="The canonical Agent-Up product, interface, and marketing design system.">
     <main className={`au-theme ${styles.page}`}>
-      <header className={styles.hero}>
+      <header>
         <div className="au-container au-marketing-hero">
           <div>
             <p className="au-eyebrow">Agent-Up design system</p>
@@ -87,7 +87,7 @@ export default function DesignSystemPage() {
               <span className="au-product-frame__actions">− □ ×</span>
             </div>
             <div className={styles.demoShell}>
-              <aside>
+              <aside className="au-rail">
                 <strong>Workspaces</strong>
                 <div className="au-workspace au-workspace--selected"><span className="au-status-dot au-status-dot--healthy" /><span><b className="au-workspace-name">checkout-fix</b><small className="au-workspace-branch">feat/checkout</small></span></div>
                 <div className="au-workspace"><span className="au-status-dot" /><span><b className="au-workspace-name">pricing</b><small className="au-workspace-branch">feat/pricing</small></span></div>
@@ -100,8 +100,8 @@ export default function DesignSystemPage() {
                 </div>
                 <div className={styles.demoContent}>
                   <span className="au-badge au-badge--healthy"><span className="au-status-dot au-status-dot--healthy" />3000:11200</span>
-                  <h3>Each tab is a surface</h3>
-                  <p>The catalog is grouped the way Agent-Up is used: chrome, workspaces, applications, browser, console, Git, diagnostics, metrics, validation, auth, Mobile, and marketing.</p>
+                  <h3 className="au-heading">Each tab is a surface</h3>
+                  <p className="au-muted">The catalog is grouped the way Agent-Up is used: chrome, workspaces, applications, browser, console, Git, diagnostics, metrics, validation, auth, Mobile, and marketing.</p>
                 </div>
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function DesignSystemPage() {
         </div>
       </header>
 
-      <div className={styles.shell} id="catalog">
+      <div className={`au-section ${styles.shell}`} id="catalog">
         <div className={`au-container ${styles.catalog}`}>
           <nav className={styles.surfaceNav} aria-label="Design system surfaces">
             <p className="au-eyebrow">Surfaces</p>
@@ -118,17 +118,17 @@ export default function DesignSystemPage() {
                 <button
                   key={item.id}
                   id={`tab-${item.id}`}
-                  className={`${styles.surfaceTab}${item.id === active ? ` ${styles.surfaceTabSelected}` : ''}`}
+                  className={`au-card${item.id === active ? ' au-card--selected' : ''} ${styles.surfaceTab}`}
                   role="tab"
                   aria-selected={item.id === active}
                   aria-controls={`panel-${item.id}`}
                   onClick={() => select(item.id)}
                 >
-                  <span className={styles.surfaceIndex}>{String(index + 1).padStart(2, '0')}</span>
+                  <span className="au-mono au-muted">{String(index + 1).padStart(2, '0')}</span>
                   <span className={styles.surfaceCopy}>
-                    <strong>{item.title}</strong>
-                    <small>{item.intro}</small>
-                    <em>{item.components.length} {item.components.length === 1 ? 'example' : 'examples'}</em>
+                    <strong className="au-heading">{item.title}</strong>
+                    <small className="au-muted">{item.intro}</small>
+                    <em className="au-mono au-muted">{item.components.length} {item.components.length === 1 ? 'example' : 'examples'}</em>
                   </span>
                 </button>
               ))}
@@ -142,8 +142,8 @@ export default function DesignSystemPage() {
             aria-labelledby={`tab-${surface.id}`}
           >
             <p className="au-eyebrow">{String(ids.indexOf(surface.id) + 1).padStart(2, '0')} · {surface.title}</p>
-            <h2 className="au-title">{surface.title}</h2>
-            <p className="au-lede">{surface.intro}</p>
+            <h2 className="au-page-title">{surface.title}</h2>
+            <p className="au-muted">{surface.intro}</p>
 
             {surface.id === 'foundations' ? <div className="au-grid">{extra.foundations.tokens.map(([name, token, value, description]) => (
               <article className="au-card" key={token}>
@@ -157,7 +157,7 @@ export default function DesignSystemPage() {
 
             {surface.id === 'voice' ? <>
               <div className={styles.voiceGrid}>{extra.voice.cards.map(([label, copy]) => (
-                <article className="au-card" key={label}><p className="au-eyebrow">{label}</p><p className={styles.voiceCopy}>{copy}</p></article>
+                <article className="au-card" key={label}><p className="au-eyebrow">{label}</p><p className={`au-lede ${styles.voiceCopy}`}>{copy}</p></article>
               ))}</div>
               <div className="au-grid">{extra.voice.lifecycle.map(([label, description]) => (
                 <article className="au-card" key={label}><span className="au-badge">{label}</span><p className="au-muted">{description}</p></article>

@@ -40,6 +40,30 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 
 `status` probes the hosted Server, Mobile, and docs URLs and checks that the Desktop window is present. Do not curl those ports or call `xdotool` from the shell; those checks belong inside `au-debug`.
 
+## Tests
+
+Visual-iteration checks run through `au-debug test`, not a separate `dotnet test` or `npm test` invocation. Scoped suites keep the inner loop short; `test` / `test all` is the closing pass for a visual change.
+
+```bash
+./au-debug test design-system
+./au-debug test desktop
+./au-debug test mobile
+./au-debug test au-debug
+./au-debug test architecture
+./au-debug test
+```
+
+| Suite | Runs |
+|---|---|
+| `design-system` | `npm run build` then `npm test` in `AgentUp.DesignSystem` |
+| `desktop` | `AgentUp.Desktop.Tests` |
+| `mobile` | `npm test` in `AgentUp.Mobile` |
+| `au-debug` | `AgentUp.AUDebug.Tests` |
+| `architecture` | `AgentUp.Architecture.Tests` |
+| `all` | those five, in that order |
+
+`--timeout` defaults to 180 seconds for a scoped suite and 600 seconds for `all`.
+
 Screenshot commands print `screenshot: <path>`. Login uses `--password` or `AGENTUP_ADMIN_PASSWORD` from the repository `.env` file.
 
 ## Watchdogs

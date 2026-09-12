@@ -126,7 +126,7 @@ export function inferAvaloniaType(className) {
     return 'Button';
   }
   if (/(au-input|au-address-bar|au-code-editor|au-console|au-code$)/.test(className)) return 'TextBox';
-  if (/(au-eyebrow|au-display|au-title|au-page-title|au-heading|au-lede|au-muted|au-mono|au-accent|au-field-label|au-chrome-icon|au-workspace-name|au-workspace-branch)/.test(className)) return 'TextBlock';
+  if (/(au-eyebrow|au-display|au-title|au-page-title|au-heading|au-lede|au-muted|au-mono|au-accent|au-field-label|au-chrome-icon|au-chrome-title|au-workspace-name|au-workspace-branch)/.test(className)) return 'TextBlock';
   return 'Border';
 }
 

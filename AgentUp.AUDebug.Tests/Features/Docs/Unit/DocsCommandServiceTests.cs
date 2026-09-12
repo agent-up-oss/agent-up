@@ -17,7 +17,7 @@ public sealed class DocsCommandServiceTests
                 CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
-        Assert.That(shots.Captures[0].Url, Is.EqualTo($"{DebugLayout.DocsUrl}{DebugLayout.DocsPath}"));
+        Assert.That(shots.Captures[0].Url, Is.EqualTo($"{DebugLayout.DocsUrl}{DebugLayout.DocsPath}#catalog"));
     }
 
     [Test]

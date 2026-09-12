@@ -257,6 +257,7 @@ AgentUp.AUDebug/
     Desktop/          (desktop screenshot, login, start-workspace)
     Mobile/           (mobile screenshot, login)
     Docs/             (docs screenshot)
+    Test/             (scoped and full visual-iteration test runs)
 
 LocalInstaller.Core/
   Features/
@@ -869,7 +870,7 @@ Read: `docs/user-docs/cli.md`.
 
 ## AUDebug
 
-`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Read: `docs/developer-guide/au-debug.md`.
+`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Read: `docs/developer-guide/au-debug.md`.
 
 ## MCP
 

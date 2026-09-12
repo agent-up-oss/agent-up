@@ -7,4 +7,5 @@ public sealed record DebugCommandDto(
     string? WorkspaceName,
     string? Password,
     TimeSpan Timeout,
-    bool Detach);
+    bool Detach,
+    string? Suite = null);

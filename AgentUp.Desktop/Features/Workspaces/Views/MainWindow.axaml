@@ -249,25 +249,12 @@
         <Style Selector="TextBox.dbCell">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
             <Setter Property="SelectionBrush" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
-            <Setter Property="FontSize" Value="11"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="Focusable" Value="True"/>
         </Style>
-        <Style Selector="Border.dbHeaderCell">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-            <Setter Property="Padding" Value="8,6"/>
-        </Style>
         <Style Selector="Border.dbDataCell">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
             <Setter Property="Padding" Value="0"/>
         </Style>
 
@@ -374,9 +361,7 @@
                            Height="18"
                            Stretch="Uniform"/>
                     <TextBlock Text="Agent-Up"
-                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                               FontSize="13"
-                               FontWeight="Bold"
+                               Classes="au-chrome-title"
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
@@ -432,7 +417,7 @@
                             Width="420">
                         <StackPanel Spacing="16">
                             <TextBlock Classes="au-eyebrow"
-                                       Text="Agent-Up Server"/>
+                                       Text="AGENT-UP SERVER"/>
                             <TextBlock Classes="au-page-title"
                                        Text="Sign in"/>
                             <TextBlock Classes="au-muted"
@@ -444,7 +429,7 @@
                                        TextWrapping="Wrap"
                                        IsVisible="{Binding Login.IsConnectionRetry}"/>
                             <TextBlock Classes="au-field-label"
-                                       Text="Admin password"
+                                       Text="ADMIN PASSWORD"
                                        IsVisible="{Binding !Login.IsConnectionRetry}"/>
                             <TextBox Classes="au-input"
                                      Text="{Binding Login.Password, Mode=TwoWay}"
@@ -497,7 +482,7 @@
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0"
                                    Classes="au-eyebrow"
-                                   Text="Workspaces"
+                                   Text="WORKSPACES"
                                    VerticalAlignment="Center"/>
                         <Button Grid.Column="1"
                                 x:Name="AddWorkspaceButton"

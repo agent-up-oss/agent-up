@@ -180,6 +180,7 @@
   transition: background var(--au-transition-fast), border-color var(--au-transition-fast);
 }
 .au-button:hover { color: var(--au-color-on-accent); background: var(--au-color-accent-bright); }
+.au-button:disabled { opacity: 0.38; }
 .au-button--secondary { color: var(--au-color-text-primary); background: var(--au-color-surface-raised); border-color: var(--au-color-border-strong); }
 .au-button--secondary:hover { color: var(--au-color-text-primary); background: var(--au-color-surface-hover); border-color: var(--au-color-text-muted); }
 .au-button--danger { color: var(--au-color-text-primary); background: var(--au-color-status-danger); }

@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   label: auText('fieldLabel'),
   input: auBox('input'),
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
-  disabled: { opacity: 0.38 },
+  disabled: auBox('buttonDisabled'),
   buttonText: auText('button'),
   status: auText('accent'),
   currentLabel: { ...auText('fieldLabel'), width: '100%', maxWidth: 416 },

@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   buttonText: auText('button'),
   secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
   secondaryButtonText: auText('buttonSecondary'),
-  disabled: { opacity: 0.38 },
+  disabled: auBox('buttonDisabled'),
   modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
   dialog: { ...auBox('card'), width: '100%', maxWidth: 620, maxHeight: '85%', gap: 12 },
   dialogTitle: auText('pageTitle'),

@@ -7,7 +7,7 @@ public sealed class DebugArgParser : IDebugArgParser
 {
     public (DebugCommandDto? Command, string? Error) Parse(string[] args)
     {
-        var timeoutSeconds = DebugLayout.DefaultTimeoutSeconds;
+        int? timeoutSeconds = null;
         var detach = false;
         string? password = null;
         var positionals = new List<string>();
@@ -23,8 +23,9 @@ public sealed class DebugArgParser : IDebugArgParser
 
             if (arg == "--timeout")
             {
-                if (index + 1 >= args.Length || !int.TryParse(args[index + 1], out timeoutSeconds))
+                if (index + 1 >= args.Length || !int.TryParse(args[index + 1], out var parsed) || parsed <= 0)
                     return (null, "Error: --timeout requires a positive integer number of seconds.");
+                timeoutSeconds = parsed;
                 index++;
                 continue;
             }
@@ -44,27 +45,37 @@ public sealed class DebugArgParser : IDebugArgParser
             positionals.Add(arg);
         }
 
-        if (timeoutSeconds <= 0 || timeoutSeconds > DebugLayout.MaxTimeoutSeconds)
+        if (timeoutSeconds > DebugLayout.MaxTimeoutSeconds)
             return (null, $"Error: --timeout must be between 1 and {DebugLayout.MaxTimeoutSeconds} seconds.");
 
-        return Build(positionals, password, TimeSpan.FromSeconds(timeoutSeconds), detach);
+        return Build(positionals, password, timeoutSeconds, detach);
     }
 
     private static (DebugCommandDto? Command, string? Error) Build(
         IReadOnlyList<string> positionals,
         string? password,
-        TimeSpan timeout,
+        int? timeoutSeconds,
         bool detach)
     {
         if (positionals.Count == 0 || positionals[0] is "help" or "-h")
-            return (new DebugCommandDto("help", null, null, null, password, timeout, detach), null);
+            return Command("help", timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
 
         var verb = positionals[0];
         if (verb is "up" or "down" or "status")
         {
             if (positionals.Count > 1)
                 return (null, $"Error: '{verb}' does not take extra arguments.");
-            return (new DebugCommandDto(verb, null, null, null, password, timeout, detach), null);
+            return Command(verb, timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
+        }
+
+        if (verb == "test")
+        {
+            if (positionals.Count > 2)
+                return (null, "Error: 'test' takes at most one suite name.");
+            var suite = positionals.Count == 2 ? positionals[1] : "all";
+            var timeout = timeoutSeconds
+                ?? (suite == "all" ? DebugLayout.TestAllTimeoutSeconds : DebugLayout.TestTimeoutSeconds);
+            return (new DebugCommandDto(verb, null, null, null, password, TimeSpan.FromSeconds(timeout), detach, suite), null);
         }
 
         if (verb is not ("desktop" or "mobile" or "docs"))
@@ -95,6 +106,22 @@ public sealed class DebugArgParser : IDebugArgParser
             return (null, $"Error: '{verb} {action}' does not take extra arguments.");
         }
 
-        return (new DebugCommandDto(verb, verb, action, workspaceName, password, timeout, detach), null);
+        return (
+            new DebugCommandDto(
+                verb,
+                verb,
+                action,
+                workspaceName,
+                password,
+                TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds),
+                detach),
+            null);
     }
+
+    private static (DebugCommandDto? Command, string? Error) Command(
+        string verb,
+        int timeoutSeconds,
+        string? password,
+        bool detach)
+        => (new DebugCommandDto(verb, null, null, null, password, TimeSpan.FromSeconds(timeoutSeconds), detach), null);
 }

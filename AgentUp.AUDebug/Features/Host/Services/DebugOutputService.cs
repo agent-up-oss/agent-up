@@ -49,8 +49,15 @@ public sealed class DebugOutputService
             Docs:
               docs screenshot            Capture the design-system docs page and print the file path.
 
+            Tests:
+              test                       Run every visual-iteration suite.
+              test all                   Same as test.
+              test <suite>               Run one suite: design-system, desktop, mobile,
+                                         au-debug, or architecture.
+
             Options:
-              --timeout <seconds>        Watchdog for readiness and one-shot commands (default 30).
+              --timeout <seconds>        Watchdog for readiness, tests, and one-shot commands.
+                                         Default 30s; test defaults to 180s, test all to 600s.
               --detach                   After up is ready, return without following logs.
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
             """);

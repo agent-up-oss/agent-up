@@ -26,6 +26,11 @@
   font-size: 0.8125rem;
   font-weight: var(--au-weight-bold);
 }
+.au-chrome-title {
+  color: var(--au-color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: var(--au-weight-bold);
+}
 .au-title-tool {
   width: 2rem;
   height: 1.875rem;

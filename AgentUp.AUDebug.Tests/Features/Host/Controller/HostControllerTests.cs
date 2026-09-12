@@ -8,6 +8,9 @@ using AgentUp.AUDebug.Features.Host.Providers;
 using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Services;
+using AgentUp.AUDebug.Features.Test.Controllers;
+using AgentUp.AUDebug.Features.Test.Providers;
+using AgentUp.AUDebug.Features.Test.Services;
 using AgentUp.AUDebug.Tests.Fake;
 
 namespace AgentUp.AUDebug.Tests.Features.Host.Controller;
@@ -26,6 +29,7 @@ public sealed class HostControllerTests
             Assert.That(exit, Is.EqualTo(0));
             Assert.That(output.ToString(), Does.Contain("Usage: au-debug"));
             Assert.That(output.ToString(), Does.Contain("desktop screenshot"));
+            Assert.That(output.ToString(), Does.Contain("test <suite>"));
         });
     }
 
@@ -79,7 +83,23 @@ public sealed class HostControllerTests
         Assert.That(output.ToString(), Does.Contain("not running"));
     }
 
-    private static HostController Controller(StringWriter output)
+    [Test]
+    public async Task Test_scopedSuite_routesWithoutLaunchingLaterSuites()
+    {
+        using var output = new StringWriter();
+        var tests = new FakeTestProcessRunner();
+        var exit = await Controller(output, tests).RunAsync(["test", "au-debug"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exit, Is.EqualTo(0));
+            Assert.That(output.ToString(), Does.Contain("au-debug"));
+            Assert.That(tests.Ran, Has.Count.EqualTo(1));
+            Assert.That(tests.Ran[0].FileName, Is.EqualTo("dotnet"));
+        });
+    }
+
+    private static HostController Controller(StringWriter output, FakeTestProcessRunner? tests = null)
     {
         var sessions = new FakeSessionStore();
         var supervisor = new FakeSupervisor();
@@ -93,6 +113,8 @@ public sealed class HostControllerTests
             new MobileCommandService(new FakeWebScreenshotDriver(), new FakeMobileSurfaceDriver(), sessions, new FakeEnvironment()));
         var docs = new DocsController(
             new DocsCommandService(new FakeWebScreenshotDriver(), sessions));
-        return new HostController(host, desktop, mobile, docs, new DebugArgParser(), debugOutput);
+        var testController = new TestController(
+            new TestCommandService(new DebugTestSuiteCatalog(), tests ?? new FakeTestProcessRunner(), output));
+        return new HostController(host, desktop, mobile, docs, testController, new DebugArgParser(), debugOutput);
     }
 }

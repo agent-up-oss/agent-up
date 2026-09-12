@@ -133,6 +133,8 @@ function declarationsToSetters(declarations, tokens) {
   const setters = [];
   let thickness = null;
   let borderBrush = null;
+  let fontSizePx = null;
+  let letterSpacing = null;
   for (const [property, value] of declarations) {
     if (/color-mix\(|min\(|max\(|calc\(/i.test(value) && !value.startsWith('clamp(')) continue;
     switch (property) {
@@ -169,6 +171,10 @@ function declarationsToSetters(declarations, tokens) {
         break;
       case 'font-size':
         setters.push(['FontSize', lengthValue(value, tokens)]);
+        fontSizePx = lengthNumber(value, tokens);
+        break;
+      case 'letter-spacing':
+        letterSpacing = value;
         break;
       case 'font-weight':
         setters.push(['FontWeight', weightValue(value, tokens)]);
@@ -208,6 +214,10 @@ function declarationsToSetters(declarations, tokens) {
     setters.push(['BorderThickness', uniform ? formatNumber(left) : `${formatNumber(left)},${formatNumber(top)},${formatNumber(right)},${formatNumber(bottom)}`]);
   }
   if (borderBrush) setters.push(['BorderBrush', borderBrush]);
+  if (letterSpacing) {
+    const spacing = letterSpacingValue(letterSpacing, tokens, fontSizePx);
+    if (spacing != null) setters.push(['LetterSpacing', spacing]);
+  }
   return setters.filter(([, value]) => value);
 }
 
@@ -221,7 +231,7 @@ const controlProperties = {
   Border: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
   Button: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily']),
   TextBox: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily']),
-  TextBlock: new Set(['Background', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
+  TextBlock: new Set(['Background', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily', 'LetterSpacing', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
   Window: new Set(['Background', 'Foreground', 'FontFamily', 'FontSize', 'Margin', 'Opacity', 'Width', 'Height', 'MinWidth', 'MinHeight']),
   StackPanel: new Set(['Background', 'Margin', 'Opacity', 'Width', 'Height', 'MinWidth', 'MinHeight']),
   ContentPresenter: new Set(['Background', 'Foreground', 'Padding', 'Margin', 'BorderBrush']),
@@ -275,6 +285,15 @@ function lengthNumber(value, tokens) {
   const token = varName(value);
   if (token) return toPx(tokens[token]);
   return toPx(value);
+}
+
+function letterSpacingValue(value, tokens, fontSizePx) {
+  const token = varName(value);
+  const resolved = token ? tokens[token] : String(value).trim();
+  const em = String(resolved).match(/^(-?[0-9.]+)em$/);
+  if (em && fontSizePx != null) return formatNumber(Number(em[1]) * fontSizePx);
+  const px = toPx(resolved);
+  return px == null ? null : formatNumber(px);
 }
 
 function cornerValue(value, tokens) {

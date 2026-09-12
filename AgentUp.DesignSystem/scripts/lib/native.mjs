@@ -1,4 +1,4 @@
-import { camel, layoutOnly, nativeLiteral, parseSelector, toPx, varName } from './css.mjs';
+import { camel, formatNumber, layoutOnly, nativeLiteral, parseSelector, toPx, varName } from './css.mjs';
 
 const boxKeys = new Set([
   'backgroundColor', 'borderWidth', 'borderColor', 'borderRadius',
@@ -7,7 +7,7 @@ const boxKeys = new Set([
   'width', 'height', 'minHeight', 'minWidth', 'paddingHorizontal', 'paddingVertical',
   'opacity',
 ]);
-const textKeys = new Set(['color', 'fontSize', 'fontWeight', 'opacity', 'fontFamily', 'textTransform']);
+const textKeys = new Set(['color', 'fontSize', 'fontWeight', 'opacity', 'fontFamily', 'textTransform', 'letterSpacing']);
 
 export function emitNative(tokens, rules) {
   const groups = {
@@ -22,8 +22,11 @@ export function emitNative(tokens, rules) {
   for (const rule of rules) {
     for (const selector of rule.selectors) {
       const parsed = parseSelector(selector);
-      if (!parsed || parsed.pseudo || parsed.selected || layoutOnly.has(parsed.baseClass)) continue;
-      const name = camel((parsed.modifierClass ?? parsed.baseClass).replace(/^au-/, '').replaceAll('--', '-'));
+      if (!parsed || layoutOnly.has(parsed.baseClass)) continue;
+      if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
+      if (parsed.selected) continue;
+      const baseName = (parsed.modifierClass ?? parsed.baseClass).replace(/^au-/, '').replaceAll('--', '-');
+      const name = camel(parsed.pseudo === 'disabled' ? `${baseName}-disabled` : baseName);
       const style = rnStyle(rule.declarations, tokens);
       if (!Object.keys(style).length) continue;
       components[name] = { ...components[name], ...style };
@@ -38,7 +41,7 @@ export function emitNative(tokens, rules) {
   ).join('\n')}\n  components: Object.freeze({\n${componentBlock}\n  }),\n})`;
   const js = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nexport const agentUpTheme = ${themeExpression};\n${helpers.esm}\n`;
   const cjs = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nconst agentUpTheme = ${themeExpression};\n${helpers.cjs}\nmodule.exports = { agentUpTheme, auBox, auText };\n`;
-  const dts = `// Generated from src/agent-up.css. Do not edit.\nexport declare const agentUpTheme: {\n  readonly colors: Readonly<Record<string, string>>;\n  readonly spacing: Readonly<Record<string, number>>;\n  readonly radii: Readonly<Record<string, number>>;\n  readonly typography: {\n    readonly sizeXs: number;\n    readonly sizeSm: number;\n    readonly sizeMd: number;\n    readonly sizeLg: number;\n    readonly sizeXl: number;\n    readonly sizeDisplay: number;\n    readonly tight: number;\n    readonly normal: number;\n    readonly relaxed: number;\n    readonly regular: number;\n    readonly medium: number;\n    readonly semibold: number;\n    readonly bold: number;\n    readonly black: number;\n  };\n  readonly controls: Readonly<Record<string, number>>;\n  readonly fonts: Readonly<Record<string, string>>;\n  readonly components: Readonly<Record<string, Readonly<Record<string, string | number>>>>;\n};\nexport declare function auBox(...names: Array<string | false | null | undefined>): {\n  backgroundColor?: string;\n  borderWidth?: number;\n  borderColor?: string;\n  borderRadius?: number;\n  borderTopWidth?: number;\n  borderTopColor?: string;\n  borderRightWidth?: number;\n  borderRightColor?: string;\n  borderBottomWidth?: number;\n  borderBottomColor?: string;\n  borderLeftWidth?: number;\n  borderLeftColor?: string;\n  width?: number;\n  height?: number;\n  minHeight?: number;\n  minWidth?: number;\n  paddingHorizontal?: number;\n  paddingVertical?: number;\n  opacity?: number;\n};\nexport declare function auText(...names: Array<string | false | null | undefined>): {\n  color?: string;\n  fontSize?: number;\n  fontWeight?: '400' | '500' | '600' | '700' | '800';\n  opacity?: number;\n  fontFamily?: string;\n  textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';\n};\n`;
+  const dts = `// Generated from src/agent-up.css. Do not edit.\nexport declare const agentUpTheme: {\n  readonly colors: Readonly<Record<string, string>>;\n  readonly spacing: Readonly<Record<string, number>>;\n  readonly radii: Readonly<Record<string, number>>;\n  readonly typography: {\n    readonly sizeXs: number;\n    readonly sizeSm: number;\n    readonly sizeMd: number;\n    readonly sizeLg: number;\n    readonly sizeXl: number;\n    readonly sizeDisplay: number;\n    readonly tight: number;\n    readonly normal: number;\n    readonly relaxed: number;\n    readonly regular: number;\n    readonly medium: number;\n    readonly semibold: number;\n    readonly bold: number;\n    readonly black: number;\n  };\n  readonly controls: Readonly<Record<string, number>>;\n  readonly fonts: Readonly<Record<string, string>>;\n  readonly components: Readonly<Record<string, Readonly<Record<string, string | number>>>>;\n};\nexport declare function auBox(...names: Array<string | false | null | undefined>): {\n  backgroundColor?: string;\n  borderWidth?: number;\n  borderColor?: string;\n  borderRadius?: number;\n  borderTopWidth?: number;\n  borderTopColor?: string;\n  borderRightWidth?: number;\n  borderRightColor?: string;\n  borderBottomWidth?: number;\n  borderBottomColor?: string;\n  borderLeftWidth?: number;\n  borderLeftColor?: string;\n  width?: number;\n  height?: number;\n  minHeight?: number;\n  minWidth?: number;\n  paddingHorizontal?: number;\n  paddingVertical?: number;\n  opacity?: number;\n};\nexport declare function auText(...names: Array<string | false | null | undefined>): {\n  color?: string;\n  fontSize?: number;\n  fontWeight?: '400' | '500' | '600' | '700' | '800';\n  opacity?: number;\n  fontFamily?: string;\n  textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';\n  letterSpacing?: number;\n};\n`;
   return { js, cjs, dts };
 }
 
@@ -126,6 +129,15 @@ function rnStyle(declarations, tokens) {
       case 'text-transform':
         style.textTransform = `'${value}'`;
         break;
+      case 'letter-spacing': {
+        const em = String(value).trim().match(/^(-?[0-9.]+)em$/);
+        if (em && style.fontSize != null) style.letterSpacing = formatNumber(Number(em[1]) * Number(style.fontSize));
+        else {
+          const px = nativeLiteral(value, tokens);
+          if (px != null) style.letterSpacing = px;
+        }
+        break;
+      }
       case 'opacity':
         style.opacity = value;
         break;

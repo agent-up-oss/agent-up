@@ -22,7 +22,7 @@ public sealed class DocsCommandService
         try
         {
             var path = _sessions.ScreenshotPath("docs");
-            await _screenshots.CaptureAsync($"{DebugLayout.DocsUrl}{DebugLayout.DocsPath}", path, timeout.Token);
+            await _screenshots.CaptureAsync($"{DebugLayout.DocsUrl}{DebugLayout.DocsPath}#catalog", path, timeout.Token);
             return CommandResultDto.Ok("Wrote docs screenshot.", path);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)

@@ -10,6 +10,9 @@ using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Providers;
 using AgentUp.AUDebug.Features.Mobile.Services;
+using AgentUp.AUDebug.Features.Test.Controllers;
+using AgentUp.AUDebug.Features.Test.Providers;
+using AgentUp.AUDebug.Features.Test.Services;
 using AgentUp.AUDebug.Shared.Providers;
 
 namespace AgentUp.AUDebug.Composition;
@@ -52,6 +55,11 @@ public static class AuDebugRunnerFactory
                 sessions,
                 environment));
         var docs = new DocsController(new DocsCommandService(screenshots, sessions));
-        return new HostController(host, desktop, mobile, docs, new DebugArgParser(), outputService);
+        var tests = new TestController(
+            new TestCommandService(
+                new DebugTestSuiteCatalog(),
+                new DebugTestProcessRunner(processes, paths),
+                writer));
+        return new HostController(host, desktop, mobile, docs, tests, new DebugArgParser(), outputService);
     }
 }

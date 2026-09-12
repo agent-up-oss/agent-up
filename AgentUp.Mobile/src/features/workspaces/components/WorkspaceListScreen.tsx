@@ -113,7 +113,7 @@ function stateDot(state: string) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 10 },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: agentUpTheme.spacing[3] },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: auText('pageTitle'),
   addButton: { ...auBox('workspaceAdd'), alignItems: 'center', justifyContent: 'center' },
@@ -132,9 +132,9 @@ const styles = StyleSheet.create({
   buttonText: auText('button'),
   secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
   secondaryButtonText: auText('buttonSecondary'),
-  disabled: { opacity: 0.38 },
+  disabled: auBox('buttonDisabled'),
   modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
-  dialog: { ...auBox('card'), width: '100%', maxWidth: 480, gap: 10 },
+  dialog: { ...auBox('card'), width: '100%', maxWidth: 480, gap: agentUpTheme.spacing[3] },
   dialogTitle: auText('pageTitle'),
   dialogDetail: auText('muted'),
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
