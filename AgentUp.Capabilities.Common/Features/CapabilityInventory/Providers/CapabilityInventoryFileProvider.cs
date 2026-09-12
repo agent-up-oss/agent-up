@@ -57,8 +57,8 @@ public sealed class CapabilityInventoryFileProvider
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!string.IsNullOrWhiteSpace(home))
         {
-            AddCandidate(candidates, Path.Join(home, ".config", "agent-up", InventoryFileName));
             AddCandidate(candidates, Path.Join(home, ".config", "agent-up", LocalInventoryFileName));
+            AddCandidate(candidates, Path.Join(home, ".config", "agent-up", InventoryFileName));
         }
 
         AddCandidate(candidates, FindDevInventoryPath());

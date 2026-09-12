@@ -274,6 +274,19 @@ public sealed class GitWorkingTreeProviderTests
     }
 
     [Test]
+    public async Task DiscardAsync_unstagesThenRemovesStagedAdditions()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "NOTES.md"), "notes\n");
+        await TestGitRepository.RunAsync(_repository, "add", "--", "NOTES.md");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.DiscardAsync(_repository, ["NOTES.md"]);
+
+        Assert.That(File.Exists(Path.Join(_repository, "NOTES.md")), Is.False);
+        Assert.That(await provider.GetChangesAsync(_repository), Is.Empty);
+    }
+
+    [Test]
     public async Task GetHeadStateAsync_listsTheCurrentBranchAndSiblings()
     {
         await TestGitRepository.RunAsync(_repository, "switch", "-c", "topic");
@@ -305,6 +318,16 @@ public sealed class GitWorkingTreeProviderTests
         await provider.SwitchBranchAsync(_repository, "review", create: true);
 
         Assert.That((await provider.GetHeadStateAsync(_repository)).Branch, Is.EqualTo("review"));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_acceptsGitBranchNamesWithPlus()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.SwitchBranchAsync(_repository, "release+hotfix", create: true);
+
+        Assert.That((await provider.GetHeadStateAsync(_repository)).Branch, Is.EqualTo("release+hotfix"));
     }
 
     [TestCase("-c")]

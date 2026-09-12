@@ -35,8 +35,8 @@ replay from bounded Server history.
 The Codex, Cursor, and Claude capability adapters discover installed ACP
 adapters from the command declared on that capability's inventory entry. Server
 and Desktop installments share `AGENTUP_CAPABILITY_INVENTORY_PATH`,
-`/etc/agent-up/capabilities.json`, `~/.config/agent-up/capabilities.json`,
-`~/.config/agent-up/capabilities.local.json`, and `.agent-up-dev/capabilities.json`
+`/etc/agent-up/capabilities.json`, `~/.config/agent-up/capabilities.local.json`,
+`~/.config/agent-up/capabilities.json`, and `.agent-up-dev/capabilities.json`
 found by walking up from the Server working directory. Those files are merged
 by capability id so a Home Manager version list does not hide ACP commands.
 `command` may be a PATH name or a rooted path on disk; `arguments` and optional

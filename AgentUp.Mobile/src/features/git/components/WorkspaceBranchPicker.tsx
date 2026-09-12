@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitHeadState } from '../models/GitChanges';
@@ -16,17 +16,23 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const request = useRef(0);
 
   const load = useCallback(async () => {
     if (!server) return;
+    const ticket = ++request.current;
     try {
-      setHead(await getHeadState(server, workspaceId));
+      const next = await getHeadState(server, workspaceId);
+      if (ticket !== request.current) return;
+      setHead(next);
     } catch (cause) {
+      if (ticket !== request.current) return;
       setError(cause instanceof Error ? cause.message : 'Could not load branches.');
     }
   }, [server, workspaceId]);
 
   useEffect(() => {
+    setHead(null);
     setOpen(false);
     setCreating(false);
     setName('');

@@ -111,6 +111,8 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         {
             try { using var document = JsonDocument.Parse(line); await DispatchAsync(document.RootElement.Clone(), cancellationToken); }
             catch (JsonException exception) { logger.LogWarning(exception, "ACP agent emitted invalid JSON: {Line}", line); }
+            catch (Exception exception) when (exception is InvalidOperationException or KeyNotFoundException or FormatException or IOException)
+            { logger.LogWarning(exception, "ACP agent emitted an unusable JSON-RPC message: {Line}", line); }
         }
         if (!cancellationToken.IsCancellationRequested)
         {
@@ -127,7 +129,8 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
             var id = idElement.GetInt64();
             if (!_pending.TryGetValue(id, out var completion)) return;
             if (message.TryGetProperty("error", out var error)) completion.TrySetException(new InvalidOperationException(error.ToString()));
-            else completion.TrySetResult(message.GetProperty("result").Clone());
+            else if (message.TryGetProperty("result", out var result)) completion.TrySetResult(result.Clone());
+            else completion.TrySetException(new InvalidOperationException("The ACP agent returned a response without a result."));
             return;
         }
         if (!message.TryGetProperty("method", out var methodElement)) return;
@@ -138,7 +141,7 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
             try {
                 var result = Request is null ? JsonSerializer.SerializeToElement(new { }) : await Request(method, parameters);
                 await WriteAsync(new { jsonrpc = "2.0", id = requestId.Clone(), result }, cancellationToken);
-            } catch (Exception exception) when (exception is InvalidOperationException or IOException) {
+            } catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException) {
                 await WriteAsync(new { jsonrpc = "2.0", id = requestId.Clone(), error = new { code = -32603, message = exception.Message } }, cancellationToken);
             }
         }
@@ -150,7 +153,19 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         while (await process.StandardError.ReadLineAsync(cancellationToken) is { } line)
         {
             _stderr.Enqueue(line);
+            TrimStderr();
             logger.LogWarning("ACP: {Line}", line);
+        }
+    }
+
+    private void TrimStderr()
+    {
+        while (_stderr.Count > 12)
+        {
+            if (!_stderr.TryDequeue(out var discarded))
+                return;
+
+            logger.LogTrace("Dropped oldest ACP stderr line: {Line}", discarded);
         }
     }
 
@@ -189,8 +204,8 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
     public async ValueTask DisposeAsync()
     {
         _lifetime.Cancel();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        try { await StopAsync(timeout.Token); } catch (OperationCanceledException) when (timeout.IsCancellationRequested) { logger.LogDebug("Timed out while stopping the ACP process."); }
+        try { await StopAsync(CancellationToken.None); }
+        catch (OperationCanceledException exception) { logger.LogDebug(exception, "ACP process stop was cancelled during disposal."); }
         if (_reader is not null) try { await _reader; } catch (OperationCanceledException exception) { logger.LogDebug(exception, "ACP reader was cancelled."); }
         if (_errorReader is not null) try { await _errorReader; } catch (OperationCanceledException exception) { logger.LogDebug(exception, "ACP error reader was cancelled."); }
         _process?.Dispose(); _writes.Dispose();

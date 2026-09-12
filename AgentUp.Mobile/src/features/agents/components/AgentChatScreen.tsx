@@ -64,7 +64,8 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   useEffect(() => {
     if (!server) return;
     let disposed = false;
-    void getAgent(server, workspace.id).then(value => { if (!disposed) setSession(value); }).catch(cause => setError(readError(cause)));
+    lastSequence.current = 0;
+    void getAgent(server, workspace.id).then(value => { if (!disposed && lastSequence.current === 0) setSession(value); }).catch(cause => { if (!disposed) setError(readError(cause)); });
     const controller = new AbortController();
     const connect = async () => {
       while (!controller.signal.aborted) {
@@ -99,7 +100,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
 
   return <View style={styles.screen}>
     <View style={styles.content}>{tab === 'changes'
-      ? <View style={styles.changesPane}><GitChangesPanel /></View>
+      ? <View style={styles.changesPane}><GitChangesPanel workspaceId={workspace.id} /></View>
       : <View style={styles.chat}>
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
@@ -110,7 +111,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
               </View>
             </View>
             <View style={styles.headingActions}>
-              {session?.state === 'running' && <Pressable accessibilityRole="button" style={styles.cancel} onPress={() => { if (!server) return; void cancelAgent(server, workspace.id).catch(cause => setError(readError(cause))); }}><Text style={styles.cancelText}>Cancel</Text></Pressable>}
+              {session?.state === 'running' && <Pressable accessibilityRole="button" style={styles.cancel} onPress={() => { if (!server) return; void cancelAgent(server, workspace.id).then(() => { setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.cancelText}>Cancel</Text></Pressable>}
               {session?.agent && <Pressable accessibilityRole="button" style={styles.stop} onPress={() => { if (!server) return; void stopAgent(server, workspace.id).then(() => { setSession(null); setItems([]); setContext({}); setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.stopText}>Stop</Text></Pressable>}
             </View>
           </View>

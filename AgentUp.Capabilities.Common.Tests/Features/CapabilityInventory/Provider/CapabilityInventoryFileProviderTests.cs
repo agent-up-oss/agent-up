@@ -93,11 +93,15 @@ public sealed class CapabilityInventoryFileProviderTests
     {
         Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, null);
 
-        var candidates = CapabilityInventoryFileProvider.InventoryPathCandidates();
+        var candidates = CapabilityInventoryFileProvider.InventoryPathCandidates().ToList();
 
         Assert.That(candidates, Does.Contain("/etc/agent-up/capabilities.json"));
         Assert.That(candidates.Any(path => path.EndsWith(Path.Join(".config", "agent-up", "capabilities.json"), StringComparison.Ordinal)), Is.True);
         Assert.That(candidates.Any(path => path.EndsWith(Path.Join(".config", "agent-up", "capabilities.local.json"), StringComparison.Ordinal)), Is.True);
+        var localIndex = candidates.FindIndex(path => path.EndsWith(Path.Join(".config", "agent-up", "capabilities.local.json"), StringComparison.Ordinal));
+        var userIndex = candidates.FindIndex(path => path.EndsWith(Path.Join(".config", "agent-up", "capabilities.json"), StringComparison.Ordinal));
+        Assert.That(localIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(userIndex, Is.GreaterThan(localIndex));
     }
 
     [Test]
@@ -157,6 +161,41 @@ public sealed class CapabilityInventoryFileProviderTests
             {
                 Assert.That(entry.Versions, Is.EqualTo(new[] { "dev" }));
                 Assert.That(entry.Command, Is.EqualTo("/opt/from-disk/codex-acp"));
+            });
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(previousCwd);
+            Environment.SetEnvironmentVariable("HOME", previousHome);
+        }
+    }
+
+    [Test]
+    public async Task LoadAllAsync_letsTheUserOverlayWinOverTheUserInstallmentFile()
+    {
+        var previousHome = Environment.GetEnvironmentVariable("HOME");
+        var previousCwd = Directory.GetCurrentDirectory();
+        try
+        {
+            Environment.SetEnvironmentVariable("HOME", _directory);
+            Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, null);
+            Directory.SetCurrentDirectory(_directory);
+            var config = Path.Join(_directory, ".config", "agent-up");
+            Directory.CreateDirectory(config);
+            await File.WriteAllTextAsync(
+                Path.Join(config, "capabilities.json"),
+                """[{ "id": "codex", "versions": [ "installment" ], "command": "/opt/installment/codex-acp" }]""");
+            await File.WriteAllTextAsync(
+                Path.Join(config, "capabilities.local.json"),
+                """[{ "id": "codex", "command": "/opt/local/codex-acp" }]""");
+
+            var entry = (await new CapabilityInventoryFileProvider().LoadAllAsync())
+                .Single(item => item.Id.Equals("codex", StringComparison.OrdinalIgnoreCase));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(entry.Command, Is.EqualTo("/opt/local/codex-acp"));
+                Assert.That(entry.Versions, Is.EqualTo(new[] { "installment" }));
             });
         }
         finally

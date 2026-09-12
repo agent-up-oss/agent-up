@@ -20,6 +20,37 @@ public sealed class CapabilityCliLocatorTests
     }
 
     [Test]
+    public async Task DiscoverAsync_readsTheFirstVersionTokenThatContainsADigit()
+    {
+        var commands = new RecordingCommandRunner();
+        commands.Results[("agent", "--version")] = new CapabilityCommandResult(0, "codex-cli 0.40.0\n", "");
+        var locator = Create(commands, new FakeExecutableProbe(), new FakeSearchPaths(), "ubuntu");
+
+        var versions = await locator.DiscoverAsync("codex", [Agent()], [], CancellationToken.None);
+
+        Assert.That(versions.Single(version => version.Location == "agent").Version, Is.EqualTo("0.40.0"));
+    }
+
+    [Test]
+    public async Task DiscoverAsync_matchesTheExactWingetPackageId()
+    {
+        var commands = new RecordingCommandRunner();
+        commands.Results[("winget", "list --id GitHub.Copilot")] = new CapabilityCommandResult(
+            0,
+            "GitHub.Copilot.Preview 9.9.9\nGitHub.Copilot 0.40.0\n",
+            "");
+        var locator = Create(commands, new FakeExecutableProbe(), new FakeSearchPaths(), "windows");
+
+        var versions = await locator.DiscoverAsync(
+            "copilot",
+            [Agent()],
+            [new("winget", ["list", "--id", "GitHub.Copilot"], "winget:GitHub.Copilot", "GitHub.Copilot", "windows")],
+            CancellationToken.None);
+
+        Assert.That(versions.Single(version => version.Location == "winget:GitHub.Copilot").Version, Is.EqualTo("0.40.0"));
+    }
+
+    [Test]
     public async Task DiscoverAsync_findsWellKnownExecutableWhenCommandIsNotOnPath()
     {
         var path = "/home/dev/.local/bin/agent";

@@ -34,7 +34,7 @@ export function parseSseFrames(buffer: string): { events: AgentEvent[]; rest: st
     if (!data) return [];
     try { return [JSON.parse(data) as AgentEvent]; } catch { return []; }
   });
-  return { events, rest };
+  return { events, rest: rest.length > 1_048_576 ? '' : rest };
 }
 
 export async function streamAgentEvents(

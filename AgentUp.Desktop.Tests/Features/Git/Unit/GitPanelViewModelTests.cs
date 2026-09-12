@@ -218,6 +218,22 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_clearsASilentPollingErrorAfterRecovery()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), ChangesFailure = "Connection refused" };
+        var panel = CreatePanel(client);
+
+        await panel.LoadAsync("ws-1", silent: true);
+        Assert.That(panel.ErrorMessage, Does.Contain("Connection refused"));
+
+        client.ChangesFailure = null;
+        await panel.LoadAsync("ws-1", silent: true);
+
+        Assert.That(panel.ErrorMessage, Is.Null);
+        Assert.That(panel.FileCount, Is.EqualTo(3));
+    }
+
+    [Test]
     public async Task OpeningAFileShowsItsDiffInTheModal()
     {
         var client = new FakeGitApiProvider

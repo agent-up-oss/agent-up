@@ -150,6 +150,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     public async Task<AgentActionResult> PromptAsync(string workspaceId, string message, CancellationToken cancellationToken)
     {
         if (!_sessions.TryGetValue(workspaceId, out var state)) return AgentActionResult.NotFound();
+        if (string.IsNullOrWhiteSpace(state.AcpSessionId) || state.State is not "ready" and not "running")
+            return AgentActionResult.Failed("The workspace agent is not ready for a prompt.");
         if (!await state.PromptGate.WaitAsync(TimeSpan.Zero, cancellationToken))
             return AgentActionResult.Failed("The workspace agent is already processing a prompt.");
         state.State = "running";
@@ -187,6 +189,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     public async Task<AgentActionResult> CancelAsync(string workspaceId, CancellationToken cancellationToken)
     {
         if (!_sessions.TryGetValue(workspaceId, out var state)) return AgentActionResult.NotFound();
+        if (string.IsNullOrWhiteSpace(state.AcpSessionId))
+            return AgentActionResult.Failed("The workspace agent has no ACP session.");
+        if (state.State is not "running")
+            return AgentActionResult.Success();
         try
         {
             await state.Process.NotifyAsync("session/cancel", new { sessionId = state.AcpSessionId }, cancellationToken);
@@ -222,6 +228,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         state.Lifetime.Dispose();
         state.PromptGate.Dispose();
         events.Publish(workspaceId, "state", Get(workspaceId)!);
+        events.Remove(workspaceId);
         return error is null ? AgentActionResult.Success() : AgentActionResult.Failed(error);
     }
 

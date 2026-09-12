@@ -189,7 +189,11 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         {
             var tree = await _git.GetChangesAsync(workspaceId, cancellationToken);
             if (request == _treeRequest)
+            {
+                if (silent)
+                    ErrorMessage = null;
                 ApplyTree(tree, preserveSelection: sameWorkspace);
+            }
         }
         catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
         {

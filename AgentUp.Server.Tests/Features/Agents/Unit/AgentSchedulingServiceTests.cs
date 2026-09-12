@@ -77,6 +77,28 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task Prompt_isRejectedUntilTheAcpSessionIsReady()
+    {
+        _process.RequireAuthentication = true;
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        var result = await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None);
+
+        Assert.That(result.Error, Does.Contain("not ready"));
+    }
+
+    [Test]
+    public async Task Cancel_isRejectedWhenTheAcpSessionHasNotBeenCreated()
+    {
+        _process.RequireAuthentication = true;
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        var result = await _service.CancelAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(result.Error, Does.Contain("no ACP session"));
+    }
+
+    [Test]
     public async Task Authenticate_acceptsOnlyAdvertisedMethodAndCreatesSession()
     {
         _process.RequireAuthentication = true;

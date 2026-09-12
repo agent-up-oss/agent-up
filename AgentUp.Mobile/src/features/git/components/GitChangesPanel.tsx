@@ -18,9 +18,9 @@ import {
 
 const POLL_MS = 2500;
 
-export function GitChangesPanel() {
+export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?: string } = {}) {
   const { server, selectedWorkspace } = useWorkspaces();
-  const workspaceId = selectedWorkspace?.id ?? null;
+  const workspaceId = workspaceIdProp ?? selectedWorkspace?.id ?? null;
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -38,12 +38,19 @@ export function GitChangesPanel() {
   const gates = useRef<{ tree: RequestGate; diff: RequestGate; mutate: RequestGate } | null>(null);
   gates.current ??= { tree: createRequestGate(), diff: createRequestGate(), mutate: createRequestGate() };
   const { tree: treeGate, diff: diffGate, mutate: mutateGate } = gates.current;
+  const inflightLoads = useRef(0);
+  const mutating = useRef(false);
 
-  useEffect(() => { mutateGate.begin(); }, [server, workspaceId, mutateGate]);
+  useEffect(() => {
+    mutateGate.begin();
+    mutating.current = false;
+    setBusy(false);
+  }, [server, workspaceId, mutateGate]);
 
   const selectionWorkspace = useRef<string | null>(null);
 
   const load = useCallback(async (silent = false) => {
+    if (silent && inflightLoads.current > 0) return;
     const ticket = treeGate.begin();
     if (!server || !workspaceId) {
       selectionWorkspace.current = null;
@@ -52,6 +59,7 @@ export function GitChangesPanel() {
       return;
     }
     if (!silent) { setLoading(true); setError(null); }
+    inflightLoads.current += 1;
     try {
       const changes = await getChanges(server, workspaceId);
       if (!treeGate.isCurrent(ticket)) return;
@@ -67,6 +75,7 @@ export function GitChangesPanel() {
       if (!silent) setTree(null);
       setError(cause instanceof Error ? cause.message : 'Could not load Git changes.');
     } finally {
+      inflightLoads.current = Math.max(0, inflightLoads.current - 1);
       if (treeGate.isCurrent(ticket) && !silent) setLoading(false);
     }
   }, [server, workspaceId, treeGate]);
@@ -95,7 +104,8 @@ export function GitChangesPanel() {
   };
 
   const runMutation = async (action: () => Promise<{ succeeded: boolean; error?: string | null; commit?: string | null }>, onSuccess: (result: { commit?: string | null }) => string) => {
-    if (!server || !workspaceId || busy) return false;
+    if (!server || !workspaceId || busy || mutating.current) return false;
+    mutating.current = true;
     const ticket = mutateGate.current();
     setBusy(true); setError(null); setStatus(null);
     try {
@@ -110,6 +120,7 @@ export function GitChangesPanel() {
       setError(cause instanceof Error ? cause.message : 'The Git operation failed.');
       return false;
     } finally {
+      mutating.current = false;
       if (mutateGate.isCurrent(ticket)) setBusy(false);
     }
   };

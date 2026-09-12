@@ -17,6 +17,21 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
+    public async Task EventsAsync_skipsMalformedDataFramesAndContinues()
+    {
+        const string sse = "data: not-json\n\ndata: {\"sequence\":5,\"type\":\"state\",\"payload\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}\n\n";
+        using var handler = new AgentHandler(HttpStatusCode.OK, sse, eventStream: true);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+        var items = new List<long>();
+
+        await foreach (var item in client.EventsAsync("ws", 0, CancellationToken.None))
+            items.Add(item.Sequence);
+
+        Assert.That(items, Is.EqualTo(new[] { 5L }));
+    }
+
+    [Test]
     public void ScheduleAsync_surfacesStructuredServerDetail()
     {
         using var handler = new AgentHandler(HttpStatusCode.Conflict, "{\"detail\":\"Agent is already running.\"}");
@@ -29,14 +44,14 @@ public sealed class AgentApiClientTests
     }
 }
 
-internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, string? body = null) : HttpMessageHandler
+internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, string? body = null, bool eventStream = false) : HttpMessageHandler
 {
     public Uri? Uri { get; private set; }
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Uri = request.RequestUri;
         var text = body ?? "id: 5\nevent: state\ndata: {\"sequence\":5,\"type\":\"state\",\"payload\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}\n\n";
-        var mediaType = body is null ? "text/event-stream" : "application/problem+json";
+        var mediaType = eventStream || body is null ? "text/event-stream" : "application/problem+json";
         var content = new StringContent(text, Encoding.UTF8, mediaType);
         return Task.FromResult(new HttpResponseMessage(status) { Content = content });
     }

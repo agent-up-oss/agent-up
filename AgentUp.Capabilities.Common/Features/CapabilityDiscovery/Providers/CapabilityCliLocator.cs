@@ -143,8 +143,10 @@ public sealed class CapabilityCliLocator
     private static string? ParseVersion(string output)
     {
         var token = output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => line.Trim().TrimStart('v', 'V'))
-            .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault())
+            .Select(line => line.Trim())
+            .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => part.Trim().TrimStart('v', 'V'))
+                .FirstOrDefault(part => part.Any(char.IsDigit)))
             .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
         return string.IsNullOrWhiteSpace(token) ? null : token;
     }
@@ -159,7 +161,8 @@ public sealed class CapabilityCliLocator
     private static string? ParseWingetVersion(string output, string packageId)
         => output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Select(line => line.Trim())
-            .Where(line => line.Contains(packageId, StringComparison.OrdinalIgnoreCase))
+            .Where(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Any(token => token.Equals(packageId, StringComparison.OrdinalIgnoreCase)))
             .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault())
             .FirstOrDefault(version => !string.IsNullOrWhiteSpace(version) && char.IsDigit(version[0]));
 

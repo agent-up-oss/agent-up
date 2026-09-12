@@ -15,6 +15,11 @@ test('ignores keepalives and malformed data frames', () => {
   assert.deepEqual(parsed.events, []);
 });
 
+test('drops an incomplete frame that exceeds one megabyte', () => {
+  const parsed = parseSseFrames(`data: ${'x'.repeat(1_048_577)}`);
+  assert.equal(parsed.rest, '');
+});
+
 test('stream sends authentication, resumes after cursor, and flushes final frame', async () => {
   let url = ''; let authorization = '';
   const request = async (input: string | URL | Request, init?: RequestInit) => {

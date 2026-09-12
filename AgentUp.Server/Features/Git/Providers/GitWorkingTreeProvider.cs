@@ -118,12 +118,19 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
 
         var tracked = new List<string>();
         var untracked = new List<string>();
+        var stagedAdditions = new List<string>();
         foreach (var file in safeFiles)
         {
             var status = changed[file].Status;
             var onDisk = File.Exists(Path.GetFullPath(Path.Join(Path.GetFullPath(repoRoot), file)));
             var inHead = await HeadContainsAsync(repoRoot, file, cancellationToken);
-            if (status is GitChangeStatus.Untracked || (status is GitChangeStatus.Added && !inHead))
+            if (status is GitChangeStatus.Added && !inHead)
+            {
+                stagedAdditions.Add(file);
+                continue;
+            }
+
+            if (status is GitChangeStatus.Untracked)
             {
                 if (onDisk)
                     untracked.Add(file);
@@ -134,11 +141,17 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
                 tracked.Add(file);
         }
 
-        if (tracked.Count == 0 && untracked.Count == 0)
+        if (tracked.Count == 0 && untracked.Count == 0 && stagedAdditions.Count == 0)
             throw new InvalidOperationException("The selected files are no longer in this worktree. Refresh the change list and try again.");
 
         if (tracked.Count > 0)
             await RunGitAsync(repoRoot, Concat("restore", "--source=HEAD", "--staged", "--worktree", "--", tracked), cancellationToken);
+        if (stagedAdditions.Count > 0)
+        {
+            await RunGitAsync(repoRoot, Concat("restore", "--staged", "--", stagedAdditions), cancellationToken);
+            untracked.AddRange(stagedAdditions.Where(file =>
+                File.Exists(Path.GetFullPath(Path.Join(Path.GetFullPath(repoRoot), file)))));
+        }
         if (untracked.Count > 0)
             await RunGitAsync(repoRoot, Concat("clean", "-f", "--", untracked), cancellationToken);
     }
@@ -149,8 +162,8 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         bool create,
         CancellationToken cancellationToken = default)
     {
-        var branch = NormalizeBranchName(name);
         var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var branch = await NormalizeBranchNameAsync(repoRoot, name, cancellationToken);
         if (create)
             await RunGitAsync(repoRoot, ["switch", "-c", branch], cancellationToken);
         else
@@ -175,23 +188,26 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         return trimmed;
     }
 
-    private static string NormalizeBranchName(string? name)
+    private static async Task<string> NormalizeBranchNameAsync(
+        string repoRoot,
+        string? name,
+        CancellationToken cancellationToken)
     {
         var trimmed = (name ?? string.Empty).Trim();
         if (trimmed.Length == 0)
             throw new InvalidOperationException("Branch is required.");
 
         if (trimmed.Length > 255
-            || trimmed.StartsWith('-')
-            || trimmed.StartsWith('/')
-            || trimmed.EndsWith('/')
-            || trimmed.EndsWith(".lock", StringComparison.Ordinal)
-            || trimmed.Contains("..", StringComparison.Ordinal)
-            || trimmed.Contains("@{", StringComparison.Ordinal)
-            || !BranchName().IsMatch(trimmed))
+            || trimmed.Contains('\0')
+            || trimmed.Contains('\r')
+            || trimmed.Contains('\n'))
         {
             throw new InvalidOperationException("Branch must be a valid Git branch name.");
         }
+
+        var result = await RunGitCoreAsync(repoRoot, ["check-ref-format", "--branch", trimmed], cancellationToken);
+        if (result.ExitCode != 0)
+            throw new InvalidOperationException("Branch must be a valid Git branch name.");
 
         return trimmed;
     }
@@ -399,12 +415,9 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             throw new InvalidOperationException("Git arguments must be literal values.");
     }
 
-    [GeneratedRegex("^(rev-parse|status|diff|add|commit|cat-file|restore|clean|branch|switch)$")]
+    [GeneratedRegex("^(rev-parse|status|diff|add|commit|cat-file|restore|clean|branch|switch|check-ref-format)$")]
     private static partial Regex AllowedGitOperation();
 
     [GeneratedRegex(@"^[^\u0000-\u001F\u007F]+$")]
     private static partial Regex GitPathArgument();
-
-    [GeneratedRegex(@"^[A-Za-z0-9._/-]+$", RegexOptions.CultureInvariant)]
-    private static partial Regex BranchName();
 }

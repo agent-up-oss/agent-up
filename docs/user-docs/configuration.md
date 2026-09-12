@@ -95,10 +95,12 @@ adapters on the Server. Those adapters launch only the ACP command declared in
 Agent-Up capability inventory, not a hardcoded executable name. Server and
 Desktop installments share the same inventory files, which are merged by
 capability id. Lookup order is `AGENTUP_CAPABILITY_INVENTORY_PATH` when set,
-then `/etc/agent-up/capabilities.json`, then `~/.config/agent-up/capabilities.json`,
-then a user overlay at `~/.config/agent-up/capabilities.local.json`, then
+then `/etc/agent-up/capabilities.json`, then a user overlay at
+`~/.config/agent-up/capabilities.local.json`, then
+`~/.config/agent-up/capabilities.json`, then
 `.agent-up-dev/capabilities.json` walking up from the Server's working
-directory. A Home Manager version list therefore does not hide ACP `command`
+directory. Earlier files win for a field; later files fill unspecified
+fields, so the overlay takes precedence over the user installment file. A Home Manager version list therefore does not hide ACP `command`
 entries from the overlay or a local `nix-shell` inventory. A rooted `command`
 is how an installment points at a version on disk; `versions` records which
 versions that installment has enabled. Example:

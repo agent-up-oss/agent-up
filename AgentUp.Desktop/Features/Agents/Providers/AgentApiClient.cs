@@ -28,7 +28,23 @@ public sealed class AgentApiClient(HttpClient http) : IAgentApiProvider
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
         while (await reader.ReadLineAsync(cancellationToken) is { } line)
-            if (line.StartsWith("data: ", StringComparison.Ordinal) && JsonSerializer.Deserialize<AgentEventDto>(line[6..], Options) is { } item) yield return item;
+        {
+            if (!line.StartsWith("data: ", StringComparison.Ordinal))
+                continue;
+
+            AgentEventDto? item;
+            try
+            {
+                item = JsonSerializer.Deserialize<AgentEventDto>(line[6..], Options);
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+
+            if (item is not null)
+                yield return item;
+        }
     }
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)

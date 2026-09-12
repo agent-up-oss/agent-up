@@ -55,7 +55,7 @@ public sealed class AgentEventService(AgentEventFrameProvider frames)
     public async Task WriteAsync(string workspaceId, long after, HttpResponse response, CancellationToken cancellationToken)
     {
         response.StatusCode = 200; response.ContentType = "text/event-stream";
-        response.Headers.CacheControl = "no-cache"; response.Headers.Append("X-Accel-Buffering", "no");
+        response.Headers.CacheControl = "no-store, no-cache"; response.Headers.Append("X-Accel-Buffering", "no");
         response.HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
         try
         {
@@ -66,5 +66,19 @@ public sealed class AgentEventService(AgentEventFrameProvider frames)
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
+    }
+
+    public void Remove(string workspaceId)
+    {
+        if (!_streams.TryRemove(workspaceId, out var stream))
+            return;
+
+        lock (stream.SyncRoot)
+        {
+            foreach (var subscriber in stream.Subscribers.Values)
+                subscriber.Writer.TryComplete();
+            stream.Subscribers.Clear();
+            stream.History.Clear();
+        }
     }
 }

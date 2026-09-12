@@ -17,6 +17,8 @@ public sealed class AgentChatViewModel : ReactiveObject
     private string _activityLabel = "Idle";
     private bool _isVisible, _isBusy;
     private CancellationTokenSource? _stream;
+    private Task? _streamLoop;
+    private int _loadGeneration;
     private long _lastSequence;
     public ObservableCollection<AgentChatItemViewModel> Messages { get; } = [];
     public ObservableCollection<AgentDescriptorDto> Agents { get; } = [];
@@ -53,13 +55,29 @@ public sealed class AgentChatViewModel : ReactiveObject
 
     public async Task LoadAsync(string? workspaceId)
     {
-        _stream?.Cancel(); _stream?.Dispose(); _stream = null; _workspaceId = workspaceId; _lastSequence = 0;
+        var generation = Interlocked.Increment(ref _loadGeneration);
+        await StopStreamAsync();
+        if (generation != _loadGeneration)
+            return;
+
+        _workspaceId = workspaceId;
+        _lastSequence = 0;
         Messages.Clear(); PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear();
         SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = _hintKind = _hintTool = null;
+        NotifyComputedChatState();
         RefreshActivity();
         if (workspaceId is null) return;
-        try { Apply(await _controller.GetAsync(workspaceId, CancellationToken.None)); StartStream(workspaceId); }
-        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException) { Error = exception.Message; }
+        try
+        {
+            var session = await _controller.GetAsync(workspaceId, CancellationToken.None);
+            if (generation != _loadGeneration) return;
+            Apply(session);
+            StartStream(workspaceId);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException)
+        {
+            Error = exception.Message;
+        }
     }
 
     private async Task SelectAsync(string agent) => await RunAsync(async id => Apply(await _controller.ScheduleAsync(id, agent, CancellationToken.None)));
@@ -72,7 +90,9 @@ public sealed class AgentChatViewModel : ReactiveObject
     private async Task RunAsync(Func<string, Task> action)
     {
         if (_workspaceId is null || IsBusy) return; IsBusy = true; Error = null;
-        try { await action(_workspaceId); } catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException) { Error = exception.Message; }
+        try { await action(_workspaceId); }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException)
+        { Error = exception.Message; }
         finally { IsBusy = false; }
     }
     private void Apply(AgentSessionDto? session)
@@ -91,11 +111,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         RefreshActivity();
         this.RaisePropertyChanged(nameof(HasAgent));
         this.RaisePropertyChanged(nameof(HasSession));
+        NotifyComputedChatState();
     }
     private void StartStream(string id)
     {
         _stream = new CancellationTokenSource();
-        _ = RunStreamLoopAsync(id, _stream.Token);
+        _streamLoop = RunStreamLoopAsync(id, _stream.Token);
     }
     private async Task RunStreamLoopAsync(string id, CancellationToken cancellationToken)
     {
@@ -117,6 +138,8 @@ public sealed class AgentChatViewModel : ReactiveObject
     }
     private void Accept(AgentEventDto item)
     {
+        if (_stream is null || _stream.IsCancellationRequested)
+            return;
         _lastSequence = item.Sequence;
         if (item.Type == "state") { Apply(item.Payload.Deserialize<AgentSessionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })); return; }
         if (item.Type == "user_message") { Messages.Add(new("You", Text(item.Payload))); return; }
@@ -135,6 +158,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(ContextLine));
             this.RaisePropertyChanged(nameof(HasContext));
             if (presented.Compacting == true) { _hintKind = "Compacting"; RefreshActivity(); }
+            else if (presented.Compacting == false && _hintKind == "Compacting") { _hintKind = null; RefreshActivity(); }
             return;
         }
         if (presented.Kind == "tool") { UpsertTool(presented); _hintKind = "Tool"; _hintTool = presented.Title ?? _hintTool; RefreshActivity(); return; }
@@ -181,11 +205,14 @@ public sealed class AgentChatViewModel : ReactiveObject
     }
     private async Task DecideAsync(string request, string option)
     {
-        if (_workspaceId is null) return;
-        await _controller.DecideAsync(_workspaceId, request, option, CancellationToken.None);
-        PermissionOptions.Clear(); PermissionTitle = PermissionDetail = null;
-        this.RaisePropertyChanged(nameof(HasPermission));
-        RefreshActivity();
+        await RunAsync(async id =>
+        {
+            await _controller.DecideAsync(id, request, option, CancellationToken.None);
+            PermissionOptions.Clear();
+            PermissionTitle = PermissionDetail = null;
+            NotifyComputedChatState();
+            RefreshActivity();
+        });
     }
     private async Task AuthenticateAsync(string methodId) { if (_workspaceId is null) return; await RunAsync(id => _controller.AuthenticateAsync(id, methodId, CancellationToken.None)); }
     private void Append(string role, string text)
@@ -198,6 +225,38 @@ public sealed class AgentChatViewModel : ReactiveObject
     private void RefreshActivity()
     {
         ActivityLabel = AgentEventPresentationProvider.ActivityLabel(State, HasPermission, null, _hintKind, _hintTool);
+    }
+
+    private async Task StopStreamAsync()
+    {
+        if (_stream is null)
+            return;
+
+        await _stream.CancelAsync();
+        if (_streamLoop is not null)
+        {
+            try
+            {
+                await _streamLoop;
+            }
+            catch (OperationCanceledException)
+            {
+                _streamLoop = null;
+            }
+        }
+
+        _stream.Dispose();
+        _stream = null;
+        _streamLoop = null;
+    }
+
+    private void NotifyComputedChatState()
+    {
+        this.RaisePropertyChanged(nameof(HasPermission));
+        this.RaisePropertyChanged(nameof(HasAgent));
+        this.RaisePropertyChanged(nameof(HasSession));
+        this.RaisePropertyChanged(nameof(ContextLine));
+        this.RaisePropertyChanged(nameof(HasContext));
     }
     private static string Text(JsonElement value)
     {
