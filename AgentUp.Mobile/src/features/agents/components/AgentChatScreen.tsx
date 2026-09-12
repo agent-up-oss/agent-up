@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GitChangesPanel } from '@/features/git/components/GitChangesPanel';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 type AgentTab = 'chat' | 'changes';
 
@@ -62,30 +62,23 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { flex: 1 },
-  chatContent: { padding: 20, gap: 12 },
-  changesContent: { padding: 20, paddingBottom: 32 },
-  chatTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 24, fontWeight: '800' },
-  chatPlaceholder: { color: agentUpTheme.colors.textMuted, lineHeight: 22 },
+  chatContent: { padding: agentUpTheme.spacing[5], gap: agentUpTheme.spacing[3] },
+  changesContent: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8] },
+  chatTitle: auText('heading'),
+  chatPlaceholder: auText('muted'),
   bottomBar: {
+    ...auBox('mobileTabBar'),
     flexDirection: 'row',
     gap: 10,
-    paddingHorizontal: 14,
     paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.canvas,
   },
   tabButton: {
+    ...auBox('subtab'),
     flex: 1,
-    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.surface,
   },
-  tabButtonActive: { borderColor: agentUpTheme.colors.accentSoft, backgroundColor: agentUpTheme.colors.surfaceSelected },
-  tabLabel: { color: agentUpTheme.colors.textMuted, fontWeight: '700' },
-  tabLabelActive: { color: agentUpTheme.colors.accentSoft },
+  tabButtonActive: auBox('subtabSelected'),
+  tabLabel: auText('subtab'),
+  tabLabelActive: auText('subtabSelected'),
 });

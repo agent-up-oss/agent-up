@@ -92,10 +92,10 @@ and is not referenced by `agent-up.sln`.
 
 `AgentUp.DesignSystem/` is the repository's canonical HTML/CSS product,
 documentation, and marketing contract. It is outside `agent-up.sln`; Desktop
-includes its generated Avalonia resources and C# constants, while Mobile and docs
-consume it as the local `@agent-up/design-system` package. External marketing
-repositories may consume the same package through a Git submodule and `file:`
-dependency instead of copying styles or brand rules.
+includes its generated Avalonia resources **and inferred styles**, while Mobile
+and docs consume it as the local `@agent-up/design-system` package. External
+marketing repositories may consume the same package through a Git submodule and
+`file:` dependency instead of copying styles or brand rules.
 
 `AgentUp.WebAudit/` is the separately publishable `@agent-up/audit` TypeScript
 browser client and is also outside `agent-up.sln`. It submits events only; the

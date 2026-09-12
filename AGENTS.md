@@ -126,7 +126,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Docker` | First-party Docker ecosystem adapter, Docker discovery, validation, and Docker launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
-| `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia bindings consumed by Agent-Up surfaces and external marketing repositories |
+| `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia resource and style bindings consumed by Agent-Up surfaces and external marketing repositories |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
@@ -603,7 +603,7 @@ All architecture rules must pass. Fix any violation before considering the task 
 
 Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:web` from that directory. Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
-Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
+Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
 Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest and install icons under `public/` synchronized with the exported PWA.
 
@@ -1001,10 +1001,14 @@ Agent-Up must remain framework agnostic, cross-platform, declarative, and zero-t
 `AgentUp.DesignSystem/` is the single source of truth for all Agent-Up product UI,
 documentation, screenshots, illustrations, and marketing presentation. Its
 canonical sources are HTML/CSS plus the structured brand voice contract; its
-generated React Native and Avalonia bindings are hard dependencies of Mobile and
-Desktop. Never add a raw product color to Desktop, Mobile, docs, or marketing
-when a semantic design-system role exists. Never edit generated files under
-`AgentUp.DesignSystem/dist/`; change the canonical CSS and regenerate them.
+generated React Native objects and Avalonia resources **and styles** are hard
+dependencies of Mobile and Desktop. Mobile applies compiled component styles
+(`auBox` / `auText`); Desktop applies generated Avalonia styles through catalog
+classes. Never add a raw product color to Desktop, Mobile, docs, or marketing
+when a semantic design-system role exists. Never restyle a catalog control from
+tokens when a component style already exists. Never edit
+generated files under `AgentUp.DesignSystem/dist/`; change the canonical CSS or
+HTML catalog and regenerate them.
 
 Desktop is the reference rendering. Use black canvas, neutral structural borders,
 off-white hierarchy, and green only for action, selection, progress, or healthy

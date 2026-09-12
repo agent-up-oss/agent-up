@@ -64,18 +64,57 @@
   <SolidColorBrush x:Key="AgentUpColorScrimBrush" Color="{StaticResource AgentUpColorScrim}"/>
   <Color x:Key="AgentUpColorOverlay">#6607110f</Color>
   <SolidColorBrush x:Key="AgentUpColorOverlayBrush" Color="{StaticResource AgentUpColorOverlay}"/>
+  <Color x:Key="AgentUpColorTransparent">#00000000</Color>
+  <SolidColorBrush x:Key="AgentUpColorTransparentBrush" Color="{StaticResource AgentUpColorTransparent}"/>
+  <FontFamily x:Key="AgentUpFontSans">Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif</FontFamily>
+  <FontFamily x:Key="AgentUpFontMono">JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace</FontFamily>
+  <x:Double x:Key="AgentUpFontSizeXs">12</x:Double>
+  <x:Double x:Key="AgentUpFontSizeSm">14</x:Double>
+  <x:Double x:Key="AgentUpFontSizeMd">16</x:Double>
+  <x:Double x:Key="AgentUpFontSizeLg">20</x:Double>
+  <x:Double x:Key="AgentUpFontSizeXl">28</x:Double>
+  <x:Double x:Key="AgentUpFontSizeDisplay">44</x:Double>
+  <x:Double x:Key="AgentUpLineTight">1.08</x:Double>
+  <x:Double x:Key="AgentUpLineNormal">1.5</x:Double>
+  <x:Double x:Key="AgentUpLineRelaxed">1.7</x:Double>
+  <FontWeight x:Key="AgentUpWeightRegular">Regular</FontWeight>
+  <FontWeight x:Key="AgentUpWeightMedium">Medium</FontWeight>
+  <FontWeight x:Key="AgentUpWeightSemibold">SemiBold</FontWeight>
+  <FontWeight x:Key="AgentUpWeightBold">Bold</FontWeight>
+  <FontWeight x:Key="AgentUpWeightBlack">ExtraBold</FontWeight>
   <x:Double x:Key="AgentUpSpace1">4</x:Double>
+  <Thickness x:Key="AgentUpThickness1">4</Thickness>
   <x:Double x:Key="AgentUpSpace2">8</x:Double>
+  <Thickness x:Key="AgentUpThickness2">8</Thickness>
   <x:Double x:Key="AgentUpSpace3">12</x:Double>
+  <Thickness x:Key="AgentUpThickness3">12</Thickness>
   <x:Double x:Key="AgentUpSpace4">16</x:Double>
+  <Thickness x:Key="AgentUpThickness4">16</Thickness>
   <x:Double x:Key="AgentUpSpace5">20</x:Double>
+  <Thickness x:Key="AgentUpThickness5">20</Thickness>
   <x:Double x:Key="AgentUpSpace6">24</x:Double>
+  <Thickness x:Key="AgentUpThickness6">24</Thickness>
   <x:Double x:Key="AgentUpSpace8">32</x:Double>
+  <Thickness x:Key="AgentUpThickness8">32</Thickness>
   <x:Double x:Key="AgentUpSpace10">40</x:Double>
+  <Thickness x:Key="AgentUpThickness10">40</Thickness>
   <x:Double x:Key="AgentUpSpace12">48</x:Double>
+  <Thickness x:Key="AgentUpThickness12">48</Thickness>
   <x:Double x:Key="AgentUpSpace16">64</x:Double>
+  <Thickness x:Key="AgentUpThickness16">64</Thickness>
   <x:Double x:Key="AgentUpRadiusXs">4</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusXs">4</CornerRadius>
   <x:Double x:Key="AgentUpRadiusSm">6</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusSm">6</CornerRadius>
   <x:Double x:Key="AgentUpRadiusMd">8</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusMd">8</CornerRadius>
   <x:Double x:Key="AgentUpRadiusLg">10</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusLg">10</CornerRadius>
+  <x:Double x:Key="AgentUpRadiusXl">12</x:Double>
+  <CornerRadius x:Key="AgentUpCornerRadiusXl">12</CornerRadius>
+  <x:Double x:Key="AgentUpStroke">1</x:Double>
+  <x:Double x:Key="AgentUpStrokeStrong">2</x:Double>
+  <x:Double x:Key="AgentUpControlHeightCompact">32</x:Double>
+  <x:Double x:Key="AgentUpControlHeight">44</x:Double>
+  <x:Double x:Key="AgentUpControlHeightTouch">44</x:Double>
 </ResourceDictionary>

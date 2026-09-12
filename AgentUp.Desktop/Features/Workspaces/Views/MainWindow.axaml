@@ -21,7 +21,7 @@
     <Window.DataTemplates>
         <!-- Console sub-tab -->
         <DataTemplate DataType="portVm:ConsoleSubTabViewModel">
-            <Border Classes="subTab" Padding="13,7">
+            <Border Classes="subTab">
                 <TextBlock Text="Console"
                            Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
                            FontSize="12"
@@ -31,7 +31,7 @@
 
         <!-- Database sub-tab -->
         <DataTemplate DataType="databaseVm:DatabaseSubTabViewModel">
-            <Border Classes="subTab" Padding="13,7">
+            <Border Classes="subTab">
                 <TextBlock Text="Database"
                            Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
                            FontSize="12"
@@ -41,7 +41,7 @@
 
         <!-- Metrics sub-tab -->
         <DataTemplate DataType="portVm:MetricsSubTabViewModel">
-            <Border Classes="subTab" Padding="13,7">
+            <Border Classes="subTab">
                 <TextBlock Text="Metrics"
                            Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
                            FontSize="12"
@@ -51,7 +51,7 @@
 
         <!-- Audit sub-tab -->
         <DataTemplate DataType="portVm:AuditSubTabViewModel">
-            <Border Classes="subTab" Padding="13,7">
+            <Border Classes="subTab">
                 <TextBlock Text="Diagnostics" Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}" FontSize="12" FontWeight="Bold"/>
             </Border>
         </DataTemplate>
@@ -102,7 +102,7 @@
 
         <!-- Port sub-tab -->
         <DataTemplate DataType="portVm:PortSubTabViewModel">
-            <Border Classes="subTab" Padding="13,7">
+            <Border Classes="subTab">
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <Border Width="6" Height="6"
                             CornerRadius="3"
@@ -155,7 +155,7 @@
     </Window.DataTemplates>
 
     <Window.Styles>
-        <!-- Strip default ListBox chrome -->
+        <!-- Fluent chrome that CSS cannot strip. Catalog classes keep generated AgentUpStyles. -->
         <Style Selector="ListBox">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -181,39 +181,24 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
 
-        <!-- Strip default Button chrome -->
-        <Style Selector="Button">
+        <Style Selector="Button:not(.au-button):not(.au-db-run):not(.dbRunButton):not(.wsDeleteButton):not(.au-workspace-delete)">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Button:pointerover /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-db-run):not(.dbRunButton):not(.wsDeleteButton):not(.au-workspace-delete):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:pressed /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-db-run):not(.dbRunButton):not(.wsDeleteButton):not(.au-workspace-delete):pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
 
-        <!-- Integrated window chrome -->
-        <Style Selector="Border.chromeButton">
-            <Setter Property="Width" Value="46"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="CornerRadius" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-        </Style>
-        <Style Selector="Button:pointerover Border.chromeButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-        <Style Selector="Button:pointerover Border.chromeClose">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
-        </Style>
+        <!-- Optical glyph alignment that CSS cannot express. -->
         <Style Selector="TextBlock.chromeIcon">
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="LineHeight" Value="16"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="LineHeight" Value="16"/>
         </Style>
         <Style Selector="TextBlock.chromeMinimizeIcon">
             <Setter Property="FontSize" Value="15"/>
@@ -230,44 +215,63 @@
             <Setter Property="LineHeight" Value="19"/>
             <Setter Property="Margin" Value="0,-5,0,0"/>
         </Style>
-        <Style Selector="Border.titleToolButton">
-            <Setter Property="Width" Value="32"/>
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Background" Value="Transparent"/>
+        <Style Selector="TextBlock.wsLifecycleIcon">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style Selector="Button:pointerover Border.titleToolButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+        <Style Selector="TextBlock.wsLifecycleIconPlay">
+            <Setter Property="Margin" Value="1,0,0,0"/>
         </Style>
-
-        <!-- Application tab bar -->
-        <Style Selector="Border.appTab">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+        <Style Selector="TextBlock.wsAddIcon">
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style Selector="ListBoxItem:pointerover Border.appTab">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+        <Style Selector="TextBlock.tutorialButtonText">
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
         </Style>
-        <Style Selector="ListBoxItem:selected Border.appTab">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceHoverBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+        <Style Selector="Button.gitNodeName">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
         </Style>
 
-        <!-- Sub-navbar tab -->
-        <Style Selector="Border.subTab">
+        <!-- Avalonia-only caret and selection brushes. Visuals come from AgentUpStyles. -->
+        <Style Selector="TextBox.addressBar">
+            <Setter Property="CaretBrush" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+        </Style>
+        <Style Selector="TextBox.sqlEditor">
+            <Setter Property="CaretBrush" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+        </Style>
+        <Style Selector="TextBox.dbCell">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Focusable" Value="True"/>
         </Style>
-        <Style Selector="ListBoxItem:pointerover Border.subTab">
+        <Style Selector="Border.dbHeaderCell">
+            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
             <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+            <Setter Property="Padding" Value="8,6"/>
         </Style>
-        <Style Selector="ListBoxItem:selected Border.subTab">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+        <Style Selector="Border.dbDataCell">
+            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+            <Setter Property="Padding" Value="0"/>
         </Style>
 
+        <!-- ControlTemplates that HTML/CSS cannot emit. -->
         <Style Selector="ToggleButton.filterChip">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
@@ -300,205 +304,6 @@
             <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
         </Style>
 
-        <Style Selector="Border.auditTableHeader">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="8,4"/>
-        </Style>
-        <Style Selector="Border.auditTableRow">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="8,5"/>
-        </Style>
-        <Style Selector="Button.auditPageJump">
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="MinWidth" Value="24"/>
-        </Style>
-        <Style Selector="Button.auditPageJump:pointerover Border.auditPageJumpInner">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-        </Style>
-        <Style Selector="Border.auditPageJumpInner">
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-        </Style>
-        <Style Selector="Border.auditPageJumpInnerCurrent">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-        </Style>
-
-        <!-- Browser address bar -->
-        <Style Selector="TextBox.addressBar">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceInputBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-            <Setter Property="SelectionBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="FontSize" Value="12"/>
-        </Style>
-        <Style Selector="TextBox.addressBar:focus">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
-        </Style>
-        <Style Selector="Border.browserButton">
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-        </Style>
-        <Style Selector="Button:pointerover Border.browserButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-
-        <!-- Database explorer -->
-        <Style Selector="Border.dbListItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Cursor" Value="Hand"/>
-        </Style>
-        <Style Selector="ListBoxItem:pointerover Border.dbListItem">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
-        </Style>
-        <Style Selector="ListBoxItem:selected Border.dbListItem">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-        </Style>
-        <Style Selector="TextBox.sqlEditor">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceInputBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-            <Setter Property="SelectionBrush" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="FontFamily" Value="Consolas,Courier New,monospace"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="MinHeight" Value="96"/>
-        </Style>
-        <Style Selector="TextBox.sqlEditor:focus">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-        </Style>
-        <Style Selector="Button.dbRunButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-        <Style Selector="Button.dbRunButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorAccentBrush}"/>
-        </Style>
-        <Style Selector="TextBox.dbCell">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-            <Setter Property="SelectionBrush" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="FontFamily" Value="Consolas,Courier New,monospace"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="Focusable" Value="True"/>
-        </Style>
-        <Style Selector="Border.dbHeaderCell">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-            <Setter Property="Padding" Value="8,6"/>
-        </Style>
-        <Style Selector="Border.dbDataCell">
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
-            <Setter Property="Padding" Value="0"/>
-        </Style>
-
-        <Style Selector="Border.metricsSummaryCard">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="16,14"/>
-            <Setter Property="MinHeight" Value="92"/>
-        </Style>
-        <Style Selector="Border.metricsChartCard">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="16,14"/>
-        </Style>
-
-        <!-- Workspace entry: normal / hover / selected -->
-        <Style Selector="Border.wsEntry">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
-        </Style>
-        <Style Selector="ListBoxItem:pointerover Border.wsEntry">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-        <Style Selector="ListBoxItem:selected Border.wsEntry">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-        </Style>
-
-        <!-- Collapsed avatar: highlight selected -->
-        <Style Selector="Border.wsAvatar">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
-        </Style>
-        <Style Selector="ListBoxItem:pointerover Border.wsAvatar">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-        <Style Selector="ListBoxItem:selected Border.wsAvatar">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-        </Style>
-
-        <Style Selector="Button.wsDeleteButton">
-            <Setter Property="Width" Value="18"/>
-            <Setter Property="Height" Value="18"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Opacity" Value="0.55"/>
-        </Style>
-        <Style Selector="Button.wsDeleteButton:pointerover">
-            <Setter Property="Opacity" Value="1"/>
-        </Style>
-
-        <Style Selector="Border.wsLifecycleButton">
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-        </Style>
-        <Style Selector="Button:pointerover Border.wsLifecycleButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-        <Style Selector="Button:disabled Border.wsLifecycleButton">
-            <Setter Property="Opacity" Value="0.45"/>
-        </Style>
-        <Style Selector="TextBlock.wsLifecycleIcon">
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-        <Style Selector="TextBlock.wsLifecycleIconPlay">
-            <Setter Property="Margin" Value="1,0,0,0"/>
-        </Style>
-
-        <!-- iOS-style toggle -->
         <Style Selector="ToggleButton.iosToggle">
             <Setter Property="Width" Value="40"/>
             <Setter Property="Height" Value="22"/>
@@ -529,72 +334,6 @@
         <Style Selector="ToggleButton.iosToggle:checked /template/ Border#Thumb">
             <Setter Property="Margin" Value="20,0,0,0"/>
         </Style>
-
-        <!-- Add workspace (+) -->
-        <Style Selector="Border.wsAddButton">
-            <Setter Property="Width" Value="24"/>
-            <Setter Property="Height" Value="24"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-        </Style>
-        <Style Selector="Button:pointerover Border.wsAddButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-        <Style Selector="TextBlock.wsAddIcon">
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
-            <Setter Property="FontSize" Value="15"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-
-        <!-- Git changes panel -->
-        <Style Selector="Border.gitNodeRow">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="4,3"/>
-        </Style>
-        <Style Selector="Border.gitNodeRow:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-        <Style Selector="Button.gitNodeName">
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Cursor" Value="Hand"/>
-        </Style>
-
-        <!-- First-run tutorial -->
-        <Style Selector="Border.tutorialButton">
-            <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
-        </Style>
-        <Style Selector="Button:pointerover Border.tutorialButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorAccentBrightBrush}"/>
-        </Style>
-        <Style Selector="Button:disabled Border.tutorialButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceHoverBrush}"/>
-        </Style>
-        <Style Selector="Border.tutorialSecondaryButton">
-            <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-        </Style>
-        <Style Selector="Button:pointerover Border.tutorialSecondaryButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
-        </Style>
-        <Style Selector="TextBlock.tutorialButtonText">
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-        </Style>
     </Window.Styles>
 
     <Border Background="{DynamicResource AgentUpColorCanvasBrush}"
@@ -611,8 +350,7 @@
         <!-- Integrated window controls / drag surface -->
         <Border Grid.Row="0"
                 x:Name="WindowChrome"
-                Background="{DynamicResource AgentUpColorCanvasBrush}"
-                BorderThickness="0"
+                Classes="au-chrome"
                 PointerPressed="OnWindowChromePointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <ItemsControl Grid.Column="0"
@@ -690,12 +428,8 @@
                       ColumnDefinitions="*,Auto,*">
                     <Border Grid.Row="1"
                             Grid.Column="1"
-                            Width="420"
-                            Background="{DynamicResource AgentUpColorSurfaceBrush}"
-                            BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="32">
+                            Classes="au-sign-in"
+                            Width="420">
                         <StackPanel Spacing="16">
                             <TextBlock Text="Agent-Up Server"
                                        Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
@@ -711,35 +445,22 @@
                                        FontSize="14"
                                        TextWrapping="Wrap"
                                        IsVisible="{Binding Login.IsConnectionRetry}"/>
-                            <TextBox Text="{Binding Login.Password, Mode=TwoWay}"
+                            <TextBox Classes="au-input"
+                                     Text="{Binding Login.Password, Mode=TwoWay}"
                                      PasswordChar="●"
                                      PlaceholderText="Admin password"
                                      IsVisible="{Binding !Login.IsConnectionRetry}"/>
-                            <Button Command="{Binding Login.RetryConnectionCommand}"
+                            <Button Classes="au-button"
+                                    Command="{Binding Login.RetryConnectionCommand}"
                                     IsVisible="{Binding Login.IsConnectionRetry}"
-                                    HorizontalAlignment="Stretch">
-                                <Border Background="{DynamicResource AgentUpColorAccentBrush}"
-                                        CornerRadius="6"
-                                        Padding="12,8">
-                                    <TextBlock Text="Retry connection"
-                                               Foreground="{DynamicResource AgentUpColorCanvasBrush}"
-                                               FontWeight="Bold"
-                                               HorizontalAlignment="Center"/>
-                                </Border>
-                            </Button>
-                            <Button Command="{Binding Login.SignInCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    Content="Retry connection"/>
+                            <Button Classes="au-button"
+                                    Command="{Binding Login.SignInCommand}"
                                     IsEnabled="{Binding !Login.IsBusy}"
                                     IsVisible="{Binding !Login.IsConnectionRetry}"
-                                    HorizontalAlignment="Stretch">
-                                <Border Background="{DynamicResource AgentUpColorAccentBrush}"
-                                        CornerRadius="6"
-                                        Padding="12,8">
-                                    <TextBlock Text="Sign in"
-                                               Foreground="{DynamicResource AgentUpColorCanvasBrush}"
-                                               FontWeight="Bold"
-                                               HorizontalAlignment="Center"/>
-                                </Border>
-                            </Button>
+                                    HorizontalAlignment="Stretch"
+                                    Content="Sign in"/>
                             <TextBlock Text="{Binding Login.ErrorMessage}"
                                        Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
                                        TextWrapping="Wrap"
@@ -764,10 +485,8 @@
         <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
         <Border Grid.Column="0"
                 x:Name="SidebarRail"
-                Width="{Binding Sidebar.Width}"
-                Background="{DynamicResource AgentUpColorCanvasBrush}"
-                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                BorderThickness="0,0,1,0">
+                Classes="au-rail"
+                Width="{Binding Sidebar.Width}">
             <DockPanel>
 
                 <!-- Header (expanded only) -->
@@ -822,11 +541,9 @@
                         </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
-                                <Border Padding="10,2"
+                                <Border Margin="0,2"
                                         HorizontalAlignment="Stretch">
                                     <Border Classes="wsEntry"
-                                            CornerRadius="8"
-                                            Padding="10,10,14,10"
                                             HorizontalAlignment="Stretch"
                                             ToolTip.Tip="{Binding RepositoryToolTip}">
                                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
@@ -860,17 +577,14 @@
                                                                 Background="{Binding StateColor}"
                                                                 VerticalAlignment="Center"
                                                                 Margin="0,0,7,0"/>
-                                                        <TextBlock Text="{Binding DisplayName}"
-                                                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                                                                   FontSize="15"
-                                                                   FontWeight="Medium"
+                                                        <TextBlock Classes="wsName"
+                                                                   Text="{Binding DisplayName}"
                                                                    TextTrimming="CharacterEllipsis"
                                                                    VerticalAlignment="Center"
                                                                    Margin="0,0,8,0"/>
                                                     </DockPanel>
-                                                    <TextBlock Text="{Binding Branch}"
-                                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
-                                                               FontSize="12"
+                                                    <TextBlock Classes="wsBranch"
+                                                               Text="{Binding Branch}"
                                                                TextTrimming="CharacterEllipsis"
                                                                Margin="13,0,0,0"/>
                                                 </StackPanel>
@@ -881,9 +595,6 @@
                                                         Command="{Binding RequestDeleteCommand}"
                                                         ToolTip.Tip="Remove workspace">
                                                     <TextBlock Text="✕"
-                                                               Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
-                                                               FontSize="11"
-                                                               FontWeight="Bold"
                                                                HorizontalAlignment="Center"
                                                                VerticalAlignment="Center"/>
                                                 </Button>
@@ -908,8 +619,6 @@
                             <DataTemplate DataType="vm:WorkspaceItemViewModel">
                                 <Border HorizontalAlignment="Center" Padding="0,4">
                                     <Border Classes="wsAvatar"
-                                            Width="36" Height="36"
-                                            CornerRadius="18"
                                             ToolTip.Tip="{Binding DisplayName}">
                                         <TextBlock Text="{Binding Initials}"
                                                    Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
@@ -943,13 +652,9 @@
                 <!-- Error -->
                 <Panel x:Name="ErrorPanel"
                        IsVisible="{Binding Sidebar.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                    <Border HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Background="{DynamicResource AgentUpColorSurfaceDangerBrush}"
-                            BorderBrush="{DynamicResource AgentUpColorStatusDangerBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="24,20">
+                    <Border Classes="au-error-banner"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
                         <StackPanel Spacing="14">
                             <TextBlock Text="{Binding Sidebar.ErrorMessage}"
                                        Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
@@ -1003,7 +708,7 @@
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="appVm:ApplicationViewModel">
-                                        <Border Classes="appTab" Padding="18,13">
+                                        <Border Classes="appTab">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <Border Width="6" Height="6" CornerRadius="3"
                                                         Background="{Binding StateColor}"
@@ -1307,7 +1012,7 @@
                                              Padding="4">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Classes="dbListItem" Padding="10,8" Margin="0,1">
+                                                <Border Classes="dbListItem" Margin="0,1">
                                                     <TextBlock Text="{Binding}"
                                                                Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
                                                                FontSize="12"/>
@@ -1329,7 +1034,7 @@
                                              Padding="4">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Classes="dbListItem" Padding="10,8" Margin="0,1">
+                                                <Border Classes="dbListItem" Margin="0,1">
                                                     <TextBlock Text="{Binding}"
                                                                Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
                                                                FontSize="12"/>
@@ -1525,7 +1230,7 @@
                     <ItemsControl x:Name="ValidationFlowList" ItemsSource="{Binding Validation.Flows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="validationVm:ValidationFlowItemViewModel">
-                                <Border Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}" BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+                                <Border Classes="au-validation-stage" Margin="0,0,0,8">
                                     <StackPanel Spacing="8">
                                         <Grid ColumnDefinitions="Auto,*,Auto">
                                             <TextBlock Grid.Column="0"
@@ -1546,13 +1251,11 @@
                                                            IsVisible="{Binding HasRunResult}"/>
                                             </StackPanel>
                                             <Button Grid.Column="2"
+                                                    Classes="au-button au-button--compact"
                                                     Command="{Binding RunCommand}"
                                                     IsEnabled="{Binding !IsRunning}"
-                                                    VerticalAlignment="Top">
-                                                <Border Background="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}" CornerRadius="6" Padding="12,7">
-                                                    <TextBlock Text="▶ Play" Foreground="White" FontWeight="Bold"/>
-                                                </Border>
-                                            </Button>
+                                                    VerticalAlignment="Top"
+                                                    Content="▶ Play"/>
                                         </Grid>
 
                                         <StackPanel Spacing="6"
@@ -2184,14 +1887,10 @@
                   ColumnDefinitions="*,8*,*">
                 <Border Grid.Row="1"
                         Grid.Column="1"
+                        Classes="au-card"
                         MinWidth="460"
                         MaxWidth="600"
-                        VerticalAlignment="Center"
-                        Background="{DynamicResource AgentUpColorSurfaceBrush}"
-                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="28">
+                        VerticalAlignment="Center">
                     <StackPanel Spacing="16">
                         <StackPanel Spacing="6">
                             <TextBlock Text="Add workspace"
@@ -2210,14 +1909,10 @@
                                        FontSize="11"
                                        FontWeight="Bold"/>
                             <TextBox x:Name="AddWorkspaceRepository"
+                                     Classes="au-input"
                                      Text="{Binding Sidebar.AddWorkspace.Repository}"
                                      Watermark="https://github.com/acme/widgets.git"
-                                     IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
-                                     Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
-                                     Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                                     BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                                     BorderThickness="1"
-                                     FontSize="13"/>
+                                     IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"/>
                         </StackPanel>
 
                         <StackPanel Spacing="6">
@@ -2226,14 +1921,10 @@
                                        FontSize="11"
                                        FontWeight="Bold"/>
                             <TextBox x:Name="AddWorkspaceBranch"
+                                     Classes="au-input"
                                      Text="{Binding Sidebar.AddWorkspace.Branch}"
                                      Watermark="main"
-                                     IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
-                                     Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
-                                     Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                                     BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                                     BorderThickness="1"
-                                     FontSize="13"/>
+                                     IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"/>
                         </StackPanel>
 
                         <TextBlock x:Name="AddWorkspaceError"
@@ -2246,19 +1937,14 @@
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                             <Button Grid.Column="1"
                                     x:Name="AddWorkspaceCancelButton"
-                                    Command="{Binding Sidebar.AddWorkspace.CancelCommand}">
-                                <Border Classes="tutorialSecondaryButton">
-                                    <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
-                                </Border>
-                            </Button>
+                                    Classes="au-button au-button--secondary"
+                                    Command="{Binding Sidebar.AddWorkspace.CancelCommand}"
+                                    Content="Cancel"/>
                             <Button Grid.Column="2"
                                     x:Name="AddWorkspaceConfirmButton"
-                                    Command="{Binding Sidebar.AddWorkspace.ConfirmCommand}">
-                                <Border Classes="tutorialButton">
-                                    <TextBlock Classes="tutorialButtonText"
-                                               Text="{Binding Sidebar.AddWorkspace.ConfirmLabel}"/>
-                                </Border>
-                            </Button>
+                                    Classes="au-button"
+                                    Command="{Binding Sidebar.AddWorkspace.ConfirmCommand}"
+                                    Content="{Binding Sidebar.AddWorkspace.ConfirmLabel}"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -2280,11 +1966,7 @@
                   ColumnDefinitions="*,10*,*">
                 <Border Grid.Row="1"
                         Grid.Column="1"
-                        Background="{DynamicResource AgentUpColorSurfaceBrush}"
-                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="20">
+                        Classes="au-card">
                     <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
                         <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="3">

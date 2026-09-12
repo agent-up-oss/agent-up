@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auText } from '@agent-up/design-system/native';
 
 type ApplicationSpaceScreenProps = {
   workspace: Workspace;
@@ -32,8 +32,8 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 32, gap: 12 },
-  subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 14 },
-  placeholder: { color: agentUpTheme.colors.textPrimary, lineHeight: 22, fontSize: 16 },
-  status: { color: agentUpTheme.colors.textMuted },
+  content: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8], gap: agentUpTheme.spacing[3] },
+  subtitle: auText('muted'),
+  placeholder: auText('lede'),
+  status: auText('muted'),
 });

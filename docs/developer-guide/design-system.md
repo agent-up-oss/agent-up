@@ -11,33 +11,47 @@ so another repository can consume the same contract through an npm dependency or
 an Agent-Up Git submodule.
 
 The public showcase is available at [/design-system](/design-system). It is linked
-from the site footer rather than the primary product navigation.
+from the site navbar and footer. The page is a tabbed catalog: a vertical
+surface list sits in the left of the content column, and each selected surface
+shows the live components that surface uses.
 
 ## Ownership and sources
 
 - `src/agent-up.css` owns semantic colors, typography, spacing, shape,
   accessibility defaults, layout primitives, and reusable interface components.
+- `src/product.css` owns Agent-Up product surfaces such as chrome, workspaces,
+  application tabs, browser, console, Git, diagnostics, metrics, validation,
+  sign-in, and Mobile.
+- `src/catalog.html` owns the HTML structure Desktop, Mobile, docs, and the
+  showcase infer from. Avalonia control types and Desktop class aliases are
+  declared on each catalog example.
 - `src/marketing.css` owns campaign and product-frame compositions.
 - `brand/voice.json` owns product naming, positioning, capability lifecycle
   language, and editorial principles.
 - `scripts/build.mjs` deterministically copies web assets and compiles the CSS
-  custom properties into React Native and Avalonia bindings under `dist/`.
+  custom properties **and class rules** into React Native objects and Avalonia
+  resources plus styles under `dist/`.
 
 Files under `AgentUp.DesignSystem/dist/` are generated definition artifacts. Do
-not edit them directly. Change the canonical CSS, run the design-system build,
-and review every consumer.
+not edit them directly. Change the canonical CSS or HTML catalog, run the
+design-system build, and review every consumer.
 
 ## Consumer boundaries
 
 The documentation site imports the CSS package directly. Mobile imports
-`agentUpTheme` from `@agent-up/design-system/native`. Desktop includes the
-generated `AgentUpTheme.axaml` resource dictionary and resolves semantic brushes
-from it.
+`agentUpTheme`, `auBox`, and `auText` from `@agent-up/design-system/native`
+and applies those compiled component styles to chrome, rows, cards, buttons,
+and fields. Mobile must not invent a second look from color tokens. Desktop
+includes the generated `AgentUpTheme.axaml` resource dictionary **and**
+`AgentUpStyles.axaml` style sheet. Desktop applies catalog classes such as
+`wsEntry`, `au-sign-in`, and `au-button` instead of restating fill, radius, and
+border as local XAML. It keeps only ControlTemplates or optical adjustments
+that CSS cannot express.
 
 These are hard dependencies rather than examples copied into each project. A
-change to the canonical CSS is incomplete until all generated bindings are
-current and the Desktop, Mobile, docs, design showcase, and marketing-template
-checks pass.
+change to the canonical CSS or catalog is incomplete until all generated
+bindings are current and the Desktop, Mobile, docs, design showcase, and
+marketing-template checks pass.
 
 ## Visual rules
 
@@ -68,4 +82,4 @@ npm --prefix AgentUp.DesignSystem test
 ```
 
 The `check` command fails when a generated web, React Native, or Avalonia binding
-does not exactly match the canonical CSS.
+does not exactly match the canonical HTML and CSS.

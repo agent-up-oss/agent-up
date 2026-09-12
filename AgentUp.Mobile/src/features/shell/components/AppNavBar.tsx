@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppShell } from '../controllers/AppShellContext';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function AppNavBar() {
   const insets = useSafeAreaInsets();
@@ -35,43 +35,26 @@ export function AppNavBar() {
 
 const styles = StyleSheet.create({
   bar: {
+    ...auBox('mobileBar'),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.canvas,
+    gap: agentUpTheme.spacing[3],
   },
   stackButton: {
-    width: 42,
-    height: 42,
+    ...auBox('titleTool'),
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.surface,
   },
-  stackIcon: { color: agentUpTheme.colors.accentSoft, fontSize: 10, lineHeight: 8 },
+  stackIcon: { ...auText('chromeIcon'), fontSize: 10, lineHeight: 8 },
   title: {
+    ...auText('heading'),
     flex: 1,
-    color: agentUpTheme.colors.textPrimary,
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: '800',
   },
   rightButton: {
-    minHeight: 36,
-    paddingHorizontal: 12,
+    ...auBox('button', 'buttonSecondary', 'buttonCompact'),
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.surface,
   },
-  rightButtonText: { color: agentUpTheme.colors.accentSoft, fontWeight: '700', fontSize: 13 },
-  rightSpacer: { width: 42 },
+  rightButtonText: { ...auText('buttonSecondary', 'buttonCompact') },
+  rightSpacer: { width: agentUpTheme.controls.heightTouch },
 });

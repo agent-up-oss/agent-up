@@ -17,6 +17,10 @@ public class TestApp : Application
             Source = new Uri("avares://AgentUp.Desktop/DesignSystem/AgentUpTheme.axaml")
         });
         Styles.Add(new FluentTheme());
+        Styles.Add(new StyleInclude(new Uri("avares://AgentUp.Desktop/"))
+        {
+            Source = new Uri("avares://AgentUp.Desktop/DesignSystem/AgentUpStyles.axaml")
+        });
     }
 
     public static AppBuilder BuildAvaloniaApp()

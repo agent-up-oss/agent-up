@@ -36,4 +36,5 @@ internal static class AgentUpThemeColors
     internal const string OnAccent = "#000000";
     internal const string Scrim = "rgba(0, 0, 0, 0.72)";
     internal const string Overlay = "#07110f66";
+    internal const string Transparent = "#00000000";
 }

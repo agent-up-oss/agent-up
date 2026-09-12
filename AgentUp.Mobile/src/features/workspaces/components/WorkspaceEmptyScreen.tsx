@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function WorkspaceEmptyScreen() {
   const { server, loading, error, refresh, clone } = useWorkspaces();
@@ -77,7 +77,7 @@ export function WorkspaceEmptyScreen() {
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Clone" disabled={!canConfirm}
                 onPress={() => void confirmClone()} style={[styles.button, !canConfirm && styles.disabled]}>
-                {cloning ? <ActivityIndicator color={agentUpTheme.colors.canvas} /> : <Text style={styles.buttonText}>Clone</Text>}
+                {cloning ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Clone</Text>}
               </Pressable>
             </View>
           </View>
@@ -88,20 +88,20 @@ export function WorkspaceEmptyScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 32, gap: 14 },
-  subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 14 },
-  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 22 },
-  error: { color: agentUpTheme.colors.statusDanger, lineHeight: 21 },
-  label: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
-  input: { minHeight: 48, borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, paddingHorizontal: 14, color: agentUpTheme.colors.textPrimary, backgroundColor: agentUpTheme.colors.surfaceRaised },
-  button: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: agentUpTheme.colors.accent },
-  buttonText: { color: agentUpTheme.colors.canvas, fontWeight: '800' },
-  secondaryButton: { minHeight: 46, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface },
-  secondaryButtonText: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
+  content: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8], gap: 14 },
+  subtitle: auText('muted'),
+  empty: auText('muted'),
+  error: auText('badgeDanger'),
+  label: { ...auText('heading'), fontSize: agentUpTheme.typography.sizeSm },
+  input: auBox('input'),
+  button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
+  buttonText: auText('button'),
+  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: auText('buttonSecondary'),
   disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: agentUpTheme.colors.scrim },
-  dialog: { width: '100%', maxWidth: 480, padding: 20, borderRadius: 10, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, gap: 10 },
-  dialogTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 22, fontWeight: '800' },
-  dialogDetail: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
+  modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
+  dialog: { ...auBox('card'), width: '100%', maxWidth: 480, gap: 10 },
+  dialogTitle: auText('heading'),
+  dialogDetail: auText('muted'),
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
 });

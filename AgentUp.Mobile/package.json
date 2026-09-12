@@ -4,16 +4,16 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "nix-shell ../shell.nix --run 'expo start --lan'",
-    "android": "nix-shell ../shell.nix --run 'expo start --android --lan'",
-    "ios": "nix-shell ../shell.nix --run 'expo start --ios --lan'",
+    "start": "nix-shell ../shell.nix --run 'node scripts/start-native.mjs'",
+    "android": "nix-shell ../shell.nix --run 'node scripts/start-native.mjs --android'",
+    "ios": "nix-shell ../shell.nix --run 'node scripts/start-native.mjs --ios'",
     "web": "nix-shell ../shell.nix --run 'node scripts/start-web.mjs'",
     "serve:web": "nix-shell ../shell.nix --run 'node scripts/serve-web.mjs'",
     "install:agent-up": "npm install --package-lock=false && npm run build:web",
     "build:web": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && node scripts/export-web.mjs'",
     "build:cloudflare": "node scripts/export-web.mjs",
-    "test": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && tsc --noEmit -p tsconfig.test.json && tsx --test src/features/servers/providers/*.test.ts src/features/authentication/providers/*.test.ts src/features/workspaces/providers/*.test.ts src/features/git/providers/*.test.ts && node --test scripts/*.test.mjs'",
-    "typecheck": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && tsc --noEmit'"
+    "test": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && npx tsc --noEmit -p tsconfig.test.json && npx tsx --test src/features/servers/providers/*.test.ts src/features/authentication/providers/*.test.ts src/features/workspaces/providers/*.test.ts src/features/git/providers/*.test.ts && node --test scripts/*.test.mjs'",
+    "typecheck": "nix-shell ../shell.nix --run 'node ../AgentUp.DesignSystem/scripts/build.mjs --check && npx tsc --noEmit'"
   },
   "dependencies": {
     "@agent-up/audit": "file:../AgentUp.WebAudit",

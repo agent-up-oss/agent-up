@@ -6,7 +6,7 @@ import { useServers } from '../controllers/ServersContext';
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
 import { getAuthenticationStatus, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function ServerSetupScreen() {
   const router = useRouter();
@@ -70,7 +70,7 @@ export function ServerSetupScreen() {
           editable={!busy} onSubmitEditing={() => void signIn()} style={styles.input} /></>}
       <Pressable accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void tryAndSave()}
         style={[styles.button, (busy || !url.trim()) && styles.disabled]}>
-        {busy ? <ActivityIndicator color={agentUpTheme.colors.canvas} /> : <Text style={styles.buttonText}>Try and save</Text>}
+        {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Try and save</Text>}
       </Pressable>
       {loginUrl && <Pressable accessibilityRole="button" disabled={busy || !password} onPress={() => void signIn()}
         style={[styles.button, (busy || !password) && styles.disabled]}>
@@ -91,13 +91,20 @@ function tryNormalize(value: string): string | null {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas }, content: { padding: 20, paddingTop: 24, paddingBottom: 32, gap: 18 },
-  title: { color: agentUpTheme.colors.textPrimary, fontSize: 36, lineHeight: 40, fontWeight: '800' }, subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 17 },
-  card: { padding: 20, borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, gap: 14 },
-  heading: { color: agentUpTheme.colors.textPrimary, fontSize: 20, fontWeight: '700' }, detail: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
-  label: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' }, input: { minHeight: 50, borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected,
-    paddingHorizontal: 14, color: agentUpTheme.colors.textPrimary, backgroundColor: agentUpTheme.colors.surfaceRaised }, button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: agentUpTheme.colors.accent },
-  disabled: { opacity: 0.38 }, buttonText: { color: agentUpTheme.colors.canvas, fontWeight: '800' }, status: { color: agentUpTheme.colors.accentSoft, lineHeight: 21 },
-  current: { padding: 16, borderLeftWidth: 3, borderLeftColor: agentUpTheme.colors.borderSelected, gap: 4 }, currentLabel: { color: agentUpTheme.colors.textMuted, fontSize: 12, textTransform: 'uppercase' },
-  currentUrl: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
+  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
+  content: { padding: agentUpTheme.spacing[5], paddingTop: agentUpTheme.spacing[6], paddingBottom: agentUpTheme.spacing[8], gap: 18 },
+  title: auText('title'),
+  subtitle: auText('lede'),
+  card: { ...auBox('signIn'), gap: 14 },
+  heading: auText('heading'),
+  detail: auText('muted'),
+  label: { ...auText('heading'), fontSize: agentUpTheme.typography.sizeSm },
+  input: auBox('input'),
+  button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
+  disabled: { opacity: 0.38 },
+  buttonText: auText('button'),
+  status: auText('accent'),
+  current: auBox('callout'),
+  currentLabel: auText('eyebrow'),
+  currentUrl: auText('heading'),
 });

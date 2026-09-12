@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent-Up design catalog</title>
+</head>
+<body class="au-theme">
+  <section data-au-surface="foundations" data-au-title="Foundations" data-au-intro="Black is the environment. Off-white carries hierarchy. Neutral gray creates structure. Green appears only for action, selection, progress, or health.">
+    <article data-au-component="canvas" data-au-title="Canvas" data-au-note="Root window, page, and PWA chrome use the canvas token." data-au-avalonia="Window" data-au-class="au-theme">
+      <div class="au-theme" style="min-height: 6rem; padding: 1.25rem;">Quiet operational canvas.</div>
+    </article>
+    <article data-au-component="swatch" data-au-title="Color roles" data-au-note="Never introduce a raw product color when a semantic role exists." data-au-avalonia="Border" data-au-class="au-swatch">
+      <div class="au-cluster">
+        <span class="au-swatch" style="background: var(--au-color-canvas)" title="canvas"></span>
+        <span class="au-swatch" style="background: var(--au-color-surface)" title="surface"></span>
+        <span class="au-swatch" style="background: var(--au-color-border-subtle)" title="border"></span>
+        <span class="au-swatch" style="background: var(--au-color-text-primary)" title="text"></span>
+        <span class="au-swatch" style="background: var(--au-color-accent)" title="action"></span>
+        <span class="au-swatch" style="background: var(--au-color-status-healthy)" title="healthy"></span>
+        <span class="au-swatch" style="background: var(--au-color-status-danger)" title="danger"></span>
+        <span class="au-swatch" style="background: var(--au-color-focus)" title="focus"></span>
+      </div>
+    </article>
+    <article data-au-component="type" data-au-title="Typography" data-au-note="Applications use platform sans-serif at these roles. Authored web uses Inter." data-au-avalonia="TextBlock" data-au-class="au-heading">
+      <p class="au-eyebrow">AI-assisted development workspaces</p>
+      <h2 class="au-heading">See the runtime. Trust the review.</h2>
+      <p class="au-muted">Monospace is reserved for commands, paths, ports, logs, and diffs.</p>
+      <code class="au-mono">agentup start · localhost:11200 · feat/checkout</code>
+    </article>
+  </section>
+
+  <section data-au-surface="primitives" data-au-title="Primitives" data-au-intro="Shared controls compiled to web CSS, React Native style objects, and Avalonia styles. The HTML here is the structure Desktop infers.">
+    <article data-au-component="button" data-au-title="Buttons" data-au-note="Primary fill is the only bright green action. Danger is red, never green." data-au-avalonia="Button" data-au-class="au-button">
+      <div class="au-cluster">
+        <button class="au-button">Start workspace</button>
+        <button class="au-button au-button--secondary">View diagnostics</button>
+        <button class="au-button au-button--danger">Stop</button>
+        <button class="au-button au-button--compact">Compact</button>
+      </div>
+    </article>
+    <article data-au-component="input" data-au-title="Field" data-au-note="Focus uses blue, not green, so keyboard state stays distinct from health." data-au-avalonia="TextBox" data-au-class="au-input">
+      <label class="au-stack"><strong>Server URL</strong><input class="au-input" placeholder="https://agent-up.example.com" /></label>
+    </article>
+    <article data-au-component="badge" data-au-title="Badges and status" data-au-note="Combine color with a label. Do not use a green dot alone." data-au-avalonia="Border" data-au-class="au-badge">
+      <div class="au-cluster">
+        <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>Server online</span>
+        <span class="au-badge au-badge--warning"><span class="au-status-dot au-status-dot--warning"></span>Starting</span>
+        <span class="au-badge au-badge--danger"><span class="au-status-dot au-status-dot--danger"></span>Failed</span>
+        <span class="au-badge au-badge--info"><span class="au-status-dot au-status-dot--info"></span>MCP connected</span>
+      </div>
+    </article>
+    <article data-au-component="checkbox" data-au-title="Checkbox" data-au-note="Checked uses the selected fill. Do not outline idle boxes in accent green." data-au-avalonia="Border" data-au-class="au-checkbox">
+      <div class="au-cluster">
+        <span class="au-checkbox"></span>
+        <span class="au-checkbox au-checkbox--checked"></span>
+      </div>
+    </article>
+    <article data-au-component="card" data-au-title="Cards" data-au-note="Idle cards use a neutral border. Selected may tint; failed cards use danger, not accent." data-au-avalonia="Border" data-au-class="au-card">
+      <div class="au-grid">
+        <div class="au-card"><strong>Idle surface</strong><p class="au-muted">Neutral structure.</p></div>
+        <div class="au-card au-card--selected"><strong>Selected</strong><p class="au-muted">Green means this item is active.</p></div>
+        <div class="au-card au-card--danger"><strong>Failed</strong><p class="au-muted">Error cards never inherit accent borders.</p></div>
+      </div>
+    </article>
+    <article data-au-component="tabs" data-au-title="Tabs" data-au-note="Selected tabs use a brighter text and a muted underline, not a green fill." data-au-avalonia="Button" data-au-class="au-tab">
+      <div class="au-tabs" role="tablist">
+        <button class="au-tab au-tab--selected" aria-selected="true">Browser</button>
+        <button class="au-tab">Console</button>
+        <button class="au-tab">Metrics</button>
+        <button class="au-tab">Diagnostics</button>
+      </div>
+    </article>
+    <article data-au-component="callout" data-au-title="Callout" data-au-note="A left accent rule is enough. No glow." data-au-avalonia="Border" data-au-class="au-callout">
+      <aside class="au-callout"><strong>Browser ownership:</strong> Desktop WebViews and Server automation are separate sessions bound to the same workspace runtime.</aside>
+    </article>
+    <article data-au-component="code" data-au-title="Code surface" data-au-note="Code blocks use a neutral border. Do not force syntax into green." data-au-avalonia="TextBlock" data-au-class="au-code">
+      <pre class="au-code">agentup start --worktree /srv/checkout-fix</pre>
+    </article>
+  </section>
+
+  <section data-au-surface="chrome" data-au-title="Desktop chrome" data-au-intro="Integrated title bar: sidebar, reload, Server badge, wordmark, then minimize, restore, close. The chrome is part of the product, not a host decoration.">
+    <article data-au-component="chrome" data-au-title="Title bar" data-au-note="Keep the mark small. Never add glow around the window." data-au-avalonia="Border" data-au-class="au-chrome">
+      <div class="au-chrome au-cluster" style="justify-content: space-between; padding: 0 0.75rem;">
+        <span class="au-cluster">
+          <span class="au-title-tool au-chrome-icon">☰</span>
+          <span class="au-title-tool au-chrome-icon">↻</span>
+          <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>Server online</span>
+        </span>
+        <strong>Agent-Up</strong>
+        <span class="au-cluster">
+          <span class="au-chrome-button au-chrome-icon">−</span>
+          <span class="au-chrome-button au-chrome-icon">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+        </span>
+      </div>
+    </article>
+    <article data-au-component="chrome-button" data-au-title="Window controls" data-au-note="Close hover is danger red. Other chrome hover uses the selected tint." data-au-avalonia="Border" data-au-class="au-chrome-button" data-au-desktop-class="chromeButton" data-au-desktop-host="Button">
+      <div class="au-cluster">
+        <button class="au-chrome-button au-chrome-icon">−</button>
+        <button class="au-chrome-button au-chrome-icon">□</button>
+        <button class="au-chrome-button au-chrome-close au-chrome-icon">×</button>
+      </div>
+    </article>
+    <article data-au-component="chrome-close" data-au-title="Close control" data-au-note="Only the close control uses danger on hover." data-au-avalonia="Border" data-au-class="au-chrome-close" data-au-desktop-class="chromeClose" data-au-desktop-host="Button">
+      <button class="au-chrome-button au-chrome-close au-chrome-icon">×</button>
+    </article>
+    <article data-au-component="title-tool" data-au-title="Title tools" data-au-note="Sidebar and reload sit in the chrome so the workspace rail stays dedicated to workspaces." data-au-avalonia="Border" data-au-class="au-title-tool" data-au-desktop-class="titleToolButton" data-au-desktop-host="Button">
+      <div class="au-cluster">
+        <button class="au-title-tool au-chrome-icon">☰</button>
+        <button class="au-title-tool au-chrome-icon">↻</button>
+      </div>
+    </article>
+  </section>
+
+  <section data-au-surface="workspaces" data-au-title="Workspaces" data-au-intro="A workspace is the managed runtime and source identity. Do not name every row after an agent unless that is the display name.">
+    <article data-au-component="workspace" data-au-title="Workspace row" data-au-note="Idle rows stay on surface. Only the selected checkout uses the strong green fill. Start, identity, and delete are the same controls on Desktop and Mobile." data-au-avalonia="Border" data-au-class="au-workspace" data-au-desktop-class="wsEntry" data-au-desktop-host="ListBoxItem">
+      <div class="au-stack">
+        <div class="au-workspace au-workspace--selected">
+          <button class="au-lifecycle-button" type="button">▶</button>
+          <span class="au-status-dot au-status-dot--healthy"></span>
+          <span>
+            <strong class="au-workspace-name">checkout-fix</strong>
+            <small class="au-workspace-branch">feat/checkout</small>
+          </span>
+          <button class="au-workspace-delete" type="button">×</button>
+        </div>
+        <div class="au-workspace">
+          <button class="au-lifecycle-button" type="button">▶</button>
+          <span class="au-status-dot au-status-dot--warning"></span>
+          <span>
+            <strong class="au-workspace-name">pricing</strong>
+            <small class="au-workspace-branch">feat/pricing</small>
+          </span>
+          <button class="au-workspace-delete" type="button">×</button>
+        </div>
+        <div class="au-workspace">
+          <button class="au-lifecycle-button" type="button">▶</button>
+          <span class="au-status-dot"></span>
+          <span>
+            <strong class="au-workspace-name">main</strong>
+            <small class="au-workspace-branch">main</small>
+          </span>
+          <button class="au-workspace-delete" type="button">×</button>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="workspace-name" data-au-title="Workspace name" data-au-note="The title is primary text at the small size. Do not restyle it per surface." data-au-avalonia="TextBlock" data-au-class="au-workspace-name" data-au-desktop-class="wsName">
+      <strong class="au-workspace-name">checkout-fix</strong>
+    </article>
+    <article data-au-component="workspace-branch" data-au-title="Workspace branch" data-au-note="The subtitle stays muted." data-au-avalonia="TextBlock" data-au-class="au-workspace-branch" data-au-desktop-class="wsBranch">
+      <small class="au-workspace-branch">feat/checkout</small>
+    </article>
+    <article data-au-component="workspace-avatar" data-au-title="Collapsed avatar" data-au-note="Collapsed rail repeats selected/hover using the same semantic fills." data-au-avalonia="Border" data-au-class="au-workspace-avatar" data-au-desktop-class="wsAvatar" data-au-desktop-host="ListBoxItem">
+      <div class="au-cluster">
+        <div class="au-workspace-avatar au-workspace-avatar--selected"></div>
+        <div class="au-workspace-avatar"></div>
+      </div>
+    </article>
+    <article data-au-component="workspace-add" data-au-title="Add workspace" data-au-note="The add control is a compact raised icon, not a primary CTA." data-au-avalonia="Border" data-au-class="au-workspace-add" data-au-desktop-class="wsAddButton" data-au-desktop-host="Button">
+      <button class="au-workspace-add">+</button>
+    </article>
+    <article data-au-component="workspace-delete" data-au-title="Remove workspace" data-au-note="Delete stays quiet until hover, then uses danger text." data-au-avalonia="Button" data-au-class="au-workspace-delete" data-au-desktop-class="wsDeleteButton">
+      <button class="au-workspace-delete">×</button>
+    </article>
+    <article data-au-component="lifecycle" data-au-title="Lifecycle controls" data-au-note="Start and stop are compact icon actions, not a second primary CTA." data-au-avalonia="Border" data-au-class="au-lifecycle-button" data-au-desktop-class="wsLifecycleButton" data-au-desktop-host="Button">
+      <div class="au-cluster">
+        <button class="au-lifecycle-button">▶</button>
+        <button class="au-workspace-add">+</button>
+        <button class="au-workspace-delete">×</button>
+      </div>
+    </article>
+  </section>
+
+  <section data-au-surface="applications" data-au-title="Applications" data-au-intro="The first tab row lists applications in the selected workspace. Health is a LED plus label, not a green outline around the tab.">
+    <article data-au-component="app-tab" data-au-title="Application tabs" data-au-note="Selected application tabs are neutral with a stronger underline. Green is reserved for the running health marker." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-desktop-class="appTab" data-au-desktop-host="ListBoxItem">
+      <div class="au-cluster">
+        <button class="au-app-tab au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--warning"></span> API</button>
+        <button class="au-app-tab"><span class="au-status-dot"></span> Database</button>
+      </div>
+    </article>
+    <article data-au-component="subtab" data-au-title="Port and tool tabs" data-au-note="The second row is a pill. Selected may use the strong selected fill because it is the active tool, not a structural border." data-au-avalonia="Border" data-au-class="au-subtab" data-au-desktop-class="subTab" data-au-desktop-host="ListBoxItem">
+      <div class="au-cluster">
+        <button class="au-subtab au-subtab--selected">3000:11200</button>
+        <button class="au-subtab">Console</button>
+        <button class="au-subtab">Metrics</button>
+        <button class="au-subtab">Diagnostics</button>
+        <button class="au-subtab">Git</button>
+      </div>
+    </article>
+  </section>
+
+  <section data-au-surface="browser" data-au-title="Browser" data-au-intro="A workspace has independent human and automation browser sessions. Never describe them as a shared profile or shared storage.">
+    <article data-au-component="address-bar" data-au-title="Address bar" data-au-note="Monospace URL, compact height, neutral field. Focus stays blue." data-au-avalonia="TextBox" data-au-class="au-address-bar" data-au-desktop-class="addressBar">
+      <div class="au-cluster">
+        <button class="au-browser-button">‹</button>
+        <button class="au-browser-button">›</button>
+        <button class="au-browser-button">↻</button>
+        <input class="au-address-bar" value="http://localhost:11200/" readonly />
+      </div>
+    </article>
+    <article data-au-component="browser-button" data-au-title="Browser chrome button" data-au-note="Back, forward, and reload use the compact raised icon treatment." data-au-avalonia="Border" data-au-class="au-browser-button" data-au-desktop-class="browserButton" data-au-desktop-host="Button">
+      <button class="au-browser-button">↻</button>
+    </article>
+    <article data-au-component="error-banner" data-au-title="Unreachable app" data-au-note="Failure uses the danger surface. A green border would make an error look healthy." data-au-avalonia="Border" data-au-class="au-error-banner">
+      <div class="au-error-banner"><strong>Could not reach app.</strong> The allocated HTTP port did not answer. Check the application console before retrying the browser.</div>
+    </article>
+  </section>
+
+  <section data-au-surface="console" data-au-title="Console" data-au-intro="Application output is a selectable monospace surface on the canvas. Prefix install output with [install].">
+    <article data-au-component="console" data-au-title="Log surface" data-au-note="Do not theme logs green. Keep them readable and copyable." data-au-avalonia="TextBlock" data-au-class="au-console">
+      <pre class="au-console">[install] npm install
+listening on http://127.0.0.1:11200
+ready in 842 ms</pre>
+    </article>
+  </section>
+
+  <section data-au-surface="git" data-au-title="Git changes" data-au-intro="The Git panel is the human review surface for the working tree. Coding agents still use the commit queue.">
+    <article data-au-component="git-row" data-au-title="Change tree" data-au-note="Status color is additive: added, deleted, renamed, conflicted. Directories stay muted." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow">
+      <div class="au-stack">
+        <div class="au-git-row au-git-row--selected">src/</div>
+        <div class="au-git-row au-git-add">+ AgentChatScreen.tsx</div>
+        <div class="au-git-row au-git-delete">− obsolete.css</div>
+        <div class="au-git-row au-git-rename">pricing.tsx → storefront.tsx</div>
+        <div class="au-git-row au-git-conflict">! agent-up.json</div>
+      </div>
+    </article>
+  </section>
+
+  <section data-au-surface="diagnostics" data-au-title="Diagnostics" data-au-intro="Diagnostics are Server-owned events: console, exceptions, failed requests, health, and process status.">
+    <article data-au-component="audit-table" data-au-title="Event table" data-au-note="Rows are dense and neutral. Severity uses semantic text color plus a label." data-au-avalonia="Border" data-au-class="au-audit-row" data-au-desktop-class="auditTableRow">
+      <div class="au-panel">
+        <div class="au-audit-header">Time · Kind · Message</div>
+        <div class="au-audit-row">12:01 · process · listening on 11200</div>
+        <div class="au-audit-row" style="color: var(--au-color-text-danger)">12:02 · browser · net::ERR_CONNECTION_REFUSED</div>
+      </div>
+    </article>
+    <article data-au-component="page-jump" data-au-title="Pagination" data-au-note="The current page may use the selected fill; other pages stay outlined." data-au-avalonia="Border" data-au-class="au-page-jump" data-au-desktop-class="auditPageJumpInner">
+      <div class="au-cluster">
+        <button class="au-page-jump">1</button>
+        <button class="au-page-jump au-page-jump--current">2</button>
+        <button class="au-page-jump">3</button>
+      </div>
+    </article>
+    <article data-au-component="audit-header" data-au-title="Audit header" data-au-note="Table headers stay muted and structurally neutral." data-au-avalonia="Border" data-au-class="au-audit-header" data-au-desktop-class="auditTableHeader">
+      <div class="au-audit-header">Time · Kind · Message</div>
+    </article>
+    <article data-au-component="page-jump-current" data-au-title="Current page" data-au-note="The current page uses the selected fill." data-au-avalonia="Border" data-au-class="au-page-jump--current" data-au-desktop-class="auditPageJumpInnerCurrent">
+      <button class="au-page-jump au-page-jump--current">2</button>
+    </article>
+  </section>
+
+  <section data-au-surface="metrics" data-au-title="Metrics" data-au-intro="Summary cards and charts sit on the surface with a neutral border. The series uses healthy green, not decorative glow.">
+    <article data-au-component="metrics-card" data-au-title="Summary card" data-au-note="One value, one label. Green only if the value represents health." data-au-avalonia="Border" data-au-class="au-metrics-card" data-au-desktop-class="metricsSummaryCard">
+      <div class="au-metrics-card"><span class="au-eyebrow">p95</span><strong>128 ms</strong></div>
+    </article>
+    <article data-au-component="metrics-chart" data-au-title="Time series" data-au-note="Grid lines are border-subtle. The plot uses status-healthy." data-au-avalonia="Border" data-au-class="au-metrics-chart" data-au-desktop-class="metricsChartCard">
+      <div class="au-metrics-chart">CPU · memory · request duration</div>
+    </article>
+  </section>
+
+  <section data-au-surface="validation" data-au-title="Validation" data-au-intro="Validation flows describe the user-meaningful route through the GUI. Passed, failed, and running must not share one green.">
+    <article data-au-component="validation-stage" data-au-title="Stages" data-au-note="Passed uses healthy, failed uses danger, running uses warning." data-au-avalonia="Border" data-au-class="au-validation-stage">
+      <div class="au-stack">
+        <div class="au-validation-stage au-validation-stage--passed">Sign in · passed</div>
+        <div class="au-validation-stage au-validation-stage--running">Open checkout · running</div>
+        <div class="au-validation-stage au-validation-stage--failed">Pay · failed</div>
+      </div>
+    </article>
+  </section>
+
+  <section data-au-surface="auth" data-au-title="Sign-in and first-run" data-au-intro="Authentication is a quiet raised card on the canvas. Green is the Sign in action and the small mark, not the card outline.">
+    <article data-au-component="sign-in" data-au-title="Sign-in card" data-au-note="The focused field uses platform/focus blue. The card border stays neutral." data-au-avalonia="Border" data-au-class="au-sign-in">
+      <form class="au-sign-in au-stack">
+        <p class="au-eyebrow">Agent-Up Desktop</p>
+        <h2 class="au-heading">Sign in</h2>
+        <input class="au-input" placeholder="Administrator password" />
+        <button class="au-button" type="button">Sign in</button>
+      </form>
+    </article>
+    <article data-au-component="tutorial" data-au-title="Tutorial actions" data-au-note="First-run next/back are compact product buttons, not marketing CTAs." data-au-avalonia="Border" data-au-class="au-tutorial-button" data-au-desktop-class="tutorialButton" data-au-desktop-host="Button">
+      <div class="au-cluster">
+        <button class="au-tutorial-button">Next</button>
+        <button class="au-tutorial-button au-tutorial-button--secondary">Skip</button>
+      </div>
+    </article>
+    <article data-au-component="tutorial-secondary" data-au-title="Tutorial secondary" data-au-note="Skip and back stay on the raised surface." data-au-avalonia="Border" data-au-class="au-tutorial-button--secondary" data-au-desktop-class="tutorialSecondaryButton" data-au-desktop-host="Button">
+      <button class="au-tutorial-button au-tutorial-button--secondary">Skip</button>
+    </article>
+  </section>
+
+  <section data-au-surface="database" data-au-title="Database explorer" data-au-intro="SQL and result grids are monospace technical surfaces with the same quiet borders as the rest of Desktop.">
+    <article data-au-component="db-list" data-au-title="Object list" data-au-note="Selected objects use the strong selected fill." data-au-avalonia="Border" data-au-class="au-list-item" data-au-desktop-class="dbListItem" data-au-desktop-host="ListBoxItem">
+      <div class="au-stack">
+        <div class="au-list-item au-list-item--selected">orders</div>
+        <div class="au-list-item">customers</div>
+      </div>
+    </article>
+    <article data-au-component="sql-editor" data-au-title="SQL editor" data-au-note="Editor chrome is an input surface, not an accent panel." data-au-avalonia="TextBox" data-au-class="au-code-editor" data-au-desktop-class="sqlEditor">
+      <textarea class="au-code-editor">select * from orders limit 20;</textarea>
+    </article>
+    <article data-au-component="db-run" data-au-title="Run query" data-au-note="Run is a selected-strong action until hover, where it becomes the primary accent." data-au-avalonia="Button" data-au-class="au-db-run" data-au-desktop-class="dbRunButton">
+      <button class="au-db-run">Run</button>
+    </article>
+  </section>
+
+  <section data-au-surface="mobile" data-au-title="Mobile" data-au-intro="Mobile uses the same catalog components as Desktop. Primary actions stay 44px; compact chrome keeps catalog size.">
+    <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline." data-au-avalonia="Border" data-au-class="au-mobile-bar">
+      <div class="au-mobile-bar au-cluster"><strong>Workspaces</strong></div>
+    </article>
+    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Selected tabs use the catalog subtab selected fill." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
+      <div class="au-mobile-tab-bar au-cluster">
+        <button class="au-subtab au-subtab--selected">Chat</button>
+        <button class="au-subtab">Changes</button>
+      </div>
+    </article>
+    <article data-au-component="mobile-list" data-au-title="Workspace list" data-au-note="The Mobile list is the workspace row, not a second card language." data-au-avalonia="Border" data-au-class="au-workspace">
+      <div class="au-stack">
+        <div class="au-workspace au-workspace--selected">
+          <span class="au-status-dot au-status-dot--healthy"></span>
+          <span>
+            <strong class="au-workspace-name">checkout-fix</strong>
+            <small class="au-workspace-branch">feat/checkout</small>
+          </span>
+        </div>
+        <div class="au-workspace">
+          <span class="au-status-dot"></span>
+          <span>
+            <strong class="au-workspace-name">pricing</strong>
+            <small class="au-workspace-branch">feat/pricing</small>
+          </span>
+        </div>
+        <button class="au-button" type="button">Clone</button>
+      </div>
+    </article>
+  </section>
+
+  <section data-au-surface="marketing" data-au-title="Marketing" data-au-intro="The product is the illustration. One headline, one outcome, and a visible Available / Preview / Experimental / Planned label.">
+    <article data-au-component="product-frame" data-au-title="Product frame" data-au-note="Campaign crops should come from this chrome, not an invented dashboard." data-au-avalonia="Border" data-au-class="au-product-frame">
+      <div class="au-product-frame">
+        <div class="au-product-frame__chrome"><span>☰ ↻</span><strong>Agent-Up</strong><span class="au-product-frame__actions">− □ ×</span></div>
+        <div class="au-example__preview">Real product surface, not a neon diagram.</div>
+      </div>
+    </article>
+    <article data-au-component="proof" data-au-title="Proof strip" data-au-note="Three claims, one focal point. No ambient glow." data-au-avalonia="Border" data-au-class="au-proof">
+      <div class="au-proof">
+        <div><p class="au-eyebrow">One promise</p><h3>Parallel runtimes without collisions.</h3></div>
+        <div><p class="au-eyebrow">One focal point</p><h3>Green identifies the active path.</h3></div>
+        <div><p class="au-eyebrow">One truth</p><h3>Label lifecycle visibly.</h3></div>
+      </div>
+    </article>
+    <article data-au-component="do-dont" data-au-title="Do and don't" data-au-note="Retired neon treatments are not available as marketing primitives." data-au-avalonia="Border" data-au-class="au-do-dont">
+      <div class="au-do-dont">
+        <div class="au-card"><div class="au-do-dont__label au-do-dont__label--do">✓ Do</div><p>Use a real product crop and one meaningful green marker.</p></div>
+        <div class="au-card"><div class="au-do-dont__label au-do-dont__label--dont">× Don't</div><p>Do not outline every card, heading, and connector in luminous green.</p></div>
+      </div>
+    </article>
+  </section>
+
+  <section data-au-surface="voice" data-au-title="Voice" data-au-intro="Product writing is direct and accountable. Lead with what a developer can do, then explain Server ownership.">
+    <article data-au-component="voice-card" data-au-title="Positioning" data-au-note="Campaign taglines may vary, but they reconnect to the runtime control plane identity." data-au-avalonia="Border" data-au-class="au-card">
+      <div class="au-card"><p class="au-eyebrow">Category</p><p>Local runtime control plane for AI-assisted development.</p></div>
+    </article>
+  </section>
+
+  <section data-au-surface="brand" data-au-title="Brand" data-au-intro="The AU mark stays compact in product chrome. Pair it with the exact Agent-Up wordmark in authored marketing.">
+    <article data-au-component="lockup" data-au-title="Lockup" data-au-note="Safe space is at least one internal stroke. No outer glow." data-au-avalonia="StackPanel" data-au-class="au-logo-lockup">
+      <div class="au-logo-lockup"><span>AU</span><span>Agent-Up</span></div>
+    </article>
+  </section>
+
+  <section data-au-surface="governance" data-au-title="Governance" data-au-intro="HTML and CSS are canonical. Generated Avalonia styles, React Native objects, and web CSS are checked for exact freshness.">
+    <article data-au-component="contract" data-au-title="Consumer contract" data-au-note="Never edit dist/. Change src/, rebuild, and review Desktop, Mobile, docs, and marketing." data-au-avalonia="TextBlock" data-au-class="au-code">
+      <pre class="au-code">@import '@agent-up/design-system/styles.css';
+import { agentUpTheme } from '@agent-up/design-system/native';
+&lt;StyleInclude Source="/DesignSystem/AgentUpStyles.axaml" /&gt;</pre>
+    </article>
+  </section>
+</body>
+</html>

@@ -5,13 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { useAppShell } from '../controllers/AppShellContext';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
-function workspaceStateColor(state: string): string {
-  if (state === 'Running') return agentUpTheme.colors.accent;
-  if (state === 'Starting' || state === 'Stopping') return agentUpTheme.colors.statusWarning;
-  if (state === 'Failed') return agentUpTheme.colors.statusDanger;
-  return agentUpTheme.colors.textFaint;
+function workspaceDot(state: string) {
+  if (state === 'Running') return auBox('statusDot', 'statusDotHealthy');
+  if (state === 'Starting' || state === 'Stopping') return auBox('statusDot', 'statusDotWarning');
+  if (state === 'Failed') return auBox('statusDot', 'statusDotDanger');
+  return auBox('statusDot');
 }
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
@@ -37,7 +37,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
                 onNavigate();
               }}
               style={[styles.workspaceRow, isSelected && styles.workspaceRowSelected]}>
-              <View style={[styles.stateDot, { backgroundColor: workspaceStateColor(workspace.state) }]} />
+              <View style={workspaceDot(workspace.state)} />
               <View style={styles.workspaceText}>
                 <Text numberOfLines={1} style={styles.workspaceName}>{workspace.displayName}</Text>
                 <Text numberOfLines={1} style={styles.workspaceBranch}>{workspace.branch}</Text>
@@ -82,44 +82,39 @@ export function WorkspaceSidebar() {
 
 const styles = StyleSheet.create({
   modal: { flex: 1, flexDirection: 'row' },
-  scrim: { position: 'absolute', inset: 0, backgroundColor: agentUpTheme.colors.scrim },
+  scrim: { position: 'absolute', inset: 0, ...auBox('scrim') },
   sidebar: {
+    ...auBox('rail'),
     width: 280,
     height: '100%',
-    paddingHorizontal: 16,
-    backgroundColor: agentUpTheme.colors.surface,
-    borderRightWidth: 1,
-    borderRightColor: agentUpTheme.colors.borderSelected,
+    paddingHorizontal: agentUpTheme.spacing[4],
   },
-  defaultContent: { flex: 1, gap: 12 },
-  sectionLabel: { color: agentUpTheme.colors.textMuted, fontSize: 11, textTransform: 'uppercase', fontWeight: '700' },
-  workspaceList: { gap: 8, paddingBottom: 12 },
+  defaultContent: { flex: 1, gap: agentUpTheme.spacing[3] },
+  sectionLabel: auText('eyebrow'),
+  workspaceList: { gap: agentUpTheme.spacing[2], paddingBottom: agentUpTheme.spacing[3] },
   workspaceRow: {
+    ...auBox('workspace'),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.surfaceRaised,
+    gap: agentUpTheme.spacing[2],
   },
-  workspaceRowSelected: { borderColor: agentUpTheme.colors.accentSoft, backgroundColor: agentUpTheme.colors.surfaceSelected },
-  stateDot: { width: 8, height: 8, borderRadius: 4 },
+  workspaceRowSelected: auBox('workspaceSelected'),
   workspaceText: { flex: 1, gap: 2 },
-  workspaceName: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
-  workspaceBranch: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
-  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 20 },
-  serverFooter: { marginTop: 'auto', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: agentUpTheme.colors.borderSelected },
-  serverUrl: { color: agentUpTheme.colors.textPrimary, fontSize: 12, lineHeight: 16 },
+  workspaceName: auText('workspaceName'),
+  workspaceBranch: auText('workspaceBranch'),
+  empty: auText('muted'),
+  serverFooter: {
+    marginTop: 'auto',
+    gap: agentUpTheme.spacing[2],
+    paddingTop: agentUpTheme.spacing[3],
+    ...auBox('divider'),
+    height: undefined,
+  },
+  serverUrl: { ...auText('muted'), fontSize: agentUpTheme.typography.sizeXs },
   footerButton: {
-    minHeight: 40,
+    ...auBox('button', 'buttonSecondary'),
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.surfaceRaised,
   },
-  footerButtonText: { color: agentUpTheme.colors.accentSoft, fontWeight: '700' },
+  footerButtonText: auText('buttonSecondary'),
 });

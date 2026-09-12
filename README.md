@@ -141,10 +141,10 @@ dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:500
 
 `AgentUp.DesignSystem/` is the single source of truth for Agent-Up product UI,
 documentation, screenshots, and marketing presentation. Its canonical HTML/CSS
-contract compiles to the React Native and Avalonia bindings consumed by Mobile
-and Desktop. The public responsive showcase is linked from the documentation
-site footer at `/design-system`; implementation and external-repository usage are
-defined in the [design-system developer guide](docs/developer-guide/design-system.md).
+catalog compiles to React Native objects and Avalonia resources and styles
+consumed by Mobile and Desktop. The public responsive showcase is linked from the
+documentation navbar at `/design-system`; implementation and external-repository
+usage are defined in the [design-system developer guide](docs/developer-guide/design-system.md).
 
 Build the docs locally:
 

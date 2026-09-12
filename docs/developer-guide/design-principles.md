@@ -8,8 +8,10 @@ Agent-Up is built around a small set of constraints that keep it framework agnos
 
 Product UI, documentation, and marketing use the repository-owned
 [`@agent-up/design-system`](./design-system.md). Canonical HTML and CSS compile to
-the native Desktop and Mobile bindings, and Desktop is the reference rendering
-for the quiet black, neutral-structure, semantic-green visual language.
+React Native objects and Avalonia resources and styles. Desktop is the reference
+rendering for the quiet black, neutral-structure, semantic-green visual language.
+Mobile, docs, and marketing apply those same compiled components; they do not
+paint a parallel theme from the palette.
 
 ## Framework Agnostic
 

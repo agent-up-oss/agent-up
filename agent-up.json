@@ -211,6 +211,14 @@
           "AgentUp.WebAudit"
         ]
       },
+      "design-system": {
+        "command": "npm test",
+        "workingDirectory": "AgentUp.DesignSystem",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.DesignSystem"
+        ]
+      },
       "linux-smoke": {
         "command": "./.github/scripts/smoke-package.sh ubuntu linux-x64 release-artifacts",
         "tier": "platform",
@@ -486,6 +494,14 @@
         "match": "AgentUp.WebAudit/**",
         "checks": [
           "web-audit",
+          "mobile"
+        ]
+      },
+      {
+        "match": "AgentUp.DesignSystem/**",
+        "checks": [
+          "design-system",
+          "desktop",
           "mobile"
         ]
       },

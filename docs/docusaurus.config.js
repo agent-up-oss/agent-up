@@ -155,6 +155,11 @@ const config = {
             label: 'Developer Guide',
           },
           {
+            to: '/design-system',
+            label: 'Design System',
+            position: 'left',
+          },
+          {
             href: 'https://github.com/themassiveone/agent-up',
             label: 'GitHub',
             position: 'right',

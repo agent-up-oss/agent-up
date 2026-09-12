@@ -1,4 +1,4 @@
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
@@ -122,7 +122,7 @@ export function GitChangesPanel() {
               <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }}
                 accessibilityLabel={`Select ${node.path}`}
                 onPress={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
-                style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                style={[styles.checkbox, checked && styles.checkboxChecked]} hitSlop={8}>
                 <Text style={styles.checkmark}>{checked ? '✓' : ''}</Text>
               </Pressable>
               <Text style={[styles.glyph, { color: statusColor(node.status) }]}>{statusGlyph(node.status)}</Text>
@@ -142,7 +142,7 @@ export function GitChangesPanel() {
 
       <Pressable accessibilityRole="button" accessibilityLabel="Commit" disabled={!canCommit}
         onPress={() => void commit()} style={[styles.button, !canCommit && styles.disabled]}>
-        {committing ? <ActivityIndicator color={agentUpTheme.colors.canvas} /> : <Text style={styles.buttonText}>Commit</Text>}
+        {committing ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Commit</Text>}
       </Pressable>
 
       <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
@@ -175,29 +175,29 @@ function diffText(diff: GitFileDiff | null): string {
 
 const styles = StyleSheet.create({
   panel: { gap: 12 },
-  summary: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
-  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
-  error: { color: agentUpTheme.colors.statusDanger, lineHeight: 21 },
-  status: { color: agentUpTheme.colors.accentSoft, lineHeight: 21 },
-  tree: { borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, paddingVertical: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10, paddingVertical: 5 },
-  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: { backgroundColor: agentUpTheme.colors.surfaceSelectedStrong, borderColor: agentUpTheme.colors.accentSoft },
-  checkmark: { color: agentUpTheme.colors.textPrimary, fontSize: 12, lineHeight: 14 },
+  summary: { ...auText('muted'), fontSize: agentUpTheme.typography.sizeXs },
+  empty: auText('muted'),
+  error: auText('badgeDanger'),
+  status: auText('accent'),
+  tree: { ...auBox('card'), paddingVertical: 6 },
+  row: { ...auBox('gitRow'), flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10 },
+  checkbox: { ...auBox('checkbox'), alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: auBox('checkboxChecked'),
+  checkmark: { ...auText('workspaceName'), fontSize: agentUpTheme.typography.sizeXs, lineHeight: 14 },
   glyph: { width: 14, fontSize: 12, fontWeight: '800' },
   nameButton: { flexShrink: 1 },
-  directoryName: { color: agentUpTheme.colors.textMuted, fontSize: 14, fontWeight: '700' },
-  fileName: { color: agentUpTheme.colors.textPrimary, fontSize: 14 },
-  label: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
-  messageInput: { minHeight: 90, borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, padding: 12, color: agentUpTheme.colors.textPrimary, backgroundColor: agentUpTheme.colors.surfaceRaised, textAlignVertical: 'top' },
-  button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: agentUpTheme.colors.accent },
-  buttonText: { color: agentUpTheme.colors.canvas, fontWeight: '800' },
-  secondaryButton: { minHeight: 44, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface },
-  secondaryButtonText: { color: agentUpTheme.colors.textPrimary, fontWeight: '700' },
+  directoryName: { ...auText('muted'), fontWeight: '700' },
+  fileName: auText('workspaceName'),
+  label: { ...auText('heading'), fontSize: agentUpTheme.typography.sizeSm },
+  messageInput: { ...auBox('codeEditor'), textAlignVertical: 'top' },
+  button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
+  buttonText: auText('button'),
+  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: auText('buttonSecondary'),
   disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: agentUpTheme.colors.scrim },
-  dialog: { width: '100%', maxWidth: 620, maxHeight: '85%', padding: 18, borderRadius: 10, borderWidth: 1, borderColor: agentUpTheme.colors.borderSelected, backgroundColor: agentUpTheme.colors.surface, gap: 12 },
-  dialogTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 16, fontWeight: '800' },
+  modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
+  dialog: { ...auBox('card'), width: '100%', maxWidth: 620, maxHeight: '85%', gap: 12 },
+  dialogTitle: auText('heading'),
   diffScroll: { flexGrow: 0 },
-  diffText: { color: agentUpTheme.colors.textSecondary, fontSize: 12, fontFamily: 'monospace' },
+  diffText: auText('code'),
 });

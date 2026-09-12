@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 type WorkspaceDashboardScreenProps = {
   workspace: Workspace;
@@ -85,7 +85,7 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Open application ${application.name}`} onPress={onPress} style={styles.listCard}>
       <View style={styles.listHeader}>
-        <View style={[styles.stateDot, { backgroundColor: applicationStateColor(application.state) }]} />
+        <View style={applicationDot(application.state)} />
         <Text style={styles.listTitle}>{application.name}</Text>
       </View>
       <Text style={styles.listDetail}>{application.state}</Text>
@@ -93,41 +93,26 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
   );
 }
 
-function applicationStateColor(state: string): string {
-  if (state === 'Running') return agentUpTheme.colors.accent;
-  if (state === 'Starting' || state === 'Stopping') return agentUpTheme.colors.statusWarning;
-  if (state === 'Failed') return agentUpTheme.colors.statusDanger;
-  return agentUpTheme.colors.textFaint;
+function applicationDot(state: string) {
+  if (state === 'Running') return auBox('statusDot', 'statusDotHealthy');
+  if (state === 'Starting' || state === 'Stopping') return auBox('statusDot', 'statusDotWarning');
+  if (state === 'Failed') return auBox('statusDot', 'statusDotDanger');
+  return auBox('statusDot');
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 32, gap: 18 },
-  subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 14 },
-  error: { color: agentUpTheme.colors.statusDanger, lineHeight: 21 },
-  agentCard: {
-    padding: 18,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.accentSoft,
-    backgroundColor: agentUpTheme.colors.surfaceSelected,
-    gap: 8,
-  },
-  agentTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 22, fontWeight: '800' },
-  agentDetail: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
-  agentAction: { color: agentUpTheme.colors.accentSoft, fontWeight: '700' },
+  content: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8], gap: 18 },
+  subtitle: auText('muted'),
+  error: auText('badgeDanger'),
+  agentCard: { ...auBox('card', 'cardSelected'), gap: agentUpTheme.spacing[2] },
+  agentTitle: auText('heading'),
+  agentDetail: auText('muted'),
+  agentAction: auText('accent'),
   section: { gap: 10 },
-  sectionTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 18, fontWeight: '800' },
-  empty: { color: agentUpTheme.colors.textMuted, lineHeight: 21 },
-  listCard: {
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.surface,
-    gap: 4,
-  },
-  listHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stateDot: { width: 8, height: 8, borderRadius: 4 },
-  listTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 16, fontWeight: '700' },
-  listDetail: { color: agentUpTheme.colors.textMuted, fontSize: 13 },
+  sectionTitle: auText('heading'),
+  empty: auText('muted'),
+  listCard: { ...auBox('card'), gap: 4, paddingVertical: 14, paddingHorizontal: 14 },
+  listHeader: { flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
+  listTitle: { ...auText('workspaceName'), fontWeight: '700' },
+  listDetail: auText('workspaceBranch'),
 });

@@ -19,6 +19,49 @@ public class WindowChromeBehaviorTests
         Assert.That(application.TryFindResource("AgentUpColorAccentBrush", out var accent), Is.True);
         Assert.That(accent, Is.TypeOf<SolidColorBrush>());
         Assert.That(((SolidColorBrush)accent!).Color, Is.EqualTo(Color.Parse("#00b850")));
+        Assert.That(application.TryFindResource("AgentUpControlHeight", out var height), Is.True);
+        Assert.That(height, Is.EqualTo(44d));
+        Assert.That(application.TryFindResource("AgentUpCornerRadiusMd", out var radius), Is.True);
+        Assert.That(radius, Is.TypeOf<CornerRadius>());
+    }
+
+    [AvaloniaTest]
+    public void Application_appliesCanonicalButtonStyleInferredFromCss()
+    {
+        var window = new Window { Width = 200, Height = 80 };
+        var button = new Button { Classes = { "au-button" }, Content = "Start workspace" };
+        window.Content = button;
+        window.Show();
+
+        Assert.That(button.MinHeight, Is.EqualTo(44d));
+        Assert.That(button.Background, Is.TypeOf<SolidColorBrush>());
+        Assert.That(((SolidColorBrush)button.Background!).Color, Is.EqualTo(Color.Parse("#00b850")));
+    }
+
+    [AvaloniaTest]
+    public void Application_appliesCanonicalWorkspaceEntryStyleInferredFromCss()
+    {
+        var window = new Window { Width = 280, Height = 80 };
+        var entry = new Border { Classes = { "wsEntry" }, Width = 240, Height = 48 };
+        window.Content = entry;
+        window.Show();
+
+        Assert.That(entry.Background, Is.TypeOf<SolidColorBrush>());
+        Assert.That(((SolidColorBrush)entry.Background!).Color, Is.EqualTo(Color.Parse("#050505")));
+        Assert.That(entry.CornerRadius, Is.EqualTo(new CornerRadius(8)));
+    }
+
+    [AvaloniaTest]
+    public void Application_appliesCanonicalWorkspaceNameStyleInferredFromCss()
+    {
+        var window = new Window { Width = 280, Height = 80 };
+        var name = new TextBlock { Classes = { "wsName" }, Text = "checkout-fix" };
+        window.Content = name;
+        window.Show();
+
+        Assert.That(name.FontSize, Is.EqualTo(14d));
+        Assert.That(name.Foreground, Is.TypeOf<SolidColorBrush>());
+        Assert.That(((SolidColorBrush)name.Foreground!).Color, Is.EqualTo(Color.Parse("#f5fbf7")));
     }
 
     [AvaloniaTest]
