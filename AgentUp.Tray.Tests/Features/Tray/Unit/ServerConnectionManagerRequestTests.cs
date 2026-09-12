@@ -127,6 +127,21 @@ public sealed class ServerConnectionManagerRequestTests
         Assert.That(exchange.Requests.Last(), Is.EqualTo("POST /api/service/shutdown"));
     }
 
+    [Test]
+    public async Task StartAsync_linksTheCallersTokenSoItsCancellationStopsThePolling()
+    {
+        var exchange = FakeHttpExchange.Answering(HttpStatusCode.OK);
+        using var manager = new ServerConnectionManager(exchange.AsClient());
+        using var caller = new CancellationTokenSource();
+
+        await manager.StartAsync(caller.Token);
+        await exchange.FirstRequest;
+        await caller.CancelAsync();
+
+        // The loops observe the linked token, so the poll that was in flight is the last.
+        Assert.That(exchange.Requests.Last(), Is.EqualTo("GET /api/workspaces"));
+    }
+
     /// <summary>
     /// Awaits a published state. The manager replays its current state to new subscribers,
     /// so this cannot miss a transition that already happened.

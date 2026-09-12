@@ -119,4 +119,36 @@ public sealed class CoverageReportReaderTests
                 "A check with a single run is not dropped by the newest-run filter.");
         });
     }
+
+    [Test]
+    public async Task ReadAsync_readsAReportSittingDirectlyInTheReportDirectory()
+    {
+        // A report with no check folder of its own is its own group, so it is neither
+        // dropped nor treated as another check's superseded run.
+        var root = CreateRepository();
+        WriteReport(root, "artifacts/coverage", "AgentUp.Server/Program.cs",
+            """<line number="1" hits="1" />""");
+
+        var report = await Reader().ReadAsync(root, "artifacts/coverage", CancellationToken.None);
+
+        Assert.That(report.Find("AgentUp.Server/Program.cs")!.IsCovered(1), Is.True);
+    }
+
+    [Test]
+    public async Task ReadAsync_keepsARootReportAlongsideACheckFolder()
+    {
+        var root = CreateRepository();
+        WriteReport(root, "artifacts/coverage", "AgentUp.Server/Root.cs",
+            """<line number="1" hits="1" />""");
+        WriteReport(root, "artifacts/coverage/server/run", "AgentUp.Server/Nested.cs",
+            """<line number="1" hits="1" />""");
+
+        var report = await Reader().ReadAsync(root, "artifacts/coverage", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(report.Find("AgentUp.Server/Root.cs"), Is.Not.Null);
+            Assert.That(report.Find("AgentUp.Server/Nested.cs"), Is.Not.Null);
+        });
+    }
 }

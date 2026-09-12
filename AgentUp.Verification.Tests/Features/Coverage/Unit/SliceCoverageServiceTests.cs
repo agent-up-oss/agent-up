@@ -234,4 +234,18 @@ public sealed class SliceCoverageServiceTests
             Assert.That(result.Failing.Single().Slice, Is.EqualTo(GitSlice));
         });
     }
+
+    [Test]
+    public async Task MeasureAsync_ignoresAFileTooShallowToNameASlice()
+    {
+        // An entry point sits at the project root, so there is no slice segment to read.
+        var service = ServiceOver(
+            CoverageDomain.Configuration().WithSliceMinimum(70d).Build(),
+            new FileCoverageBuilder("AgentUp.Server/Program.cs").Uncovered(1, 2).Build(),
+            new FileCoverageBuilder(CoverageDomain.ServerSource).Covered(1).Build());
+
+        var result = await service.MeasureAsync(Root);
+
+        Assert.That(result.Slices.Select(slice => slice.Slice), Is.EqualTo(new[] { GitSlice }));
+    }
 }

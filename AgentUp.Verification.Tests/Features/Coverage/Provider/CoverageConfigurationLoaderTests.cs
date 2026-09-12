@@ -207,4 +207,51 @@ public sealed class CoverageConfigurationLoaderTests
         Assert.That(() => new CoverageConfigurationLoader().Load(root),
             Throws.InstanceOf<CoverageConfigurationException>());
     }
+
+    [Test]
+    public void Load_fallsBackToTheDefaultReportDirectoryWhenItIsNotAString()
+    {
+        // A mistyped value reads as absent rather than failing the load: the default is a
+        // safe place to look, and an empty report set is caught by the gate itself.
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "reportDirectory": 7, "include": ["a/**"] } }
+        """);
+
+        Assert.That(new CoverageConfigurationLoader().Load(root).ReportDirectory,
+            Is.EqualTo("artifacts/coverage"));
+    }
+
+    [Test]
+    public void Load_returnsEmptyWhenThereIsNoAgentUpJsonAtAll()
+    {
+        var root = Path.Join(
+            TestContext.CurrentContext.WorkDirectory, "coverage-config-none-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        Assert.That(new CoverageConfigurationLoader().Load(root).IsConfigured, Is.False);
+    }
+
+    [Test]
+    public void Load_throwsWhenTheCoverageSectionIsNotAnObject()
+    {
+        var root = WriteRepository("""{ "coverage": "yes please" }""");
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>().With.Message.Contains("must be an object"));
+    }
+
+    [TestCase("include")]
+    [TestCase("exclude")]
+    public void Load_throwsWhenAGlobListIsNotAnArray(string name)
+    {
+        // A string where a list belongs would otherwise read as no globs at all, which
+        // silently changes what the gate measures.
+        var root = WriteRepository($$"""
+        { "coverage": { "minimum": 90, "include": ["a/**"], "{{name}}": "a/**" } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>()
+                .With.Message.Contains($"coverage.{name}"));
+    }
 }
