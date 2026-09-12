@@ -260,6 +260,7 @@ jobs:
           add_reports agentup_server_tests AgentUp.Server.Tests
           add_reports agentup_tests AgentUp.Tests
           add_reports agentup_verification_tests AgentUp.Verification.Tests
+          add_reports agentup_browser_streaming_tests AgentUp.Browser.Streaming.Tests
 
       - name: Upload AgentUp.Architecture.Tests coverage
         uses: codecov/codecov-action@v5
@@ -368,6 +369,15 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
           flags: agentup-verification-tests
           name: AgentUp.Verification.Tests
+          fail_ci_if_error: true
+
+      - name: Upload AgentUp.Browser.Streaming.Tests coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_browser_streaming_tests }}
+          flags: agentup-browser-streaming-tests
+          name: AgentUp.Browser.Streaming.Tests
           fail_ci_if_error: true
           disable_search: true
 

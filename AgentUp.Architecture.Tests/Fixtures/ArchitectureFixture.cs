@@ -24,6 +24,7 @@ internal static class ArchitectureFixture
     public static readonly string[] TestProjects =
     [
         "AgentUp.Server.Tests",
+        "AgentUp.Browser.Streaming.Tests",
         "AgentUp.CommitPolicy.Tests",
         "AgentUp.Verification.Tests",
         "AgentUp.Capabilities.Abstractions.Tests",
