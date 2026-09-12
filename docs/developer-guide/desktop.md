@@ -190,6 +190,7 @@ registers no chrome items.
 
 Desktop queries `/api/auth/status` before loading workspace state. When the
 Server requires authentication it shows an in-window administrator sign-in page
-that gates the main UI and uses the returned bearer token for REST and
+that uses the catalog sign-in card, page title, and field label, then gates the
+main UI and uses the returned bearer token for REST and
 workspace-event requests. When the Server has authentication disabled, Desktop
 opens the main window directly.

@@ -47,7 +47,7 @@ public class WindowChromeBehaviorTests
         window.Show();
 
         Assert.That(entry.Background, Is.TypeOf<SolidColorBrush>());
-        Assert.That(((SolidColorBrush)entry.Background!).Color, Is.EqualTo(Color.Parse("#050505")));
+        Assert.That(((SolidColorBrush)entry.Background!).Color, Is.EqualTo(Color.Parse("#1c1c1c")));
         Assert.That(entry.CornerRadius, Is.EqualTo(new CornerRadius(8)));
     }
 

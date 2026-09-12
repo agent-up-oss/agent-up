@@ -33,10 +33,11 @@ audit delivery must never replace the connection result shown to the user.
 
 Mobile surfaces consume the canonical `@agent-up/design-system` React Native
 binding generated from the shared HTML/CSS contract. Screens apply `auBox` and
-`auText` for catalog components (workspace rows, cards, buttons, inputs, tabs)
-instead of restating fill, radius, or green borders from color tokens. Root
-application surfaces remain black through device safe areas so iOS status-bar
-and Dynamic Island insets do not expose a different background.
+`auText` for catalog components (workspace rows, sign-in card, page title,
+field labels, buttons, inputs, tabs) instead of restating fill, radius, or
+green borders from color tokens. Connect uses the same centered sign-in card
+as Desktop. Root application surfaces remain black through device safe areas so
+iOS status-bar and Dynamic Island insets do not expose a different background.
 
 ## Project structure
 

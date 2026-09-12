@@ -32,8 +32,8 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
 }
 
 const styles = StyleSheet.create({
-  content: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8], gap: agentUpTheme.spacing[3] },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: agentUpTheme.spacing[3] },
   subtitle: auText('muted'),
-  placeholder: auText('lede'),
+  placeholder: auText('muted'),
   status: auText('muted'),
 });

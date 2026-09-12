@@ -50,4 +50,5 @@ export declare function auText(...names: Array<string | false | null | undefined
   fontWeight?: '400' | '500' | '600' | '700' | '800';
   opacity?: number;
   fontFamily?: string;
+  textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';
 };

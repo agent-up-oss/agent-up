@@ -13,13 +13,13 @@
 
   /* Color: quiet structure, semantic green. */
   --au-color-canvas: #000000;
-  --au-color-surface: #050505;
-  --au-color-surface-raised: #0a0a0a;
-  --au-color-surface-hover: #111111;
+  --au-color-surface: #121212;
+  --au-color-surface-raised: #1c1c1c;
+  --au-color-surface-hover: #252525;
   --au-color-surface-selected: #0d4f32;
   --au-color-surface-selected-strong: #0f7a45;
-  --au-color-surface-selected-soft: #0f1a14;
-  --au-color-surface-input: #030303;
+  --au-color-surface-selected-soft: #102418;
+  --au-color-surface-input: #161616;
   --au-color-surface-danger: #140f0f;
   --au-color-border-subtle: #2b2b2b;
   --au-color-border-strong: #3c3c3c;
@@ -130,6 +130,16 @@
 .au-display { max-width: 15ch; font-size: var(--au-font-size-display); line-height: 0.98; font-weight: var(--au-weight-black); }
 .au-title { font-size: clamp(2rem, 5vw, 3.5rem); line-height: var(--au-line-tight); font-weight: var(--au-weight-black); }
 .au-heading { font-size: var(--au-font-size-lg); font-weight: var(--au-weight-bold); }
+.au-page-title { margin: 0; color: var(--au-color-text-primary); font-size: 1.375rem; line-height: 1.25; font-weight: var(--au-weight-bold); letter-spacing: -0.02em; }
+.au-field-label {
+  display: block;
+  margin: 0;
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-xs);
+  font-weight: var(--au-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .au-lede { max-width: 44rem; color: var(--au-color-text-secondary); font-size: clamp(1.05rem, 2vw, 1.25rem); line-height: 1.65; }
 .au-muted { color: var(--au-color-text-muted); }
 .au-mono { font-family: var(--au-font-mono); }
@@ -137,14 +147,14 @@
 
 .au-card {
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-surface-raised);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-md);
-  padding: var(--au-space-5);
+  padding: var(--au-space-4);
 }
 .au-card--selected {
   background: var(--au-color-surface-selected-soft);
-  border-color: var(--au-color-border-selected);
+  border-color: var(--au-color-border-subtle);
 }
 .au-card--danger {
   background: var(--au-color-surface-danger);
@@ -157,7 +167,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--au-space-2);
-  padding: 0.65rem 1rem;
+  padding: 0.75rem 1.5rem;
   border: 1px solid var(--au-color-transparent);
   border-radius: var(--au-radius-md);
   color: var(--au-color-on-accent);
@@ -179,9 +189,9 @@
 .au-input {
   width: 100%;
   min-height: var(--au-control-height);
-  padding: 0.65rem 0.75rem;
+  padding: 0.75rem 1rem;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-surface-input);
   border: 1px solid var(--au-color-border-strong);
   border-radius: var(--au-radius-md);
   font-family: var(--au-font-sans);

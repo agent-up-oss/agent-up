@@ -58,9 +58,15 @@ marketing-template checks pass.
 Desktop is the reference rendering:
 
 - Black is the uninterrupted canvas.
-- Neutral gray borders define structure.
+- Raised surfaces (`#121212` / `#1c1c1c`) sit on that canvas so cards, rails,
+  and fields read as Material containers rather than vanishing into the page.
+- Neutral gray borders define structure. Selected cards tint the fill; they do
+  not grow a green outline.
+- Product screens use `.au-page-title` (22px) and `.au-field-label` (12px).
+  Marketing `.au-title` and `.au-lede` stay on campaign pages.
 - Off-white and muted gray-green establish text hierarchy.
-- Green is limited to primary action, selection, progress, and healthy state.
+- Green is limited to primary action, the selected workspace fill, progress,
+  and healthy state.
 - Blue focus remains distinct from green success.
 - Red identifies errors, failures, and destructive actions.
 - Ambient neon glow, decorative green grids, and green borders around every
@@ -68,8 +74,9 @@ Desktop is the reference rendering:
 - Product UI and real product screenshots are preferred to speculative
   illustrations.
 
-Mobile translates that hierarchy to touch-safe control sizes. Documentation
-prioritizes reading. Marketing gets one focal point, one outcome, and a visible
+Mobile uses the same sign-in card, workspace row, and type scale as Desktop.
+Primary actions stay 44px; chrome stays compact. Documentation prioritizes
+reading. Marketing gets one focal point, one outcome, and a visible
 `Available`, `Preview`, `Experimental`, or `Planned` label when it describes a
 capability.
 

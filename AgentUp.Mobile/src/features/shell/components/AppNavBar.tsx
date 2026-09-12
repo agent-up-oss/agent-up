@@ -15,9 +15,7 @@ export function AppNavBar() {
         accessibilityLabel="Open sidebar"
         onPress={openSidebar}
         style={styles.stackButton}>
-        <Text style={styles.stackIcon}>▰</Text>
-        <Text style={styles.stackIcon}>▰</Text>
-        <Text style={styles.stackIcon}>▰</Text>
+        <Text style={styles.stackIcon}>☰</Text>
       </Pressable>
       <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{config.title}</Text>
       {rightAction
@@ -45,9 +43,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stackIcon: { ...auText('chromeIcon'), fontSize: 10, lineHeight: 8 },
+  stackIcon: { ...auText('chromeIcon'), fontSize: 16, lineHeight: 18 },
   title: {
-    ...auText('heading'),
+    ...auText('pageTitle'),
+    fontSize: agentUpTheme.typography.sizeMd,
     flex: 1,
   },
   rightButton: {

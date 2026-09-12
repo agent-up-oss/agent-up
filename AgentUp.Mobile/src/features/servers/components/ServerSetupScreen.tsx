@@ -56,29 +56,36 @@ export function ServerSetupScreen() {
   };
 
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-    <Text accessibilityRole="header" style={styles.title}>Connect to server</Text>
-    <Text style={styles.subtitle}>Sign in to an Agent-Up Server to open your workspaces.</Text>
     <View style={styles.card}>
-      <Text style={styles.heading}>Add a server</Text>
-      <Text style={styles.detail}>Use HTTPS for remote servers. Loopback HTTP URLs are allowed for local development. Login tokens stay in this client's local storage.</Text>
+      <Text style={styles.eyebrow}>Agent-Up Server</Text>
+      <Text accessibilityRole="header" style={styles.title}>{loginUrl ? 'Sign in' : 'Connect to server'}</Text>
+      <Text style={styles.subtitle}>
+        {loginUrl
+          ? 'Enter the administrator password to continue.'
+          : 'Sign in to an Agent-Up Server to open your workspaces.'}
+      </Text>
       <Text style={styles.label}>Server URL</Text>
       <TextInput accessibilityLabel="Server URL" autoCapitalize="none" autoCorrect={false} keyboardType="url"
         placeholder="https://agent-up.example.com" placeholderTextColor={agentUpTheme.colors.textFaint} value={url} onChangeText={setUrl}
         editable={!busy} onSubmitEditing={() => void tryAndSave()} style={styles.input} />
-      {loginUrl && <><Text style={styles.label}>Admin password</Text>
+      {loginUrl && <>
+        <Text style={styles.label}>Admin password</Text>
         <TextInput accessibilityLabel="Admin password" secureTextEntry value={password} onChangeText={setPassword}
-          editable={!busy} onSubmitEditing={() => void signIn()} style={styles.input} /></>}
-      <Pressable accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void tryAndSave()}
-        style={[styles.button, (busy || !url.trim()) && styles.disabled]}>
-        {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Try and save</Text>}
-      </Pressable>
-      {loginUrl && <Pressable accessibilityRole="button" disabled={busy || !password} onPress={() => void signIn()}
-        style={[styles.button, (busy || !password) && styles.disabled]}>
-        <Text style={styles.buttonText}>Sign in</Text></Pressable>}
+          editable={!busy} onSubmitEditing={() => void signIn()} style={styles.input} />
+      </>}
+                    {!loginUrl
+        ? <Pressable accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void tryAndSave()}
+            style={[styles.button, (busy || !url.trim()) && styles.disabled]}>
+            {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Try and save</Text>}
+          </Pressable>
+        : <Pressable accessibilityRole="button" disabled={busy || !password} onPress={() => void signIn()}
+            style={[styles.button, (busy || !password) && styles.disabled]}>
+            {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Sign in</Text>}
+          </Pressable>}
       {!!status && <Text accessibilityRole="alert" style={styles.status}>{status}</Text>}
     </View>
-    <View style={styles.current}><Text style={styles.currentLabel}>Current server</Text>
-      <Text style={styles.currentUrl}>{activeServer?.url ?? 'No server selected'}</Text></View>
+    <Text style={styles.currentLabel}>Current server</Text>
+    <Text style={styles.currentUrl}>{activeServer?.url ?? 'No server selected'}</Text>
   </ScrollView></SafeAreaView>;
 }
 
@@ -92,19 +99,24 @@ function tryNormalize(value: string): string | null {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[5], paddingTop: agentUpTheme.spacing[6], paddingBottom: agentUpTheme.spacing[8], gap: 18 },
-  title: auText('title'),
-  subtitle: auText('lede'),
-  card: { ...auBox('signIn'), gap: 14 },
-  heading: auText('heading'),
-  detail: auText('muted'),
-  label: { ...auText('heading'), fontSize: agentUpTheme.typography.sizeSm },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: agentUpTheme.spacing[6],
+    paddingBottom: agentUpTheme.spacing[8],
+    gap: agentUpTheme.spacing[3],
+  },
+  card: { ...auBox('signIn'), width: '100%', maxWidth: 416, gap: agentUpTheme.spacing[4] },
+  eyebrow: auText('eyebrow'),
+  title: auText('pageTitle'),
+  subtitle: auText('muted'),
+  label: auText('fieldLabel'),
   input: auBox('input'),
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
   disabled: { opacity: 0.38 },
   buttonText: auText('button'),
   status: auText('accent'),
-  current: auBox('callout'),
-  currentLabel: auText('eyebrow'),
-  currentUrl: auText('heading'),
+  currentLabel: { ...auText('fieldLabel'), width: '100%', maxWidth: 416 },
+  currentUrl: { ...auText('muted'), width: '100%', maxWidth: 416 },
 });

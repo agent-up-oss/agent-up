@@ -15,11 +15,13 @@ test('compiled native bindings retain canonical semantic roles and component sty
   assert.equal(agentUpTheme.typography.sizeSm, 14);
   assert.equal(agentUpTheme.components.button.backgroundColor, '#00b850');
   assert.equal(agentUpTheme.components.button.minHeight, 44);
-  assert.equal(agentUpTheme.components.workspace.backgroundColor, '#050505');
+  assert.equal(agentUpTheme.components.workspace.backgroundColor, '#1c1c1c');
   assert.equal(agentUpTheme.components.workspace.borderColor, '#00000000');
   assert.equal(agentUpTheme.components.workspaceSelected.backgroundColor, '#0f7a45');
   assert.equal(auBox('workspace', 'workspaceSelected').backgroundColor, '#0f7a45');
   assert.equal(auText('workspaceName').color, '#f5fbf7');
+  assert.equal(auText('pageTitle').fontSize, 22);
+  assert.equal(auBox('cardSelected').borderColor, '#2b2b2b');
   assert.equal(auBox('statusDot', 'statusDotHealthy').backgroundColor, '#22c55e');
 });
 

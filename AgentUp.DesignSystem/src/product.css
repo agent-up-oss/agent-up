@@ -38,10 +38,11 @@
 .au-workspace {
   display: flex;
   align-items: center;
-  gap: var(--au-space-2);
-  padding: var(--au-space-3);
+  gap: var(--au-space-3);
+  min-height: 3.5rem;
+  padding: 0.625rem 0.875rem;
   color: var(--au-color-text-secondary);
-  background: var(--au-color-surface);
+  background: var(--au-color-surface-raised);
   border: 1px solid var(--au-color-transparent);
   border-radius: var(--au-radius-md);
 }
@@ -64,6 +65,10 @@
   background: var(--au-color-canvas);
   border-right: 1px solid var(--au-color-border-subtle);
 }
+.au-drawer {
+  background: var(--au-color-surface-raised);
+  border-right: 1px solid var(--au-color-border-subtle);
+}
 .au-workspace-avatar {
   width: 2rem;
   height: 2rem;
@@ -82,14 +87,16 @@
 }
 .au-workspace-add:hover { background: var(--au-color-surface-selected); }
 .au-workspace-delete {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.5rem;
+  height: 1.5rem;
   margin-left: auto;
   padding: 0;
   color: var(--au-color-text-muted);
   background: var(--au-color-transparent);
   border: 0;
-  opacity: 0.55;
+  opacity: 0.7;
+  font-size: 1rem;
+  line-height: 1;
 }
 .au-workspace-delete:hover { opacity: 1; color: var(--au-color-text-danger); }
 .au-lifecycle-button {
@@ -248,7 +255,7 @@
 
 /* Auth / first-run */
 .au-sign-in {
-  max-width: 22rem;
+  width: min(100%, 26rem);
   padding: var(--au-space-6);
   color: var(--au-color-text-primary);
   background: var(--au-color-surface-raised);
@@ -336,9 +343,25 @@
   border-top: 1px solid var(--au-color-border-subtle);
 }
 .au-mobile-card {
-  padding: var(--au-space-5);
+  padding: var(--au-space-4);
   color: var(--au-color-text-primary);
   background: var(--au-color-surface);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-md);
+}
+
+.au-chip {
+  min-height: 2rem;
+  padding: 0.4375rem 0.8125rem;
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-transparent);
+  border: 0;
+  border-radius: var(--au-radius-pill);
+  font-size: var(--au-font-size-xs);
+  font-weight: var(--au-weight-semibold);
+}
+.au-chip:hover { background: var(--au-color-surface-raised); color: var(--au-color-text-primary); }
+.au-chip--selected {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-selected-strong);
 }

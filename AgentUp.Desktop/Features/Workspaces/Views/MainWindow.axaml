@@ -431,20 +431,21 @@
                             Classes="au-sign-in"
                             Width="420">
                         <StackPanel Spacing="16">
-                            <TextBlock Text="Agent-Up Server"
-                                       Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                                       FontSize="25"
-                                       FontWeight="Bold"/>
-                            <TextBlock Text="Enter the administrator password to continue."
-                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
-                                       FontSize="14"
+                            <TextBlock Classes="au-eyebrow"
+                                       Text="Agent-Up Server"/>
+                            <TextBlock Classes="au-page-title"
+                                       Text="Sign in"/>
+                            <TextBlock Classes="au-muted"
+                                       Text="Enter the administrator password to continue."
                                        TextWrapping="Wrap"
                                        IsVisible="{Binding !Login.IsConnectionRetry}"/>
-                            <TextBlock Text="Could not reach the server. Check that Agent-Up Server is running and AGENTUP_SERVER_URL is correct."
-                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
-                                       FontSize="14"
+                            <TextBlock Classes="au-muted"
+                                       Text="Could not reach the server. Check that Agent-Up Server is running and AGENTUP_SERVER_URL is correct."
                                        TextWrapping="Wrap"
                                        IsVisible="{Binding Login.IsConnectionRetry}"/>
+                            <TextBlock Classes="au-field-label"
+                                       Text="Admin password"
+                                       IsVisible="{Binding !Login.IsConnectionRetry}"/>
                             <TextBox Classes="au-input"
                                      Text="{Binding Login.Password, Mode=TwoWay}"
                                      PasswordChar="●"
@@ -495,10 +496,8 @@
                         IsVisible="{Binding Sidebar.IsExpanded}">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0"
+                                   Classes="au-eyebrow"
                                    Text="Workspaces"
-                                   Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
-                                   FontSize="11"
-                                   FontWeight="Bold"
                                    VerticalAlignment="Center"/>
                         <Button Grid.Column="1"
                                 x:Name="AddWorkspaceButton"
@@ -643,9 +642,8 @@
                 <!-- Loading -->
                 <TextBlock x:Name="LoadingIndicator"
                            IsVisible="{Binding Sidebar.IsLoading}"
+                           Classes="au-muted"
                            Text="Connecting to server…"
-                           Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
-                           FontSize="14"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
 
@@ -659,12 +657,10 @@
                             <TextBlock Text="{Binding Sidebar.ErrorMessage}"
                                        Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
                                        FontSize="13"/>
-                            <Button Command="{Binding Sidebar.RefreshCommand}"
-                                    HorizontalAlignment="Center">
-                                <Border Background="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}" CornerRadius="7" Padding="14,7">
-                                    <TextBlock Text="Retry" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="12"/>
-                                </Border>
-                            </Button>
+                            <Button Classes="au-button"
+                                    Command="{Binding Sidebar.RefreshCommand}"
+                                    HorizontalAlignment="Center"
+                                    Content="Retry"/>
                         </StackPanel>
                     </Border>
                 </Panel>
@@ -675,15 +671,13 @@
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Spacing="10">
-                    <TextBlock Text="No workspaces registered"
-                               Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
-                               FontSize="16"
-                               FontWeight="Medium"
+                    <TextBlock Classes="au-page-title"
+                               Text="No workspaces"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Run  agent-up register  in your project directory to get started."
-                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
-                               FontSize="12"
-                               HorizontalAlignment="Center"/>
+                    <TextBlock Classes="au-muted"
+                               Text="Clone a repository with + to get started."
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <!-- Workspace detail: app tabs + sub-navbar + content -->
@@ -813,15 +807,13 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Spacing="8">
-                                <TextBlock Text="No apps in this workspace"
-                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
-                                           FontSize="14"
-                                           FontWeight="Medium"
+                                <TextBlock Classes="au-page-title"
+                                           Text="No apps in this workspace"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock Text="Add an agent-up.json with an applications list."
-                                           Foreground="{DynamicResource AgentUpColorBorderStrongBrush}"
-                                           FontSize="11"
-                                           HorizontalAlignment="Center"/>
+                                <TextBlock Classes="au-muted"
+                                           Text="Add an agent-up.json with an applications list."
+                                           HorizontalAlignment="Center"
+                                           TextWrapping="Wrap"/>
                             </StackPanel>
 
                             <!-- Console output — populated by code-behind with a NativeWebView -->

@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   nameButton: { flexShrink: 1 },
   directoryName: { ...auText('muted'), fontWeight: '700' },
   fileName: auText('workspaceName'),
-  label: { ...auText('heading'), fontSize: agentUpTheme.typography.sizeSm },
+  label: auText('fieldLabel'),
   messageInput: { ...auBox('codeEditor'), textAlignVertical: 'top' },
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
   buttonText: auText('button'),
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.38 },
   modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
   dialog: { ...auBox('card'), width: '100%', maxWidth: 620, maxHeight: '85%', gap: 12 },
-  dialogTitle: auText('heading'),
+  dialogTitle: auText('pageTitle'),
   diffScroll: { flexGrow: 0 },
   diffText: auText('code'),
 });

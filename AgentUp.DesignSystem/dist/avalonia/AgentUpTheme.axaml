@@ -2,19 +2,19 @@
   <!-- Generated from src/agent-up.css by scripts/build.mjs. Do not edit. -->
   <Color x:Key="AgentUpColorCanvas">#000000</Color>
   <SolidColorBrush x:Key="AgentUpColorCanvasBrush" Color="{StaticResource AgentUpColorCanvas}"/>
-  <Color x:Key="AgentUpColorSurface">#050505</Color>
+  <Color x:Key="AgentUpColorSurface">#121212</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceBrush" Color="{StaticResource AgentUpColorSurface}"/>
-  <Color x:Key="AgentUpColorSurfaceRaised">#0a0a0a</Color>
+  <Color x:Key="AgentUpColorSurfaceRaised">#1c1c1c</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceRaisedBrush" Color="{StaticResource AgentUpColorSurfaceRaised}"/>
-  <Color x:Key="AgentUpColorSurfaceHover">#111111</Color>
+  <Color x:Key="AgentUpColorSurfaceHover">#252525</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceHoverBrush" Color="{StaticResource AgentUpColorSurfaceHover}"/>
   <Color x:Key="AgentUpColorSurfaceSelected">#0d4f32</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedBrush" Color="{StaticResource AgentUpColorSurfaceSelected}"/>
   <Color x:Key="AgentUpColorSurfaceSelectedStrong">#0f7a45</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedStrongBrush" Color="{StaticResource AgentUpColorSurfaceSelectedStrong}"/>
-  <Color x:Key="AgentUpColorSurfaceSelectedSoft">#0f1a14</Color>
+  <Color x:Key="AgentUpColorSurfaceSelectedSoft">#102418</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedSoftBrush" Color="{StaticResource AgentUpColorSurfaceSelectedSoft}"/>
-  <Color x:Key="AgentUpColorSurfaceInput">#030303</Color>
+  <Color x:Key="AgentUpColorSurfaceInput">#161616</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceInputBrush" Color="{StaticResource AgentUpColorSurfaceInput}"/>
   <Color x:Key="AgentUpColorSurfaceDanger">#140f0f</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceDangerBrush" Color="{StaticResource AgentUpColorSurfaceDanger}"/>

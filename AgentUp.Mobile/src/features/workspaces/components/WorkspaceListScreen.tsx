@@ -52,11 +52,11 @@ export function WorkspaceListScreen() {
           accessibilityLabel={`Select workspace ${workspace.displayName}`}
           onPress={() => selectWorkspace(workspace.id)}
           style={[styles.row, isSelected && styles.selectedRow]}>
+          <View style={stateDot(workspace.state)} />
           <View style={styles.cardHeader}>
-            <View style={stateDot(workspace.state)} />
             <Text numberOfLines={1} style={styles.cardTitle}>{workspace.displayName}</Text>
+            <Text numberOfLines={1} style={styles.cardBranch}>{workspace.branch}</Text>
           </View>
-          <Text numberOfLines={1} style={styles.cardBranch}>{workspace.branch}</Text>
         </Pressable>;
       })}
 
@@ -113,20 +113,20 @@ function stateDot(state: string) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[5], paddingTop: 78, paddingBottom: agentUpTheme.spacing[8], gap: 14 },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 10 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: auText('title'),
+  title: auText('pageTitle'),
   addButton: { ...auBox('workspaceAdd'), alignItems: 'center', justifyContent: 'center' },
   addIcon: auText('workspaceAdd'),
   subtitle: auText('muted'),
-  row: { ...auBox('workspace'), gap: 5 },
+  row: { ...auBox('workspace'), flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[3] },
   selectedRow: auBox('workspaceSelected'),
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
+  cardHeader: { flex: 1, gap: 2 },
   cardTitle: auText('workspaceName'),
   cardBranch: auText('workspaceBranch'),
   empty: auText('muted'),
   error: auText('badgeDanger'),
-  label: { ...auText('heading'), fontSize: agentUpTheme.typography.sizeSm },
+  label: auText('fieldLabel'),
   input: auBox('input'),
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
   buttonText: auText('button'),
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.38 },
   modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
   dialog: { ...auBox('card'), width: '100%', maxWidth: 480, gap: 10 },
-  dialogTitle: auText('heading'),
+  dialogTitle: auText('pageTitle'),
   dialogDetail: auText('muted'),
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
 });

@@ -1010,9 +1010,7 @@ tokens when a component style already exists. Never edit
 generated files under `AgentUp.DesignSystem/dist/`; change the canonical CSS or
 HTML catalog and regenerate them.
 
-Desktop is the reference rendering. Use black canvas, neutral structural borders,
-off-white hierarchy, and green only for action, selection, progress, or healthy
-state. Ambient neon glow, decorative green grids, and green outlines around every
+Desktop is the reference rendering. Use black canvas, raised gray surfaces so cards and fields read as containers, neutral structural borders, off-white hierarchy, and green only for action, selected workspace fill, progress, or healthy state. Product screens use page-title and field-label, not marketing display type. Selected cards tint; they do not outline in green. Ambient neon glow, decorative green grids, and green outlines around every
 surface are retired. Public claims must follow the naming, positioning, and
 `Available`/`Preview`/`Experimental`/`Planned` lifecycle language in
 `AgentUp.DesignSystem/brand/voice.json`. Real current product screenshots are

@@ -62,9 +62,9 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { flex: 1 },
-  chatContent: { padding: agentUpTheme.spacing[5], gap: agentUpTheme.spacing[3] },
-  changesContent: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8] },
-  chatTitle: auText('heading'),
+  chatContent: { padding: agentUpTheme.spacing[4], gap: agentUpTheme.spacing[3] },
+  changesContent: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8] },
+  chatTitle: auText('pageTitle'),
   chatPlaceholder: auText('muted'),
   bottomBar: {
     ...auBox('mobileTabBar'),

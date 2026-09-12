@@ -23,8 +23,9 @@
     </article>
     <article data-au-component="type" data-au-title="Typography" data-au-note="Applications use platform sans-serif at these roles. Authored web uses Inter." data-au-avalonia="TextBlock" data-au-class="au-heading">
       <p class="au-eyebrow">AI-assisted development workspaces</p>
+      <h1 class="au-page-title">Workspaces</h1>
       <h2 class="au-heading">See the runtime. Trust the review.</h2>
-      <p class="au-muted">Monospace is reserved for commands, paths, ports, logs, and diffs.</p>
+      <p class="au-muted">Product screens use page title, not the marketing display size. Monospace is reserved for commands, paths, ports, logs, and diffs.</p>
       <code class="au-mono">agentup start · localhost:11200 · feat/checkout</code>
     </article>
   </section>
@@ -39,7 +40,7 @@
       </div>
     </article>
     <article data-au-component="input" data-au-title="Field" data-au-note="Focus uses blue, not green, so keyboard state stays distinct from health." data-au-avalonia="TextBox" data-au-class="au-input">
-      <label class="au-stack"><strong>Server URL</strong><input class="au-input" placeholder="https://agent-up.example.com" /></label>
+      <label class="au-stack"><span class="au-field-label">Server URL</span><input class="au-input" placeholder="https://agent-up.example.com" /></label>
     </article>
     <article data-au-component="badge" data-au-title="Badges and status" data-au-note="Combine color with a label. Do not use a green dot alone." data-au-avalonia="Border" data-au-class="au-badge">
       <div class="au-cluster">
@@ -55,7 +56,7 @@
         <span class="au-checkbox au-checkbox--checked"></span>
       </div>
     </article>
-    <article data-au-component="card" data-au-title="Cards" data-au-note="Idle cards use a neutral border. Selected may tint; failed cards use danger, not accent." data-au-avalonia="Border" data-au-class="au-card">
+    <article data-au-component="card" data-au-title="Cards" data-au-note="Idle cards use a raised surface and a neutral border. Selected tints the fill; do not outline cards in accent green." data-au-avalonia="Border" data-au-class="au-card">
       <div class="au-grid">
         <div class="au-card"><strong>Idle surface</strong><p class="au-muted">Neutral structure.</p></div>
         <div class="au-card au-card--selected"><strong>Selected</strong><p class="au-muted">Green means this item is active.</p></div>
@@ -144,10 +145,10 @@
         </div>
       </div>
     </article>
-    <article data-au-component="workspace-name" data-au-title="Workspace name" data-au-note="The title is primary text at the small size. Do not restyle it per surface." data-au-avalonia="TextBlock" data-au-class="au-workspace-name" data-au-desktop-class="wsName">
+    <article data-au-component="workspace-name" data-au-title="Workspace name" data-au-note="The title lives inside the workspace row. Do not restyle it per surface." data-au-avalonia="TextBlock" data-au-class="au-workspace-name" data-au-desktop-class="wsName">
       <strong class="au-workspace-name">checkout-fix</strong>
     </article>
-    <article data-au-component="workspace-branch" data-au-title="Workspace branch" data-au-note="The subtitle stays muted." data-au-avalonia="TextBlock" data-au-class="au-workspace-branch" data-au-desktop-class="wsBranch">
+    <article data-au-component="workspace-branch" data-au-title="Workspace branch" data-au-note="The subtitle stays muted inside the same row." data-au-avalonia="TextBlock" data-au-class="au-workspace-branch" data-au-desktop-class="wsBranch">
       <small class="au-workspace-branch">feat/checkout</small>
     </article>
     <article data-au-component="workspace-avatar" data-au-title="Collapsed avatar" data-au-note="Collapsed rail repeats selected/hover using the same semantic fills." data-au-avalonia="Border" data-au-class="au-workspace-avatar" data-au-desktop-class="wsAvatar" data-au-desktop-host="ListBoxItem">
@@ -273,7 +274,8 @@ ready in 842 ms</pre>
     <article data-au-component="sign-in" data-au-title="Sign-in card" data-au-note="The focused field uses platform/focus blue. The card border stays neutral." data-au-avalonia="Border" data-au-class="au-sign-in">
       <form class="au-sign-in au-stack">
         <p class="au-eyebrow">Agent-Up Desktop</p>
-        <h2 class="au-heading">Sign in</h2>
+        <h2 class="au-page-title">Sign in</h2>
+        <span class="au-field-label">Admin password</span>
         <input class="au-input" placeholder="Administrator password" />
         <button class="au-button" type="button">Sign in</button>
       </form>
@@ -307,6 +309,9 @@ ready in 842 ms</pre>
   <section data-au-surface="mobile" data-au-title="Mobile" data-au-intro="Mobile uses the same catalog components as Desktop. Primary actions stay 44px; compact chrome keeps catalog size.">
     <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline." data-au-avalonia="Border" data-au-class="au-mobile-bar">
       <div class="au-mobile-bar au-cluster"><strong>Workspaces</strong></div>
+    </article>
+    <article data-au-component="drawer" data-au-title="Navigation drawer" data-au-note="The Mobile overlay rail is a raised surface over the canvas. Desktop keeps the canvas rail because it is already a pane." data-au-avalonia="Border" data-au-class="au-drawer">
+      <div class="au-drawer" style="padding: 1rem; min-height: 8rem;">Workspaces</div>
     </article>
     <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Selected tabs use the catalog subtab selected fill." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
       <div class="au-mobile-tab-bar au-cluster">

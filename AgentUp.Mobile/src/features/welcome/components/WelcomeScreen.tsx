@@ -7,10 +7,10 @@ export function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.card}>
+        <Text style={styles.eyebrow}>Agent-Up</Text>
         <Text accessibilityRole="header" style={styles.title}>
-          Agent-Up
+          Your development workspaces
         </Text>
-        <Text style={styles.subtitle}>Your development workspaces, wherever you are.</Text>
         <Text style={styles.detail}>
           Expo client ready for Android, iOS, and the installable web app.
         </Text>
@@ -29,12 +29,12 @@ const styles = StyleSheet.create({
     backgroundColor: agentUpTheme.colors.canvas,
   },
   card: {
-    ...auBox('card'),
+    ...auBox('signIn'),
     width: '100%',
-    maxWidth: 560,
+    maxWidth: 416,
     gap: agentUpTheme.spacing[3],
   },
-  title: auText('title'),
-  subtitle: auText('heading'),
+  eyebrow: auText('eyebrow'),
+  title: auText('pageTitle'),
   detail: auText('muted'),
 });

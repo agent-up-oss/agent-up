@@ -101,18 +101,18 @@ function applicationDot(state: string) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8], gap: 18 },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
   subtitle: auText('muted'),
   error: auText('badgeDanger'),
-  agentCard: { ...auBox('card', 'cardSelected'), gap: agentUpTheme.spacing[2] },
-  agentTitle: auText('heading'),
+  agentCard: { ...auBox('card'), gap: agentUpTheme.spacing[2], alignSelf: 'stretch' },
+  agentTitle: auText('pageTitle'),
   agentDetail: auText('muted'),
   agentAction: auText('accent'),
   section: { gap: 10 },
-  sectionTitle: auText('heading'),
+  sectionTitle: auText('fieldLabel'),
   empty: auText('muted'),
-  listCard: { ...auBox('card'), gap: 4, paddingVertical: 14, paddingHorizontal: 14 },
+  listCard: { ...auBox('workspace'), flexDirection: 'column', gap: 2 },
   listHeader: { flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
-  listTitle: { ...auText('workspaceName'), fontWeight: '700' },
+  listTitle: auText('workspaceName'),
   listDetail: auText('workspaceBranch'),
 });

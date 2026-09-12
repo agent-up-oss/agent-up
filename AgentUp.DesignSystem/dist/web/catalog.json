@@ -42,11 +42,12 @@
           "rootClass": "au-heading",
           "classes": [
             "au-eyebrow",
+            "au-page-title",
             "au-heading",
             "au-muted",
             "au-mono"
           ],
-          "html": "<p class=\"au-eyebrow\">AI-assisted development workspaces</p>\n      <h2 class=\"au-heading\">See the runtime. Trust the review.</h2>\n      <p class=\"au-muted\">Monospace is reserved for commands, paths, ports, logs, and diffs.</p>\n      <code class=\"au-mono\">agentup start · localhost:11200 · feat/checkout</code>"
+          "html": "<p class=\"au-eyebrow\">AI-assisted development workspaces</p>\n      <h1 class=\"au-page-title\">Workspaces</h1>\n      <h2 class=\"au-heading\">See the runtime. Trust the review.</h2>\n      <p class=\"au-muted\">Product screens use page title, not the marketing display size. Monospace is reserved for commands, paths, ports, logs, and diffs.</p>\n      <code class=\"au-mono\">agentup start · localhost:11200 · feat/checkout</code>"
         }
       ]
     },
@@ -82,9 +83,10 @@
           "rootClass": "au-input",
           "classes": [
             "au-stack",
+            "au-field-label",
             "au-input"
           ],
-          "html": "<label class=\"au-stack\"><strong>Server URL</strong><input class=\"au-input\" placeholder=\"https://agent-up.example.com\" /></label>"
+          "html": "<label class=\"au-stack\"><span class=\"au-field-label\">Server URL</span><input class=\"au-input\" placeholder=\"https://agent-up.example.com\" /></label>"
         },
         {
           "id": "badge",
@@ -127,7 +129,7 @@
         {
           "id": "card",
           "title": "Cards",
-          "note": "Idle cards use a neutral border. Selected may tint; failed cards use danger, not accent.",
+          "note": "Idle cards use a raised surface and a neutral border. Selected tints the fill; do not outline cards in accent green.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -289,7 +291,7 @@
         {
           "id": "workspace-name",
           "title": "Workspace name",
-          "note": "The title is primary text at the small size. Do not restyle it per surface.",
+          "note": "The title lives inside the workspace row. Do not restyle it per surface.",
           "avalonia": "TextBlock",
           "desktopClass": "wsName",
           "desktopHost": "",
@@ -302,7 +304,7 @@
         {
           "id": "workspace-branch",
           "title": "Workspace branch",
-          "note": "The subtitle stays muted.",
+          "note": "The subtitle stays muted inside the same row.",
           "avalonia": "TextBlock",
           "desktopClass": "wsBranch",
           "desktopHost": "",
@@ -644,11 +646,12 @@
             "au-sign-in",
             "au-stack",
             "au-eyebrow",
-            "au-heading",
+            "au-page-title",
+            "au-field-label",
             "au-input",
             "au-button"
           ],
-          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Desktop</p>\n        <h2 class=\"au-heading\">Sign in</h2>\n        <input class=\"au-input\" placeholder=\"Administrator password\" />\n        <button class=\"au-button\" type=\"button\">Sign in</button>\n      </form>"
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Desktop</p>\n        <h2 class=\"au-page-title\">Sign in</h2>\n        <span class=\"au-field-label\">Admin password</span>\n        <input class=\"au-input\" placeholder=\"Administrator password\" />\n        <button class=\"au-button\" type=\"button\">Sign in</button>\n      </form>"
         },
         {
           "id": "tutorial",
@@ -747,6 +750,19 @@
             "au-cluster"
           ],
           "html": "<div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>"
+        },
+        {
+          "id": "drawer",
+          "title": "Navigation drawer",
+          "note": "The Mobile overlay rail is a raised surface over the canvas. Desktop keeps the canvas rail because it is already a pane.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-drawer",
+          "classes": [
+            "au-drawer"
+          ],
+          "html": "<div class=\"au-drawer\" style=\"padding: 1rem; min-height: 8rem;\">Workspaces</div>"
         },
         {
           "id": "mobile-tab-bar",

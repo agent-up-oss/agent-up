@@ -5,13 +5,13 @@ namespace AgentUp.Desktop.Shared.Models;
 internal static class AgentUpThemeColors
 {
     internal const string Canvas = "#000000";
-    internal const string Surface = "#050505";
-    internal const string SurfaceRaised = "#0a0a0a";
-    internal const string SurfaceHover = "#111111";
+    internal const string Surface = "#121212";
+    internal const string SurfaceRaised = "#1c1c1c";
+    internal const string SurfaceHover = "#252525";
     internal const string SurfaceSelected = "#0d4f32";
     internal const string SurfaceSelectedStrong = "#0f7a45";
-    internal const string SurfaceSelectedSoft = "#0f1a14";
-    internal const string SurfaceInput = "#030303";
+    internal const string SurfaceSelectedSoft = "#102418";
+    internal const string SurfaceInput = "#161616";
     internal const string SurfaceDanger = "#140f0f";
     internal const string BorderSubtle = "#2b2b2b";
     internal const string BorderStrong = "#3c3c3c";

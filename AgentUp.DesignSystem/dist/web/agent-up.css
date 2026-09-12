@@ -13,13 +13,13 @@
 
   /* Color: quiet structure, semantic green. */
   --au-color-canvas: #000000;
-  --au-color-surface: #050505;
-  --au-color-surface-raised: #0a0a0a;
-  --au-color-surface-hover: #111111;
+  --au-color-surface: #121212;
+  --au-color-surface-raised: #1c1c1c;
+  --au-color-surface-hover: #252525;
   --au-color-surface-selected: #0d4f32;
   --au-color-surface-selected-strong: #0f7a45;
-  --au-color-surface-selected-soft: #0f1a14;
-  --au-color-surface-input: #030303;
+  --au-color-surface-selected-soft: #102418;
+  --au-color-surface-input: #161616;
   --au-color-surface-danger: #140f0f;
   --au-color-border-subtle: #2b2b2b;
   --au-color-border-strong: #3c3c3c;
@@ -130,6 +130,16 @@
 .au-display { max-width: 15ch; font-size: var(--au-font-size-display); line-height: 0.98; font-weight: var(--au-weight-black); }
 .au-title { font-size: clamp(2rem, 5vw, 3.5rem); line-height: var(--au-line-tight); font-weight: var(--au-weight-black); }
 .au-heading { font-size: var(--au-font-size-lg); font-weight: var(--au-weight-bold); }
+.au-page-title { margin: 0; color: var(--au-color-text-primary); font-size: 1.375rem; line-height: 1.25; font-weight: var(--au-weight-bold); letter-spacing: -0.02em; }
+.au-field-label {
+  display: block;
+  margin: 0;
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-xs);
+  font-weight: var(--au-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .au-lede { max-width: 44rem; color: var(--au-color-text-secondary); font-size: clamp(1.05rem, 2vw, 1.25rem); line-height: 1.65; }
 .au-muted { color: var(--au-color-text-muted); }
 .au-mono { font-family: var(--au-font-mono); }
@@ -137,14 +147,14 @@
 
 .au-card {
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-surface-raised);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-md);
-  padding: var(--au-space-5);
+  padding: var(--au-space-4);
 }
 .au-card--selected {
   background: var(--au-color-surface-selected-soft);
-  border-color: var(--au-color-border-selected);
+  border-color: var(--au-color-border-subtle);
 }
 .au-card--danger {
   background: var(--au-color-surface-danger);
@@ -157,7 +167,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--au-space-2);
-  padding: 0.65rem 1rem;
+  padding: 0.75rem 1.5rem;
   border: 1px solid var(--au-color-transparent);
   border-radius: var(--au-radius-md);
   color: var(--au-color-on-accent);
@@ -179,9 +189,9 @@
 .au-input {
   width: 100%;
   min-height: var(--au-control-height);
-  padding: 0.65rem 0.75rem;
+  padding: 0.75rem 1rem;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-surface-input);
   border: 1px solid var(--au-color-border-strong);
   border-radius: var(--au-radius-md);
   font-family: var(--au-font-sans);
@@ -351,10 +361,11 @@
 .au-workspace {
   display: flex;
   align-items: center;
-  gap: var(--au-space-2);
-  padding: var(--au-space-3);
+  gap: var(--au-space-3);
+  min-height: 3.5rem;
+  padding: 0.625rem 0.875rem;
   color: var(--au-color-text-secondary);
-  background: var(--au-color-surface);
+  background: var(--au-color-surface-raised);
   border: 1px solid var(--au-color-transparent);
   border-radius: var(--au-radius-md);
 }
@@ -377,6 +388,10 @@
   background: var(--au-color-canvas);
   border-right: 1px solid var(--au-color-border-subtle);
 }
+.au-drawer {
+  background: var(--au-color-surface-raised);
+  border-right: 1px solid var(--au-color-border-subtle);
+}
 .au-workspace-avatar {
   width: 2rem;
   height: 2rem;
@@ -395,14 +410,16 @@
 }
 .au-workspace-add:hover { background: var(--au-color-surface-selected); }
 .au-workspace-delete {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.5rem;
+  height: 1.5rem;
   margin-left: auto;
   padding: 0;
   color: var(--au-color-text-muted);
   background: var(--au-color-transparent);
   border: 0;
-  opacity: 0.55;
+  opacity: 0.7;
+  font-size: 1rem;
+  line-height: 1;
 }
 .au-workspace-delete:hover { opacity: 1; color: var(--au-color-text-danger); }
 .au-lifecycle-button {
@@ -561,7 +578,7 @@
 
 /* Auth / first-run */
 .au-sign-in {
-  max-width: 22rem;
+  width: min(100%, 26rem);
   padding: var(--au-space-6);
   color: var(--au-color-text-primary);
   background: var(--au-color-surface-raised);
@@ -649,9 +666,25 @@
   border-top: 1px solid var(--au-color-border-subtle);
 }
 .au-mobile-card {
-  padding: var(--au-space-5);
+  padding: var(--au-space-4);
   color: var(--au-color-text-primary);
   background: var(--au-color-surface);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-md);
+}
+
+.au-chip {
+  min-height: 2rem;
+  padding: 0.4375rem 0.8125rem;
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-transparent);
+  border: 0;
+  border-radius: var(--au-radius-pill);
+  font-size: var(--au-font-size-xs);
+  font-weight: var(--au-weight-semibold);
+}
+.au-chip:hover { background: var(--au-color-surface-raised); color: var(--au-color-text-primary); }
+.au-chip--selected {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-selected-strong);
 }

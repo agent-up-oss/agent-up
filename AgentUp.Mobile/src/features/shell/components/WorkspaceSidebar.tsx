@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   modal: { flex: 1, flexDirection: 'row' },
   scrim: { position: 'absolute', inset: 0, ...auBox('scrim') },
   sidebar: {
-    ...auBox('rail'),
+    ...auBox('drawer'),
     width: 280,
     height: '100%',
     paddingHorizontal: agentUpTheme.spacing[4],

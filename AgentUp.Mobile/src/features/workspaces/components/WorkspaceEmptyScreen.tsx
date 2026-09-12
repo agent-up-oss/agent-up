@@ -43,15 +43,18 @@ export function WorkspaceEmptyScreen() {
   return (
     <>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.subtitle}>
-          {server ? `Connected to ${server.url}` : 'Connect to a server to manage workspaces.'}
-        </Text>
-        {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
-        {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-        <Text style={styles.empty}>No workspaces on this server yet. Clone a repository to get started.</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Reload workspaces" onPress={() => void refresh()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Reload</Text>
-        </Pressable>
+        <View style={styles.card}>
+          <Text accessibilityRole="header" style={styles.title}>No workspaces</Text>
+          <Text style={styles.empty}>Clone a repository with Add to get started.</Text>
+          <Text style={styles.subtitle}>
+            {server ? `Connected to ${server.url}` : 'Connect to a server to manage workspaces.'}
+          </Text>
+          {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
+          {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+          <Pressable accessibilityRole="button" accessibilityLabel="Reload workspaces" onPress={() => void refresh()} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Reload</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
@@ -88,20 +91,29 @@ export function WorkspaceEmptyScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: agentUpTheme.spacing[5], paddingBottom: agentUpTheme.spacing[8], gap: 14 },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: agentUpTheme.spacing[6],
+    paddingBottom: agentUpTheme.spacing[8],
+    gap: 14,
+  },
+  card: { ...auBox('signIn'), width: '100%', maxWidth: 416, gap: agentUpTheme.spacing[3] },
+  title: auText('pageTitle'),
   subtitle: auText('muted'),
   empty: auText('muted'),
   error: auText('badgeDanger'),
-  label: { ...auText('heading'), fontSize: agentUpTheme.typography.sizeSm },
+  label: auText('fieldLabel'),
   input: auBox('input'),
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
   buttonText: auText('button'),
-  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
+  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
   secondaryButtonText: auText('buttonSecondary'),
   disabled: { opacity: 0.38 },
   modalScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
   dialog: { ...auBox('card'), width: '100%', maxWidth: 480, gap: 10 },
-  dialogTitle: auText('heading'),
+  dialogTitle: auText('pageTitle'),
   dialogDetail: auText('muted'),
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
 });
