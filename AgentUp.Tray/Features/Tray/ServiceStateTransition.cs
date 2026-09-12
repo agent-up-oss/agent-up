@@ -12,15 +12,20 @@ public static class ServiceStateTransition
     /// <summary>
     /// The state to publish, or null when the poll result changes nothing.
     /// </summary>
+    /// <remarks>
+    /// A reachable server means Connected from any state, Restarting included. Holding
+    /// Restarting until a poll fails - which the loop this replaced did - leaves the tray
+    /// stuck whenever a restart is quick enough that no poll ever fails: the label stays
+    /// "Restarting..." and, because restart is only offered while Connected, the menu item
+    /// stays disabled for the life of the process. A brief "Running" while the old server
+    /// answers its last poll is the cheaper wrong answer, and it corrects itself.
+    /// </remarks>
     public static ServiceState? Next(ServiceState current, bool pollSucceeded)
     {
-        // A successful poll during a restart is ignored: the restart is not finished until
-        // a later poll, and reporting Connected mid-restart would flicker the menu.
-        // Connected is republished on every success, matching the loop this replaced.
-        if (pollSucceeded && current != ServiceState.Restarting)
+        if (pollSucceeded)
             return ServiceState.Connected;
 
-        if (!pollSucceeded && current is ServiceState.Connected or ServiceState.Restarting)
+        if (current is ServiceState.Connected or ServiceState.Restarting)
             return ServiceState.Disconnected;
 
         return null;

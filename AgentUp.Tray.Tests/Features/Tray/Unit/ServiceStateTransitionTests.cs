@@ -8,6 +8,7 @@ public sealed class ServiceStateTransitionTests
     [TestCase(ServiceState.Connecting)]
     [TestCase(ServiceState.Connected)]
     [TestCase(ServiceState.Disconnected)]
+    [TestCase(ServiceState.Restarting)]
     public void Next_reportsConnectedWhenAPollSucceeds(ServiceState current)
     {
         Assert.That(ServiceStateTransition.Next(current, pollSucceeded: true),
@@ -15,11 +16,33 @@ public sealed class ServiceStateTransitionTests
     }
 
     [Test]
-    public void Next_ignoresASuccessfulPollDuringARestart()
+    public void Next_leavesRestartingAsSoonAsTheServerAnswers()
     {
-        // The restart is not finished until a later poll; reporting Connected mid-restart
-        // would flicker the menu back and forth.
-        Assert.That(ServiceStateTransition.Next(ServiceState.Restarting, pollSucceeded: true), Is.Null);
+        // A restart quick enough that no poll ever fails must not strand the tray. Holding
+        // Restarting until a failure did: the label stayed "Restarting..." and the restart
+        // item, offered only while Connected, stayed disabled for the life of the process.
+        var afterRestart = ServiceStateTransition.Next(ServiceState.Restarting, pollSucceeded: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(afterRestart, Is.EqualTo(ServiceState.Connected));
+            Assert.That(ServiceStateTransition.ShouldHeartbeat(afterRestart!.Value), Is.True,
+                "Heartbeats have to resume, or the server stops seeing the tray.");
+        });
+    }
+
+    [Test]
+    public void Next_recoversFromARestartThatTookTheServerDown()
+    {
+        // The other restart shape: the server stops answering, then comes back.
+        var down = ServiceStateTransition.Next(ServiceState.Restarting, pollSucceeded: false);
+        var up = ServiceStateTransition.Next(down!.Value, pollSucceeded: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(down, Is.EqualTo(ServiceState.Disconnected));
+            Assert.That(up, Is.EqualTo(ServiceState.Connected));
+        });
     }
 
     [TestCase(ServiceState.Connected)]

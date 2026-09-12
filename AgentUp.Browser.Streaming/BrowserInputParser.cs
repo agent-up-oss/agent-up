@@ -64,13 +64,42 @@ public sealed class BrowserInputParser
     private static decimal Coordinate(JsonElement root, BrowserInputKind kind, string property)
         => kind is BrowserInputKind.MouseMove or BrowserInputKind.MouseDown
                 or BrowserInputKind.MouseUp or BrowserInputKind.Click
-            ? (decimal)root.GetProperty(property).GetDouble()
+            ? Number(root, property)
             : 0m;
 
     private static decimal Delta(JsonElement root, BrowserInputKind kind, string property)
         => kind == BrowserInputKind.Wheel
-            ? (decimal)root.GetProperty(property).GetDouble()
+            ? Number(root, property)
             : 0m;
+
+    /// <summary>
+    /// Reads a number the command can actually carry.
+    /// </summary>
+    /// <remarks>
+    /// A number outside decimal's range is a malformed message, so it is rejected the way a
+    /// missing property is rather than clamped: acting on part of a malformed message is
+    /// what the dispatcher's catch exists to prevent. It has to be rejected as a
+    /// JsonException, because the two exceptions this replaces - System.Text.Json's
+    /// FormatException for a double it cannot represent, and the decimal cast's
+    /// OverflowException - are outside the dispatcher's filter, so a client sending
+    /// {"type":"click","x":1e308} faulted the dispatch task instead of dropping one frame.
+    /// </remarks>
+    private static decimal Number(JsonElement root, string property)
+    {
+        var value = root.GetProperty(property);
+
+        // Strict bounds: a double below (double)decimal.MaxValue is at most the next
+        // representable double down, which is far inside decimal's range, so the cast
+        // cannot overflow.
+        if (!value.TryGetDouble(out var number)
+            || double.IsNaN(number)
+            || Math.Abs(number) >= (double)decimal.MaxValue)
+        {
+            throw new JsonException($"'{property}' is not a number this input can carry.");
+        }
+
+        return (decimal)number;
+    }
 
     private static string Text(
         JsonElement root,
@@ -89,11 +118,25 @@ public sealed class BrowserInputParser
             _ => MouseButton.Left
         };
 
+    /// <summary>
+    /// A click count outside int range falls back to a single click rather than throwing:
+    /// it refines the gesture instead of aiming it, so one click is a safe reading of a
+    /// nonsense value.
+    /// </summary>
     private static int ClickCountOf(JsonElement root)
-        => root.TryGetProperty("clickCount", out var count) ? count.GetInt32() : 1;
+        => root.TryGetProperty("clickCount", out var count) && count.TryGetInt32(out var clicks)
+            ? clicks
+            : 1;
 
+    /// <summary>
+    /// An out-of-range viewport dimension reads as absent, which leaves the viewport
+    /// untouched. TryGetInt32 rather than GetInt32: the latter throws FormatException for a
+    /// number too large for an int, and the dispatcher does not catch that.
+    /// </summary>
     private static int? OptionalInt(JsonElement root, string property)
-        => root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Number
-            ? value.GetInt32()
+        => root.TryGetProperty(property, out var value)
+           && value.ValueKind == JsonValueKind.Number
+           && value.TryGetInt32(out var number)
+            ? number
             : null;
 }

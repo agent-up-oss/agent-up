@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentUp.Browser.Streaming.Models;
 using AgentUp.Browser.Streaming.Tests.Support;
 using PuppeteerSharp.Input;
@@ -202,5 +203,70 @@ public sealed class BrowserInputParserTests
     {
         Assert.That(() => new BrowserInputParser().Parse("{ not json"),
             Throws.InstanceOf<System.Text.Json.JsonException>());
+    }
+
+    /// <summary>
+    /// The exception types BrowserInputDispatcher catches. Anything else escaping the
+    /// parser faults the dispatch task instead of dropping one malformed frame, and the
+    /// input arrives from a streaming client, so it is not trustworthy.
+    /// </summary>
+    private static readonly Type[] DroppedByTheDispatcher =
+    [
+        typeof(JsonException),
+        typeof(KeyNotFoundException),
+        typeof(InvalidOperationException),
+        typeof(OperationCanceledException)
+    ];
+
+    [TestCase("""{"type":"click","x":1e309,"y":0}""")]
+    [TestCase("""{"type":"click","x":1e308,"y":0}""")]
+    [TestCase("""{"type":"click","x":-1e308,"y":0}""")]
+    [TestCase("""{"type":"mousemove","x":0,"y":1e308}""")]
+    [TestCase("""{"type":"wheel","deltaX":1e308,"deltaY":0}""")]
+    [TestCase("""{"type":"click","x":"nonsense","y":0}""")]
+    [TestCase("""{"type":"click"}""")]
+    [TestCase("""{"type":5}""")]
+    [TestCase("""{}""")]
+    [TestCase("""[]""")]
+    [TestCase("""5""")]
+    [TestCase("""not json""")]
+    [TestCase("""{"type":"keydown"}""")]
+    [TestCase("""{"type":"type"}""")]
+    [TestCase("""{"type":"click","x":1,"y":1,"clickCount":"two"}""")]
+    public void Parse_failsOnlyInWaysTheDispatcherDrops(string json)
+    {
+        // Whatever the message, a client must not be able to fault the dispatch task.
+        // Assert.Catch rather than a catch block, so this test does not itself need the
+        // generic catch the architecture suite forbids.
+        var error = Assert.Catch(() => new BrowserInputParser().Parse(json));
+
+        Assert.That(
+            error is null || DroppedByTheDispatcher.Any(caught => caught.IsInstanceOfType(error)),
+            Is.True,
+            $"{error?.GetType().Name} escapes BrowserInputDispatcher's catch filter.");
+    }
+
+    [TestCase("""{"type":"click","x":1e308,"y":0}""")]
+    [TestCase("""{"type":"wheel","deltaX":0,"deltaY":1e309}""")]
+    public void Parse_rejectsANumberTooLargeForTheCommandToCarry(string json)
+    {
+        Assert.That(() => new BrowserInputParser().Parse(json), Throws.InstanceOf<JsonException>());
+    }
+
+    [Test]
+    public void Parse_readsAClickCountTooLargeForAnIntAsASingleClick()
+    {
+        // The count refines the gesture rather than aiming it, so one click is a safe
+        // reading of a nonsense value - unlike a coordinate, which is rejected.
+        Assert.That(new BrowserInputParser().Parse("""{"type":"click","x":1,"y":1,"clickCount":99999999999}""")
+            .ClickCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Parse_readsAViewportTooLargeForAnIntAsAbsent()
+    {
+        var command = new BrowserInputParser().Parse("""{"type":"controlmode","width":99999999999,"height":600}""");
+
+        Assert.That(command.HasViewport, Is.False, "An unusable dimension leaves the viewport alone.");
     }
 }
