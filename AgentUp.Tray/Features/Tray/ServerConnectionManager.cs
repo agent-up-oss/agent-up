@@ -50,7 +50,7 @@ public sealed class ServerConnectionManager : IDisposable
         _state.OnNext(ServiceState.Restarting);
         try
         {
-            await _http.PostAsync("/api/service/restart", null, _cts.Token);
+            using var response = await _http.PostAsync("/api/service/restart", null, _cts.Token);
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or TaskCanceledException)
         {
@@ -64,7 +64,7 @@ public sealed class ServerConnectionManager : IDisposable
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
         try
         {
-            await _http.PostAsync("/api/service/shutdown", null, cts.Token);
+            using var response = await _http.PostAsync("/api/service/shutdown", null, cts.Token);
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or TaskCanceledException)
         {
@@ -111,7 +111,7 @@ public sealed class ServerConnectionManager : IDisposable
 
             try
             {
-                await _http.PostAsync("/api/tray/heartbeat", null, ct);
+                using var response = await _http.PostAsync("/api/tray/heartbeat", null, ct);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
             {

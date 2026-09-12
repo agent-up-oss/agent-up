@@ -54,7 +54,14 @@ public sealed class EntryPointProjects
                 .Select(path => ArchitectureFixture.Parts(root, path))
             : [];
 
+    /// <summary>
+    /// A Program.cs at the project root, or a manifest under Composition/. Composition/ is
+    /// not accepted wholesale: a file with production logic dropped in there would
+    /// otherwise satisfy a rule whose whole contract is that these projects hold no logic.
+    /// </summary>
     private static bool IsEntryPointOrManifest(string[] parts)
         => parts.Length == 2 && parts[1] == "Program.cs"
-           || parts.Length >= 3 && parts[1] == "Composition";
+           || parts.Length == 3
+              && parts[1] == "Composition"
+              && parts[2].EndsWith("Manifest.cs", StringComparison.Ordinal);
 }

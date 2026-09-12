@@ -248,4 +248,33 @@ public sealed class SliceCoverageServiceTests
 
         Assert.That(result.Slices.Select(slice => slice.Slice), Is.EqualTo(new[] { GitSlice }));
     }
+
+    [TestCase(-1d)]
+    [TestCase(101d)]
+    [TestCase(double.NaN)]
+    [TestCase(double.PositiveInfinity)]
+    public void MeasureAsync_rejectsAMinimumOverrideOutsideZeroToOneHundred(double minimum)
+    {
+        // --min bypasses the loader's bounds entirely, and Meets compares coverage against
+        // the value directly, so an unchecked override would pass or fail every slice
+        // regardless of its tests.
+        var service = ServiceOver(
+            CoverageDomain.Configuration().WithSliceMinimum(70d).Build(),
+            new FileCoverageBuilder(CoverageDomain.ServerSource).Covered(1).Build());
+
+        Assert.That(async () => await service.MeasureAsync(Root, minimumOverride: minimum),
+            Throws.InstanceOf<CoverageConfigurationException>());
+    }
+
+    [TestCase(0d)]
+    [TestCase(100d)]
+    public async Task MeasureAsync_acceptsAMinimumOverrideAtEitherBound(double minimum)
+    {
+        var service = ServiceOver(
+            CoverageDomain.Configuration().WithSliceMinimum(70d).Build(),
+            new FileCoverageBuilder(CoverageDomain.ServerSource).Covered(1).Build());
+
+        Assert.That((await service.MeasureAsync(Root, minimumOverride: minimum)).Minimum,
+            Is.EqualTo(minimum));
+    }
 }

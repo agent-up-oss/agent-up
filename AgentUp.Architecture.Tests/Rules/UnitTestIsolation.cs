@@ -23,12 +23,16 @@ public sealed class UnitTestIsolation
     }
 
     /// <summary>
-    /// A namespace or using directive: a dotted name and nothing else. Matched precisely so
-    /// a "using var stream = new FileStream(...)" statement, which is exactly what this rule
-    /// exists to catch, is never mistaken for a directive.
+    /// A namespace or using directive, including its global and alias forms: a dotted name,
+    /// optionally aliased to another, and nothing else. Matched precisely so a
+    /// "using var stream = new FileStream(...)" statement, which is exactly what this rule
+    /// exists to catch, is never mistaken for a directive - and completely, so a
+    /// "global using System.Net.Sockets;" is not scanned and reported as a violation it is
+    /// not.
     /// </summary>
     private static readonly Regex Declaration =
-        new(@"^\s*(namespace|using)\s+(static\s+)?[\w.]+\s*[;{]\s*$", RegexOptions.Compiled);
+        new(@"^\s*(namespace|(global\s+)?using)\s+(static\s+)?([\w.]+\s*=\s*)?[\w.]+\s*[;{]\s*$",
+            RegexOptions.Compiled);
 
     /// <summary>
     /// The file without its namespace and using directives. The tokens are matched as

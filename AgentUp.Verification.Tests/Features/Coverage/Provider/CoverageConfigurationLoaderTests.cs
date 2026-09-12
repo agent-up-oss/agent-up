@@ -179,6 +179,7 @@ public sealed class CoverageConfigurationLoaderTests
             Throws.InstanceOf<CoverageConfigurationException>());
     }
 
+    [TestCase("AgentUp.Server/Features/")]
     [TestCase("AgentUp.Server")]
     [TestCase("AgentUp.Server/Features")]
     [TestCase("AgentUp.Server/Features/Ports/Services")]
@@ -195,6 +196,20 @@ public sealed class CoverageConfigurationLoaderTests
         Assert.That(() => new CoverageConfigurationLoader().Load(root),
             Throws.InstanceOf<CoverageConfigurationException>()
                 .With.Message.Contains(entry));
+    }
+
+    [Test]
+    public void Load_throwsWhenAnExemptionNamesNoProject()
+    {
+        // Asserts only the type: the path is normalised before validation, which strips the
+        // leading separator, so the message names "Features/Ports" rather than the entry as
+        // it was written.
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "include": ["a/**"], "sliceExemptions": ["/Features/Ports"] } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>());
     }
 
     [Test]

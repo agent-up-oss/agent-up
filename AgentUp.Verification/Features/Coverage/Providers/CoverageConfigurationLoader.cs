@@ -106,7 +106,7 @@ public sealed class CoverageConfigurationLoader : ICoverageConfigurationLoader
         // whole project, a glob - can never match. Left in, it reads as an exemption that
         // is doing something while silently exempting nothing.
         var malformed = entries
-            .Where(entry => entry.Split('/') is not [_, "Features", _]
+            .Where(entry => entry.Split('/') is not [{ Length: > 0 }, "Features", { Length: > 0 }]
                             || entry.AsSpan().ContainsAny('*', '?'))
             .ToArray();
 

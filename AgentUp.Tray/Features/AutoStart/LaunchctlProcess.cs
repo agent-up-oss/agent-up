@@ -17,7 +17,8 @@ public static class LaunchctlProcess
     {
         try
         {
-            Process.Start("launchctl", [verb, plistPath])?.WaitForExit(ExitWait);
+            using var launchctl = Process.Start("launchctl", [verb, plistPath]);
+            launchctl?.WaitForExit(ExitWait);
         }
         catch (Exception ex) when (ex is Win32Exception
                                        or InvalidOperationException
