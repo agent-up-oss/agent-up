@@ -105,6 +105,34 @@ If those secrets are missing, the GitHub release still succeeds until semantic-r
 
 LocalInstaller NuGet publishing is optional. Add `NUGET_API_KEY` to publish `LocalInstaller.Core`, `LocalInstaller.App`, `LocalInstaller.Packaging`, and `LocalInstaller.Smoke` packages from the `localinstaller.yml` release job; when the secret is absent, the GitHub release still publishes the NuGet package files and separately labeled sample installer assets.
 
+## Sentry product telemetry
+
+The GitOps `sentry-configurator` Job creates `agent-up-server`,
+`agent-up-desktop`, `agent-up-cli`, and `agent-up-mobile` on the self-hosted
+Sentry and writes their DSNs to Secret `agent-up-sentry-dsn`. Copy the
+packaged Desktop, CLI, and Server keys into GitHub Actions secrets. Cluster
+Helm Server does **not** use a GitHub secret: it reads `SENTRY_DSN` from that
+generated Secret. Mobile production web builds read `SENTRY_DSN_MOBILE` from
+Cloudflare Pages, not GitHub Actions.
+
+CI passes `SENTRY_DSN_DESKTOP` and `SENTRY_DSN_CLI` into .NET publish, and
+`SENTRY_DSN_SERVER` into native packaging. Unset secrets leave those
+binaries as SDK no-ops.
+
+| Secret | Value |
+|---|---|
+| `SENTRY_DSN_SERVER` | `agent-up-server` DSN for packaged Server service env at package time |
+| `SENTRY_DSN_DESKTOP` | `agent-up-desktop` DSN for native Desktop publish (`/p:SentryDsn=...`) |
+| `SENTRY_DSN_CLI` | `agent-up-cli` DSN for native CLI publish (`/p:SentryDsn=...`) |
+| `SENTRY_AUTH_TOKEN` | Optional org auth token for later `sentry-cli` debug-file or source-map upload; not used by apps or the cluster |
+
+Do not put a DSN in Helm values or in Docker images. Unset DSN means the SDK
+is a no-op. Inbound filters and rate limits on the public Desktop, CLI, and
+Mobile projects mitigate DSN spam.
+
+Event tags, error-only SDK policy, and injection paths are documented in
+[Product telemetry](./telemetry.md).
+
 ## JetBrains Marketplace
 
 JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry in JetBrains Marketplace once, then add a Marketplace token from the vendor profile. The release job publishes `Plugins/Jetbrains` through Gradle after the GitHub release succeeds, using the same planned release version that was injected into the release ZIP.

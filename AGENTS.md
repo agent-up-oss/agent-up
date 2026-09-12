@@ -559,6 +559,9 @@ The Server owns ingestion, identity enrichment,
 storage, and paginated per-application queries. Desktop renders that audit trail
 with native Avalonia controls next to each application's Console tab.
 
+Product crash reporting for Server, Desktop, CLI, and Mobile is separate from
+workspace diagnostics. See `docs/developer-guide/telemetry.md`.
+
 Full guide: `docs/developer-guide/diagnostics.md`.
 
 # Error Handling And Validation
@@ -894,6 +897,15 @@ Read: `docs/developer-guide/playwright.md`.
 Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace.
 
 Read: `docs/developer-guide/diagnostics.md`.
+
+## Product telemetry
+
+Agent-Up product processes report their own crashes to self-hosted Sentry.
+Workspace and application diagnostics stay in Server audit. Unset DSN is a
+no-op. Do not mint Sentry tokens at runtime. Cluster Helm DSNs are written
+by the GitOps sentry-configurator Job, not by the Sentry UI.
+
+Read: `docs/developer-guide/telemetry.md`.
 
 ## Workflows
 

@@ -23,6 +23,17 @@ publish_project() {
   local project="$1"
   local rid="$2"
   local destination="$3"
+  local sentry_dsn=""
+
+  case "$project" in
+    *AgentUp.Desktop*) sentry_dsn="${SENTRY_DSN_DESKTOP:-}" ;;
+    *AgentUp.CLI*) sentry_dsn="${SENTRY_DSN_CLI:-}" ;;
+  esac
+
+  local extra=()
+  if [ -n "$sentry_dsn" ]; then
+    extra+=(-p:SentryDsn="$sentry_dsn")
+  fi
 
   dotnet publish "$project" \
     --configuration "$configuration" \
@@ -35,6 +46,7 @@ publish_project() {
     -p:DebugType=none \
     -p:DebugSymbols=false \
     -p:Version="$version" \
+    "${extra[@]}" \
     -o "$destination"
 }
 

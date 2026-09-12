@@ -88,6 +88,9 @@ jobs:
 
       - name: Publish .NET CI artifacts
         shell: bash
+        env:
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
+          SENTRY_DSN_CLI: ${{ secrets.SENTRY_DSN_CLI }}
         run: |
           ./.github/scripts/publish-dotnet-ci-artifacts.sh "${{ needs.version.outputs.version }}" "artifacts/dotnet-ci"
 
@@ -568,6 +571,8 @@ jobs:
 
       - name: Package release artifact
         shell: bash
+        env:
+          SENTRY_DSN_SERVER: ${{ secrets.SENTRY_DSN_SERVER }}
         run: |
           tool_suffix=""
           if [ "${{ runner.os }}" = "Windows" ]; then
