@@ -130,16 +130,25 @@ public sealed class ServerConnectionManagerRequestTests
     [Test]
     public async Task StartAsync_linksTheCallersTokenSoItsCancellationStopsThePolling()
     {
+        // Starts already cancelled, because that is the only way to prove the linkage
+        // without waiting out a poll interval: an unlinked loop polls immediately, so no
+        // request at all is the observable difference. Asserting on the last request after
+        // cancelling a live token proves nothing - the first request is "GET
+        // /api/workspaces" whether the token reached the loop or not.
         var exchange = FakeHttpExchange.Answering(HttpStatusCode.OK);
         using var manager = new ServerConnectionManager(exchange.AsClient());
         using var caller = new CancellationTokenSource();
-
-        await manager.StartAsync(caller.Token);
-        await exchange.FirstRequest;
         await caller.CancelAsync();
 
-        // The loops observe the linked token, so the poll that was in flight is the last.
-        Assert.That(exchange.Requests.Last(), Is.EqualTo("GET /api/workspaces"));
+        await manager.StartAsync(caller.Token);
+        var polled = await Task.WhenAny(exchange.FirstRequest, Task.Delay(TimeSpan.FromMilliseconds(250)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(polled, Is.Not.SameAs(exchange.FirstRequest),
+                "A cancelled caller token must stop the loop before it polls.");
+            Assert.That(exchange.Requests, Is.Empty);
+        });
     }
 
     /// <summary>

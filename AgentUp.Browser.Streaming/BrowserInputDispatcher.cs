@@ -10,7 +10,6 @@ public sealed class BrowserInputDispatcher(
     HeadlessBrowserSessionManager manager,
     BrowserRemoteDisplayService display,
     BrowserInputParser parser,
-    CursorBroadcastTracker cursors,
     ILogger<BrowserInputDispatcher> logger)
 {
     public async Task DispatchAsync(string workspaceId, string json, CancellationToken ct)
@@ -61,7 +60,7 @@ public sealed class BrowserInputDispatcher(
         var y = command.Y;
         await session.Page.Mouse.MoveAsync(x, y).WaitAsync(ct);
         var cursor = await ReadCursorAsync(session.Page, x, y, ct);
-        if (cursors.ShouldBroadcast(workspaceId, cursor))
+        if (session.Cursors.ShouldBroadcast(cursor))
         {
             await display.BroadcastTextAsync(workspaceId, JsonSerializer.Serialize(new
             {

@@ -258,7 +258,6 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IBrowserRemoteSessionProvider, IronRdpBrowserRemoteSessionProvider>();
         builder.Services.AddSingleton<BrowserRemoteSessionService>();
         builder.Services.AddSingleton<BrowserInputParser>();
-        builder.Services.AddSingleton<CursorBroadcastTracker>();
         builder.Services.AddSingleton<BrowserInputDispatcher>();
         builder.Services.AddSingleton<AppHealthCheckService>();
         builder.Services.AddSingleton<AppHealthController>();
