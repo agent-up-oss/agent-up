@@ -19,6 +19,15 @@ public sealed class ClaudeCapabilityAdapterTests
     }
 
     [Test]
+    public async Task ValidateAsync_succeedsWhenCliIsDiscovered()
+    {
+        var adapter = new ClaudeCapabilityAdapter(new FakeClaudeVersionProvider("claude-agent-acp", []));
+        var result = await adapter.ValidateAsync(Declaration(), await adapter.DiscoverAsync(CancellationToken.None), CancellationToken.None);
+
+        Assert.That(result.CanRun, Is.True);
+    }
+
+    [Test]
     public async Task CreateLaunchPlanAsync_usesResolvedAcpCommand()
     {
         var adapter = new ClaudeCapabilityAdapter(new FakeClaudeVersionProvider("claude-agent-acp", []));

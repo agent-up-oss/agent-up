@@ -92,6 +92,43 @@ public sealed class CapabilityCliLocatorTests
     }
 
     [Test]
+    public async Task DiscoverAsync_deduplicatesCaseInsensitiveLocations()
+    {
+        var commands = new RecordingCommandRunner();
+        commands.Results[("codex", "--version")] = new CapabilityCommandResult(0, "1.0.0\n", "");
+        commands.Results[("CODEX", "--version")] = new CapabilityCommandResult(0, "1.0.0\n", "");
+        var locator = Create(commands, new FakeExecutableProbe(), new FakeSearchPaths(), "ubuntu");
+
+        var versions = await locator.DiscoverAsync(
+            "codex",
+            [new("codex", ["--version"], ["acp"]), new("CODEX", ["--version"], ["acp"])],
+            [],
+            CancellationToken.None);
+
+        Assert.That(versions.Count(version => version.Version == "1.0.0"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task DiscoverAsync_keepsACandidateWhoseFileNameHasNoFinalSegment()
+    {
+        var directory = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var location = Path.Join(directory, "foo") + Path.DirectorySeparatorChar;
+        var locator = Create(
+            new RecordingCommandRunner(),
+            new FakeExecutableProbe(location),
+            new FakeSearchPaths(directory),
+            "ubuntu");
+
+        var versions = await locator.DiscoverAsync(
+            "codex",
+            [new("foo/", ["--version"], ["acp"])],
+            [],
+            CancellationToken.None);
+
+        Assert.That(versions.Select(version => version.Location), Does.Contain(location));
+    }
+
+    [Test]
     public void ResolveLaunch_returnsEmptyCommandWhenNoCandidatesAreDeclared()
     {
         var locator = Create(new RecordingCommandRunner(), new FakeExecutableProbe(), new FakeSearchPaths(), "ubuntu");

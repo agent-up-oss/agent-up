@@ -157,6 +157,107 @@ public sealed class AgentSchedulingServiceTests
         Assert.That(_process.StopCalls, Is.EqualTo(1));
     }
 
+    [Test]
+    public async Task Prompt_reachesReadyAfterTheAgentFinishes()
+    {
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        _process.HoldPrompt = true;
+
+        Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
+        _process.CompletePrompt();
+        await WaitForStateAsync("ready");
+
+        Assert.That(_service.Get(_workspace.Id)!.Error, Is.Null);
+    }
+
+    [Test]
+    public async Task Prompt_reportsAgentFailuresWithoutLeavingTheSessionBusy()
+    {
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        _process.PromptFailure = new InvalidOperationException("prompt exploded");
+
+        Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
+        await WaitForStateAsync("ready");
+
+        Assert.That(_service.Get(_workspace.Id)!.Error, Does.Contain("prompt exploded"));
+        Assert.That((await _service.PromptAsync(_workspace.Id, "again", CancellationToken.None)).Error, Is.Null);
+    }
+
+    [Test]
+    public async Task Cancel_succeedsWhenTheSessionIsNotRunning()
+    {
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        var result = await _service.CancelAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(result.Error, Is.Null);
+    }
+
+    [Test]
+    public async Task Cancel_notifiesTheRunningPrompt()
+    {
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        _process.HoldPrompt = true;
+        Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
+
+        var result = await _service.CancelAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(result.Error, Is.Null);
+        Assert.That(_process.Notifications, Does.Contain("session/cancel"));
+        Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("ready"));
+        _process.CompletePrompt();
+    }
+
+    [Test]
+    public async Task Cancel_reportsNotifyFailures()
+    {
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        _process.HoldPrompt = true;
+        _process.NotifyFailure = new InvalidOperationException("cancel rejected");
+        Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
+
+        var result = await _service.CancelAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(result.Error, Does.Contain("cancel rejected"));
+        _process.CompletePrompt();
+    }
+
+    [Test]
+    public async Task Authenticate_returnsToAuthenticationRequiredWhenTheAgentFails()
+    {
+        _process.RequireAuthentication = true;
+        _process.AuthenticateFailure = new InvalidOperationException("auth failed");
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        var accepted = _service.Authenticate(_workspace.Id, "chatgpt");
+        await WaitForStateAsync("authentication_required");
+
+        Assert.That(accepted.Error, Is.Null);
+        Assert.That(_service.Get(_workspace.Id)!.Error, Does.Contain("auth failed"));
+    }
+
+    [Test]
+    public async Task ProcessExit_marksTheSessionStopped()
+    {
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        _process.Exit("killed");
+        await WaitForStateAsync("stopped");
+
+        Assert.That(_service.Get(_workspace.Id)!.Error, Is.EqualTo("killed"));
+    }
+
+    [Test]
+    public async Task Stop_reportsProcessStopFailures()
+    {
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        _process.StopFailure = new InvalidOperationException("could not stop");
+
+        var result = await _service.StopAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(result.Error, Does.Contain("could not stop"));
+    }
+
     private async Task<string> ReadPermissionRequestIdAsync()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
@@ -186,30 +287,52 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public event Func<string, JsonElement, Task<JsonElement>>? Request;
     public event Action<string?>? Exited;
     public List<string> Methods { get; } = [];
+    public List<string> Notifications { get; } = [];
     public string? WorkingDirectory { get; private set; }
     public bool HoldPrompt { get; set; }
     public bool RequireAuthentication { get; set; }
     public bool Authenticated { get; private set; }
     public int StopCalls { get; private set; }
+    public Exception? AuthenticateFailure { get; set; }
+    public Exception? PromptFailure { get; set; }
+    public Exception? NotifyFailure { get; set; }
+    public Exception? StopFailure { get; set; }
 
     public Task StartAsync(AgentKind kind, string workingDirectory, CancellationToken cancellationToken) { WorkingDirectory = workingDirectory; return Task.CompletedTask; }
     public async Task<JsonElement> CallAsync(string method, object? parameters, CancellationToken cancellationToken)
     {
         Methods.Add(method);
-        if (method == "authenticate") { Authenticated = true; return JsonSerializer.SerializeToElement(new { }); }
-        if (method == "session/new" && RequireAuthentication && !Authenticated) throw new InvalidOperationException("Authentication required.");
-        if (method == "session/prompt" && HoldPrompt)
+        if (method == "authenticate")
         {
-            _prompt = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            return await _prompt.Task.WaitAsync(cancellationToken);
+            if (AuthenticateFailure is not null) throw AuthenticateFailure;
+            Authenticated = true;
+            return JsonSerializer.SerializeToElement(new { });
+        }
+        if (method == "session/new" && RequireAuthentication && !Authenticated) throw new InvalidOperationException("Authentication required.");
+        if (method == "session/prompt")
+        {
+            if (PromptFailure is not null) throw PromptFailure;
+            if (HoldPrompt)
+            {
+                _prompt = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                return await _prompt.Task.WaitAsync(cancellationToken);
+            }
         }
         if (method == "session/new") return JsonSerializer.SerializeToElement(new { sessionId = "session-1" });
         return RequireAuthentication
             ? JsonSerializer.SerializeToElement(new { protocolVersion = 1, authMethods = new[] { new { id = "chatgpt", name = "ChatGPT subscription", description = "Use an existing subscription." } } })
             : JsonSerializer.SerializeToElement(new { protocolVersion = 1 });
     }
-    public Task NotifyAsync(string method, object? parameters, CancellationToken cancellationToken) => Task.CompletedTask;
-    public Task StopAsync(CancellationToken cancellationToken) { StopCalls++; return Task.CompletedTask; }
+    public Task NotifyAsync(string method, object? parameters, CancellationToken cancellationToken)
+    {
+        Notifications.Add(method);
+        return NotifyFailure is null ? Task.CompletedTask : Task.FromException(NotifyFailure);
+    }
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        StopCalls++;
+        return StopFailure is null ? Task.CompletedTask : Task.FromException(StopFailure);
+    }
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public void CompletePrompt() => _prompt!.TrySetResult(JsonSerializer.SerializeToElement(new { stopReason = "end_turn" }));
     public Task SendNotificationAsync(string method, JsonElement payload) => Notification?.Invoke(method, payload) ?? Task.CompletedTask;

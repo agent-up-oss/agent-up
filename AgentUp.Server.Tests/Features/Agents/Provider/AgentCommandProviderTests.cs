@@ -83,6 +83,30 @@ public sealed class AgentCommandProviderTests
         Assert.That(available, Is.False);
     }
 
+    [Test]
+    public async Task ResolveAsync_usesAPathCommandWhenItIsExecutable()
+    {
+        var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+            ["Agents:Codex:Command"] = command
+        }).Build();
+
+        var result = await new AgentCommandProvider(configuration, []).ResolveAsync(AgentKind.Codex, CancellationToken.None);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.FileName, Is.EqualTo(command));
+    }
+
+    [Test]
+    public async Task ResolveAsync_isNullWhenCapabilityLaunchPlanHasNoCommand()
+    {
+        var adapter = new FakeAgentCapabilityAdapter("codex", "");
+        var result = await new AgentCommandProvider(new ConfigurationBuilder().Build(), [adapter])
+            .ResolveAsync(AgentKind.Codex, CancellationToken.None);
+
+        Assert.That(result, Is.Null);
+    }
+
     private sealed class FakeAgentCapabilityAdapter(string capabilityId, string? fileName = null, IReadOnlyList<string>? arguments = null) : ICapabilityAdapter
     {
         public CapabilityDescriptor Descriptor { get; } = new(capabilityId, capabilityId, "1.0.0", true, ["linux"]);

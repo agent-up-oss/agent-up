@@ -156,6 +156,7 @@ jobs:
   dotnet-tests:
     name: .NET tests
     runs-on: ubuntu-latest
+    needs: version
     permissions:
       contents: read
       checks: write
@@ -168,6 +169,8 @@ jobs:
 
       - name: Run tests
         shell: bash
+        env:
+          COLLECT_COVERAGE: "0"
         run: ./.github/scripts/run-dotnet-tests.sh
 
       - name: Test Report
@@ -178,17 +181,10 @@ jobs:
           path: "**/test-results.trx"
           reporter: dotnet-trx
 
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: dotnet-test-results
-          path: artifacts/test-results
-          if-no-files-found: warn
-          retention-days: 1
-
   dotnet-gui-tests:
     name: .NET GUI tests
     runs-on: ubuntu-latest
+    needs: version
     permissions:
       contents: read
       checks: write
@@ -215,20 +211,28 @@ jobs:
           path: "**/test-results.trx,**/e2e-results.trx"
           reporter: dotnet-trx
 
-      - uses: actions/upload-artifact@v7
+      - name: Locate AgentUp.Tests coverage reports
+        id: coverage-reports
         if: ${{ !cancelled() }}
+        shell: bash
+        run: ./.github/scripts/locate-coverage-reports.sh AgentUp.Tests
+
+      - name: Upload AgentUp.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
         with:
-          name: dotnet-gui-test-results
-          path: artifacts/test-results
-          if-no-files-found: warn
-          retention-days: 1
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_tests }}
+          flags: agentup-tests
+          name: AgentUp.Tests
+          fail_ci_if_error: true
+          disable_search: true
 
   dotnet-coverage:
     name: .NET coverage
     runs-on: ubuntu-latest
-    needs: [dotnet-tests, dotnet-gui-tests]
+    needs: version
     permissions:
-      actions: read
       contents: read
     steps:
       - uses: actions/checkout@v7
@@ -239,22 +243,32 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: dotnet-test-results
-          path: artifacts/test-results
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: dotnet-gui-test-results
-          path: artifacts/test-results
+      - name: Run tests with coverage
+        shell: bash
+        run: ./.github/scripts/run-dotnet-tests.sh
 
       - name: Locate module coverage reports
         id: coverage-reports
+        if: ${{ !cancelled() }}
         shell: bash
-        run: ./.github/scripts/locate-coverage-reports.sh
+        run: |
+          ./.github/scripts/locate-coverage-reports.sh \
+            AgentUp.Architecture.Tests \
+            AgentUp.CLI.Tests \
+            AgentUp.Capabilities.Abstractions.Tests \
+            AgentUp.Capabilities.Common.Tests \
+            AgentUp.Capabilities.Claude.Tests \
+            AgentUp.Capabilities.Codex.Tests \
+            AgentUp.Capabilities.Cursor.Tests \
+            AgentUp.Capabilities.Docker.Tests \
+            AgentUp.Capabilities.Dotnet.Tests \
+            AgentUp.CommitPolicy.Tests \
+            AgentUp.Desktop.Tests \
+            AgentUp.Server.Tests \
+            AgentUp.Verification.Tests
 
       - name: Upload AgentUp.Architecture.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -266,6 +280,7 @@ jobs:
           verbose: true
 
       - name: Upload AgentUp.CLI.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -276,6 +291,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -286,6 +302,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -296,6 +313,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Claude.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -306,6 +324,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Codex.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -316,6 +335,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -326,6 +346,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Docker.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -336,6 +357,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -346,6 +368,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.CommitPolicy.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -356,6 +379,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Desktop.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -366,6 +390,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Server.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -375,17 +400,8 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
-      - name: Upload AgentUp.Tests coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_tests }}
-          flags: agentup-tests
-          name: AgentUp.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
       - name: Upload AgentUp.Verification.Tests coverage
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -396,9 +412,10 @@ jobs:
           disable_search: true
 
       - name: Enforce patch coverage
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
-          # Test jobs wrote Cobertura reports under artifacts/test-results. The
+          # This job collected Cobertura reports under artifacts/test-results. The
           # coverage gate searches its report directory recursively, so making the whole
           # tree visible there is enough; it then measures only the lines this change
           # touched, against the minimum in agent-up.json.
@@ -407,31 +424,6 @@ jobs:
 
           dotnet build AgentUp.CLI/AgentUp.CLI.csproj --configuration Release
           dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify coverage
-
-  # Keep this job id so platform/release still gate on the same check name.
-  # The four jobs above run in parallel; this aggregator fails unless every one succeeded.
-  dotnet-build-test:
-    name: .NET build, tests, and payloads
-    runs-on: ubuntu-latest
-    needs: [dotnet-build, dotnet-tests, dotnet-gui-tests, dotnet-coverage]
-    if: ${{ always() && !cancelled() }}
-    steps:
-      - name: Require .NET CI jobs
-        env:
-          DOTNET_BUILD: ${{ needs.dotnet-build.result }}
-          DOTNET_TESTS: ${{ needs.dotnet-tests.result }}
-          DOTNET_GUI_TESTS: ${{ needs.dotnet-gui-tests.result }}
-          DOTNET_COVERAGE: ${{ needs.dotnet-coverage.result }}
-        run: |
-          status=0
-          for name in DOTNET_BUILD DOTNET_TESTS DOTNET_GUI_TESTS DOTNET_COVERAGE; do
-            result="${!name}"
-            echo "$name=$result"
-            if [ "$result" != success ]; then
-              status=1
-            fi
-          done
-          exit "$status"
 
   jetbrains-plugin:
     name: JetBrains plugin
@@ -470,7 +462,7 @@ jobs:
   platform:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    needs: [dotnet-build-test, version]
+    needs: [dotnet-build, dotnet-tests, dotnet-gui-tests, dotnet-coverage, version]
     permissions:
       contents: read
       actions: write

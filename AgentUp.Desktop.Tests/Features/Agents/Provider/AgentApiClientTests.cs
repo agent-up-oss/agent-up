@@ -42,6 +42,57 @@ public sealed class AgentApiClientTests
 
         Assert.That(exception!.Message, Is.EqualTo("Agent is already running."));
     }
+
+    [Test]
+    public async Task AuthenticateDecideAndStop_callWorkspaceScopedRoutes()
+    {
+        using var handler = new AgentHandler(HttpStatusCode.Accepted, "{}");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        await client.AuthenticateAsync("ws", "chatgpt", CancellationToken.None);
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws/agent/authenticate"));
+        await client.DecideAsync("ws", "req", "allow", CancellationToken.None);
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws/agent/permissions"));
+        await client.StopAsync("ws", CancellationToken.None);
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws/agent"));
+    }
+
+    [Test]
+    public async Task SendAsync_postsTheWorkspaceMessage()
+    {
+        using var handler = new AgentHandler(HttpStatusCode.Accepted, "{}");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        await client.SendAsync("ws", "hello", CancellationToken.None);
+
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws/agent/messages"));
+    }
+
+    [Test]
+    public void ScheduleAsync_ignoresEmptyProblemBodies()
+    {
+        using var handler = new AgentHandler(HttpStatusCode.BadGateway, "");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        var exception = Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
+
+        Assert.That(exception!.Message, Does.Contain("HTTP 502"));
+    }
+
+    [Test]
+    public void ScheduleAsync_ignoresMalformedProblemBodies()
+    {
+        using var handler = new AgentHandler(HttpStatusCode.InternalServerError, "not-json");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        var exception = Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
+
+        Assert.That(exception!.Message, Does.Contain("HTTP 500"));
+    }
 }
 
 internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, string? body = null, bool eventStream = false) : HttpMessageHandler

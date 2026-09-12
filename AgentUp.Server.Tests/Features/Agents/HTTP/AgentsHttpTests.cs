@@ -101,11 +101,59 @@ public sealed class AgentsHttpTests
     }
 
     [Test]
+    public async Task Cancel_withoutScheduledAgentReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsync($"/api/workspaces/{workspace.Id}/agent/cancel", null);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Stop_withoutScheduledAgentReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.DeleteAsync($"/api/workspaces/{workspace.Id}/agent");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Decide_unknownWorkspaceReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsJsonAsync($"/api/workspaces/{workspace.Id}/agent/permissions", new { requestId = "req", optionId = "allow" });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
     public async Task Authenticate_withoutScheduledAgentReturnsNotFound()
     {
         var workspace = await RegisterAsync();
         using var response = await _client.PostAsJsonAsync($"/api/workspaces/{workspace.Id}/agent/authenticate", new { methodId = "chatgpt" });
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Prompt_unknownSessionReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsJsonAsync($"/api/workspaces/{workspace.Id}/agent/messages", new { message = "hello" });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Events_streamsServerSentEvents()
+    {
+        var workspace = await RegisterAsync();
+        _app.Services.GetRequiredService<AgentEventService>().Publish(workspace.Id, "state", new { ok = true });
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using var response = await _client.GetAsync(
+            $"/api/workspaces/{workspace.Id}/agent/events",
+            HttpCompletionOption.ResponseHeadersRead,
+            timeout.Token);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(response.Content.Headers.ContentType!.MediaType, Is.EqualTo("text/event-stream"));
+        await timeout.CancelAsync();
     }
 
     [Test]

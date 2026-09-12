@@ -343,6 +343,115 @@ public sealed class GitWorkingTreeProviderTests
     }
 
     [Test]
+    public async Task GetHeadStateAsync_includesADetachedHeadWhenItIsMissingFromTheBranchList()
+    {
+        await TestGitRepository.RunAsync(_repository, "switch", "--detach", "HEAD");
+        var provider = new GitWorkingTreeProvider();
+
+        var head = await provider.GetHeadStateAsync(_repository);
+
+        Assert.That(head.Branch, Is.EqualTo("HEAD"));
+        Assert.That(head.LocalBranches[0], Is.EqualTo("HEAD"));
+    }
+
+    [Test]
+    public async Task CommitAsync_rejectsWhenEverySelectedFileHasVanished()
+    {
+        var ghostDirectory = Path.Join(_repository, "AgentUp.Capabilities.Agents");
+        Directory.CreateDirectory(ghostDirectory);
+        var ghost = Path.Join(ghostDirectory, "Adapter.cs");
+        await File.WriteAllTextAsync(ghost, "// ghost\n");
+        await TestGitRepository.RunAsync(_repository, "add", "--", "AgentUp.Capabilities.Agents/Adapter.cs");
+        File.Delete(ghost);
+        Directory.Delete(ghostDirectory);
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.CommitAsync(
+                _repository,
+                ["AgentUp.Capabilities.Agents/Adapter.cs"],
+                "fix(App): keep nothing"));
+
+        Assert.That(exception!.Message, Does.Contain("no longer in this worktree"));
+    }
+
+    [Test]
+    public void DiscardAsync_rejectsAnEmptyFileSelection()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.DiscardAsync(_repository, []));
+
+        Assert.That(exception!.Message, Does.Contain("at least one file"));
+    }
+
+    [Test]
+    public void DiscardAsync_rejectsAFileWithoutChanges()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.DiscardAsync(_repository, ["README.md"]));
+
+        Assert.That(exception!.Message, Does.Contain("not a changed file"));
+    }
+
+    [Test]
+    public async Task DiscardAsync_rejectsWhenEverySelectedFileHasVanished()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "NOTES.md"), "notes\n");
+        var provider = new GitWorkingTreeProvider();
+        File.Delete(Path.Join(_repository, "NOTES.md"));
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.DiscardAsync(_repository, ["NOTES.md"]));
+
+        Assert.That(exception!.Message, Does.Contain("not a changed file"));
+    }
+
+    [Test]
+    public void SwitchBranchAsync_rejectsAnEmptyBranchName()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.SwitchBranchAsync(_repository, "  ", create: false));
+
+        Assert.That(exception!.Message, Does.Contain("Branch is required"));
+    }
+
+    [Test]
+    public void SwitchBranchAsync_rejectsBranchNamesWithNewlines()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.SwitchBranchAsync(_repository, "topic\nmain", create: false));
+
+        Assert.That(exception!.Message, Does.Contain("valid Git branch name"));
+    }
+
+    [Test]
+    public void GetChangesAsync_reportsGitFailuresFromANonRepositoryDirectory()
+    {
+        var provider = new GitWorkingTreeProvider();
+        var directory = Path.Join(Path.GetTempPath(), $"not-git-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await provider.GetChangesAsync(directory));
+
+            Assert.That(exception!.Message, Does.Contain("failed"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
     public void GetChangesAsync_rejectsMalformedWorktreePathsBeforeLaunchingGit()
     {
         var provider = new GitWorkingTreeProvider();

@@ -19,6 +19,15 @@ public sealed class CursorCapabilityAdapterTests
     }
 
     [Test]
+    public async Task ValidateAsync_succeedsWhenCliIsDiscovered()
+    {
+        var adapter = new CursorCapabilityAdapter(new FakeCursorVersionProvider("/home/dev/.local/bin/agent", ["acp"]));
+        var result = await adapter.ValidateAsync(Declaration(), await adapter.DiscoverAsync(CancellationToken.None), CancellationToken.None);
+
+        Assert.That(result.CanRun, Is.True);
+    }
+
+    [Test]
     public async Task CreateLaunchPlanAsync_usesAgentAcp()
     {
         var adapter = new CursorCapabilityAdapter(new FakeCursorVersionProvider("/home/dev/.local/bin/agent", ["acp"]));

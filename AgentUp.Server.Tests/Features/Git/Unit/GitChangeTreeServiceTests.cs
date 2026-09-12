@@ -182,6 +182,43 @@ public sealed class GitChangeTreeServiceTests
     }
 
     [Test]
+    public async Task DiscardAsync_reportsNotFoundForAnUnknownWorkspace()
+    {
+        var service = new GitChangeTreeService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        var result = await service.DiscardAsync("missing", new GitFilesRequest(["a.cs"]));
+
+        Assert.That(result.Found, Is.False);
+        Assert.That(result.Succeeded, Is.False);
+    }
+
+    [Test]
+    public async Task DiscardAsync_reportsGitFailures()
+    {
+        var git = new FakeGitWorkingTreeProvider { Failure = "not a git repository" };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.DiscardAsync(workspaceId, new GitFilesRequest(["a.cs"]));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Is.EqualTo("not a git repository"));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_reportsNotFoundForAnUnknownWorkspace()
+    {
+        var service = new GitChangeTreeService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        var result = await service.SwitchBranchAsync("missing", new GitBranchRequest("topic", false));
+
+        Assert.That(result.Found, Is.False);
+    }
+
+    [Test]
     public async Task CommitAsync_reportsNotFoundForAnUnknownWorkspace()
     {
         var service = new GitChangeTreeService(

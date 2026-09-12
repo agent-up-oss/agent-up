@@ -147,6 +147,167 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task CancelCreateBranchCommand_clearsTheDraftName()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+        await panel.BeginCreateBranchCommand.Execute().FirstAsync();
+        panel.NewBranchName = "topic";
+
+        await panel.CancelCreateBranchCommand.Execute().FirstAsync();
+
+        Assert.That(panel.IsCreatingBranch, Is.False);
+        Assert.That(panel.NewBranchName, Is.Empty);
+    }
+
+    [Test]
+    public async Task HidingThePanelStopsWatching()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+        panel.IsVisible = true;
+        panel.IsVisible = false;
+
+        Assert.That(panel.ToggleIcon, Is.EqualTo("‹"));
+    }
+
+    [Test]
+    public async Task DiscardCommand_reportsMutationFailures()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), MutationResult = new GitMutationResultDto(true, false, "dirty index") };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+
+        await panel.DiscardCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Is.EqualTo("dirty index"));
+    }
+
+    [Test]
+    public async Task CommitCommand_reportsCommitFailures()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), CommitResult = new GitCommitResultDto(true, false, null, "hook failed") };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+        panel.CommitMessage = "feat(App): add main";
+
+        await panel.CommitCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Is.EqualTo("hook failed"));
+    }
+
+    [Test]
+    public async Task DiscardCommand_reportsTransportFailures()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), DiscardFailure = new HttpRequestException("offline") };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+
+        await panel.DiscardCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Does.Contain("Could not discard"));
+    }
+
+    [Test]
+    public async Task DiscardCommand_usesAFallbackWhenTheServerOmitsAnError()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), MutationResult = new GitMutationResultDto(true, false, null) };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+
+        await panel.DiscardCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Is.EqualTo("The discard failed."));
+    }
+
+    [Test]
+    public async Task CommitCommand_reportsTransportFailures()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), CommitFailure = new HttpRequestException("offline") };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+        panel.CommitMessage = "feat(App): add main";
+
+        await panel.CommitCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Does.Contain("Could not commit"));
+    }
+
+    [Test]
+    public async Task CreateBranchCommand_reportsTransportFailures()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), SwitchFailure = new HttpRequestException("offline") };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.NewBranchName = "topic";
+
+        await panel.CreateBranchCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Does.Contain("Could not switch branch"));
+    }
+
+    [Test]
+    public async Task CreateBranchCommand_usesAFallbackWhenTheServerOmitsAnError()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), MutationResult = new GitMutationResultDto(true, false, null) };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.NewBranchName = "topic";
+
+        await panel.CreateBranchCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Is.EqualTo("The branch switch failed."));
+    }
+
+    [Test]
+    public async Task BranchAssignment_switchesToADifferentLocalBranch()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree() with { LocalBranches = ["main", "topic"] }
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        panel.Branch = "topic";
+        await Task.Delay(50);
+
+        Assert.That(client.BranchRequest!.Name, Is.EqualTo("topic"));
+        Assert.That(client.BranchRequest.Create, Is.False);
+    }
+
+    [Test]
+    public async Task BranchAssignment_ignoresBlankAndUnchangedNames()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        panel.Branch = " ";
+        panel.Branch = "main";
+
+        Assert.That(client.BranchRequest, Is.Null);
+    }
+
+    [Test]
+    public async Task CreateBranchCommand_reportsSwitchFailures()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree(), MutationResult = new GitMutationResultDto(true, false, "invalid ref") };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.NewBranchName = "bad name";
+
+        await panel.CreateBranchCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Is.EqualTo("invalid ref"));
+    }
+
+    [Test]
     public async Task LoadAsync_keepsSelectionForFilesThatStillExist()
     {
         var client = new FakeGitApiProvider { Tree = SampleTree() };
@@ -441,6 +602,12 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public GitMutationResultDto MutationResult { get; set; } = new(true, true, null);
 
+    public Exception? DiscardFailure { get; set; }
+
+    public Exception? CommitFailure { get; set; }
+
+    public Exception? SwitchFailure { get; set; }
+
     public int ChangeRequests { get; private set; }
 
     public Task<GitChangeTreeDto?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
@@ -467,18 +634,24 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public Task<GitCommitResultDto> CommitAsync(string workspaceId, GitCommitRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (CommitFailure is not null)
+            return Task.FromException<GitCommitResultDto>(CommitFailure);
         CommittedRequest = request;
         return Task.FromResult(CommitResult);
     }
 
     public Task<GitMutationResultDto> DiscardAsync(string workspaceId, GitFilesRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (DiscardFailure is not null)
+            return Task.FromException<GitMutationResultDto>(DiscardFailure);
         DiscardedRequest = request;
         return Task.FromResult(MutationResult);
     }
 
     public Task<GitMutationResultDto> SwitchBranchAsync(string workspaceId, GitBranchRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (SwitchFailure is not null)
+            return Task.FromException<GitMutationResultDto>(SwitchFailure);
         BranchRequest = request;
         return Task.FromResult(MutationResult);
     }

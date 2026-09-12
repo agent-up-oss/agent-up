@@ -39,4 +39,15 @@ public sealed class AgentEventFrameProviderTests
             Assert.That(payload.GetProperty("agent").GetString(), Is.EqualTo("Codex"));
         });
     }
+
+    [Test]
+    public void PermissionOptionIds_ignoresEntriesWithoutAnOptionId()
+    {
+        var frames = new AgentEventFrameProvider();
+        using var empty = JsonDocument.Parse("""{"title":"x"}""");
+        using var mixed = JsonDocument.Parse("""{"options":[{"name":"Allow"},{"optionId":"allow"}]}""");
+
+        Assert.That(frames.PermissionOptionIds(empty.RootElement), Is.Empty);
+        Assert.That(frames.PermissionOptionIds(mixed.RootElement), Is.EqualTo(new[] { "allow" }));
+    }
 }

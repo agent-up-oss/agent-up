@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Writes one GITHUB_OUTPUT entry per test project with a comma-separated list of
-# Cobertura reports. Missing reports fail the coverage job instead of uploading empty flags.
+# Writes one GITHUB_OUTPUT entry per requested test project with a comma-separated
+# list of Cobertura reports. With no arguments, locates every known test project.
 
 add_reports() {
   local output_name="$1"
@@ -19,17 +19,38 @@ add_reports() {
   echo "$output_name=$reports" >> "$GITHUB_OUTPUT"
 }
 
-add_reports agentup_architecture_tests AgentUp.Architecture.Tests
-add_reports agentup_cli_tests AgentUp.CLI.Tests
-add_reports agentup_capabilities_abstractions_tests AgentUp.Capabilities.Abstractions.Tests
-add_reports agentup_capabilities_common_tests AgentUp.Capabilities.Common.Tests
-add_reports agentup_capabilities_claude_tests AgentUp.Capabilities.Claude.Tests
-add_reports agentup_capabilities_codex_tests AgentUp.Capabilities.Codex.Tests
-add_reports agentup_capabilities_cursor_tests AgentUp.Capabilities.Cursor.Tests
-add_reports agentup_capabilities_docker_tests AgentUp.Capabilities.Docker.Tests
-add_reports agentup_capabilities_dotnet_tests AgentUp.Capabilities.Dotnet.Tests
-add_reports agentup_commit_policy_tests AgentUp.CommitPolicy.Tests
-add_reports agentup_desktop_tests AgentUp.Desktop.Tests
-add_reports agentup_server_tests AgentUp.Server.Tests
-add_reports agentup_tests AgentUp.Tests
-add_reports agentup_verification_tests AgentUp.Verification.Tests
+all_projects=(
+  agentup_architecture_tests:AgentUp.Architecture.Tests
+  agentup_cli_tests:AgentUp.CLI.Tests
+  agentup_capabilities_abstractions_tests:AgentUp.Capabilities.Abstractions.Tests
+  agentup_capabilities_common_tests:AgentUp.Capabilities.Common.Tests
+  agentup_capabilities_claude_tests:AgentUp.Capabilities.Claude.Tests
+  agentup_capabilities_codex_tests:AgentUp.Capabilities.Codex.Tests
+  agentup_capabilities_cursor_tests:AgentUp.Capabilities.Cursor.Tests
+  agentup_capabilities_docker_tests:AgentUp.Capabilities.Docker.Tests
+  agentup_capabilities_dotnet_tests:AgentUp.Capabilities.Dotnet.Tests
+  agentup_commit_policy_tests:AgentUp.CommitPolicy.Tests
+  agentup_desktop_tests:AgentUp.Desktop.Tests
+  agentup_server_tests:AgentUp.Server.Tests
+  agentup_tests:AgentUp.Tests
+  agentup_verification_tests:AgentUp.Verification.Tests
+)
+
+wanted=("$@")
+for spec in "${all_projects[@]}"; do
+  output_name="${spec%%:*}"
+  test_project_name="${spec##*:}"
+  if [ "${#wanted[@]}" -gt 0 ]; then
+    skip=1
+    for name in "${wanted[@]}"; do
+      if [ "$name" = "$test_project_name" ]; then
+        skip=0
+        break
+      fi
+    done
+    if [ "$skip" -eq 1 ]; then
+      continue
+    fi
+  fi
+  add_reports "$output_name" "$test_project_name"
+done

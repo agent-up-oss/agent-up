@@ -52,6 +52,25 @@ public sealed class CursorVersionProviderTests
         Assert.That(versions.Select(version => version.Location), Does.Contain(agent));
     }
 
+    [Test]
+    public async Task ResolveLaunch_returnsTheInventoryCommandAfterDiscovery()
+    {
+        var inventory = WriteInventory("""[{ "id": "cursor", "versions": ["dev"], "command": "agent", "arguments": ["acp"] }]""");
+        Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, inventory);
+        var commands = new RecordingCommandRunner();
+        commands.Results[("agent", "--version")] = new CapabilityCommandResult(0, "2026.01.09-abc\n", "");
+        var provider = new CursorVersionProvider(Locator(commands, new FakeSearchPaths(), new FakeProbe()));
+        var versions = await provider.DiscoverAsync(CancellationToken.None);
+
+        var launch = provider.ResolveLaunch(versions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.FileName, Is.EqualTo("agent"));
+            Assert.That(launch.Arguments, Is.EqualTo(new[] { "acp" }));
+        });
+    }
+
     private static string WriteInventory(string json)
     {
         var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString(), "capabilities.json");

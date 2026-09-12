@@ -233,4 +233,26 @@ public sealed class CapabilityInventoryFileProviderTests
             Environment.SetEnvironmentVariable("HOME", previousHome);
         }
     }
+
+    [Test]
+    public async Task LoadAllAsync_returnsEmptyWhenNoInventoryFilesExist()
+    {
+        var previousHome = Environment.GetEnvironmentVariable("HOME");
+        var previousCwd = Directory.GetCurrentDirectory();
+        try
+        {
+            Environment.SetEnvironmentVariable("HOME", Path.Join(_directory, "empty-home"));
+            Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, null);
+            var isolated = Path.Join(_directory, "isolated");
+            Directory.CreateDirectory(isolated);
+            Directory.SetCurrentDirectory(isolated);
+
+            Assert.That(await new CapabilityInventoryFileProvider().LoadAllAsync(), Is.Empty);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(previousCwd);
+            Environment.SetEnvironmentVariable("HOME", previousHome);
+        }
+    }
 }

@@ -19,6 +19,15 @@ public sealed class CodexCapabilityAdapterTests
     }
 
     [Test]
+    public async Task ValidateAsync_succeedsWhenCliIsDiscovered()
+    {
+        var adapter = new CodexCapabilityAdapter(new FakeCodexVersionProvider("/usr/bin/codex-acp"));
+        var result = await adapter.ValidateAsync(Declaration(), await adapter.DiscoverAsync(CancellationToken.None), CancellationToken.None);
+
+        Assert.That(result.CanRun, Is.True);
+    }
+
+    [Test]
     public async Task CreateLaunchPlanAsync_usesResolvedAcpCommand()
     {
         var adapter = new CodexCapabilityAdapter(new FakeCodexVersionProvider("/usr/bin/codex-acp"));

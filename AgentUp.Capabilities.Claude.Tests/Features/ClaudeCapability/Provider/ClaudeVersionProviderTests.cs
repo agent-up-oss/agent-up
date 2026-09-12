@@ -48,6 +48,21 @@ public sealed class ClaudeVersionProviderTests
         Assert.That(versions, Is.Empty);
     }
 
+    [Test]
+    public async Task ResolveLaunch_returnsTheInventoryCommandAfterDiscovery()
+    {
+        var path = WriteInventory("""[{ "id": "claude", "versions": ["dev"], "command": "claude-agent-acp" }]""");
+        Environment.SetEnvironmentVariable(CapabilityInventoryFileProvider.InventoryPathVariable, path);
+        var commands = new RecordingCommandRunner();
+        commands.Results[("claude-agent-acp", "--version")] = new CapabilityCommandResult(0, "0.5.0\n", "");
+        var provider = new ClaudeVersionProvider(Locator(commands));
+        var versions = await provider.DiscoverAsync(CancellationToken.None);
+
+        var launch = provider.ResolveLaunch(versions);
+
+        Assert.That(launch.FileName, Is.EqualTo("claude-agent-acp"));
+    }
+
     private static string WriteInventory(string json)
     {
         var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString(), "capabilities.json");

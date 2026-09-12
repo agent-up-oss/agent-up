@@ -117,6 +117,33 @@ public sealed class GitApiClientTests
         Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/branch"));
         Assert.That(handler.LastRequestBody, Does.Contain("topic"));
     }
+
+    [Test]
+    public async Task SwitchBranchAsync_returnsNotRegisteredWhenTheWorkspaceIsUnknown()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.SwitchBranchAsync("ws-1", new GitBranchRequestDto("topic", false));
+
+        Assert.That(result.Found, Is.False);
+        Assert.That(result.Error, Does.Contain("no longer registered"));
+    }
+
+    [Test]
+    public async Task DiscardAsync_treatsAnEmptyBodyAsAFailedResult()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK, "null");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.DiscardAsync("ws-1", new GitFilesRequestDto(["a.cs"]));
+
+        Assert.That(result.Found, Is.True);
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("empty Git result"));
+    }
 }
 
 internal sealed class RecordingGitHandler(HttpStatusCode status, string body) : HttpMessageHandler
