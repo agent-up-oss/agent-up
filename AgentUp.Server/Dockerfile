@@ -3,9 +3,11 @@ WORKDIR /app
 EXPOSE 8080
 USER root
 COPY ["AgentUp.Server/install-runtime-tools.sh", "/tmp/install-runtime-tools.sh"]
+COPY ["AgentUp.Server/runtime-tools/", "/tmp/runtime-tools/"]
 RUN chmod +x /tmp/install-runtime-tools.sh \
-    && /tmp/install-runtime-tools.sh \
+    && /tmp/install-runtime-tools.sh /tmp/runtime-tools \
     && rm /tmp/install-runtime-tools.sh \
+    && rm -rf /tmp/runtime-tools \
     && mkdir -p /var/lib/agent-up \
     && chown -R $APP_UID /var/lib/agent-up
 ENV PATH="/opt/agent-up/bin:${PATH}"

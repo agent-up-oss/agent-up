@@ -43,10 +43,9 @@ public sealed class GitSourceCloneProvider : ISourceCloneGitProvider
         using var process = new Process { StartInfo = psi };
         try
         {
-            if (!process.Start())
-                throw new InvalidOperationException("Failed to start git process.");
+            process.Start();
         }
-        catch (Exception ex) when (ex is Win32Exception or FileNotFoundException)
+        catch (Win32Exception ex)
         {
             throw new InvalidOperationException($"git could not be started: {ex.Message}", ex);
         }

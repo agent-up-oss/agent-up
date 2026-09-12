@@ -1,0 +1,9 @@
+{
+  "name": "agent-up-server-runtime-tools",
+  "private": true,
+  "description": "Pinned Codex and Claude ACP CLIs bundled into the Server image.",
+  "dependencies": {
+    "@agentclientprotocol/claude-agent-acp": "0.76.0",
+    "@agentclientprotocol/codex-acp": "1.11.0"
+  }
+}
