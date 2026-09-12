@@ -17,6 +17,12 @@ public sealed class BrowserSessionState
     public IBrowser Browser { get; }
     public IPage Page { get; private set; }
 
+    /// <summary>
+    /// Cursor-change tracking for this session's viewers. Per-session rather than shared,
+    /// so it cannot outlive the session and suppress the next one's first frame.
+    /// </summary>
+    public CursorBroadcastTracker Cursors { get; } = new();
+
     public string CurrentUrl => Page.Url;
 
     private static readonly NavigationOptions NavOptions = new() { Timeout = 30000 };

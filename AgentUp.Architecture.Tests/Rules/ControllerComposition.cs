@@ -123,7 +123,7 @@ public sealed class ControllerComposition
     public void Feature_slices_do_not_import_sibling_slice_internals()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var baseline = LoadCrossSliceDependencyDebtBaseline(root);
+        var baseline = ArchitectureFixture.LoadBaseline(root, CrossSliceDependencyDebtBaseline);
         var violations = ArchitectureFixture.ProductionSourceFiles(root)
             .Select(path => (Path: path, Parts: ArchitectureFixture.Parts(root, path)))
             .Where(item => TryFeatureLocation(item.Parts, out _, out _, out _)
@@ -280,18 +280,6 @@ public sealed class ControllerComposition
 
     private static bool IsApprovedCrossSliceFolder(string folder)
         => folder is "Controllers" or "DTOs" or "Interfaces" or "Models" or "ViewModels" or "Tools";
-
-    private static HashSet<string> LoadCrossSliceDependencyDebtBaseline(string root)
-    {
-        var path = Path.Join(root, CrossSliceDependencyDebtBaseline);
-        if (!File.Exists(path))
-            return [];
-
-        return File.ReadAllLines(path)
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0 && !line.StartsWith('#'))
-            .ToHashSet(StringComparer.Ordinal);
-    }
 
     private static bool TypeEndsWith(TypeSyntax type, IReadOnlyCollection<string> suffixes)
         => suffixes.Any(suffix => ArchitectureFixture.FinalTypeSegment(type).EndsWith(suffix, StringComparison.Ordinal));

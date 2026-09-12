@@ -26,10 +26,12 @@ public sealed class CoverageConfigurationLoader : ICoverageConfigurationLoader
         if (section.ValueKind != JsonValueKind.Object)
             throw Invalid("'coverage' must be an object.");
 
-        var minimum = ReadMinimum(section);
+        var minimum = ReadPercentage(section, "minimum", required: true);
         var reportDirectory = ReadString(section, "reportDirectory") ?? "artifacts/coverage";
         var include = ReadGlobs(section, "include");
         var exclude = ReadGlobs(section, "exclude");
+        var sliceMinimum = ReadPercentage(section, "sliceMinimum", required: false);
+        var sliceExemptions = ReadSliceExemptions(section);
 
         if (include.Count == 0)
             throw Invalid("'coverage.include' must list at least one glob, or the gate measures nothing.");
@@ -38,7 +40,9 @@ public sealed class CoverageConfigurationLoader : ICoverageConfigurationLoader
             minimum,
             PathGlobProvider.Normalize(reportDirectory),
             include,
-            exclude);
+            exclude,
+            sliceMinimum,
+            sliceExemptions);
     }
 
     private static JsonDocument ParseOrThrow(string path)
@@ -57,21 +61,63 @@ public sealed class CoverageConfigurationLoader : ICoverageConfigurationLoader
         }
     }
 
-    private static double ReadMinimum(JsonElement section)
+    /// <summary>
+    /// Reads a percentage. An optional one that is absent reads as 0, which switches its
+    /// floor off rather than failing: a repository without a slice layout has no slices to
+    /// hold to one.
+    /// </summary>
+    private static double ReadPercentage(JsonElement section, string name, bool required)
     {
-        if (!section.TryGetProperty("minimum", out var value))
-            throw Invalid("'coverage.minimum' is required.");
-
-        if (value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var minimum))
-            throw Invalid("'coverage.minimum' must be a number.");
-
-        if (minimum is < 0d or > 100d)
+        if (!section.TryGetProperty(name, out var value))
         {
-            throw Invalid(
-                $"'coverage.minimum' must be between 0 and 100, not {minimum.ToString(CultureInfo.InvariantCulture)}.");
+            if (required)
+                throw Invalid($"'coverage.{name}' is required.");
+
+            return 0d;
         }
 
-        return minimum;
+        if (value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var percentage))
+            throw Invalid($"'coverage.{name}' must be a number.");
+
+        if (percentage is < 0d or > 100d)
+        {
+            throw Invalid(
+                $"'coverage.{name}' must be between 0 and 100, not {percentage.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return percentage;
+    }
+
+    private static IReadOnlyList<string> ReadSliceExemptions(JsonElement section)
+    {
+        if (!section.TryGetProperty("sliceExemptions", out var value))
+            return [];
+
+        if (value.ValueKind != JsonValueKind.Array)
+            throw Invalid("'coverage.sliceExemptions' must be an array of slice paths.");
+
+        var entries = value.EnumerateArray()
+            .Select(item => item.ValueKind == JsonValueKind.String
+                ? PathGlobProvider.Normalize(item.GetString() ?? string.Empty)
+                : throw Invalid("'coverage.sliceExemptions' entries must be strings."))
+            .ToArray();
+
+        // Entries are compared to exact slice paths, so anything else - a type folder, a
+        // whole project, a glob - can never match. Left in, it reads as an exemption that
+        // is doing something while silently exempting nothing.
+        var malformed = entries
+            .Where(entry => entry.Split('/') is not [{ Length: > 0 }, "Features", { Length: > 0 }]
+                            || entry.AsSpan().ContainsAny('*', '?'))
+            .ToArray();
+
+        if (malformed.Length > 0)
+        {
+            throw Invalid(
+                "'coverage.sliceExemptions' entries must be exactly '<Project>/Features/<Slice>': "
+                + string.Join(", ", malformed));
+        }
+
+        return entries;
     }
 
     private static string? ReadString(JsonElement section, string name)

@@ -674,6 +674,21 @@ Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for a
 
 Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` should have matching `Controller/`, `Unit/`, and `Provider/` test-kind coverage. Existing gaps are tracked as explicit architecture-test debt; new or expanded slices must not add to that baseline.
 
+Every production project owns a test project of the same name plus `.Tests`, so a change to
+it selects one suite rather than being covered incidentally by another project's tests. The
+exception is `AgentUp.InstallerApp`, `AgentUp.Packaging` and `AgentUp.PackageSmoke`: each is
+a `Program.cs` handing manifests to a LocalInstaller builder, with nothing to assert but the
+builder chain itself. `ArchitectureFixture.CompositionOnlyProjects` names them and
+`EntryPointProjects` holds them to that shape - a file with logic in one of them fails the
+rule, so the code moves to a tested project or the project gains a test project and joins
+`ProductionProjects`.
+
+A type does not get tested from another project's suite because that suite happens to
+reference it. `RepositoryDotEnv` lived in `AgentUp.InstallerConfig` and was tested from
+`AgentUp.Server.Tests/Features/Authentication/`, which left its parsing rules almost
+entirely unexercised and meant a change to it selected no suite that was actually about it.
+Tests belong with the project that owns the type.
+
 ```text
 AgentUp.Server.Tests/
   Features/
@@ -815,8 +830,58 @@ from every report, which means that suite never ran. A file whose project is cov
 which has no entry of its own simply has no executable code - a changed interface or enum
 must not fail the gate.
 
-`codecov.yml` sets the same 90% patch target so the Codecov status matches. It is
-complementary, not a substitute: Codecov cannot gate a local run.
+Within one check only the newest run is read. The test runner adds a GUID folder per run
+and never removes the previous one, so a check run twice leaves two reports; the older one
+numbers the file as it was before the edit, and merging it in would report lines that have
+since moved as uncovered. Across checks that protection does not apply, so every check that
+collects coverage has to be current - which is what `verification.always` and receipt
+staleness already guarantee. Re-running one suite by hand and then the gate does not: run
+the plan, not a single check.
+
+What `coverage.exclude` is for, and what it is not: a file belongs there when a coverage
+number about it carries no information - an entry point, generated or composition-only
+code, or a body that is nothing but a platform call which cannot be made on another host.
+`AgentUp.Tray` shows the intended shape: the Windows Run-key *format* rules and the macOS
+plist and load/unload *sequence* are injected and fully covered, while the two files that
+do nothing but call the platform (`WindowsAutoStartRegistrar.cs` reaching the registry,
+`LaunchctlProcess.cs` starting launchctl) are excluded by name. Split the decidable part
+out and cover it; never exclude a file to avoid writing a test.
+
+`codecov.yml` sets the same 90% patch target, and its `ignore` list must contain every
+`coverage.exclude` glob - `AgentUp.Architecture.Tests` enforces that, because a glob missing
+there fails a pull request the local gate passed, on lines this repository has already
+decided carry no information. The two numbers are still not identical: Codecov counts
+partially-covered branches, and this gate counts lines, so Codecov can read a little lower.
+It is complementary, not a substitute: Codecov cannot gate a local run.
+
+## Per-slice coverage
+
+`agentup verify slices [--min N]` reports total line coverage for every feature slice,
+worst first, and fails a slice below `coverage.sliceMinimum`. Patch coverage keeps each
+change honest but says nothing about a slice that was thin before the gate existed; this is
+where that debt is visible.
+
+The floor is lower than the patch minimum on purpose. Patch coverage governs new work at
+90%; the slice floor is a line under what already exists, and raising it is a decision to
+burn the remainder down.
+
+`coverage.sliceExemptions` lists the slices allowed below the floor, each as exactly
+`<Project>/Features/<Slice>` - no globs, no type folders, nothing that could silently
+exempt a slice nobody reviewed. Every entry is accepted debt, and the check **fails** once a
+listed slice reaches the floor, so the list cannot outlive what it records. The architecture
+suite additionally rejects an entry naming a slice that no longer exists.
+
+The check is `ciOnly`, and not out of convenience: the architecture suite instruments every
+production assembly and records no hits for code it never executes, so on a dev machine,
+where only the suites a change selects have run, a slice whose own suite was not selected
+reads as uncovered. Run it by hand after a full sweep - `agentup verify run` then
+`agentup verify slices` - and let CI enforce it.
+
+`AgentUp.Architecture.Tests/Rules/SliceTestCoverage.cs` is the structural half: tests exist
+in the matching test-kind folder, and more than one of them. It cannot measure coverage,
+because it runs before the suites that produce the reports. Its two baselines under
+`Baselines/` are ratchets - an entry that is already satisfied fails the suite, so burning
+debt down means deleting the line.
 
 ## Configuration
 

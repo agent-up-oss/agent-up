@@ -4,17 +4,25 @@ namespace AgentUp.InstallerConfig;
 
 public static partial class RepositoryDotEnv
 {
-    public static void LoadOptional()
+    public static void LoadOptional() => LoadOptional(Directory.GetCurrentDirectory());
+
+    /// <summary>
+    /// Applies the nearest .env at or above a directory. Takes the starting directory
+    /// rather than reading the process's, so the search can be exercised without moving
+    /// the working directory out from under the rest of the test run.
+    /// </summary>
+    public static void LoadOptional(string startDirectory)
     {
-        var path = FindDotEnvFile();
+        var path = FindDotEnvFile(startDirectory);
         if (path is null) return;
 
         Apply(File.ReadAllLines(path), path);
     }
 
-    public static string? FindDotEnvFile()
+    /// <summary>The nearest .env at or above a directory, or null if there is none.</summary>
+    public static string? FindDotEnvFile(string startDirectory)
     {
-        var directory = Directory.GetCurrentDirectory();
+        var directory = startDirectory;
         while (!string.IsNullOrWhiteSpace(directory))
         {
             var candidate = Path.Join(directory, ".env");

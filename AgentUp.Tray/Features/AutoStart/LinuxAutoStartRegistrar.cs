@@ -8,13 +8,27 @@ public sealed class LinuxAutoStartRegistrar : IAutoStartRegistrar
     private readonly string _trayBinary;
 
     public LinuxAutoStartRegistrar(string trayBinary)
+        : this(trayBinary, DefaultAutostartDirectory())
+    {
+    }
+
+    /// <summary>
+    /// Takes the autostart directory explicitly so the XDG desktop-entry contract can be
+    /// verified on any host, rather than only on a Linux machine with a real home.
+    /// </summary>
+    public LinuxAutoStartRegistrar(string trayBinary, string autostartDirectory)
     {
         _trayBinary = trayBinary;
-        var autostartDir = Path.Join(
+        _desktopFilePath = Path.Join(autostartDirectory, FileName);
+    }
+
+    public static string DefaultAutostartDirectory()
+        => Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".config", "autostart");
-        _desktopFilePath = Path.Join(autostartDir, FileName);
-    }
+
+    /// <summary>The desktop entry this registrar writes.</summary>
+    public string DesktopEntry => GenerateDesktopEntry();
 
     public bool IsRegistered() => File.Exists(_desktopFilePath);
 

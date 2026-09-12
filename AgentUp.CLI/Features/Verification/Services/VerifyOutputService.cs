@@ -67,6 +67,50 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
             ? WriteError(result.Error ?? "Coverage measurement failed.")
             : WriteCoverage(result.Coverage);
 
+    public int WriteSliceCoverage(VerifySliceCoverageResult result)
+        => result.Coverage is null
+            ? WriteError(result.Error ?? "Slice coverage measurement failed.")
+            : WriteSliceCoverage(result.Coverage);
+
+    private int WriteSliceCoverage(SliceCoverageResult coverage)
+    {
+        if (coverage.MeasuredNothing)
+        {
+            error.WriteLine(
+                "No coverage report mentions any feature slice. Run the tests with coverage "
+                + "collection first.");
+            return 1;
+        }
+
+        output.WriteLine(
+            $"{coverage.Slices.Count} feature slice(s), floor {coverage.Minimum:0.##}%, worst first:");
+
+        foreach (var slice in coverage.Slices)
+        {
+            output.WriteLine(
+                $"    {slice.Percent,6:0.0}%  {slice.Covered,5}/{slice.Coverable,-5}  {slice.Slice}"
+                + (slice.Meets(coverage.Minimum) ? string.Empty : "  (below floor)"));
+        }
+
+        if (coverage.IsSatisfied)
+            return 0;
+
+        foreach (var slice in coverage.Failing)
+        {
+            error.WriteLine(
+                $"{slice.Slice} is at {slice.Percent:0.##}%, below the required "
+                + $"{coverage.Minimum:0.##}%.");
+        }
+
+        foreach (var slice in coverage.ResolvedExemptions)
+        {
+            error.WriteLine(
+                $"{slice} now reaches the floor. Remove it from 'coverage.sliceExemptions'.");
+        }
+
+        return 1;
+    }
+
     private int WriteCoverage(PatchCoverageResult coverage)
     {
         if (coverage.FilesWithoutReport.Count > 0)

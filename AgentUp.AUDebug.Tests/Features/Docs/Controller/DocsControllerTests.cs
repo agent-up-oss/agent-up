@@ -21,4 +21,17 @@ public sealed class DocsControllerTests
         Assert.That(shots.Captures[0].Url, Does.Contain("/design-system"));
         Assert.That(result.ArtifactPath, Is.Not.Null);
     }
+
+    [Test]
+    public async Task Screenshot_mapsDriverErrors()
+    {
+        var shots = new FakeWebScreenshotDriver { CaptureException = new InvalidOperationException("boom") };
+        var result = await new DocsController(
+            new DocsCommandService(shots, new FakeSessionStore())).ScreenshotAsync(
+            new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("boom"));
+    }
 }
