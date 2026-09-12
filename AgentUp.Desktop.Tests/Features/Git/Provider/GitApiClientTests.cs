@@ -87,6 +87,36 @@ public sealed class GitApiClientTests
         Assert.That(handler.LastRequestBody, Does.Contain("chore: touch"));
         Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/commit"));
     }
+
+    [Test]
+    public async Task DiscardAsync_postsTheSelectedFiles()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"found":true,"succeeded":true,"error":null}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.DiscardAsync("ws-1", new GitFilesRequestDto(["a.cs"]));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/discard"));
+        Assert.That(handler.LastRequestBody, Does.Contain("a.cs"));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_postsTheBranchName()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"found":true,"succeeded":true,"error":null}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.SwitchBranchAsync("ws-1", new GitBranchRequestDto("topic", true));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/branch"));
+        Assert.That(handler.LastRequestBody, Does.Contain("topic"));
+    }
 }
 
 internal sealed class RecordingGitHandler(HttpStatusCode status, string body) : HttpMessageHandler

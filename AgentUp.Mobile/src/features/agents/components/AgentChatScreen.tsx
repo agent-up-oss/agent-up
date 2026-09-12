@@ -99,7 +99,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
 
   return <View style={styles.screen}>
     <View style={styles.content}>{tab === 'changes'
-      ? <ScrollView contentContainerStyle={styles.changesContent}><GitChangesPanel /></ScrollView>
+      ? <View style={styles.changesPane}><GitChangesPanel /></View>
       : <View style={styles.chat}>
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
@@ -192,7 +192,7 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 }
 
 const styles = StyleSheet.create({
-  screen:{flex:1,backgroundColor:'#000'},content:{flex:1},chat:{flex:1,padding:16,gap:10},changesContent:{padding:20,paddingBottom:32},
+  screen:{flex:1,backgroundColor:'#000'},content:{flex:1},chat:{flex:1,padding:16,gap:10},changesPane:{flex:1,paddingHorizontal:20,paddingTop:16,paddingBottom:8},
   heading:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',gap:12},headingCopy:{flex:1,minWidth:0},headingActions:{flexDirection:'row',gap:8},
   chatTitle:{color:'#f5fbf7',fontSize:22,fontWeight:'800'},statusRow:{flexDirection:'row',alignItems:'center',gap:8,marginTop:4},
   status:{color:'#aebcb3'},dot:{width:8,height:8,borderRadius:4,backgroundColor:'#789085'},

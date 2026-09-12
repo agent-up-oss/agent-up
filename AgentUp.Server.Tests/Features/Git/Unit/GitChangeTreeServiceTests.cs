@@ -73,6 +73,29 @@ public sealed class GitChangeTreeServiceTests
     }
 
     [Test]
+    public async Task GetHeadAsync_returnsTheLiveBranch()
+    {
+        var git = new FakeGitWorkingTreeProvider { Branch = "topic" };
+        git.LocalBranches.Add("topic");
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var head = await service.GetHeadAsync(workspaceId);
+
+        Assert.That(head!.Branch, Is.EqualTo("topic"));
+        Assert.That(head.LocalBranches, Does.Contain("topic"));
+    }
+
+    [Test]
+    public async Task GetHeadAsync_returnsNullForAnUnknownWorkspace()
+    {
+        var service = new GitChangeTreeService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        Assert.That(await service.GetHeadAsync("missing"), Is.Null);
+    }
+
+    [Test]
     public async Task GetFileDiffAsync_returnsNullForAFileWithoutChanges()
     {
         var (service, workspaceId) = await CreateServiceAsync(new FakeGitWorkingTreeProvider());
@@ -131,6 +154,31 @@ public sealed class GitChangeTreeServiceTests
         Assert.That(result.Found, Is.True);
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Error, Is.EqualTo("Commit message is required."));
+    }
+
+    [Test]
+    public async Task DiscardAsync_discardsOnlyTheSelectedFiles()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.DiscardAsync(workspaceId, new GitFilesRequest(["src/app/main.cs"]));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.DiscardedFiles, Is.EqualTo(new[] { "src/app/main.cs" }));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_createsTheRequestedBranch()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.SwitchBranchAsync(workspaceId, new GitBranchRequest("topic", true));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.SwitchedBranch, Is.EqualTo("topic"));
+        Assert.That(git.CreatedBranch, Is.True);
     }
 
     [Test]

@@ -21,6 +21,23 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             .ToList();
     }
 
+    public async Task<GitHeadState> GetHeadStateAsync(
+        string worktreePath,
+        CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var branch = await RunGitAsync(repoRoot, ["rev-parse", "--abbrev-ref", "HEAD"], cancellationToken);
+        var listed = await RunGitAsync(repoRoot, ["branch", "--format=%(refname:short)"], cancellationToken, trimOutput: false);
+        var branches = listed
+            .Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (branch.Length > 0 && !branches.Contains(branch, StringComparer.Ordinal))
+            branches.Insert(0, branch);
+        return new GitHeadState(branch, branches);
+    }
+
     public async Task<GitFileDiff?> GetFileDiffAsync(
         string worktreePath,
         string filePath,
@@ -52,29 +69,94 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         if (safeFiles.Count == 0)
             throw new InvalidOperationException("Select at least one file to commit.");
 
-        // Each path must name a file git currently reports as changed. Without this a request
-        // could pass "." or a directory, which git would expand to every change in the worktree.
         var changed = (await GetChangesAsync(repoRoot, cancellationToken))
-            .Select(change => change.Path)
-            .ToHashSet(StringComparer.Ordinal);
-        var unknown = safeFiles.FirstOrDefault(file => !changed.Contains(file));
+            .ToDictionary(change => change.Path, StringComparer.Ordinal);
+        var unknown = safeFiles.FirstOrDefault(file => !changed.ContainsKey(file));
         if (unknown is not null)
             throw new InvalidOperationException($"Git file path '{unknown}' is not a changed file in this workspace.");
 
-        var addArgs = new List<string> { "add", "--" };
-        addArgs.AddRange(safeFiles);
-        await RunGitAsync(repoRoot, addArgs, cancellationToken);
+        var committable = new List<string>();
+        foreach (var file in safeFiles)
+        {
+            var eligible = await CanMutatePathAsync(
+                repoRoot,
+                file,
+                changed[file].Status,
+                requireHeadForMissing: true,
+                cancellationToken);
+            if (eligible)
+                committable.Add(file);
+        }
 
-        var commitArgs = new List<string> { "commit", "--message", commitMessage, "--" };
-        commitArgs.AddRange(safeFiles);
-        await RunGitAsync(repoRoot, commitArgs, cancellationToken);
+        if (committable.Count == 0)
+            throw new InvalidOperationException("The selected files are no longer in this worktree. Refresh the change list and try again.");
 
+        var skipped = safeFiles.Where(file => !committable.Contains(file, StringComparer.Ordinal)).ToList();
+        if (skipped.Count > 0)
+            await RunGitAsync(repoRoot, Concat("restore", "--staged", "--", skipped), cancellationToken, allowedExitCodes: [0, 1]);
+
+        await RunGitAsync(repoRoot, Concat("add", "--", committable), cancellationToken);
+        await RunGitAsync(repoRoot, Concat("commit", "--only", "--message", commitMessage, "--", committable), cancellationToken);
         return await RunGitAsync(repoRoot, ["rev-parse", "HEAD"], cancellationToken);
     }
 
-    // Git reports repository-relative paths with forward slashes, and Path.GetRelativePath returns
-    // backslashes on Windows. On Unix a backslash is a legal filename character, so folding it there
-    // would rename the file out from under the diff and commit calls.
+    public async Task DiscardAsync(
+        string worktreePath,
+        IReadOnlyList<string> files,
+        CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var safeFiles = files.Select(file => NormalizeRepoRelativePath(repoRoot, file)).Distinct(StringComparer.Ordinal).ToList();
+        if (safeFiles.Count == 0)
+            throw new InvalidOperationException("Select at least one file to discard.");
+
+        var changed = (await GetChangesAsync(repoRoot, cancellationToken))
+            .ToDictionary(change => change.Path, StringComparer.Ordinal);
+        var unknown = safeFiles.FirstOrDefault(file => !changed.ContainsKey(file));
+        if (unknown is not null)
+            throw new InvalidOperationException($"Git file path '{unknown}' is not a changed file in this workspace.");
+
+        var tracked = new List<string>();
+        var untracked = new List<string>();
+        foreach (var file in safeFiles)
+        {
+            var status = changed[file].Status;
+            var onDisk = File.Exists(Path.GetFullPath(Path.Join(Path.GetFullPath(repoRoot), file)));
+            var inHead = await HeadContainsAsync(repoRoot, file, cancellationToken);
+            if (status is GitChangeStatus.Untracked || (status is GitChangeStatus.Added && !inHead))
+            {
+                if (onDisk)
+                    untracked.Add(file);
+                continue;
+            }
+
+            if (onDisk || inHead)
+                tracked.Add(file);
+        }
+
+        if (tracked.Count == 0 && untracked.Count == 0)
+            throw new InvalidOperationException("The selected files are no longer in this worktree. Refresh the change list and try again.");
+
+        if (tracked.Count > 0)
+            await RunGitAsync(repoRoot, Concat("restore", "--source=HEAD", "--staged", "--worktree", "--", tracked), cancellationToken);
+        if (untracked.Count > 0)
+            await RunGitAsync(repoRoot, Concat("clean", "-f", "--", untracked), cancellationToken);
+    }
+
+    public async Task SwitchBranchAsync(
+        string worktreePath,
+        string name,
+        bool create,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = NormalizeBranchName(name);
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        if (create)
+            await RunGitAsync(repoRoot, ["switch", "-c", branch], cancellationToken);
+        else
+            await RunGitAsync(repoRoot, ["switch", "--", branch], cancellationToken);
+    }
+
     private static string NormalizeSeparators(string path)
         => OperatingSystem.IsWindows() ? path.Replace('\\', '/') : path;
 
@@ -93,6 +175,51 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         return trimmed;
     }
 
+    private static string NormalizeBranchName(string? name)
+    {
+        var trimmed = (name ?? string.Empty).Trim();
+        if (trimmed.Length == 0)
+            throw new InvalidOperationException("Branch is required.");
+
+        if (trimmed.Length > 255
+            || trimmed.StartsWith('-')
+            || trimmed.StartsWith('/')
+            || trimmed.EndsWith('/')
+            || trimmed.EndsWith(".lock", StringComparison.Ordinal)
+            || trimmed.Contains("..", StringComparison.Ordinal)
+            || trimmed.Contains("@{", StringComparison.Ordinal)
+            || !BranchName().IsMatch(trimmed))
+        {
+            throw new InvalidOperationException("Branch must be a valid Git branch name.");
+        }
+
+        return trimmed;
+    }
+
+    private async Task<bool> CanMutatePathAsync(
+        string repoRoot,
+        string file,
+        GitChangeStatus status,
+        bool requireHeadForMissing,
+        CancellationToken cancellationToken)
+    {
+        var fullPath = Path.GetFullPath(Path.Join(Path.GetFullPath(repoRoot), file));
+        if (File.Exists(fullPath))
+            return true;
+
+        if (status == GitChangeStatus.Untracked)
+            return false;
+
+        var inHead = await HeadContainsAsync(repoRoot, file, cancellationToken);
+        return requireHeadForMissing ? inHead : inHead || status is GitChangeStatus.Deleted or GitChangeStatus.Added;
+    }
+
+    private async Task<bool> HeadContainsAsync(string repoRoot, string file, CancellationToken cancellationToken)
+    {
+        var result = await RunGitCoreAsync(repoRoot, ["cat-file", "-e", $"HEAD:{file}"], cancellationToken);
+        return result.ExitCode == 0;
+    }
+
     private static IEnumerable<GitChangeEntry> ParsePorcelainStatus(string output)
     {
         var records = output.Split('\0', StringSplitOptions.RemoveEmptyEntries);
@@ -104,7 +231,6 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
 
             var code = record[..2];
             var path = record[3..];
-            // Porcelain -z emits renames as "XY NEW\0OLD\0"; the original path record is skipped.
             var isRename = code[0] is 'R' or 'C' || code[1] is 'R' or 'C';
             if (isRename && index + 1 < records.Length)
                 index++;
@@ -150,12 +276,39 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         return normalized;
     }
 
+    private static List<string> Concat(string first, params object[] rest)
+    {
+        var arguments = new List<string> { first };
+        foreach (var item in rest)
+        {
+            if (item is string value)
+                arguments.Add(value);
+            else if (item is IEnumerable<string> values)
+                arguments.AddRange(values);
+        }
+
+        return arguments;
+    }
+
     private static async Task<string> RunGitAsync(
         string worktreePath,
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken,
         int[]? allowedExitCodes = null,
         bool trimOutput = true)
+    {
+        var allowed = allowedExitCodes ?? [0];
+        var result = await RunGitCoreAsync(worktreePath, arguments, cancellationToken);
+        if (!allowed.Contains(result.ExitCode))
+            throw new InvalidOperationException($"Git operation '{arguments[0]}' failed: {result.Stderr.Trim()}");
+
+        return trimOutput ? result.Stdout.TrimEnd() : result.Stdout;
+    }
+
+    private static async Task<(int ExitCode, string Stdout, string Stderr)> RunGitCoreAsync(
+        string worktreePath,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
     {
         var safeWorktreePath = NormalizeWorktreePath(worktreePath);
         ValidateGitArguments(arguments);
@@ -187,17 +340,11 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         }
         catch (OperationCanceledException)
         {
-            // Disposing the process does not stop git, so an abandoned commit could still rewrite
-            // history after the request ended. Stop it before surfacing the cancellation.
             await KillProcessAfterCancellationAsync(process);
             throw;
         }
 
-        var allowed = allowedExitCodes ?? [0];
-        if (!allowed.Contains(process.ExitCode))
-            throw new InvalidOperationException($"Git operation '{arguments[0]}' failed: {stderr.Trim()}");
-
-        return trimOutput ? stdout.TrimEnd() : stdout;
+        return new(process.ExitCode, stdout, stderr);
     }
 
     private static async Task KillProcessAfterCancellationAsync(Process process)
@@ -252,9 +399,12 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             throw new InvalidOperationException("Git arguments must be literal values.");
     }
 
-    [GeneratedRegex("^(rev-parse|status|diff|add|commit)$")]
+    [GeneratedRegex("^(rev-parse|status|diff|add|commit|cat-file|restore|clean|branch|switch)$")]
     private static partial Regex AllowedGitOperation();
 
     [GeneratedRegex(@"^[^\u0000-\u001F\u007F]+$")]
     private static partial Regex GitPathArgument();
+
+    [GeneratedRegex(@"^[A-Za-z0-9._/-]+$", RegexOptions.CultureInvariant)]
+    private static partial Regex BranchName();
 }

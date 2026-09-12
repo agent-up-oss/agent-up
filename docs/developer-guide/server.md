@@ -173,13 +173,16 @@ Registration prefers the repository's own `agent-up.json` through the `Orchestra
 
 ## Git Working Tree
 
-The `Git` slice is the Server-side capability behind the Desktop Git panel and the Mobile Git tab. It resolves the selected workspace's worktree path and exposes three routes:
+The `Git` slice is the Server-side capability behind the Desktop Git panel and the Mobile Git tab. It resolves the selected workspace's worktree path and exposes these routes:
 
-- `GET /api/workspaces/{workspaceId}/git/changes` returns the uncommitted changes as a directory tree with per-file status.
+- `GET /api/workspaces/{workspaceId}/git/changes` returns the uncommitted changes as a directory tree with per-file status, the live branch name, and local branch names.
+- `GET /api/workspaces/{workspaceId}/git/head` returns the live branch name and local branch names without the change tree.
 - `GET /api/workspaces/{workspaceId}/git/file?path=` returns one file's diff, including untracked files.
 - `POST /api/workspaces/{workspaceId}/git/commit` stages and commits only the requested paths with the supplied message and returns the new commit.
+- `POST /api/workspaces/{workspaceId}/git/discard` restores selected tracked files from HEAD and deletes selected untracked files.
+- `POST /api/workspaces/{workspaceId}/git/branch` switches to a local branch or creates a new branch from the current HEAD.
 
-The provider runs Git through an allowlisted operation set with `ProcessStartInfo.ArgumentList`, rejects pathspec magic, option-shaped paths, and paths that resolve outside the repository root, and always passes `--` before user-supplied paths. Because the commit passes explicit pathspecs, changes to files the caller did not select stay in the worktree.
+The provider runs Git through an allowlisted operation set with `ProcessStartInfo.ArgumentList`, rejects pathspec magic, option-shaped paths, and paths that resolve outside the repository root, and always passes `--` before user-supplied paths. Commit uses `git commit --only` after staging the selected files that still exist. New files that vanished after they were staged are unstaged instead of failing the whole commit. Because the commit passes explicit pathspecs, changes to files the caller did not select stay in the worktree.
 
 This slice is separate from the `Commits` slice. `Commits` owns the agent-facing commit queue, which stages vertical slices for a developer to review. `Git` owns the human review-and-commit surface in Desktop and Mobile.
 

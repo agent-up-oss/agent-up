@@ -19,13 +19,26 @@ public sealed class GitPanelViewModelTests
         await panel.LoadAsync("ws-1");
 
         Assert.That(panel.Nodes.Select(node => node.Name),
-            Is.EqualTo(new[] { "src", "app", "main.cs", "util.cs", "README.md" }));
+            Is.EqualTo(new[] { "Changes", "src", "app", "main.cs", "util.cs", "README.md" }));
         Assert.That(panel.Nodes.Select(node => node.Depth),
-            Is.EqualTo(new[] { 0, 1, 2, 2, 0 }));
+            Is.EqualTo(new[] { 0, 1, 2, 3, 3, 1 }));
         Assert.That(panel.Nodes[0].IsDirectory, Is.True);
-        Assert.That(panel.Nodes[4].IsFile, Is.True);
+        Assert.That(panel.Nodes[0].Name, Is.EqualTo("Changes"));
+        Assert.That(panel.Nodes[5].IsFile, Is.True);
         Assert.That(panel.FileCount, Is.EqualTo(3));
         Assert.That(panel.Branch, Is.EqualTo("main"));
+    }
+
+    [Test]
+    public async Task SelectingTheChangesRootSelectsEveryFile()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+
+        panel.Nodes[0].IsSelected = true;
+
+        Assert.That(panel.Nodes.Where(node => node.IsFile).All(node => node.IsSelected), Is.True);
+        Assert.That(panel.SelectedFileCount, Is.EqualTo(3));
     }
 
     [Test]
@@ -34,12 +47,12 @@ public sealed class GitPanelViewModelTests
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
         await panel.LoadAsync("ws-1");
 
-        panel.Nodes[0].IsSelected = true;
+        panel.Nodes[1].IsSelected = true;
 
-        Assert.That(panel.Nodes[1].IsSelected, Is.True, "nested directory follows its parent");
-        Assert.That(panel.Nodes[2].IsSelected, Is.True);
+        Assert.That(panel.Nodes[2].IsSelected, Is.True, "nested directory follows its parent");
         Assert.That(panel.Nodes[3].IsSelected, Is.True);
-        Assert.That(panel.Nodes[4].IsSelected, Is.False, "files outside the directory stay unselected");
+        Assert.That(panel.Nodes[4].IsSelected, Is.True);
+        Assert.That(panel.Nodes[5].IsSelected, Is.False, "files outside the directory stay unselected");
         Assert.That(panel.SelectedFileCount, Is.EqualTo(2));
     }
 
@@ -48,13 +61,13 @@ public sealed class GitPanelViewModelTests
     {
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
         await panel.LoadAsync("ws-1");
-        panel.Nodes[0].IsSelected = true;
+        panel.Nodes[1].IsSelected = true;
 
-        panel.Nodes[2].IsSelected = false;
+        panel.Nodes[3].IsSelected = false;
 
-        Assert.That(panel.Nodes[0].IsSelected, Is.False);
         Assert.That(panel.Nodes[1].IsSelected, Is.False);
-        Assert.That(panel.Nodes[3].IsSelected, Is.True);
+        Assert.That(panel.Nodes[2].IsSelected, Is.False);
+        Assert.That(panel.Nodes[4].IsSelected, Is.True);
         Assert.That(panel.SelectedFileCount, Is.EqualTo(1));
     }
 
@@ -64,11 +77,11 @@ public sealed class GitPanelViewModelTests
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
         await panel.LoadAsync("ws-1");
 
-        panel.Nodes[2].IsSelected = true;
         panel.Nodes[3].IsSelected = true;
+        panel.Nodes[4].IsSelected = true;
 
+        Assert.That(panel.Nodes[2].IsSelected, Is.True);
         Assert.That(panel.Nodes[1].IsSelected, Is.True);
-        Assert.That(panel.Nodes[0].IsSelected, Is.True);
     }
 
     [Test]
@@ -79,7 +92,7 @@ public sealed class GitPanelViewModelTests
 
         Assert.That(await panel.CommitCommand.CanExecute.FirstAsync(), Is.False);
 
-        panel.Nodes[2].IsSelected = true;
+        panel.Nodes[3].IsSelected = true;
         Assert.That(await panel.CommitCommand.CanExecute.FirstAsync(), Is.False);
 
         panel.CommitMessage = "feat(App): add main";
@@ -92,7 +105,7 @@ public sealed class GitPanelViewModelTests
         var client = new FakeGitApiProvider { Tree = SampleTree() };
         var panel = CreatePanel(client);
         await panel.LoadAsync("ws-1");
-        panel.Nodes[2].IsSelected = true;
+        panel.Nodes[3].IsSelected = true;
         panel.CommitMessage = "feat(App): add main";
 
         await panel.CommitCommand.Execute().FirstAsync();
@@ -105,6 +118,63 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task DiscardCommand_sendsSelectedFilesAndReloadsTheTree()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+
+        await panel.DiscardCommand.Execute().FirstAsync();
+
+        Assert.That(client.DiscardedRequest!.Files, Is.EqualTo(new[] { "README.md" }));
+        Assert.That(panel.StatusMessage, Does.Contain("Discarded"));
+    }
+
+    [Test]
+    public async Task CreateBranchCommand_postsTheNewBranchName()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.NewBranchName = "topic";
+
+        await panel.CreateBranchCommand.Execute().FirstAsync();
+
+        Assert.That(client.BranchRequest!.Name, Is.EqualTo("topic"));
+        Assert.That(client.BranchRequest.Create, Is.True);
+        Assert.That(panel.NewBranchName, Is.Empty);
+    }
+
+    [Test]
+    public async Task LoadAsync_keepsSelectionForFilesThatStillExist()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+
+        await panel.LoadAsync("ws-1", silent: true);
+
+        Assert.That(panel.Nodes[5].IsSelected, Is.True);
+        Assert.That(panel.SelectedFileCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task LoadAsync_clearsSelectionWhenTheWorkspaceChanges()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[5].IsSelected = true;
+
+        await panel.LoadAsync("ws-2");
+
+        Assert.That(panel.Nodes[5].IsSelected, Is.False);
+        Assert.That(panel.SelectedFileCount, Is.EqualTo(0));
+    }
+
+    [Test]
     public async Task CommitCommand_keepsTheMessageAndReportsServerFailures()
     {
         var client = new FakeGitApiProvider
@@ -114,7 +184,7 @@ public sealed class GitPanelViewModelTests
         };
         var panel = CreatePanel(client);
         await panel.LoadAsync("ws-1");
-        panel.Nodes[2].IsSelected = true;
+        panel.Nodes[3].IsSelected = true;
         panel.CommitMessage = "feat(App): add main";
 
         await panel.CommitCommand.Execute().FirstAsync();
@@ -158,7 +228,7 @@ public sealed class GitPanelViewModelTests
         var panel = CreatePanel(client);
         await panel.LoadAsync("ws-1");
 
-        await panel.Nodes[2].OpenCommand.Execute().FirstAsync();
+        await panel.Nodes[3].OpenCommand.Execute().FirstAsync();
 
         Assert.That(panel.Diff.IsVisible, Is.True);
         Assert.That(panel.Diff.Path, Is.EqualTo("src/app/main.cs"));
@@ -175,7 +245,7 @@ public sealed class GitPanelViewModelTests
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
         await panel.LoadAsync("ws-1");
 
-        await panel.Nodes[0].OpenCommand.Execute().FirstAsync();
+        await panel.Nodes[1].OpenCommand.Execute().FirstAsync();
 
         Assert.That(panel.Diff.IsVisible, Is.False);
     }
@@ -191,7 +261,7 @@ public sealed class GitPanelViewModelTests
         var panel = CreatePanel(client);
         await panel.LoadAsync("ws-1");
 
-        await panel.Nodes[2].OpenCommand.Execute().FirstAsync();
+        await panel.Nodes[3].OpenCommand.Execute().FirstAsync();
 
         Assert.That(panel.Diff.Content, Does.Contain("binary"));
     }
@@ -224,7 +294,7 @@ public sealed class GitPanelViewModelTests
         client.CompleteHeldChanges(SampleTree());
         await stale;
 
-        Assert.That(panel.Nodes.Select(node => node.Name), Is.EqualTo(new[] { "other.cs" }));
+        Assert.That(panel.Nodes.Select(node => node.Name), Is.EqualTo(new[] { "Changes", "other.cs" }));
         Assert.That(panel.Branch, Is.EqualTo("release"));
         Assert.That(panel.IsLoading, Is.False);
     }
@@ -244,7 +314,7 @@ public sealed class GitPanelViewModelTests
         await stale;
 
         Assert.That(panel.ErrorMessage, Is.Null, "a superseded workspace must not raise an error for the current one");
-        Assert.That(panel.Nodes.Select(node => node.Name), Is.EqualTo(new[] { "other.cs" }));
+        Assert.That(panel.Nodes.Select(node => node.Name), Is.EqualTo(new[] { "Changes", "other.cs" }));
     }
 
     [Test]
@@ -272,11 +342,11 @@ public sealed class GitPanelViewModelTests
         await panel.LoadAsync("ws-1");
 
         client.HoldDiff = true;
-        var stale = panel.Nodes[2].OpenCommand.Execute().FirstAsync().ToTask();
+        var stale = panel.Nodes[3].OpenCommand.Execute().FirstAsync().ToTask();
 
         client.HoldDiff = false;
         client.FileDiff = new GitFileDiffDto("src/app/util.cs", "Added", false, "+util");
-        await panel.Nodes[3].OpenCommand.Execute().FirstAsync();
+        await panel.Nodes[4].OpenCommand.Execute().FirstAsync();
 
         client.CompleteHeldDiff(new GitFileDiffDto("src/app/main.cs", "Modified", false, "+main"));
         await stale;
@@ -349,6 +419,12 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public GitCommitRequestDto? CommittedRequest { get; private set; }
 
+    public GitFilesRequestDto? DiscardedRequest { get; private set; }
+
+    public GitBranchRequestDto? BranchRequest { get; private set; }
+
+    public GitMutationResultDto MutationResult { get; set; } = new(true, true, null);
+
     public int ChangeRequests { get; private set; }
 
     public Task<GitChangeTreeDto?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
@@ -377,5 +453,17 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
     {
         CommittedRequest = request;
         return Task.FromResult(CommitResult);
+    }
+
+    public Task<GitMutationResultDto> DiscardAsync(string workspaceId, GitFilesRequestDto request, CancellationToken cancellationToken = default)
+    {
+        DiscardedRequest = request;
+        return Task.FromResult(MutationResult);
+    }
+
+    public Task<GitMutationResultDto> SwitchBranchAsync(string workspaceId, GitBranchRequestDto request, CancellationToken cancellationToken = default)
+    {
+        BranchRequest = request;
+        return Task.FromResult(MutationResult);
     }
 }

@@ -49,6 +49,26 @@ public sealed class GitApiClient(HttpClient http) : IGitApiProvider
         return result ?? new GitCommitResultDto(true, false, null, "The server returned an empty commit result.");
     }
 
+    public Task<GitMutationResultDto> DiscardAsync(string workspaceId, GitFilesRequestDto request, CancellationToken ct = default)
+        => PostMutationAsync(workspaceId, "discard", request, ct);
+
+    public Task<GitMutationResultDto> SwitchBranchAsync(string workspaceId, GitBranchRequestDto request, CancellationToken ct = default)
+        => PostMutationAsync(workspaceId, "branch", request, ct);
+
+    private async Task<GitMutationResultDto> PostMutationAsync<T>(string workspaceId, string action, T body, CancellationToken ct)
+    {
+        using var response = await http.PostAsJsonAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/git/{action}", body, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return new GitMutationResultDto(false, false, "This workspace is no longer registered.");
+
+        if (!response.IsSuccessStatusCode)
+            return new GitMutationResultDto(true, false, await ReadProblemDetailAsync(response));
+
+        var result = await response.Content.ReadFromJsonAsync<GitMutationResultDto>(Options, ct);
+        return result ?? new GitMutationResultDto(true, false, "The server returned an empty Git result.");
+    }
+
     private static async Task<string> ReadProblemDetailAsync(HttpResponseMessage response)
     {
         try

@@ -985,10 +985,54 @@
                 <!-- Workspace detail: app tabs + sub-navbar + content -->
                 <Border x:Name="WorkspaceDetail"
                         IsVisible="{Binding Sidebar.SelectedWorkspace, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,*">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+                        <Border Grid.Row="0"
+                                Background="#050505"
+                                BorderBrush="#2b2b2b"
+                                BorderThickness="0,0,0,1"
+                                Padding="14,8">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <ComboBox x:Name="WorkspaceBranchCombo"
+                                              ItemsSource="{Binding Git.LocalBranches}"
+                                              SelectedItem="{Binding Git.Branch}"
+                                              MinWidth="160"
+                                              MaxWidth="280"
+                                              HorizontalAlignment="Left"/>
+                                    <Button Grid.Column="1"
+                                            x:Name="WorkspaceCreateBranchButton"
+                                            Command="{Binding Git.BeginCreateBranchCommand}"
+                                            Content="+"
+                                            Width="36"
+                                            Padding="0"
+                                            ToolTip.Tip="Create branch"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6"
+                                      IsVisible="{Binding Git.IsCreatingBranch}">
+                                    <TextBox Text="{Binding Git.NewBranchName}"
+                                             PlaceholderText="New branch"
+                                             FontSize="12"/>
+                                    <Button Grid.Column="1"
+                                            x:Name="GitCreateBranchButton"
+                                            Command="{Binding Git.CreateBranchCommand}"
+                                            Content="Create"
+                                            Padding="10,6"/>
+                                    <Button Grid.Column="2"
+                                            Command="{Binding Git.CancelCreateBranchCommand}"
+                                            Content="Cancel"
+                                            Padding="10,6"/>
+                                </Grid>
+                                <TextBlock Text="{Binding Git.ErrorMessage}"
+                                           IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                           Foreground="#d84f4f"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Application tab bar -->
-                        <Border Grid.Row="0"
+                        <Border Grid.Row="1"
                                 Background="#050505"
                                 BorderBrush="#2b2b2b"
                                 BorderThickness="0,0,0,1">
@@ -1025,7 +1069,7 @@
                         </Border>
 
                         <!-- Sub-navbar: Console + port tabs for the selected app -->
-                        <Border Grid.Row="1"
+                        <Border Grid.Row="2"
                                 IsVisible="{Binding Applications.SelectedApplication, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 Background="#000000"
                                 BorderBrush="#2b2b2b"
@@ -1046,7 +1090,7 @@
                         </Border>
 
                         <!-- Browser address bar for HTTP port tabs -->
-                        <Border Grid.Row="2"
+                        <Border Grid.Row="3"
                                 x:Name="AddressNavBar"
                                 IsVisible="{Binding ShowPortView}"
                                 Background="#000000"
@@ -1105,7 +1149,7 @@
                         </Border>
 
                         <!-- Content area -->
-                        <Panel Grid.Row="3">
+                        <Panel Grid.Row="4">
 
                             <Border IsVisible="{Binding Agent.IsVisible}" Background="#000000" ZIndex="20" Padding="20">
                                 <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="10">
@@ -1668,52 +1712,50 @@
                 Background="#000000"
                 BorderBrush="#2b2b2b"
                 BorderThickness="1,0,0,0">
-            <Grid RowDefinitions="Auto,Auto,*,Auto">
+            <Grid RowDefinitions="Auto,*,Auto">
 
-                <Border Grid.Row="0" Padding="14,12,10,8">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel Grid.Column="0" Spacing="2">
+                <Border Grid.Row="0" Padding="14,10,10,8">
+                    <StackPanel Spacing="6">
+                        <Grid ColumnDefinitions="*,Auto">
                             <TextBlock Text="Git changes"
                                        Foreground="#2bf27a"
                                        FontSize="11"
-                                       FontWeight="Bold"/>
-                            <TextBlock x:Name="GitBranchLabel"
-                                       Text="{Binding Git.Branch}"
-                                       Foreground="#9fb2a8"
-                                       FontSize="11"
-                                       TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
-                        <Button Grid.Column="1"
-                                x:Name="GitRefreshButton"
-                                Command="{Binding Git.RefreshCommand}"
-                                ToolTip.Tip="Reload Git changes">
-                            <Border Classes="titleToolButton">
-                                <TextBlock Classes="chromeIcon" Text="↺" FontSize="14"/>
-                            </Border>
-                        </Button>
-                    </Grid>
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                <Button x:Name="GitDiscardButton"
+                                        Command="{Binding Git.DiscardCommand}"
+                                        Content="Discard"
+                                        Padding="8,4"/>
+                                <Button x:Name="GitRefreshButton"
+                                        Command="{Binding Git.RefreshCommand}"
+                                        ToolTip.Tip="Reload Git changes">
+                                    <Border Classes="titleToolButton">
+                                        <TextBlock Classes="chromeIcon" Text="↺" FontSize="14"/>
+                                    </Border>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="GitSelectionSummary"
+                                   Text="{Binding Git.SelectionSummary}"
+                                   Foreground="#789085"
+                                   FontSize="11"/>
+                        <TextBlock x:Name="GitErrorMessage"
+                                   Text="{Binding Git.ErrorMessage}"
+                                   IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   Foreground="#d84f4f"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"/>
+                        <TextBlock x:Name="GitStatusMessage"
+                                   Text="{Binding Git.StatusMessage}"
+                                   IsVisible="{Binding Git.StatusMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   Foreground="#2bf27a"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
                 </Border>
 
-                <StackPanel Grid.Row="1" Margin="14,0,14,8" Spacing="4">
-                    <TextBlock x:Name="GitSelectionSummary"
-                               Text="{Binding Git.SelectionSummary}"
-                               Foreground="#789085"
-                               FontSize="11"/>
-                    <TextBlock x:Name="GitErrorMessage"
-                               Text="{Binding Git.ErrorMessage}"
-                               IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
-                               Foreground="#d84f4f"
-                               FontSize="11"
-                               TextWrapping="Wrap"/>
-                    <TextBlock x:Name="GitStatusMessage"
-                               Text="{Binding Git.StatusMessage}"
-                               IsVisible="{Binding Git.StatusMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
-                               Foreground="#2bf27a"
-                               FontSize="11"
-                               TextWrapping="Wrap"/>
-                </StackPanel>
-
-                <Panel Grid.Row="2">
+                <Panel Grid.Row="1">
                     <ScrollViewer x:Name="GitChangeTree"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
@@ -1768,7 +1810,7 @@
                                VerticalAlignment="Center"/>
                 </Panel>
 
-                <StackPanel Grid.Row="3" Margin="14,8,14,14" Spacing="8">
+                <StackPanel Grid.Row="2" Margin="14,8,14,14" Spacing="8">
                     <TextBox x:Name="GitCommitMessage"
                              Text="{Binding Git.CommitMessage}"
                              Watermark="Commit message"

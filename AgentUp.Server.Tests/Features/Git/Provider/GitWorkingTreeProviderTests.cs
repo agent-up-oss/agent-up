@@ -236,6 +236,90 @@ public sealed class GitWorkingTreeProviderTests
     }
 
     [Test]
+    public async Task CommitAsync_skipsVanishedNewFilesAndCommitsTheRest()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "README.md"), "widgets changed\n");
+        var ghostDirectory = Path.Join(_repository, "AgentUp.Capabilities.Agents");
+        Directory.CreateDirectory(ghostDirectory);
+        var ghost = Path.Join(ghostDirectory, "Adapter.cs");
+        await File.WriteAllTextAsync(ghost, "// ghost\n");
+        await TestGitRepository.RunAsync(_repository, "add", "--", "AgentUp.Capabilities.Agents/Adapter.cs");
+        File.Delete(ghost);
+        Directory.Delete(ghostDirectory);
+        var provider = new GitWorkingTreeProvider();
+
+        var commit = await provider.CommitAsync(
+            _repository,
+            ["README.md", "AgentUp.Capabilities.Agents/Adapter.cs"],
+            "fix(App): keep the real change");
+
+        Assert.That(commit, Has.Length.EqualTo(40));
+        Assert.That(await TestGitRepository.ReadAsync(_repository, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"),
+            Is.EqualTo("README.md"));
+        Assert.That(await provider.GetChangesAsync(_repository), Is.Empty);
+    }
+
+    [Test]
+    public async Task DiscardAsync_restoresTrackedFilesAndRemovesUntrackedFiles()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "README.md"), "widgets changed\n");
+        await File.WriteAllTextAsync(Path.Join(_repository, "NOTES.md"), "notes\n");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.DiscardAsync(_repository, ["README.md", "NOTES.md"]);
+
+        Assert.That(await File.ReadAllTextAsync(Path.Join(_repository, "README.md")), Is.EqualTo("widgets\n"));
+        Assert.That(File.Exists(Path.Join(_repository, "NOTES.md")), Is.False);
+        Assert.That(await provider.GetChangesAsync(_repository), Is.Empty);
+    }
+
+    [Test]
+    public async Task GetHeadStateAsync_listsTheCurrentBranchAndSiblings()
+    {
+        await TestGitRepository.RunAsync(_repository, "switch", "-c", "topic");
+        var provider = new GitWorkingTreeProvider();
+
+        var head = await provider.GetHeadStateAsync(_repository);
+
+        Assert.That(head.Branch, Is.EqualTo("topic"));
+        Assert.That(head.LocalBranches, Does.Contain("main"));
+        Assert.That(head.LocalBranches, Does.Contain("topic"));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_checksOutAnExistingBranch()
+    {
+        await TestGitRepository.RunAsync(_repository, "switch", "-c", "topic");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.SwitchBranchAsync(_repository, "main", create: false);
+
+        Assert.That((await provider.GetHeadStateAsync(_repository)).Branch, Is.EqualTo("main"));
+    }
+
+    [Test]
+    public async Task SwitchBranchAsync_createsAndChecksOutANewBranch()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.SwitchBranchAsync(_repository, "review", create: true);
+
+        Assert.That((await provider.GetHeadStateAsync(_repository)).Branch, Is.EqualTo("review"));
+    }
+
+    [TestCase("-c")]
+    [TestCase("..")]
+    public void SwitchBranchAsync_rejectsUnsafeBranchNames(string name)
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.SwitchBranchAsync(_repository, name, create: false));
+
+        Assert.That(exception!.Message, Does.Contain("valid Git branch name"));
+    }
+
+    [Test]
     public void GetChangesAsync_rejectsMalformedWorktreePathsBeforeLaunchingGit()
     {
         var provider = new GitWorkingTreeProvider();

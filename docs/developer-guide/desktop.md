@@ -56,11 +56,11 @@ Desktop does not clone, validate remotes, or choose a destination directory. Tho
 
 ## Git Panel
 
-The Git icon in the title bar toggles a panel on the right of the selected workspace. The panel renders the Server's change tree as a flattened, indented list: directories first, then files, each row carrying a checkbox and a status marker.
+The Git icon in the title bar toggles a panel on the right of the selected workspace. The panel renders the Server's change tree as a flattened, indented list with a Changes checkbox at the root that selects every file, then directories, then files, each row carrying a checkbox and a status marker. Discard restores or deletes the selected files. Branch switching is on the workspace detail header above the application tabs, not in this panel.
 
 Selecting a file name opens its diff in a modal over the window. Selecting a directory checkbox selects every file beneath it, and a directory shows as checked exactly when all of its files are selected. Below the list are a commit message box and a Commit button that stays disabled until at least one file is selected and the message is non-empty.
 
-`GitPanelViewModel` owns selection propagation between directory and file rows; the flattened rows keep the Avalonia list simple while the Server keeps the tree shape. The panel reloads whenever the selected workspace changes and after a successful commit.
+`GitPanelViewModel` owns selection propagation between directory and file rows; the flattened rows keep the Avalonia list simple while the Server keeps the tree shape. The panel reloads whenever the selected workspace changes, after a successful commit or discard, and on a short poll while it is open. Checkboxes for files that are still present are kept across those reloads. The same view-model also drives the workspace branch dropdown and create-branch field.
 
 ## First-Run Tutorial
 

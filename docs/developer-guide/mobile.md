@@ -74,12 +74,15 @@ The mobile client is a gated stack, not a bottom-tab shell.
 
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
 workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in
-the root layout so every authenticated screen reads the same selection.
+the root layout so every authenticated screen reads the same selection. The
+dashboard hosts a compact Git branch dropdown above the application list.
 
-`src/features/git/` owns the Git changes panel used by the agent Changes tab. It
-renders the Server's change tree as indented rows with per-file checkboxes,
-opens a file's diff in a modal, and commits the selected paths with the entered
-message. Tree flattening and directory/file selection are pure functions in
+`src/features/git/` owns the Git changes panel used by the agent Changes tab and
+the workspace branch picker. The changes panel renders the Server's change tree
+as indented rows with a Changes checkbox at the root, opens a file's diff in a
+modal, and commits or discards the selected paths. The panel polls the Server
+while it is open and keeps checkboxes for files that are still present. Tree
+flattening and directory/file selection are pure functions in
 `providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
 renderer.
 

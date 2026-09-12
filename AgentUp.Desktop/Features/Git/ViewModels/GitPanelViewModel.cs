@@ -18,14 +18,19 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private string? _workspaceId;
     private bool _isVisible;
     private bool _isLoading;
-    private bool _isCommitting;
+    private bool _isBusy;
+    private bool _isApplyingHead;
+    private bool _isCreatingBranch;
     private string _branch = string.Empty;
+    private string _newBranchName = string.Empty;
     private string _commitMessage = string.Empty;
     private string? _errorMessage;
     private string? _statusMessage;
     private int _selectedFileCount;
+    private CancellationTokenSource? _watch;
 
     public ObservableCollection<GitChangeNodeViewModel> Nodes { get; } = [];
+    public ObservableCollection<string> LocalBranches { get; } = [];
 
     public GitFileDiffViewModel Diff { get; } = new();
 
@@ -34,13 +39,28 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         _git = git;
         RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsVisible = !IsVisible; });
+        DiscardCommand = ReactiveCommand.CreateFromTask(
+            DiscardAsync,
+            this.WhenAnyValue(x => x.SelectedFileCount, x => x.IsBusy, (selected, busy) => selected > 0 && !busy));
+        BeginCreateBranchCommand = ReactiveCommand.Create(() => { IsCreatingBranch = true; });
+        CancelCreateBranchCommand = ReactiveCommand.Create(() =>
+        {
+            IsCreatingBranch = false;
+            NewBranchName = string.Empty;
+        });
+        CreateBranchCommand = ReactiveCommand.CreateFromTask(
+            CreateBranchAsync,
+            this.WhenAnyValue(x => x.NewBranchName, x => x.IsBusy, (name, busy) => !string.IsNullOrWhiteSpace(name) && !busy));
+        SwitchBranchCommand = ReactiveCommand.CreateFromTask<string>(
+            SwitchToBranchAsync,
+            this.WhenAnyValue(x => x.IsBusy, busy => !busy));
         CommitCommand = ReactiveCommand.CreateFromTask(
             CommitAsync,
             this.WhenAnyValue(
                 x => x.SelectedFileCount,
                 x => x.CommitMessage,
-                x => x.IsCommitting,
-                (selected, message, committing) => selected > 0 && !string.IsNullOrWhiteSpace(message) && !committing));
+                x => x.IsBusy,
+                (selected, message, busy) => selected > 0 && !string.IsNullOrWhiteSpace(message) && !busy));
     }
 
     public bool IsVisible
@@ -50,6 +70,10 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         {
             this.RaiseAndSetIfChanged(ref _isVisible, value);
             this.RaisePropertyChanged(nameof(ToggleIcon));
+            if (value)
+                StartWatching();
+            else
+                StopWatching();
         }
     }
 
@@ -61,16 +85,40 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         private set => this.RaiseAndSetIfChanged(ref _isLoading, value);
     }
 
-    public bool IsCommitting
+    public bool IsBusy
     {
-        get => _isCommitting;
-        private set => this.RaiseAndSetIfChanged(ref _isCommitting, value);
+        get => _isBusy;
+        private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
     }
 
     public string Branch
     {
         get => _branch;
-        private set => this.RaiseAndSetIfChanged(ref _branch, value);
+        set
+        {
+            if (_isApplyingHead)
+            {
+                this.RaiseAndSetIfChanged(ref _branch, value);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(value) || string.Equals(value, _branch, StringComparison.Ordinal) || IsBusy)
+                return;
+
+            _ = SwitchToBranchAsync(value);
+        }
+    }
+
+    public bool IsCreatingBranch
+    {
+        get => _isCreatingBranch;
+        private set => this.RaiseAndSetIfChanged(ref _isCreatingBranch, value);
+    }
+
+    public string NewBranchName
+    {
+        get => _newBranchName;
+        set => this.RaiseAndSetIfChanged(ref _newBranchName, value);
     }
 
     public string CommitMessage
@@ -109,27 +157,39 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
+    public ReactiveCommand<Unit, Unit> DiscardCommand { get; }
+    public ReactiveCommand<Unit, Unit> BeginCreateBranchCommand { get; }
+    public ReactiveCommand<Unit, Unit> CancelCreateBranchCommand { get; }
+    public ReactiveCommand<Unit, Unit> CreateBranchCommand { get; }
+    public ReactiveCommand<string, Unit> SwitchBranchCommand { get; }
     public ReactiveCommand<Unit, Unit> CommitCommand { get; }
 
-    public async Task LoadAsync(string? workspaceId, CancellationToken cancellationToken = default)
+    public async Task LoadAsync(string? workspaceId, CancellationToken cancellationToken = default, bool silent = false)
     {
         var request = ++_treeRequest;
-        _diffRequest++;
+        var sameWorkspace = string.Equals(_workspaceId, workspaceId, StringComparison.Ordinal);
         _workspaceId = workspaceId;
-        Diff.Hide();
+        if (!silent)
+        {
+            _diffRequest++;
+            Diff.Hide();
+        }
         if (workspaceId is null)
         {
             Clear();
             return;
         }
 
-        IsLoading = true;
-        ErrorMessage = null;
+        if (!silent)
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+        }
         try
         {
             var tree = await _git.GetChangesAsync(workspaceId, cancellationToken);
             if (request == _treeRequest)
-                ApplyTree(tree);
+                ApplyTree(tree, preserveSelection: sameWorkspace);
         }
         catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -140,6 +200,12 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             if (request != _treeRequest)
                 return;
 
+            if (silent)
+            {
+                ErrorMessage = $"Could not load Git changes: {ex.Message}";
+                return;
+            }
+
             Clear();
             ErrorMessage = $"Could not load Git changes: {ex.Message}";
         }
@@ -147,7 +213,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         {
             if (request == _treeRequest)
             {
-                IsLoading = false;
+                if (!silent)
+                    IsLoading = false;
                 RaiseListProperties();
             }
         }
@@ -156,7 +223,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public void Clear()
     {
         Nodes.Clear();
-        Branch = string.Empty;
+        LocalBranches.Clear();
+        SetBranch(string.Empty);
         SelectedFileCount = 0;
         // A superseded request skips the loading reset in LoadAsync, so clearing the panel has to
         // settle it here; otherwise deselecting mid-load leaves the panel loading forever.
@@ -234,7 +302,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             return;
 
         var files = Nodes.Where(node => node.IsFile && node.IsSelected).Select(node => node.Path).ToList();
-        IsCommitting = true;
+        IsBusy = true;
         ErrorMessage = null;
         StatusMessage = null;
         try
@@ -248,7 +316,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
             CommitMessage = string.Empty;
             StatusMessage = $"Committed {files.Count} file(s) as {ShortCommit(result.Commit)}.";
-            await LoadAsync(_workspaceId);
+            await LoadAsync(_workspaceId, silent: true);
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
         {
@@ -256,19 +324,177 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         }
         finally
         {
-            IsCommitting = false;
+            IsBusy = false;
         }
     }
 
-    private void ApplyTree(GitChangeTreeDto? tree)
+    private async Task DiscardAsync()
     {
+        if (_workspaceId is null)
+            return;
+
+        var files = Nodes.Where(node => node.IsFile && node.IsSelected).Select(node => node.Path).ToList();
+        IsBusy = true;
+        ErrorMessage = null;
+        StatusMessage = null;
+        try
+        {
+            var result = await _git.DiscardAsync(_workspaceId, files);
+            if (!result.Succeeded)
+            {
+                ErrorMessage = result.Error ?? "The discard failed.";
+                return;
+            }
+
+            StatusMessage = $"Discarded {files.Count} file(s).";
+            await LoadAsync(_workspaceId, silent: true);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not discard: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private Task CreateBranchAsync() => SwitchToBranchAsync(NewBranchName, create: true);
+
+    private Task SwitchToBranchAsync(string name) => SwitchToBranchAsync(name, create: false);
+
+    private async Task SwitchToBranchAsync(string name, bool create)
+    {
+        if (_workspaceId is null || string.IsNullOrWhiteSpace(name) || name == Branch)
+            return;
+
+        IsBusy = true;
+        ErrorMessage = null;
+        StatusMessage = null;
+        try
+        {
+            var result = await _git.SwitchBranchAsync(_workspaceId, name.Trim(), create);
+            if (!result.Succeeded)
+            {
+                ErrorMessage = result.Error ?? "The branch switch failed.";
+                return;
+            }
+
+            if (create)
+            {
+                NewBranchName = string.Empty;
+                IsCreatingBranch = false;
+            }
+            StatusMessage = create ? $"Created {name.Trim()}." : $"Switched to {name.Trim()}.";
+            await LoadAsync(_workspaceId, silent: true);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not switch branch: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void StartWatching()
+    {
+        StopWatching();
+        _watch = new CancellationTokenSource();
+        _ = WatchAsync(_watch.Token);
+    }
+
+    private void StopWatching()
+    {
+        _watch?.Cancel();
+        _watch?.Dispose();
+        _watch = null;
+    }
+
+    private async Task WatchAsync(CancellationToken cancellationToken)
+    {
+        await LoadAsync(_workspaceId, cancellationToken, silent: true);
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2.5), cancellationToken);
+                await LoadAsync(_workspaceId, cancellationToken, silent: true);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+        }
+    }
+
+    private void ApplyTree(GitChangeTreeDto? tree, bool preserveSelection)
+    {
+        var selected = preserveSelection
+            ? Nodes.Where(node => node.IsFile && node.IsSelected).Select(node => node.Path).ToHashSet(StringComparer.Ordinal)
+            : [];
         Nodes.Clear();
         SelectedFileCount = 0;
-        Branch = tree?.Branch ?? string.Empty;
+        ApplyHead(tree?.Branch ?? string.Empty, tree?.LocalBranches);
         if (tree is null)
             return;
 
-        AppendDirectory(tree.Root, depth: 0, isRoot: true, ancestors: []);
+        var root = CreateNode("Changes", string.Empty, 0, isDirectory: true, status: string.Empty);
+        Nodes.Add(root);
+        AppendDirectory(tree.Root, depth: 1, isRoot: true, ancestors: [root]);
+        if (root.Files.Count == 0)
+        {
+            Nodes.Clear();
+            return;
+        }
+
+        if (selected.Count == 0)
+            return;
+
+        _isApplyingSelection = true;
+        try
+        {
+            foreach (var node in Nodes.Where(candidate => candidate.IsFile && selected.Contains(candidate.Path)))
+                node.SetSelectedSilently(true);
+            foreach (var directory in Nodes.Where(candidate => candidate.IsDirectory))
+                directory.SetSelectedSilently(directory.Files.Count > 0 && directory.Files.All(file => file.IsSelected));
+        }
+        finally
+        {
+            _isApplyingSelection = false;
+        }
+
+        SelectedFileCount = Nodes.Count(node => node.IsFile && node.IsSelected);
+    }
+
+    private void ApplyHead(string branch, IReadOnlyList<string>? branches)
+    {
+        _isApplyingHead = true;
+        try
+        {
+            LocalBranches.Clear();
+            foreach (var name in branches ?? [])
+                LocalBranches.Add(name);
+            this.RaiseAndSetIfChanged(ref _branch, branch);
+        }
+        finally
+        {
+            _isApplyingHead = false;
+        }
+    }
+
+    private void SetBranch(string branch)
+    {
+        _isApplyingHead = true;
+        try
+        {
+            this.RaiseAndSetIfChanged(ref _branch, branch);
+        }
+        finally
+        {
+            _isApplyingHead = false;
+        }
     }
 
     private void AppendDirectory(
