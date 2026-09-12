@@ -7,13 +7,25 @@ namespace AgentUp.Server.Features.SourceClones.Providers;
 
 public sealed class GitSourceCloneProvider : ISourceCloneGitProvider
 {
+    private readonly string _gitExecutable;
+
+    public GitSourceCloneProvider()
+        : this("git")
+    {
+    }
+
+    internal GitSourceCloneProvider(string gitExecutable)
+    {
+        _gitExecutable = gitExecutable;
+    }
+
     public async Task CloneAsync(SourceCloneTarget target, CancellationToken cancellationToken = default)
     {
         var parent = Path.GetDirectoryName(target.DestinationPath)
             ?? throw new InvalidOperationException("Source clone destination must have a parent directory.");
         Directory.CreateDirectory(parent);
 
-        var psi = new ProcessStartInfo("git")
+        var psi = new ProcessStartInfo(_gitExecutable)
         {
             WorkingDirectory = parent,
             RedirectStandardOutput = true,
@@ -28,8 +40,16 @@ public sealed class GitSourceCloneProvider : ISourceCloneGitProvider
         psi.ArgumentList.Add(target.Repository);
         psi.ArgumentList.Add(target.DestinationPath);
 
-        using var process = Process.Start(psi)
-            ?? throw new InvalidOperationException("Failed to start git process.");
+        using var process = new Process { StartInfo = psi };
+        try
+        {
+            if (!process.Start())
+                throw new InvalidOperationException("Failed to start git process.");
+        }
+        catch (Exception ex) when (ex is Win32Exception or FileNotFoundException)
+        {
+            throw new InvalidOperationException($"git could not be started: {ex.Message}", ex);
+        }
 
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);

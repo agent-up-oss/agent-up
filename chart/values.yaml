@@ -31,3 +31,22 @@ capabilities:
   dotnet:
     disabled: true
     versions: []
+  codex:
+    disabled: false
+    versions:
+      - bundled
+    command: /opt/agent-up/bin/codex-acp
+    arguments: []
+  cursor:
+    disabled: false
+    versions:
+      - bundled
+    command: /opt/agent-up/bin/agent
+    arguments:
+      - acp
+  claude:
+    disabled: false
+    versions:
+      - bundled
+    command: /opt/agent-up/bin/claude-agent-acp
+    arguments: []
