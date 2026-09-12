@@ -774,7 +774,7 @@ export const agentUpTheme = Object.freeze({
     }),
   }),
 });
-const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","paddingHorizontal","paddingVertical","opacity"]);
+const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","paddingHorizontal","paddingVertical","opacity","color"]);
 const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","textTransform","letterSpacing"]);
 function auPick(names, keys) {
   const out = {};

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
 import { commitFiles, discardFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
@@ -156,7 +157,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
         </View>
       </View>
 
-      {loading && <ActivityIndicator color="#00d66b" />}
+      {loading && <ActivityIndicator color={agentUpTheme.colors.accentSoft} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
 
@@ -188,7 +189,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
       <View style={styles.footer}>
       <Text style={styles.label}>Commit message</Text>
       <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
-        editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor="#718077"
+        editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
         style={styles.messageInput} />
 
       <Pressable accessibilityRole="button" accessibilityLabel="Commit" disabled={!canCommit}
@@ -203,7 +204,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
           <View style={styles.dialog}>
             <Text accessibilityRole="header" numberOfLines={2} style={styles.dialogTitle}>{diffPath}</Text>
             {diffLoading
-              ? <ActivityIndicator color="#00d66b" />
+              ? <ActivityIndicator color={agentUpTheme.colors.accentSoft} />
               : <ScrollView horizontal style={styles.diffScroll}>
                   <ScrollView>
                     <Text style={styles.diffText}>{diffText(diff)}</Text>
@@ -230,33 +231,33 @@ const styles = StyleSheet.create({
   panel: { flex: 1, gap: 12 },
   header: { gap: 4, paddingBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  discardButton: { minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#8d3c3c' },
-  discardText: { color: '#e48989', fontWeight: '700', fontSize: 12 },
-  summary: { color: '#789085', fontSize: 12 },
-  empty: { color: '#aebcb3', lineHeight: 21 },
-  error: { color: '#d84f4f', lineHeight: 21 },
-  status: { color: '#2bf27a', lineHeight: 21 },
-  tree: { flex: 1, minHeight: 80, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
+  discardButton: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  discardText: auText('button', 'buttonCompact'),
+  summary: auText('muted'),
+  empty: { ...auText('muted'), lineHeight: 21 },
+  error: { ...auText('badgeDanger'), lineHeight: 21 },
+  status: { ...auText('accent'), lineHeight: 21 },
+  tree: { flex: 1, minHeight: 80, ...auBox('card') },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
   footer: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10, paddingVertical: 5 },
-  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: '#287038', alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: { backgroundColor: '#0f7a45', borderColor: '#2bf27a' },
-  checkmark: { color: '#f5fbf7', fontSize: 12, lineHeight: 14 },
+  checkbox: { ...auBox('checkbox'), alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: auBox('checkboxChecked'),
+  checkmark: { ...auText('workspaceName'), fontSize: 12, lineHeight: 14 },
   glyph: { width: 14, fontSize: 12, fontWeight: '800' },
   nameButton: { flexShrink: 1 },
-  directoryName: { color: '#9fb2a8', fontSize: 14, fontWeight: '700' },
-  fileName: { color: '#f5fbf7', fontSize: 14 },
-  label: { color: '#f5fbf7', fontWeight: '700' },
-  messageInput: { minHeight: 90, borderRadius: 8, borderWidth: 1, borderColor: '#287038', padding: 12, color: '#f5fbf7', backgroundColor: '#080808', textAlignVertical: 'top' },
-  button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#00d66b' },
-  buttonText: { color: '#000000', fontWeight: '800' },
-  secondaryButton: { minHeight: 44, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505' },
-  secondaryButtonText: { color: '#f5fbf7', fontWeight: '700' },
+  directoryName: { ...auText('workspaceBranch'), fontSize: agentUpTheme.typography.sizeSm, fontWeight: '700' },
+  fileName: auText('workspaceName'),
+  label: auText('fieldLabel'),
+  messageInput: { minHeight: 90, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
+  button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
+  buttonText: auText('button'),
+  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: auText('buttonSecondary'),
   disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.72)' },
-  dialog: { width: '100%', maxWidth: 620, maxHeight: '85%', padding: 18, borderRadius: 10, borderWidth: 1, borderColor: '#287038', backgroundColor: '#050505', gap: 12 },
-  dialogTitle: { color: '#f5fbf7', fontSize: 16, fontWeight: '800' },
+  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
+  dialog: { width: '100%', maxWidth: 620, maxHeight: '85%', ...auBox('card'), gap: 12 },
+  dialogTitle: auText('pageTitle'),
   diffScroll: { flexGrow: 0 },
-  diffText: { color: '#c6ddd2', fontSize: 12, fontFamily: 'monospace' },
+  diffText: { ...auText('mono', 'muted'), fontSize: agentUpTheme.typography.sizeXs },
 });

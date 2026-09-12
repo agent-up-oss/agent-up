@@ -43,6 +43,7 @@ export declare function auBox(...names: Array<string | false | null | undefined>
   paddingHorizontal?: number;
   paddingVertical?: number;
   opacity?: number;
+  color?: string;
 };
 export declare function auText(...names: Array<string | false | null | undefined>): {
   color?: string;

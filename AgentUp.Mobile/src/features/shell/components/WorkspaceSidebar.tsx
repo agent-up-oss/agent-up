@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: agentUpTheme.spacing[4],
   },
   defaultContent: { flex: 1, gap: agentUpTheme.spacing[3] },
-  sectionLabel: auText('eyebrow'),
+  sectionLabel: auText('fieldLabel'),
   workspaceList: { gap: agentUpTheme.spacing[2], paddingBottom: agentUpTheme.spacing[3] },
   workspaceRow: {
     ...auBox('workspace'),

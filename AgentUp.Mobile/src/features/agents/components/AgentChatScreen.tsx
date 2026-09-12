@@ -5,6 +5,7 @@ import { GitChangesPanel } from '@/features/git/components/GitChangesPanel';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import type { AgentActivityKind, AgentEvent, AgentKind, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
 import { authenticateAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents } from '../providers/AgentApiProvider';
 import {
@@ -139,8 +140,8 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
           </View>}
           {error && <Text style={styles.error}>{error}</Text>}
           {session?.sessionId && <View style={styles.composer}>
-            <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor="#65736a" style={styles.input}/>
-            <Pressable accessibilityRole="button" disabled={waiting || !message.trim()} onPress={() => void send()} style={[styles.send, (waiting || !message.trim()) && styles.disabled]}>{session?.state === 'running' && !permission ? <ActivityIndicator color="#000"/> : <Text style={styles.sendText}>Send</Text>}</Pressable>
+            <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
+            <Pressable accessibilityRole="button" disabled={waiting || !message.trim()} onPress={() => void send()} style={[styles.send, (waiting || !message.trim()) && styles.disabled]}>{session?.state === 'running' && !permission ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>Send</Text>}</Pressable>
           </View>}
         </View>}
     </View>
@@ -174,18 +175,18 @@ function statusMark(status: string) { return status === 'completed' ? '✓' : st
 function readError(value: unknown) { return value instanceof Error ? value.message : String(value); }
 function delay(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)); }
 const activityDot: Record<AgentActivityKind, { backgroundColor: string }> = {
-  idle: { backgroundColor: '#789085' },
-  ready: { backgroundColor: '#2bf27a' },
-  thinking: { backgroundColor: '#8fd4ff' },
-  writing: { backgroundColor: '#2bf27a' },
-  tool: { backgroundColor: '#e6a84a' },
-  plan: { backgroundColor: '#e6a84a' },
-  permission: { backgroundColor: '#e6a84a' },
-  auth: { backgroundColor: '#e6a84a' },
-  running: { backgroundColor: '#2bf27a' },
-  compacting: { backgroundColor: '#8fd4ff' },
-  stopped: { backgroundColor: '#789085' },
-  error: { backgroundColor: '#e48989' },
+  idle: { backgroundColor: agentUpTheme.colors.textMuted },
+  ready: { backgroundColor: agentUpTheme.colors.accentSoft },
+  thinking: { backgroundColor: agentUpTheme.colors.textInfo },
+  writing: { backgroundColor: agentUpTheme.colors.accentSoft },
+  tool: { backgroundColor: agentUpTheme.colors.textWarning },
+  plan: { backgroundColor: agentUpTheme.colors.textWarning },
+  permission: { backgroundColor: agentUpTheme.colors.textWarning },
+  auth: { backgroundColor: agentUpTheme.colors.textWarning },
+  running: { backgroundColor: agentUpTheme.colors.accentSoft },
+  compacting: { backgroundColor: agentUpTheme.colors.textInfo },
+  stopped: { backgroundColor: agentUpTheme.colors.textMuted },
+  error: { backgroundColor: agentUpTheme.colors.statusDanger },
 };
 
 function TabButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
@@ -193,29 +194,65 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 }
 
 const styles = StyleSheet.create({
-  screen:{flex:1,backgroundColor:'#000'},content:{flex:1},chat:{flex:1,padding:16,gap:10},changesPane:{flex:1,paddingHorizontal:20,paddingTop:16,paddingBottom:8},
-  heading:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',gap:12},headingCopy:{flex:1,minWidth:0},headingActions:{flexDirection:'row',gap:8},
-  chatTitle:{color:'#f5fbf7',fontSize:22,fontWeight:'800'},statusRow:{flexDirection:'row',alignItems:'center',gap:8,marginTop:4},
-  status:{color:'#aebcb3'},dot:{width:8,height:8,borderRadius:4,backgroundColor:'#789085'},
-  cancel:{borderWidth:1,borderColor:'#287038',borderRadius:8,paddingHorizontal:10,paddingVertical:8},cancelText:{color:'#aebcb3'},
-  stop:{borderWidth:1,borderColor:'#8d3c3c',borderRadius:8,paddingHorizontal:10,paddingVertical:8},stopText:{color:'#e48989'},
-  chips:{flexDirection:'row',flexWrap:'wrap',gap:6},chip:{color:'#aebcb3',borderWidth:1,borderColor:'#20382a',borderRadius:8,paddingHorizontal:8,paddingVertical:4,overflow:'hidden',fontSize:12},
-  picker:{gap:8,marginTop:8},prompt:{color:'#aebcb3',fontWeight:'700'},agentButton:{borderWidth:1,borderColor:'#287038',borderRadius:8,padding:14,flexDirection:'row',justifyContent:'space-between'},agentText:{color:'#f5fbf7',fontWeight:'800'},availability:{color:'#2bf27a'},disabled:{opacity:.4},
-  messages:{flex:1},messageContent:{gap:10,paddingVertical:10},
-  bubble:{borderRadius:8,padding:12,maxWidth:'92%'},user:{backgroundColor:'#0f5630',alignSelf:'flex-end'},agent:{backgroundColor:'#101712',alignSelf:'flex-start'},
-  thought:{backgroundColor:'transparent',borderLeftWidth:2,borderLeftColor:'#20382a',paddingVertical:6,paddingHorizontal:10},
-  thoughtBody:{color:'#789085',lineHeight:20,fontStyle:'italic'},
-  tool:{backgroundColor:'#12100a',borderWidth:1,borderColor:'#554a22',borderRadius:8,padding:12,gap:4},toolHeader:{flexDirection:'row',justifyContent:'space-between'},toolStatus:{color:'#e6a84a',fontSize:10,textTransform:'uppercase'},
-  plan:{borderWidth:1,borderColor:'#20382a',borderRadius:8,padding:12,gap:4},planEntry:{color:'#aebcb3',lineHeight:20},
-  role:{color:'#789085',fontSize:10,textTransform:'uppercase',marginBottom:4},body:{color:'#e4eee8',lineHeight:20},meta:{color:'#789085',marginTop:4},
-  permission:{borderWidth:1,borderColor:'#e6a84a',backgroundColor:'#181206',borderRadius:8,padding:12,gap:8},auth:{borderWidth:1,borderColor:'#e6a84a',backgroundColor:'#181206',borderRadius:8,padding:12,gap:8},
-  permissionKicker:{color:'#e6a84a',fontSize:10,textTransform:'uppercase',fontWeight:'700'},permissionTitle:{color:'#ffd58e',fontWeight:'700'},permissionDetail:{color:'#e4eee8'},location:{color:'#aebcb3',fontSize:12},
-  options:{flexDirection:'row',flexWrap:'wrap',gap:7},option:{borderWidth:1,borderColor:'#e6a84a',borderRadius:8,padding:8},
-  allow:{borderColor:'#2bf27a',backgroundColor:'#08150d'},reject:{borderColor:'#8d3c3c',backgroundColor:'#160808'},
-  optionText:{color:'#ffd58e'},allowText:{color:'#2bf27a'},rejectText:{color:'#e48989'},
-  error:{color:'#e48989'},composer:{flexDirection:'row',alignItems:'flex-end',gap:8},input:{flex:1,minHeight:44,maxHeight:130,borderWidth:1,borderColor:'#287038',borderRadius:8,color:'#f5fbf7',padding:11},
-  send:{height:44,minWidth:64,borderRadius:8,backgroundColor:'#2bf27a',alignItems:'center',justifyContent:'center'},sendText:{color:'#001a09',fontWeight:'800'},
-  bottomBar:{flexDirection:'row',gap:10,paddingHorizontal:14,paddingTop:10,borderTopWidth:1,borderTopColor:'#287038'},
-  tabButton:{flex:1,minHeight:44,alignItems:'center',justifyContent:'center',borderRadius:8,borderWidth:1,borderColor:'#287038'},tabButtonActive:{borderColor:'#2bf27a',backgroundColor:'#08150d'},
-  tabLabel:{color:'#aebcb3',fontWeight:'700'},tabLabelActive:{color:'#2bf27a'},
+  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
+  content: { flex: 1 },
+  chat: { flex: 1, padding: agentUpTheme.spacing[4], gap: 10 },
+  changesPane: { flex: 1, paddingHorizontal: agentUpTheme.spacing[5], paddingTop: agentUpTheme.spacing[4], paddingBottom: 8 },
+  heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  headingCopy: { flex: 1, minWidth: 0 },
+  headingActions: { flexDirection: 'row', gap: 8 },
+  chatTitle: auText('pageTitle'),
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  status: auText('muted'),
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: agentUpTheme.colors.textMuted },
+  cancel: { ...auBox('button', 'buttonSecondary', 'buttonCompact'), paddingHorizontal: 10 },
+  cancelText: auText('buttonSecondary', 'buttonCompact'),
+  stop: { ...auBox('button', 'buttonDanger', 'buttonCompact'), paddingHorizontal: 10 },
+  stopText: auText('button', 'buttonCompact'),
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { ...auBox('badge'), ...auText('badge'), overflow: 'hidden' },
+  picker: { gap: 8, marginTop: 8 },
+  prompt: { ...auText('fieldLabel') },
+  agentButton: { ...auBox('card'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  agentText: auText('workspaceName'),
+  availability: auText('accent'),
+  disabled: { opacity: 0.4 },
+  messages: { flex: 1 },
+  messageContent: { gap: 10, paddingVertical: 10 },
+  bubble: { borderRadius: agentUpTheme.radii.md, padding: 12, maxWidth: '92%' },
+  user: { backgroundColor: agentUpTheme.colors.surfaceSelectedStrong, alignSelf: 'flex-end' },
+  agent: { ...auBox('card'), alignSelf: 'flex-start' },
+  thought: { backgroundColor: 'transparent', borderLeftWidth: 2, borderLeftColor: agentUpTheme.colors.borderSubtle, paddingVertical: 6, paddingHorizontal: 10 },
+  thoughtBody: { ...auText('muted'), lineHeight: 20, fontStyle: 'italic' },
+  tool: { ...auBox('card'), gap: 4 },
+  toolHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+  toolStatus: { ...auText('fieldLabel'), color: agentUpTheme.colors.textWarning },
+  plan: { ...auBox('card'), gap: 4 },
+  planEntry: { ...auText('muted'), lineHeight: 20 },
+  role: { ...auText('fieldLabel') },
+  body: { ...auText('workspaceName'), lineHeight: 20 },
+  meta: { ...auText('muted'), marginTop: 4 },
+  permission: { ...auBox('card'), borderColor: agentUpTheme.colors.borderDanger, gap: 8 },
+  auth: { ...auBox('card'), gap: 8 },
+  permissionKicker: { ...auText('fieldLabel'), color: agentUpTheme.colors.textWarning },
+  permissionTitle: { ...auText('pageTitle'), fontSize: agentUpTheme.typography.sizeSm },
+  permissionDetail: auText('workspaceName'),
+  location: { ...auText('muted'), fontSize: agentUpTheme.typography.sizeXs },
+  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  option: { ...auBox('button', 'buttonSecondary', 'buttonCompact') },
+  allow: auBox('button', 'buttonCompact'),
+  reject: auBox('button', 'buttonDanger', 'buttonCompact'),
+  optionText: auText('buttonSecondary', 'buttonCompact'),
+  allowText: auText('button', 'buttonCompact'),
+  rejectText: auText('button', 'buttonCompact'),
+  error: auText('badgeDanger'),
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  input: { flex: 1, maxHeight: 130, ...auBox('input'), ...auText('input') },
+  send: { ...auBox('button'), minWidth: 64, alignItems: 'center', justifyContent: 'center' },
+  sendText: auText('button'),
+  bottomBar: { ...auBox('mobileTabBar'), flexDirection: 'row', gap: 10, paddingHorizontal: 14, paddingTop: 10 },
+  tabButton: { ...auBox('subtab'), flex: 1, alignItems: 'center', justifyContent: 'center' },
+  tabButtonActive: auBox('subtabSelected'),
+  tabLabel: auText('subtab'),
+  tabLabelActive: auText('subtabSelected'),
 });

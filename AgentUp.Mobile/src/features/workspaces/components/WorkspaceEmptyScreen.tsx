@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   empty: auText('muted'),
   error: auText('badgeDanger'),
   label: auText('fieldLabel'),
-  input: auBox('input'),
+  input: { ...auBox('input'), ...auText('input') },
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
   buttonText: auText('button'),
   secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },

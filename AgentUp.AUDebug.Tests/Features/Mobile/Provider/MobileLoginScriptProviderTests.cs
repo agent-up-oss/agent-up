@@ -15,6 +15,8 @@ public sealed class MobileLoginScriptProviderTests
         Assert.That(script, Does.Contain("Try and save"));
         Assert.That(script, Does.Contain("Sign in"));
         Assert.That(script, Does.Contain("\"test\""));
+        Assert.That(script, Does.Contain("insertText"));
+        Assert.That(script, Does.Contain("waitEnabled"));
     }
 
     [Test]

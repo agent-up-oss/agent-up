@@ -16,8 +16,9 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/agent-up-icon-192.png" />
         <ScrollViewStyleReset />
+        <style dangerouslySetInnerHTML={{ __html: `html, body { margin: 0; background: ${agentUpTheme.colors.canvas}; color: ${agentUpTheme.colors.textPrimary}; }` }} />
       </head>
-      <body style={{ backgroundColor: agentUpTheme.colors.canvas }}>{children}</body>
+      <body style={{ backgroundColor: agentUpTheme.colors.canvas, color: agentUpTheme.colors.textPrimary }}>{children}</body>
     </html>
   );
 }

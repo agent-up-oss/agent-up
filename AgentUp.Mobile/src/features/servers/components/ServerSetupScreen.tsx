@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   title: auText('pageTitle'),
   subtitle: auText('muted'),
   label: auText('fieldLabel'),
-  input: auBox('input'),
+  input: { ...auBox('input'), ...auText('input') },
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
   disabled: auBox('buttonDisabled'),
   buttonText: auText('button'),
