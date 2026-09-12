@@ -413,6 +413,15 @@ jobs:
 
           dotnet run --project AgentUp.CLI --configuration Release --no-build -- verify coverage
 
+      - name: Enforce per-slice coverage
+        shell: bash
+        run: |
+          # Reads the same reports the step above copied into artifacts/coverage. This only
+          # holds where every suite has run, which is why the check is ciOnly: on a dev
+          # machine the architecture suite instruments every assembly with no hits, so a
+          # slice whose own suite was not selected would read as uncovered.
+          dotnet run --project AgentUp.CLI --configuration Release --no-build -- verify slices
+
       - name: Generate SBOM
         run: |
           dotnet tool install --global CycloneDX

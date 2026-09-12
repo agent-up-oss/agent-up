@@ -85,7 +85,8 @@
     "enforcement": "warn",
     "always": [
       "build",
-      "architecture"
+      "architecture",
+      "slice-coverage"
     ],
     "checks": {
       "build": {
@@ -290,6 +291,12 @@
         "command": "dotnet run --project AgentUp.CLI -- verify coverage",
         "tier": "fast",
         "order": 100
+      },
+      "slice-coverage": {
+        "command": "dotnet run --project AgentUp.CLI -- verify slices",
+        "tier": "fast",
+        "ciOnly": true,
+        "order": 101
       }
     },
     "paths": [
@@ -680,6 +687,7 @@
   },
   "coverage": {
     "minimum": 90,
+    "sliceMinimum": 70,
     "reportDirectory": "artifacts/coverage",
     "include": [
       "AgentUp.Server/**/*.cs",
@@ -703,6 +711,16 @@
       "**/Resources/**",
       "AgentUp.Tray/Features/AutoStart/WindowsAutoStartRegistrar.cs",
       "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
+    ],
+    "sliceExemptions": [
+      "AgentUp.Capabilities.Common/Features/CapabilityDiscovery",
+      "AgentUp.Server/Features/Database",
+      "AgentUp.Server/Features/Ports",
+      "AgentUp.Desktop/Features/Browser",
+      "AgentUp.Desktop/Features/Metrics",
+      "AgentUp.CLI/Features/Authentication",
+      "AgentUp.Desktop/Features/FirstRun",
+      "AgentUp.Server/Features/Commits"
     ]
   }
 }

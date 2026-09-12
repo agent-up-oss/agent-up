@@ -243,4 +243,25 @@ internal static class ArchitectureFixture
 
     public static string Relative(string root, string path)
         => Path.GetRelativePath(root, path);
+
+    /// <summary>
+    /// Reads an accepted-debt baseline: one violation per line, blank lines and lines
+    /// starting with '#' ignored.
+    /// </summary>
+    /// <remarks>
+    /// Throws when the file is missing rather than returning nothing. A baseline that
+    /// silently reads as empty turns its rule from a ratchet into a rule that passes
+    /// everything, which is the failure this suite exists to prevent.
+    /// </remarks>
+    public static HashSet<string> LoadBaseline(string root, string relativePath)
+    {
+        var path = Path.Join(root, relativePath);
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Baseline '{relativePath}' is missing.", path);
+
+        return File.ReadAllLines(path)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#'))
+            .ToHashSet(StringComparer.Ordinal);
+    }
 }

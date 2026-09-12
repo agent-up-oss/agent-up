@@ -43,6 +43,40 @@ public sealed class CoverageConfiguration
     }
 
     [Test]
+    public void Slice_coverage_floor_is_declared()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        using var document = ReadAgentUpJson(root);
+        var section = document.RootElement.GetProperty("coverage");
+
+        // The setting is optional in the loader, because a repository without a slice
+        // layout has no slices to hold to a floor. This one has them, so leaving it out
+        // would switch the floor off while the configuration still looked populated.
+        Assert.That(section.TryGetProperty("sliceMinimum", out var minimum), Is.True,
+            "'coverage.sliceMinimum' must be declared, or per-slice coverage measures nothing.");
+        Assert.That(minimum.GetDouble(), Is.GreaterThan(0d));
+    }
+
+    [Test]
+    public void Every_slice_coverage_exemption_names_a_slice_that_exists()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var exemptions = ReadGlobs(root, "sliceExemptions");
+        TestContext.Out.WriteLine($"Slice coverage exemptions: {exemptions.Count} entry(ies).");
+
+        // A renamed or deleted slice leaves an entry that can never match, so the list
+        // reads as accepted debt while exempting nothing.
+        var missing = exemptions
+            .Where(slice => !Directory.Exists(Path.Join(root, slice)))
+            .Order(StringComparer.Ordinal)
+            .Select(slice => $"'{slice}' is exempt from the slice floor but no such directory exists")
+            .ToArray();
+
+        Assert.That(missing, Is.Empty,
+            "Delete the entry, or correct it to the slice's current path.");
+    }
+
+    [Test]
     public void Coverage_exclusions_stay_reviewable_rather_than_open_ended()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);

@@ -794,6 +794,35 @@ out and cover it; never exclude a file to avoid writing a test.
 `codecov.yml` sets the same 90% patch target so the Codecov status matches. It is
 complementary, not a substitute: Codecov cannot gate a local run.
 
+## Per-slice coverage
+
+`agentup verify slices [--min N]` reports total line coverage for every feature slice,
+worst first, and fails a slice below `coverage.sliceMinimum`. Patch coverage keeps each
+change honest but says nothing about a slice that was thin before the gate existed; this is
+where that debt is visible.
+
+The floor is lower than the patch minimum on purpose. Patch coverage governs new work at
+90%; the slice floor is a line under what already exists, and raising it is a decision to
+burn the remainder down.
+
+`coverage.sliceExemptions` lists the slices allowed below the floor, each as exactly
+`<Project>/Features/<Slice>` - no globs, no type folders, nothing that could silently
+exempt a slice nobody reviewed. Every entry is accepted debt, and the check **fails** once a
+listed slice reaches the floor, so the list cannot outlive what it records. The architecture
+suite additionally rejects an entry naming a slice that no longer exists.
+
+The check is `ciOnly`, and not out of convenience: the architecture suite instruments every
+production assembly and records no hits for code it never executes, so on a dev machine,
+where only the suites a change selects have run, a slice whose own suite was not selected
+reads as uncovered. Run it by hand after a full sweep - `agentup verify run` then
+`agentup verify slices` - and let CI enforce it.
+
+`AgentUp.Architecture.Tests/Rules/SliceTestCoverage.cs` is the structural half: tests exist
+in the matching test-kind folder, and more than one of them. It cannot measure coverage,
+because it runs before the suites that produce the reports. Its two baselines under
+`Baselines/` are ratchets - an entry that is already satisfied fails the suite, so burning
+debt down means deleting the line.
+
 ## Configuration
 
 `verification.checks` defines named checks; `verification.paths` maps globs to check ids in

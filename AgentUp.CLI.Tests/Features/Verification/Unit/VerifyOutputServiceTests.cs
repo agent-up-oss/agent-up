@@ -241,4 +241,129 @@ public sealed class VerifyOutputServiceTests
             Assert.That(error.ToString(), Does.Contain("minimum"));
         });
     }
+
+    private static SliceCoverage Slice(string name, int covered, int coverable)
+        => new(name, covered, coverable);
+
+    [Test]
+    public void WriteSliceCoverage_listsEverySliceWithItsCoverage()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var result = new SliceCoverageResult(
+            [Slice("AgentUp.Server/Features/Ports", 5, 10), Slice("AgentUp.Server/Features/Git", 9, 10)],
+            70d,
+            [],
+            []);
+
+        var code = new VerifyOutputService(output, error)
+            .WriteSliceCoverage(new VerifySliceCoverageResult(result, null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.Zero);
+            Assert.That(output.ToString(), Does.Contain("2 feature slice(s)").And.Contain("floor 70%"));
+            Assert.That(output.ToString(),
+                Does.Contain("AgentUp.Server/Features/Ports").And.Contain("AgentUp.Server/Features/Git"));
+            Assert.That(output.ToString(), Does.Contain("5/10").And.Contain("9/10"));
+        });
+    }
+
+    [Test]
+    public void WriteSliceCoverage_marksTheSlicesBelowTheFloor()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var result = new SliceCoverageResult(
+            [Slice("AgentUp.Server/Features/Ports", 5, 10), Slice("AgentUp.Server/Features/Git", 9, 10)],
+            70d,
+            [],
+            []);
+
+        new VerifyOutputService(output, error)
+            .WriteSliceCoverage(new VerifySliceCoverageResult(result, null));
+
+        var lines = output.ToString().Split(Environment.NewLine);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(lines.Single(line => line.Contains("Ports", StringComparison.Ordinal)),
+                Does.Contain("below floor"));
+            Assert.That(lines.Single(line => line.Contains("Git", StringComparison.Ordinal)),
+                Does.Not.Contain("below floor"));
+        });
+    }
+
+    [Test]
+    public void WriteSliceCoverage_failsAndNamesEachSliceUnderTheFloor()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var failing = Slice("AgentUp.Server/Features/Ports", 5, 10);
+        var result = new SliceCoverageResult([failing], 70d, [failing], []);
+
+        var code = new VerifyOutputService(output, error)
+            .WriteSliceCoverage(new VerifySliceCoverageResult(result, null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(),
+                Does.Contain("AgentUp.Server/Features/Ports").And.Contain("50%").And.Contain("70%"));
+        });
+    }
+
+    [Test]
+    public void WriteSliceCoverage_failsAndSaysWhichExemptionToDelete()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var result = new SliceCoverageResult(
+            [Slice("AgentUp.Server/Features/Ports", 9, 10)],
+            70d,
+            [],
+            ["AgentUp.Server/Features/Ports"]);
+
+        var code = new VerifyOutputService(output, error)
+            .WriteSliceCoverage(new VerifySliceCoverageResult(result, null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(),
+                Does.Contain("AgentUp.Server/Features/Ports").And.Contain("sliceExemptions"));
+        });
+    }
+
+    [Test]
+    public void WriteSliceCoverage_tellsTheCallerToCollectCoverageWhenNoSliceIsMeasured()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var code = new VerifyOutputService(output, error)
+            .WriteSliceCoverage(new VerifySliceCoverageResult(SliceCoverageResult.NothingMeasured(70d), null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(), Does.Contain("coverage collection"));
+        });
+    }
+
+    [Test]
+    public void WriteSliceCoverage_rendersAConfigurationErrorInsteadOfPassing()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var code = new VerifyOutputService(output, error)
+            .WriteSliceCoverage(new VerifySliceCoverageResult(null, "'coverage.sliceMinimum' must be a number."));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(), Does.Contain("sliceMinimum"));
+        });
+    }
 }
