@@ -15,6 +15,8 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class CoverageConfiguration
 {
+    private const string LocateScript = ".github/scripts/locate-coverage-reports.sh";
+
     [Test]
     public void Every_production_project_is_measured_by_a_coverage_include_glob()
     {
@@ -114,6 +116,48 @@ public sealed class CoverageConfiguration
             .Select(line => line.Trim())
             .Where(line => line.StartsWith("- ", StringComparison.Ordinal))
             .Select(line => line[2..].Trim().Trim('"', '\''))
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    [Test]
+    public void Every_test_project_can_have_its_coverage_located_for_upload()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var known = ReadLocatableTestProjects(root);
+
+        // The CI job names the projects whose reports it uploads, and the locate script
+        // maps each name to the output the workflow reads. A test project missing from that
+        // map produced no output at all, silently, and the Codecov step then failed the job
+        // on an empty "files" input - which is what happened to the three test projects
+        // this branch added.
+        var missing = ArchitectureFixture.TestProjects
+            .Where(project => !known.Contains(project))
+            .Order(StringComparer.Ordinal)
+            .Select(project => $"{project} is not in all_projects in {LocateScript}")
+            .ToArray();
+
+        Assert.That(missing, Is.Empty,
+            $"Add the project to all_projects in {LocateScript}, with the output name the "
+            + "workflow's Codecov step reads.");
+    }
+
+    /// <summary>
+    /// The test project names in the locate script's all_projects map, read from the
+    /// "output_name:Project.Tests" entries.
+    /// </summary>
+    private static HashSet<string> ReadLocatableTestProjects(string root)
+    {
+        var path = Path.Join(root, LocateScript);
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"'{LocateScript}' is missing.", path);
+
+        return File.ReadAllLines(path)
+            .SkipWhile(line => line.TrimEnd() != "all_projects=(")
+            .Skip(1)
+            .TakeWhile(line => line.TrimEnd() != ")")
+            .Select(line => line.Trim())
+            .Where(line => line.Contains(':', StringComparison.Ordinal))
+            .Select(line => line[(line.IndexOf(':', StringComparison.Ordinal) + 1)..])
             .ToHashSet(StringComparer.Ordinal);
     }
 
