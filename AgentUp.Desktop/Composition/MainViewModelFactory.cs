@@ -116,6 +116,7 @@ public static class MainViewModelFactory
                 new ApplicationAuditStreamClient(auditApi.Http)),
             new GitPanelViewModel(git),
             new AgentChatViewModel(agents),
+            new WorkspaceOverviewViewModel(workspaces),
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),

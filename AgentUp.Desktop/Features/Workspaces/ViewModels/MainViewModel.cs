@@ -37,7 +37,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     private WorkspaceItemViewModel? _workspaceApplicationSubscription;
     private string? _lastSelectedHttpPortKey;
     private CancellationTokenSource? _metricsLoadCts;
-    private bool _isValidationOpen;
+    private WorkspaceShellTab _selectedShellTab = WorkspaceShellTab.Overview;
+    private WorkspaceShellTabItemViewModel? _selectedShellTabItem;
     private readonly ValidationController? _validationController;
     private CancellationTokenSource? _validationLoad;
     private Func<string, string, Task<string?>>? _validationEvalAsync;
@@ -50,13 +51,66 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ApplicationAuditViewModel Audit { get; }
     public GitPanelViewModel Git { get; }
     public AgentChatViewModel Agent { get; }
+    public WorkspaceOverviewViewModel Overview { get; }
     public FirstRunTutorialViewModel Tutorial { get; }
     public LoginViewModel Login { get; }
     public WindowChromeViewModel Chrome { get; } = new();
     public ValidationViewModel? Validation { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
-    public bool IsValidationOpen { get => _isValidationOpen; set => this.RaiseAndSetIfChanged(ref _isValidationOpen, value); }
-    public ReactiveCommand<Unit, Unit> ToggleValidationCommand { get; }
+    public bool IsValidationOpen => Validation is { IsCollapsed: false };
+
+    public ObservableCollection<WorkspaceShellTabItemViewModel> ShellTabs { get; } =
+    [
+        new(WorkspaceShellTab.Overview, "Overview"),
+        new(WorkspaceShellTab.Agent, "Agent"),
+        new(WorkspaceShellTab.Commit, "Commit")
+    ];
+
+    public WorkspaceShellTab SelectedShellTab
+    {
+        get => _selectedShellTab;
+        set
+        {
+            if (_selectedShellTab == value)
+            {
+                SyncShellTabItem();
+                return;
+            }
+
+            this.RaiseAndSetIfChanged(ref _selectedShellTab, value);
+            Git.IsVisible = value == WorkspaceShellTab.Commit;
+            Agent.IsVisible = value == WorkspaceShellTab.Agent;
+            SyncShellTabItem();
+            RaiseShellVisibility();
+            if (value == WorkspaceShellTab.Overview && Sidebar.SelectedWorkspace?.Id is { } overviewId)
+                _ = Overview.LoadAsync(overviewId);
+        }
+    }
+
+    public WorkspaceShellTabItemViewModel? SelectedShellTabItem
+    {
+        get => _selectedShellTabItem;
+        set
+        {
+            if (value is null)
+                return;
+
+            SelectedShellTab = value.Kind;
+        }
+    }
+
+    public ApplicationViewModel? SelectedApplicationTab
+    {
+        get => ShowApplication ? Applications.SelectedApplication : null;
+        set
+        {
+            if (value is null)
+                return;
+
+            Applications.SelectedApplication = value;
+            SelectedShellTab = WorkspaceShellTab.Application;
+        }
+    }
 
     private readonly ChromeServerStatusViewModel _chromeServerStatus;
 
@@ -68,12 +122,18 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         set => this.RaiseAndSetIfChanged(ref _selectedSubTab, value);
     }
 
-    public bool ShowConsole => SelectedSubTab is ConsoleSubTabViewModel;
-    public bool ShowMetrics => SelectedSubTab is MetricsSubTabViewModel;
-    public bool ShowDatabase => SelectedSubTab is DatabaseSubTabViewModel;
-    public bool ShowAudit => SelectedSubTab is AuditSubTabViewModel;
-    public bool ShowPortView => SelectedSubTab is PortSubTabViewModel { IsHttp: true };
-    public bool ShowTcpInfo => SelectedSubTab is PortSubTabViewModel { IsHttp: false };
+    public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
+    public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
+    public bool ShowCommit => SelectedShellTab == WorkspaceShellTab.Commit;
+    public bool ShowApplication => SelectedShellTab == WorkspaceShellTab.Application;
+    public bool ShowApplicationChrome => ShowApplication && Applications.SelectedApplication is not null;
+    public bool ShowNoApplications => ShowApplication && Applications.SelectedApplication is null;
+    public bool ShowConsole => ShowApplication && SelectedSubTab is ConsoleSubTabViewModel;
+    public bool ShowMetrics => ShowApplication && SelectedSubTab is MetricsSubTabViewModel;
+    public bool ShowDatabase => ShowApplication && SelectedSubTab is DatabaseSubTabViewModel;
+    public bool ShowAudit => ShowApplication && SelectedSubTab is AuditSubTabViewModel;
+    public bool ShowPortView => ShowApplication && SelectedSubTab is PortSubTabViewModel { IsHttp: true };
+    public bool ShowTcpInfo => ShowApplication && SelectedSubTab is PortSubTabViewModel { IsHttp: false };
 
     public string? AddressBarUrl
     {
@@ -85,7 +145,6 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ReactiveCommand<Unit, Unit> BrowserBackCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserForwardCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserReloadCommand { get; }
-    public ReactiveCommand<Unit, Unit> ToggleAgentCommand { get; }
 
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
@@ -102,6 +161,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         ApplicationAuditViewModel audit,
         GitPanelViewModel git,
         AgentChatViewModel agent,
+        WorkspaceOverviewViewModel overview,
         FirstRunTutorialViewModel tutorial,
         LoginViewModel login,
         PortsController ports,
@@ -116,23 +176,27 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         Audit = audit;
         Git = git;
         Agent = agent;
+        Overview = overview;
         Tutorial = tutorial;
         Login = login;
         _ports = ports;
         Validation = validation;
         ValidationReplay = validationReplay;
         _validationController = validation is null ? null : new ValidationController(validation);
+        if (validation is not null)
+            validation.WhenAnyValue(x => x.IsCollapsed)
+                .Subscribe(_ => this.RaisePropertyChanged(nameof(IsValidationOpen)));
         _chromeServerStatus = new ChromeServerStatusViewModel(sidebar);
         UpdateChromeLeftItems(Login.IsVisible);
         Login.WhenAnyValue(viewModel => viewModel.IsVisible)
             .Subscribe(UpdateChromeLeftItems);
 
-        ToggleValidationCommand = ReactiveCommand.Create(() => { IsValidationOpen = !IsValidationOpen; if (IsValidationOpen) LoadValidation(); });
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
         BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
-        ToggleAgentCommand = ReactiveCommand.Create(() => { Agent.IsVisible = !Agent.IsVisible; });
+
+        SyncShellTabItem();
 
         var selectedPortTab = this.WhenAnyValue(x => x.SelectedSubTab)
             .Select(tab => tab as PortSubTabViewModel);
@@ -141,6 +205,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         SubscribeApplicationSelection();
         SubscribeSubTabSelection();
         SubscribeMetricsRefresh();
+        SubscribeOverviewRefresh();
         SubscribeTutorialSteps();
         SubscribeSelectedPortProbe(selectedPortTab);
 
@@ -158,9 +223,15 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 Metrics.Clear();
                 SubscribeSelectedWorkspaceApplications(ws);
                 UpdateApplicationsFromWorkspace(ws, preserveSelection: false);
-                if (IsValidationOpen) LoadValidation();
+                SelectedShellTab = WorkspaceShellTab.Overview;
+                if (ws is null)
+                    Overview.Clear();
+                else
+                    _ = Overview.LoadAsync(ws.Id);
+                Git.PrepareWorkspace(ws?.Id, ws?.Branch);
                 _ = Git.LoadAsync(ws?.Id);
                 _ = Agent.LoadAsync(ws?.Id);
+                LoadValidation();
             });
 
     private void CancelPendingMetricsLoad()
@@ -220,8 +291,11 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .Subscribe(app =>
             {
                 RebuildSubTabs(app);
+                this.RaisePropertyChanged(nameof(ShowApplicationChrome));
+                this.RaisePropertyChanged(nameof(ShowNoApplications));
+                this.RaisePropertyChanged(nameof(SelectedApplicationTab));
+                LoadValidation();
                 if (app is null) return;
-                if (IsValidationOpen) LoadValidation();
                 var workspaceId = Sidebar.SelectedWorkspace?.Id;
                 if (workspaceId is not null)
                 {
@@ -239,6 +313,17 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .Switch()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => LoadMetricsIfPossible());
+
+    private void SubscribeOverviewRefresh()
+        => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
+            .CombineLatest(this.WhenAnyValue(x => x.SelectedShellTab), (workspace, tab) => (workspace, tab))
+            .Select(state => state.tab == WorkspaceShellTab.Overview && state.workspace is not null
+                ? Observable.Timer(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5), RxApp.TaskpoolScheduler)
+                    .Select(_ => state.workspace!.Id)
+                : Observable.Empty<string>())
+            .Switch()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(workspaceId => _ = Overview.LoadAsync(workspaceId));
 
     private void LoadMetricsIfPossible()
     {
@@ -475,6 +560,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         if (Sidebar.SelectedWorkspace?.Id != workspaceId)
             Sidebar.SelectedWorkspace = workspace;
 
+        SelectedShellTab = WorkspaceShellTab.Application;
+
         var matchingApp = Applications.Applications
             .FirstOrDefault(a => string.Equals(a.Name, applicationName, StringComparison.Ordinal));
         if (matchingApp is not null && Applications.SelectedApplication != matchingApp)
@@ -516,6 +603,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
         if (Applications.SelectedApplication != matchingApp)
             Applications.SelectedApplication = matchingApp;
+
+        SelectedShellTab = WorkspaceShellTab.Application;
 
         var targetTab = SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(t => t.AllocatedPort == targetPort);
         if (targetTab is not null && SelectedSubTab != targetTab)
@@ -599,7 +688,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
     private void LoadValidation()
     {
-        if (_validationController is null || Sidebar.SelectedWorkspace?.Id is not { } workspaceId || Applications.SelectedApplication?.Name is not { } application)
+        if (_validationController is null || Validation is null)
             return;
 
         // Selections change faster than the server answers. Without superseding the previous
@@ -610,6 +699,14 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         var previous = _validationLoad;
         _validationLoad = cts;
         previous?.Cancel();
+
+        if (Sidebar.SelectedWorkspace?.Id is not { } workspaceId || Applications.SelectedApplication?.Name is not { } application)
+        {
+            Validation.Clear();
+            return;
+        }
+
+        Validation.BeginLoad();
         _ = _validationController.LoadAsync(workspaceId, application, cts.Token);
     }
 
@@ -619,23 +716,37 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     private IEnumerable<object> CreateWorkspaceChromeItems()
     {
         yield return new ChromeIconButtonViewModel(
-            "SidebarToggle",
-            "☰",
-            16,
-            Sidebar.ToggleCommand,
-            "Toggle sidebar");
-        yield return new ChromeIconButtonViewModel(
             "ReloadButton",
             "↺",
             15,
             Sidebar.RefreshCommand,
             "Reload workspaces");
-        yield return new ChromeIconButtonViewModel(
-            "GitPanelToggle",
-            "⑂",
-            15,
-            Git.ToggleCommand,
-            "Toggle Git changes panel");
         yield return _chromeServerStatus;
+    }
+
+    private void SyncShellTabItem()
+    {
+        var item = SelectedShellTab is WorkspaceShellTab.Application
+            ? null
+            : ShellTabs.FirstOrDefault(tab => tab.Kind == SelectedShellTab);
+        this.RaiseAndSetIfChanged(ref _selectedShellTabItem, item, nameof(SelectedShellTabItem));
+    }
+
+    private void RaiseShellVisibility()
+    {
+        this.RaisePropertyChanged(nameof(ShowOverview));
+        this.RaisePropertyChanged(nameof(ShowAgent));
+        this.RaisePropertyChanged(nameof(ShowCommit));
+        this.RaisePropertyChanged(nameof(ShowApplication));
+        this.RaisePropertyChanged(nameof(ShowApplicationChrome));
+        this.RaisePropertyChanged(nameof(ShowNoApplications));
+        this.RaisePropertyChanged(nameof(IsValidationOpen));
+        this.RaisePropertyChanged(nameof(SelectedApplicationTab));
+        this.RaisePropertyChanged(nameof(ShowConsole));
+        this.RaisePropertyChanged(nameof(ShowMetrics));
+        this.RaisePropertyChanged(nameof(ShowDatabase));
+        this.RaisePropertyChanged(nameof(ShowAudit));
+        this.RaisePropertyChanged(nameof(ShowPortView));
+        this.RaisePropertyChanged(nameof(ShowTcpInfo));
     }
 }

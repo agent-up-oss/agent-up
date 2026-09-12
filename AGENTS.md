@@ -698,6 +698,8 @@ Use layered tests with clear ownership:
 
 Avoid duplicate tests that assert the same rule through multiple layers.
 
+NUnit tests default to a 30-second per-test timeout from `coverlet.runsettings`. Tests that must run longer, such as capability CLI smoke and native-display E2E, set `[Timeout]` / `[CancelAfter]` on the fixture or method. A 1-minute testhost hang dump aborts a stuck session so a single hung test cannot run forever; it is not a 1-minute budget for a full project run.
+
 # Verification
 
 Test selection is not an agent decision. The `verification` section of `agent-up.json` maps

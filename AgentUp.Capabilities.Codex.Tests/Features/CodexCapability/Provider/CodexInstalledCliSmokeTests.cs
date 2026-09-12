@@ -7,6 +7,7 @@ namespace AgentUp.Capabilities.Codex.Tests.Features.CodexCapability.Provider;
 
 [TestFixture]
 [CancelAfter(60_000)]
+[Timeout(60_000)]
 public sealed class CodexInstalledCliSmokeTests
 {
     [Test]

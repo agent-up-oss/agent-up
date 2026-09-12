@@ -173,6 +173,10 @@ Remotes are restricted to `http`, `https`, `ssh`, and `git` URLs plus the `user@
 
 Registration prefers the repository's own `agent-up.json` through the `Orchestration` registration controller. A repository without that file still registers, using the clone directory name and the identity read from the new checkout.
 
+## Workspace Overview
+
+`GET /api/workspaces/{workspaceId}/overview` returns workspace identity plus Server-measured worktree storage and local-process CPU and memory totals for the Desktop Overview tab. Docker application containers are not included in the CPU and memory figures.
+
 ## Git Working Tree
 
 The `Git` slice is the Server-side capability behind the Desktop Git panel and the Mobile Git tab. It resolves the selected workspace's worktree path and exposes these routes:

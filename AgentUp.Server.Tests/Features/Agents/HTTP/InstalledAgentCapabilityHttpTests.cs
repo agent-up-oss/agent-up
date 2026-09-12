@@ -35,6 +35,7 @@ namespace AgentUp.Server.Tests.Features.Agents.HTTP;
 
 [TestFixture]
 [CancelAfter(60_000)]
+[Timeout(60_000)]
 public sealed class InstalledAgentCapabilityHttpTests
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)

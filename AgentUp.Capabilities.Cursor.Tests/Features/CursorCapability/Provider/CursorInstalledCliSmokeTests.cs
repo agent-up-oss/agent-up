@@ -7,6 +7,7 @@ namespace AgentUp.Capabilities.Cursor.Tests.Features.CursorCapability.Provider;
 
 [TestFixture]
 [CancelAfter(60_000)]
+[Timeout(60_000)]
 public sealed class CursorInstalledCliSmokeTests
 {
     [Test]

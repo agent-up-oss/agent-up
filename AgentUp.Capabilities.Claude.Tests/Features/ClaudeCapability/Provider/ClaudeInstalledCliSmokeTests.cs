@@ -7,6 +7,7 @@ namespace AgentUp.Capabilities.Claude.Tests.Features.ClaudeCapability.Provider;
 
 [TestFixture]
 [CancelAfter(60_000)]
+[Timeout(60_000)]
 public sealed class ClaudeInstalledCliSmokeTests
 {
     [Test]

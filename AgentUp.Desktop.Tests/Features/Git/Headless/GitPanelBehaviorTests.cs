@@ -9,14 +9,16 @@ namespace AgentUp.Desktop.Tests.Features.Git.Headless;
 public sealed class GitPanelBehaviorTests
 {
     [AvaloniaTest]
-    public async Task GitPanel_isHiddenUntilTheChromeToggleIsClicked()
+    public async Task GitPanel_isHiddenUntilTheCommitTabIsSelected()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
         var panel = driver.Window.FindControl<Border>("GitPanel")!;
 
         Assert.That(panel.IsVisible, Is.False);
 
-        await driver.Window.ClickControlAsync(ChromeTestSupport.FindDescendantByName<Button>(driver.Window, "GitPanelToggle")!);
+        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        await HeadlessExtensions.FlushAsync();
 
         Assert.That(panel.IsVisible, Is.True);
     }
@@ -25,7 +27,9 @@ public sealed class GitPanelBehaviorTests
     public async Task GitPanel_showsTheCommitMessageBoxAndCommitButton()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
-        await driver.Window.ClickControlAsync(ChromeTestSupport.FindDescendantByName<Button>(driver.Window, "GitPanelToggle")!);
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        await HeadlessExtensions.FlushAsync();
 
         Assert.That(driver.Window.FindControl<TextBox>("GitCommitMessage")!.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsVisible, Is.True);
@@ -36,7 +40,9 @@ public sealed class GitPanelBehaviorTests
     public async Task GitCommitButton_staysDisabledWithoutSelectedFilesOrAMessage()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
-        await driver.Window.ClickControlAsync(ChromeTestSupport.FindDescendantByName<Button>(driver.Window, "GitPanelToggle")!);
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        await HeadlessExtensions.FlushAsync();
 
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsEffectivelyEnabled, Is.False);
     }

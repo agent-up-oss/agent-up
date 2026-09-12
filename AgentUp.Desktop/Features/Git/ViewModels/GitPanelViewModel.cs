@@ -188,6 +188,26 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public ReactiveCommand<string, Unit> SwitchBranchCommand { get; }
     public ReactiveCommand<Unit, Unit> CommitCommand { get; }
 
+    public void PrepareWorkspace(string? workspaceId, string? branch)
+    {
+        if (string.Equals(_workspaceId, workspaceId, StringComparison.Ordinal))
+            return;
+
+        _workspaceId = workspaceId;
+        Nodes.Clear();
+        SelectedFileCount = 0;
+        CancelDiscardConfirm();
+        Diff.Hide();
+        if (workspaceId is null)
+        {
+            Clear();
+            return;
+        }
+
+        ApplyHead(branch ?? string.Empty, string.IsNullOrWhiteSpace(branch) ? [] : [branch]);
+        RaiseListProperties();
+    }
+
     public async Task LoadAsync(string? workspaceId, CancellationToken cancellationToken = default, bool silent = false)
     {
         var request = ++_treeRequest;
@@ -528,9 +548,15 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         try
         {
             LocalBranches.Clear();
-            foreach (var name in branches ?? [])
+            foreach (var name in (branches ?? [])
+                         .Where(name => !string.IsNullOrWhiteSpace(name))
+                         .Distinct(StringComparer.Ordinal))
                 LocalBranches.Add(name);
-            this.RaiseAndSetIfChanged(ref _branch, branch);
+
+            if (!string.IsNullOrWhiteSpace(branch) && !LocalBranches.Contains(branch))
+                LocalBranches.Insert(0, branch);
+
+            Branch = branch;
         }
         finally
         {
@@ -543,7 +569,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         _isApplyingHead = true;
         try
         {
-            this.RaiseAndSetIfChanged(ref _branch, branch);
+            Branch = branch;
         }
         finally
         {

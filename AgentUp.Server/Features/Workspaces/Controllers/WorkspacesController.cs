@@ -9,7 +9,8 @@ namespace AgentUp.Server.Features.Workspaces.Controllers;
 public sealed class WorkspacesController(
     WorkspaceRegistry registry,
     WorkspaceLifecycleService lifecycle,
-    WorkspaceEventStreamService eventStream) : ControllerBase
+    WorkspaceEventStreamService eventStream,
+    WorkspaceOverviewService overview) : ControllerBase
 {
     [HttpGet("events")]
     public Task SubscribeEvents(CancellationToken ct)
@@ -22,6 +23,13 @@ public sealed class WorkspacesController(
     public IActionResult GetById(string id)
     {
         var workspace = registry.GetById(id);
+        return workspace is null ? NotFound() : Ok(workspace);
+    }
+
+    [HttpGet("{id}/overview")]
+    public IActionResult GetOverview(string id)
+    {
+        var workspace = overview.Get(id);
         return workspace is null ? NotFound() : Ok(workspace);
     }
 

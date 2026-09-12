@@ -6,7 +6,7 @@ title: Git changes
 
 Every workspace has a Git view that shows the uncommitted changes in its worktree and lets you commit a chosen subset of them.
 
-Open it from the Git icon in the Desktop title bar, which reveals a panel on the right of the selected workspace. On Mobile it is the Git tab, which follows the workspace selected on the Workspaces tab.
+Open it from the Commit tab of the selected Desktop workspace. On Mobile it is the Git tab, which follows the workspace selected on the Workspaces tab.
 
 ## Reading the change list
 
@@ -31,7 +31,7 @@ Each file has a checkbox, and only checked files are committed. The list starts 
 
 The change list refreshes on its own while the Git view is open and keeps the checkboxes for files that are still present. Discard asks you to confirm the selected paths, then restores selected tracked files from HEAD and deletes selected untracked files.
 
-Branch switching lives on the workspace home screen, not in the Git view. A dropdown above the application list shows the live branch, lets you switch to another local branch, and has a `+` control that opens a field to create a branch from the current HEAD. Switching refuses to run when Git itself would refuse, such as when the worktree has conflicting changes.
+Branch switching lives on the Overview tab, not in the Git view. A dropdown at the top of Overview shows the live branch, lets you switch to another local branch, and has a `+` control that opens a field to create a branch from the current HEAD. Switching refuses to run when Git itself would refuse, such as when the worktree has conflicting changes.
 
 ## Committing
 

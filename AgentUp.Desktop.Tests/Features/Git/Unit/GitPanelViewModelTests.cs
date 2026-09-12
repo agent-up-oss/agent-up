@@ -27,6 +27,18 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.Nodes[5].IsFile, Is.True);
         Assert.That(panel.FileCount, Is.EqualTo(3));
         Assert.That(panel.Branch, Is.EqualTo("main"));
+        Assert.That(panel.LocalBranches, Does.Contain("main"));
+    }
+
+    [Test]
+    public void PrepareWorkspace_seedsTheCurrentBranchBeforeChangesLoad()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { HoldChanges = true });
+
+        panel.PrepareWorkspace("ws-1", "agent-scheduling");
+
+        Assert.That(panel.Branch, Is.EqualTo("agent-scheduling"));
+        Assert.That(panel.LocalBranches, Is.EqualTo(new[] { "agent-scheduling" }));
     }
 
     [Test]

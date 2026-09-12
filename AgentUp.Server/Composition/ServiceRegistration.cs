@@ -199,6 +199,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
+        builder.Services.AddSingleton<WorkspaceOverviewService>();
         builder.Services.AddSingleton<WorkspaceProcessManager>();
         builder.Services.AddSingleton<IWorkspaceProcessManager>(sp => sp.GetRequiredService<WorkspaceProcessManager>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceProcessManager>());

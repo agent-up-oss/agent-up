@@ -18,6 +18,7 @@ public sealed class ApplicationAuditPanelTests
         var auditTab = viewModel.SubTabs.OfType<AuditSubTabViewModel>().Single();
         Assert.That(auditTab.Label, Is.EqualTo("Diagnostics"));
 
+        viewModel.SelectedShellTab = WorkspaceShellTab.Application;
         viewModel.SelectedSubTab = auditTab;
         await HeadlessExtensions.FlushAsync();
 

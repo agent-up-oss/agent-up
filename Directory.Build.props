@@ -4,4 +4,7 @@
     <RepositoryType>git</RepositoryType>
     <LocalInstallerVersion>1.1.0</LocalInstallerVersion>
   </PropertyGroup>
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)coverlet.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
 </Project>

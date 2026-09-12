@@ -23,7 +23,7 @@ Each workspace contains:
 
 The workspace identity is the project path. When that path is a Git repository or worktree, Agent-Up records the repository root, branch, and commit. When no Git repository exists, the workspace still works and displays `not on a git branch`.
 
-Git worktrees are the recommended model for AI agents working in the same repository because they preserve separate branches, running applications, browser sessions, and validation state. The workspace home screen has a branch dropdown above the application list for switching or creating a local branch.
+Git worktrees are the recommended model for AI agents working in the same repository because they preserve separate branches, running applications, browser sessions, and validation state. The Desktop Overview tab has a branch dropdown for switching or creating a local branch, plus workspace identity and Server-owned CPU, memory, storage, and process totals.
 
 ## Managed Source Clones
 
