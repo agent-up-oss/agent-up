@@ -74,6 +74,7 @@ using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Shared.Providers;
 using Microsoft.AspNetCore.Authorization;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Server.Composition;
 

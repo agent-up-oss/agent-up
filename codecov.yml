@@ -1,0 +1,32 @@
+# Codecov's view of coverage. Complementary to, not a substitute for, the local gate:
+# `agentup verify coverage` enforces the same patch threshold on a developer machine and
+# inside the verification module, which Codecov cannot do.
+coverage:
+  status:
+    patch:
+      default:
+        target: 90%
+        threshold: 0%
+        # Do not pass a pull request just because Codecov could not find a base report.
+        if_not_found: failure
+    project:
+      default:
+        # Total coverage barely moves per change on a codebase this size, so the project
+        # status only guards against a sharp drop. Patch coverage is the real gate.
+        target: auto
+        threshold: 1%
+        if_not_found: success
+
+comment:
+  layout: "condensed_header, diff, flags, components"
+  require_changes: true
+
+# Mirrors the "coverage.exclude" globs in agent-up.json. Keep the two in step: composition
+# roots and entrypoints carry no behaviour worth a coverage number.
+ignore:
+  - "**/Composition/**"
+  - "**/Program.cs"
+  - "**/App.axaml.cs"
+  - "**/Properties/**"
+  - "**/Resources/**"
+  - "**/*.Tests/**"

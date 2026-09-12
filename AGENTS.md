@@ -685,6 +685,9 @@ Use the MCP verification tools on the `/mcp/verification` server:
 | `run_verification_check` | Re-run one check by id after a targeted fix |
 | `guard_verification` | Report whether every required check has a passing receipt matching the current file contents |
 
+`agentup verify coverage` has no MCP tool of its own: it runs as the `patch-coverage`
+check inside `run_verification`, so an agent gets it automatically rather than choosing it.
+
 Developers use the CLI equivalents: `agentup verify plan`, `agentup verify run [<check-id>]`,
 and `agentup verify guard [--run] [--format hook]`.
 
@@ -724,13 +727,50 @@ checks on stderr otherwise. `--run` additionally executes what is missing; that 
 deliberately opt-in, because running suites inside a Stop hook makes every turn end slow
 and turns a hook timeout into a false failure.
 
+## Patch coverage
+
+Every change to mapped production code must cover at least the percentage in
+`coverage.minimum` (currently 90%) **of the lines it changed**. Total coverage is not
+gated: on a codebase this size it barely moves per change, while patch coverage moves
+immediately.
+
+`agentup verify coverage [--min N]` measures it. The gate reads the Cobertura reports a
+test run wrote - it does not run tests itself - so the suites must collect coverage first.
+The `verification.checks` test commands already do, writing into
+`artifacts/coverage/<check>`, and `patch-coverage` carries `order: 100` so it runs after
+them.
+
+What counts:
+
+- Only lines the change **added or modified**. Deleted lines require no coverage.
+- Only lines a coverage tool reports as **coverable**. A blank line, a brace, or a
+  declaration with no sequence point is neither covered nor a failure, so the ratio does
+  not depend on formatting.
+- A whole untracked file counts as added, so a brand-new file cannot score as covered by
+  having no diff.
+- A line hit by **any** suite counts, because reports from every test project are merged.
+- `coverage.include` decides what the gate is about; `coverage.exclude` removes files where
+  a coverage number carries no information. Both are globs in `agent-up.json`, reviewable
+  in a diff. `AgentUp.Architecture.Tests` requires every production project to appear in
+  `include` and rejects exclusions broad enough to switch the gate off.
+
+A changed file that no report mentions blocks **only** when its whole project is missing
+from every report, which means that suite never ran. A file whose project is covered but
+which has no entry of its own simply has no executable code - a changed interface or enum
+must not fail the gate.
+
+`codecov.yml` sets the same 90% patch target so the Codecov status matches. It is
+complementary, not a substitute: Codecov cannot gate a local run.
+
 ## Configuration
 
 `verification.checks` defines named checks; `verification.paths` maps globs to check ids in
 order, and every match contributes. `verification.always` lists checks required for any
 change at all, in the order they should run. A check declares a `tier` (`fast`, `slow`,
-`platform`), optional `platforms`, optional `ciOnly`, and `inputs` - the dependency closure
-whose changed files belong in its covered map.
+`platform`), optional `platforms`, optional `ciOnly`, optional `order`, and `inputs` - the
+dependency closure whose changed files belong in its covered map. `order` sorts selected
+checks ascending before id, which is how a check that consumes another's output is made to
+follow it.
 
 Rules to keep:
 

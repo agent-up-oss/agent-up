@@ -1,5 +1,6 @@
 using AgentUp.CLI.Features.Verification.DTOs;
 using AgentUp.CLI.Features.Verification.Services;
+using AgentUp.Verification.Features.Coverage.Models;
 using AgentUp.Verification.Features.Verification.Models;
 
 namespace AgentUp.CLI.Tests.Features.Verification.Unit;
@@ -128,7 +129,7 @@ public sealed class VerifyOutputServiceTests
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
-        var definition = new CheckDefinition("macos-smoke", "./smoke.sh", null, CheckTier.Platform, ["macos"], false, []);
+        var definition = new CheckDefinition("macos-smoke", "./smoke.sh", null, CheckTier.Platform, ["macos"], false, 0, []);
         var plan = new VerificationPlan(
             [new PlannedCheck(definition, new Dictionary<string, string>(StringComparer.Ordinal), CheckSkipReason.PlatformMismatch, ["packaging/**"])],
             new Dictionary<string, string>(StringComparer.Ordinal) { ["packaging/x"] = "sha256:1" },
@@ -152,6 +153,92 @@ public sealed class VerifyOutputServiceTests
         {
             Assert.That(code, Is.EqualTo(1));
             Assert.That(error.ToString(), Does.Contain("not valid JSON"));
+        });
+    }
+
+    [Test]
+    public void WriteCoverage_reportsThePercentageAndTheUncoveredLines()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var coverage = new PatchCoverageResult(
+            8, 10, 90d,
+            [new UncoveredFile("AgentUp.Server/Features/Git/Services/GitChangesService.cs", [11, 12])],
+            []);
+
+        var code = new VerifyOutputService(output, error).WriteCoverage(new VerifyCoverageResult(coverage, null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("80%").And.Contain("8/10"));
+            Assert.That(output.ToString(), Does.Contain("11-12"));
+            Assert.That(error.ToString(), Does.Contain("below the required 90%"));
+        });
+    }
+
+    [Test]
+    public void WriteCoverage_succeedsWhenTheMinimumIsMet()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var coverage = new PatchCoverageResult(10, 10, 90d, [], []);
+
+        var code = new VerifyOutputService(output, error).WriteCoverage(new VerifyCoverageResult(coverage, null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.Zero);
+            Assert.That(error.ToString(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void WriteCoverage_saysTheGateDoesNotApplyWhenNothingIsCoverable()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var code = new VerifyOutputService(output, error)
+            .WriteCoverage(new VerifyCoverageResult(PatchCoverageResult.NothingToCover(90d), null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.Zero);
+            Assert.That(output.ToString(), Does.Contain("does not apply"));
+        });
+    }
+
+    [Test]
+    public void WriteCoverage_tellsTheCallerToCollectCoverageWhenAProjectHasNoReport()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var coverage = new PatchCoverageResult(0, 0, 90d, [], ["AgentUp.Server/Features/X/Services/Y.cs"]);
+
+        var code = new VerifyOutputService(output, error).WriteCoverage(new VerifyCoverageResult(coverage, null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(), Does.Contain("no coverage report"));
+            Assert.That(error.ToString(), Does.Contain("AgentUp.Server/Features/X/Services/Y.cs"));
+        });
+    }
+
+    [Test]
+    public void WriteCoverage_rendersAConfigurationErrorInsteadOfPassing()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var code = new VerifyOutputService(output, error)
+            .WriteCoverage(new VerifyCoverageResult(null, "'coverage.minimum' is required."));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(), Does.Contain("minimum"));
         });
     }
 }

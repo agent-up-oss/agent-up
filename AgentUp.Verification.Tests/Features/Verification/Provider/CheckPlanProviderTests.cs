@@ -2,6 +2,7 @@ using AgentUp.Verification.Features.Verification.Models;
 using AgentUp.Verification.Features.Verification.Providers;
 using AgentUp.Verification.Tests.Fake;
 using AgentUp.Verification.Tests.Support;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Verification.Tests.Features.Verification.Provider;
 
@@ -224,5 +225,24 @@ public sealed class CheckPlanProviderTests
             ChangeSetBuilder.Changing(VerificationDomain.ServerSource, VerificationDomain.MobileSource).Build());
 
         Assert.That(plan.Checks.Select(check => check.CheckId), Is.Ordered);
+    }
+
+    [Test]
+    public void CreatePlan_ordersSelectedChecksByDeclaredOrderBeforeId()
+    {
+        // patch-coverage consumes the reports the suites write, so it has to run after
+        // them even though "patch-coverage" sorts before "server" alphabetically.
+        var configuration = VerificationDomain.Configuration()
+            .WithCheck(new CheckBuilder("patch-coverage").WithCommand("verify coverage").WithOrder(100))
+            .WithPathRule("AgentUp.Server/**", VerificationDomain.ServerUnitCheck, "patch-coverage")
+            .WithoutAlways()
+            .Build();
+
+        var plan = ProviderOn(VerificationDomain.Linux).CreatePlan(
+            configuration,
+            ChangeSetBuilder.Changing(VerificationDomain.ServerSource).Build());
+
+        Assert.That(plan.Checks.Select(check => check.CheckId),
+            Is.EqualTo(new[] { VerificationDomain.ServerUnitCheck, "patch-coverage" }));
     }
 }

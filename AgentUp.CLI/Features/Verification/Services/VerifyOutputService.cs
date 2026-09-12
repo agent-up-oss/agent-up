@@ -1,4 +1,5 @@
 using AgentUp.CLI.Features.Verification.DTOs;
+using AgentUp.Verification.Features.Coverage.Models;
 using AgentUp.Verification.Features.Verification.Models;
 
 namespace AgentUp.CLI.Features.Verification.Services;
@@ -60,6 +61,45 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
 
     private int WriteGuard(GuardReport report, VerifyOutputFormat format)
         => format == VerifyOutputFormat.Hook ? WriteGuardForHook(report) : WriteGuardAsText(report);
+
+    public int WriteCoverage(VerifyCoverageResult result)
+        => result.Coverage is null
+            ? WriteError(result.Error ?? "Coverage measurement failed.")
+            : WriteCoverage(result.Coverage);
+
+    private int WriteCoverage(PatchCoverageResult coverage)
+    {
+        if (coverage.FilesWithoutReport.Count > 0)
+        {
+            error.WriteLine(
+                $"{coverage.FilesWithoutReport.Count} changed file(s) have no coverage report. " +
+                "Run the tests with coverage collection first:");
+            foreach (var path in coverage.FilesWithoutReport)
+                error.WriteLine($"    {path}");
+            return 1;
+        }
+
+        if (coverage.CoverableLines == 0)
+        {
+            output.WriteLine("No changed lines are coverable, so patch coverage does not apply.");
+            return 0;
+        }
+
+        output.WriteLine(
+            $"Patch coverage {coverage.Percentage:0.##}% " +
+            $"({coverage.CoveredLines}/{coverage.CoverableLines} changed line(s)), " +
+            $"minimum {coverage.Minimum:0.##}%.");
+
+        foreach (var file in coverage.Uncovered)
+            output.WriteLine($"    {file.Path}: {file.DescribeRanges()}");
+
+        if (coverage.Satisfied)
+            return 0;
+
+        error.WriteLine(
+            $"Patch coverage {coverage.Percentage:0.##}% is below the required {coverage.Minimum:0.##}%.");
+        return 1;
+    }
 
     public int WriteError(string message)
     {
