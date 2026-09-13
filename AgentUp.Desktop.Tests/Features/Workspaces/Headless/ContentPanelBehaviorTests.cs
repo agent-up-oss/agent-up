@@ -1,5 +1,6 @@
 using Avalonia.Headless.NUnit;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 
@@ -87,6 +88,12 @@ public class ContentPanelBehaviorTests
         Assert.That(app.Window.FindControl<ComboBox>("WorkspaceBranchCombo")!.IsVisible, Is.True);
         Assert.That(viewModel.Git.Branch, Is.EqualTo(workspace.Branch));
         Assert.That(app.Window.FindControl<Grid>("OverviewMetrics")!.IsVisible, Is.True);
+        Assert.That(
+            app.Window.FindControl<Grid>("OverviewMetrics")!
+                .GetVisualDescendants()
+                .OfType<Border>()
+                .Count(border => border.Classes.Contains("metricsSummaryCard")),
+            Is.EqualTo(6));
         Assert.That(app.Window.FindControl<Grid>("OverviewSkeleton")!.IsVisible, Is.False);
         Assert.That(app.Window.FindControl<Border>("GitPanel")!.IsVisible, Is.False);
         Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.IsVisible, Is.True);
@@ -135,5 +142,23 @@ public class ContentPanelBehaviorTests
         await app.Content.ClickWorkspaceDetailAsync();
 
         Assert.That(app.Content.AddressBarIsFocused, Is.False);
+    }
+
+    [AvaloniaTest]
+    public async Task ApplicationSubTabs_keepHoverOnTheRoundedBorder_notTheLabel()
+    {
+        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var app = await AppDriver.LaunchWithWorkspaceAsync(
+            workspace,
+            () => throw new InvalidOperationException("no WebKit"));
+        await app.Content.SelectApplicationTabAsync();
+
+        var consoleTab = app.Window.GetVisualDescendants()
+            .OfType<Border>()
+            .First(border => border.Classes.Contains("subTab")
+                && border.Child is TextBlock label
+                && label.Text == "Console");
+
+        Assert.That(((TextBlock)consoleTab.Child!).Classes.Contains("subTab"), Is.False);
     }
 }

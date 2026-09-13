@@ -23,32 +23,28 @@
         <!-- Console sub-tab -->
         <DataTemplate DataType="portVm:ConsoleSubTabViewModel">
             <Border Classes="subTab">
-                <TextBlock Classes="subTab"
-                           Text="Console"/>
+                <TextBlock Text="Console"/>
             </Border>
         </DataTemplate>
 
         <!-- Database sub-tab -->
         <DataTemplate DataType="databaseVm:DatabaseSubTabViewModel">
             <Border Classes="subTab">
-                <TextBlock Classes="subTab"
-                           Text="Database"/>
+                <TextBlock Text="Database"/>
             </Border>
         </DataTemplate>
 
         <!-- Metrics sub-tab -->
         <DataTemplate DataType="portVm:MetricsSubTabViewModel">
             <Border Classes="subTab">
-                <TextBlock Classes="subTab"
-                           Text="Metrics"/>
+                <TextBlock Text="Metrics"/>
             </Border>
         </DataTemplate>
 
         <!-- Audit sub-tab -->
         <DataTemplate DataType="portVm:AuditSubTabViewModel">
             <Border Classes="subTab">
-                <TextBlock Classes="subTab"
-                           Text="Diagnostics"/>
+                <TextBlock Text="Diagnostics"/>
             </Border>
         </DataTemplate>
 
@@ -104,8 +100,7 @@
                             CornerRadius="3"
                             Background="{Binding StatusColor}"
                             VerticalAlignment="Center"/>
-                    <TextBlock Classes="subTab"
-                               Text="{Binding Label}"
+                    <TextBlock Text="{Binding Label}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
@@ -160,6 +155,20 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Border.subTab TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+            <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover Border.subTab TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
         </Style>
         <Style Selector="ListBoxItem /template/ ContentPresenter">
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -217,7 +226,7 @@
         </Style>
         <Style Selector="ComboBox">
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceInputBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
         </Style>
         <!-- Sub-navbar tab -->
@@ -233,10 +242,10 @@
                     <ControlTemplate TargetType="ToggleButton">
                         <Border x:Name="ChipBorder"
                                 Background="Transparent"
-                                BorderBrush="Transparent"
-                                BorderThickness="0"
-                                CornerRadius="999"
-                                Padding="13,7">
+                                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource AgentUpCornerRadiusSm}"
+                                Padding="12,4">
                             <ContentPresenter Content="{TemplateBinding Content}"
                                               ContentTemplate="{TemplateBinding ContentTemplate}"
                                               HorizontalAlignment="Center"
@@ -251,6 +260,9 @@
         </Style>
         <Style Selector="ToggleButton.filterChip:checked /template/ Border#ChipBorder">
             <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
+        </Style>
+        <Style Selector="ToggleButton.filterChip:checked TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
         </Style>
         <Style Selector="Button.auditPageJump">
             <Setter Property="Padding" Value="0"/>
@@ -352,8 +364,9 @@
         <Style Selector="ListBoxItem:selected TextBlock.appTab">
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
         </Style>
-        <Style Selector="ListBoxItem:selected TextBlock.subTab">
+        <Style Selector="ListBoxItem:selected Border.subTab TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
         </Style>
         <Style Selector="Button.wsDeleteButton TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -728,7 +741,7 @@
                     <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto,*">
 
                         <Border Grid.Row="0"
-                                Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                                Background="{DynamicResource AgentUpColorCanvasBrush}"
                                 BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
                                 BorderThickness="0,0,0,1">
                             <StackPanel Orientation="Horizontal">
@@ -878,13 +891,8 @@
                                       RowSpacing="18"
                                       HorizontalAlignment="Stretch">
                                     <StackPanel Spacing="8">
-                                        <TextBlock Text="Workspace overview"
-                                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                                                   FontSize="22"
-                                                   FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding Sidebar.SelectedWorkspace.DisplayName}"
-                                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
-                                                   FontSize="14"/>
+                                        <TextBlock Classes="au-page-title" Text="Workspace overview"/>
+                                        <TextBlock Classes="au-muted" Text="{Binding Sidebar.SelectedWorkspace.DisplayName}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Row="1" Spacing="8">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -935,40 +943,40 @@
                                           RowDefinitions="Auto,Auto"
                                           ColumnSpacing="12"
                                           RowSpacing="12">
-                                        <Border Classes="au-card">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="State" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11"/>
-                                                <TextBlock Text="{Binding Overview.State}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="16" FontWeight="Bold"/>
+                                        <Border Classes="metricsSummaryCard">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Classes="au-field-label" Text="State"/>
+                                                <TextBlock Text="{Binding Overview.State}" Foreground="{Binding Overview.StateColor}" FontSize="24" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border Grid.Column="1" Classes="au-card">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="CPU" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11"/>
-                                                <TextBlock Text="{Binding Overview.Cpu}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="16" FontWeight="Bold"/>
+                                        <Border Grid.Column="1" Classes="metricsSummaryCard">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Classes="au-field-label" Text="CPU"/>
+                                                <TextBlock Text="{Binding Overview.Cpu}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="24" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border Grid.Column="2" Classes="au-card">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="Memory" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11"/>
-                                                <TextBlock Text="{Binding Overview.Memory}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="16" FontWeight="Bold"/>
+                                        <Border Grid.Column="2" Classes="metricsSummaryCard">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Classes="au-field-label" Text="Memory"/>
+                                                <TextBlock Text="{Binding Overview.Memory}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="24" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border Grid.Row="1" Classes="au-card">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="Storage" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11"/>
-                                                <TextBlock Text="{Binding Overview.Storage}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="16" FontWeight="Bold"/>
+                                        <Border Grid.Row="1" Classes="metricsSummaryCard">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Classes="au-field-label" Text="Storage"/>
+                                                <TextBlock Text="{Binding Overview.Storage}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="24" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border Grid.Row="1" Grid.Column="1" Classes="au-card">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="Processes" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11"/>
-                                                <TextBlock Text="{Binding Overview.ProcessCount}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="16" FontWeight="Bold"/>
+                                        <Border Grid.Row="1" Grid.Column="1" Classes="metricsSummaryCard">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Classes="au-field-label" Text="Processes"/>
+                                                <TextBlock Text="{Binding Overview.ProcessCount}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="24" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Border>
-                                        <Border Grid.Row="1" Grid.Column="2" Classes="au-card">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="Applications" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11"/>
-                                                <TextBlock Text="{Binding Overview.ApplicationCount}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="16" FontWeight="Bold"/>
+                                        <Border Grid.Row="1" Grid.Column="2" Classes="metricsSummaryCard">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Classes="au-field-label" Text="Applications"/>
+                                                <TextBlock Text="{Binding Overview.ApplicationCount}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="24" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -979,34 +987,34 @@
                                           RowDefinitions="Auto,Auto"
                                           ColumnSpacing="12"
                                           RowSpacing="12">
-                                        <Border Classes="au-card" Height="72">
+                                        <Border Classes="metricsSummaryCard" Height="92">
                                             <Border Classes="overviewSkeleton" Height="28" Width="88" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                                         </Border>
-                                        <Border Grid.Column="1" Classes="au-card" Height="72">
+                                        <Border Grid.Column="1" Classes="metricsSummaryCard" Height="92">
                                             <Border Classes="overviewSkeleton" Height="28" Width="64" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                                         </Border>
-                                        <Border Grid.Column="2" Classes="au-card" Height="72">
+                                        <Border Grid.Column="2" Classes="metricsSummaryCard" Height="92">
                                             <Border Classes="overviewSkeleton" Height="28" Width="96" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                                         </Border>
-                                        <Border Grid.Row="1" Classes="au-card" Height="72">
+                                        <Border Grid.Row="1" Classes="metricsSummaryCard" Height="92">
                                             <Border Classes="overviewSkeleton" Height="28" Width="72" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                                         </Border>
-                                        <Border Grid.Row="1" Grid.Column="1" Classes="au-card" Height="72">
+                                        <Border Grid.Row="1" Grid.Column="1" Classes="metricsSummaryCard" Height="92">
                                             <Border Classes="overviewSkeleton" Height="28" Width="40" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                                         </Border>
-                                        <Border Grid.Row="1" Grid.Column="2" Classes="au-card" Height="72">
+                                        <Border Grid.Row="1" Grid.Column="2" Classes="metricsSummaryCard" Height="92">
                                             <Border Classes="overviewSkeleton" Height="28" Width="40" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                                         </Border>
                                     </Grid>
                                     <StackPanel Grid.Row="3"
                                                 Spacing="6"
                                                 IsVisible="{Binding !Overview.ShowSkeleton}">
-                                        <TextBlock Text="Repository" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11"/>
-                                        <TextBlock Text="{Binding Overview.RepositoryPath}" Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}" FontSize="12" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Worktree" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11" Margin="0,8,0,0"/>
-                                        <TextBlock Text="{Binding Overview.WorktreePath}" Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}" FontSize="12" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Commit" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="11" Margin="0,8,0,0"/>
-                                        <TextBlock Text="{Binding Overview.Commit}" Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}" FontSize="12"/>
+                                        <TextBlock Classes="au-field-label" Text="Repository"/>
+                                        <TextBlock Classes="au-muted" Text="{Binding Overview.RepositoryPath}" TextWrapping="Wrap"/>
+                                        <TextBlock Classes="au-field-label" Text="Worktree" Margin="0,8,0,0"/>
+                                        <TextBlock Classes="au-muted" Text="{Binding Overview.WorktreePath}" TextWrapping="Wrap"/>
+                                        <TextBlock Classes="au-field-label" Text="Commit" Margin="0,8,0,0"/>
+                                        <TextBlock Classes="au-muted" Text="{Binding Overview.Commit}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Row="3"
                                                 Spacing="10"
@@ -1044,10 +1052,43 @@
                                                 Command="{Binding Agent.StopCommand}"
                                                 Content="Stop agent"/>
                                     </Grid>
-                                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Agent.Agents}" IsVisible="{Binding !Agent.HasAgent}">
-                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate><DataTemplate><Button Classes="au-button au-button--secondary" Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}" CommandParameter="{Binding Agent}" IsEnabled="{Binding Available}"><StackPanel><TextBlock Text="{Binding DisplayName}"/><TextBlock Classes="au-muted" Text="{Binding Available}"/></StackPanel></Button></DataTemplate></ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <StackPanel Grid.Row="1" Spacing="8" MaxWidth="480" HorizontalAlignment="Left" IsVisible="{Binding !Agent.HasAgent}">
+                                        <TextBlock Classes="au-field-label" Text="Choose an ACP agent"/>
+                                        <ItemsControl ItemsSource="{Binding Agent.Agents}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Vertical" Spacing="8"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button HorizontalAlignment="Stretch"
+                                                            HorizontalContentAlignment="Stretch"
+                                                            Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}"
+                                                            CommandParameter="{Binding Agent}"
+                                                            IsEnabled="{Binding Available}">
+                                                        <Border Classes="au-card">
+                                                            <Grid ColumnDefinitions="*,Auto">
+                                                                <TextBlock Classes="wsName"
+                                                                           Text="{Binding DisplayName}"
+                                                                           VerticalAlignment="Center"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Classes="au-accent"
+                                                                           Text="Available"
+                                                                           IsVisible="{Binding Available}"
+                                                                           VerticalAlignment="Center"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Classes="au-accent"
+                                                                           Text="Not installed"
+                                                                           IsVisible="{Binding !Available}"
+                                                                           VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                     <ItemsControl Grid.Row="2" ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                                     <ListBox Grid.Row="3" ItemsSource="{Binding Agent.Messages}" Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}">
                                         <ListBox.ItemTemplate>
@@ -1128,26 +1169,22 @@
                             <Grid x:Name="AuditPanel" IsVisible="{Binding ShowAudit}" RowDefinitions="Auto,Auto,*,Auto">
                                 <StackPanel Grid.Row="0" Margin="16,12,16,0" Spacing="8">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Command="{Binding Audit.ToggleStreamingCommand}">
-                                            <Border Classes="tutorialSecondaryButton">
-                                                <TextBlock Text="{Binding Audit.StreamingButtonText}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="11"/>
-                                            </Border>
-                                        </Button>
-                                        <Button Command="{Binding Audit.RefreshCommand}" IsEnabled="{Binding Audit.CanRefresh}">
-                                            <Border Classes="tutorialSecondaryButton">
-                                                <TextBlock Text="Refresh" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="11"/>
-                                            </Border>
-                                        </Button>
+                                        <Button x:Name="AuditStreamingButton"
+                                                Classes="au-button au-button--secondary au-button--compact"
+                                                Command="{Binding Audit.ToggleStreamingCommand}"
+                                                Content="{Binding Audit.StreamingButtonText}"/>
+                                        <Button x:Name="AuditRefreshButton"
+                                                Classes="au-button au-button--secondary au-button--compact"
+                                                Command="{Binding Audit.RefreshCommand}"
+                                                IsEnabled="{Binding Audit.CanRefresh}"
+                                                Content="Refresh"/>
                                         <TextBox x:Name="AuditSearchBox"
                                                  Classes="addressBar"
                                                  MinWidth="220"
                                                  PlaceholderText="Search diagnostics"
                                                  Text="{Binding Audit.SearchText, Mode=TwoWay}"/>
                                     </StackPanel>
-                                    <TextBlock Text="Categories"
-                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
-                                               FontSize="11"
-                                               FontWeight="Medium"/>
+                                    <TextBlock Classes="au-field-label" Text="Categories"/>
                                     <ItemsControl ItemsSource="{Binding Audit.KindFilters}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
@@ -1626,7 +1663,7 @@
                     <Border Grid.Column="1"
                             x:Name="ValidationPanel"
                             Width="{Binding Validation.Width}"
-                            Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                            Background="{DynamicResource AgentUpColorCanvasBrush}"
                             BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
                             BorderThickness="1,0,0,0"
                             IsVisible="{Binding Validation, Converter={x:Static ObjectConverters.IsNotNull}}">

@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     gap: agentUpTheme.spacing[2],
     paddingTop: agentUpTheme.spacing[3],
-    ...auBox('divider'),
-    height: undefined,
+    borderTopWidth: 1,
+    borderTopColor: agentUpTheme.colors.borderSubtle,
   },
   serverUrl: { ...auText('muted'), fontSize: agentUpTheme.typography.sizeXs },
   footerButton: {

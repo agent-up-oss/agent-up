@@ -80,7 +80,7 @@
   border-right: 1px solid var(--au-color-border-subtle);
 }
 .au-drawer {
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
   border-right: 1px solid var(--au-color-border-subtle);
 }
 .au-workspace-avatar {

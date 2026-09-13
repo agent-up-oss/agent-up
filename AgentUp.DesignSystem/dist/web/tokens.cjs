@@ -434,7 +434,7 @@ const agentUpTheme = Object.freeze({
       borderRightColor: "#ffffff14",
     }),
     drawer: Object.freeze({
-      backgroundColor: "#191c1f",
+      backgroundColor: "#0a0b0c",
       borderRightWidth: 1,
       borderRightColor: "#ffffff14",
     }),
