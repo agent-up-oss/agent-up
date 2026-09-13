@@ -184,6 +184,10 @@ public sealed class AgentChatViewModelTests
         Assert.That(run.HasReply, Is.True);
         Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
         Assert.That(run.Chevron, Is.EqualTo("▸"));
+
+        run.Seal();
+        Assert.That(run.IsLive, Is.False);
+        Assert.That(run.ShowHeader, Is.True);
     }
 
     [Test]
@@ -200,6 +204,7 @@ public sealed class AgentChatViewModelTests
             Assert.That(thought.Label, Is.EqualTo("Thought"));
         });
 
+        thought.Text = thought.Text;
         thought.SetLive(true);
         Assert.That(thought.IsThoughtExpanded, Is.True);
         Assert.That(thought.Label, Is.EqualTo("Thinking"));

@@ -1,6 +1,10 @@
 using System.Diagnostics;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
+using AgentUp.Server.Features.DesktopApplications.Providers;
+using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -942,6 +946,51 @@ public class WorkspaceProcessManagerTests
             Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
             Assert.That(lines, Has.Some.Contains("Linux"));
         });
+    }
+
+    [Test]
+    public async Task LaunchApplication_stopsTheDesktopSessionWhenTheProcessExits()
+    {
+        var displays = new FakeDesktopDisplayProvider();
+        var desktop = new DesktopApplicationsController(new DesktopSessionService(
+            displays,
+            new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new DesktopInputMessageProvider(),
+            new DesktopViewerTicketProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
+            NullLogger<DesktopSessionService>.Instance));
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            NullLogger<WorkspaceProcessManager>.Instance,
+            desktop);
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                DesktopApplications = [new DesktopApplicationDefinition("Editor", "printenv", ".")]
+            });
+            var app = workspace.Applications.Single();
+            app.RuntimeEnvironment = await desktop.PrepareAsync(workspace, app, CancellationToken.None);
+
+            await manager.LaunchApplicationAsync(workspace, "Editor");
+            await WaitForApplicationStateAsync(workspace.Id, "Editor", ApplicationState.Stopped);
+
+            var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+            while (!displays.Stopped && DateTimeOffset.UtcNow < deadline)
+                await Task.Delay(50);
+
+            Assert.That(displays.Stopped, Is.True);
+        }
+        finally
+        {
+            Directory.Delete(worktreePath, recursive: true);
+        }
     }
 
     private async Task<ApplicationState> WaitForApplicationStateAsync(
