@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-/** Hosts the same-origin remote browser viewer in the installable web client. */
+/** Hosts the tunneled application HTTP response in the installable web client. */
 export function RemoteBrowser({ source }: { source: string }) {
   return (
     <View style={styles.container}>
@@ -8,7 +8,7 @@ export function RemoteBrowser({ source }: { source: string }) {
         allow="clipboard-read; clipboard-write"
         src={source}
         style={{ border: 0, width: '100%', height: '100%' }}
-        title="Application browser"
+        title="Application"
       />
     </View>
   );

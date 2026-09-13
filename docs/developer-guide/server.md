@@ -82,6 +82,7 @@ The Server manages:
 - Git working-tree review and commits.
 - Process lifecycle.
 - Port allocation.
+- Authenticated HTTPS forwarding of allocated HTTP application ports.
 - Docker lifecycle.
 - Browser lifecycle.
 - Browser profiles.
@@ -136,6 +137,12 @@ LAN REST access while MCP remains localhost-only at the request boundary.
 
 Desktop and Mobile reject remote `http://` Server URLs for administrator login
 and require HTTPS outside loopback hosts.
+
+Allocated HTTP application ports stay bound on the Server host. Remote clients
+reach them through `POST /api/apps/tickets` and the `/apps/{workspaceId}/{port}`
+bootstrap, which sets an HttpOnly cookie and reverse-proxies unmatched paths
+to `http://127.0.0.1:{port}`. That cookie does not authorize REST or MCP
+routes. Only currently listening allocated HTTP ports are forwarded.
 
 The REST API permits cross-origin browser requests from any HTTP or HTTPS
 origin, so the Mobile web/PWA client can reach a Server the user points it at

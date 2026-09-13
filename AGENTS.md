@@ -134,7 +134,7 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, Docker, browser lifecycle, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
 | `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, install planning, capability inventory, and CLI executable discovery used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
@@ -201,6 +201,13 @@ AgentUp.Server/
       Profiles/
       Automation/
     Ports/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+    ApplicationProxy/ (authenticated HTTPS tunnel of allocated HTTP application ports)
+      Controllers/
+      DTOs/
       Interfaces/
       Models/
       Providers/
@@ -439,6 +446,7 @@ The Server owns all orchestration:
 - Git working-tree change trees, per-file diffs, and selective commits.
 - Process lifecycle.
 - Port allocation.
+- Authenticated HTTPS forwarding of allocated HTTP application ports.
 - Docker lifecycle.
 - Capability reconciliation and status.
 - Browser lifecycle.
@@ -488,8 +496,7 @@ The mobile client is a single Expo and React Native TypeScript project that targ
 
 Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. The mobile client displays Server-owned state and must not own orchestration.
 
-Mobile application spaces use the authenticated Server headless-browser remote display over HTTPS/WSS. Allocated application ports remain private to the Server; clients must not construct device-local port URLs or expose dynamic ports through the public reverse proxy. Viewer credentials belong in a URL fragment, never a query string, and protected browser HTTP and WebSocket endpoints must validate the Server session.
-Application navigation requests must be superseded per workspace on both Mobile and Server so a delayed request cannot move the shared browser back to an application the user already left. Token-bearing remote viewer requests must reject plaintext HTTP except for loopback development URLs.
+Mobile application spaces load each application's HTTP interface in a native WebView (or web iframe). The Server reverse-proxies that traffic over the authenticated HTTPS Server origin so dynamically allocated loopback ports stay private to the Server host and are never published through the public reverse proxy. Mobile first requests a short-lived single-use ticket over Bearer REST, then navigates the WebView to the ticket bootstrap URL; the Server sets an HttpOnly cookie and redirects to `/` so the application is rendered at origin root. Subsequent document, asset, and WebSocket requests on unmatched Server paths use that cookie. Token-bearing ticket requests reject remote plaintext HTTP except for loopback development URLs.
 
 Developer guide: `docs/developer-guide/mobile.md`.
 

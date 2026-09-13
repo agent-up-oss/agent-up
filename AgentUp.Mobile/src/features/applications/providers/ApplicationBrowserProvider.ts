@@ -1,40 +1,45 @@
-import { ensureCredentialTransportAllowed, requestServerJson, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
+import { ensureCredentialTransportAllowed, jsonBody, requestServerJson, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { WorkspaceApplication } from '@/features/workspaces/models/Workspace';
 
-/** Returns the Server-local URL for an application's first HTTP port. */
-export function applicationHttpUrl(application: WorkspaceApplication): string | null {
+export type ApplicationProxyTicket = {
+  ticket: string;
+  bootstrapPath: string;
+  expiresAt: string;
+};
+
+/** Returns the first allocated HTTP port that the Server can tunnel. */
+export function applicationHttpPort(application: WorkspaceApplication): number | null {
   const port = application.allocatedPorts?.find(entry => entry.protocol.toLowerCase() === 'http');
-  return port ? `http://127.0.0.1:${port.allocatedPort}/` : null;
+  return port ? port.allocatedPort : null;
 }
 
-/** Builds a viewer URL without placing the bearer credential in the HTTP request target. */
-export function browserViewerUrl(server: ServerSession, workspaceId: string): string {
+/** Builds the one-time HTTPS bootstrap URL for the native WebView. */
+export function applicationProxyUrl(server: ServerSession, ticket: ApplicationProxyTicket): string {
   validateCredentialTransport(server);
-  const query = `workspaceId=${encodeURIComponent(workspaceId)}`;
-  const credential = server.accessToken
-    ? `#access_token=${encodeURIComponent(server.accessToken)}`
-    : '';
-  return `${server.url}/api/browser/rdp-viewer?${query}${credential}`;
+  const separator = ticket.bootstrapPath.includes('?') ? '&' : '?';
+  return `${server.url}${ticket.bootstrapPath}${separator}ticket=${encodeURIComponent(ticket.ticket)}`;
 }
 
-/** Navigates the workspace browser to an application unless the caller supersedes the request. */
-export async function navigateApplicationBrowser(
+/** Asks the Server for a single-use ticket that opens one allocated HTTP port. */
+export async function issueApplicationProxyTicket(
   server: ServerSession,
   workspaceId: string,
   application: WorkspaceApplication,
   request: typeof fetch = fetch,
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<ApplicationProxyTicket> {
   validateCredentialTransport(server);
-  const url = applicationHttpUrl(application);
-  if (!url) throw new Error(`${application.name} does not expose an HTTP port.`);
-  await requestServerJson(
+  const allocatedPort = applicationHttpPort(application);
+  if (allocatedPort === null) throw new Error(`${application.name} does not expose an HTTP port.`);
+  const ticket = await requestServerJson<ApplicationProxyTicket>(
     server,
-    `/api/browser/navigate/${encodeURIComponent(workspaceId)}?url=${encodeURIComponent(url)}&reloadIfSameUrl=false`,
-    { method: 'POST', signal },
+    '/api/apps/tickets',
+    { ...jsonBody({ workspaceId, allocatedPort }), signal },
     undefined,
     request,
   );
+  if (!ticket?.ticket || !ticket.bootstrapPath) throw new Error('The Server did not issue an application proxy ticket.');
+  return ticket;
 }
 
 function validateCredentialTransport(server: ServerSession): void {

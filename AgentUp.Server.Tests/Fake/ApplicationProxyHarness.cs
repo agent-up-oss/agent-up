@@ -1,0 +1,79 @@
+using AgentUp.Server.Features.ApplicationProxy.Interfaces;
+using AgentUp.Server.Features.ApplicationProxy.Models;
+using AgentUp.Server.Features.ApplicationProxy.Services;
+using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.Services;
+using Microsoft.AspNetCore.Http;
+
+namespace AgentUp.Server.Tests.Fake;
+
+internal sealed class FakeLoopbackHttpPortProbe : ILoopbackHttpPortProbe
+{
+    public HashSet<int> OpenPorts { get; } = [];
+    public bool IsListening(int port) => OpenPorts.Contains(port);
+}
+
+internal sealed class FakeApplicationHttpForwarder : IApplicationHttpForwarder
+{
+    public int? LastPort { get; private set; }
+    public string? LastPath { get; private set; }
+    public int Calls { get; private set; }
+
+    public Task ForwardAsync(HttpContext context, int allocatedPort)
+    {
+        Calls++;
+        LastPort = allocatedPort;
+        LastPath = context.Request.Path.Value;
+        context.Response.StatusCode = StatusCodes.Status204NoContent;
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class StubTimeProvider : TimeProvider
+{
+    public DateTimeOffset UtcNow { get; set; } = new(2026, 9, 13, 12, 0, 0, TimeSpan.Zero);
+    public override DateTimeOffset GetUtcNow() => UtcNow;
+}
+
+internal static class ApplicationProxyHarness
+{
+    public static async Task<(ApplicationProxyService Service, string WorkspaceId, int Port, FakeLoopbackHttpPortProbe Probe, FakeApplicationHttpForwarder Forwarder, StubTimeProvider Clock)> CreateAsync(
+        string protocol = "http",
+        bool portOpen = true)
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var workspace = await registry.RegisterAsync(new AgentUp.Server.Features.Workspaces.DTOs.RegisterWorkspaceRequest(
+            "Proxy", "/r", $"/r/{Guid.NewGuid():N}", "main", "c1")
+        {
+            Applications =
+            [
+                new AgentUp.Server.Features.Applications.DTOs.ApplicationDefinition(
+                    "web",
+                    "echo",
+                    null,
+                    [new AgentUp.Server.Features.Ports.DTOs.PortDeclaration("WEB_PORT", 5173, protocol)])
+            ]
+        });
+        var port = workspace.Applications[0].AllocatedPorts[0].AllocatedPort;
+        var probe = new FakeLoopbackHttpPortProbe();
+        if (portOpen)
+            probe.OpenPorts.Add(port);
+        var forwarder = new FakeApplicationHttpForwarder();
+        var clock = new StubTimeProvider();
+        var tickets = new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyTicketStore();
+        var cookies = new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyCookieProtector(
+            new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider());
+        var credentials = new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyCredentials(cookies);
+        var service = new ApplicationProxyService(
+            new WorkspaceQueryController(registry),
+            probe,
+            tickets,
+            credentials,
+            new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyOriginMapper(),
+            new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyCsrfGuard(),
+            forwarder,
+            new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyErrorWriter(),
+            clock);
+        return (service, workspace.Id, port, probe, forwarder, clock);
+    }
+}

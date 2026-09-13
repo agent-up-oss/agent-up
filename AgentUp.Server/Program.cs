@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using AgentUp.InstallerConfig;
 using AgentUp.Server.Composition;
+using AgentUp.Server.Features.ApplicationProxy.Controllers;
 using AgentUp.Server.Features.Authentication.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 
@@ -34,6 +35,8 @@ app.MapMcp("/mcp/verification").WithMetadata(new AllowAnonymousAttribute());
 app.MapMcp("/mcp/orchestration").WithMetadata(new AllowAnonymousAttribute());
 app.MapMcp("/mcp/browser").WithMetadata(new AllowAnonymousAttribute());
 app.MapMcp("/mcp/audit").WithMetadata(new AllowAnonymousAttribute());
+app.MapFallback("{**path}", (HttpContext context, ApplicationProxyFallbackController proxy) =>
+    proxy.ForwardFallback(context)).AllowAnonymous();
 
 app.Run();
 

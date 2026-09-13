@@ -32,23 +32,21 @@ selection; if authentication is disabled, it skips that login step. Remote
 servers must use HTTPS; loopback HTTP URLs remain supported for local
 development.
 
-Application spaces render the workspace's Server-owned headless Chromium session.
-Before opening the viewer, Mobile asks the authenticated browser controller to
-navigate to the application's allocated loopback HTTP port. The HTTPS viewer carries
-JPEG frames and input over authenticated WebSocket, with authenticated HTTP polling
-as a recovery path, so allocated ports remain bound to the Server and are never
-published through the reverse proxy. The access token is delivered to the viewer in
-the URL fragment (which is not sent in HTTP requests) and is removed from browser
-history immediately; browser WebSockets authenticate with a base64url token in the
-negotiated subprotocol because the WebSocket browser API cannot set an Authorization
-header. The static viewer shell is public, but frame, input, navigation, and stream
-endpoints remain protected by the normal Server authorization policy.
-Changing applications aborts the previous Mobile request, and the Server also
-supersedes older navigation commands per workspace. This Server-side ordering is
-required because client cancellation can arrive after a command has already been
-queued. Token-bearing viewer and navigation requests reject remote plaintext HTTP;
-only HTTPS and loopback HTTP development connections may transport credentials.
-As an explicit exception to the general application-package isolation rule,
+Application spaces render each application's own HTTP interface in a native
+WebView, or in an iframe on the installable web client. Mobile never opens
+`http://127.0.0.1:{allocatedPort}` on the device. It asks the authenticated
+Server for a short-lived single-use ticket for that workspace's allocated HTTP
+port, then navigates the WebView to `{server}/apps/{workspaceId}/{port}?ticket=`.
+The Server sets an HttpOnly cookie, redirects to `/`, and reverse-proxies
+unmatched HTTP and WebSocket requests to `http://127.0.0.1:{port}` so the
+WebView natively renders the application's HTML, CSS, and JavaScript. Only
+currently open allocated HTTP ports are tunneled; TCP ports and closed ports
+are rejected. Reserved Server routes such as `/api` and `/mcp` are never
+proxied. The long-lived Bearer token stays on REST ticket issuance and is not
+placed in the WebView URL. Token-bearing ticket requests reject remote
+plaintext HTTP; only HTTPS and loopback HTTP development connections may
+transport credentials.
+Changing applications aborts the previous Mobile ticket request. As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose
 the injected workspace and application identity to Expo. Server connection

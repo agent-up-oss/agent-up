@@ -179,6 +179,7 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 - Workspace registry.
 - Process lifecycle.
 - Port allocation.
+- Authenticated HTTPS forwarding of allocated HTTP application ports.
 - Docker lifecycle.
 - Capability reconciliation and status.
 - Browser lifecycle.
