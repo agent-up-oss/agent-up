@@ -180,6 +180,19 @@ test('Desktop Window.Styles does not restate visual setters already emitted by A
   assert.deepEqual(restated, [], 'MainWindow restates generated visual setters');
 });
 
+test('tappable cards are catalog buttons instead of local picker chrome', async () => {
+  assert.match(avaloniaStyles, /Selector="Button\.au-choice"/);
+  assert.match(avaloniaStyles, /Button\.au-choice:pointerover/);
+  assert.match(avaloniaStyles, /Button\.au-choice:disabled/);
+  assert.equal(agentUpTheme.components.choice.backgroundColor, agentUpTheme.colors.surfaceRaised);
+  assert.ok(agentUpTheme.components.choiceDisabled);
+  const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
+  assert.match(axaml, /Classes="au-choice"/);
+  assert.doesNotMatch(axaml, /agentPickerButton/);
+  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/agents/components/AgentChatScreen.tsx'), 'utf8');
+  assert.match(mobile, /auBox\('choice'\)/);
+});
+
 test('Mobile does not rebuild catalog fills from color tokens', async () => {
   const fill = /backgroundColor:\s*agentUpTheme\.colors\.(?:surface|surfaceRaised|surfaceSelected|accent)\b/;
   const selectedBorder = /border(?:Top|Bottom|Left|Right)?Color:\s*agentUpTheme\.colors\.borderSelected/;

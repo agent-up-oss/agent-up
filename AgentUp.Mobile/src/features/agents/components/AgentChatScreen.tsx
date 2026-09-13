@@ -12,6 +12,7 @@ import {
   activityHint,
   agentEventText,
   applyPresentedUpdate,
+  mergeAgentSession,
   mergeContext,
   parsePermission,
   permissionOptionLabel,
@@ -44,7 +45,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
     if (typeof event.sequence === 'number') lastSequence.current = Math.max(lastSequence.current, event.sequence);
     if (event.type === 'state') {
       const next = event.payload as AgentSession;
-      setSession(next);
+      setSession(current => mergeAgentSession(current, next));
       if (next.state !== 'running') setHint(null);
       return;
     }
@@ -66,7 +67,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
     if (!server) return;
     let disposed = false;
     lastSequence.current = 0;
-    void getAgent(server, workspace.id).then(value => { if (!disposed && lastSequence.current === 0) setSession(value); }).catch(cause => { if (!disposed) setError(readError(cause)); });
+    void getAgent(server, workspace.id).then(value => { if (!disposed) setSession(current => mergeAgentSession(current, value)); }).catch(cause => { if (!disposed) setError(readError(cause)); });
     const controller = new AbortController();
     const connect = async () => {
       while (!controller.signal.aborted) {
@@ -79,10 +80,14 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   }, [server, workspace.id, applyEvent]);
 
   const activity = resolveActivity({ state: session?.state, error: session?.error, hasPermission: Boolean(permission), hint });
+  const selectedAgentName = session?.agents.find(agent => agent.agent === session.agent)?.displayName ?? session?.agent ?? 'Agent';
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required';
   const choose = async (agent: AgentKind) => {
     if (!server) return; setBusy(true); setError(null);
-    try { setSession(await scheduleAgent(server, workspace.id, agent)); }
+    try {
+      const next = await scheduleAgent(server, workspace.id, agent);
+      setSession(current => mergeAgentSession(current, next));
+    }
     catch (cause) { setError(readError(cause)); }
     finally { setBusy(false); }
   };
@@ -108,12 +113,12 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
               <Text style={styles.chatTitle}>{workspace.displayName}</Text>
               <View style={styles.statusRow}>
                 <View style={[styles.dot, activityDot[activity.kind]]} />
-                <Text style={styles.status}>{session?.agent ?? 'No agent'} · {activity.label}</Text>
+                <Text style={styles.status}>{session?.agent ? selectedAgentName : 'No agent'} · {activity.label}</Text>
               </View>
             </View>
             <View style={styles.headingActions}>
               {session?.state === 'running' && <Pressable accessibilityRole="button" style={styles.cancel} onPress={() => { if (!server) return; void cancelAgent(server, workspace.id).then(() => { setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.cancelText}>Cancel</Text></Pressable>}
-              {session?.agent && <Pressable accessibilityRole="button" style={styles.stop} onPress={() => { if (!server) return; void stopAgent(server, workspace.id).then(() => { setSession(null); setItems([]); setContext({}); setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.stopText}>Stop</Text></Pressable>}
+              {session?.agent && <Pressable accessibilityRole="button" style={styles.stop} onPress={() => { if (!server) return; void stopAgent(server, workspace.id).then(() => { setSession(current => mergeAgentSession(current, null)); setItems([]); setContext({}); setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.stopText}>Stop</Text></Pressable>}
             </View>
           </View>
           {hasContext(context) && <View style={styles.chips}>
@@ -123,10 +128,10 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
             {context.compacting ? <Text style={styles.chip}>Compacting context</Text> : null}
           </View>}
           {!session?.agent && <View style={styles.picker}><Text style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
-            <Pressable key={agent.agent} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && styles.disabled]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={styles.availability}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
+            <Pressable key={agent.agent} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && auBox('choiceDisabled')]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={agent.available ? styles.available : styles.unavailable}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
           {session?.state === 'authentication_required' && <View style={styles.auth}><Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>{session.authMethods?.map(method => <Pressable key={method.id} style={styles.option} onPress={() => server && void authenticateAgent(server, workspace.id, method.id).catch(cause => setError(readError(cause)))}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}</View>}
           <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
-            {items.map(item => <TranscriptRow key={item.id} item={item} expanded={isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', expanded)} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', current) }))} />)}
+            {items.map(item => <TranscriptRow key={item.id} item={item} agentName={selectedAgentName} expanded={isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', expanded)} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', current) }))} />)}
           </ScrollView>
           {permission && <View style={styles.permission}>
             <Text style={styles.permissionKicker}>Decision needed</Text>
@@ -149,7 +154,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   </View>;
 }
 
-function TranscriptRow({ item, expanded, onToggle }: { item: TranscriptItem; expanded: boolean; onToggle: () => void }) {
+function TranscriptRow({ item, agentName, expanded, onToggle }: { item: TranscriptItem; agentName: string; expanded: boolean; onToggle: () => void }) {
   if (item.role === 'thought') {
     return <Pressable onPress={onToggle} style={styles.thought}>
       <Text style={styles.role}>{expanded ? 'Thinking' : 'Thought'}</Text>
@@ -162,7 +167,7 @@ function TranscriptRow({ item, expanded, onToggle }: { item: TranscriptItem; exp
   if (item.role === 'plan') {
     return <View style={styles.plan}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.body}>{item.text}</Text>}</View>;
   }
-  return <View style={[styles.bubble, item.role === 'user' ? styles.user : styles.agent]}><Text style={styles.role}>{item.role === 'user' ? 'You' : 'Agent'}</Text><Text style={styles.body}>{visibleText(item.text)}</Text></View>;
+  return <View style={[styles.bubble, item.role === 'user' ? styles.user : styles.agent]}><Text style={styles.role}>{item.role === 'user' ? 'You' : agentName}</Text><Text style={styles.body}>{visibleText(item.text)}</Text></View>;
 }
 
 function isExpanded(item: TranscriptItem, live: boolean, expanded: Record<string, boolean>) {
@@ -213,9 +218,10 @@ const styles = StyleSheet.create({
   chip: { ...auBox('badge'), ...auText('badge'), overflow: 'hidden' },
   picker: { gap: 8, marginTop: 8 },
   prompt: { ...auText('fieldLabel') },
-  agentButton: { ...auBox('card'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  agentButton: { ...auBox('choice'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   agentText: auText('workspaceName'),
-  availability: auText('accent'),
+  available: auText('accent'),
+  unavailable: auText('muted'),
   disabled: { opacity: 0.4 },
   messages: { flex: 1 },
   messageContent: { gap: 10, paddingVertical: 10 },

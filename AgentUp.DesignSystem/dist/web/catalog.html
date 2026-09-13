@@ -66,6 +66,12 @@
         <div class="au-card au-card--danger"><strong>Failed</strong><p class="au-muted">Error cards never inherit accent borders.</p></div>
       </div>
     </article>
+    <article data-au-component="choice" data-au-title="Choice row" data-au-note="A tappable card is a button, not a card wrapped in a platform button. The generated Button style owns radius, fill, hover, and disabled opacity so Avalonia cannot paint a square around the row." data-au-avalonia="Button" data-au-class="au-choice">
+      <div class="au-stack">
+        <button class="au-choice" type="button">Codex <span class="au-accent">Available</span></button>
+        <button class="au-choice" type="button" disabled>Cursor <span class="au-muted">Not installed</span></button>
+      </div>
+    </article>
     <article data-au-component="tabs" data-au-title="Tabs" data-au-note="Selected tabs use primary text and a 2px accent underline, never a green fill." data-au-avalonia="Button" data-au-class="au-tab">
       <div class="au-tabs" role="tablist">
         <button class="au-tab au-tab--selected" aria-selected="true">Browser</button>

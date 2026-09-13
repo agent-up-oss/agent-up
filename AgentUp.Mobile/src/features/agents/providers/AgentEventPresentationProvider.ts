@@ -3,6 +3,7 @@ import type {
   AgentActivityKind,
   AgentPermission,
   AgentPermissionOption,
+  AgentSession,
   SessionContext,
   TranscriptItem,
 } from '../models/AgentSession';
@@ -16,6 +17,17 @@ export type PresentedUpdate =
 
 export function unwrapSessionUpdate(payload: unknown): unknown {
   return record(payload)?.update ?? payload;
+}
+
+export function mergeAgentSession(previous: AgentSession | null, next: AgentSession | null): AgentSession | null {
+  if (!next) {
+    if (!previous) return null;
+    return { ...previous, agent: null, sessionId: null, state: 'idle', error: null };
+  }
+
+  if (next.agents.length > 0) return next;
+  if (previous?.agents.length) return { ...next, agents: previous.agents };
+  return next;
 }
 
 export function sessionUpdateKind(update: unknown): string {

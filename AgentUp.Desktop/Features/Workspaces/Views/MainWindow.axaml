@@ -184,16 +184,16 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Strip default Button chrome without undoing catalog actions. -->
-        <Style Selector="Button:not(.au-button):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run)">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run)">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pointerover /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pressed /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Integrated window chrome -->
@@ -1040,7 +1040,7 @@
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel>
                                             <TextBlock Classes="au-page-title" Text="Workspace agent"/>
-                                            <TextBlock Classes="au-muted" Text="{Binding Agent.ActivityLabel}"/>
+                                            <TextBlock Classes="au-muted" Text="{Binding Agent.StatusLine}"/>
                                             <TextBlock Classes="au-muted"
                                                        Text="{Binding Agent.ContextLine}"
                                                        IsVisible="{Binding Agent.HasContext}"
@@ -1052,9 +1052,15 @@
                                                 Command="{Binding Agent.StopCommand}"
                                                 Content="Stop agent"/>
                                     </Grid>
-                                    <StackPanel Grid.Row="1" Spacing="8" MaxWidth="480" HorizontalAlignment="Left" IsVisible="{Binding !Agent.HasAgent}">
+                                    <StackPanel Grid.Row="1" Spacing="8" HorizontalAlignment="Stretch" IsVisible="{Binding !Agent.HasAgent}">
                                         <TextBlock Classes="au-field-label" Text="Choose an ACP agent"/>
-                                        <ItemsControl ItemsSource="{Binding Agent.Agents}">
+                                        <ItemsControl x:Name="AgentPicker" ItemsSource="{Binding Agent.Agents}" HorizontalAlignment="Stretch">
+                                            <ItemsControl.Styles>
+                                                <Style Selector="ContentPresenter">
+                                                    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                </Style>
+                                            </ItemsControl.Styles>
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
                                                     <StackPanel Orientation="Vertical" Spacing="8"/>
@@ -1062,41 +1068,44 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Button HorizontalAlignment="Stretch"
+                                                    <Button Classes="au-choice"
+                                                            HorizontalAlignment="Stretch"
                                                             HorizontalContentAlignment="Stretch"
+                                                            Focusable="False"
                                                             Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}"
                                                             CommandParameter="{Binding Agent}"
                                                             IsEnabled="{Binding Available}">
-                                                        <Border Classes="au-card">
-                                                            <Grid ColumnDefinitions="*,Auto">
-                                                                <TextBlock Classes="wsName"
-                                                                           Text="{Binding DisplayName}"
-                                                                           VerticalAlignment="Center"/>
-                                                                <TextBlock Grid.Column="1"
-                                                                           Classes="au-accent"
-                                                                           Text="Available"
-                                                                           IsVisible="{Binding Available}"
-                                                                           VerticalAlignment="Center"/>
-                                                                <TextBlock Grid.Column="1"
-                                                                           Classes="au-accent"
-                                                                           Text="Not installed"
-                                                                           IsVisible="{Binding !Available}"
-                                                                           VerticalAlignment="Center"/>
-                                                            </Grid>
-                                                        </Border>
+                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                                            <TextBlock Classes="wsName"
+                                                                       Text="{Binding DisplayName}"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="1"
+                                                                       Classes="au-accent"
+                                                                       Text="Available"
+                                                                       IsVisible="{Binding Available}"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="1"
+                                                                       Classes="au-muted"
+                                                                       Text="Not installed"
+                                                                       IsVisible="{Binding !Available}"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Grid>
                                                     </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
                                     <ItemsControl Grid.Row="2" ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-                                    <ListBox Grid.Row="3" ItemsSource="{Binding Agent.Messages}" Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}">
+                                    <ListBox Grid.Row="3"
+                                             ItemsSource="{Binding Agent.Messages}"
+                                             IsVisible="{Binding Agent.HasMessages}"
+                                             Background="{DynamicResource AgentUpColorCanvasBrush}">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate DataType="agentVm:AgentChatItemViewModel">
                                                 <Border Classes="au-card" Padding="10" Margin="4">
                                                     <StackPanel>
                                                         <Grid ColumnDefinitions="*,Auto">
-                                                            <TextBlock Classes="au-field-label" Text="{Binding Role}"/>
+                                                            <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
                                                             <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontSize="10"/>
                                                         </Grid>
                                                         <TextBlock Text="{Binding Text}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" TextWrapping="Wrap"/>

@@ -122,7 +122,7 @@ export function parseSelector(selector) {
 
 export function inferAvaloniaType(className) {
   if (className === 'au-theme') return 'Window';
-  if (/^au-button(?:--|$)|au-chip(?:--|$)|au-tab(?:--|$)|au-chrome-button|au-title-tool|au-workspace-delete|au-workspace-add|au-lifecycle-button|au-browser-button|au-page-jump|au-db-run|au-tutorial-button|au-app-tab|au-subtab/.test(className)) {
+  if (/^au-button(?:--|$)|au-chip(?:--|$)|au-tab(?:--|$)|au-chrome-button|au-title-tool|au-workspace-delete|au-workspace-add|au-lifecycle-button|au-browser-button|au-page-jump|au-db-run|au-tutorial-button|au-app-tab|au-subtab|au-choice/.test(className)) {
     return 'Button';
   }
   if (/(au-input|au-address-bar|au-code-editor|au-console|au-code$)/.test(className)) return 'TextBox';

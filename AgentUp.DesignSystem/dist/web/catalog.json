@@ -144,6 +144,22 @@
           "html": "<div class=\"au-grid\">\n        <div class=\"au-card\"><strong>Idle surface</strong><p class=\"au-muted\">Neutral structure.</p></div>\n        <div class=\"au-card au-card--selected\"><strong>Selected</strong><p class=\"au-muted\">Green means this item is active.</p></div>\n        <div class=\"au-card au-card--danger\"><strong>Failed</strong><p class=\"au-muted\">Error cards never inherit accent borders.</p></div>\n      </div>"
         },
         {
+          "id": "choice",
+          "title": "Choice row",
+          "note": "A tappable card is a button, not a card wrapped in a platform button. The generated Button style owns radius, fill, hover, and disabled opacity so Avalonia cannot paint a square around the row.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-choice",
+          "classes": [
+            "au-stack",
+            "au-choice",
+            "au-accent",
+            "au-muted"
+          ],
+          "html": "<div class=\"au-stack\">\n        <button class=\"au-choice\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n        <button class=\"au-choice\" type=\"button\" disabled>Cursor <span class=\"au-muted\">Not installed</span></button>\n      </div>"
+        },
+        {
           "id": "tabs",
           "title": "Tabs",
           "note": "Selected tabs use primary text and a 2px accent underline, never a green fill.",

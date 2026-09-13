@@ -167,6 +167,18 @@ const agentUpTheme = Object.freeze({
       backgroundColor: "#261a1c",
       borderColor: "#d84f4f4d",
     }),
+    choice: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    choiceDisabled: Object.freeze({
+      opacity: 0.45,
+    }),
     button: Object.freeze({
       minHeight: 44,
       paddingHorizontal: 24,

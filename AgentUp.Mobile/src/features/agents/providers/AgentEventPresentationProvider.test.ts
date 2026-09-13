@@ -11,8 +11,9 @@ import {
   resolveActivity,
   unwrapSessionUpdate,
   visibleText,
+  mergeAgentSession,
 } from './AgentEventPresentationProvider';
-import type { TranscriptItem } from '../models/AgentSession';
+import type { TranscriptItem, AgentSession } from '../models/AgentSession';
 
 test('classifies ACP updates by discriminator', () => {
   assert.equal(agentEventRole({ sessionUpdate: 'agent_message_chunk' }), 'agent');
@@ -104,4 +105,23 @@ test('unwraps forwarded session/update envelopes', () => {
 
 test('strips markdown markers from thought display text', () => {
   assert.equal(visibleText('**Planning test suite selection prompt**'), 'Planning test suite selection prompt');
+});
+
+test('keeps the agent catalog when a later snapshot omits it', () => {
+  const catalog: AgentSession['agents'] = [
+    { agent: 'Codex', available: true, displayName: 'Codex' },
+    { agent: 'Cursor', available: false, displayName: 'Cursor' },
+  ];
+  const loaded = mergeAgentSession(null, {
+    workspaceId: 'ws-1', agent: null, state: 'idle', sessionId: null, error: null, agents: catalog,
+  });
+  const streamedEmpty = mergeAgentSession(loaded, {
+    workspaceId: 'ws-1', agent: null, state: 'idle', sessionId: null, error: null, agents: [],
+  });
+  const stopped = mergeAgentSession(streamedEmpty, null);
+
+  assert.deepEqual(streamedEmpty?.agents, catalog);
+  assert.equal(stopped?.agent, null);
+  assert.equal(stopped?.state, 'idle');
+  assert.deepEqual(stopped?.agents, catalog);
 });

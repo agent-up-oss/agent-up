@@ -61,6 +61,9 @@ Desktop is the reference rendering:
   on that canvas. Surfaces step up through `surface` / `surface-raised` /
   `surface-overlay` so cards, fields, and overlays read as containers rather
   than vanishing into the page.
+- A tappable card, such as an agent picker row, is `.au-choice`. It is a
+  catalog Button that already paints as a card, including hover and disabled
+  opacity. Do not wrap `.au-card` in a platform Button.
 - Borders are **alpha hairlines**, not fixed grays. An opaque border reads about
   2.4x stronger on the canvas than on a raised surface; alpha composites, so one
   token keeps an even weight across the whole ramp. A product drawn mostly in

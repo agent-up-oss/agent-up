@@ -42,6 +42,13 @@ public sealed class AgentChatViewModel : ReactiveObject
     public bool HasSession => _sessionId is not null;
     public bool HasPermission => PermissionOptions.Count > 0;
     public bool HasContext => !string.IsNullOrWhiteSpace(ContextLine);
+    public bool HasMessages => Messages.Count > 0;
+    public string? SelectedAgentDisplayName =>
+        Agents.FirstOrDefault(agent => string.Equals(agent.Agent, SelectedAgent, StringComparison.Ordinal))?.DisplayName
+        ?? SelectedAgent;
+    public string StatusLine => HasAgent
+        ? $"{SelectedAgentDisplayName} · {ActivityLabel}"
+        : ActivityLabel;
     public ReactiveCommand<string, Unit> SelectAgentCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
@@ -52,6 +59,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         SelectAgentCommand = ReactiveCommand.CreateFromTask<string>(SelectAsync);
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync);
+        Messages.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasMessages));
     }
 
     public async Task LoadAsync(string? workspaceId)
@@ -88,7 +96,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         var text = Message?.Trim(); if (string.IsNullOrEmpty(text) || HasPermission) return;
         Message = null; await RunAsync(id => _controller.SendAsync(id, text, CancellationToken.None));
     }
-    private async Task StopAsync() => await RunAsync(async id => { await _controller.StopAsync(id, CancellationToken.None); Apply(null); });
+    private async Task StopAsync() => await RunAsync(async id =>
+    {
+        await _controller.StopAsync(id, CancellationToken.None);
+        Messages.Clear();
+        Apply(null);
+    });
     private async Task RunAsync(Func<string, Task> action)
     {
         if (_workspaceId is null || IsBusy) return; IsBusy = true; Error = null;
@@ -103,8 +116,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         AuthenticationOptions.Clear();
         if (session is not null)
         {
-            Agents.Clear();
-            foreach (var agent in session.Agents) Agents.Add(agent);
+            if (session.Agents.Count > 0)
+            {
+                Agents.Clear();
+                foreach (var agent in session.Agents)
+                    Agents.Add(agent);
+            }
             if (session.State == "authentication_required")
                 foreach (var method in session.AuthMethods ?? []) AuthenticationOptions.Add(new(method.Id, method.Name, ReactiveCommand.CreateFromTask(() => AuthenticateAsync(method.Id))));
             Error = session.Error;
@@ -223,11 +240,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         var last = Messages.LastOrDefault();
         if (last is { } item && item.Role == role && role is "Agent" or "Thought")
             Messages[^1] = item with { Text = item.Text + text };
-        else Messages.Add(new(role, text));
+            else Messages.Add(new(role, text, DisplayRole: role == "Agent" ? SelectedAgentDisplayName : null));
     }
     private void RefreshActivity()
     {
         ActivityLabel = AgentEventPresentationProvider.ActivityLabel(State, HasPermission, null, _hintKind, _hintTool);
+        this.RaisePropertyChanged(nameof(StatusLine));
     }
 
     private Task StopStreamAsync()
@@ -264,6 +282,9 @@ public sealed class AgentChatViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(HasPermission));
         this.RaisePropertyChanged(nameof(HasAgent));
         this.RaisePropertyChanged(nameof(HasSession));
+        this.RaisePropertyChanged(nameof(HasMessages));
+        this.RaisePropertyChanged(nameof(SelectedAgentDisplayName));
+        this.RaisePropertyChanged(nameof(StatusLine));
         this.RaisePropertyChanged(nameof(ContextLine));
         this.RaisePropertyChanged(nameof(HasContext));
     }

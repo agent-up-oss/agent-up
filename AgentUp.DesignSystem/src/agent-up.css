@@ -213,6 +213,23 @@
   border-color: var(--au-color-border-danger);
 }
 
+.au-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--au-space-4);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-raised);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-lg);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--au-transition-fast);
+}
+.au-choice:hover { background: var(--au-color-surface-hover); }
+.au-choice:disabled { opacity: 0.45; }
+
 .au-button {
   min-height: var(--au-control-height);
   display: inline-flex;
