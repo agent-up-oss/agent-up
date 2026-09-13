@@ -2,9 +2,8 @@ name: Mobile CI
 
 on:
   push:
-    tags-ignore:
-      - android-v*
-      - ios-v*
+    branches:
+      - '**'
     paths:
       - AgentUp.Mobile/**
       - AgentUp.DesignSystem/**
