@@ -5,6 +5,7 @@ using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Tests.Support;
+using AgentUp.Desktop.Shared.Models;
 
 namespace AgentUp.Desktop.Tests.Features.Browser.Headless;
 
@@ -19,9 +20,9 @@ public sealed class WebViewErrorBannerTests
             "Not Found",
             new Uri("http://localhost:3000/missing"));
 
-        Assert.That(html, Does.Contain("background: #000000"));
-        Assert.That(html, Does.Contain("border: 1px solid #2b2b2b"));
-        Assert.That(html, Does.Contain("color: #2bf27a"));
+        Assert.That(html, Does.Contain($"background: {AgentUpThemeColors.Canvas}"));
+        Assert.That(html, Does.Contain($"border: 1px solid {AgentUpThemeColors.BorderSubtle}"));
+        Assert.That(html, Does.Contain($"color: {AgentUpThemeColors.AccentSoft}"));
         Assert.That(html, Does.Contain("Not found 404"));
         Assert.That(html, Does.Contain("http://localhost:3000/missing"));
         Assert.That(html, Does.Not.Contain("Agent-Up browser"));

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Tests.Support;
+using AgentUp.Desktop.Shared.Models;
 
 namespace AgentUp.Desktop.Tests.Features.Console.Headless;
 
@@ -33,7 +34,7 @@ public class ConsolePanelBehaviorTests
         Assert.That(html, Does.Contain("&lt;error&gt; &amp; 'warning'"));
         Assert.That(html, Does.Contain("done"));
         Assert.That(html, Does.Contain("<pre"));
-        Assert.That(html, Does.Contain("#000000"));
+        Assert.That(html, Does.Contain(AgentUpThemeColors.Canvas));
     }
 
     [Test]
