@@ -45,7 +45,27 @@ for the administrator password again; the saved Server URL stays.
 Remote servers must use HTTPS; loopback HTTP URLs remain supported for local
 development.
 
-As an explicit exception to the general application-package isolation rule,
+Application spaces render each application's own HTTP interface in a native
+WebView, or in an iframe on the installable web client. Mobile never opens
+`http://127.0.0.1:{allocatedPort}` on the device. It asks the authenticated
+Server for a short-lived single-use ticket for that workspace's allocated HTTP
+port, then navigates the WebView to `{server}/apps/{workspaceId}/{port}`. Native
+WebViews send the ticket in the `X-Agent-Up-Ticket` request header. The
+installable web client appends `#ticket=` so the secret stays off the HTTP
+request line; the Server bootstrap page reads that fragment and POSTs the
+header on the Server origin. The Server does not accept query-string tickets.
+The Server sets an HttpOnly cookie, redirects to `/`, and reverse-proxies
+unmatched HTTP and WebSocket requests to `http://127.0.0.1:{port}` so the
+WebView natively renders the application's HTML, CSS, and JavaScript. Only
+currently open allocated HTTP ports are tunneled; TCP ports and closed ports
+are rejected. Reserved Server routes such as `/api`, `/mcp`, and `/apps` are never
+proxied. The long-lived Bearer token stays on REST ticket issuance and is not
+placed in the WebView URL. Token-bearing ticket requests reject remote
+plaintext HTTP; only HTTPS and loopback HTTP development connections may
+transport credentials. The Server also rejects remote plaintext before issuing
+or accepting proxy tickets and sessions. That HTTPS check uses the TLS
+connection itself, not a client-supplied `X-Forwarded-Proto` header.
+Changing applications aborts the previous Mobile ticket request. As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose
 the injected workspace and application identity to Expo. Server connection
@@ -92,7 +112,7 @@ The mobile client is a gated stack, not a bottom-tab shell.
 
 ## Workspaces and Git slices
 
-The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary application entries retain their existing non-streaming presentation.
+The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary HTTP application entries load through the authenticated Server proxy described above.
 
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
 workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in

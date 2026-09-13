@@ -21,8 +21,12 @@ public sealed class AgentUpAuthenticationHandler(
 
         var authorization = Request.Headers.Authorization.ToString();
         const string prefix = "Bearer ";
-        if (!authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            || !authentication.IsAuthenticated(authorization[prefix.Length..]))
+        var token = authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? authorization[prefix.Length..]
+            : WebSocketAuthenticationProtocol.ReadToken(
+                Request.HttpContext.WebSockets.IsWebSocketRequest,
+                Request.Headers.SecWebSocketProtocol.ToString());
+        if (!authentication.IsAuthenticated(token))
             return Task.FromResult(AuthenticateResult.NoResult());
 
         return Task.FromResult(Success());

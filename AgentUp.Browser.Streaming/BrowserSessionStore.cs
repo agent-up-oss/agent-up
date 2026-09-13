@@ -8,6 +8,7 @@ public sealed class BrowserSessionStore
 {
     private readonly ConcurrentDictionary<string, Channel<BrowserCommandDto>> _queues = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<BrowserCommandResultDto>> _pending = new();
+    private readonly ConcurrentDictionary<string, BrowserNavigationRequest> _latestNavigations = new();
 
     public async Task<BrowserCommandResultDto> DispatchAsync(
         BrowserCommandDto command,
@@ -45,6 +46,9 @@ public sealed class BrowserSessionStore
             _pending.TryRemove(command.CommandId, out _);
             return Timeout(command);
         }
+
+        if (command.Kind == BrowserCommandKind.Navigate)
+            RegisterNavigation(command, ct);
 
         try
         {
@@ -96,6 +100,33 @@ public sealed class BrowserSessionStore
             tcs.TrySetResult(result);
     }
 
+    public CancellationToken SupersessionToken(BrowserCommandDto command)
+    {
+        if (command.Kind != BrowserCommandKind.Navigate)
+            return CancellationToken.None;
+        if (_latestNavigations.TryGetValue(command.WorkspaceId, out var request)
+            && request.CommandId == command.CommandId)
+            return request.Cancellation.Token;
+        return _latestNavigations.ContainsKey(command.WorkspaceId)
+            ? new CancellationToken(canceled: true)
+            : CancellationToken.None;
+    }
+
+    private void RegisterNavigation(BrowserCommandDto command, CancellationToken requestCancellation)
+    {
+        var replacement = new BrowserNavigationRequest(
+            command.CommandId,
+            CancellationTokenSource.CreateLinkedTokenSource(requestCancellation));
+        _latestNavigations.AddOrUpdate(
+            command.WorkspaceId,
+            replacement,
+            (_, previous) =>
+            {
+                previous.Cancellation.Cancel();
+                return replacement;
+            });
+    }
+
     private BrowserCommandDto? TryReadPending(IReadOnlyList<string> workspaceIds)
         => workspaceIds
             .Select(id => _queues.TryGetValue(id, out var queue) ? queue : null)
@@ -119,4 +150,5 @@ public sealed class BrowserSessionStore
 
     private static BrowserCommandResultDto Timeout(BrowserCommandDto command) =>
         Failed(command, "Browser command timed out. Ensure the headless browser session is running.");
+
 }

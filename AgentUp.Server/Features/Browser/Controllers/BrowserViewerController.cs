@@ -1,5 +1,6 @@
 using AgentUp.Browser.Streaming.Resources;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AgentUp.Server.Features.Browser.Controllers;
 
@@ -7,6 +8,7 @@ namespace AgentUp.Server.Features.Browser.Controllers;
 public sealed class BrowserViewerController : ControllerBase
 {
     [HttpGet("rdp-viewer")]
+    [AllowAnonymous]
     public IActionResult Viewer([FromQuery] string workspaceId)
     {
         if (string.IsNullOrEmpty(workspaceId))
