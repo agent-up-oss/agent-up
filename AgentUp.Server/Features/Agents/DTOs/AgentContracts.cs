@@ -12,6 +12,7 @@ public sealed record AgentPermissionResponse(
     [Required, MinLength(1)] string OptionId);
 public sealed record AgentAuthenticationRequest([Required, MinLength(1)] string MethodId);
 public sealed record AgentAuthMethodDto(string Id, string Name, string? Description);
+public sealed record AgentLoginChallengeDto(string? Url, string? Code, string? Instructions);
 public sealed record AgentDescriptor(AgentKind Agent, bool Available, string DisplayName);
 public sealed record AgentSessionDto(
     string WorkspaceId,
@@ -20,7 +21,8 @@ public sealed record AgentSessionDto(
     string? SessionId,
     string? Error,
     IReadOnlyList<AgentDescriptor> Agents,
-    IReadOnlyList<AgentAuthMethodDto> AuthMethods);
+    IReadOnlyList<AgentAuthMethodDto> AuthMethods,
+    AgentLoginChallengeDto? LoginChallenge = null);
 public sealed record AgentEventDto(long Sequence, string Type, JsonElement Payload, DateTimeOffset Timestamp);
 public sealed record AgentScheduleResult(AgentSessionDto? Session, bool Found, string? Error);
 public sealed record AgentActionResult(bool Found, string? Error)

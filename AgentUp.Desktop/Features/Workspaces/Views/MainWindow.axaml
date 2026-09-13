@@ -1341,7 +1341,14 @@
                                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate><DataTemplate><Button Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}" CommandParameter="{Binding Agent}" IsEnabled="{Binding Available}" Padding="14,8"><StackPanel><TextBlock Text="{Binding DisplayName}"/><TextBlock Text="{Binding Available}" FontSize="10"/></StackPanel></Button></DataTemplate></ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <ItemsControl Grid.Row="2" ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                    <StackPanel Grid.Row="2" Spacing="8">
+                                    <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                    <StackPanel IsVisible="{Binding Agent.HasLoginChallenge}" Spacing="6">
+                                        <TextBlock Text="{Binding Agent.LoginInstructions}" TextWrapping="Wrap" Foreground="#ffd58e"/>
+                                        <TextBox IsReadOnly="True" Text="{Binding Agent.LoginUrl}" IsVisible="{Binding Agent.HasLoginUrl}"/>
+                                        <TextBlock Text="{Binding Agent.LoginCode}" IsVisible="{Binding Agent.HasLoginCode}" FontSize="22" FontWeight="Bold" Foreground="#2bf27a"/>
+                                    </StackPanel>
+                                    </StackPanel>
                                     <ListBox Grid.Row="3" ItemsSource="{Binding Agent.Messages}" Background="#050505">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate DataType="agentVm:AgentChatItemViewModel">

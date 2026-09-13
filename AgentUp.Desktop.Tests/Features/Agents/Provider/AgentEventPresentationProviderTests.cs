@@ -53,6 +53,7 @@ public sealed class AgentEventPresentationProviderTests
         Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, null, null), Is.EqualTo("Working"));
         Assert.That(AgentEventPresentationProvider.ActivityLabel("stopped", false, null, null, null), Is.EqualTo("Stopped"));
         Assert.That(AgentEventPresentationProvider.ActivityLabel("authentication_required", false, null, null, null), Is.EqualTo("Waiting for sign-in"));
+        Assert.That(AgentEventPresentationProvider.ActivityLabel("authenticating", false, null, null, null), Is.EqualTo("Waiting for sign-in"));
         Assert.That(AgentEventPresentationProvider.ActivityLabel("ready", false, "boom", null, null), Is.EqualTo("boom"));
     }
 

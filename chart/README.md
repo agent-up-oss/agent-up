@@ -38,7 +38,8 @@ sets `SENTRY_ENVIRONMENT=production` and `SENTRY_RELEASE` from the Server
 image tag, or `Chart.AppVersion` when the tag is empty.
 
 The Server image includes `git` plus the Codex, Cursor, and Claude ACP CLIs
-under `/opt/agent-up/bin`. Source clones and workspace agent chat need those
+under `/opt/agent-up/bin`, and links `codex` next to `codex-acp` so ChatGPT
+device-code subscription login can run in the cluster. Source clones and workspace agent chat need those
 binaries; they are not present in the stock ASP.NET runtime image.
 
 ## Capabilities

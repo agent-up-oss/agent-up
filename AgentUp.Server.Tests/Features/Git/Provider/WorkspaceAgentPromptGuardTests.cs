@@ -42,10 +42,17 @@ public sealed class WorkspaceAgentPromptGuardTests
         var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["Agents:Codex:Command"] = command }).Build(), []);
         var events = new AgentEventService(new AgentEventFrameProvider());
+        var login = new FakeSubscriptionLoginProvider();
+        var environment = new FakeProcessEnvironmentProvider();
+        var credentials = new FakeClaudeCredentialStore();
         _scheduling = new AgentSchedulingService(
             new WorkspaceQueryController(registry),
             new FakeAgentProcessFactory(_process),
             commands,
+            login,
+            environment,
+            credentials,
+            new AgentSubscriptionAuth(),
             new AgentEventFrameProvider(),
             events,
             NullLogger<AgentSchedulingService>.Instance);
