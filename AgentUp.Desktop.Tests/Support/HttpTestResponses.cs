@@ -16,4 +16,8 @@ internal static class HttpTestResponses
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
     internal static HttpResponseMessage Text(HttpStatusCode statusCode, string body, string mediaType = "application/json")
         => new(statusCode) { Content = new StringContent(body, System.Text.Encoding.UTF8, mediaType) };
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+    internal static HttpResponseMessage Empty(HttpStatusCode statusCode)
+        => new(statusCode);
 }

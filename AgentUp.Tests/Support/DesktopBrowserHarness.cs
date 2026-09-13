@@ -49,33 +49,109 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     {
         var webViews = new List<NativeWebView>();
         var window = await Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            var handler = new DesktopServerStub(WorkspaceId, applicationPort);
-            var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-            var workspaces = new WorkspaceApiClient(http);
-            var console = new ConsoleApiClient(http);
-            var metrics = new MetricsApiClient(http);
-            var database = new DatabaseApiClient(http);
-            var audit = new ApplicationAuditApiClient(http);
-            var viewModel = MainViewModelFactory.Create(workspaces, console, metrics, database, audit);
-            var mainWindow = new MainWindow(http) { DataContext = viewModel };
-            mainWindow.WebViewFactory = () =>
-            {
-                var webView = new NativeWebView();
-                webViews.Add(webView);
-                return webView;
-            };
-            mainWindow.Show();
-
-            // Loading the workspace list selects the application and its HTTP port sub-tab,
-            // which is what drives the Desktop browser to navigate — the same path a user takes.
-            await viewModel.InitializeAsync();
-            SelectHttpPortTab(viewModel);
-            return mainWindow;
-        });
+            await CreateWindowAsync(
+                new Uri("http://localhost:5000"),
+                webViews,
+                selectHttpPort: true,
+                new DesktopServerStub(WorkspaceId, applicationPort)));
 
         return new DesktopBrowserHarness(window, webViews);
     }
+
+    internal static async Task<DesktopBrowserHarness> LaunchAgainstServerAsync(
+        Uri serverUrl,
+        string? desktopApplication = null)
+    {
+        var webViews = new List<NativeWebView>();
+        var window = await Dispatcher.UIThread.InvokeAsync(async () =>
+            await CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
+
+        var harness = new DesktopBrowserHarness(window, webViews);
+        if (desktopApplication is not null)
+            await harness.SelectDesktopApplicationAsync(desktopApplication);
+        await harness.WaitForWorkspaceWebViewAsync();
+        return harness;
+    }
+
+    private static async Task<MainWindow> CreateWindowAsync(
+        Uri serverUrl,
+        List<NativeWebView> webViews,
+        bool selectHttpPort,
+        HttpMessageHandler? handler = null)
+    {
+        var http = handler is null
+            ? new HttpClient { BaseAddress = serverUrl }
+            : new HttpClient(handler) { BaseAddress = serverUrl };
+        var workspaces = new WorkspaceApiClient(http);
+        var console = new ConsoleApiClient(http);
+        var metrics = new MetricsApiClient(http);
+        var database = new DatabaseApiClient(http);
+        var audit = new ApplicationAuditApiClient(http);
+        var viewModel = MainViewModelFactory.Create(workspaces, console, metrics, database, audit);
+        var mainWindow = new MainWindow(http) { DataContext = viewModel };
+        mainWindow.WebViewFactory = () =>
+        {
+            var webView = new NativeWebView();
+            webViews.Add(webView);
+            return webView;
+        };
+        mainWindow.Show();
+        await viewModel.InitializeAsync();
+        if (selectHttpPort)
+            SelectHttpPortTab(viewModel);
+        return mainWindow;
+    }
+
+    internal async Task WaitForWorkspaceWebViewAsync()
+    {
+        var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (_webViews.Count > 0)
+                return;
+
+            await Task.Delay(PollInterval);
+        }
+
+        Assert.Fail(
+            "Desktop never created a NativeWebView for the workspace tab. "
+            + await DescribeApplicationStateAsync());
+    }
+
+    internal async Task SelectDesktopApplicationAsync(string applicationName)
+    {
+        var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            var selected = await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = (MainViewModel)Window.DataContext!;
+                var application = viewModel.Applications.Applications
+                    .FirstOrDefault(item => string.Equals(item.Name, applicationName, StringComparison.Ordinal));
+                if (application is null)
+                    return false;
+
+                viewModel.SelectedApplicationTab = application;
+                return viewModel.ShowDesktopView;
+            });
+            if (selected)
+                return;
+
+            await Task.Delay(PollInterval);
+        }
+
+        Assert.Fail($"Desktop never selected desktop application '{applicationName}'. {await DescribeApplicationStateAsync()}");
+    }
+
+    private async Task<string> DescribeApplicationStateAsync()
+        => await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var viewModel = (MainViewModel)Window.DataContext!;
+            var names = string.Join(", ", viewModel.Applications.Applications.Select(item => item.Name));
+            return $"Shell={viewModel.SelectedShellTab}, ShowDesktopView={viewModel.ShowDesktopView}, "
+                + $"SelectedSubTab={viewModel.SelectedSubTab?.GetType().Name ?? "(null)"}, "
+                + $"Applications=[{names}]";
+        });
 
     // Runs script inside the live workspace page and returns its result as the Desktop
     // browser controller sees it.

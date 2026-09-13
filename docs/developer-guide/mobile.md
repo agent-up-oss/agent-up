@@ -74,6 +74,8 @@ The mobile client is a gated stack, not a bottom-tab shell.
 
 ## Workspaces and Git slices
 
+The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary application entries retain their existing non-streaming presentation.
+
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
 workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in
 the root layout so every authenticated screen reads the same selection. The

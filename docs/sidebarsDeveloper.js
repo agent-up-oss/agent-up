@@ -10,6 +10,7 @@ const sidebars = {
         'architecture',
         'server',
         'desktop',
+        'desktop-app-hosting-assessment',
         'packaging',
       ],
     },

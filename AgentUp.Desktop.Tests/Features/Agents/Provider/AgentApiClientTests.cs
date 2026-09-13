@@ -1,6 +1,6 @@
 using System.Net;
-using System.Text;
 using AgentUp.Desktop.Features.Agents.Providers;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Provider;
 
@@ -103,7 +103,6 @@ internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, st
         Uri = request.RequestUri;
         var text = body ?? "id: 5\nevent: state\ndata: {\"sequence\":5,\"type\":\"state\",\"payload\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}\n\n";
         var mediaType = eventStream || body is null ? "text/event-stream" : "application/problem+json";
-        var content = new StringContent(text, Encoding.UTF8, mediaType);
-        return Task.FromResult(new HttpResponseMessage(status) { Content = content });
+        return Task.FromResult(HttpTestResponses.Text(status, text, mediaType));
     }
 }

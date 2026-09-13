@@ -15,6 +15,7 @@ internal sealed class SubscriberEntry(WebSocket socket)
     // UtcTicks of last frame sent — used to enforce the 1 fps cap for background
     // subscribers so a busy foreground viewer never speeds up an inactive one.
     public long LastFrameSentAtTicks { get; set; }
+    public SemaphoreSlim SendGate { get; } = new(1, 1);
 }
 
 public sealed class WorkspaceSubscriberSet

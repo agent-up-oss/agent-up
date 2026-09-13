@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
   </ItemGroup>

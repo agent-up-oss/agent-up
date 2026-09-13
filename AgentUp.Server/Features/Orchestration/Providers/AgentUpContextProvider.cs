@@ -59,6 +59,15 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
               ]
             }
           ],
+          "desktopApplications": [
+            {
+              "name": "Editor",
+              "command": "dotnet run --project src/Editor",
+              "path": ".",
+              "runtime": "linux",
+              "window": { "width": 1280, "height": 800 }
+            }
+          ],
           "services": [
             {
               "name": "Database",
@@ -94,6 +103,10 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         applications[].install: Optional executable-plus-arguments command (e.g. "npm install", "dotnet restore") run to completion in the same path before every start of command. It runs unconditionally on every start/restart with no separate "already installed" tracking, so it must be idempotent; a non-zero exit fails the start without launching command.
         applications[].path: Browser path to open for the application.
         applications[].ports: Port declarations for the application.
+        desktopApplications: Linux GUI processes hosted in isolated Server-owned Xvfb displays and streamed to Desktop and Mobile.
+        desktopApplications[].command, install, path, ports, environment, environmentFiles: Same direct-launch and validation rules as applications.
+        desktopApplications[].runtime: Allowlisted compatibility runtime; currently linux only.
+        desktopApplications[].window: Optional fixed logical framebuffer dimensions from 320x240 through 3840x2160; defaults to 1280x800.
         services: Docker services the Server can start for the workspace.
         services[].name: Display name for the service.
         services[].image: Docker image for the service.

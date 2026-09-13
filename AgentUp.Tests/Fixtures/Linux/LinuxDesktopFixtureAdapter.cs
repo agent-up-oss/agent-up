@@ -6,55 +6,115 @@ namespace AgentUp.Tests.Fixtures.Linux;
 
 public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
 {
-    private Process? _xvfb;
+    internal const string IsolatedWaylandDisplayName = "agentup-e2e-no-wayland";
+    internal static string? IsolatedDisplay { get; private set; }
+    private const string IsolatedFlag = "AGENTUP_E2E_DISPLAY_ISOLATED";
+
+    private static readonly object Gate = new();
+    private static Process? Xvfb;
+    private static Process? Dbus;
+    private static DirectoryInfo? RuntimeDir;
+    private static bool Isolated;
 
     public string Name => "AgentUp.Fixtures.Linux";
     public bool RequiresStaThread => false;
     public bool RequiresSetupThreadAvalonia => false;
-    public string StartupFailureHint => "Check that DISPLAY points at Xvfb or another reachable X server and that WebKitGTK native libraries are installed.";
+    public string StartupFailureHint => "The Linux fixture starts a private Xvfb display and XDG_RUNTIME_DIR, and imports PATH/libraries from nix-shell shell.nix so IDEs do not need extra env vars.";
 
-    public void SetUp()
+    public void SetUp() => EnsureIsolated();
+
+    // Rider/VSTest load this assembly without nix-shell. Isolate and import native
+    // libraries here, before Avalonia or WebKitGTK initialize against the session.
+    internal static void EnsureIsolated()
     {
-        EnsureNativeLibraries();
-        StartXvfb();
+        if (!OperatingSystem.IsLinux())
+            return;
+
+        lock (Gate)
+        {
+            if (Isolated)
+                return;
+
+            ImportNixShellEnvironment();
+            if (UseSessionDisplay())
+            {
+                Environment.SetEnvironmentVariable("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
+                PreloadNativeLibraries();
+                Isolated = true;
+                return;
+            }
+
+            IsolateFromSessionDesktop();
+            StartPrivateDbus();
+            StartXvfb();
+            PreloadNativeLibraries();
+            Environment.SetEnvironmentVariable(IsolatedFlag, "1");
+            Isolated = true;
+        }
     }
 
-    // On NixOS, native libraries live in the nix store and are only on LD_LIBRARY_PATH
-    // when running inside `nix-shell`. IDEs launch the test host without that environment.
-    // Changing LD_LIBRARY_PATH after process start does not propagate to in-process dlopen
-    // on this NixOS setup, so pre-load the libraries by their explicit nix-store paths.
-    private static void EnsureNativeLibraries()
+    // IDEs launch the testhost without nix-shell. System libfontconfig often loads, so we
+    // must not treat that as "native libraries are ready" — WebKitGTK/GTK still need the
+    // nix store paths from shell.nix. Changing LD_LIBRARY_PATH after process start does not
+    // propagate to in-process dlopen on this NixOS setup, so preload by absolute path.
+    private static void ImportNixShellEnvironment()
     {
-        if (NativeLibrary.TryLoad("libfontconfig.so.1", out var h))
-        {
-            NativeLibrary.Free(h);
-            return;
-        }
-
         var shellNix = FindShellNix();
-        if (shellNix is null) return;
+        if (shellNix is null)
+            return;
 
-        var psi = new ProcessStartInfo
+        try
         {
-            FileName = "nix-shell",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        psi.ArgumentList.Add(shellNix);
-        psi.ArgumentList.Add("--run");
-        psi.ArgumentList.Add("echo $LD_LIBRARY_PATH");
+            using var proc = Process.Start(new ProcessStartInfo
+            {
+                FileName = "nix-shell",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                ArgumentList =
+                {
+                    shellNix,
+                    "--run",
+                    "printf '__AGENTUP_NIX_PATH__%s\\n__AGENTUP_NIX_LD__%s\\n' \"$PATH\" \"$LD_LIBRARY_PATH\""
+                }
+            });
+            if (proc is null)
+                return;
 
-        using var proc = Process.Start(psi);
-        if (proc is null) return;
+            var stdout = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit();
+            ApplyNixValue(stdout, "__AGENTUP_NIX_PATH__", "PATH");
+            ApplyNixValue(stdout, "__AGENTUP_NIX_LD__", "LD_LIBRARY_PATH");
+        }
+        catch (Win32Exception ex)
+        {
+            // Ubuntu CI and hosts without Nix keep using the system WebKit/Xvfb packages.
+            Trace.TraceWarning(ex.Message);
+        }
+    }
 
-        var ldPath = proc.StandardOutput.ReadToEnd().Trim();
-        proc.WaitForExit();
-        if (string.IsNullOrEmpty(ldPath)) return;
+    private static void ApplyNixValue(string stdout, string marker, string variable)
+    {
+        var line = stdout
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .LastOrDefault(value => value.StartsWith(marker, StringComparison.Ordinal));
+        if (line is null)
+            return;
 
-        var existing = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") ?? "";
-        Environment.SetEnvironmentVariable("LD_LIBRARY_PATH",
-            existing.Length > 0 ? $"{ldPath}:{existing}" : ldPath);
+        var imported = line[marker.Length..];
+        if (string.IsNullOrWhiteSpace(imported))
+            return;
+
+        var existing = Environment.GetEnvironmentVariable(variable) ?? "";
+        Environment.SetEnvironmentVariable(variable,
+            existing.Length > 0 ? $"{imported}:{existing}" : imported);
+    }
+
+    private static void PreloadNativeLibraries()
+    {
+        var ldPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
+        if (string.IsNullOrWhiteSpace(ldPath))
+            return;
 
         foreach (var dir in ldPath.Split(':', StringSplitOptions.RemoveEmptyEntries).Where(Directory.Exists))
         {
@@ -87,7 +147,85 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         return null;
     }
 
-    private void StartXvfb()
+    // A local workstation already has DISPLAY (and often WAYLAND_DISPLAY plus a session
+    // D-Bus). Reusing those opens real Desktop/Installer windows and xdg-desktop-portal
+    // file choosers on the developer's screen. Always isolate unless a maintainer opts
+    // back into the session for visual debugging.
+    private static bool UseSessionDisplay()
+        => Environment.GetEnvironmentVariable("AGENTUP_E2E_USE_SESSION_DISPLAY") == "1"
+           && Environment.GetEnvironmentVariable("DISPLAY") is not null
+           && IsDisplayReady();
+
+    private static void IsolateFromSessionDesktop()
+    {
+        RuntimeDir = Directory.CreateTempSubdirectory("agentup-e2e-");
+        if (OperatingSystem.IsLinux())
+        {
+            File.SetUnixFileMode(
+                RuntimeDir.FullName,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+
+        Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", RuntimeDir.FullName);
+        // Unsetting WAYLAND_DISPLAY is not enough: GTK and Avalonia then use
+        // $XDG_RUNTIME_DIR/wayland-0, which is the session compositor. Point at a
+        // name that cannot exist in the private runtime dir instead.
+        Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", IsolatedWaylandDisplayName);
+        Environment.SetEnvironmentVariable("WAYLAND_SOCKET", null);
+        Environment.SetEnvironmentVariable("DISPLAY", null);
+        Environment.SetEnvironmentVariable("GDK_BACKEND", "x11");
+        Environment.SetEnvironmentVariable("XDG_SESSION_TYPE", "x11");
+        Environment.SetEnvironmentVariable("GTK_USE_PORTAL", "0");
+        Environment.SetEnvironmentVariable("GSETTINGS_BACKEND", "memory");
+        Environment.SetEnvironmentVariable("NO_AT_BRIDGE", "1");
+        Environment.SetEnvironmentVariable("GTK_A11Y", "none");
+        Environment.SetEnvironmentVariable("XDG_CURRENT_DESKTOP", null);
+        Environment.SetEnvironmentVariable("DESKTOP_SESSION", null);
+    }
+
+    private static void StartPrivateDbus()
+    {
+        var busPath = Path.Join(RuntimeDir!.FullName, "bus");
+        var address = "unix:path=" + busPath;
+        // Leave the address set even if dbus-daemon is missing so libdbus cannot
+        // fall back to the session $XDG_RUNTIME_DIR/bus (or the previous one).
+        Environment.SetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS", address);
+        Environment.SetEnvironmentVariable("DBUS_SESSION_BUS_PID", null);
+
+        try
+        {
+            Dbus = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dbus-daemon",
+                ArgumentList = { "--session", "--nofork", "--nopidfile", "--address=" + address },
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            });
+        }
+        catch (Win32Exception ex)
+        {
+            Trace.TraceWarning(ex.Message);
+            return;
+        }
+
+        if (Dbus is null)
+            return;
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (Dbus.HasExited)
+                return;
+
+            if (File.Exists(busPath))
+                return;
+
+            Thread.Sleep(50);
+        }
+    }
+
+    private static void StartXvfb()
     {
         Environment.SetEnvironmentVariable("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
         Environment.SetEnvironmentVariable("LIBGL_ALWAYS_SOFTWARE", "1");
@@ -95,26 +233,61 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         Environment.SetEnvironmentVariable("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
         Environment.SetEnvironmentVariable("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
 
-        if (Environment.GetEnvironmentVariable("DISPLAY") is not null && IsDisplayReady())
-            return;
-
-        _xvfb = Process.Start(new ProcessStartInfo
+        Exception? last = null;
+        for (var attempt = 0; attempt < 5; attempt++)
         {
-            FileName = "Xvfb",
-            Arguments = "-displayfd 1 -screen 0 1280x720x24",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        }) ?? throw new InvalidOperationException("Failed to start Xvfb.");
+            var display = $":{Random.Shared.Next(100, 60_000)}";
+            try
+            {
+                Xvfb = StartXvfbProcess(display);
+                IsolatedDisplay = display;
+                Environment.SetEnvironmentVariable("DISPLAY", display);
+                WaitUntilXvfbReady(display);
+                return;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or TimeoutException or Win32Exception)
+            {
+                last = ex;
+                TryKill(Xvfb);
+                Xvfb?.Dispose();
+                Xvfb = null;
+            }
+        }
 
-        var display = ReadAssignedDisplay(_xvfb);
-        Environment.SetEnvironmentVariable("DISPLAY", display);
+        throw new InvalidOperationException(
+            "Failed to start a private Xvfb display for Linux E2E. Install xorg-x11-server-Xvfb or enter nix-shell shell.nix.",
+            last);
+    }
 
+    private static Process StartXvfbProcess(string display)
+    {
+        Process process;
+        try
+        {
+            process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "Xvfb",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                ArgumentList = { display, "-screen", "0", "1280x720x24", "-nolisten", "tcp" }
+            }) ?? throw new InvalidOperationException("Failed to start Xvfb.");
+        }
+        catch (Win32Exception ex)
+        {
+            throw new InvalidOperationException("Failed to start Xvfb. Install xorg-x11-server-Xvfb or enter nix-shell shell.nix.", ex);
+        }
+
+        return process;
+    }
+
+    private static void WaitUntilXvfbReady(string display)
+    {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
         while (DateTimeOffset.UtcNow < deadline)
         {
-            if (_xvfb.HasExited)
-                throw new InvalidOperationException($"Xvfb exited before DISPLAY was ready: {_xvfb.StandardError.ReadToEnd()}");
+            if (Xvfb is { HasExited: true })
+                throw new InvalidOperationException($"Xvfb exited before DISPLAY was ready: {Xvfb.StandardError.ReadToEnd()}");
 
             if (IsDisplayReady())
                 return;
@@ -125,20 +298,10 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         throw new TimeoutException($"Xvfb did not make DISPLAY={display} available within 10 seconds.");
     }
 
-    private static string ReadAssignedDisplay(Process xvfb)
+    private static void TryKill(Process? process)
     {
-        var readTask = xvfb.StandardOutput.ReadLineAsync();
-        if (Task.WhenAny(readTask, Task.Delay(TimeSpan.FromSeconds(10))).GetAwaiter().GetResult() != readTask)
-            throw new TimeoutException("Xvfb did not assign a DISPLAY within 10 seconds.");
-
-        var displayNumber = readTask.GetAwaiter().GetResult();
-        if (!string.IsNullOrWhiteSpace(displayNumber))
-            return ":" + displayNumber.Trim();
-
-        var stderr = xvfb.HasExited
-            ? xvfb.StandardError.ReadToEnd()
-            : "Xvfb did not write a display number.";
-        throw new InvalidOperationException($"Xvfb failed to assign a DISPLAY: {stderr}");
+        try { process?.Kill(entireProcessTree: true); }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { Trace.TraceWarning(ex.Message); }
     }
 
     private static bool IsDisplayReady()
@@ -174,9 +337,23 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         }
     }
 
-    public void Dispose()
+    public void Dispose() => DisposeIsolation();
+
+    internal static void DisposeIsolation()
     {
-        try { _xvfb?.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { Trace.TraceWarning(ex.Message); }
-        _xvfb?.Dispose();
+        lock (Gate)
+        {
+            try { Xvfb?.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { Trace.TraceWarning(ex.Message); }
+            Xvfb?.Dispose();
+            Xvfb = null;
+            try { Dbus?.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { Trace.TraceWarning(ex.Message); }
+            Dbus?.Dispose();
+            Dbus = null;
+            try { RuntimeDir?.Delete(recursive: true); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Trace.TraceWarning(ex.Message); }
+            RuntimeDir = null;
+            Isolated = false;
+            IsolatedDisplay = null;
+        }
     }
 }
