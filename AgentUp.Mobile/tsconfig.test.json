@@ -10,6 +10,7 @@
     "src/features/workspaces/**/*.ts",
     "src/features/git/**/*.ts",
     "src/features/agents/**/*.ts",
+    "src/features/applications/**/*.ts",
     "src/features/telemetry/**/*.ts"
   ],
   "exclude": []

@@ -32,6 +32,18 @@ selection; if authentication is disabled, it skips that login step. Remote
 servers must use HTTPS; loopback HTTP URLs remain supported for local
 development.
 
+Application spaces render the workspace's Server-owned headless Chromium session.
+Before opening the viewer, Mobile asks the authenticated browser controller to
+navigate to the application's allocated loopback HTTP port. The HTTPS viewer carries
+JPEG frames and input over authenticated WebSocket, with authenticated HTTP polling
+as a recovery path, so allocated ports remain bound to the Server and are never
+published through the reverse proxy. The access token is delivered to the viewer in
+the URL fragment (which is not sent in HTTP requests) and is removed from browser
+history immediately; browser WebSockets authenticate with a base64url token in the
+negotiated subprotocol because the WebSocket browser API cannot set an Authorization
+header. The static viewer shell is public, but frame, input, navigation, and stream
+endpoints remain protected by the normal Server authorization policy.
+
 As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose

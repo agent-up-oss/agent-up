@@ -1,6 +1,10 @@
 export type WorkspaceApplication = {
   name: string;
   state: string;
+  allocatedPorts?: Array<{
+    allocatedPort: number;
+    protocol: string;
+  }>;
 };
 
 export type Workspace = {
