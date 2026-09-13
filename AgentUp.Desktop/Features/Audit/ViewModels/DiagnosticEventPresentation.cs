@@ -1,14 +1,15 @@
+using AgentUp.Desktop.Shared.Models;
 using AgentUp.Desktop.Features.Audit.DTOs;
 
 namespace AgentUp.Desktop.Features.Audit.ViewModels;
 
 internal static class DiagnosticEventPresentation
 {
-    internal const string SuccessColor = "#00b850";
-    internal const string ErrorColor = "#e48989";
-    internal const string WarningColor = "#d4a34a";
-    internal const string NeutralColor = "#8aa497";
-    internal const string MessageDefaultColor = "#aebcb3";
+    internal const string SuccessColor = AgentUpThemeColors.Accent;
+    internal const string ErrorColor = AgentUpThemeColors.TextDanger;
+    internal const string WarningColor = AgentUpThemeColors.StatusWarning;
+    internal const string NeutralColor = AgentUpThemeColors.TextMuted;
+    internal const string MessageDefaultColor = AgentUpThemeColors.TextMuted;
 
     internal static DiagnosticPresentation Present(ApplicationAuditEventDto dto)
     {

@@ -1,23 +1,55 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
+import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
+import { agentUpTheme, auText } from '@agent-up/design-system/native';
 import { applicationProxyUrl, issueApplicationProxyTicket } from '../providers/ApplicationBrowserProvider';
+import { waitForDesktopViewerUrl } from '../providers/DesktopViewerProvider';
+import { DesktopStreamView } from './DesktopStreamView';
 import { RemoteBrowser } from './RemoteBrowser';
 
 type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: string };
 
-/** Displays an application's HTTP interface through an authenticated HTTPS tunnel. */
+/** Displays an HTTP application through the Server proxy, or a desktop application through the ticketed viewer. */
 export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
+  const shellConfig = useMemo(() => ({
+    title: applicationName,
+    rightAction: null,
+    sidebarContent: null,
+  }), [applicationName]);
+  useShellConfig(shellConfig);
+
   const { server } = useWorkspaces();
+  const { activeServer } = useServers();
+  const application = workspace.applications?.find(entry => entry.name === applicationName);
   const [source, setSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const application = workspace.applications?.find(entry => entry.name === applicationName);
-
-  useShellConfig(useMemo(() => ({ title: applicationName, rightAction: null, sidebarContent: null }), [applicationName]));
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [viewerError, setViewerError] = useState<string | null>(null);
+  const applicationState = useRef(application?.state);
+  applicationState.current = application?.state;
 
   useEffect(() => {
+    if (application?.kind !== 'Desktop' || !activeServer) return;
+    const controller = new AbortController();
+    setViewerUrl(null);
+    setViewerError(null);
+    waitForDesktopViewerUrl(activeServer, workspace.id, applicationName, {
+      applicationState: () => applicationState.current ?? 'Failed',
+      signal: controller.signal,
+    })
+      .then(url => { if (!controller.signal.aborted) setViewerUrl(url); })
+      .catch(caught => {
+        if (controller.signal.aborted || (caught instanceof Error && caught.name === 'AbortError')) return;
+        setViewerError(caught instanceof Error ? caught.message : String(caught));
+      });
+    return () => controller.abort();
+  }, [activeServer, application?.kind, applicationName, workspace.id]);
+
+  useEffect(() => {
+    if (application?.kind === 'Desktop') return;
     let active = true;
     const request = new AbortController();
     setSource(null);
@@ -32,18 +64,54 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
     return () => { active = false; request.abort(); };
   }, [server, workspace.id, application]);
 
+  if (application?.kind === 'Desktop') {
+    if (viewerError) {
+      return (
+        <View style={styles.center}>
+          <Text style={styles.error}>Could not open the desktop application: {viewerError}</Text>
+        </View>
+      );
+    }
+    if (!viewerUrl) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator color={agentUpTheme.colors.accent} />
+          <Text style={styles.status}>Connecting to the desktop application...</Text>
+        </View>
+      );
+    }
+    return <View style={styles.desktop}><DesktopStreamView url={viewerUrl} /></View>;
+  }
+
   return (
     <View style={styles.container}>
-      {!source && !error && <View style={styles.message}><ActivityIndicator color="#00d66b" /><Text style={styles.text}>Opening the application…</Text></View>}
-      {!!error && <View style={styles.message}><Text accessibilityRole="alert" style={styles.error}>{error}</Text></View>}
+      {!source && !error && (
+        <View style={styles.center}>
+          <ActivityIndicator color={agentUpTheme.colors.accent} />
+          <Text style={styles.status}>Opening the application…</Text>
+        </View>
+      )}
+      {!!error && (
+        <View style={styles.center}>
+          <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
+        </View>
+      )}
       {source && <RemoteBrowser source={source} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, minHeight: 400, backgroundColor: '#050505' },
-  message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
-  text: { color: '#aebcb3' },
-  error: { color: '#d84f4f', textAlign: 'center' },
+  container: { flex: 1, minHeight: 400, backgroundColor: agentUpTheme.colors.canvas },
+  desktop: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: agentUpTheme.colors.canvas,
+    padding: agentUpTheme.spacing[6],
+    gap: agentUpTheme.spacing[3],
+  },
+  status: auText('muted'),
+  error: { ...auText('badgeDanger'), textAlign: 'center' },
 });

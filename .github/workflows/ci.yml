@@ -170,6 +170,12 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Install hosted desktop test dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xvfb x11-apps libxtst6
+
       - name: Run tests
         shell: bash
         env:
@@ -246,6 +252,12 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Install hosted desktop test dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xvfb x11-apps libxtst6
+
       - name: Run tests with coverage
         shell: bash
         run: ./.github/scripts/run-dotnet-tests.sh
@@ -268,6 +280,7 @@ jobs:
             AgentUp.Browser.Streaming.Tests \
             AgentUp.CommitPolicy.Tests \
             AgentUp.Desktop.Tests \
+            AgentUp.AUDebug.Tests \
             AgentUp.InstallerConfig.Tests \
             AgentUp.Server.Tests \
             AgentUp.Tray.Tests \
@@ -392,6 +405,17 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
           flags: agentup-desktop-tests
           name: AgentUp.Desktop.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.AUDebug.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_audebug_tests }}
+          flags: agentup-audebug-tests
+          name: AgentUp.AUDebug.Tests
           fail_ci_if_error: true
           disable_search: true
 

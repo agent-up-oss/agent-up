@@ -43,6 +43,9 @@ agent-up.sln
 AgentUp.Server/
   AgentUp.Server.csproj
 
+AgentUp.Browser.Streaming/
+  AgentUp.Browser.Streaming.csproj
+
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
 
@@ -70,11 +73,17 @@ AgentUp.Desktop/
 AgentUp.Mobile/
   package.json
 
+AgentUp.DesignSystem/
+  package.json
+
 AgentUp.WebAudit/
   package.json
 
 AgentUp.CLI/
   AgentUp.CLI.csproj
+
+AgentUp.AUDebug/
+  AgentUp.AUDebug.csproj
 
 AgentUp.CommitPolicy/
   AgentUp.CommitPolicy.csproj
@@ -90,6 +99,9 @@ AgentUp.PackageSmoke/
 
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
+
+AgentUp.Browser.Streaming.Tests/
+  AgentUp.Browser.Streaming.Tests.csproj
 
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
@@ -118,6 +130,9 @@ AgentUp.Desktop.Tests/
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
 
+AgentUp.AUDebug.Tests/
+  AgentUp.AUDebug.Tests.csproj
+
 AgentUp.CommitPolicy.Tests/
   AgentUp.CommitPolicy.Tests.csproj
 
@@ -134,7 +149,8 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
 | `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, install planning, capability inventory, and CLI executable discovery used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
@@ -144,8 +160,10 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Claude` | First-party Claude ACP adapter, Claude Code CLI discovery, validation, and ACP launch planning |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
+| `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia resource and style bindings consumed by Agent-Up surfaces and external marketing repositories |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
+| `AgentUp.AUDebug` | Maintainer visual-debug CLI (`au-debug`) that hosts repo Desktop, Mobile, and docs together for screenshot and UI-flow inspection |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agentup verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -267,6 +285,14 @@ AgentUp.CLI/
       Models/
       Providers/
       Services/
+
+AgentUp.AUDebug/
+  Features/
+    Host/             (au-debug up/down/status, session, log mux, 30s readiness watchdog)
+    Desktop/          (desktop screenshot, login, start-workspace)
+    Mobile/           (mobile screenshot, login)
+    Docs/             (docs screenshot)
+    Test/             (scoped and full visual-iteration test runs)
 
 LocalInstaller.Core/
   Features/
@@ -447,6 +473,7 @@ The Server owns all orchestration:
 - Process lifecycle.
 - Port allocation.
 - Authenticated HTTPS forwarding of allocated HTTP application ports.
+- Hosted Linux desktop application sessions.
 - Docker lifecycle.
 - Capability reconciliation and status.
 - Browser lifecycle.
@@ -480,6 +507,8 @@ Full guide: `docs/developer-guide/server.md`.
 
 The Desktop is an Avalonia client for humans. It displays workspaces, browser tabs, logs, diagnostics, health, and running processes.
 
+Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
+
 It connects to the Server and must not own runtime state. Full guide: `docs/developer-guide/desktop.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
@@ -490,6 +519,12 @@ The CLI is a thin developer convenience wrapper over Server capabilities.
 
 It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/cli.md`.
 
+## AUDebug
+
+`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Server, Desktop, Mobile web export, and docs site together so agents can screenshot and drive login/workspace flows without using a packaged install. It is not an orchestration owner and is not a packaged product.
+
+Full guide: `docs/developer-guide/au-debug.md`.
+
 ## Mobile
 
 The mobile client is a single Expo and React Native TypeScript project that targets Android, iOS, and an installable web PWA. It lives in `AgentUp.Mobile/` at the repository root and is not part of `agent-up.sln`.
@@ -497,6 +532,8 @@ The mobile client is a single Expo and React Native TypeScript project that targ
 Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. The mobile client displays Server-owned state and must not own orchestration.
 
 Mobile application spaces load each application's HTTP interface in a native WebView (or web iframe). The Server reverse-proxies that traffic over the authenticated HTTPS Server origin so dynamically allocated loopback ports stay private to the Server host and are never published through the public reverse proxy. Mobile first requests a short-lived single-use ticket over Bearer REST, then navigates the WebView to the ticket bootstrap URL; the Server sets an HttpOnly cookie and redirects to `/` so the application is rendered at origin root. Subsequent document, asset, and WebSocket requests on unmatched Server paths use that cookie. Token-bearing ticket requests reject remote plaintext HTTP except for loopback development URLs.
+
+Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
 
 Developer guide: `docs/developer-guide/mobile.md`.
 
@@ -517,6 +554,8 @@ Managed applications must not reference Agent-Up packages, SDKs, or APIs. Agent-
 Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
 A local application entry may declare `install`, an executable-plus-arguments command (same allowlist and shell rejection as `command`) run to completion in the application's `path` before every launch of `command`. It has no separate "already installed" tracking: the Server reruns it on every start and restart and relies on the command itself being idempotent (`npm install`, `dotnet restore`, `pip install -r requirements.txt`). Output streams to the application console prefixed with `[install]`; a non-zero exit fails the start without launching `command`.
+
+The root `desktopApplications` collection declares Linux GUI processes. Each entry follows the local application command, install, path, environment, environment-file, and port rules, uses the allowlisted `linux` runtime, and may additionally set a fixed `window.width` and `window.height`. The Server creates an isolated Xvfb display before launch, injects `DISPLAY` plus a private `XDG_RUNTIME_DIR`, X11-only toolkit variables (`GDK_BACKEND=x11`, `WAYLAND_DISPLAY=agentup-hosted-no-wayland`, `XDG_SESSION_TYPE=x11`), and a native library path so SkiaSharp and GUI toolkits can load when the Server itself was not started inside `nix-shell`. The process cannot attach to the workstation session. The Server owns framebuffer capture and input, and issues session-scoped viewer tickets to Desktop and Mobile. Desktop application validation uses generation-scoped framebuffer coordinates; stale-generation input is rejected.
 
 The optional root `display` object in `agent-up.json` is only for Desktop visuals. `display.name` overrides the workspace entry title and `display.branch` overrides the workspace entry subtitle. These values must not change repository path identity, worktree path handling, Git branch detection, commit identity, audit identity, or process working directories.
 
@@ -606,6 +645,7 @@ This applies to every production/test project pair once created:
 | Project | Test Project |
 |---|---|
 | `AgentUp.Server` | `AgentUp.Server.Tests` |
+| `AgentUp.Browser.Streaming` | `AgentUp.Browser.Streaming.Tests` |
 | `AgentUp.Capabilities.Abstractions` | `AgentUp.Capabilities.Abstractions.Tests` |
 | `AgentUp.Capabilities.Common` | `AgentUp.Capabilities.Common.Tests` |
 | `AgentUp.Capabilities.Dotnet` | `AgentUp.Capabilities.Dotnet.Tests` |
@@ -615,6 +655,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Capabilities.Claude` | `AgentUp.Capabilities.Claude.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
+| `AgentUp.AUDebug` | `AgentUp.AUDebug.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
@@ -623,21 +664,21 @@ This applies to every production/test project pair once created:
 
 `AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, test taxonomy rules, MCP endpoint tool-allowlist completeness, and verification path-rule coverage for every production and test project. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
 
-`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
+`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK: the adapter always starts a private Xvfb, `XDG_RUNTIME_DIR`, and session bus, imports `PATH` and native libraries from `nix-shell shell.nix` so IDEs do not need extra env vars, and Avalonia is forced onto X11, so a developer workstation's Wayland/X11 session is not reused. Set `AGENTUP_E2E_USE_SESSION_DISPLAY=1` only to debug against the real display. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
 Changes to packaging, installers, CI payload staging, Desktop startup, browser/WebView hosting, or installed app layout that can affect the delivered Desktop or InstallerApp runtime must run the relevant project tests and `AgentUp.Tests` in the same verification pass. Do not claim completion for those changes after only running the package, installer, or app unit test projects.
 
 After every task that touches any production project, run the architecture tests before reporting completion:
 
 ```
-dotnet test AgentUp.Architecture.Tests/AgentUp.Architecture.Tests.csproj
+./au-debug test architecture
 ```
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
 
-Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:web` from that directory. Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
+Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, and web export). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
-Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
+Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
 Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest and install icons under `public/` synchronized with the exported PWA.
 
@@ -947,6 +988,10 @@ The CLI is a convenience client for humans. It forwards commands to the Server a
 
 Read: `docs/user-docs/cli.md`.
 
+## AUDebug
+
+`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Rebuild generated design-system bindings with `au-debug build design-system`, and Mobile typecheck plus web export with `au-debug build mobile`. Do not invoke those npm or `dotnet test` commands directly when an `au-debug` wrap exists. Read: `docs/developer-guide/au-debug.md`.
+
 ## MCP
 
 The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources, orchestration tools, and live workspace console snapshots; Browser MCP at `/mcp/browser` for browser automation; Audit MCP at `/mcp/audit` for durable action history and artifacts; and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
@@ -1107,6 +1152,26 @@ Read: `docs/developer-guide/packaging.md`.
 ## Design Principles
 
 Agent-Up must remain framework agnostic, cross-platform, declarative, and zero-touch for application source code.
+
+`AgentUp.DesignSystem/` is the single source of truth for all Agent-Up product UI,
+documentation, screenshots, illustrations, and marketing presentation. Its
+canonical sources are HTML/CSS plus the structured brand voice contract; its
+generated React Native objects and Avalonia resources **and styles** are hard
+dependencies of Mobile and Desktop. Mobile applies compiled component styles
+(`auBox` / `auText`); Desktop applies generated Avalonia styles through catalog
+classes. Never add a raw product color to Desktop, Mobile, docs, or marketing
+when a semantic design-system role exists. Never restyle a catalog control from
+tokens when a component style already exists. Never edit
+generated files under `AgentUp.DesignSystem/dist/`; change the canonical CSS or
+HTML catalog and regenerate them.
+
+Desktop is the reference rendering. Use the near-black canvas, the raised surface ramp so cards and fields read as containers, alpha hairlines for structure, and off-white hierarchy. Interaction is neutral: hover and pressed use `state-hover` / `state-active`, never an accent fill. Green carries meaning only — primary action, selection, progress, healthy state — and selection is an accent tint plus a 2px accent rule, never a saturated fill. Emphasis follows the information hierarchy: the primary selection on a screen takes the accent, secondary selections stay neutral. Radius scales with the object (`lg` for panels, `xl` for panes and dialogs), and working regions are inset panes on the canvas rather than full-bleed panels butted at 1px lines. Product chrome uses the `ui` type tier and the `ui` weight roles; 700+ is for content and marketing, not 11-13px labels. Product screens use page-title and field-label, not marketing display type. Ambient neon glow, decorative green grids, green outlines around every
+surface, and accent-tinted hover states are retired. Public claims must follow the naming, positioning, and
+`Available`/`Preview`/`Experimental`/`Planned` lifecycle language in
+`AgentUp.DesignSystem/brand/voice.json`. Real current product screenshots are
+preferred over reconstructed interfaces; planned UI must be labeled visibly.
+
+Read: `docs/developer-guide/design-system.md`.
 
 Read: `docs/developer-guide/design-principles.md`.
 

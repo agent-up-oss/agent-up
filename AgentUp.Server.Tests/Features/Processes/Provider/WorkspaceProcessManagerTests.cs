@@ -1,5 +1,10 @@
+using System.Diagnostics;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
+using AgentUp.Server.Features.DesktopApplications.Providers;
+using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -266,6 +271,204 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task CreateInstallStartInfo_QualifiesDotnetBuildProjectPathWithoutWorkspaceWorkingDirectory()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Api",
+                    "dotnet run --project src/Api/Api.csproj --no-launch-profile",
+                    null,
+                    Install: "dotnet build src/Api/Api.csproj --nologo --no-incremental")
+            ]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo, Is.Not.Null);
+        Assert.That(startInfo!.FileName, Is.EqualTo("dotnet"));
+        Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[0], Is.EqualTo("build"));
+        Assert.That(Directory.ResolveLinkTarget(
+                Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(startInfo.ArgumentList[1])!)!)!,
+                returnFinalTarget: true)!.FullName,
+            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[1], Does.EndWith(Path.Join("src", "Api", "Api.csproj")));
+        Assert.That(startInfo.ArgumentList[2], Is.EqualTo("--nologo"));
+        Assert.That(startInfo.ArgumentList[3], Is.EqualTo("--no-incremental"));
+    }
+
+    [Test]
+    public async Task CreateInstallStartInfo_KeepsARootedDotnetBuildProjectPath()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Api",
+                    "dotnet run",
+                    null,
+                    Install: "dotnet build /tmp/App.csproj --nologo")
+            ]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo!.ArgumentList[1], Is.EqualTo("/tmp/App.csproj"));
+    }
+
+    [Test]
+    public async Task CreateInstallStartInfo_AppendsTheWorkingDirectoryWhenDotnetBuildHasNoProject()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Api",
+                    "dotnet run",
+                    null,
+                    Install: "dotnet build --nologo")
+            ]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo!.ArgumentList[0], Is.EqualTo("build"));
+        Assert.That(startInfo.ArgumentList[1], Is.EqualTo("--nologo"));
+        Assert.That(startInfo.ArgumentList[2], Does.Contain(Path.Join("AgentUp", "WorkspaceDirectories")));
+    }
+
+    [Test, CancelAfter(120000)]
+    public async Task CreateInstallStartInfo_DotnetBuild_WritesRuntimeConfigWhenWorkingDirectoryIsNotTheProject()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Join(worktreePath, "app");
+        Directory.CreateDirectory(projectDir);
+        File.WriteAllText(Path.Join(projectDir, "App.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+              </PropertyGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Join(projectDir, "Program.cs"), "System.Threading.Thread.Sleep(Timeout.Infinite);");
+        var outputDir = Path.Join(projectDir, "bin", "Debug", "net10.0");
+        Directory.CreateDirectory(outputDir);
+        File.WriteAllText(Path.Join(outputDir, "App.dll"), "");
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                Applications =
+                [
+                    new ApplicationDefinition(
+                        "App",
+                        "dotnet run --project app/App.csproj --no-launch-profile",
+                        null,
+                        Install: "dotnet build app/App.csproj --nologo --no-incremental")
+                ]
+            });
+            var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+            Assert.That(startInfo, Is.Not.Null);
+
+            using var process = new Process { StartInfo = startInfo! };
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.Start();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            var stdout = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            Assert.That(process.ExitCode, Is.EqualTo(0), $"{stdout}{stderr}");
+            Assert.That(File.Exists(Path.Join(outputDir, "App.runtimeconfig.json")), Is.True, $"{stdout}{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task CreateInstallStartInfo_QualifiesDotnetRestoreProjectPathWithoutWorkspaceWorkingDirectory()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Api",
+                    "dotnet run --project src/Api/Api.csproj --no-launch-profile",
+                    null,
+                    Install: "dotnet restore src/Api/Api.csproj --nologo")
+            ]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo, Is.Not.Null);
+        Assert.That(startInfo!.FileName, Is.EqualTo("dotnet"));
+        Assert.That(startInfo.WorkingDirectory, Is.Not.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[0], Is.EqualTo("restore"));
+        Assert.That(Directory.ResolveLinkTarget(
+                Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(startInfo.ArgumentList[1])!)!)!,
+                returnFinalTarget: true)!.FullName,
+            Is.EqualTo(workspace.WorktreePath));
+        Assert.That(startInfo.ArgumentList[1], Does.EndWith(Path.Join("src", "Api", "Api.csproj")));
+        Assert.That(startInfo.ArgumentList[2], Is.EqualTo("--nologo"));
+    }
+
+    [Test]
+    public async Task CreateLocalProcessStartInfo_RuntimeDisplayOverridesTheSessionDisplay()
+    {
+        var previousDisplay = Environment.GetEnvironmentVariable("DISPLAY");
+        var previousWayland = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
+        var previousRuntime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+        try
+        {
+            Environment.SetEnvironmentVariable("DISPLAY", ":0");
+            Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "wayland-0");
+            Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", "/run/user/1000");
+
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+            {
+                Applications = [new ApplicationDefinition("Editor", "printenv", null)]
+            });
+            var app = workspace.Applications.Single();
+            app.RuntimeEnvironment = new Dictionary<string, string>
+            {
+                ["DISPLAY"] = ":4242",
+                ["WAYLAND_DISPLAY"] = "agentup-hosted-no-wayland",
+                ["XDG_RUNTIME_DIR"] = "/tmp/agentup-desktop-fake",
+                ["GDK_BACKEND"] = "x11"
+            };
+
+            var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, app);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(startInfo.Environment["DISPLAY"], Is.EqualTo(":4242"));
+                Assert.That(startInfo.Environment["WAYLAND_DISPLAY"], Is.EqualTo("agentup-hosted-no-wayland"));
+                Assert.That(startInfo.Environment["XDG_RUNTIME_DIR"], Is.EqualTo("/tmp/agentup-desktop-fake"));
+                Assert.That(startInfo.Environment["GDK_BACKEND"], Is.EqualTo("x11"));
+            });
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DISPLAY", previousDisplay);
+            Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", previousWayland);
+            Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", previousRuntime);
+        }
+    }
+
+    [Test]
     public async Task CreateInstallStartInfo_ReturnsNull_WhenInstallNotConfigured()
     {
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
@@ -317,13 +520,11 @@ public class WorkspaceProcessManagerTests
 
             await _manager.LaunchApplicationAsync(workspace, "Web");
 
-            await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
-
-            // LaunchApplicationAsync does not await the application process's own completion,
-            // and reaching the Stopped state (set from its Exited handler) does not guarantee
-            // every OutputDataReceived-triggered AppendAsync write has finished yet; poll until
-            // the application command's own (unprefixed) output shows up rather than assuming
-            // it is already there.
+            // Applications start as Stopped, so waiting for that state returns before the
+            // install+command processes have finished. Poll until the application command's
+            // own (unprefixed) output shows up. LaunchApplicationAsync holds Exited until
+            // stdout readers are attached and flushes those writes before disposing, so a
+            // fast command such as printenv still records its lines here.
             var lines = await WaitForOutputAsync(workspace.Id, "Web",
                 candidate => candidate.Any(line => !line.StartsWith("[install]", StringComparison.Ordinal)));
 
@@ -332,8 +533,10 @@ public class WorkspaceProcessManagerTests
             // [install] prefix and must all come before the application command's own.
             var lastInstallIndex = lines.FindLastIndex(line => line.StartsWith("[install]", StringComparison.Ordinal));
             var firstCommandIndex = lines.FindIndex(line => !line.StartsWith("[install]", StringComparison.Ordinal));
-            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0));
-            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0),
+                "Expected [install] output before the application command. Lines: " + string.Join(" | ", lines));
+            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0),
+                "Expected unprefixed application output after install. Lines: " + string.Join(" | ", lines));
             Assert.That(lastInstallIndex, Is.LessThan(firstCommandIndex));
         }
         finally
@@ -718,6 +921,76 @@ public class WorkspaceProcessManagerTests
 
         Assert.That(args.SkipWhile(a => a != "docker.redpanda.com/redpandadata/redpanda:v24.2.4").Skip(1),
             Is.EqualTo(new[] { "redpanda", "start", "--smp", "1" }));
+    }
+
+    [Test]
+    public async Task LaunchApplication_skipsDesktopAppsOffLinux()
+    {
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            NullLogger<WorkspaceProcessManager>.Instance,
+            isLinux: () => false);
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+
+        await manager.LaunchApplicationAsync(workspace, "Editor");
+
+        var lines = await _output.GetAsync(workspace.Id, "Editor");
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(lines, Has.Some.Contains("Linux"));
+        });
+    }
+
+    [Test]
+    public async Task LaunchApplication_stopsTheDesktopSessionWhenTheProcessExits()
+    {
+        var displays = new FakeDesktopDisplayProvider();
+        var desktop = new DesktopApplicationsController(new DesktopSessionService(
+            displays,
+            new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new DesktopInputMessageProvider(),
+            new DesktopViewerTicketProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
+            NullLogger<DesktopSessionService>.Instance));
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            NullLogger<WorkspaceProcessManager>.Instance,
+            desktop);
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                DesktopApplications = [new DesktopApplicationDefinition("Editor", "printenv", ".")]
+            });
+            var app = workspace.Applications.Single();
+            app.RuntimeEnvironment = await desktop.PrepareAsync(workspace, app, CancellationToken.None);
+
+            await manager.LaunchApplicationAsync(workspace, "Editor");
+            await WaitForApplicationStateAsync(workspace.Id, "Editor", ApplicationState.Stopped);
+
+            var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+            while (!displays.Stopped && DateTimeOffset.UtcNow < deadline)
+                await Task.Delay(50);
+
+            Assert.That(displays.Stopped, Is.True);
+        }
+        finally
+        {
+            Directory.Delete(worktreePath, recursive: true);
+        }
     }
 
     private async Task<ApplicationState> WaitForApplicationStateAsync(

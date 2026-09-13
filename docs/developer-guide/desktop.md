@@ -6,6 +6,8 @@ title: Desktop
 
 `AgentUp.Desktop` is the human UI for Agent-Up.
 
+For visual comparison against Mobile and the docs design-system page during UI work, use [`au-debug`](au-debug.md) rather than a packaged Desktop install.
+
 Technology:
 
 - .NET 10
@@ -99,7 +101,16 @@ Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1` so onboarding d
 
 ## Browser Experience
 
-The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome with no outer frame border, subtle internal dividers where needed, green/teal active states and indicators, rounded workspace entries, and a browser-first runtime surface.
+Desktop is the reference rendering for the shared
+[`@agent-up/design-system`](./design-system.md): compact dark chrome with no outer
+frame border, neutral internal dividers, semantic green active states and health
+indicators, rounded workspace entries, and a browser-first runtime surface. Desktop
+applies generated Avalonia styles inferred from the HTML/CSS catalog rather than
+restating that structure as a second theme. `MainWindow` may keep Fluent
+ControlTemplates, caret/selection brushes, and optical glyph margins that CSS
+cannot express. Catalog classes such as `wsEntry` and `appTab` get their fill,
+radius, and hover/selected treatment from `AgentUpStyles.axaml`. The docs marketing page and Mobile
+client consume the same canonical HTML/CSS contract and generated bindings.
 
 The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the reload control and is green when the Desktop can reach the Server and red when it cannot.
 
@@ -121,6 +132,8 @@ The left side shows workspace selection, health, branch, and running state. Runn
 ## Workspace Tabs
 
 The first tab row has two groups. Overview, Agent, and Commit are workspace surfaces. A small `|` separator follows them, then the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application. Switching to Overview, Agent, or Commit keeps the internally selected application so returning to an app tab restores its port, Console, or Metrics surface. The Validation sidebar stays open beside those surfaces and reloads for that selected application.
+
+The Agent tab streams workspace ACP events over SSE on a dedicated HTTP client with an infinite timeout, matching workspace event subscriptions, so an idle session does not drop the transcript after the default `HttpClient` timeout. Unexpected stream cancellation reconnects from the last sequence instead of leaving the list empty. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a **Worked** disclosure while the trailing agent reply stays visible as the only raised card.
 
 For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console and Metrics remain available after the port tabs.
 
@@ -148,7 +161,7 @@ Desktop displays each workspace application through a direct embedded WebView co
 
 Desktop bridges HTML file inputs to the native Avalonia file picker so uploads work consistently across the platform WebView engines. Only trusted user clicks reach the bridge, so a page cannot open a native file chooser on its own. The selected files are returned only to the requesting WebView and are limited to 32 MB per file and 128 MB per selection, enforced while each file is read rather than after it, so an oversized selection is refused instead of buffered. Directory inputs continue to use the platform WebView behavior.
 
-The upload bridge and the sign-in popup path are covered end to end in `AgentUp.Tests` against the real window, the platform WebView engine, and the platform storage provider. Those tests substitute only what no test runner can drive on a CI runner — the modal file chooser and the engine's new-window callback — and keep the injected scripts, WebView messages, `IStorageFile` reads, redirects, and cookies real.
+The upload bridge and the sign-in popup path are covered end to end in `AgentUp.Tests` against the real window, the platform WebView engine, and the platform storage provider. Those tests substitute only what no test runner can drive on a CI runner — the modal file chooser and the engine's new-window callback — and keep the injected scripts, WebView messages, `IStorageFile` reads, redirects, and cookies real. On Linux the fixture starts its own Xvfb display, a private `XDG_RUNTIME_DIR`, and a D-Bus session, imports native libraries from `nix-shell shell.nix` so IDEs do not need extra env vars, and Avalonia is forced onto X11, so a local run cannot fall back to the workstation Wayland socket or session portal.
 
 The Server owns a separate headless Chromium profile per workspace under `browser-profiles/{workspaceId}`. MCP browser tools use that headless profile for automation. Desktop does not stream, mirror, or read from the headless session.
 
@@ -157,6 +170,8 @@ Desktop WebViews and Server headless profiles do not share cookies, local storag
 Within Desktop, each HTTP port tab keeps its own WebView state when switching tabs or applications. Within the Server headless profile, MCP browser actions share one automation session per workspace. Across workspaces, both surfaces remain isolated.
 
 Browser automation and inspection for agents should expose navigation, reload, semantic interaction, HTML/DOM capture, accessibility data, screenshots, history, and page metadata through Server-owned MCP contracts. Prefer structured inspection and accessibility data over raw HTML when generating diagnostics or automation.
+
+Applications whose Server DTO kind is `Desktop` use a separate application sub-tab labeled Desktop. Selecting that tab immediately hides any previous HTTP WebView and shows a connecting state. Desktop then retries session-scoped viewer-ticket requests while the application is starting or running, and hosts the returned Server viewer in a dedicated NativeWebView. This viewer is never used for ordinary HTTP ports. A failed or stopped application shows an error in the same pane instead of leaving the previous HTTP page visible.
 
 ## Thin Client Rule
 
@@ -180,6 +195,7 @@ registers no chrome items.
 
 Desktop queries `/api/auth/status` before loading workspace state. When the
 Server requires authentication it shows an in-window administrator sign-in page
-that gates the main UI and uses the returned bearer token for REST and
+that uses the catalog sign-in card, page title, and field label, then gates the
+main UI and uses the returned bearer token for REST and
 workspace-event requests. When the Server has authentication disabled, Desktop
 opens the main window directly.

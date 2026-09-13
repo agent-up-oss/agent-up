@@ -107,6 +107,30 @@ Use `command` to override a container's default entrypoint arguments, for exampl
 }
 ```
 
+## Linux Desktop Application
+
+Linux GUI processes belong in `desktopApplications`. Agent-Up starts each one on a Server-owned Xvfb display and streams the framebuffer to Desktop and Mobile.
+
+This repository's `agent-up.json` includes `Examples/linux-desktop`, an Avalonia window used to exercise that path:
+
+```json
+{
+  "name": "Inventory",
+  "desktopApplications": [
+    {
+      "name": "Sample Desktop",
+      "command": "dotnet run --project Examples/linux-desktop/LinuxDesktop.csproj --no-launch-profile",
+      "install": "dotnet build Examples/linux-desktop/LinuxDesktop.csproj --nologo --no-incremental",
+      "path": ".",
+      "runtime": "linux",
+      "window": { "width": 800, "height": 600 }
+    }
+  ]
+}
+```
+
+Desktop applications currently require a Linux Server host. On macOS and Windows the Server leaves the desktop entry failed and still starts the rest of the workspace.
+
 ## Legacy Docker Service
 
 ```json

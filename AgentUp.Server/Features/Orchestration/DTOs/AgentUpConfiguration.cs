@@ -5,6 +5,7 @@ namespace AgentUp.Server.Features.Orchestration.DTOs;
 public sealed record AgentUpConfiguration(
     string Name,
     IReadOnlyList<ApplicationDefinition>? Applications = null,
+    IReadOnlyList<DesktopApplicationDefinition>? DesktopApplications = null,
     IReadOnlyList<DockerServiceDefinition>? Services = null,
     IReadOnlyList<DotnetApplicationDefinition>? Dotnet = null,
     IReadOnlyList<DockerCapabilityDefinition>? Docker = null,

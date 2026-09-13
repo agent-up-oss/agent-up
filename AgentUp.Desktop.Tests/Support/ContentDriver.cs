@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 
@@ -128,4 +129,16 @@ internal sealed class ContentDriver(MainWindow window)
         Vm.SelectedShellTab = WorkspaceShellTab.Application;
         await HeadlessExtensions.FlushAsync();
     }
+
+    public bool ShowsDesktopConnecting =>
+        window.FindControl<Border>("DesktopConnectingBanner")?.IsVisible ?? false;
+
+    public IReadOnlyList<string> SubNavBarLabels =>
+        window.FindControl<ListBox>("SubNavBar")
+            ?.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .Select(block => block.Text)
+            .OfType<string>()
+            .ToList()
+        ?? [];
 }

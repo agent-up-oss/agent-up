@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -22,19 +23,25 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private readonly ILocalProcessProvider _localProcesses;
     private readonly IDockerProcessProvider _docker;
     private readonly ILogger<WorkspaceProcessManager> _logger;
+    private readonly DesktopApplicationsController? _desktopApplications;
+    private readonly Func<bool> _isLinux;
 
     public WorkspaceProcessManager(
         WorkspaceStateController registry,
         ProcessOutputService output,
         ILocalProcessProvider localProcesses,
         IDockerProcessProvider docker,
-        ILogger<WorkspaceProcessManager> logger)
+        ILogger<WorkspaceProcessManager> logger,
+        DesktopApplicationsController? desktopApplications = null,
+        Func<bool>? isLinux = null)
     {
         _registry = registry;
         _output = output;
         _localProcesses = localProcesses;
         _docker = docker;
         _logger = logger;
+        _desktopApplications = desktopApplications;
+        _isLinux = isLinux ?? OperatingSystem.IsLinux;
     }
 
     public async Task LaunchAsync(Workspace workspace)
@@ -67,21 +74,37 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
+        if (app.Kind == ApplicationKind.Desktop && !_isLinux())
+        {
+            await _output.AppendAsync(
+                workspace.Id,
+                appName,
+                "[err] Desktop applications currently require a Linux Agent-Up Server host.",
+                ProcessOutputStream.Stderr);
+            await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
+            return;
+        }
+
         await RunInstallStepAsync(workspace, app);
 
         var process = _localProcesses.CreateApplicationProcess(workspace, app);
         var workspaceId = workspace.Id;
+        process.EnableRaisingEvents = false;
+
+        // Track AppendAsync work from stdout/stderr so FlushApplicationExitAsync can wait
+        // for those writes before disposing a fast-exiting command such as printenv.
+        var pendingOutput = new ConcurrentBag<Task>();
 
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, e.Data);
+                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, e.Data));
         };
 
         process.ErrorDataReceived += (_, e) =>
         {
             if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, "[err] " + e.Data, ProcessOutputStream.Stderr);
+                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, "[err] " + e.Data, ProcessOutputStream.Stderr));
         };
 
         process.Exited += (sender, args) =>
@@ -91,9 +114,10 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 return; // KillApplicationAsync already removed this process; it manages the final state
             var exitCode = (sender as Process)?.ExitCode ?? -1;
             var exitState = exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
-            _ = _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
-            _logger.LogInformation("Workspace application process exited with code {Code}", exitCode);
-            exited.Dispose();
+            // Leave the Exited thread before WaitForExit; that wait also blocks until Exited
+            // handlers return, so running it here would deadlock.
+            _ = Task.Run(() => FlushApplicationExitAsync(
+                workspaceId, appName, exited, pendingOutput, exitCode, exitState, app.Kind));
         };
 
         var key = (workspaceId, appName);
@@ -101,9 +125,15 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
         try
         {
+            // CreateApplicationProcess enables Exited before Start. A fast command can exit
+            // during Start() and the Exited handler then disposes the process before
+            // BeginOutputReadLine runs, dropping stdout. Hold Exited until the async
+            // readers are attached; enabling it afterwards raises Exited immediately if
+            // the process has already exited.
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
+            process.EnableRaisingEvents = true;
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
@@ -114,6 +144,36 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         }
 
         _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);
+    }
+
+    private async Task FlushApplicationExitAsync(
+        string workspaceId,
+        string appName,
+        Process exited,
+        ConcurrentBag<Task> pendingOutput,
+        int exitCode,
+        ApplicationState exitState,
+        ApplicationKind kind)
+    {
+        try
+        {
+            // WaitForExit after the process has already exited waits for redirected
+            // stdout/stderr async handlers to finish, matching RunInstallStepAsync.
+            exited.WaitForExit();
+            await Task.WhenAll(pendingOutput);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException
+            or System.ComponentModel.Win32Exception
+            or ObjectDisposedException)
+        {
+            _logger.LogWarning(ex, "Failed to flush workspace application process output");
+        }
+
+        await _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
+        if (kind == ApplicationKind.Desktop && _desktopApplications is not null)
+            await _desktopApplications.StopAsync(workspaceId, appName, CancellationToken.None);
+        _logger.LogInformation("Workspace application process exited with code {Code}", exitCode);
+        exited.Dispose();
     }
 
     // Install commands (npm install, dotnet restore, etc.) are idempotent by design, so

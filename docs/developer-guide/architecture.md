@@ -7,10 +7,13 @@ title: Architecture
 Agent-Up has core runtime component areas plus product-specific installer entrypoints:
 
 - `AgentUp.Server`
+- `AgentUp.Browser.Streaming`
 - `AgentUp.Desktop`
 - `AgentUp.Mobile`
+- `AgentUp.DesignSystem`
 - `AgentUp.WebAudit`
 - `AgentUp.CLI`
+- `AgentUp.AUDebug`
 - `AgentUp.InstallerApp`
 - `AgentUp.Packaging`
 - `AgentUp.PackageSmoke`
@@ -27,6 +30,9 @@ agent-up.sln
 
 AgentUp.Server/
   AgentUp.Server.csproj
+
+AgentUp.Browser.Streaming/
+  AgentUp.Browser.Streaming.csproj
 
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
@@ -52,8 +58,14 @@ AgentUp.Capabilities.Claude/
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
+AgentUp.DesignSystem/
+  package.json
+
 AgentUp.CLI/
   AgentUp.CLI.csproj
+
+AgentUp.AUDebug/
+  AgentUp.AUDebug.csproj
 
 AgentUp.InstallerApp/
   AgentUp.InstallerApp.csproj
@@ -66,6 +78,9 @@ AgentUp.PackageSmoke/
 
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
+
+AgentUp.Browser.Streaming.Tests/
+  AgentUp.Browser.Streaming.Tests.csproj
 
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
@@ -94,6 +109,9 @@ AgentUp.Desktop.Tests/
 AgentUp.CLI.Tests/
   AgentUp.CLI.Tests.csproj
 
+AgentUp.AUDebug.Tests/
+  AgentUp.AUDebug.Tests.csproj
+
 AgentUp.Architecture.Tests/
   AgentUp.Architecture.Tests.csproj
 
@@ -103,6 +121,13 @@ AgentUp.Tests/
 
 `AgentUp.Mobile/` also lives at the repository root, but it is an Expo project
 and is not referenced by `agent-up.sln`.
+
+`AgentUp.DesignSystem/` is the repository's canonical HTML/CSS product,
+documentation, and marketing contract. It is outside `agent-up.sln`; Desktop
+includes its generated Avalonia resources **and inferred styles**, while Mobile
+and docs consume it as the local `@agent-up/design-system` package. External
+marketing repositories may consume the same package through a Git submodule and
+`file:` dependency instead of copying styles or brand rules.
 
 `AgentUp.WebAudit/` is the separately publishable `@agent-up/audit` TypeScript
 browser client and is also outside `agent-up.sln`. It submits events only; the
@@ -207,6 +232,8 @@ Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and cli
 Mobile development environment and platform commands are documented in [Mobile development](mobile.md).
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
+
+`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Desktop, Mobile web export, and docs site for screenshot and UI-flow inspection. It is not packaged and does not own Server orchestration. See [AUDebug](au-debug.md).
 
 `LocalInstaller.Core` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 

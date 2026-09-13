@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Collections.Specialized;
 using System.Net;
+using System.Net.Http.Json;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
@@ -18,6 +19,7 @@ using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
@@ -26,6 +28,8 @@ using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Shared.Models;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.Views;
@@ -57,7 +61,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private bool _consoleSelecting;
     private ViewModelAuditController? _auditController;
     private HostMetricsController? _hostMetricsController;
+    private int _desktopTicketGeneration;
+    private bool _desktopConnecting;
     private const int ConsoleDefaultDisplayLines = 2_000;
+    private const int DesktopTicketRetryLimit = 150;
+    private static readonly TimeSpan DesktopTicketRetryDelay = TimeSpan.FromMilliseconds(200);
+    private static readonly JsonSerializerOptions DesktopTicketJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
     private static readonly HttpClient PortProbeHttpClient = new()
     {
         Timeout = TimeSpan.FromSeconds(2)
@@ -88,14 +100,23 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal bool ArePortWebViewsHiddenForTests =>
         _webViews.Count == 0 || _webViews.Values.All(webView => !webView.IsVisible);
 
+    internal bool IsDesktopConnectingForTests =>
+        DesktopConnectingBanner.IsVisible;
+
+    internal bool IsDesktopWebViewVisibleForTests =>
+        _activeTabKey is not null
+        && _activeTabKey.Contains(":desktop:", StringComparison.Ordinal)
+        && _webViews.TryGetValue(_activeTabKey, out var desktopWebView)
+        && desktopWebView.IsVisible;
+
     internal bool IsConsoleWebViewHiddenForTests =>
         _consoleWebView is null || !_consoleWebView.IsVisible;
 
-    private const string SelectionJs =
+    private static readonly string SelectionJs =
         "(function(){" +
         "if(!document.getElementById('_au_sel')){" +
         "var st=document.createElement('style');st.id='_au_sel';" +
-        "st.textContent='::selection{background-color:#0f7a45!important;color:#f5fbf7!important}';" +
+        $"st.textContent='::selection{{background-color:{AgentUpThemeColors.SurfaceSelectedStrong}!important;color:{AgentUpThemeColors.TextPrimary}!important}}';" +
         "(document.head||document.documentElement).appendChild(st);}" +
         "var active=false;" +
         "window._selStart=function(x,y){" +
@@ -283,6 +304,20 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             .DistinctUntilChanged()
             .Where(show => show)
             .Subscribe(_ => Dispatcher.UIThread.Post(WakeActiveWebView))
+            .DisposeWith(_subscriptions);
+        vm.WhenAnyValue(v => v.ShowDesktopView)
+            .CombineLatest(
+                vm.WhenAnyValue(v => v.Sidebar.SelectedWorkspace),
+                vm.Applications.WhenAnyValue(list => list.SelectedApplication),
+                (show, workspace, application) => (show, WorkspaceId: workspace?.Id, application))
+            .DistinctUntilChanged(state => (state.show, state.WorkspaceId, state.application?.Name))
+            .Subscribe(state => Dispatcher.UIThread.Post(() =>
+            {
+                if (state.show && state.application is { IsDesktop: true })
+                    _ = ShowDesktopApplicationAsync(vm);
+                else
+                    StopDesktopTicketWait();
+            }))
             .DisposeWith(_subscriptions);
         vm.WhenAnyValue(v => v.ShowPortView)
             .Subscribe(show => Dispatcher.UIThread.Post(() =>
@@ -484,6 +519,133 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _navigationVersions[tabKey] = navigationVersion;
         _ = NavigatePortWebViewAsync(tabKey, workspaceId, webView, new Uri(destinationUrl), navigationVersion);
     }
+
+    private async Task ShowDesktopApplicationAsync(MainViewModel viewModel)
+    {
+        var generation = Interlocked.Increment(ref _desktopTicketGeneration);
+        var workspaceId = viewModel.Sidebar.SelectedWorkspace?.Id;
+        var application = viewModel.Applications.SelectedApplication;
+        if (workspaceId is null || application is not { IsDesktop: true } || !viewModel.ShowDesktopView)
+            return;
+
+        var tabKey = $"{workspaceId}:desktop:{application.Name}";
+        var path = $"api/desktop-applications/{Uri.EscapeDataString(workspaceId)}/{Uri.EscapeDataString(application.Name)}/viewer-ticket";
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (generation != _desktopTicketGeneration)
+                return;
+
+            ActivateTab(workspaceId, tabKey, IsModalOverlayVisible());
+            _webViewErrors.Remove(workspaceId);
+            SetDesktopConnectingVisible(true);
+            UpdateErrorDisplay(workspaceId);
+        });
+
+        try
+        {
+            var viewerUri = await WaitForDesktopViewerAsync(application, path, generation);
+            if (generation != _desktopTicketGeneration)
+                return;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (generation != _desktopTicketGeneration)
+                    return;
+
+                ActivateTab(workspaceId, tabKey, IsModalOverlayVisible());
+                if (!TryGetOrCreateWebView(tabKey, workspaceId, viewerUri.ToString(), out var webView, out _))
+                {
+                    SetDesktopConnectingVisible(false);
+                    return;
+                }
+
+                webView.IsVisible = !IsModalOverlayVisible();
+                NavigateWebView(webView, viewerUri);
+                SetDesktopConnectingVisible(false);
+                UpdateErrorDisplay(workspaceId);
+            });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidDataException or TaskCanceledException or OperationCanceledException)
+        {
+            if (generation != _desktopTicketGeneration || ex is TaskCanceledException or OperationCanceledException)
+                return;
+
+            _webViewErrors[workspaceId] = $"Could not open the desktop application: {ex.Message}";
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (generation != _desktopTicketGeneration)
+                    return;
+
+                SetDesktopConnectingVisible(false);
+                UpdateErrorDisplay(workspaceId);
+            });
+        }
+    }
+
+    private async Task<Uri> WaitForDesktopViewerAsync(
+        ApplicationViewModel application,
+        string path,
+        int generation)
+    {
+        for (var attempt = 0; attempt < DesktopTicketRetryLimit; attempt++)
+        {
+            if (generation != _desktopTicketGeneration)
+                throw new OperationCanceledException();
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await _serverHttp.PostAsync(path, null);
+            }
+            catch (HttpRequestException) when (
+                ShouldRetryDesktopTicket(application.State) && attempt + 1 < DesktopTicketRetryLimit)
+            {
+                await Task.Delay(DesktopTicketRetryDelay);
+                continue;
+            }
+
+            using (response)
+            {
+                if (response.IsSuccessStatusCode)
+                {
+                    var ticket = await response.Content.ReadFromJsonAsync<DesktopViewerTicketResponse>(DesktopTicketJsonOptions);
+                    if (ticket is null || !Uri.TryCreate(_serverHttp.BaseAddress, ticket.ViewerUrl, out var viewerUri))
+                        throw new InvalidDataException("The Server returned an invalid desktop viewer URL.");
+                    return viewerUri;
+                }
+
+                var retry = IsRetryableTicketStatus(response.StatusCode)
+                    && ShouldRetryDesktopTicket(application.State)
+                    && attempt + 1 < DesktopTicketRetryLimit;
+                if (!retry)
+                    response.EnsureSuccessStatusCode();
+            }
+
+            await Task.Delay(DesktopTicketRetryDelay);
+        }
+
+        throw new HttpRequestException("The desktop application did not become available.");
+    }
+
+    private void StopDesktopTicketWait()
+    {
+        Interlocked.Increment(ref _desktopTicketGeneration);
+        SetDesktopConnectingVisible(false);
+    }
+
+    private void SetDesktopConnectingVisible(bool visible)
+    {
+        _desktopConnecting = visible;
+        DesktopConnectingBanner.IsVisible = visible && !IsModalOverlayVisible();
+        if (visible)
+            WebViewErrorBanner.IsVisible = false;
+    }
+
+    private static bool ShouldRetryDesktopTicket(string state) =>
+        state is "Starting" or "Running";
+
+    private static bool IsRetryableTicketStatus(HttpStatusCode status) =>
+        status is HttpStatusCode.NotFound or HttpStatusCode.ServiceUnavailable;
 
     private static string TabKey(string workspaceId, Uri uri) => $"{workspaceId}:{uri.Port}";
 
@@ -811,13 +973,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (modalOverlayVisible)
         {
             WebViewErrorBanner.IsVisible = false;
+            DesktopConnectingBanner.IsVisible = false;
             return;
         }
 
+        DesktopConnectingBanner.IsVisible = _desktopConnecting;
         UpdateErrorDisplay(_activeWorkspaceId);
         if (_activeTabKey is null) return;
         if (!_webViews.TryGetValue(_activeTabKey, out var active)) return;
-        if (DataContext is not MainViewModel { ShowPortView: true }) return;
+        if (DataContext is not MainViewModel { ShowDisplayView: true }) return;
         active.IsVisible = true;
     }
 
@@ -849,7 +1013,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
         if (_isClosed) return;
         if (_activeWorkspaceId is null) return;
-        if (DataContext is not MainViewModel { ShowPortView: true }) return;
+        if (DataContext is not MainViewModel { ShowDisplayView: true }) return;
 
         if (_activeTabKey is null || !_webViews.TryGetValue(_activeTabKey, out var webView)) return;
         var src = webView.Source?.ToString();
@@ -991,8 +1155,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 html, body {
   min-height: 100%;
   margin: 0;
-  background: #000000;
-  color: #f5fbf7;
+  background: {{AgentUpThemeColors.Canvas}};
+  color: {{AgentUpThemeColors.TextPrimary}};
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 body {
@@ -1002,31 +1166,30 @@ body {
 }
 .panel {
   width: min(620px, 100%);
-  border: 1px solid #287038;
+  border: 1px solid {{AgentUpThemeColors.BorderSubtle}};
   border-radius: 8px;
-  background: #050505;
-  box-shadow: 0 0 34px rgba(0, 184, 80, 0.18);
+  background: {{AgentUpThemeColors.Surface}};
   padding: 28px;
 }
 h1 {
   margin: 0 0 10px;
-  color: #f5fbf7;
+  color: {{AgentUpThemeColors.TextPrimary}};
   font-size: 30px;
   line-height: 1.1;
 }
 .detail {
   display: block;
   margin: 0 0 18px;
-  color: #b0c8b8;
+  color: {{AgentUpThemeColors.TextSecondary}};
   font-size: 14px;
 }
 code {
   display: block;
   padding: 12px;
-  border: 1px solid #184820;
+  border: 1px solid {{AgentUpThemeColors.BorderSubtle}};
   border-radius: 7px;
-  background: #000000;
-  color: #00d66b;
+  background: {{AgentUpThemeColors.Canvas}};
+  color: {{AgentUpThemeColors.AccentSoft}};
   font-family: Consolas, "Courier New", monospace;
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -1049,9 +1212,9 @@ code {
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>");
         sb.Append("* { margin: 0; padding: 0; box-sizing: border-box; }");
-        sb.Append("html, body { height: 100%; overflow: hidden; background: #000000; }");
-        sb.Append("::selection { background-color: #0f7a45; color: #f5fbf7; }");
-        sb.Append("#content { display: block; width: 100%; height: 100%; background: #000000; color: #c7d9d0; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }");
+        sb.Append($"html, body {{ height: 100%; overflow: hidden; background: {AgentUpThemeColors.Canvas}; }}");
+        sb.Append($"::selection {{ background-color: {AgentUpThemeColors.SurfaceSelectedStrong}; color: {AgentUpThemeColors.TextPrimary}; }}");
+        sb.Append($"#content {{ display: block; width: 100%; height: 100%; background: {AgentUpThemeColors.Canvas}; color: {AgentUpThemeColors.TextSecondary}; font-family: Consolas,'Courier New',monospace; font-size: 12px; padding: 14px 20px; white-space: pre; overflow: auto; line-height: 1.4; outline: none; cursor: text; }}");
         sb.Append("</style></head><body>");
         sb.Append("<pre id=\"content\" tabindex=\"-1\">");
         foreach (var line in lines)

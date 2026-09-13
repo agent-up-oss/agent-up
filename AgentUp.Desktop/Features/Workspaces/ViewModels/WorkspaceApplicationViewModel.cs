@@ -14,6 +14,7 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
     private IReadOnlyList<PortHealthChangeDto>? _portHealth;
 
     public string Name { get; }
+    public bool IsDesktop { get; private set; }
 
     public bool Database
     {
@@ -59,9 +60,11 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         string state,
         bool database = false,
         IReadOnlyList<PortMappingDto>? allocatedPorts = null,
-        IReadOnlyList<PortHealthChangeDto>? portHealth = null)
+        IReadOnlyList<PortHealthChangeDto>? portHealth = null,
+        bool isDesktop = false)
     {
         Name = name;
+        IsDesktop = isDesktop;
         _database = database;
         _command = command;
         _state = state;
@@ -74,17 +77,20 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         string command,
         string state,
         IReadOnlyList<PortMappingDto>? allocatedPorts,
-        bool database = false)
+        bool database = false,
+        bool isDesktop = false)
     {
         var ports = allocatedPorts ?? [];
         var portsChanged = !AllocatedPorts.SequenceEqual(ports);
         var databaseChanged = Database != database;
+        var desktopChanged = IsDesktop != isDesktop;
 
         Command = command;
         AllocatedPorts = ports;
         Database = database;
+        IsDesktop = isDesktop;
         var stateChanged = UpdateState(state);
-        return portsChanged || stateChanged || databaseChanged;
+        return portsChanged || stateChanged || databaseChanged || desktopChanged;
     }
 
     internal bool UpdateState(string newState, IReadOnlyList<PortHealthChangeDto>? portHealth = null)

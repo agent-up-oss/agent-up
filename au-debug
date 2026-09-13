@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Run the repository au-debug visual host without using a packaged Agent-Up install.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export DISPLAY="${DISPLAY:-:0}"
+
+exec dotnet run --project "$SCRIPT_DIR/AgentUp.AUDebug/AgentUp.AUDebug.csproj" --no-launch-profile -- "$@"

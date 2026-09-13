@@ -20,6 +20,7 @@ pkgs.mkShell {
     libdrm
     libgbm
     libx11
+    xorg.libXtst
     libxcb
     libxcomposite
     libxdamage
@@ -39,6 +40,7 @@ pkgs.mkShell {
     gtk3
     glib
     xvfb
+    xorg.xclock
     xdpyinfo
     curl
   ];
@@ -61,6 +63,7 @@ pkgs.mkShell {
     libdrm
     libgbm
     libx11
+    xorg.libXtst
     libxcb
     libxcomposite
     libxdamage
@@ -76,11 +79,18 @@ pkgs.mkShell {
   ]);
 
   shellHook = ''
+    # AgentUp.Tests WebKitGTK/GTK must not attach to a session Wayland compositor when
+    # this shell is inherited (direnv, nix-shell). Rider still isolates itself in-process.
+    export GDK_BACKEND="''${GDK_BACKEND:-x11}"
+    export GTK_USE_PORTAL="''${GTK_USE_PORTAL:-0}"
+    export XDG_SESSION_TYPE="''${XDG_SESSION_TYPE:-x11}"
+
     export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
       pkgs.fontconfig.lib
       pkgs.freetype
       pkgs.libGL
       pkgs.libx11
+      pkgs.xorg.libXtst
       pkgs.libice
       pkgs.libsm
       pkgs.webkitgtk_4_1
@@ -107,6 +117,14 @@ pkgs.mkShell {
       pkgs.stdenv.cc.cc
       pkgs.systemd
     ]}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+    # nix-shell replaces PATH, so the npm script's node_modules/.bin is lost.
+    # Keep the local Expo CLI visible for Expo and Metro commands.
+    for bin in "$PWD/node_modules/.bin" "$PWD/AgentUp.Mobile/node_modules/.bin"; do
+      if [ -d "$bin" ]; then
+        export PATH="$bin:$PATH"
+      fi
+    done
 
     # DotSlash downloads React Native DevTools after npm install. Patch its
     # Electron executables in the user cache so they use the Nix linker.
