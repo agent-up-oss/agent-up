@@ -54,6 +54,10 @@ using AgentUp.Server.Features.Database.Controllers;
 using AgentUp.Server.Features.Database.Interfaces;
 using AgentUp.Server.Features.Database.Providers;
 using AgentUp.Server.Features.Database.Services;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
+using AgentUp.Server.Features.DesktopApplications.Interfaces;
+using AgentUp.Server.Features.DesktopApplications.Providers;
+using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Diagnostics.Controllers;
 using AgentUp.Server.Features.Diagnostics.Services;
 using AgentUp.Server.Features.Git.Interfaces;
@@ -97,6 +101,7 @@ public static class ServiceRegistration
     public static void Configure(WebApplicationBuilder builder, string dataDir)
     {
         builder.Services.AddControllers()
+            .AddApplicationPart(typeof(ServiceRegistration).Assembly)
             .AddJsonOptions(opts =>
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddEndpointsApiExplorer();
@@ -134,6 +139,7 @@ public static class ServiceRegistration
             .WithTools<CommitQueueMcpTools>()
             .WithTools<VerificationMcpTools>()
             .WithTools<BrowserMcpTools>()
+            .WithTools<DesktopMcpTools>()
             .WithTools<ValidationMcpTools>()
             .WithTools<AuditMcpTools>()
             .WithTools<DiagnosticsMcpTools>()
@@ -142,6 +148,12 @@ public static class ServiceRegistration
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<AgentCommandProvider>();
+        builder.Services.AddSingleton<AgentSubscriptionAuth>();
+        builder.Services.AddSingleton(provider => new AgentCliHomeProvider(dataDir));
+        builder.Services.AddSingleton<IAgentClaudeCredentialStore, AgentClaudeCredentialStore>();
+        builder.Services.AddSingleton<IAgentProcessEnvironmentProvider, AgentProcessEnvironmentProvider>();
+        builder.Services.AddSingleton<AgentLoginCommandProvider>();
+        builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
@@ -197,6 +209,16 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IDockerProcessProvider, DockerProcessProvider>();
         builder.Services.AddSingleton<ProcessOutputService>();
         builder.Services.AddSingleton<ProcessesController>();
+        builder.Services.AddSingleton<PngFrameProvider>();
+        builder.Services.AddSingleton<IDesktopDisplayProvider, LinuxX11DesktopDisplayProvider>();
+        builder.Services.AddSingleton<IHostedDesktopNativeLibraryProvider, HostedDesktopNativeLibraryProvider>();
+        builder.Services.AddSingleton<DesktopInputMessageProvider>();
+        builder.Services.AddSingleton<DesktopViewerTicketProvider>();
+        builder.Services.AddSingleton<DesktopSessionService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<DesktopSessionService>());
+        builder.Services.AddSingleton<DesktopApplicationsController>();
+        builder.Services.AddSingleton<DesktopMcpService>();
+        builder.Services.AddSingleton<DesktopMcpTools>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
         builder.Services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();

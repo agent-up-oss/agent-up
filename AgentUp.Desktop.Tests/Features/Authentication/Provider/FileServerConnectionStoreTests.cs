@@ -90,4 +90,54 @@ public sealed class FileServerConnectionStoreTests
             Assert.That(selection.ActiveServerId, Is.EqualTo("ok"));
         });
     }
+
+    [Test]
+    public void DefaultConstructor_loadsFromLocalApplicationData()
+    {
+        var store = new FileServerConnectionStore();
+
+        Assert.That(store.Load(), Is.Not.Null);
+    }
+
+    [Test]
+    public void Save_throwsWhenThePathHasNoDirectory()
+    {
+        var store = new FileServerConnectionStore("connections.json");
+
+        Assert.That(
+            () => store.Save(new ServerSelection()),
+            Throws.InvalidOperationException.With.Message.EqualTo("Connection store path must include a directory."));
+    }
+
+    [Test]
+    public void Load_returnsEmptySelectionWhenTheFileCannotBeRead()
+    {
+        var path = Path.Join(_root, "connections.json");
+        using (var locked = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+        {
+            locked.Write("""{"ActiveServerId":"one","Servers":[{"Id":"one","Url":"http://localhost:5000"}]}"""u8);
+            locked.Flush();
+            var store = new FileServerConnectionStore(path);
+
+            var selection = store.Load();
+
+            Assert.That(selection.Servers, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void Save_deletesTheTemporaryFileWhenTheReplaceFails()
+    {
+        var path = Path.Join(_root, "connections.json");
+        Directory.CreateDirectory(path);
+        var store = new FileServerConnectionStore(path);
+
+        Assert.That(
+            () => store.Save(new ServerSelection
+            {
+                Servers = [new ConfiguredServer { Id = "one", Url = "http://localhost:5000" }]
+            }),
+            Throws.InstanceOf<IOException>());
+        Assert.That(Directory.GetFiles(_root, "*.tmp"), Is.Empty);
+    }
 }

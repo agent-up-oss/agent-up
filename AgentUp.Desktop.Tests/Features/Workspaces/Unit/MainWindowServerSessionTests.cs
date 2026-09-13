@@ -8,9 +8,13 @@ public sealed class MainWindowServerSessionTests
     [Test]
     public void NormalizeServerBaseUrl_trimsATrailingSlash()
     {
-        Assert.That(
-            MainWindow.NormalizeServerBaseUrl(new Uri("http://127.0.0.1:5000/")),
-            Is.EqualTo("http://127.0.0.1:5000"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                MainWindow.NormalizeServerBaseUrl(new Uri("http://127.0.0.1:5000/")),
+                Is.EqualTo("http://127.0.0.1:5000"));
+            Assert.That(MainWindow.NormalizeServerBaseUrl(null), Is.Null);
+        });
     }
 
     [Test]

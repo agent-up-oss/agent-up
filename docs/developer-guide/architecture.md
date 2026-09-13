@@ -7,6 +7,7 @@ title: Architecture
 Agent-Up has core runtime component areas plus product-specific installer entrypoints:
 
 - `AgentUp.Server`
+- `AgentUp.Browser.Streaming`
 - `AgentUp.Desktop`
 - `AgentUp.Mobile`
 - `AgentUp.WebAudit`
@@ -27,6 +28,9 @@ agent-up.sln
 
 AgentUp.Server/
   AgentUp.Server.csproj
+
+AgentUp.Browser.Streaming/
+  AgentUp.Browser.Streaming.csproj
 
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
@@ -66,6 +70,9 @@ AgentUp.PackageSmoke/
 
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
+
+AgentUp.Browser.Streaming.Tests/
+  AgentUp.Browser.Streaming.Tests.csproj
 
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
@@ -196,7 +203,7 @@ Desktop and Mobile render the workspace agent conversation and send prompts and
 permission decisions through the authenticated Server API. Clients present ACP
 session updates as conversation, thought, tool progress, context chrome, and
 permission decisions rather than as an untyped event log. The Server owns the
-ACP subprocess, session identity, prompt serialization, cancellation, and event
+ACP subprocess, subscription login for those agents, session identity, prompt serialization, cancellation, and event
 history. Clients must not start an agent CLI directly.
 
 `AgentUp.Mobile/` is an Expo and React Native client outside the .NET solution. One TypeScript codebase targets Android, iOS, and an installable web PWA. Like the Desktop, it displays Server-owned state and must not own orchestration.

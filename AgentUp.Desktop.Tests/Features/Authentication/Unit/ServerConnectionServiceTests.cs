@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Authentication.Models;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 
@@ -92,5 +93,97 @@ public sealed class ServerConnectionServiceTests
 
         Assert.That(saved.HasCredential, Is.True);
         Assert.That(http.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("token-1"));
+    }
+
+    [Test]
+    public void Activate_throwsWhenTheSavedServerIsGone()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = new ServerConnectionService(store, http);
+
+        Assert.That(
+            () => service.Activate("missing"),
+            Throws.InvalidOperationException.With.Message.EqualTo("That saved server is no longer available."));
+    }
+
+    [Test]
+    public void RestoreActive_doesNothingWhenNoServersAreSaved()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = new ServerConnectionService(store, http);
+
+        service.RestoreActive();
+
+        Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5000")));
+        Assert.That(http.DefaultRequestHeaders.Authorization, Is.Null);
+    }
+
+    [Test]
+    public void RestoreActive_usesTheFirstServerWhenTheActiveIdIsMissing()
+    {
+        var store = new InMemoryServerConnectionStore();
+        store.Save(new ServerSelection
+        {
+            Servers =
+            [
+                new ConfiguredServer
+                {
+                    Id = "one",
+                    Url = "http://127.0.0.1:5100",
+                    AccessToken = "token-1"
+                }
+            ]
+        });
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = new ServerConnectionService(store, http);
+
+        service.RestoreActive();
+
+        Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5100/")));
+        Assert.That(http.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("token-1"));
+    }
+
+    [Test]
+    public void Prepare_appliesASavedTokenForTheEnteredUrl()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = new ServerConnectionService(store, http);
+        service.Save("http://127.0.0.1:5100", "saved-token");
+
+        service.Prepare("http://127.0.0.1:5100/");
+
+        Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5100/")));
+        Assert.That(http.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("saved-token"));
+    }
+
+    [Test]
+    public void Remove_clearsTheLastServer()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = new ServerConnectionService(store, http);
+        var saved = service.Save("http://127.0.0.1:5100", "token-1");
+
+        service.Remove(saved.Id);
+
+        var remaining = service.List();
+        Assert.Multiple(() =>
+        {
+            Assert.That(remaining.Servers, Is.Empty);
+            Assert.That(remaining.CurrentUrl, Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public void CurrentUrl_fallsBackToTheHttpClientBaseAddress()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5100/") };
+        var service = new ServerConnectionService(store, http);
+
+        Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:5100"));
     }
 }

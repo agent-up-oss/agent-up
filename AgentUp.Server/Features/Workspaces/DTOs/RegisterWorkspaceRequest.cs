@@ -10,6 +10,7 @@ public record RegisterWorkspaceRequest(
     string Commit)
 {
     public IReadOnlyList<ApplicationDefinition> Applications { get; init; } = [];
+    public IReadOnlyList<DesktopApplicationDefinition> DesktopApplications { get; init; } = [];
     public IReadOnlyList<DockerServiceDefinition> Services { get; init; } = [];
     public IReadOnlyList<DotnetApplicationDefinition> Dotnet { get; init; } = [];
     public IReadOnlyList<DockerCapabilityDefinition> Docker { get; init; } = [];

@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -22,19 +23,25 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private readonly ILocalProcessProvider _localProcesses;
     private readonly IDockerProcessProvider _docker;
     private readonly ILogger<WorkspaceProcessManager> _logger;
+    private readonly DesktopApplicationsController? _desktopApplications;
+    private readonly Func<bool> _isLinux;
 
     public WorkspaceProcessManager(
         WorkspaceStateController registry,
         ProcessOutputService output,
         ILocalProcessProvider localProcesses,
         IDockerProcessProvider docker,
-        ILogger<WorkspaceProcessManager> logger)
+        ILogger<WorkspaceProcessManager> logger,
+        DesktopApplicationsController? desktopApplications = null,
+        Func<bool>? isLinux = null)
     {
         _registry = registry;
         _output = output;
         _localProcesses = localProcesses;
         _docker = docker;
         _logger = logger;
+        _desktopApplications = desktopApplications;
+        _isLinux = isLinux ?? OperatingSystem.IsLinux;
     }
 
     public async Task LaunchAsync(Workspace workspace)
@@ -67,6 +74,17 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
+        if (app.Kind == ApplicationKind.Desktop && !_isLinux())
+        {
+            await _output.AppendAsync(
+                workspace.Id,
+                appName,
+                "[err] Desktop applications currently require a Linux Agent-Up Server host.",
+                ProcessOutputStream.Stderr);
+            await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
+            return;
+        }
+
         await RunInstallStepAsync(workspace, app);
 
         var process = _localProcesses.CreateApplicationProcess(workspace, app);
@@ -92,6 +110,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             var exitCode = (sender as Process)?.ExitCode ?? -1;
             var exitState = exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
             _ = _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
+            if (app.Kind == ApplicationKind.Desktop)
+                _ = _desktopApplications?.StopAsync(workspaceId, appName, CancellationToken.None);
             _logger.LogInformation("Workspace application process exited with code {Code}", exitCode);
             exited.Dispose();
         };

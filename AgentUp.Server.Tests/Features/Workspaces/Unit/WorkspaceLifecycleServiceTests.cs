@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
@@ -55,6 +56,88 @@ public sealed class WorkspaceLifecycleServiceTests
             Assert.That(processes.KillCount, Is.EqualTo(1));
             Assert.That(registry.GetById(created.Id)!.State, Is.EqualTo(WorkspaceState.Running));
         });
+    }
+
+    [Test]
+    public async Task Start_marksDesktopApplicationsFailedOffLinuxWithoutFailingTheWorkspace()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes, isLinux: () => false);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Running));
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(workspace.Applications.Single().RuntimeEnvironment, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Start_preparesDesktopApplicationsOnLinux()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes, isLinux: () => true);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+        var application = workspace.Applications.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Running));
+            Assert.That(application.State, Is.EqualTo(ApplicationState.Running));
+            Assert.That(application.RuntimeEnvironment["DISPLAY"], Is.EqualTo(":123"));
+            Assert.That(application.RuntimeEnvironment["LD_LIBRARY_PATH"], Is.EqualTo("/nix/store/fake-fontconfig/lib"));
+        });
+
+        await lifecycle.StopAsync(created.Id);
+    }
+
+    [Test]
+    public async Task Start_stopsDesktopSessionsWhenLaunchFails()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(
+            registry,
+            new ThrowingLaunchWorkspaceProcessManager(),
+            isLinux: () => true);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Failed));
+            Assert.That(workspace.LastError, Is.EqualTo("launch exploded"));
+        });
+    }
+
+    private sealed class ThrowingLaunchWorkspaceProcessManager : IWorkspaceProcessManager
+    {
+        public Task LaunchAsync(Workspace workspace) => throw new InvalidOperationException("launch exploded");
+        public Task LaunchApplicationAsync(Workspace workspace, string appName) => Task.CompletedTask;
+        public Task KillAsync(string workspaceId) => Task.CompletedTask;
+        public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
     }
 
     private sealed class BlockingLaunchWorkspaceProcessManager : IWorkspaceProcessManager

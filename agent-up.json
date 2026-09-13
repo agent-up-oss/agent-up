@@ -58,6 +58,19 @@
       ]
     }
   ],
+  "desktopApplications": [
+    {
+      "name": "Sample Desktop",
+      "command": "dotnet run --project Examples/linux-desktop/LinuxDesktop.csproj --no-launch-profile",
+      "install": "dotnet build Examples/linux-desktop/LinuxDesktop.csproj --nologo --no-incremental",
+      "path": ".",
+      "runtime": "linux",
+      "window": {
+        "width": 800,
+        "height": 600
+      }
+    }
+  ],
   "services": [
     {
       "name": "Database",

@@ -102,6 +102,16 @@
             </Border>
         </DataTemplate>
 
+        <!-- Desktop application sub-tab -->
+        <DataTemplate DataType="appVm:DesktopSubTabViewModel">
+            <Border Classes="subTab" Padding="13,7">
+                <TextBlock Text="Desktop"
+                           Foreground="#c2d2ca"
+                           FontSize="12"
+                           FontWeight="Bold"/>
+            </Border>
+        </DataTemplate>
+
         <!-- Port sub-tab -->
         <DataTemplate DataType="portVm:PortSubTabViewModel">
             <Border Classes="subTab" Padding="13,7">
@@ -1400,7 +1410,14 @@
                                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate><DataTemplate><Button Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}" CommandParameter="{Binding Agent}" IsEnabled="{Binding Available}" Padding="14,8"><StackPanel><TextBlock Text="{Binding DisplayName}"/><TextBlock Text="{Binding Available}" FontSize="10"/></StackPanel></Button></DataTemplate></ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <ItemsControl Grid.Row="2" ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                    <StackPanel Grid.Row="2" Spacing="8">
+                                    <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                    <StackPanel IsVisible="{Binding Agent.HasLoginChallenge}" Spacing="6">
+                                        <TextBlock Text="{Binding Agent.LoginInstructions}" TextWrapping="Wrap" Foreground="#ffd58e"/>
+                                        <TextBox IsReadOnly="True" Text="{Binding Agent.LoginUrl}" IsVisible="{Binding Agent.HasLoginUrl}"/>
+                                        <TextBlock Text="{Binding Agent.LoginCode}" IsVisible="{Binding Agent.HasLoginCode}" FontSize="22" FontWeight="Bold" Foreground="#2bf27a"/>
+                                    </StackPanel>
+                                    </StackPanel>
                                     <ListBox Grid.Row="3" ItemsSource="{Binding Agent.Messages}" Background="#050505">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate DataType="agentVm:AgentChatItemViewModel">
@@ -1579,7 +1596,23 @@
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->
                             <Panel x:Name="PortPane"
-                                   IsVisible="{Binding ShowPortView}">
+                                   IsVisible="{Binding ShowDisplayView}">
+                                <Border x:Name="DesktopConnectingBanner"
+                                        IsVisible="False"
+                                        ZIndex="9"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="#0f140f"
+                                        BorderBrush="#1f3d28"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="24,20">
+                                    <TextBlock Text="Connecting to the desktop application..."
+                                               Foreground="#c2d2ca"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="400"/>
+                                </Border>
                                 <!-- Shown only when NativeWebView creation fails for the active workspace -->
                                 <Border x:Name="WebViewErrorBanner"
                                         IsVisible="False"

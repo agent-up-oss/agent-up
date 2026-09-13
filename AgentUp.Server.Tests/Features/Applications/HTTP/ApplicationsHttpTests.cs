@@ -213,6 +213,26 @@ public class ApplicationsHttpTests
     }
 
     [Test]
+    public async Task PostApplicationStart_PreparesADesktopApplication()
+    {
+        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        };
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        var response = await _client.PostAsync($"/api/workspaces/{created.Id}/applications/Editor/start", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications", JsonOptions);
+        Assert.Multiple(() =>
+        {
+            Assert.That(apps![0].State, Is.EqualTo(ApplicationState.Running));
+            Assert.That(apps[0].Kind, Is.EqualTo(ApplicationKind.Desktop));
+        });
+    }
+
+    [Test]
     public async Task PostApplicationStop_SetsAppStateToStopped()
     {
         var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")

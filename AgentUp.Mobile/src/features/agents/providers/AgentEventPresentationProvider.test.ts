@@ -95,6 +95,7 @@ test('derives live activity from session state and the latest ACP update', () =>
     hint: activityHint(presentSessionUpdate({ sessionUpdate: 'tool_call_update', toolCallId: '1', title: 'Read file', status: 'in_progress' })),
   }).label, 'Using Read file');
   assert.equal(resolveActivity({ state: 'authentication_required', hasPermission: false }).label, 'Waiting for sign-in');
+  assert.equal(resolveActivity({ state: 'authenticating', hasPermission: false }).label, 'Waiting for sign-in');
 });
 
 test('unwraps forwarded session/update envelopes', () => {

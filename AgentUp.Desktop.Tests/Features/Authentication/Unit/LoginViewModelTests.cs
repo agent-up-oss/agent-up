@@ -177,6 +177,237 @@ public sealed class LoginViewModelTests
         });
     }
 
+    [Test]
+    public void GoBackCommand_DoesNothingWhenTheSwitcherIsTheOnlyPrompt()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowSwitcher();
+
+        login.GoBackCommand.Execute().Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.True);
+            Assert.That(login.IsSwitcher, Is.True);
+            Assert.That(login.CanGoBack, Is.False);
+            Assert.That(login.Title, Is.EqualTo("Switch server"));
+        });
+    }
+
+    [Test]
+    public void Show_UsesPasswordPromptCopy()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+
+        login.Show();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.Title, Is.EqualTo("Agent-Up Server"));
+            Assert.That(login.Subtitle, Is.EqualTo("Enter the administrator password to continue."));
+            Assert.That(login.NeedsPassword, Is.True);
+        });
+    }
+
+    [Test]
+    public void Cancel_DoesNothingWhenLoginIsHidden()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+
+        login.Cancel();
+
+        Assert.That(login.IsVisible, Is.False);
+    }
+
+    [Test]
+    public async Task WaitForConnectionRetryAsync_ReturnsFalseWhenNoFailureWasShown()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+
+        Assert.That(await login.WaitForConnectionRetryAsync(), Is.False);
+        Assert.That(await login.WaitForSignInAsync(), Is.Null);
+    }
+
+    [Test]
+    public async Task ShowExpired_RestoresTheSessionAfterASuccessfulPassword()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            request.Method == HttpMethod.Post
+                ? Json(HttpStatusCode.OK, "{\"authenticationRequired\":true,\"accessToken\":\"token-1\"}")
+                : Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowExpired();
+        login.Password = "secret";
+        var restored = false;
+        using var subscription = login.SessionRestored.Subscribe(_ => restored = true);
+
+        await login.SignInCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored, Is.True);
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(login.AccessToken, Is.EqualTo("token-1"));
+        });
+    }
+
+    [Test]
+    public async Task ConnectCommand_AsksForPasswordWhenTheServerRequiresSignIn()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowSwitcher();
+        login.ServerUrl = "http://127.0.0.1:5100";
+
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.True);
+            Assert.That(login.NeedsPassword, Is.True);
+            Assert.That(login.Subtitle, Is.EqualTo("Enter the administrator password to continue."));
+        });
+    }
+
+    [Test]
+    public async Task ConnectCommand_SurfacesUnreachableServers()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            throw new HttpRequestException("connection refused"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowSwitcher();
+
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.That(login.ErrorMessage, Is.EqualTo("Could not reach the server: connection refused"));
+    }
+
+    [Test]
+    public async Task ConnectCommand_SurfacesInvalidServerUrls()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowSwitcher();
+        login.ServerUrl = "not-a-url";
+
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.That(login.ErrorMessage, Is.EqualTo("AGENTUP_SERVER_URL must be an absolute http or https URL."));
+    }
+
+    [Test]
+    public async Task SignInCommand_SurfacesUnreachableServers()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            throw new HttpRequestException("connection refused"));
+        var login = new LoginViewModel(CreateController(http));
+        login.Show();
+        login.Password = "secret";
+
+        await login.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(login.ErrorMessage, Is.EqualTo("Could not reach the server: connection refused"));
+    }
+
+    [Test]
+    public async Task SignInCommand_SurfacesMissingAccessTokens()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.Show();
+        login.Password = "secret";
+
+        await login.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(login.ErrorMessage, Is.EqualTo("The server did not return an access token."));
+    }
+
+    [Test]
+    public async Task SelectSavedCommand_ConnectsTheMatchingServer()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var connections = new ServerConnectionService(store, http.Client);
+        var saved = connections.Save("http://127.0.0.1:5100", null);
+        var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
+        login.ShowSwitcher();
+
+        await login.SelectSavedCommand.Execute(saved.Id).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(login.CurrentServerUrl, Is.EqualTo("http://127.0.0.1:5100"));
+        });
+    }
+
+    [Test]
+    public async Task SelectSavedCommand_IgnoresUnknownServers()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowSwitcher();
+
+        await login.SelectSavedCommand.Execute("missing").FirstAsync();
+
+        Assert.That(login.IsVisible, Is.True);
+    }
+
+    [Test]
+    public void RemoveSavedCommand_ResetsTheUrlWhenTheLastServerIsRemoved()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var connections = new ServerConnectionService(store, http.Client);
+        var saved = connections.Save("http://127.0.0.1:5100", "token-1");
+        var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
+        login.ShowSwitcher();
+        login.ServerUrl = "https://agent-up.example.com";
+
+        login.RemoveSavedCommand.Execute(saved.Id).Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.SavedServers, Is.Empty);
+            Assert.That(login.ServerUrl, Is.EqualTo(login.CurrentServerUrl));
+        });
+    }
+
+    [Test]
+    public void RemoveSavedCommand_KeepsRemainingServers()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var connections = new ServerConnectionService(store, http.Client);
+        var first = connections.Save("http://127.0.0.1:5000", "first");
+        var second = connections.Save("http://127.0.0.1:5100", "second");
+        var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
+        login.ShowSwitcher();
+
+        login.RemoveSavedCommand.Execute(first.Id).Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.SavedServers, Has.Count.EqualTo(1));
+            Assert.That(login.SavedServers[0].Id, Is.EqualTo(second.Id));
+        });
+    }
+
     private static AuthenticationController CreateController(DisposableTestHttpClient http)
         => AuthenticationTestController.Create(http);
 

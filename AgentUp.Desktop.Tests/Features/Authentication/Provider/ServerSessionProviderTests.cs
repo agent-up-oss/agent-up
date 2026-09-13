@@ -59,4 +59,36 @@ public sealed class ServerSessionProviderTests
             Assert.That(http.Client.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("token-1"));
         });
     }
+
+    [Test]
+    public void CreateClient_tracksTheSessionForLaterApply()
+    {
+        using var http = ServerSessionProvider.CreateClient(new Uri("http://127.0.0.1:5000/"), new RecordingHandler());
+        http.BaseAddress = null;
+
+        ServerSessionProvider.Apply(http, new Uri("http://127.0.0.1:5100/"), " ");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5100/")));
+            Assert.That(http.DefaultRequestHeaders.Authorization, Is.Null);
+            Assert.That(ServerSessionProvider.CurrentUri(http), Is.EqualTo(new Uri("http://127.0.0.1:5100/")));
+        });
+    }
+
+    [Test]
+    public void CurrentUri_fallsBackToBaseAddressWhenTheClientHasNoSession()
+    {
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5100/") };
+
+        Assert.That(ServerSessionProvider.CurrentUri(http), Is.EqualTo(new Uri("http://127.0.0.1:5100/")));
+    }
+
+    private sealed class RecordingHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+    }
 }

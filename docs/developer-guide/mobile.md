@@ -18,7 +18,9 @@ stream using the last event sequence, and presents the session as conversation,
 collapsible thoughts, tool progress, plan status, and live activity. Session
 title, mode, and token usage stay in context chrome rather than chat rows.
 `session/request_permission` is a blocking decision card that offers the ACP
-options instead of auto-granting. It never launches a CLI or owns an ACP session.
+options instead of auto-granting. Subscription login is a Server-owned CLI
+flow: the client shows the sign-in URL and Codex device code from the Server
+and must not launch `xdg-open` itself. It never launches a CLI or owns an ACP session.
 
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
 the active selection in PWA local storage. Only one Server is active at a time.
@@ -79,6 +81,8 @@ The mobile client is a gated stack, not a bottom-tab shell.
   agent chat and the existing Git changes panel.
 
 ## Workspaces and Git slices
+
+The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary application entries retain their existing non-streaming presentation.
 
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
 workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in

@@ -67,6 +67,35 @@ public sealed class AuthenticationControllerTests
         });
     }
 
+    [Test]
+    public void RemoveServer_DropsTheSavedConnection()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var controller = AuthenticationTestController.Create(http, store);
+        var saved = controller.SaveServer("http://127.0.0.1:5100", "token-1");
+
+        controller.RemoveServer(saved.Id);
+
+        Assert.That(controller.ListSavedServers().Servers, Is.Empty);
+    }
+
+    [Test]
+    public void RestoreActiveServer_AppliesTheStoredSelection()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var controller = AuthenticationTestController.Create(http, store);
+        controller.SaveServer("http://127.0.0.1:5100", "token-1");
+        controller.PrepareServer("http://127.0.0.1:5000");
+
+        controller.RestoreActiveServer();
+
+        Assert.That(controller.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5100"));
+    }
+
     private static AuthenticationController CreateController(DisposableTestHttpClient http)
         => AuthenticationTestController.Create(http);
 

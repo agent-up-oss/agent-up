@@ -46,8 +46,15 @@ hardcode ACP executable names. The interactive `codex` and `claude` CLIs are not
 ACP servers, and installing the Cursor IDE does not install the Cursor Agent
 CLI. Override executable names and argument arrays with
 `Agents:<Codex|Cursor|Claude>:Command` and `Agents:<...>:Arguments`. Agent-Up does
-not collect API keys or translate subscription credentials: each executable is
-responsible for its own supported interactive/pro-subscription login. An agent
+not collect API keys. When ACP reports that authentication is required, the
+session stays scheduled and `POST .../authenticate` starts that agent's
+subscription login CLI instead of asking the ACP process to open a local
+browser: `NO_OPEN_BROWSER=1 agent login` for Cursor, `codex login --device-auth`
+for Codex, and `claude setup-token` for Claude. The Server streams the printed
+sign-in URL and any device code to Desktop and Mobile, waits until the CLI
+exits, then restarts ACP against the Server data directory's `agent-cli-home`
+so the subscription session survives process restart. Override the login
+executable with `Agents:<Kind>:LoginCommand` and `LoginArguments`. An agent
 is shown as available when its capability adapter discovers the inventory
 command, or when `Agents:<Kind>:Command` points at an existing executable.
 Live-CLI Provider smoke tests discover those installed executables, and Server
@@ -57,13 +64,14 @@ inventory under `.agent-up-dev` so developer workstations can exercise the
 adapters without a packaged installment.
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP
-client cannot safely proxy an interactive terminal. It does support ACP agent-
-handled authentication methods: when `session/new` reports that authentication
-is required, the session remains scheduled, clients display the methods returned
-by `initialize`, and `POST .../authenticate` invokes only an advertised method
-before retrying `session/new`. Operators using Mobile against a remote Server
-should normally sign in on the Server machine first so browser-based login does
-not open in an unattended session.
+client cannot safely proxy an interactive terminal. ACP `authenticate` is not
+used for remote subscription login because Cursor, Codex, and Claude implement
+that as `xdg-open` on the Server host. Clients display advertised subscription
+methods (API-key methods are hidden), and `POST .../authenticate` runs the
+vendor CLI described above. Codex ChatGPT device-code login must be enabled in
+ChatGPT security settings. Claude `setup-token` stores the resulting
+`sk-ant-oat` subscription token under the Server data directory; it is not an
+Anthropic console API key.
 
 ## Responsibilities
 
@@ -137,7 +145,7 @@ still applies: a client served over HTTPS cannot fetch a plain-HTTP Server
 unless that Server is loopback-hosted, so a remote Server should be reachable
 over HTTPS.
 
-A clustered Server is published as `docker.io/themassiveone/agent-up-server` and installed from the `agent-up-helm` chart. That path is an installation concern only.
+A clustered Server is published as `docker.io/themassiveone/agent-up-server` and installed from the `agent-up-helm` chart. That path is an installation concern only. The image includes `git` for source clones and Git review, plus the Codex, Cursor, and Claude ACP CLIs under `/opt/agent-up/bin`. Chart defaults enable those three ACP capabilities with rooted `command` paths so the agent picker can discover them after install.
 
 This service shape is packaging and lifecycle behavior only. Runtime ownership remains unchanged: all orchestration stays in `AgentUp.Server`, and Desktop stays a client.
 
@@ -148,6 +156,8 @@ This rule keeps concurrent agents, human developers, and automation clients alig
 If a feature starts, stops, restarts, navigates, records, allocates, diagnoses, or exports workspace behavior, that logic belongs in the Server.
 
 ## Process Environment
+
+Desktop applications are prepared before their process starts. The `DesktopApplications` slice starts a dedicated Xvfb display, creates a private `XDG_RUNTIME_DIR` for that session, and injects `DISPLAY` together with `GDK_BACKEND=x11`, `WAYLAND_DISPLAY=agentup-hosted-no-wayland`, `XDG_SESSION_TYPE=x11`, `GTK_USE_PORTAL=0`, `QT_QPA_PLATFORM=xcb`, and software-GL variables so toolkit autodetect cannot attach to the host Wayland or X11 session. It also injects `LD_LIBRARY_PATH`, merging the Server process path with libraries imported from a nearby `shell.nix` when Nix is present, so SkiaSharp native dependencies such as fontconfig resolve even if the Server was started from an IDE without `nix-shell`. It captures the root framebuffer as PNG and tears the display down with the application or workspace. Sessions have monotonically changing generations so delayed input from a previous process is rejected. Raw X11 sockets are never exposed; clients enter through authenticated ticket issuance and the ticket-scoped viewer/WebSocket routes.
 
 When the Server launches a local application process, it injects the workspace's full allocated port map into the process environment. This lets sibling applications discover each other through declared variables such as `WEB_PORT`, `API_PORT`, and `POSTGRES_PORT` without coupling application source code to Agent-Up APIs. When multiple applications declare the same port variable name, each process still receives its own allocated port for that variable.
 
