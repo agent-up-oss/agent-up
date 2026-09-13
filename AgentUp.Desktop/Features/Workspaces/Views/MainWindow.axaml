@@ -1180,7 +1180,30 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
-                                    <ItemsControl Grid.Row="2" ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                    <StackPanel Grid.Row="2" Spacing="8">
+                                        <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="agentVm:AgentOptionViewModel">
+                                                    <Button Classes="au-button au-button--secondary au-button--compact" Command="{Binding Command}" Content="{Binding Label}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <StackPanel IsVisible="{Binding Agent.HasLoginChallenge}" Spacing="6">
+                                            <TextBlock Text="{Binding Agent.LoginInstructions}" TextWrapping="Wrap" Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+                                            <TextBox Classes="au-input" IsReadOnly="True" Text="{Binding Agent.LoginUrl}" IsVisible="{Binding Agent.HasLoginUrl}"/>
+                                            <TextBlock Classes="au-mono"
+                                                       Text="{Binding Agent.LoginCode}"
+                                                       IsVisible="{Binding Agent.HasLoginCode}"
+                                                       FontSize="{DynamicResource AgentUpFontSizeUiXl}"
+                                                       FontWeight="{DynamicResource AgentUpWeightUiStrong}"
+                                                       Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+                                        </StackPanel>
+                                    </StackPanel>
                                     <ScrollViewer Grid.Row="3"
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   VerticalScrollBarVisibility="Auto"

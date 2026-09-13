@@ -215,6 +215,27 @@ public sealed class AgentChatViewModelTests
         Assert.That(thought.Label, Is.EqualTo("Thought"));
     }
 
+    [Test]
+    public void AgentSessionDto_preservesASubscriptionLoginChallenge()
+    {
+        var session = new AgentSessionDto(
+            "ws-1",
+            "Cursor",
+            "authenticating",
+            null,
+            null,
+            [new AgentDescriptorDto("Cursor", true, "Cursor")],
+            [new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in")],
+            new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(session.WorkspaceId, Is.EqualTo("ws-1"));
+            Assert.That(session.LoginChallenge!.Url, Does.Contain("loginDeepControl"));
+            Assert.That(session.LoginChallenge.Code, Is.EqualTo("ABCD-EFGHI"));
+        });
+    }
+
     private static AgentChatViewModel CreateView(IAgentApiProvider provider)
         => new(new AgentsController(new AgentChatService(provider)));
 }

@@ -12,7 +12,7 @@ namespace AgentUp.Desktop.Features.Agents.ViewModels;
 public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
-    private string? _workspaceId, _selectedAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool;
+    private string? _workspaceId, _selectedAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions;
     private string _state = "idle";
     private string _activityLabel = "Idle";
     private bool _isVisible, _isBusy;
@@ -36,6 +36,12 @@ public sealed class AgentChatViewModel : ReactiveObject
     public string? Usage { get => _usage; private set => this.RaiseAndSetIfChanged(ref _usage, value); }
     public string? PermissionTitle { get => _permissionTitle; private set => this.RaiseAndSetIfChanged(ref _permissionTitle, value); }
     public string? PermissionDetail { get => _permissionDetail; private set => this.RaiseAndSetIfChanged(ref _permissionDetail, value); }
+    public string? LoginUrl { get => _loginUrl; private set => this.RaiseAndSetIfChanged(ref _loginUrl, value); }
+    public string? LoginCode { get => _loginCode; private set => this.RaiseAndSetIfChanged(ref _loginCode, value); }
+    public string? LoginInstructions { get => _loginInstructions; private set => this.RaiseAndSetIfChanged(ref _loginInstructions, value); }
+    public bool HasLoginChallenge => !string.IsNullOrWhiteSpace(LoginUrl) || !string.IsNullOrWhiteSpace(LoginCode);
+    public bool HasLoginUrl => !string.IsNullOrWhiteSpace(LoginUrl);
+    public bool HasLoginCode => !string.IsNullOrWhiteSpace(LoginCode);
     public string? ContextLine => string.Join("   ", new[] { SessionTitle, string.IsNullOrWhiteSpace(Mode) ? null : $"Mode · {Mode}", Usage }.Where(part => !string.IsNullOrWhiteSpace(part)));
     public string? Message { get => _message; set => this.RaiseAndSetIfChanged(ref _message, value); }
     public string? Error { get => _error; private set => this.RaiseAndSetIfChanged(ref _error, value); }
@@ -77,7 +83,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         Transcript.Clear();
         _currentRun = null;
         PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear();
-        SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = _hintKind = _hintTool = null;
+        SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = _hintKind = _hintTool = null;
         NotifyComputedChatState();
         RefreshActivity();
         if (workspaceId is null) return;
@@ -131,7 +137,11 @@ public sealed class AgentChatViewModel : ReactiveObject
             if (session.State == "authentication_required")
                 foreach (var method in session.AuthMethods ?? []) AuthenticationOptions.Add(new(method.Id, method.Name, ReactiveCommand.CreateFromTask(() => AuthenticateAsync(method.Id))));
             Error = session.Error;
+            LoginUrl = session.LoginChallenge?.Url;
+            LoginCode = session.LoginChallenge?.Code;
+            LoginInstructions = session.LoginChallenge?.Instructions;
         }
+        else LoginUrl = LoginCode = LoginInstructions = null;
         if (session?.State is not "running") _hintKind = _hintTool = null;
         RefreshActivity();
         this.RaisePropertyChanged(nameof(HasAgent));
@@ -346,6 +356,9 @@ public sealed class AgentChatViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(StatusLine));
         this.RaisePropertyChanged(nameof(ContextLine));
         this.RaisePropertyChanged(nameof(HasContext));
+        this.RaisePropertyChanged(nameof(HasLoginChallenge));
+        this.RaisePropertyChanged(nameof(HasLoginUrl));
+        this.RaisePropertyChanged(nameof(HasLoginCode));
     }
     private static string Text(JsonElement value)
     {

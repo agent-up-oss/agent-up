@@ -142,6 +142,12 @@ public static class ServiceRegistration
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<AgentCommandProvider>();
+        builder.Services.AddSingleton<AgentSubscriptionAuth>();
+        builder.Services.AddSingleton(provider => new AgentCliHomeProvider(dataDir));
+        builder.Services.AddSingleton<IAgentClaudeCredentialStore, AgentClaudeCredentialStore>();
+        builder.Services.AddSingleton<IAgentProcessEnvironmentProvider, AgentProcessEnvironmentProvider>();
+        builder.Services.AddSingleton<AgentLoginCommandProvider>();
+        builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();

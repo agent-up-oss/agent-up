@@ -25,7 +25,9 @@ catalog disclosure, with the body hidden until expanded and Thinking
 reserved for the live thought. Session title, mode, and token usage stay in
 context chrome rather than chat rows.
 `session/request_permission` is a blocking decision card that offers the ACP
-options instead of auto-granting. It never launches a CLI or owns an ACP session.
+options instead of auto-granting. Subscription login is a Server-owned CLI
+flow: the client shows the sign-in URL and Codex device code from the Server
+and must not launch `xdg-open` itself. It never launches a CLI or owns an ACP session.
 
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
 the active selection in PWA local storage. Only one Server is active at a time;

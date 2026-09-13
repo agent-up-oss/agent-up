@@ -21,7 +21,11 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
     public event Func<string, JsonElement, Task<JsonElement>>? Request;
     public event Action<string?>? Exited;
 
-    public async Task StartAsync(AgentKind kind, string workingDirectory, CancellationToken cancellationToken)
+    public async Task StartAsync(
+        AgentKind kind,
+        string workingDirectory,
+        IReadOnlyDictionary<string, string> environment,
+        CancellationToken cancellationToken)
     {
         if (_process is not null) throw new InvalidOperationException("The ACP process has already started.");
         var command = await commands.ResolveAsync(kind, cancellationToken)
@@ -32,6 +36,7 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
             UseShellExecute = false, CreateNoWindow = true
         };
         foreach (var argument in command.Arguments) start.ArgumentList.Add(argument);
+        foreach (var pair in environment) start.Environment[pair.Key] = pair.Value;
         var process = new Process { StartInfo = start, EnableRaisingEvents = true };
         try
         {

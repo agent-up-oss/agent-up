@@ -88,7 +88,7 @@ public static class AgentEventPresentationProvider
     public static string ActivityLabel(string? state, bool hasPermission, string? error, string? hintKind, string? toolTitle)
     {
         if (!string.IsNullOrWhiteSpace(error)) return error;
-        if (state == "authentication_required") return "Waiting for sign-in";
+        if (state is "authentication_required" or "authenticating") return "Waiting for sign-in";
         if (hasPermission) return "Waiting for a decision";
         if (state == "stopped") return "Stopped";
         if (state == "running")
