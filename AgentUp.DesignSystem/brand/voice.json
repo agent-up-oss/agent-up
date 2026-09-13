@@ -1,0 +1,28 @@
+{
+  "productName": "Agent-Up",
+  "category": "Local runtime control plane for AI-assisted development.",
+  "promise": "Run, inspect, and review parallel development workspaces without process, port, infrastructure, or browser-state collisions.",
+  "boundary": "Agent-Up complements editors, coding agents, Git, Docker, and application frameworks; it does not replace them.",
+  "audience": "Developers running and reviewing multiple agent-driven changes at once.",
+  "principles": [
+    "Lead with the developer outcome, then explain the system.",
+    "Describe shipped behavior in the present tense and label Preview, Experimental, and Planned behavior explicitly.",
+    "Use concrete workspace language instead of generic AI superlatives.",
+    "Never imply that Desktop and Server automation share browser storage or navigation state.",
+    "Prefer direct verbs: run, inspect, review, restart, diagnose, and commit."
+  ],
+  "names": {
+    "brand": "Agent-Up",
+    "server": "Agent-Up Server",
+    "desktop": "Agent-Up Desktop",
+    "mobile": "Agent-Up Mobile",
+    "cli": "agentup",
+    "configuration": "agent-up.json"
+  },
+  "lifecycle": {
+    "available": "Shipped in the current public development-preview build.",
+    "preview": "Usable, but its contract or experience may change.",
+    "experimental": "Incomplete, opt-in, or not supported on every platform.",
+    "planned": "Product direction only; not available to users."
+  }
+}

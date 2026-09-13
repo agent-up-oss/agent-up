@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "scheme": "agent-up",
     "orientation": "default",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },

@@ -136,7 +136,11 @@ public static class MainViewModelFactory
             new ApplicationAuditApiClient(http),
             new ValidationFlowApiClient(http),
             gitClient: new GitApiClient(http),
-            agentClient: new AgentApiClient(http),
+            agentClient: new AgentApiClient(http, new HttpClient
+            {
+                BaseAddress = http.BaseAddress,
+                Timeout = Timeout.InfiniteTimeSpan
+            }),
             login: login ?? CreateLogin(http));
     }
 

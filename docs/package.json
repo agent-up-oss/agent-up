@@ -5,11 +5,13 @@
   "license": "Apache-2.0",
   "scripts": {
     "start": "docusaurus start --host 0.0.0.0",
-    "build": "docusaurus build",
+    "build": "node ../AgentUp.DesignSystem/scripts/build.mjs --check && docusaurus build",
     "serve": "docusaurus serve --host 0.0.0.0",
-    "clear": "docusaurus clear"
+    "clear": "docusaurus clear",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
+    "@agent-up/design-system": "file:../AgentUp.DesignSystem",
     "@docusaurus/core": "^3.6.3",
     "@docusaurus/preset-classic": "^3.6.3",
     "@mdx-js/react": "^3.0.0",
