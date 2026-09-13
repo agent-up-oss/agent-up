@@ -51,16 +51,10 @@ public sealed class AgentSubscriptionLoginParser
 
     internal static string? ChooseUrl(string line)
     {
-        string? fallback = null;
-        foreach (Match match in HttpUrl.Matches(line))
-        {
-            var url = match.Value.TrimEnd('.', ',', ';', ')', ']');
-            if (IsPreferredLoginUrl(url))
-                return url;
-            fallback ??= url;
-        }
-
-        return fallback;
+        var urls = HttpUrl.Matches(line)
+            .Select(match => match.Value.TrimEnd('.', ',', ';', ')', ']'))
+            .ToArray();
+        return urls.FirstOrDefault(IsPreferredLoginUrl) ?? urls.FirstOrDefault();
     }
 
     internal static bool IsPreferredLoginUrl(string url) =>

@@ -47,6 +47,45 @@ public sealed class AgentCliHomeProviderTests
     }
 
     [Test]
+    public void ClaudeCredentialStore_returnsNullWhenTheTokenFileIsMissingOrUnreadable()
+    {
+        var root = Directory.CreateTempSubdirectory("agent-cli-token-missing");
+        try
+        {
+            var home = new AgentCliHomeProvider(root.FullName);
+            var store = new AgentClaudeCredentialStore(home);
+            var tokenPath = Path.Join(home.HomePath, ".claude-oauth-token");
+            File.WriteAllText(tokenPath, "not-a-subscription-token");
+
+            Assert.That(store.Read(), Is.Null);
+
+            File.Delete(tokenPath);
+            Assert.That(store.Read(), Is.Null);
+
+            Directory.CreateDirectory(tokenPath);
+            Assert.That(store.Read(), Is.Null);
+        }
+        finally
+        {
+            root.Delete(true);
+        }
+    }
+
+    [Test]
+    public void IsUnderRoot_rejectsPathsOutsideTheDataDirectory()
+    {
+        var root = Directory.CreateTempSubdirectory("agent-cli-home-root");
+        try
+        {
+            Assert.That(AgentCliHomeProvider.IsUnderRoot(root.FullName, Path.Join(root.Parent!.FullName, "other")), Is.False);
+        }
+        finally
+        {
+            root.Delete(true);
+        }
+    }
+
+    [Test]
     public void ProcessEnvironment_setsHomeAndInjectsAStoredClaudeToken()
     {
         var root = Directory.CreateTempSubdirectory("agent-cli-env-root");

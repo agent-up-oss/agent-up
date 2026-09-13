@@ -282,6 +282,10 @@ public sealed class AgentSchedulingServiceTests
         _process.RequireAuthentication = true;
         _login.Succeeded = false;
         _login.Error = "auth failed";
+        _login.Challenge = new AgentLoginChallengeDto(
+            "https://cursor.com/loginDeepControl?challenge=abc",
+            null,
+            "Open this link and sign in with your subscription.");
         await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
 
         var accepted = _service.Authenticate(_workspace.Id, "chatgpt");
@@ -289,6 +293,7 @@ public sealed class AgentSchedulingServiceTests
 
         Assert.That(accepted.Error, Is.Null);
         Assert.That(_service.Get(_workspace.Id)!.Error, Does.Contain("auth failed"));
+        Assert.That(_service.Get(_workspace.Id)!.LoginChallenge!.Url, Does.Contain("loginDeepControl"));
     }
 
     [Test]
@@ -361,6 +366,55 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task Authenticate_ignoresStopFailuresWhenRestartingAfterLogin()
+    {
+        _process.RequireAuthentication = true;
+        _process.StopFailure = new InvalidOperationException("could not stop");
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        Assert.That(_service.Authenticate(_workspace.Id, "chatgpt").Error, Is.Null);
+        await WaitForStateAsync("ready");
+
+        Assert.That(_process.StartCalls, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Authenticate_returnsToAuthenticationRequiredWhenLoginThrows()
+    {
+        _process.RequireAuthentication = true;
+        _login.Failure = new IOException("disk");
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        Assert.That(_service.Authenticate(_workspace.Id, "chatgpt").Error, Is.Null);
+        await WaitForStateAsync("authentication_required");
+
+        Assert.That(_service.Get(_workspace.Id)!.Error, Does.Contain("disk"));
+    }
+
+    [Test]
+    public async Task Authenticate_stopsWaitingWhenTheSessionIsCancelled()
+    {
+        _process.RequireAuthentication = true;
+        _login.Hold = true;
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        Assert.That(_service.Authenticate(_workspace.Id, "chatgpt").Error, Is.Null);
+        await WaitUntilAsync(() => _service.Get(_workspace.Id)!.State == "authenticating");
+
+        Assert.That((await _service.StopAsync(_workspace.Id, CancellationToken.None)).Error, Is.Null);
+        Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("idle"));
+    }
+
+    [Test]
+    public async Task Schedule_rejectsAnUnsupportedProtocolVersion()
+    {
+        _process.ProtocolVersion = 2;
+
+        var result = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        Assert.That(result.Error, Does.Contain("protocol version"));
+    }
+
+    [Test]
     public async Task ProcessExit_marksTheSessionStopped()
     {
         await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
@@ -430,6 +484,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public int StopCalls { get; private set; }
     public int DisposeCalls { get; private set; }
     public JsonElement? SessionNewResult { get; set; }
+    public int ProtocolVersion { get; set; } = 1;
     public Exception? AuthenticateFailure { get; set; }
     public Exception? PromptFailure { get; set; }
     public Exception? NotifyFailure { get; set; }
@@ -473,12 +528,12 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     private JsonElement AuthMethodsPayload()
     {
         if (OmitAuthMethods)
-            return JsonSerializer.SerializeToElement(new { protocolVersion = 1 });
+            return JsonSerializer.SerializeToElement(new { protocolVersion = ProtocolVersion });
         if (AdvertiseApiKey)
-            return JsonSerializer.SerializeToElement(new { protocolVersion = 1, authMethods = new[] { new { id = "api-key", name = "API Key", description = "Use an API key to authenticate" } } });
+            return JsonSerializer.SerializeToElement(new { protocolVersion = ProtocolVersion, authMethods = new[] { new { id = "api-key", name = "API Key", description = "Use an API key to authenticate" } } });
         if (RequireAuthentication || AdvertiseAuthMethods)
-            return JsonSerializer.SerializeToElement(new { protocolVersion = 1, authMethods = new[] { new { id = "chatgpt", name = "ChatGPT subscription", description = "Use an existing subscription." } } });
-        return JsonSerializer.SerializeToElement(new { protocolVersion = 1 });
+            return JsonSerializer.SerializeToElement(new { protocolVersion = ProtocolVersion, authMethods = new[] { new { id = "chatgpt", name = "ChatGPT subscription", description = "Use an existing subscription." } } });
+        return JsonSerializer.SerializeToElement(new { protocolVersion = ProtocolVersion });
     }
 
     public Task NotifyAsync(string method, object? parameters, CancellationToken cancellationToken)
@@ -516,6 +571,7 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
     public string? Error { get; set; }
     public string? ClaudeToken { get; set; }
     public AgentLoginChallengeDto? Challenge { get; set; }
+    public Exception? Failure { get; set; }
 
     public async Task<AgentSubscriptionLoginResult> LoginAsync(
         AgentKind kind,
@@ -525,6 +581,8 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
         CancellationToken cancellationToken)
     {
         MethodId = methodId;
+        if (Failure is not null)
+            throw Failure;
         if (Challenge is not null)
             onChallenge(Challenge);
         if (Hold)

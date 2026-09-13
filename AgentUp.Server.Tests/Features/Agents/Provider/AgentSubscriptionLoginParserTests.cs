@@ -37,4 +37,20 @@ public sealed class AgentSubscriptionLoginParserTests
             Assert.That(parser.ClaudeOAuthToken, Is.EqualTo("sk-ant-oat01-real-token"));
         });
     }
+
+    [Test]
+    public void ChooseUrl_keepsANonPreferredLinkWhenNoVendorLoginUrlIsPresent()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                AgentSubscriptionLoginParser.ChooseUrl("See https://example.com/docs. and https://claude.ai/login"),
+                Is.EqualTo("https://claude.ai/login"));
+            Assert.That(
+                AgentSubscriptionLoginParser.ChooseUrl("Open https://example.com/help."),
+                Is.EqualTo("https://example.com/help"));
+            Assert.That(AgentSubscriptionLoginParser.ChooseUrl("no link here"), Is.Null);
+            Assert.That(AgentSubscriptionLoginParser.Instructions(null, null), Does.Contain("sign-in link"));
+        });
+    }
 }

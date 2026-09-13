@@ -61,9 +61,9 @@ public sealed class AgentSubscriptionLoginProvider(
         }
         catch (OperationCanceledException)
         {
-            TryStop(process);
             await DrainAsync(stdout);
             await DrainAsync(stderr);
+            TryStop(process);
             throw;
         }
 

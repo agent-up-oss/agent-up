@@ -116,11 +116,42 @@ public sealed class AgentSubscriptionLoginProviderTests
         }
     }
 
+    [Test]
+    public async Task LoginAsync_returnsTheResolverErrorWhenTheLoginCliIsRejected()
+    {
+        var provider = CreateProvider("/bin/sh");
+        var result = await provider.LoginAsync(
+            AgentKind.Cursor,
+            new AgentCommand("/bin/sh", []),
+            "api-key",
+            _ => { },
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("subscription"));
+    }
+
+    [Test]
+    public async Task LoginAsync_returnsTheStartErrorWhenTheExecutableIsMissing()
+    {
+        var provider = CreateProvider("/definitely-missing-agent-login-cli");
+        var result = await provider.LoginAsync(
+            AgentKind.Cursor,
+            new AgentCommand("/definitely-missing-agent-login-cli", []),
+            "cursor_login",
+            _ => { },
+            CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("Could not start"));
+    }
+
     private static AgentSubscriptionLoginProvider CreateProvider(string script)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Agents:Cursor:LoginCommand"] = script,
+            ["Agents:Cursor:LoginArguments:0"] = "--no-browser",
             ["Agents:Claude:LoginCommand"] = script
         }).Build();
         var home = new AgentCliHomeProvider(Directory.CreateTempSubdirectory("agent-login-home").FullName);
