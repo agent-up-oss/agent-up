@@ -8,11 +8,17 @@ namespace AgentUp.Server.Tests.Features.DesktopApplications.Provider;
 public sealed class LinuxDesktopDisplayE2ETests
 {
     [Test]
-    public async Task Captures_and_controls_a_real_x11_application()
+    public void StartAsync_rejectsADisplaySmallerThanTheMinimum()
     {
         var provider = new LinuxX11DesktopDisplayProvider(new PngFrameProvider());
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await provider.StartAsync(100, 100, CancellationToken.None));
+    }
+
+    [Test]
+    public async Task Captures_and_controls_a_real_x11_application()
+    {
+        var provider = new LinuxX11DesktopDisplayProvider(new PngFrameProvider());
         var display = await provider.StartAsync(640, 480, CancellationToken.None);
         using var application = new Process
         {

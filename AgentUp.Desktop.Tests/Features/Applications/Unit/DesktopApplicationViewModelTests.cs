@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Applications.Services;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 
 namespace AgentUp.Desktop.Tests.Features.Applications.Unit;
@@ -17,5 +18,14 @@ public sealed class DesktopApplicationViewModelTests
             Assert.That(application.AllocatedPorts, Is.Empty);
             Assert.That(new DesktopSubTabViewModel().Label, Is.EqualTo("Desktop"));
         });
+    }
+
+    [Test]
+    public void Normalize_keepsTheCallerApplicationList()
+    {
+        var service = new ApplicationSelectionService();
+        var applications = new[] { new ApplicationViewModel("Web", "dotnet run", "Running") };
+
+        Assert.That(service.Normalize(applications), Is.SameAs(applications));
     }
 }

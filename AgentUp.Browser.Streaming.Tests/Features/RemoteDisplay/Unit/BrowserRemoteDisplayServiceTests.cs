@@ -1,11 +1,4 @@
-#nullable enable
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.WebSockets;
-using System.Threading;
-using System.Threading.Tasks;
-using AgentUp.Browser.Streaming;
+using AgentUp.Browser.Streaming.Tests.Fake;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Browser.Streaming.Tests.Features.RemoteDisplay.Unit;
@@ -17,26 +10,26 @@ public sealed class BrowserRemoteDisplayServiceTests
     public async Task Connected_viewer_receives_control_text_and_binary_frames()
     {
         var service = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
-        using var socket = new RecordingWebSocket();
+        using var connection = new RecordingSubscriberConnection();
         using var cancellation = new CancellationTokenSource();
-        var connection = service.ConnectAsync("workspace", socket, null, cancellation.Token);
+        var subscription = service.ConnectAsync("workspace", connection, null, cancellation.Token);
         await WaitUntilAsync(() => service.HasSubscribers("workspace"));
 
         await service.BroadcastTextAsync("workspace", "control", CancellationToken.None);
         await service.BroadcastFrameAsync("workspace", [1, 2, 3], CancellationToken.None);
-        await WaitUntilAsync(() => socket.Messages.Any(message => message.Type == WebSocketMessageType.Binary));
+        await WaitUntilAsync(() => connection.Messages.Any(message => message.Kind == "binary"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(socket.Messages.Any(message => message.Type == WebSocketMessageType.Text), Is.True);
-            Assert.That(socket.Messages.Single(message => message.Type == WebSocketMessageType.Binary).Payload,
+            Assert.That(connection.Messages.Any(message => message.Kind == "text"), Is.True);
+            Assert.That(connection.Messages.Single(message => message.Kind == "binary").Payload,
                 Is.EqualTo(new byte[] { 1, 2, 3 }));
             Assert.That(service.TryGetLatestFrame("workspace", out var frame), Is.True);
             Assert.That(frame, Is.EqualTo(new byte[] { 1, 2, 3 }));
         });
 
         await cancellation.CancelAsync();
-        await connection;
+        await subscription;
         Assert.That(service.HasSubscribers("workspace"), Is.False);
     }
 
@@ -45,34 +38,5 @@ public sealed class BrowserRemoteDisplayServiceTests
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         while (!condition())
             await Task.Delay(10, timeout.Token);
-    }
-
-    private sealed class RecordingWebSocket : WebSocket
-    {
-        private WebSocketState _state = WebSocketState.Open;
-        public List<(WebSocketMessageType Type, byte[] Payload)> Messages { get; } = [];
-        public override WebSocketCloseStatus? CloseStatus => null;
-        public override string? CloseStatusDescription => null;
-        public override WebSocketState State => _state;
-        public override string? SubProtocol => null;
-        public override void Abort() => _state = WebSocketState.Aborted;
-        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
-        {
-            _state = WebSocketState.Closed;
-            return Task.CompletedTask;
-        }
-        public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken) =>
-            CloseAsync(closeStatus, statusDescription, cancellationToken);
-        public override void Dispose() => _state = WebSocketState.Closed;
-        public override async Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
-        {
-            await Task.Delay(Timeout.Infinite, cancellationToken);
-            return new WebSocketReceiveResult(0, WebSocketMessageType.Close, true);
-        }
-        public override Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
-        {
-            Messages.Add((messageType, buffer.ToArray()));
-            return Task.CompletedTask;
-        }
     }
 }

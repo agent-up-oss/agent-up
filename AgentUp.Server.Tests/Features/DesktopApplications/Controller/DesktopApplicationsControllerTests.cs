@@ -79,6 +79,24 @@ public sealed class DesktopApplicationsControllerTests
         await controller.StopWorkspaceAsync(workspace.Id, CancellationToken.None);
         Assert.That(displays.Stopped, Is.True);
     }
+
+    [Test]
+    public void Get_returnsNullWhenTheWorkspaceHasNoDesktopSession()
+    {
+        var controller = new DesktopApplicationsController(new DesktopSessionService(
+            new FakeDesktopDisplayProvider(),
+            new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new DesktopInputMessageProvider(),
+            new DesktopViewerTicketProvider(),
+            NullLogger<DesktopSessionService>.Instance));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(controller.Get("missing", "Editor"), Is.Null);
+            Assert.That(controller.CreateViewerTicket("missing", "Editor"), Is.Null);
+            Assert.That(controller.GetBySessionId("missing"), Is.Null);
+        });
+    }
 }
 
 internal sealed class ClosingWebSocket : WebSocket
