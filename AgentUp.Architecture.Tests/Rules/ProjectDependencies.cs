@@ -22,9 +22,11 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Capabilities.Codex", Except("AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Cursor", Except("AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Claude", Except("AgentUp.Capabilities.Claude", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Claude"));
-        AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop"));
-        AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions"));
+        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Claude", "AgentUp.InstallerConfig"));
+        AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop", "AgentUp.InstallerConfig"));
+        AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.InstallerConfig"));
+        AssertDoesNotDependOn("AgentUp.AUDebug", Except("AgentUp.AUDebug", "AgentUp.InstallerConfig"));
+        AssertDoesNotDependOn("AgentUp.InstallerConfig", Except("AgentUp.InstallerConfig"));
     }
 
     private static void AssertDoesNotDependOn(string sourceAssembly, IReadOnlyCollection<string> allowedAssemblies)

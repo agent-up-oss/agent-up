@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Shared.Models;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
@@ -76,7 +77,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     public string ServerStatusText => _errorMessage is not null
         ? "SERVER OFFLINE"
         : _isLoading ? "CONNECTING" : "SERVER ONLINE";
-    public string ServerStatusColor => _errorMessage is null ? "#00d66b" : "#d84f4f";
+    public string ServerStatusColor => _errorMessage is null ? AgentUpThemeColors.AccentBright : AgentUpThemeColors.StatusDanger;
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }

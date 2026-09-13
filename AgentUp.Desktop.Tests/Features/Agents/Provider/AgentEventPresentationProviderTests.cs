@@ -17,6 +17,22 @@ public sealed class AgentEventPresentationProviderTests
     }
 
     [Test]
+    public void RunSummary_namesToolsAndThoughts()
+    {
+        Assert.That(AgentEventPresentationProvider.RunSummary([]), Is.EqualTo("Worked"));
+        Assert.That(AgentEventPresentationProvider.RunSummary(["Agent"]), Is.EqualTo("Worked"));
+        Assert.That(AgentEventPresentationProvider.RunSummary(["Thought", "Tool", "Tool", "Agent"]), Is.EqualTo("Worked · 2 tools · Thought"));
+        Assert.That(AgentEventPresentationProvider.RunSummary(["Tool"]), Is.EqualTo("Worked · 1 tool"));
+    }
+
+    [Test]
+    public void VisibleText_stripsMarkdownMarkers()
+    {
+        Assert.That(AgentEventPresentationProvider.VisibleText("**Clarifying test meaning**"), Is.EqualTo("Clarifying test meaning"));
+        Assert.That(AgentEventPresentationProvider.VisibleText("Use `cargo test`"), Is.EqualTo("Use cargo test"));
+    }
+
+    [Test]
     public void Present_classifiesThoughtsToolsAndMessages()
     {
         Assert.That(Present("""{"sessionUpdate":"agent_thought_chunk","content":{"text":"Planning"}}""").Role, Is.EqualTo("Thought"));

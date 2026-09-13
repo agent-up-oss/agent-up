@@ -1,5 +1,6 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -11,12 +12,13 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content={agentUpTheme.colors.canvas} />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/agent-up-icon-192.png" />
         <ScrollViewStyleReset />
+        <style dangerouslySetInnerHTML={{ __html: `html, body { margin: 0; background: ${agentUpTheme.colors.canvas}; color: ${agentUpTheme.colors.textPrimary}; }` }} />
       </head>
-      <body style={{ backgroundColor: '#000000' }}>{children}</body>
+      <body style={{ backgroundColor: agentUpTheme.colors.canvas, color: agentUpTheme.colors.textPrimary }}>{children}</body>
     </html>
   );
 }

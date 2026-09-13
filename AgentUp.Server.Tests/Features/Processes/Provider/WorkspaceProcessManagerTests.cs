@@ -1,6 +1,10 @@
 using System.Diagnostics;
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
+using AgentUp.Server.Features.DesktopApplications.Providers;
+using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
@@ -516,13 +520,11 @@ public class WorkspaceProcessManagerTests
 
             await _manager.LaunchApplicationAsync(workspace, "Web");
 
-            await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
-
-            // LaunchApplicationAsync does not await the application process's own completion,
-            // and reaching the Stopped state (set from its Exited handler) does not guarantee
-            // every OutputDataReceived-triggered AppendAsync write has finished yet; poll until
-            // the application command's own (unprefixed) output shows up rather than assuming
-            // it is already there.
+            // Applications start as Stopped, so waiting for that state returns before the
+            // install+command processes have finished. Poll until the application command's
+            // own (unprefixed) output shows up. LaunchApplicationAsync holds Exited until
+            // stdout readers are attached and flushes those writes before disposing, so a
+            // fast command such as printenv still records its lines here.
             var lines = await WaitForOutputAsync(workspace.Id, "Web",
                 candidate => candidate.Any(line => !line.StartsWith("[install]", StringComparison.Ordinal)));
 
@@ -531,8 +533,10 @@ public class WorkspaceProcessManagerTests
             // [install] prefix and must all come before the application command's own.
             var lastInstallIndex = lines.FindLastIndex(line => line.StartsWith("[install]", StringComparison.Ordinal));
             var firstCommandIndex = lines.FindIndex(line => !line.StartsWith("[install]", StringComparison.Ordinal));
-            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0));
-            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0),
+                "Expected [install] output before the application command. Lines: " + string.Join(" | ", lines));
+            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0),
+                "Expected unprefixed application output after install. Lines: " + string.Join(" | ", lines));
             Assert.That(lastInstallIndex, Is.LessThan(firstCommandIndex));
         }
         finally
@@ -942,6 +946,51 @@ public class WorkspaceProcessManagerTests
             Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
             Assert.That(lines, Has.Some.Contains("Linux"));
         });
+    }
+
+    [Test]
+    public async Task LaunchApplication_stopsTheDesktopSessionWhenTheProcessExits()
+    {
+        var displays = new FakeDesktopDisplayProvider();
+        var desktop = new DesktopApplicationsController(new DesktopSessionService(
+            displays,
+            new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new DesktopInputMessageProvider(),
+            new DesktopViewerTicketProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
+            NullLogger<DesktopSessionService>.Instance));
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            NullLogger<WorkspaceProcessManager>.Instance,
+            desktop);
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
+            {
+                DesktopApplications = [new DesktopApplicationDefinition("Editor", "printenv", ".")]
+            });
+            var app = workspace.Applications.Single();
+            app.RuntimeEnvironment = await desktop.PrepareAsync(workspace, app, CancellationToken.None);
+
+            await manager.LaunchApplicationAsync(workspace, "Editor");
+            await WaitForApplicationStateAsync(workspace.Id, "Editor", ApplicationState.Stopped);
+
+            var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+            while (!displays.Stopped && DateTimeOffset.UtcNow < deadline)
+                await Task.Delay(50);
+
+            Assert.That(displays.Stopped, Is.True);
+        }
+        finally
+        {
+            Directory.Delete(worktreePath, recursive: true);
+        }
     }
 
     private async Task<ApplicationState> WaitForApplicationStateAsync(

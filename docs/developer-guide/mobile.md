@@ -6,7 +6,8 @@ title: Mobile development
 
 `AgentUp.Mobile/` is a single Expo and React Native TypeScript client for
 Android, iOS, and the installable web PWA. It lives at the repository root but
-is not part of `agent-up.sln`.
+is not part of `agent-up.sln`. Use [`au-debug`](au-debug.md) to host Mobile web
+next to Desktop and docs when comparing product UI.
 
 The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
@@ -15,8 +16,14 @@ orchestration must remain in `AgentUp.Server`.
 The workspace Agent screen is an ACP client UI. It selects an available Server-
 configured Codex, Cursor, or Claude adapter, sends prompts, reconnects to the SSE
 stream using the last event sequence, and presents the session as conversation,
-collapsible thoughts, tool progress, plan status, and live activity. Session
-title, mode, and token usage stay in context chrome rather than chat rows.
+collapsible thoughts, tool progress, plan status, and live activity. Transcript
+turns use catalog cards in a readable centered column; the human prompt is a
+right-aligned catalog bubble. The live agent run stays open until the next
+question, which collapses tools and thoughts to a Worked disclosure while the
+trailing agent reply stays visible. Nested thoughts stay the quieter indented
+catalog disclosure, with the body hidden until expanded and Thinking
+reserved for the live thought. Session title, mode, and token usage stay in
+context chrome rather than chat rows.
 `session/request_permission` is a blocking decision card that offers the ACP
 options instead of auto-granting. Subscription login is a Server-owned CLI
 flow: the client shows the sign-in URL and Codex device code from the Server
@@ -41,9 +48,12 @@ Server's injected audit endpoint. Outside a managed launch, audit delivery
 falls back to the Server URL being tested;
 audit delivery must never replace the connection result shown to the user.
 
-Mobile surfaces follow the docs site's black, green, off-white, and muted
-gray-green visual system, including its compact 8px card and control radii.
-Root application surfaces remain black through device safe areas so
+Mobile surfaces consume the canonical `@agent-up/design-system` React Native
+binding generated from the shared HTML/CSS contract. Screens apply `auBox` and
+`auText` for catalog components (workspace rows, sign-in card, page title,
+field labels, buttons, inputs, tabs) instead of restating fill, radius, or
+green borders from color tokens. Connect uses the same centered sign-in card
+as Desktop. Root application surfaces remain black through device safe areas so
 iOS status-bar and Dynamic Island insets do not expose a different background.
 
 ## Project structure
@@ -129,7 +139,10 @@ Every public npm script except `build:cloudflare` enters the repository `shell.n
 shell is a development requirement and supplies Node.js and the native
 Linux libraries required by Expo's downloaded React Native DevTools binary on
 NixOS. It also fetches the DotSlash-managed binary when needed and patches its
-Electron executables to use the Nix dynamic linker.
+Electron executables to use the Nix dynamic linker. Start, Android, iOS, and web
+scripts invoke the Expo CLI from `AgentUp.Mobile/node_modules/.bin`, and TypeScript
+commands through `npx`, because `nix-shell` replaces `PATH` and a global `expo`
+or `tsc` command is not present.
 
 Start the web client, which is the default local development path on every
 supported desktop operating system:
@@ -173,13 +186,9 @@ Android SDK is required for normal web/PWA development.
 
 ## Verification and web export
 
-Run TypeScript checking and create the production PWA bundle before submitting
-mobile client changes:
-
-```bash
-npm run typecheck
-npm run build:web
-```
+Run `./au-debug test mobile` before submitting mobile client changes. That suite
+runs TypeScript checking, client tests, and the production PWA bundle. Use
+`./au-debug build mobile` when you only need typecheck and the web export.
 
 Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata and
 install icons live under `public/`; `src/app/+html.tsx` links the manifest in
