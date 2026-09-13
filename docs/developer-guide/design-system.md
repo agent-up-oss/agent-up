@@ -57,20 +57,42 @@ marketing-template checks pass.
 
 Desktop is the reference rendering:
 
-- Black is the uninterrupted canvas.
-- Raised surfaces (`#121212` / `#1c1c1c`) sit on that canvas so cards, rails,
-  and fields read as Material containers rather than vanishing into the page.
-- Neutral gray borders define structure. Selected cards tint the fill; they do
-  not grow a green outline.
-- Product screens use `.au-page-title` (22px) and `.au-field-label` (12px).
-  Marketing `.au-title` and `.au-lede` stay on campaign pages.
-- Off-white and muted gray-green establish text hierarchy.
-- Green is limited to primary action, the selected workspace fill, progress,
-  and healthy state.
+- Near-black (`#0a0b0c`) is the canvas. Surfaces step up through
+  `surface` / `surface-raised` / `surface-overlay` so cards, rails, and fields
+  read as containers rather than vanishing into the page.
+- Borders are **alpha hairlines**, not fixed grays. An opaque border reads about
+  2.4x stronger on the canvas than on a raised surface; alpha composites, so one
+  token keeps an even weight across the whole ramp. A product drawn mostly in
+  borders reads as a wireframe grid of rectangles.
+- **Interaction is neutral.** Hover and pressed use `state-hover` and
+  `state-active` — white at 6% and 10%. Painting the brand colour into every
+  interaction state is the Material signature and is forbidden; a test enforces
+  it. An element that already rests on the accent may brighten it on hover.
+- **Selection is meaning.** A selected row takes the accent tint plus a 2px
+  accent rule on its leading edge. Saturated accent fills behind text are
+  retired: muted text on the old fill measured 1.83:1.
+- **Emphasis follows the information hierarchy.** The primary selection on a
+  screen carries the accent — choosing an application is a 2px accent underline.
+  Secondary selections, and many-of-many filter sets, stay neutral.
+- Radius scales with the object: `xs`/`sm` for controls, `md` for rows, buttons
+  and inputs, `lg` for panels and cards, `xl` for panes and dialogs. An 8px
+  corner reads rounded on a chip and square on a 900px pane.
+- Working regions are `.au-pane` — inset on the canvas with a container radius
+  and one elevation step — not full-bleed panels butted together at 1px lines.
+  Dialogs and menus use `.au-overlay-panel` above a scrim.
+- Product chrome uses the **UI type tier** (`--au-font-size-ui-*`, 11-22px) and
+  the **UI weight roles** (`--au-weight-ui` 500, `--au-weight-ui-strong` 600).
+  The content tier and 700+ weights belong to docs and marketing; uniform 700 on
+  11-13px labels is what reads as a template. Product screens use
+  `.au-page-title` and `.au-field-label`, not marketing display type.
+- Any surface made of digits — logs, tables, ports, timestamps, metrics — sets
+  `font-variant-numeric: tabular-nums` so columns align.
+- Off-white and muted gray-green establish text hierarchy. Every text role must
+  clear WCAG AA on every fill the catalog puts it on; a test enforces it.
 - Blue focus remains distinct from green success.
 - Red identifies errors, failures, and destructive actions.
-- Ambient neon glow, decorative green grids, and green borders around every
-  surface are retired.
+- Ambient neon glow, decorative green grids, green borders around every surface,
+  and accent-tinted hover states are retired.
 - Product UI and real product screenshots are preferred to speculative
   illustrations.
 

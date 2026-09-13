@@ -1140,8 +1140,8 @@ tokens when a component style already exists. Never edit
 generated files under `AgentUp.DesignSystem/dist/`; change the canonical CSS or
 HTML catalog and regenerate them.
 
-Desktop is the reference rendering. Use black canvas, raised gray surfaces so cards and fields read as containers, neutral structural borders, off-white hierarchy, and green only for action, selected workspace fill, progress, or healthy state. Product screens use page-title and field-label, not marketing display type. Selected cards tint; they do not outline in green. Ambient neon glow, decorative green grids, and green outlines around every
-surface are retired. Public claims must follow the naming, positioning, and
+Desktop is the reference rendering. Use the near-black canvas, the raised surface ramp so cards and fields read as containers, alpha hairlines for structure, and off-white hierarchy. Interaction is neutral: hover and pressed use `state-hover` / `state-active`, never an accent fill. Green carries meaning only — primary action, selection, progress, healthy state — and selection is an accent tint plus a 2px accent rule, never a saturated fill. Emphasis follows the information hierarchy: the primary selection on a screen takes the accent, secondary selections stay neutral. Radius scales with the object (`lg` for panels, `xl` for panes and dialogs), and working regions are inset panes on the canvas rather than full-bleed panels butted at 1px lines. Product chrome uses the `ui` type tier and the `ui` weight roles; 700+ is for content and marketing, not 11-13px labels. Product screens use page-title and field-label, not marketing display type. Ambient neon glow, decorative green grids, green outlines around every
+surface, and accent-tinted hover states are retired. Public claims must follow the naming, positioning, and
 `Available`/`Preview`/`Experimental`/`Planned` lifecycle language in
 `AgentUp.DesignSystem/brand/voice.json`. Real current product screenshots are
 preferred over reconstructed interfaces; planned UI must be labeled visibly.

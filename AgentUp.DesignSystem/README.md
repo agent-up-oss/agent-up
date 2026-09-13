@@ -40,4 +40,13 @@ The public showcase is `/design-system` on the documentation site. It is linked
 from the navbar and renders the catalog as tabs, one Agent-Up surface per tab.
 
 Run `npm test` to verify generated bindings, required catalog surfaces, inferred
-Avalonia styles, and the no-neon/no-ambient-glow marketing rule.
+Avalonia styles, the no-neon/no-ambient-glow marketing rule, and the two rules
+that keep the accent meaningful:
+
+- **Interaction stays neutral.** No `:hover` rule may paint an accent fill on a
+  control that does not already rest on the accent. Hover and pressed use
+  `--au-color-state-hover` / `--au-color-state-active`.
+- **Text stays legible on every fill.** Each text role must clear WCAG AA
+  (4.5:1) against every surface and selection fill the catalog places it on.
+
+See `docs/developer-guide/design-system.md` for the full visual contract.

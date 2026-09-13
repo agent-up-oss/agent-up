@@ -201,6 +201,61 @@ test('showcase page CSS is layout-only; catalog classes own paint', async () => 
   assert.deepEqual(painted, [], 'showcase module CSS paints instead of using catalog classes');
 });
 
+test('interaction stays neutral: no hover or pressed rule paints an accent fill', () => {
+  const accentFills = new Set([
+    'color-accent', 'color-accent-bright', 'color-accent-soft', 'color-accent-hover',
+    'color-accent-dark', 'color-accent-line',
+    'color-surface-selected', 'color-surface-selected-strong', 'color-surface-selected-soft',
+  ]);
+  // An element that already rests on the accent may brighten it on hover; that is
+  // the accent behaving as an element, not as a state layer. What this forbids is
+  // a neutral control acquiring an accent fill on interaction.
+  const restingBackground = new Map();
+  for (const rule of rules) {
+    for (const selector of rule.selectors) {
+      const parsed = parseSelector(selector);
+      if (!parsed || parsed.pseudo) continue;
+      for (const [property, value] of rule.declarations) {
+        if (property === 'background' || property === 'background-color') {
+          restingBackground.set(parsed.modifierClass ?? parsed.baseClass, varName(value));
+        }
+      }
+    }
+  }
+  const offenders = [];
+  for (const rule of rules) {
+    for (const selector of rule.selectors) {
+      const parsed = parseSelector(selector);
+      if (!parsed || parsed.pseudo !== 'hover') continue;
+      const className = parsed.modifierClass ?? parsed.baseClass;
+      const resting = restingBackground.get(className) ?? restingBackground.get(parsed.baseClass);
+      if (resting && accentFills.has(resting)) continue;
+      for (const [property, value] of rule.declarations) {
+        if (property !== 'background' && property !== 'background-color') continue;
+        const token = varName(value);
+        // The close control is the documented exception: it turns danger red.
+        if (token && accentFills.has(token) && parsed.baseClass !== 'au-chrome-close') {
+          offenders.push(`${selector} { ${property}: ${value} }`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], 'a neutral control must hover to a neutral state layer, not the accent');
+});
+
+test('every text role stays legible on the selection and state fills it can sit on', () => {
+  const textRoles = ['text-primary', 'text-secondary', 'text-muted'];
+  const fills = ['surface-selected', 'surface-selected-strong', 'surface-selected-soft', 'surface', 'surface-raised', 'surface-overlay'];
+  const failures = [];
+  for (const fill of fills) {
+    for (const role of textRoles) {
+      const ratio = contrast(tokens[`color-${role}`], tokens[`color-${fill}`]);
+      if (ratio < 4.5) failures.push(`${role} on ${fill} = ${ratio.toFixed(2)}:1`);
+    }
+  }
+  assert.deepEqual(failures, [], 'a text role fails WCAG AA on a fill the catalog puts it on');
+});
+
 test('marketing CSS keeps the retired ambient neon treatment forbidden', () => {
   assert.doesNotMatch(marketing, /text-shadow|drop-shadow|radial-gradient/i);
 });
@@ -253,6 +308,17 @@ function avaloniaEmits(name, value) {
     || name.startsWith('control-height')
     || name === 'stroke'
     || name === 'stroke-strong';
+}
+
+function contrast(foreground, background) {
+  const relative = hex => {
+    const channels = [1, 3, 5].map(index => Number.parseInt(hex.slice(index, index + 2), 16) / 255);
+    const [r, g, b] = channels.map(c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const light = Math.max(relative(foreground), relative(background));
+  const dark = Math.min(relative(foreground), relative(background));
+  return (light + 0.05) / (dark + 0.05);
 }
 
 function parseStyleBlocks(axaml) {

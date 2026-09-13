@@ -4,19 +4,22 @@ namespace AgentUp.Desktop.Shared.Models;
 
 internal static class AgentUpThemeColors
 {
-    internal const string Canvas = "#000000";
-    internal const string Surface = "#121212";
-    internal const string SurfaceRaised = "#1c1c1c";
-    internal const string SurfaceHover = "#252525";
-    internal const string SurfaceSelected = "#0d4f32";
-    internal const string SurfaceSelectedStrong = "#0f7a45";
-    internal const string SurfaceSelectedSoft = "#102418";
-    internal const string SurfaceInput = "#161616";
-    internal const string SurfaceDanger = "#140f0f";
-    internal const string BorderSubtle = "#2b2b2b";
-    internal const string BorderStrong = "#3c3c3c";
-    internal const string BorderSelected = "#287038";
-    internal const string BorderDanger = "#552d2d";
+    internal const string Canvas = "#0a0b0c";
+    internal const string Surface = "#121416";
+    internal const string SurfaceRaised = "#191c1f";
+    internal const string SurfaceOverlay = "#202428";
+    internal const string SurfaceHover = "#202224";
+    internal const string SurfaceInput = "#17191b";
+    internal const string SurfaceDanger = "#261a1c";
+    internal const string StateHover = "#ffffff0f";
+    internal const string StateActive = "#ffffff1a";
+    internal const string SurfaceSelectedSoft = "#11211b";
+    internal const string SurfaceSelected = "#10281d";
+    internal const string SurfaceSelectedStrong = "#0f3220";
+    internal const string BorderSubtle = "#ffffff14";
+    internal const string BorderStrong = "#ffffff29";
+    internal const string BorderSelected = "#00b85059";
+    internal const string BorderDanger = "#d84f4f4d";
     internal const string TextPrimary = "#f5fbf7";
     internal const string TextSecondary = "#c2d2ca";
     internal const string TextMuted = "#8a9a92";
@@ -28,13 +31,15 @@ internal static class AgentUpThemeColors
     internal const string AccentBright = "#00d66b";
     internal const string AccentSoft = "#2bf27a";
     internal const string AccentHover = "#13a35d";
+    internal const string AccentDark = "#0a8c3c";
+    internal const string AccentLine = "#00c257";
     internal const string StatusHealthy = "#22c55e";
     internal const string StatusInfo = "#4fa3d8";
     internal const string StatusWarning = "#e0a128";
     internal const string StatusDanger = "#d84f4f";
     internal const string Focus = "#00a8e8";
     internal const string OnAccent = "#000000";
-    internal const string Scrim = "rgba(0, 0, 0, 0.72)";
-    internal const string Overlay = "#07110f66";
+    internal const string Scrim = "#0a0b0cb8";
+    internal const string Overlay = "#0a0b0c73";
     internal const string Transparent = "#00000000";
 }

@@ -10,6 +10,11 @@ export declare const agentUpTheme: {
     readonly sizeLg: number;
     readonly sizeXl: number;
     readonly sizeDisplay: number;
+    readonly sizeUiXs: number;
+    readonly sizeUiSm: number;
+    readonly sizeUiMd: number;
+    readonly sizeUiLg: number;
+    readonly sizeUiXl: number;
     readonly tight: number;
     readonly normal: number;
     readonly relaxed: number;
@@ -18,6 +23,8 @@ export declare const agentUpTheme: {
     readonly semibold: number;
     readonly bold: number;
     readonly black: number;
+    readonly ui: number;
+    readonly uiStrong: number;
   };
   readonly controls: Readonly<Record<string, number>>;
   readonly fonts: Readonly<Record<string, string>>;

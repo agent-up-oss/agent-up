@@ -3,7 +3,7 @@
     {
       "id": "foundations",
       "title": "Foundations",
-      "intro": "Black is the environment. Off-white carries hierarchy. Neutral gray creates structure. Green appears only for action, selection, progress, or health.",
+      "intro": "Near-black is the environment. Off-white carries hierarchy. Alpha hairlines create structure. Interaction (hover, pressed) is a neutral white layer; green is reserved for action, selection, progress, and health.",
       "components": [
         {
           "id": "canvas",
@@ -114,7 +114,7 @@
         {
           "id": "checkbox",
           "title": "Checkbox",
-          "note": "Checked uses the selected fill. Do not outline idle boxes in accent green.",
+          "note": "Checked uses the action colour, because ticking a box is an action. Do not outline idle boxes in accent green.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -146,7 +146,7 @@
         {
           "id": "tabs",
           "title": "Tabs",
-          "note": "Selected tabs use a brighter text and a muted underline, not a green fill.",
+          "note": "Selected tabs use primary text and a 2px accent underline, never a green fill.",
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
@@ -159,9 +159,39 @@
           "html": "<div class=\"au-tabs\" role=\"tablist\">\n        <button class=\"au-tab au-tab--selected\" aria-selected=\"true\">Browser</button>\n        <button class=\"au-tab\">Console</button>\n        <button class=\"au-tab\">Metrics</button>\n        <button class=\"au-tab\">Diagnostics</button>\n      </div>"
         },
         {
+          "id": "pane",
+          "title": "Pane",
+          "note": "A working region inset on the canvas. Use this instead of full-bleed panels butted together at 1px lines, which is what makes a window read as a grid of rectangles.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-pane",
+          "classes": [
+            "au-pane",
+            "au-field-label",
+            "au-muted"
+          ],
+          "html": "<div class=\"au-pane\" style=\"padding: 1rem;\">\n        <p class=\"au-field-label\">Diagnostics</p>\n        <p class=\"au-muted\">Panes carry the container radius and one elevation step, so content reads as a surface resting on the canvas.</p>\n      </div>"
+        },
+        {
+          "id": "overlay-panel",
+          "title": "Overlay panel",
+          "note": "Dialogs, menus, and popovers sit on the overlay surface with the overlay shadow, above a scrim. A dialog that shares the raised surface with the page behind it does not read as in front of anything.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-overlay-panel",
+          "classes": [
+            "au-overlay-panel",
+            "au-page-title",
+            "au-muted"
+          ],
+          "html": "<div class=\"au-overlay-panel\" style=\"padding: 1rem; max-width: 22rem;\">\n        <p class=\"au-page-title\">Remove workspace</p>\n        <p class=\"au-muted\">This does not delete files on disk.</p>\n      </div>"
+        },
+        {
           "id": "callout",
           "title": "Callout",
-          "note": "A left accent rule is enough. No glow.",
+          "note": "A 2px left accent rule is enough. No glow.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -217,7 +247,7 @@
         {
           "id": "chrome-button",
           "title": "Window controls",
-          "note": "Close hover is danger red. Other chrome hover uses the selected tint.",
+          "note": "Close hover is danger red. Every other chrome hover uses the neutral state layer, never the accent.",
           "avalonia": "Border",
           "desktopClass": "chromeButton",
           "desktopHost": "Button",
@@ -283,7 +313,7 @@
         {
           "id": "workspace",
           "title": "Workspace row",
-          "note": "Idle rows stay on surface. Only the selected checkout uses the strong green fill. Start, identity, and delete are the same controls on Desktop and Mobile.",
+          "note": "Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile.",
           "avalonia": "Border",
           "desktopClass": "wsEntry",
           "desktopHost": "ListBoxItem",
@@ -395,7 +425,7 @@
         {
           "id": "app-tab",
           "title": "Application tabs",
-          "note": "Selected application tabs are neutral with a stronger underline. Green is reserved for the running health marker.",
+          "note": "Choosing an application is the primary selection on the screen, so it carries the accent: a 2px accent underline and primary text.",
           "avalonia": "Border",
           "desktopClass": "appTab",
           "desktopHost": "ListBoxItem",
@@ -413,7 +443,7 @@
         {
           "id": "subtab",
           "title": "Port and tool tabs",
-          "note": "The second row is a pill. Selected may use the strong selected fill because it is the active tool, not a structural border.",
+          "note": "The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent.",
           "avalonia": "Border",
           "desktopClass": "subTab",
           "desktopHost": "ListBoxItem",
@@ -544,7 +574,7 @@
         {
           "id": "page-jump",
           "title": "Pagination",
-          "note": "The current page may use the selected fill; other pages stay outlined.",
+          "note": "The current page uses the neutral active layer. Other pages carry no border at all: an accent outline on an inactive control is the rule this system exists to prevent.",
           "avalonia": "Border",
           "desktopClass": "auditPageJumpInner",
           "desktopHost": "",
@@ -706,7 +736,7 @@
         {
           "id": "db-list",
           "title": "Object list",
-          "note": "Selected objects use the strong selected fill.",
+          "note": "Selected objects use the accent tint. Hover stays neutral.",
           "avalonia": "Border",
           "desktopClass": "dbListItem",
           "desktopHost": "ListBoxItem",
@@ -734,7 +764,7 @@
         {
           "id": "db-run",
           "title": "Run query",
-          "note": "Run is a selected-strong action until hover, where it becomes the primary accent.",
+          "note": "Run is a primary action, so it uses the action fill and brightens on hover.",
           "avalonia": "Button",
           "desktopClass": "dbRunButton",
           "desktopHost": "",
@@ -807,7 +837,7 @@
         {
           "id": "mobile-tab-bar",
           "title": "Bottom tabs",
-          "note": "Selected tabs use the catalog subtab selected fill.",
+          "note": "Selected tabs use the catalog subtab selected state, which is neutral.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",

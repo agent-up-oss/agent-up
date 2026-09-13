@@ -3,7 +3,7 @@
 .sidebar { padding: var(--au-space-4); border-right: 1px solid var(--au-color-border-subtle); }
 .workspace { display: flex; align-items: center; gap: var(--au-space-2); margin-top: var(--au-space-3); padding: var(--au-space-3); color: var(--au-color-text-secondary); border-radius: var(--au-radius-md); }
 .workspace small { display: block; overflow: hidden; color: var(--au-color-text-muted); text-overflow: ellipsis; }
-.workspaceActive { color: var(--au-color-text-primary); background: var(--au-color-surface-selected-strong); }
+.workspaceActive { color: var(--au-color-text-primary); background: var(--au-color-surface-selected); box-shadow: inset 2px 0 0 var(--au-color-accent-line); }
 .runtime { min-width: 0; }
 .subnav { min-height: 3rem; display: flex; align-items: center; gap: var(--au-space-5); padding-inline: var(--au-space-3); overflow-x: auto; border-bottom: 1px solid var(--au-color-border-subtle); font-size: var(--au-font-size-sm); white-space: nowrap; }
 .browserBar { display: flex; gap: var(--au-space-3); padding: var(--au-space-2) var(--au-space-3); color: var(--au-color-text-muted); border-bottom: 1px solid var(--au-color-border-subtle); }

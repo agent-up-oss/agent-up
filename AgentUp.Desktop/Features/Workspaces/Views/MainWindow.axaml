@@ -247,10 +247,10 @@
             </Setter>
         </Style>
         <Style Selector="ToggleButton.filterChip:pointerover /template/ Border#ChipBorder">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceHoverBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
         </Style>
         <Style Selector="ToggleButton.filterChip:checked /template/ Border#ChipBorder">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
         </Style>
         <Style Selector="Button.auditPageJump">
             <Setter Property="Padding" Value="0"/>
@@ -260,7 +260,7 @@
             <Setter Property="MinWidth" Value="24"/>
         </Style>
         <Style Selector="Button.auditPageJump:pointerover Border.auditPageJumpInner">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceHoverBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
         </Style>
         <!-- Browser address bar -->
         <Style Selector="TextBox.addressBar:focus">
@@ -342,7 +342,7 @@
             <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceHoverBrush}"/>
         </Style>
         <Style Selector="Button:pointerover Border.tutorialSecondaryButton">
-            <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
         </Style>
         <Style Selector="TextBlock.tutorialButtonText">
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1118,8 +1118,8 @@
                                             Background="Transparent"
                                             BorderThickness="0"
                                             VerticalAlignment="Center"
-                                            Foreground="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"
-                                            FontSize="11"
+                                            Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
+                                            FontSize="{DynamicResource AgentUpFontSizeUiXs}"
                                             Cursor="Hand"
                                             Content="Show all"/>
                                 </StackPanel>

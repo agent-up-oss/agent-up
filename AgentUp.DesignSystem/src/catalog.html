@@ -5,7 +5,7 @@
   <title>Agent-Up design catalog</title>
 </head>
 <body class="au-theme">
-  <section data-au-surface="foundations" data-au-title="Foundations" data-au-intro="Black is the environment. Off-white carries hierarchy. Neutral gray creates structure. Green appears only for action, selection, progress, or health.">
+  <section data-au-surface="foundations" data-au-title="Foundations" data-au-intro="Near-black is the environment. Off-white carries hierarchy. Alpha hairlines create structure. Interaction (hover, pressed) is a neutral white layer; green is reserved for action, selection, progress, and health.">
     <article data-au-component="canvas" data-au-title="Canvas" data-au-note="Root window, page, and PWA chrome use the canvas token." data-au-avalonia="Window" data-au-class="au-theme">
       <div class="au-theme" style="min-height: 6rem; padding: 1.25rem;">Quiet operational canvas.</div>
     </article>
@@ -50,7 +50,7 @@
         <span class="au-badge au-badge--info"><span class="au-status-dot au-status-dot--info"></span>MCP connected</span>
       </div>
     </article>
-    <article data-au-component="checkbox" data-au-title="Checkbox" data-au-note="Checked uses the selected fill. Do not outline idle boxes in accent green." data-au-avalonia="Border" data-au-class="au-checkbox">
+    <article data-au-component="checkbox" data-au-title="Checkbox" data-au-note="Checked uses the action colour, because ticking a box is an action. Do not outline idle boxes in accent green." data-au-avalonia="Border" data-au-class="au-checkbox">
       <div class="au-cluster">
         <span class="au-checkbox"></span>
         <span class="au-checkbox au-checkbox--checked"></span>
@@ -63,7 +63,7 @@
         <div class="au-card au-card--danger"><strong>Failed</strong><p class="au-muted">Error cards never inherit accent borders.</p></div>
       </div>
     </article>
-    <article data-au-component="tabs" data-au-title="Tabs" data-au-note="Selected tabs use a brighter text and a muted underline, not a green fill." data-au-avalonia="Button" data-au-class="au-tab">
+    <article data-au-component="tabs" data-au-title="Tabs" data-au-note="Selected tabs use primary text and a 2px accent underline, never a green fill." data-au-avalonia="Button" data-au-class="au-tab">
       <div class="au-tabs" role="tablist">
         <button class="au-tab au-tab--selected" aria-selected="true">Browser</button>
         <button class="au-tab">Console</button>
@@ -71,7 +71,19 @@
         <button class="au-tab">Diagnostics</button>
       </div>
     </article>
-    <article data-au-component="callout" data-au-title="Callout" data-au-note="A left accent rule is enough. No glow." data-au-avalonia="Border" data-au-class="au-callout">
+    <article data-au-component="pane" data-au-title="Pane" data-au-note="A working region inset on the canvas. Use this instead of full-bleed panels butted together at 1px lines, which is what makes a window read as a grid of rectangles." data-au-avalonia="Border" data-au-class="au-pane">
+      <div class="au-pane" style="padding: 1rem;">
+        <p class="au-field-label">Diagnostics</p>
+        <p class="au-muted">Panes carry the container radius and one elevation step, so content reads as a surface resting on the canvas.</p>
+      </div>
+    </article>
+    <article data-au-component="overlay-panel" data-au-title="Overlay panel" data-au-note="Dialogs, menus, and popovers sit on the overlay surface with the overlay shadow, above a scrim. A dialog that shares the raised surface with the page behind it does not read as in front of anything." data-au-avalonia="Border" data-au-class="au-overlay-panel">
+      <div class="au-overlay-panel" style="padding: 1rem; max-width: 22rem;">
+        <p class="au-page-title">Remove workspace</p>
+        <p class="au-muted">This does not delete files on disk.</p>
+      </div>
+    </article>
+    <article data-au-component="callout" data-au-title="Callout" data-au-note="A 2px left accent rule is enough. No glow." data-au-avalonia="Border" data-au-class="au-callout">
       <aside class="au-callout"><strong>Browser ownership:</strong> Desktop WebViews and Server automation are separate sessions bound to the same workspace runtime.</aside>
     </article>
     <article data-au-component="code" data-au-title="Code surface" data-au-note="Code blocks use a neutral border. Do not force syntax into green." data-au-avalonia="TextBlock" data-au-class="au-code">
@@ -95,7 +107,7 @@
         </span>
       </div>
     </article>
-    <article data-au-component="chrome-button" data-au-title="Window controls" data-au-note="Close hover is danger red. Other chrome hover uses the selected tint." data-au-avalonia="Border" data-au-class="au-chrome-button" data-au-desktop-class="chromeButton" data-au-desktop-host="Button">
+    <article data-au-component="chrome-button" data-au-title="Window controls" data-au-note="Close hover is danger red. Every other chrome hover uses the neutral state layer, never the accent." data-au-avalonia="Border" data-au-class="au-chrome-button" data-au-desktop-class="chromeButton" data-au-desktop-host="Button">
       <div class="au-cluster">
         <button class="au-chrome-button au-chrome-icon">−</button>
         <button class="au-chrome-button au-chrome-icon">□</button>
@@ -117,7 +129,7 @@
   </section>
 
   <section data-au-surface="workspaces" data-au-title="Workspaces" data-au-intro="A workspace is the managed runtime and source identity. Do not name every row after an agent unless that is the display name.">
-    <article data-au-component="workspace" data-au-title="Workspace row" data-au-note="Idle rows stay on surface. Only the selected checkout uses the strong green fill. Start, identity, and delete are the same controls on Desktop and Mobile." data-au-avalonia="Border" data-au-class="au-workspace" data-au-desktop-class="wsEntry" data-au-desktop-host="ListBoxItem">
+    <article data-au-component="workspace" data-au-title="Workspace row" data-au-note="Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile." data-au-avalonia="Border" data-au-class="au-workspace" data-au-desktop-class="wsEntry" data-au-desktop-host="ListBoxItem">
       <div class="au-stack">
         <div class="au-workspace au-workspace--selected">
           <button class="au-lifecycle-button" type="button">▶</button>
@@ -176,14 +188,14 @@
   </section>
 
   <section data-au-surface="applications" data-au-title="Applications" data-au-intro="The first tab row lists applications in the selected workspace. Health is a LED plus label, not a green outline around the tab.">
-    <article data-au-component="app-tab" data-au-title="Application tabs" data-au-note="Selected application tabs are neutral with a stronger underline. Green is reserved for the running health marker." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-desktop-class="appTab" data-au-desktop-host="ListBoxItem">
+    <article data-au-component="app-tab" data-au-title="Application tabs" data-au-note="Choosing an application is the primary selection on the screen, so it carries the accent: a 2px accent underline and primary text." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-desktop-class="appTab" data-au-desktop-host="ListBoxItem">
       <div class="au-cluster">
         <button class="au-app-tab au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--warning"></span> API</button>
         <button class="au-app-tab"><span class="au-status-dot"></span> Database</button>
       </div>
     </article>
-    <article data-au-component="subtab" data-au-title="Port and tool tabs" data-au-note="The second row is a pill. Selected may use the strong selected fill because it is the active tool, not a structural border." data-au-avalonia="Border" data-au-class="au-subtab" data-au-desktop-class="subTab" data-au-desktop-host="ListBoxItem">
+    <article data-au-component="subtab" data-au-title="Port and tool tabs" data-au-note="The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent." data-au-avalonia="Border" data-au-class="au-subtab" data-au-desktop-class="subTab" data-au-desktop-host="ListBoxItem">
       <div class="au-cluster">
         <button class="au-subtab au-subtab--selected">3000:11200</button>
         <button class="au-subtab">Console</button>
@@ -239,7 +251,7 @@ ready in 842 ms</pre>
         <div class="au-audit-row" style="color: var(--au-color-text-danger)">12:02 · browser · net::ERR_CONNECTION_REFUSED</div>
       </div>
     </article>
-    <article data-au-component="page-jump" data-au-title="Pagination" data-au-note="The current page may use the selected fill; other pages stay outlined." data-au-avalonia="Border" data-au-class="au-page-jump" data-au-desktop-class="auditPageJumpInner">
+    <article data-au-component="page-jump" data-au-title="Pagination" data-au-note="The current page uses the neutral active layer. Other pages carry no border at all: an accent outline on an inactive control is the rule this system exists to prevent." data-au-avalonia="Border" data-au-class="au-page-jump" data-au-desktop-class="auditPageJumpInner">
       <div class="au-cluster">
         <button class="au-page-jump">1</button>
         <button class="au-page-jump au-page-jump--current">2</button>
@@ -295,7 +307,7 @@ ready in 842 ms</pre>
   </section>
 
   <section data-au-surface="database" data-au-title="Database explorer" data-au-intro="SQL and result grids are monospace technical surfaces with the same quiet borders as the rest of Desktop.">
-    <article data-au-component="db-list" data-au-title="Object list" data-au-note="Selected objects use the strong selected fill." data-au-avalonia="Border" data-au-class="au-list-item" data-au-desktop-class="dbListItem" data-au-desktop-host="ListBoxItem">
+    <article data-au-component="db-list" data-au-title="Object list" data-au-note="Selected objects use the accent tint. Hover stays neutral." data-au-avalonia="Border" data-au-class="au-list-item" data-au-desktop-class="dbListItem" data-au-desktop-host="ListBoxItem">
       <div class="au-stack">
         <div class="au-list-item au-list-item--selected">orders</div>
         <div class="au-list-item">customers</div>
@@ -304,7 +316,7 @@ ready in 842 ms</pre>
     <article data-au-component="sql-editor" data-au-title="SQL editor" data-au-note="Editor chrome is an input surface, not an accent panel." data-au-avalonia="TextBox" data-au-class="au-code-editor" data-au-desktop-class="sqlEditor">
       <textarea class="au-code-editor">select * from orders limit 20;</textarea>
     </article>
-    <article data-au-component="db-run" data-au-title="Run query" data-au-note="Run is a selected-strong action until hover, where it becomes the primary accent." data-au-avalonia="Button" data-au-class="au-db-run" data-au-desktop-class="dbRunButton">
+    <article data-au-component="db-run" data-au-title="Run query" data-au-note="Run is a primary action, so it uses the action fill and brightens on hover." data-au-avalonia="Button" data-au-class="au-db-run" data-au-desktop-class="dbRunButton">
       <button class="au-db-run">Run</button>
     </article>
     <article data-au-component="db-header-cell" data-au-title="Result header" data-au-note="Grid headers are muted raised cells with structural borders." data-au-avalonia="Border" data-au-class="au-db-header-cell" data-au-desktop-class="dbHeaderCell">
@@ -322,7 +334,7 @@ ready in 842 ms</pre>
     <article data-au-component="drawer" data-au-title="Navigation drawer" data-au-note="The Mobile overlay rail is a raised surface over the canvas. Desktop keeps the canvas rail because it is already a pane." data-au-avalonia="Border" data-au-class="au-drawer">
       <div class="au-drawer" style="padding: 1rem; min-height: 8rem;">Workspaces</div>
     </article>
-    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Selected tabs use the catalog subtab selected fill." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
+    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Selected tabs use the catalog subtab selected state, which is neutral." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
       <div class="au-mobile-tab-bar au-cluster">
         <button class="au-subtab au-subtab--selected">Chat</button>
         <button class="au-subtab">Changes</button>
