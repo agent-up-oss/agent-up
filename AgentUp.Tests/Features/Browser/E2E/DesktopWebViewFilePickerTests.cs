@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
 using AgentUp.Tests.Support;
 using Avalonia.Platform.Storage;
@@ -254,7 +253,7 @@ public sealed class DesktopWebViewFilePickerTests
             {
                 var file = await _desktop.Window.StorageProvider.TryGetFileFromPathAsync(path);
                 Assert.That(file, Is.Not.Null,
-                    $"The {RuntimeInformation.OSDescription} storage provider could not resolve '{path}'");
+                    $"The platform storage provider could not resolve '{path}'. Isolated Linux E2E sets GTK_USE_PORTAL=0 so this must work as a local GTK/GIO file, not a session portal.");
                 files.Add(file!);
             }
 
@@ -279,3 +278,4 @@ public sealed class DesktopWebViewFilePickerTests
         return requests;
     }
 }
+

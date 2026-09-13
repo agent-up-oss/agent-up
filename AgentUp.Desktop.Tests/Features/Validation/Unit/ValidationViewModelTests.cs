@@ -36,10 +36,12 @@ public sealed class ValidationViewModelTests
     [Test]
     public async Task ToggleCommand_collapsesTheSidebarRail()
     {
+        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var api = new ValidationFlowApiClient(http);
         var vm = new ValidationViewModel(
-            new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+            api,
             new ValidationFlowReplayService(
-                new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+                api,
                 new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController()));
 
         Assert.That(vm.IsExpanded, Is.True);
@@ -59,10 +61,12 @@ public sealed class ValidationViewModelTests
     [Test]
     public void Clear_asksTheUserToSelectAnApplication()
     {
+        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var api = new ValidationFlowApiClient(http);
         var vm = new ValidationViewModel(
-            new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+            api,
             new ValidationFlowReplayService(
-                new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") }),
+                api,
                 new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController()));
 
         vm.Clear();

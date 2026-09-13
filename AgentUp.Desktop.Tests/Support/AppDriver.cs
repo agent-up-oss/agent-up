@@ -69,7 +69,8 @@ internal sealed class AppDriver
             consoleClient,
             new GitApiClient(http),
             new ValidationFlowApiClient(http),
-            new AgentApiClient(http));
+            new AgentApiClient(http),
+            serverHttp: http);
     }
 
     public static async Task<(AppDriver Driver, MutableFakeHttpMessageHandler Handler)> LaunchWithMutableWorkspacesAsync(
@@ -86,7 +87,8 @@ internal sealed class AppDriver
             new GitApiClient(http),
             new ValidationFlowApiClient(http),
             new AgentApiClient(http),
-            webViewFactory);
+            webViewFactory,
+            serverHttp: http);
         return (driver, handler);
     }
 
@@ -105,15 +107,26 @@ internal sealed class AppDriver
             new GitApiClient(http),
             new ValidationFlowApiClient(http),
             new AgentApiClient(http),
-            webViewFactory);
+            webViewFactory,
+            serverHttp: http);
+    }
+
+    public static async Task<(AppDriver Driver, FakeHttpMessageHandler Handler)> LaunchWithFakeHttpAsync(
+        WorkspaceDto workspace,
+        Func<NativeWebView>? webViewFactory = null)
+    {
+        var handler = new FakeHttpMessageHandler([workspace]);
+        var driver = await LaunchAsync([workspace], webViewFactory, handler: handler);
+        return (driver, handler);
     }
 
     private static async Task<AppDriver> LaunchAsync(
         List<WorkspaceDto> workspaces,
         Func<NativeWebView>? webViewFactory = null,
-        FirstRunTutorialViewModel? tutorial = null)
+        FirstRunTutorialViewModel? tutorial = null,
+        FakeHttpMessageHandler? handler = null)
     {
-        var handler = new FakeHttpMessageHandler(workspaces);
+        handler ??= new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
@@ -124,7 +137,8 @@ internal sealed class AppDriver
             new ValidationFlowApiClient(http),
             new AgentApiClient(http),
             webViewFactory,
-            tutorial);
+            tutorial,
+            http);
     }
 
     private static async Task<AppDriver> LaunchWithClientsAsync(
@@ -134,7 +148,8 @@ internal sealed class AppDriver
         ValidationFlowApiClient validationClient,
         AgentApiClient agentClient,
         Func<NativeWebView>? webViewFactory = null,
-        FirstRunTutorialViewModel? tutorial = null)
+        FirstRunTutorialViewModel? tutorial = null,
+        HttpClient? serverHttp = null)
     {
         var vm = MainViewModelFactory.Create(
             workspaceClient,
@@ -143,7 +158,9 @@ internal sealed class AppDriver
             gitClient: gitClient,
             validationClient: validationClient,
             agentClient: agentClient);
-        var window = new MainWindow { DataContext = vm };
+        var window = serverHttp is null
+            ? new MainWindow { DataContext = vm }
+            : new MainWindow(serverHttp) { DataContext = vm };
         window.WebViewFactory = webViewFactory
             ?? (() => throw new InvalidOperationException("WebView not available in headless tests"));
         window.Show();

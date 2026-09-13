@@ -27,12 +27,18 @@ public static class DesktopFixtureAdapter
         throw new PlatformNotSupportedException("AgentUp.Tests requires Linux, macOS, or Windows.");
     }
 
-    public static AppBuilder ConfigureAvalonia<TApp>() where TApp : Application, new() =>
-        AppBuilder.Configure<TApp>()
-            .UsePlatformDetect()
+    public static AppBuilder ConfigureAvalonia<TApp>() where TApp : Application, new()
+    {
+        var builder = AppBuilder.Configure<TApp>();
+        builder = OperatingSystem.IsLinux()
+            ? builder.UseX11().UseSkia().UseHarfBuzz()
+            : builder.UsePlatformDetect();
+
+        return builder
             .UseReactiveUI()
             .AfterSetup(_ =>
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(DesktopFixtureHost.MarkAvaloniaReady);
             });
+    }
 }

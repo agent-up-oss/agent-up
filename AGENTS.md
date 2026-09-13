@@ -43,6 +43,9 @@ agent-up.sln
 AgentUp.Server/
   AgentUp.Server.csproj
 
+AgentUp.Browser.Streaming/
+  AgentUp.Browser.Streaming.csproj
+
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
 
@@ -97,6 +100,9 @@ AgentUp.PackageSmoke/
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
 
+AgentUp.Browser.Streaming.Tests/
+  AgentUp.Browser.Streaming.Tests.csproj
+
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
 
@@ -143,7 +149,8 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, Docker, browser lifecycle, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
 | `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, install planning, capability inventory, and CLI executable discovery used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
@@ -491,6 +498,8 @@ Full guide: `docs/developer-guide/server.md`.
 
 The Desktop is an Avalonia client for humans. It displays workspaces, browser tabs, logs, diagnostics, health, and running processes.
 
+Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
+
 It connects to the Server and must not own runtime state. Full guide: `docs/developer-guide/desktop.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
@@ -513,6 +522,8 @@ The mobile client is a single Expo and React Native TypeScript project that targ
 
 Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. The mobile client displays Server-owned state and must not own orchestration.
 
+Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
+
 Developer guide: `docs/developer-guide/mobile.md`.
 
 ## MCP
@@ -532,6 +543,8 @@ Managed applications must not reference Agent-Up packages, SDKs, or APIs. Agent-
 Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
 
 A local application entry may declare `install`, an executable-plus-arguments command (same allowlist and shell rejection as `command`) run to completion in the application's `path` before every launch of `command`. It has no separate "already installed" tracking: the Server reruns it on every start and restart and relies on the command itself being idempotent (`npm install`, `dotnet restore`, `pip install -r requirements.txt`). Output streams to the application console prefixed with `[install]`; a non-zero exit fails the start without launching `command`.
+
+The root `desktopApplications` collection declares Linux GUI processes. Each entry follows the local application command, install, path, environment, environment-file, and port rules, uses the allowlisted `linux` runtime, and may additionally set a fixed `window.width` and `window.height`. The Server creates an isolated Xvfb display before launch, injects `DISPLAY` plus a private `XDG_RUNTIME_DIR`, X11-only toolkit variables (`GDK_BACKEND=x11`, `WAYLAND_DISPLAY=agentup-hosted-no-wayland`, `XDG_SESSION_TYPE=x11`), and a native library path so SkiaSharp and GUI toolkits can load when the Server itself was not started inside `nix-shell`. The process cannot attach to the workstation session. The Server owns framebuffer capture and input, and issues session-scoped viewer tickets to Desktop and Mobile. Desktop application validation uses generation-scoped framebuffer coordinates; stale-generation input is rejected.
 
 The optional root `display` object in `agent-up.json` is only for Desktop visuals. `display.name` overrides the workspace entry title and `display.branch` overrides the workspace entry subtitle. These values must not change repository path identity, worktree path handling, Git branch detection, commit identity, audit identity, or process working directories.
 
@@ -621,6 +634,7 @@ This applies to every production/test project pair once created:
 | Project | Test Project |
 |---|---|
 | `AgentUp.Server` | `AgentUp.Server.Tests` |
+| `AgentUp.Browser.Streaming` | `AgentUp.Browser.Streaming.Tests` |
 | `AgentUp.Capabilities.Abstractions` | `AgentUp.Capabilities.Abstractions.Tests` |
 | `AgentUp.Capabilities.Common` | `AgentUp.Capabilities.Common.Tests` |
 | `AgentUp.Capabilities.Dotnet` | `AgentUp.Capabilities.Dotnet.Tests` |
@@ -639,7 +653,7 @@ This applies to every production/test project pair once created:
 
 `AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, test taxonomy rules, MCP endpoint tool-allowlist completeness, and verification path-rule coverage for every production and test project. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
 
-`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
+`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK: the adapter always starts a private Xvfb, `XDG_RUNTIME_DIR`, and session bus, imports `PATH` and native libraries from `nix-shell shell.nix` so IDEs do not need extra env vars, and Avalonia is forced onto X11, so a developer workstation's Wayland/X11 session is not reused. Set `AGENTUP_E2E_USE_SESSION_DISPLAY=1` only to debug against the real display. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
 Changes to packaging, installers, CI payload staging, Desktop startup, browser/WebView hosting, or installed app layout that can affect the delivered Desktop or InstallerApp runtime must run the relevant project tests and `AgentUp.Tests` in the same verification pass. Do not claim completion for those changes after only running the package, installer, or app unit test projects.
 

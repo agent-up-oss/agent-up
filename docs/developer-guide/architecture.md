@@ -7,6 +7,7 @@ title: Architecture
 Agent-Up has core runtime component areas plus product-specific installer entrypoints:
 
 - `AgentUp.Server`
+- `AgentUp.Browser.Streaming`
 - `AgentUp.Desktop`
 - `AgentUp.Mobile`
 - `AgentUp.DesignSystem`
@@ -29,6 +30,9 @@ agent-up.sln
 
 AgentUp.Server/
   AgentUp.Server.csproj
+
+AgentUp.Browser.Streaming/
+  AgentUp.Browser.Streaming.csproj
 
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
@@ -74,6 +78,9 @@ AgentUp.PackageSmoke/
 
 AgentUp.Server.Tests/
   AgentUp.Server.Tests.csproj
+
+AgentUp.Browser.Streaming.Tests/
+  AgentUp.Browser.Streaming.Tests.csproj
 
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj

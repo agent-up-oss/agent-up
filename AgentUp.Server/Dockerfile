@@ -8,6 +8,9 @@ RUN chmod +x /tmp/install-runtime-tools.sh \
     && /tmp/install-runtime-tools.sh /tmp/runtime-tools \
     && rm /tmp/install-runtime-tools.sh \
     && rm -rf /tmp/runtime-tools \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base \
+    && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /var/lib/agent-up \
     && chown -R $APP_UID /var/lib/agent-up
 ENV PATH="/opt/agent-up/bin:${PATH}"

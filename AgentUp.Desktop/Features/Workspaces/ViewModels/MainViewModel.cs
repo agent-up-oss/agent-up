@@ -133,6 +133,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public bool ShowDatabase => ShowApplication && SelectedSubTab is DatabaseSubTabViewModel;
     public bool ShowAudit => ShowApplication && SelectedSubTab is AuditSubTabViewModel;
     public bool ShowPortView => ShowApplication && SelectedSubTab is PortSubTabViewModel { IsHttp: true };
+    public bool ShowDesktopView => ShowApplication && SelectedSubTab is DesktopSubTabViewModel;
+    public bool ShowDisplayView => ShowPortView || ShowDesktopView;
     public bool ShowTcpInfo => ShowApplication && SelectedSubTab is PortSubTabViewModel { IsHttp: false };
 
     public string? AddressBarUrl
@@ -265,6 +267,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             if (wsApp is not null)
                 ApplyPortHealthToSubTabs(wsApp);
         }
+        this.RaisePropertyChanged(nameof(ShowDesktopView));
+        this.RaisePropertyChanged(nameof(ShowDisplayView));
 
         // Navigate even when the console or TCP tab is active so the direct browser reconnects
         // when the workspace starts remotely while the user is viewing a non-port tab.
@@ -350,6 +354,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 this.RaisePropertyChanged(nameof(ShowDatabase));
                 this.RaisePropertyChanged(nameof(ShowAudit));
                 this.RaisePropertyChanged(nameof(ShowPortView));
+                this.RaisePropertyChanged(nameof(ShowDesktopView));
+                this.RaisePropertyChanged(nameof(ShowDisplayView));
                 this.RaisePropertyChanged(nameof(ShowTcpInfo));
                 if (tab is PortSubTabViewModel { IsHttp: true } portTab)
                 {
@@ -639,13 +645,16 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         var ports = app.AllocatedPorts
             .Select(port => new PortTabRequest(port.Variable ?? string.Empty, port.DefaultPort, port.AllocatedPort, port.Protocol))
             .ToList();
+        if (app.IsDesktop)
+            SubTabs.Add(new DesktopSubTabViewModel());
         if (app.Database)
             SubTabs.Add(new DatabaseSubTabViewModel());
         foreach (var tab in _ports.CreateTabs(ports))
             SubTabs.Add(tab);
         SubTabs.Add(new AuditSubTabViewModel());
 
-        SelectedSubTab = SubTabs.OfType<DatabaseSubTabViewModel>().FirstOrDefault()
+        SelectedSubTab = SubTabs.OfType<DesktopSubTabViewModel>().FirstOrDefault()
+            ?? SubTabs.OfType<DatabaseSubTabViewModel>().FirstOrDefault()
             ?? SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault()
             ?? (SubTabViewModel)SubTabs[0];
 
@@ -677,7 +686,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     }
 
     private static ApplicationViewModel CreateApplicationViewModel(WorkspaceApplicationViewModel app) =>
-        new(app.Name, app.Command, app.State, app.AllocatedPorts, app.Database);
+        new(app.Name, app.Command, app.State, app.AllocatedPorts, app.Database, app.IsDesktop);
 
     public async Task InitializeAsync()
     {
@@ -747,6 +756,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         this.RaisePropertyChanged(nameof(ShowDatabase));
         this.RaisePropertyChanged(nameof(ShowAudit));
         this.RaisePropertyChanged(nameof(ShowPortView));
+        this.RaisePropertyChanged(nameof(ShowDesktopView));
+        this.RaisePropertyChanged(nameof(ShowDisplayView));
         this.RaisePropertyChanged(nameof(ShowTcpInfo));
     }
 }

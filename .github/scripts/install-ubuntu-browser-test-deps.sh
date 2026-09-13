@@ -20,7 +20,7 @@ apt_install() {
 }
 
 sudo apt-get update -o Acquire::Retries=3
-apt_install xvfb x11-utils dbus-x11 at-spi2-core libgtk-3-0
+apt_install xvfb x11-utils x11-apps dbus-x11 at-spi2-core libgtk-3-0 libxtst6
 if apt-cache policy libwebkit2gtk-4.1-0 | grep -q 'Candidate: [^()]'; then
   apt_install libwebkit2gtk-4.1-0
   webkit_lib="$(ldconfig -p | awk '/libwebkit2gtk-4.1.so/{print $NF; exit}')"

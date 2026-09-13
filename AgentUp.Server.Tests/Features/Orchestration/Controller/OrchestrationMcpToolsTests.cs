@@ -142,6 +142,7 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(context, Does.Contain("active merge, rebase, cherry-pick, revert, or bisect"));
         Assert.That(context, Does.Contain("enqueue_commit intentionally restores tracked files"));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"services\""));
+        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"desktopApplications\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"ports\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"display\""));
         Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"prompts\""));

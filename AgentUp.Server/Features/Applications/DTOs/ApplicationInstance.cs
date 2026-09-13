@@ -6,6 +6,7 @@ namespace AgentUp.Server.Features.Applications.DTOs;
 public class ApplicationInstance
 {
     public required string Name { get; init; }
+    public ApplicationKind Kind { get; init; } = ApplicationKind.Process;
     public ServiceType ServiceType { get; init; } = ServiceType.Process;
 
     // Process fields
@@ -34,4 +35,11 @@ public class ApplicationInstance
     public ApplicationState State { get; set; } = ApplicationState.Stopped;
 
     public bool Database { get; init; }
+    public int DesktopWidth { get; init; } = 1280;
+    public int DesktopHeight { get; init; } = 800;
+    public string DesktopRuntime { get; init; } = "linux";
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyDictionary<string, string> RuntimeEnvironment { get; set; } =
+        new Dictionary<string, string>();
 }

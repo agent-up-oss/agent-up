@@ -92,6 +92,13 @@
             </Border>
         </DataTemplate>
 
+        <!-- Desktop application sub-tab -->
+        <DataTemplate DataType="appVm:DesktopSubTabViewModel">
+            <Border Classes="subTab">
+                <TextBlock Text="Desktop"/>
+            </Border>
+        </DataTemplate>
+
         <!-- Port sub-tab -->
         <DataTemplate DataType="portVm:PortSubTabViewModel">
             <Border Classes="subTab">
@@ -1377,7 +1384,23 @@
 
                             <!-- Port view: browser WebViews are added/swapped here in code-behind -->
                             <Panel x:Name="PortPane"
-                                   IsVisible="{Binding ShowPortView}">
+                                   IsVisible="{Binding ShowDisplayView}">
+                                <Border x:Name="DesktopConnectingBanner"
+                                        IsVisible="False"
+                                        ZIndex="9"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="24,20">
+                                    <TextBlock Text="Connecting to the desktop application..."
+                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="400"/>
+                                </Border>
                                 <!-- Shown only when NativeWebView creation fails for the active workspace -->
                                 <Border x:Name="WebViewErrorBanner"
                                         IsVisible="False"

@@ -161,7 +161,7 @@ Desktop displays each workspace application through a direct embedded WebView co
 
 Desktop bridges HTML file inputs to the native Avalonia file picker so uploads work consistently across the platform WebView engines. Only trusted user clicks reach the bridge, so a page cannot open a native file chooser on its own. The selected files are returned only to the requesting WebView and are limited to 32 MB per file and 128 MB per selection, enforced while each file is read rather than after it, so an oversized selection is refused instead of buffered. Directory inputs continue to use the platform WebView behavior.
 
-The upload bridge and the sign-in popup path are covered end to end in `AgentUp.Tests` against the real window, the platform WebView engine, and the platform storage provider. Those tests substitute only what no test runner can drive on a CI runner — the modal file chooser and the engine's new-window callback — and keep the injected scripts, WebView messages, `IStorageFile` reads, redirects, and cookies real.
+The upload bridge and the sign-in popup path are covered end to end in `AgentUp.Tests` against the real window, the platform WebView engine, and the platform storage provider. Those tests substitute only what no test runner can drive on a CI runner — the modal file chooser and the engine's new-window callback — and keep the injected scripts, WebView messages, `IStorageFile` reads, redirects, and cookies real. On Linux the fixture starts its own Xvfb display, a private `XDG_RUNTIME_DIR`, and a D-Bus session, imports native libraries from `nix-shell shell.nix` so IDEs do not need extra env vars, and Avalonia is forced onto X11, so a local run cannot fall back to the workstation Wayland socket or session portal.
 
 The Server owns a separate headless Chromium profile per workspace under `browser-profiles/{workspaceId}`. MCP browser tools use that headless profile for automation. Desktop does not stream, mirror, or read from the headless session.
 
@@ -170,6 +170,8 @@ Desktop WebViews and Server headless profiles do not share cookies, local storag
 Within Desktop, each HTTP port tab keeps its own WebView state when switching tabs or applications. Within the Server headless profile, MCP browser actions share one automation session per workspace. Across workspaces, both surfaces remain isolated.
 
 Browser automation and inspection for agents should expose navigation, reload, semantic interaction, HTML/DOM capture, accessibility data, screenshots, history, and page metadata through Server-owned MCP contracts. Prefer structured inspection and accessibility data over raw HTML when generating diagnostics or automation.
+
+Applications whose Server DTO kind is `Desktop` use a separate application sub-tab labeled Desktop. Selecting that tab immediately hides any previous HTTP WebView and shows a connecting state. Desktop then retries session-scoped viewer-ticket requests while the application is starting or running, and hosts the returned Server viewer in a dedicated NativeWebView. This viewer is never used for ordinary HTTP ports. A failed or stopped application shows an error in the same pane instead of leaving the previous HTTP page visible.
 
 ## Thin Client Rule
 
