@@ -52,6 +52,34 @@ public sealed class CommitsServiceTests
     }
 
     [Test]
+    public async Task EnqueueAsync_recordsGitProposalMetadataWhenEnabled()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var proposals = new FakeProposalStackGitProvider();
+        var service = new CommitsService(
+            queue,
+            new FakeCommitsGitProvider(),
+            new CommitPolicyProvider(),
+            proposals,
+            new EnabledConfigurationProvider(),
+            null);
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.QueueWorktreePath, Is.EqualTo("/managed/queue"));
+            Assert.That(result.Generation, Is.EqualTo(1));
+            Assert.That(queue.Stored!.BaseCommit, Is.EqualTo("base"));
+            Assert.That(queue.Stored.TipCommit, Is.EqualTo("proposal"));
+            Assert.That(queue.Stored.Commits.Single().ParentCommit, Is.EqualTo("base"));
+            Assert.That(queue.Stored.Commits.Single().ProposalCommit, Is.EqualTo("proposal"));
+            Assert.That(queue.Stored.Commits.Single().State, Is.EqualTo("unverified"));
+        });
+    }
+
+    [Test]
     public async Task EnqueueAsync_messageWarnsAgentThatTrackedFilesWereRestored()
     {
         var queue = new FakeCommitsQueueProvider();
@@ -492,5 +520,22 @@ public sealed class CommitsServiceTests
             FilesRestored = true;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class EnabledConfigurationProvider : ICommitQueueConfigurationProvider
+    {
+        public bool IsGitQueueEnabled(string worktreePath) => true;
+    }
+
+    private sealed class FakeProposalStackGitProvider : IProposalStackGitProvider
+    {
+        public Task<ProposalCommitResult> EnqueueAsync(
+            string worktreePath,
+            CommitsQueue current,
+            string queueId,
+            string message,
+            IReadOnlyList<string> files,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(new ProposalCommitResult("base", "base", "proposal", "/managed/queue", $"refs/agent-up/queues/{queueId}/tip", "patch"));
     }
 }

@@ -243,6 +243,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
         builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
+        builder.Services.AddSingleton<IProposalStackGitProvider, ProposalStackGitProvider>();
+        builder.Services.AddSingleton<ICommitQueueConfigurationProvider, CommitQueueConfigurationProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
@@ -265,6 +267,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<VerificationRunService>();
         builder.Services.AddSingleton<VerificationGuardService>();
         builder.Services.AddSingleton<VerificationReportService>();
+        builder.Services.AddSingleton<VerificationQueueGateService>();
+        builder.Services.AddSingleton<VerificationController>();
         builder.Services.AddSingleton<VerificationMcpService>();
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();

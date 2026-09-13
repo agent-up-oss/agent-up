@@ -10,7 +10,7 @@ The idea is feasible and addresses the main mismatch in the current commit queue
 
 It is not a small extension to the existing queue. The useful product is a **Server-owned proposal stack with a separate queue worktree**, not merely a CLI queue whose patch files happen to be commits. Desktop, Mobile, CLI, and MCP can then observe the same state; agents and managed applications run at the queue tip; and the developer's working branch remains unchanged until an entry is approved.
 
-The recommendation is to prototype this direction behind an optional `commits.enabled` setting, but not yet treat the configuration or API sketches below as accepted contracts. The prototype must prove transactional enqueue, per-entry verification, upstream rewrite recovery, and approval into a dirty real-world worktree before replacing the existing module.
+The first implementation adopts this direction behind an optional `commits.enabled` setting. It creates a namespaced ref and private worktree, commits dependent entries there, runs the current Verification gate before enqueue, preserves stable queue metadata, and leaves the developer branch unchanged. Rebase/repair, review application, tree-bound verification receipts, and client parity remain later phases described below; the existing independent patch behavior remains available while that migration is incomplete.
 
 ## Why the current model fights incremental work
 

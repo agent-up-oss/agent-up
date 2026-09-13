@@ -112,7 +112,7 @@ public sealed class CommitsQueueProvider(ICommitsGitProvider git, string? baseDi
 
     private async Task<string> QueuePathAsync(string worktreePath, CancellationToken cancellationToken)
     {
-        var root = await git.GetRepoRootAsync(worktreePath, cancellationToken);
+        var root = await git.GetRepositoryIdentityAsync(worktreePath, cancellationToken);
         var repoId = RepoId(root);
         var baseDir = baseDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         return Path.Join(baseDir, "agentup", "commits", repoId, "queue.json");
