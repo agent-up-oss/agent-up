@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { requestServerJson, ServerRequestError } from './ServerRequestProvider';
+import { requestServerJson, ServerRequestError, isUnauthorized } from './ServerRequestProvider';
 
 // Mimics fetch: it resolves once headers exist, and its body stream fails when the request signal
 // aborts. A server that stalls the body must therefore still hit the request timeout.
@@ -100,4 +100,10 @@ test('a session without an access token sends no authorization header', async ()
   await requestServerJson({ url: 'http://localhost:5000' }, '/api/workspaces', { method: 'GET' }, 2000, recordingFetch);
 
   assert.equal('Authorization' in (recorded[0].headers as Record<string, string>), false);
+});
+
+test('isUnauthorized is true only for HTTP 401', () => {
+  assert.equal(isUnauthorized(new ServerRequestError('The server returned 401.', 401)), true);
+  assert.equal(isUnauthorized(new ServerRequestError('Branch must be a valid Git branch name.', 400)), false);
+  assert.equal(isUnauthorized(new Error('The server returned 401.')), false);
 });

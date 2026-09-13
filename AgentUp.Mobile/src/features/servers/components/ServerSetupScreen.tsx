@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useServers } from '../controllers/ServersContext';
@@ -9,13 +9,20 @@ import { getAuthenticationStatus, login, ensureCredentialTransportAllowed } from
 
 export function ServerSetupScreen() {
   const router = useRouter();
-  const { activeServer, servers, saveServer, selectServer, removeServer } = useServers();
+  const { activeServer, servers, saveServer, selectServer, removeServer, requiresSignIn } = useServers();
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
   const connectionInFlight = useRef(false);
+
+  useEffect(() => {
+    if (!requiresSignIn || !activeServer) return;
+    setUrl(activeServer.url);
+    setLoginUrl(activeServer.url);
+    setStatus('This saved sign-in is no longer valid. Enter the administrator password.');
+  }, [requiresSignIn, activeServer]);
 
   const tryAndSave = async (candidate = url) => {
     if (connectionInFlight.current) return;
@@ -87,7 +94,7 @@ export function ServerSetupScreen() {
       {loginUrl && <Pressable accessibilityRole="button" disabled={busy || !password} onPress={() => void signIn()}
         style={[styles.button, (busy || !password) && styles.disabled]}>
         <Text style={styles.buttonText}>Sign in</Text></Pressable>}
-      {!!status && <Text accessibilityRole="alert" style={styles.status}>{status}</Text>}
+      {!!status && <Text accessibilityRole="alert" style={requiresSignIn ? styles.errorStatus : styles.status}>{status}</Text>}
     </View>
     {servers.length > 0 && <View style={styles.card}>
       <Text style={styles.heading}>Saved servers</Text>
@@ -131,6 +138,7 @@ const styles = StyleSheet.create({
   label: { color: '#f5fbf7', fontWeight: '700' }, input: { minHeight: 50, borderRadius: 8, borderWidth: 1, borderColor: '#287038',
     paddingHorizontal: 14, color: '#f5fbf7', backgroundColor: '#080808' }, button: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#00d66b' },
   disabled: { opacity: 0.38 }, buttonText: { color: '#000000', fontWeight: '800' }, status: { color: '#2bf27a', lineHeight: 21 },
+  errorStatus: { color: '#ff6b6b', lineHeight: 21 },
   current: { padding: 16, borderLeftWidth: 3, borderLeftColor: '#287038', gap: 4 }, currentLabel: { color: '#aebcb3', fontSize: 12, textTransform: 'uppercase' },
   currentUrl: { color: '#f5fbf7', fontWeight: '700' },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#080808' },

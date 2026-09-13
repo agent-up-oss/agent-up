@@ -29,7 +29,10 @@ saved only after the Server authentication status probe succeeds. If login is
 required, the client requests the single administrator password and stores the
 resulting access token with the Server selection; if authentication is
 disabled, it skips that login step. Switching back to a saved Server reuses
-that token so the password is not typed again until the Server rejects it.
+that token so the password is not typed again until the Server rejects it
+with 401. That rejection returns the user to the connect screen and asks
+for the administrator password again; the saved Server URL stays.
+
 Remote servers must use HTTPS; loopback HTTP URLs remain supported for local
 development.
 

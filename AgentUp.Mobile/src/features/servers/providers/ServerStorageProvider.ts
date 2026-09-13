@@ -62,6 +62,15 @@ export function selectServer(selection: ServerSelection, id: string): ServerSele
   return { ...selection, activeServerId: id };
 }
 
+export function clearActiveCredential(selection: ServerSelection): ServerSelection {
+  if (!selection.activeServerId) return selection;
+  return {
+    ...selection,
+    servers: selection.servers.map(server =>
+      server.id === selection.activeServerId ? { ...server, accessToken: undefined } : server),
+  };
+}
+
 export function removeServer(selection: ServerSelection, id: string): ServerSelection {
   const servers = selection.servers.filter(server => server.id !== id);
   const activeServerId = selection.activeServerId === id

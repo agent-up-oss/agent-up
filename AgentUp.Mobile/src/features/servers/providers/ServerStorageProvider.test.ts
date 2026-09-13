@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   browserServerStorage,
+  clearActiveCredential,
   loadServerSelection,
   removeServer,
   saveServerSelection,
@@ -65,6 +66,14 @@ test('upsertServer keeps the saved token when reconnecting without a new one', (
 test('selectServer ignores unknown ids', () => {
   const saved = upsertServer(empty, 'http://localhost:5000');
   assert.deepEqual(selectServer(saved, 'missing'), saved);
+});
+
+test('clearActiveCredential drops the saved token but keeps the server', () => {
+  const saved = upsertServer(empty, 'http://localhost:5000', 'token-1');
+  const next = clearActiveCredential(saved);
+  assert.equal(next.servers.length, 1);
+  assert.equal(next.servers[0].accessToken, undefined);
+  assert.equal(next.activeServerId, saved.activeServerId);
 });
 
 test('removeServer drops the entry and repoints the active selection', () => {

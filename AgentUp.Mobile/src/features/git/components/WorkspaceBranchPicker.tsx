@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useServers } from '@/features/servers/controllers/ServersContext';
+import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitHeadState } from '../models/GitChanges';
 import { getHeadState, switchBranch } from '../providers/GitApiProvider';
@@ -9,6 +11,7 @@ type WorkspaceBranchPickerProps = {
 };
 
 export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProps) {
+  const { expireActiveCredential } = useServers();
   const { server, refresh } = useWorkspaces();
   const [head, setHead] = useState<GitHeadState | null>(null);
   const [open, setOpen] = useState(false);
@@ -27,9 +30,13 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
       setHead(next);
     } catch (cause) {
       if (ticket !== request.current) return;
+      if (isUnauthorized(cause)) {
+        expireActiveCredential();
+        return;
+      }
       setError(cause instanceof Error ? cause.message : 'Could not load branches.');
     }
-  }, [server, workspaceId]);
+  }, [server, workspaceId, expireActiveCredential]);
 
   useEffect(() => {
     setHead(null);

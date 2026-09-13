@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Workspace } from '../models/Workspace';
-import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
+import { ServerRequestError, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import { createWorkspaceRefresh, type WorkspaceRefreshSink } from './WorkspaceRefreshProvider';
 
 function at(url: string): ServerSession {
@@ -26,6 +26,7 @@ type Recorded = {
   errors: string[];
   loading: boolean[];
   disconnects: number;
+  unauthorized: number;
 };
 
 function recorder(): Recorded {
@@ -33,10 +34,12 @@ function recorder(): Recorded {
   const errors: string[] = [];
   const loading: boolean[] = [];
   let disconnects = 0;
+  let unauthorized = 0;
   const sink: WorkspaceRefreshSink = {
     onLoading: value => { loading.push(value); },
     onWorkspaces: value => { applied.push(value.map(w => w.id)); },
     onError: message => { errors.push(message); },
+    onUnauthorized: () => { unauthorized++; },
     onDisconnected: () => { disconnects++; },
   };
   return {
@@ -45,6 +48,7 @@ function recorder(): Recorded {
     errors,
     loading,
     get disconnects() { return disconnects; },
+    get unauthorized() { return unauthorized; },
   } as Recorded;
 }
 
@@ -190,6 +194,20 @@ test('switching servers clears the previous workspace list before the new list a
   await slow;
 
   assert.deepEqual(recorded.applied, [['from-fast']]);
+});
+
+test('a 401 does not surface as a workspace load error', async () => {
+  const recorded = recorder();
+  const { refresh } = createWorkspaceRefresh(
+    recorded.sink,
+    () => Promise.reject(new ServerRequestError('The server returned 401.', 401)),
+  );
+
+  await refresh({ url: 'https://agent-up.example.com', accessToken: 'stale' });
+
+  assert.equal(recorded.unauthorized, 1);
+  assert.deepEqual(recorded.errors, []);
+  assert.deepEqual(recorded.applied, []);
 });
 
 test('a session whose access token changed is no longer active', async () => {
