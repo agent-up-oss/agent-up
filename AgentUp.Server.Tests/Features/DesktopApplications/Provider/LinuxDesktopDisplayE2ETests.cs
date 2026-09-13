@@ -11,6 +11,8 @@ public sealed class LinuxDesktopDisplayE2ETests
     public async Task Captures_and_controls_a_real_x11_application()
     {
         var provider = new LinuxX11DesktopDisplayProvider(new PngFrameProvider());
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await provider.StartAsync(100, 100, CancellationToken.None));
         var display = await provider.StartAsync(640, 480, CancellationToken.None);
         using var application = new Process
         {
@@ -39,6 +41,12 @@ public sealed class LinuxDesktopDisplayE2ETests
             await provider.SendPointerAsync(display, 320, 240, 0, false, CancellationToken.None);
             await provider.SendKeyAsync(display, "Escape", true, CancellationToken.None);
             await provider.SendKeyAsync(display, "Escape", false, CancellationToken.None);
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await provider.SendPointerAsync(display, -1, 0, 0, true, CancellationToken.None));
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await provider.SendKeyAsync(display, string.Empty, true, CancellationToken.None));
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await provider.SendKeyAsync(display, "DefinitelyNotAKey", true, CancellationToken.None));
         }
         finally
         {

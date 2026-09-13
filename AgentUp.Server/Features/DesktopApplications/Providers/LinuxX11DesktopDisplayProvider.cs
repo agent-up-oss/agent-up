@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -7,6 +8,7 @@ using AgentUp.Server.Features.DesktopApplications.Models;
 
 namespace AgentUp.Server.Features.DesktopApplications.Providers;
 
+[SuppressMessage("Interoperability", "CA1401:P/Invokes should not be visible", Justification = "X11 and XTest have no managed framebuffer or synthetic-input API; declarations are private and isolated in this provider.")]
 public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) : IDesktopDisplayProvider
 {
     public async Task<DesktopDisplayHandle> StartAsync(int width, int height, CancellationToken cancellationToken)

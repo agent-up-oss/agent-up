@@ -821,7 +821,7 @@ public class MainViewModelTests
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
-            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+            => Task.FromResult(HttpTestResponses.Empty(System.Net.HttpStatusCode.NotFound));
     }
 
     private sealed class NullValidationHandler : HttpMessageHandler

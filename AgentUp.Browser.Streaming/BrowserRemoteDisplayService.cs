@@ -264,7 +264,7 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
         {
             while (ws.State == WebSocketState.Open)
             {
-                var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
+                var result = await ws.ReceiveAsync(buffer, cts.Token);
                 if (result.MessageType == WebSocketMessageType.Close) break;
                 if (result.MessageType != WebSocketMessageType.Text) continue;
                 var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
@@ -275,6 +275,10 @@ public sealed class BrowserRemoteDisplayService(ILogger<BrowserRemoteDisplayServ
                 try { await onTextFrame(json); }
                 catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException) { break; }
             }
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            logger.LogDebug("RDP input drain was cancelled for workspace {WorkspaceId}.", SanitizeForLog(workspaceId));
         }
         catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
         {

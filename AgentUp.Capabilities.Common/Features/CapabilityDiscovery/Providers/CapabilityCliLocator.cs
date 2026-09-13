@@ -80,18 +80,12 @@ public sealed class CapabilityCliLocator
         IReadOnlyList<CapabilityCliCandidate> candidates)
     {
         var discovered = new List<CapabilityInstalledVersion>();
-        foreach (var directory in _searchPaths.Directories())
-        {
-            foreach (var candidate in candidates)
-            {
-                foreach (var fileName in FileNames(candidate.FileName))
-                {
-                    var path = Path.Join(directory, fileName);
-                    if (_executables.IsExecutable(path))
-                        discovered.Add(Installed(capabilityId, "unknown", path));
-                }
-            }
-        }
+        discovered.AddRange(_searchPaths.Directories()
+            .SelectMany(directory => candidates
+                .SelectMany(candidate => FileNames(candidate.FileName))
+                .Select(fileName => Path.Join(directory, fileName)))
+            .Where(_executables.IsExecutable)
+            .Select(path => Installed(capabilityId, "unknown", path)));
 
         return discovered;
     }

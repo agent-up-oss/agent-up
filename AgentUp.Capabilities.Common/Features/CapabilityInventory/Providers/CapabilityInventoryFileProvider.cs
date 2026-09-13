@@ -24,10 +24,9 @@ public sealed class CapabilityInventoryFileProvider
                 Options) ?? [];
             foreach (var entry in entries)
             {
-                if (byId.TryGetValue(entry.Id, out var existing))
-                    byId[entry.Id] = Merge(existing, entry);
-                else
-                    byId[entry.Id] = entry;
+                byId[entry.Id] = byId.TryGetValue(entry.Id, out var existing)
+                    ? Merge(existing, entry)
+                    : entry;
             }
         }
 

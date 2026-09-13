@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.WebSockets;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
@@ -42,6 +43,11 @@ public sealed class DesktopApplicationsControllerTests
         var ticket = controller.CreateViewerTicket(workspace.Id, application.Name);
         var ticketValue = new Uri("http://localhost" + ticket!.ViewerUrl).Query["?ticket=".Length..];
         var viewerPage = controller.CreateViewerPage(session!.SessionId, ticketValue);
+        var screenshot = await controller.CaptureAsync(workspace.Id, application.Name, session.Generation, CancellationToken.None);
+        using var socket = new ClosingWebSocket();
+        await controller.StreamAsync(session.SessionId, socket, CancellationToken.None);
+        await controller.PointerAsync(workspace.Id, application.Name, new DesktopPointerRequest(session.Generation, 10, 20, 1), true, CancellationToken.None);
+        await controller.KeyAsync(workspace.Id, application.Name, new DesktopKeyRequest(session.Generation, "Escape", true), CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -52,6 +58,13 @@ public sealed class DesktopApplicationsControllerTests
             Assert.That(ticket.ViewerUrl, Does.Contain(session.SessionId));
             Assert.That(viewerPage, Does.Contain("pointerdown"));
             Assert.That(controller.CreateViewerPage(session.SessionId, "wrong"), Is.Null);
+            Assert.That(controller.GetBySessionId(session.SessionId), Is.Not.Null);
+            Assert.That(controller.ValidateStreamRequest(session.SessionId, ticketValue, false), Is.EqualTo(400));
+            Assert.That(controller.ValidateStreamRequest(session.SessionId, "wrong", true), Is.EqualTo(401));
+            Assert.That(controller.ValidateStreamRequest(session.SessionId, ticketValue, true), Is.EqualTo(101));
+            Assert.That(screenshot, Is.EqualTo(new byte[] { 137, 80, 78, 71 }));
+            Assert.That(displays.PointerEvents, Has.Count.EqualTo(1));
+            Assert.That(displays.KeyEvents, Has.Count.EqualTo(1));
         });
 
         await controller.PrepareAsync(workspace, application, CancellationToken.None);
@@ -68,9 +81,33 @@ public sealed class DesktopApplicationsControllerTests
     }
 }
 
+internal sealed class ClosingWebSocket : WebSocket
+{
+    private WebSocketState _state = WebSocketState.Open;
+    public override WebSocketCloseStatus? CloseStatus => WebSocketCloseStatus.NormalClosure;
+    public override string? CloseStatusDescription => null;
+    public override WebSocketState State => _state;
+    public override string? SubProtocol => null;
+    public override void Abort() => _state = WebSocketState.Aborted;
+    public override Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
+    {
+        _state = WebSocketState.Closed;
+        return Task.CompletedTask;
+    }
+    public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken) =>
+        CloseAsync(closeStatus, statusDescription, cancellationToken);
+    public override void Dispose() => _state = WebSocketState.Closed;
+    public override Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken) =>
+        Task.FromResult(new WebSocketReceiveResult(0, WebSocketMessageType.Close, true));
+    public override Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+}
+
 internal sealed class FakeDesktopDisplayProvider : IDesktopDisplayProvider
 {
     public bool Stopped { get; private set; }
+    public List<(int X, int Y, int Button, bool Pressed)> PointerEvents { get; } = [];
+    public List<(string Key, bool Pressed)> KeyEvents { get; } = [];
 
     public Task<DesktopDisplayHandle> StartAsync(int width, int height, CancellationToken cancellationToken) =>
         Task.FromResult(new DesktopDisplayHandle(":123", Process.GetCurrentProcess(), width, height));
@@ -78,11 +115,17 @@ internal sealed class FakeDesktopDisplayProvider : IDesktopDisplayProvider
     public Task<byte[]> CapturePngAsync(DesktopDisplayHandle display, CancellationToken cancellationToken) =>
         Task.FromResult<byte[]>([137, 80, 78, 71]);
 
-    public Task SendPointerAsync(DesktopDisplayHandle display, int x, int y, int button, bool pressed, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+    public Task SendPointerAsync(DesktopDisplayHandle display, int x, int y, int button, bool pressed, CancellationToken cancellationToken)
+    {
+        PointerEvents.Add((x, y, button, pressed));
+        return Task.CompletedTask;
+    }
 
-    public Task SendKeyAsync(DesktopDisplayHandle display, string key, bool pressed, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+    public Task SendKeyAsync(DesktopDisplayHandle display, string key, bool pressed, CancellationToken cancellationToken)
+    {
+        KeyEvents.Add((key, pressed));
+        return Task.CompletedTask;
+    }
 
     public Task StopAsync(DesktopDisplayHandle display, CancellationToken cancellationToken)
     {

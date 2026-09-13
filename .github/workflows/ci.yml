@@ -170,6 +170,12 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Install hosted desktop test dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xvfb x11-apps libxtst6
+
       - name: Run tests
         shell: bash
         env:
@@ -246,6 +252,12 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Install hosted desktop test dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xvfb x11-apps libxtst6
+
       - name: Run tests with coverage
         shell: bash
         run: ./.github/scripts/run-dotnet-tests.sh
@@ -257,6 +269,7 @@ jobs:
         run: |
           ./.github/scripts/locate-coverage-reports.sh \
             AgentUp.Architecture.Tests \
+            AgentUp.Browser.Streaming.Tests \
             AgentUp.CLI.Tests \
             AgentUp.Capabilities.Abstractions.Tests \
             AgentUp.Capabilities.Common.Tests \
@@ -281,6 +294,17 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
           verbose: true
+
+      - name: Upload AgentUp.Browser.Streaming.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_browser_streaming_tests }}
+          flags: agentup-browser-streaming-tests
+          name: AgentUp.Browser.Streaming.Tests
+          fail_ci_if_error: true
+          disable_search: true
 
       - name: Upload AgentUp.CLI.Tests coverage
         if: ${{ !cancelled() }}

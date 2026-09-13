@@ -66,9 +66,8 @@ public sealed class DesktopMcpService(DesktopApplicationsController desktopAppli
         if (text.Length > 500) return new McpToolResult(false, "Desktop text cannot exceed 500 characters.");
         var clicked = await ClickAsync(workspaceId, application, generation, x, y, 0, cancellationToken);
         if (!clicked.Succeeded) return clicked;
-        foreach (var character in text)
+        foreach (var key in text.Select(character => character == ' ' ? "space" : character.ToString()))
         {
-            var key = character == ' ' ? "space" : character.ToString();
             await desktopApplications.KeyAsync(workspaceId, application, new DesktopKeyRequest(generation, key, true), cancellationToken);
             await desktopApplications.KeyAsync(workspaceId, application, new DesktopKeyRequest(generation, key, false), cancellationToken);
         }
