@@ -58,17 +58,8 @@ public sealed class HostedDesktopNativeLibraryProvider : IHostedDesktopNativeLib
         }
     }
 
-    internal static string? FindShellNix(params string?[] roots)
-    {
-        foreach (var root in roots)
-        {
-            var found = WalkForShellNix(root);
-            if (found is not null)
-                return found;
-        }
-
-        return null;
-    }
+    internal static string? FindShellNix(params string?[] roots) =>
+        roots.Select(WalkForShellNix).FirstOrDefault(static found => found is not null);
 
     private static string? WalkForShellNix(string? start)
     {

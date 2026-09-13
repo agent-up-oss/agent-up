@@ -72,7 +72,7 @@ public sealed class DesktopApplicationTabTests
         var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
         handler.ViewerTicket = attempt => Task.FromResult(
             attempt < 3
-                ? new HttpResponseMessage(System.Net.HttpStatusCode.NotFound)
+                ? FakeHttpMessageHandler.NotFound()
                 : FakeHttpMessageHandler.JsonOk(ViewerTicket()));
 
         await app.Content.SelectApplicationTabAsync();

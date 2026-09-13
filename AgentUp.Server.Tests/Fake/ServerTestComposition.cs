@@ -46,10 +46,12 @@ internal static class ServerTestComposition
         services.AddSingleton<AppMetricsController>();
         services.AddSingleton<BrowserLifecycleController>();
         services.AddSingleton<PngFrameProvider>();
-        services.AddSingleton<IDesktopDisplayProvider, LinuxX11DesktopDisplayProvider>();
+        services.AddSingleton<IDesktopDisplayProvider, FakeDesktopDisplayProvider>();
+        services.AddSingleton<IHostedDesktopNativeLibraryProvider, FakeHostedDesktopNativeLibraryProvider>();
         services.AddSingleton<DesktopInputMessageProvider>();
         services.AddSingleton<DesktopViewerTicketProvider>();
         services.AddSingleton<DesktopSessionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<DesktopSessionService>());
         services.AddSingleton<DesktopApplicationsController>();
         services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
         services.AddSingleton<WorkspaceOverviewService>();
@@ -95,7 +97,8 @@ internal static class ServerTestComposition
         WorkspaceRegistry registry,
         IWorkspaceProcessManager processes,
         IAgentUpConfigurationProvider? configuration = null,
-        IWorkspaceIdentityProvider? identity = null)
+        IWorkspaceIdentityProvider? identity = null,
+        Func<bool>? isLinux = null)
     {
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
         var eventBus = new BrowserEventBus();
@@ -116,11 +119,11 @@ internal static class ServerTestComposition
             NullLogger<HeadlessBrowserSessionManager>.Instance);
         var browser = new BrowserLifecycleController(sessions, display);
         var desktop = new DesktopApplicationsController(new DesktopSessionService(
-            new LinuxX11DesktopDisplayProvider(new PngFrameProvider()),
+            new FakeDesktopDisplayProvider(),
             display,
             new DesktopInputMessageProvider(),
             new DesktopViewerTicketProvider(),
-            new HostedDesktopNativeLibraryProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
         var registration = new OrchestrationRegistrationService(
             configuration ?? new AgentUpConfigurationProvider(),
@@ -134,7 +137,8 @@ internal static class ServerTestComposition
             metricsPulls,
             new WorkspaceStreamStateController(streamState),
             new OrchestrationRegistrationController(registration),
-            NullLogger<WorkspaceLifecycleService>.Instance);
+            NullLogger<WorkspaceLifecycleService>.Instance,
+            isLinux ?? OperatingSystem.IsLinux);
     }
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)

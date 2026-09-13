@@ -58,13 +58,17 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         return new DesktopBrowserHarness(window, webViews);
     }
 
-    internal static async Task<DesktopBrowserHarness> LaunchAgainstServerAsync(Uri serverUrl)
+    internal static async Task<DesktopBrowserHarness> LaunchAgainstServerAsync(
+        Uri serverUrl,
+        string? desktopApplication = null)
     {
         var webViews = new List<NativeWebView>();
         var window = await Dispatcher.UIThread.InvokeAsync(async () =>
             await CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
 
         var harness = new DesktopBrowserHarness(window, webViews);
+        if (desktopApplication is not null)
+            await harness.SelectDesktopApplicationAsync(desktopApplication);
         await harness.WaitForWorkspaceWebViewAsync();
         return harness;
     }
@@ -109,8 +113,45 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
             await Task.Delay(PollInterval);
         }
 
-        Assert.Fail("Desktop never created a NativeWebView for the workspace tab.");
+        Assert.Fail(
+            "Desktop never created a NativeWebView for the workspace tab. "
+            + await DescribeApplicationStateAsync());
     }
+
+    internal async Task SelectDesktopApplicationAsync(string applicationName)
+    {
+        var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            var selected = await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = (MainViewModel)Window.DataContext!;
+                var application = viewModel.Applications.Applications
+                    .FirstOrDefault(item => string.Equals(item.Name, applicationName, StringComparison.Ordinal));
+                if (application is null)
+                    return false;
+
+                viewModel.SelectedApplicationTab = application;
+                return viewModel.ShowDesktopView;
+            });
+            if (selected)
+                return;
+
+            await Task.Delay(PollInterval);
+        }
+
+        Assert.Fail($"Desktop never selected desktop application '{applicationName}'. {await DescribeApplicationStateAsync()}");
+    }
+
+    private async Task<string> DescribeApplicationStateAsync()
+        => await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var viewModel = (MainViewModel)Window.DataContext!;
+            var names = string.Join(", ", viewModel.Applications.Applications.Select(item => item.Name));
+            return $"Shell={viewModel.SelectedShellTab}, ShowDesktopView={viewModel.ShowDesktopView}, "
+                + $"SelectedSubTab={viewModel.SelectedSubTab?.GetType().Name ?? "(null)"}, "
+                + $"Applications=[{names}]";
+        });
 
     // Runs script inside the live workspace page and returns its result as the Desktop
     // browser controller sees it.

@@ -63,7 +63,7 @@ internal sealed class FakeHttpMessageHandler(
     private static HttpResponseMessage Ok<T>(T value) => JsonOk(value);
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
-    private static HttpResponseMessage NotFound() =>
+    internal static HttpResponseMessage NotFound() =>
         new(System.Net.HttpStatusCode.NotFound);
 
     // /api/workspaces/{id}/applications/{name}/output → "id/name"

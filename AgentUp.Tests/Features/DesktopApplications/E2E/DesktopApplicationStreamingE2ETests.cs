@@ -78,7 +78,7 @@ public sealed class DesktopApplicationStreamingE2ETests
             Assert.Fail($"Desktop streaming start failed: {await start.Content.ReadAsStringAsync()}");
         TestContext.Progress.WriteLine("Workspace start completed; launching Desktop against the Server.");
 
-        Desktop = await DesktopBrowserHarness.LaunchAgainstServerAsync(Server.BaseUri);
+        Desktop = await DesktopBrowserHarness.LaunchAgainstServerAsync(Server.BaseUri, ApplicationName);
         await WaitForViewerFrameAsync(Desktop.WorkspaceWebView, "Desktop never rendered a streamed desktop frame.");
     }
 

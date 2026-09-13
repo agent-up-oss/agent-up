@@ -61,7 +61,10 @@ public sealed class HostedDesktopNativeLibraryProviderTests
 
         var missingWithout = TryLddMissing(nativeLibrary!, "");
         if (missingWithout is null)
+        {
             Assert.Ignore("ldd is not available to inspect SkiaSharp native dependencies.");
+            return;
+        }
 
         var environment = new HostedDesktopNativeLibraryProvider(NoInheritedNativeLibraries)
             .CreateEnvironment(repositoryRoot);

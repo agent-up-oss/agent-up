@@ -23,6 +23,7 @@ public sealed class WorkspaceLifecycleService
     private readonly WorkspaceStreamStateController _streamState;
     private readonly OrchestrationRegistrationController _registration;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
+    private readonly Func<bool> _isLinux;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _transitionLocks = new();
 
     public WorkspaceLifecycleService(
@@ -35,6 +36,31 @@ public sealed class WorkspaceLifecycleService
         WorkspaceStreamStateController streamState,
         OrchestrationRegistrationController registration,
         ILogger<WorkspaceLifecycleService> logger)
+        : this(
+            registry,
+            processes,
+            browser,
+            desktopApplications,
+            healthChecks,
+            metricsPulls,
+            streamState,
+            registration,
+            logger,
+            OperatingSystem.IsLinux)
+    {
+    }
+
+    internal WorkspaceLifecycleService(
+        WorkspaceRegistry registry,
+        ProcessesController processes,
+        BrowserLifecycleController browser,
+        DesktopApplicationsController desktopApplications,
+        AppHealthController healthChecks,
+        AppMetricsController metricsPulls,
+        WorkspaceStreamStateController streamState,
+        OrchestrationRegistrationController registration,
+        ILogger<WorkspaceLifecycleService> logger,
+        Func<bool> isLinux)
     {
         _registry = registry;
         _processes = processes;
@@ -45,6 +71,7 @@ public sealed class WorkspaceLifecycleService
         _streamState = streamState;
         _registration = registration;
         _logger = logger;
+        _isLinux = isLinux;
     }
 
     public async Task<WorkspaceLifecycleResult> StartAsync(string id)
@@ -97,14 +124,14 @@ public sealed class WorkspaceLifecycleService
                 await _registry.ReallocatePortsAsync(id);
                 workspace = _registry.GetById(id)!;
                 foreach (var app in workspace.Applications.Where(app =>
-                             app.Kind == ApplicationKind.Desktop && OperatingSystem.IsLinux()))
+                             app.Kind == ApplicationKind.Desktop && _isLinux()))
                     app.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, app, CancellationToken.None);
                 await _processes.LaunchWorkspaceAsync(workspace);
                 await _registry.UpdateStateAsync(id, WorkspaceState.Running);
                 await _registry.UpdateLastErrorAsync(id, null);
                 foreach (var app in workspace.Applications)
                 {
-                    if (app.Kind == ApplicationKind.Desktop && !OperatingSystem.IsLinux())
+                    if (app.Kind == ApplicationKind.Desktop && !_isLinux())
                     {
                         await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Failed);
                         continue;

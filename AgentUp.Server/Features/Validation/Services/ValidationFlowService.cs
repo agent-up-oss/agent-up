@@ -148,7 +148,10 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
     {
         if (data is null) return null;
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(data));
-        return document.RootElement.TryGetProperty("generation", out var value) ? value.GetInt64() : null;
+        return document.RootElement.EnumerateObject()
+            .Where(property => string.Equals(property.Name, "generation", StringComparison.OrdinalIgnoreCase))
+            .Select(property => property.Value.TryGetInt64(out var generation) ? generation : (long?)null)
+            .FirstOrDefault(generation => generation is not null);
     }
 
     private async Task<string?> AssertAsync(string workspaceId, IReadOnlyList<ValidationAssertion> assertions, CancellationToken ct)

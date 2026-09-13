@@ -491,6 +491,7 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<BrowserRemoteDisplayService>();
         builder.Services.AddSingleton<PngFrameProvider>();
         builder.Services.AddSingleton<IDesktopDisplayProvider, LinuxX11DesktopDisplayProvider>();
+        builder.Services.AddSingleton<IHostedDesktopNativeLibraryProvider, HostedDesktopNativeLibraryProvider>();
         builder.Services.AddSingleton<DesktopInputMessageProvider>();
         builder.Services.AddSingleton<DesktopViewerTicketProvider>();
         builder.Services.AddSingleton<DesktopSessionService>();

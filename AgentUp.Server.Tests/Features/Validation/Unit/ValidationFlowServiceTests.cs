@@ -1,4 +1,8 @@
+using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.DesktopApplications.Controllers;
+using AgentUp.Server.Features.DesktopApplications.Providers;
+using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Validation.DTOs;
 using AgentUp.Server.Features.Validation.Interfaces;
 using AgentUp.Server.Features.Validation.Providers;
@@ -6,6 +10,7 @@ using AgentUp.Server.Features.Validation.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using Microsoft.Extensions.Logging.Abstractions;
 namespace AgentUp.Server.Tests.Features.Validation.Unit;
 public sealed class ValidationFlowServiceTests
 {
@@ -318,8 +323,82 @@ public sealed class ValidationFlowServiceTests
         Assert.That(result.Succeeded, Is.True, result.Error);
     }
 
+    [Test]
+    public async Task Run_reportsDesktopValidationUnavailable_whenDesktopToolsAreMissing()
+    {
+        var created = await CreateDesktopAsync(includeDesktopTools: false);
+        var result = await created.Service.RunAsync(created.WorkspaceId, created.FlowId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Is.EqualTo("Desktop validation is unavailable."));
+        });
+    }
+
+    [Test]
+    public async Task Run_executesDesktopCoordinateSteps()
+    {
+        var created = await CreateDesktopAsync(includeDesktopTools: true);
+        try
+        {
+            var result = await created.Service.RunAsync(created.WorkspaceId, created.FlowId);
+
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(result.Message, Does.Contain("Open dialog"));
+        }
+        finally
+        {
+            if (created.Desktop is not null)
+                await created.Desktop.StopWorkspaceAsync(created.WorkspaceId, CancellationToken.None);
+        }
+    }
+
     // BrowserMcpTools is sealed with non-virtual members, so the browser-driven half of RunAsync
     // has no seam; only the two guards above are reachable without a real browser session.
+    private static async Task<(ValidationFlowService Service, string WorkspaceId, string FlowId, DesktopApplicationsController? Desktop)> CreateDesktopAsync(bool includeDesktopTools)
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+        DesktopApplicationsController? desktopController = null;
+        DesktopMcpTools? tools = null;
+        if (includeDesktopTools)
+        {
+            desktopController = new DesktopApplicationsController(new DesktopSessionService(
+                new FakeDesktopDisplayProvider(),
+                new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+                new DesktopInputMessageProvider(),
+                new DesktopViewerTicketProvider(),
+                new FakeHostedDesktopNativeLibraryProvider(),
+                NullLogger<DesktopSessionService>.Instance));
+            await desktopController.PrepareAsync(workspace, workspace.Applications.Single(), CancellationToken.None);
+            tools = new DesktopMcpTools(new DesktopMcpService(desktopController, ServerTestComposition.CreateAuditController()));
+        }
+
+        var service = new ValidationFlowService(
+            new MemoryRepository(), new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter(), tools);
+        var saved = await service.SaveAsync(workspace.Id, new SaveValidationFlowRequest(
+            null, "Editor", "Open dialog", "User opens the dialog", string.Empty,
+            [new ValidationAssertion(ValidationExpectation.Running, "true")],
+            [
+                new ValidationStep("open", "Open the dialog", ValidationAction.Click,
+                    new ValidationTarget(Name: "Open", X: 100, Y: 80),
+                    Expectations: [new ValidationAssertion(ValidationExpectation.Visible, "true")]),
+                new ValidationStep("type", "Type into the field", ValidationAction.Fill,
+                    new ValidationTarget(Name: "Name", X: 120, Y: 90),
+                    Value: "Ada",
+                    Expectations: [new ValidationAssertion(ValidationExpectation.Running, "true")]),
+                new ValidationStep("enter", "Press enter", ValidationAction.Press,
+                    Value: "Enter",
+                    Expectations: [new ValidationAssertion(ValidationExpectation.Running, "true")])
+            ]));
+        Assert.That(saved.Succeeded, Is.True, saved.Error);
+        return (service, workspace.Id, saved.Flow!.Id, desktopController);
+    }
+
     private static async Task<(ValidationFlowService Service, string WorkspaceId)> CreateAsync(string? secondApplication = null)
     {
         var registry = ServerTestComposition.CreateRegistry();
