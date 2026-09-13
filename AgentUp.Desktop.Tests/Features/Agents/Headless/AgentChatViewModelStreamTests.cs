@@ -84,6 +84,33 @@ public sealed class AgentChatViewModelStreamTests
     }
 
     [AvaloniaTest]
+    public async Task LoadAsync_exposesSubscriptionLoginChallenge()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Session = new AgentSessionDto("ws-1", "Cursor", "authenticating", null, null, [
+                new AgentDescriptorDto("Cursor", true, "Cursor")
+            ], [new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in")],
+                new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"))
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.HasLoginChallenge, Is.True);
+            Assert.That(view.LoginUrl, Does.Contain("loginDeepControl"));
+            Assert.That(view.LoginCode, Is.EqualTo("ABCD-EFGHI"));
+        });
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+        Assert.That(view.HasLoginChallenge, Is.False);
+    }
+
+    [AvaloniaTest]
     public async Task Stream_appliesThoughtsPlansAndPermissionDecisions()
     {
         var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

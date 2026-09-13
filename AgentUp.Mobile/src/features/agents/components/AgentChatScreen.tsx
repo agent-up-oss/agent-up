@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GitChangesPanel } from '@/features/git/components/GitChangesPanel';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
@@ -78,8 +78,14 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
     return () => { disposed = true; controller.abort(); };
   }, [server, workspace.id, applyEvent]);
 
+  const loginUrl = session?.loginChallenge?.url;
+  useEffect(() => {
+    if (!loginUrl) return;
+    void Linking.openURL(loginUrl).catch(() => undefined);
+  }, [loginUrl]);
+
   const activity = resolveActivity({ state: session?.state, error: session?.error, hasPermission: Boolean(permission), hint });
-  const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required';
+  const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required' || session?.state === 'authenticating';
   const choose = async (agent: AgentKind) => {
     if (!server) return; setBusy(true); setError(null);
     try { setSession(await scheduleAgent(server, workspace.id, agent)); }
@@ -124,7 +130,13 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
           </View>}
           {!session?.agent && <View style={styles.picker}><Text style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
             <Pressable key={agent.agent} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && styles.disabled]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={styles.availability}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
-          {session?.state === 'authentication_required' && <View style={styles.auth}><Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>{session.authMethods?.map(method => <Pressable key={method.id} style={styles.option} onPress={() => server && void authenticateAgent(server, workspace.id, method.id).catch(cause => setError(readError(cause)))}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}</View>}
+          {(session?.state === 'authentication_required' || session?.state === 'authenticating') && <View style={styles.auth}>
+            <Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>
+            {session.loginChallenge?.instructions ? <Text style={styles.permissionDetail}>{session.loginChallenge.instructions}</Text> : null}
+            {session.loginChallenge?.url ? <Pressable onPress={() => void Linking.openURL(session.loginChallenge!.url!).catch(() => undefined)}><Text style={styles.loginUrl}>{session.loginChallenge.url}</Text></Pressable> : null}
+            {session.loginChallenge?.code ? <Text style={styles.loginCode}>{session.loginChallenge.code}</Text> : null}
+            {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} style={styles.option} onPress={() => server && void authenticateAgent(server, workspace.id, method.id).catch(cause => setError(readError(cause)))}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
+          </View>}
           <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
             {items.map(item => <TranscriptRow key={item.id} item={item} expanded={isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', expanded)} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', current) }))} />)}
           </ScrollView>
@@ -255,4 +267,6 @@ const styles = StyleSheet.create({
   tabButtonActive: auBox('subtabSelected'),
   tabLabel: auText('subtab'),
   tabLabelActive: auText('subtabSelected'),
+  loginUrl: { ...auText('muted'), color: agentUpTheme.colors.textInfo, textDecorationLine: 'underline' },
+  loginCode: { ...auText('mono'), color: agentUpTheme.colors.accentSoft, fontSize: agentUpTheme.typography.sizeUiXl, fontWeight: '600', letterSpacing: 1 },
 });

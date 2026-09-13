@@ -1,7 +1,8 @@
 export type AgentKind = 'Codex' | 'Cursor' | 'Claude';
 export type AgentDescriptor = { agent: AgentKind; available: boolean; displayName: string };
 export type AgentAuthMethod = { id: string; name: string; description: string | null };
-export type AgentSession = { workspaceId: string; agent: AgentKind | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[] };
+export type AgentLoginChallenge = { url: string | null; code: string | null; instructions: string | null };
+export type AgentSession = { workspaceId: string; agent: AgentKind | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[]; loginChallenge?: AgentLoginChallenge | null };
 export type AgentEvent = { sequence: number; type: string; payload: unknown; timestamp: string };
 export type AgentPermissionOption = { optionId: string; name: string; kind?: string };
 export type AgentPermission = {

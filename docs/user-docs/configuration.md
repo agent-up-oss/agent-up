@@ -108,17 +108,19 @@ versions that installment has enabled. Example:
 ```json
 [
   { "id": "dotnet", "versions": ["10.0.x"] },
-  { "id": "codex", "versions": ["dev"], "command": "/opt/agent-up/codex-acp", "arguments": [] },
-  { "id": "cursor", "versions": ["dev"], "command": "agent", "arguments": ["acp"] },
-  { "id": "claude", "versions": ["dev"], "command": "claude-agent-acp", "arguments": [] }
+  { "id": "codex", "versions": ["dev"], "command": "/opt/agent-up/bin/codex-acp", "arguments": [] },
+  { "id": "cursor", "versions": ["dev"], "command": "/opt/agent-up/bin/agent", "arguments": ["acp"] },
+  { "id": "claude", "versions": ["dev"], "command": "/opt/agent-up/bin/claude-agent-acp", "arguments": [] }
 ]
 ```
 
 Discovery then looks for that declared command on `PATH` and in well-known
 install locations such as `~/.local/bin`. The interactive `codex` and `claude`
 CLIs are not ACP servers, and the Cursor IDE is not the Cursor Agent CLI.
-Sign in with the corresponding CLI first; Agent-Up reuses the CLI's supported
-local subscription login and does not ask for or store an API token. An
+Sign in with the corresponding CLI's subscription login from Desktop or
+Mobile when the agent asks; Agent-Up runs that vendor's no-browser or
+device-code flow on the Server, shows the sign-in link (and Codex device
+code) in the client, and then starts ACP. It does not collect API keys. An
 unavailable executable is disabled in the Desktop and Mobile agent picker.
 
 Server operators can still override a command or its arguments in

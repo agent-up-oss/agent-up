@@ -69,6 +69,12 @@ public sealed class InstalledAgentCapabilityHttpTests
         builder.Services.AddSingleton<ICapabilityAdapter, CursorCapabilityAdapter>();
         builder.Services.AddSingleton<ICapabilityAdapter, ClaudeCapabilityAdapter>();
         builder.Services.AddSingleton<AgentCommandProvider>();
+        builder.Services.AddSingleton<AgentSubscriptionAuth>();
+        builder.Services.AddSingleton(_ => new AgentCliHomeProvider(Path.Join(Path.GetTempPath(), "agent-up-http-agents")));
+        builder.Services.AddSingleton<IAgentClaudeCredentialStore, AgentClaudeCredentialStore>();
+        builder.Services.AddSingleton<IAgentProcessEnvironmentProvider, AgentProcessEnvironmentProvider>();
+        builder.Services.AddSingleton<AgentLoginCommandProvider>();
+        builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();

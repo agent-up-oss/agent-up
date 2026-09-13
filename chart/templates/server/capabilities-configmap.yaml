@@ -8,7 +8,17 @@ data:
     {{- $entries := list }}
     {{- range $id, $capability := .Values.capabilities }}
     {{- if not $capability.disabled }}
-    {{- $entries = append $entries (dict "id" $id "versions" ($capability.versions | default list)) }}
+    {{- $entry := dict "id" $id "versions" ($capability.versions | default list) }}
+    {{- with $capability.command }}
+    {{- $_ := set $entry "command" . }}
+    {{- end }}
+    {{- if $capability.arguments }}
+    {{- $_ := set $entry "arguments" $capability.arguments }}
+    {{- end }}
+    {{- if $capability.versionArguments }}
+    {{- $_ := set $entry "versionArguments" $capability.versionArguments }}
+    {{- end }}
+    {{- $entries = append $entries $entry }}
     {{- end }}
     {{- end }}
     {{- $entries | toPrettyJson | nindent 4 }}

@@ -13,6 +13,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly WorkspaceQueryController workspaces;
     private readonly IAgentProcessFactory processes;
     private readonly AgentCommandProvider commands;
+    private readonly IAgentSubscriptionLoginProvider login;
+    private readonly IAgentProcessEnvironmentProvider environment;
+    private readonly IAgentClaudeCredentialStore credentials;
+    private readonly AgentSubscriptionAuth auth;
     private readonly AgentEventFrameProvider payloads;
     private readonly AgentEventService events;
     private readonly ILogger<AgentSchedulingService> logger;
@@ -25,6 +29,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         WorkspaceQueryController workspaces,
         IAgentProcessFactory processes,
         AgentCommandProvider commands,
+        IAgentSubscriptionLoginProvider login,
+        IAgentProcessEnvironmentProvider environment,
+        IAgentClaudeCredentialStore credentials,
+        AgentSubscriptionAuth auth,
         AgentEventFrameProvider payloads,
         AgentEventService events,
         ILogger<AgentSchedulingService> logger)
@@ -32,6 +40,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.workspaces = workspaces;
         this.processes = processes;
         this.commands = commands;
+        this.login = login;
+        this.environment = environment;
+        this.credentials = credentials;
+        this.auth = auth;
         this.payloads = payloads;
         this.events = events;
         this.logger = logger;
@@ -51,7 +63,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         if (workspaces.GetById(workspaceId) is null) return null;
         var session = _sessions.GetValueOrDefault(workspaceId);
         return new AgentSessionDto(workspaceId, session?.Kind, session?.State ?? "idle",
-            session?.AcpSessionId, session?.Error, _descriptors, session?.AuthMethods ?? []);
+            session?.AcpSessionId, session?.Error, _descriptors, session?.AuthMethods ?? [], session?.LoginChallenge);
     }
 
     public async Task<AgentScheduleResult> ScheduleAsync(string workspaceId, AgentKind kind, CancellationToken cancellationToken)
@@ -71,32 +83,24 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
         var state = new AgentSessionState(kind, workspace.WorktreePath, processes.Create());
         if (!_sessions.TryAdd(workspaceId, state)) throw new InvalidOperationException("This workspace already has an agent.");
-        state.Process.Notification += (method, payload) => HandleNotificationAsync(workspaceId, method, payload);
-        state.Process.Request += (method, payload) => HandleRequestAsync(workspaceId, state, method, payload, state.Lifetime.Token);
-        state.Process.Exited += error => HandleExit(workspaceId, state, error);
+        BindProcess(workspaceId, state, state.Process);
         try
         {
-            await state.Process.StartAsync(kind, workspace.WorktreePath, cancellationToken);
-            var initialized = await state.Process.CallAsync("initialize", new {
-                protocolVersion = 1,
-                clientCapabilities = new { fs = new { readTextFile = false, writeTextFile = false }, terminal = false, auth = new { terminal = false } },
-                clientInfo = new { name = "Agent-Up", title = "Agent-Up", version = "1.0" }
-            }, cancellationToken);
-            if (!initialized.TryGetProperty("protocolVersion", out var version) || version.GetInt32() != 1)
-                throw new InvalidOperationException("The configured agent does not support ACP protocol version 1.");
-            state.AuthMethods = payloads.AuthMethods(initialized);
-            events.Publish(workspaceId, "initialized", initialized);
+            await state.Process.StartAsync(kind, workspace.WorktreePath, environment.EnvironmentFor(kind), cancellationToken);
+            await InitializeAsync(workspaceId, state, cancellationToken);
             await CreateSessionAsync(state, cancellationToken);
             var scheduled = await GetAsync(workspaceId, cancellationToken);
             events.Publish(workspaceId, "state", scheduled!);
             return new AgentScheduleResult(scheduled, true, null);
         }
         catch (InvalidOperationException exception) when (
-            state.AuthMethods.Count > 0 &&
             state.AcpSessionId is null &&
             state.State != "stopped" &&
-            exception.Message != MissingSessionId)
+            exception.Message != MissingSessionId &&
+            ShouldOfferLogin(state, exception))
         {
+            if (state.AuthMethods.Count == 0)
+                state.AuthMethods = auth.Defaults(kind);
             state.State = "authentication_required";
             state.Error = exception.Message;
             var pendingAuth = await GetAsync(workspaceId, cancellationToken);
@@ -120,6 +124,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         if (state.State != "authentication_required") return AgentActionResult.Failed("The workspace agent is not waiting for authentication.");
         if (!state.AuthMethods.Any(method => string.Equals(method.Id, methodId, StringComparison.Ordinal)))
             return AgentActionResult.Failed("The requested authentication method was not offered by the agent.");
+        var offered = state.AuthMethods.First(method => string.Equals(method.Id, methodId, StringComparison.Ordinal));
+        if (auth.IsApiKeyMethod(offered.Id, offered.Name))
+            return AgentActionResult.Failed("Agent-Up signs agents in with a ChatGPT, Cursor, or Claude subscription, not an API key.");
         state.State = "authenticating";
         state.Error = null;
         events.Publish(workspaceId, "state", Get(workspaceId)!);
@@ -131,16 +138,92 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     {
         try
         {
-            await state.Process.CallAsync("authenticate", new { methodId }, state.Lifetime.Token);
+            var acpCommand = await commands.ResolveAsync(state.Kind, state.Lifetime.Token)
+                ?? throw new InvalidOperationException($"{state.Kind} ACP executable is not installed or is not on PATH.");
+            var result = await login.LoginAsync(
+                state.Kind,
+                acpCommand,
+                methodId,
+                challenge =>
+                {
+                    state.LoginChallenge = challenge;
+                    var pending = Get(workspaceId);
+                    if (pending is not null) events.Publish(workspaceId, "state", pending);
+                },
+                state.Lifetime.Token);
+            if (!result.Succeeded)
+            {
+                ReturnToAuthentication(state, result.Error, result.Challenge);
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(result.ClaudeOAuthToken))
+                credentials.Write(result.ClaudeOAuthToken);
+            await RestartProcessAsync(workspaceId, state);
+            await InitializeAsync(workspaceId, state, state.Lifetime.Token);
             await CreateSessionAsync(state, state.Lifetime.Token);
+            state.LoginChallenge = null;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException)
+        catch (OperationCanceledException) when (state.Lifetime.IsCancellationRequested)
         {
-            if (!state.Lifetime.IsCancellationRequested) { state.State = "authentication_required"; state.Error = exception.Message; }
+            return;
         }
-        var snapshot = Get(workspaceId);
-        if (snapshot is not null) events.Publish(workspaceId, "state", snapshot);
+        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        {
+            if (!state.Lifetime.IsCancellationRequested)
+                ReturnToAuthentication(state, exception.Message, state.LoginChallenge);
+        }
+        finally
+        {
+            var snapshot = Get(workspaceId);
+            if (snapshot is not null) events.Publish(workspaceId, "state", snapshot);
+        }
     }
+
+    private static void ReturnToAuthentication(AgentSessionState state, string? error, AgentLoginChallengeDto? challenge)
+    {
+        state.State = "authentication_required";
+        state.Error = error;
+        if (challenge is not null && (challenge.Url is not null || challenge.Code is not null))
+            state.LoginChallenge = challenge;
+    }
+
+    private async Task InitializeAsync(string workspaceId, AgentSessionState state, CancellationToken cancellationToken)
+    {
+        var initialized = await state.Process.CallAsync("initialize", new {
+            protocolVersion = 1,
+            clientCapabilities = new { fs = new { readTextFile = false, writeTextFile = false }, terminal = false, auth = new { terminal = false } },
+            clientInfo = new { name = "Agent-Up", title = "Agent-Up", version = "1.0" }
+        }, cancellationToken);
+        if (!initialized.TryGetProperty("protocolVersion", out var version) || version.GetInt32() != 1)
+            throw new InvalidOperationException("The configured agent does not support ACP protocol version 1.");
+        var advertised = payloads.AuthMethods(initialized);
+        var subscription = auth.KeepSubscription(advertised);
+        state.AuthMethods = subscription.Count > 0 ? subscription : advertised.Count > 0 ? auth.Defaults(state.Kind) : state.AuthMethods;
+        events.Publish(workspaceId, "initialized", initialized);
+    }
+
+    private async Task RestartProcessAsync(string workspaceId, AgentSessionState state)
+    {
+        var previous = state.Process;
+        try { await previous.StopAsync(state.Lifetime.Token); }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        { logger.LogInformation(exception, "Could not stop the previous ACP process before subscription login restart."); }
+        await previous.DisposeAsync();
+        var next = processes.Create();
+        state.Process = next;
+        BindProcess(workspaceId, state, next);
+        await next.StartAsync(state.Kind, state.WorkingDirectory, environment.EnvironmentFor(state.Kind), state.Lifetime.Token);
+    }
+
+    private void BindProcess(string workspaceId, AgentSessionState state, IAgentProcessProvider process)
+    {
+        process.Notification += (method, payload) => HandleNotificationAsync(workspaceId, method, payload);
+        process.Request += (method, payload) => HandleRequestAsync(workspaceId, state, method, payload, state.Lifetime.Token);
+        process.Exited += error => HandleExit(workspaceId, state, process, error);
+    }
+
+    private bool ShouldOfferLogin(AgentSessionState state, InvalidOperationException exception) =>
+        state.AuthMethods.Count > 0 || auth.LooksLikeAuthenticationFailure(exception.Message);
 
     private async Task CreateSessionAsync(AgentSessionState state, CancellationToken cancellationToken)
     {
@@ -269,9 +352,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         finally { state.Permissions.TryRemove(requestId, out _); }
     }
 
-    private void HandleExit(string workspaceId, AgentSessionState state, string? error)
+    private void HandleExit(string workspaceId, AgentSessionState state, IAgentProcessProvider process, string? error)
     {
         if (!_sessions.TryGetValue(workspaceId, out var current) || !ReferenceEquals(current, state)) return;
+        if (!ReferenceEquals(current.Process, process)) return;
         state.State = "stopped"; state.Error = error;
         if (error is null)
             logger.LogInformation("Agent for workspace {WorkspaceId} exited.", workspaceId);
