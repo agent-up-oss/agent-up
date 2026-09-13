@@ -298,7 +298,6 @@ jobs:
           verbose: true
 
       - name: Upload AgentUp.CLI.Tests coverage
-      - name: Upload AgentUp.CLI.Tests coverage
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
