@@ -33,6 +33,7 @@ export function createWorkspaceRefresh(
       && (server?.accessToken ?? null) === (active?.accessToken ?? null),
 
     async refresh(server: ServerSession | null): Promise<void> {
+      const previousUrl = active?.url ?? null;
       active = server;
       const ticket = ++generation;
       if (!server) {
@@ -40,6 +41,10 @@ export function createWorkspaceRefresh(
         sink.onLoading(false);
         return;
       }
+      // Drop the previous server's list immediately so a slow response cannot keep showing
+      // that space after the user switched. Token changes on the same URL do not clear it.
+      if (previousUrl !== null && previousUrl !== server.url)
+        sink.onDisconnected();
 
       sink.onLoading(true);
       try {

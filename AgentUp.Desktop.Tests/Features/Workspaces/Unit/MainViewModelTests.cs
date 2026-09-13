@@ -95,6 +95,29 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task ResetLocalSession_clearsWorkspaceAndBrowserLocalState()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
+        await vm.InitializeAsync();
+        vm.SelectedApplicationTab = vm.Applications.SelectedApplication;
+        var reset = false;
+        using var subscription = vm.ServerSessionReset.Subscribe(_ => reset = true);
+
+        vm.ResetLocalSession();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Sidebar.Workspaces, Is.Empty);
+            Assert.That(vm.Sidebar.SelectedWorkspace, Is.Null);
+            Assert.That(vm.Applications.Applications, Is.Empty);
+            Assert.That(vm.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Overview));
+            Assert.That(vm.AddressBarUrl, Is.Null);
+            Assert.That(reset, Is.True);
+        });
+    }
+
+    [Test]
     public async Task InitializeAsync_landsOnOverview_insteadOfTheFirstApplication()
     {
         var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);

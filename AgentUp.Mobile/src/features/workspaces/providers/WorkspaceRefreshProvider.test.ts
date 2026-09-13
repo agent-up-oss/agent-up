@@ -169,6 +169,29 @@ test('isActive becomes true as soon as a refresh starts, before it settles', asy
   await pending;
 });
 
+test('switching servers clears the previous workspace list before the new list arrives', async () => {
+  const recorded = recorder();
+  let releaseSlow: (workspaces: Workspace[]) => void = () => {};
+  const list = (server: ServerSession) =>
+    server.url.endsWith('slow')
+      ? new Promise<Workspace[]>(resolve => { releaseSlow = resolve; })
+      : Promise.resolve([workspace('from-fast')]);
+  const { refresh } = createWorkspaceRefresh(recorded.sink, list);
+
+  const slow = refresh(at('http://slow'));
+  assert.equal(recorded.disconnects, 0, 'the first selected server does not clear an empty list');
+
+  const fast = refresh(at('http://fast'));
+  assert.equal(recorded.disconnects, 1, 'the previous server list is dropped as soon as the URL changes');
+  assert.deepEqual(recorded.applied, []);
+
+  await fast;
+  releaseSlow([workspace('from-slow')]);
+  await slow;
+
+  assert.deepEqual(recorded.applied, [['from-fast']]);
+});
+
 test('a session whose access token changed is no longer active', async () => {
   const recorded = recorder();
   const refresher = createWorkspaceRefresh(recorded.sink, () => Promise.resolve([]));

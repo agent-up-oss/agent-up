@@ -1,12 +1,20 @@
 import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import type { ConfiguredServer } from '../models/ConfiguredServer';
-import { browserServerStorage, loadServerSelection, saveServerSelection } from '../providers/ServerStorageProvider';
+import {
+  browserServerStorage,
+  loadServerSelection,
+  removeServer,
+  saveServerSelection,
+  selectServer as selectSavedServer,
+  upsertServer,
+} from '../providers/ServerStorageProvider';
 
 type ServersController = {
   servers: ConfiguredServer[];
   activeServer: ConfiguredServer | null;
   selectServer(id: string): void;
   saveServer(url: string, accessToken?: string): void;
+  removeServer(id: string): void;
 };
 
 const Context = createContext<ServersController | null>(null);
@@ -26,17 +34,9 @@ export function ServersProvider({ children }: PropsWithChildren) {
   const controller = useMemo<ServersController>(() => ({
     servers: selection.servers,
     activeServer: selection.servers.find(server => server.id === selection.activeServerId) ?? null,
-    selectServer: id => setSelection(current => ({ ...current, activeServerId: id })),
-    saveServer: (url, accessToken) => setSelection(current => {
-      const existing = current.servers.find(server => server.url === url);
-      if (existing) return {
-        ...current,
-        servers: current.servers.map(server => server.id === existing.id ? { ...server, accessToken } : server),
-        activeServerId: existing.id,
-      };
-      const server = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, url, accessToken };
-      return { servers: [...current.servers, server], activeServerId: server.id };
-    }),
+    selectServer: id => setSelection(current => selectSavedServer(current, id)),
+    saveServer: (url, accessToken) => setSelection(current => upsertServer(current, url, accessToken)),
+    removeServer: id => setSelection(current => removeServer(current, id)),
   }), [selection]);
 
   return <Context.Provider value={controller}>{children}</Context.Provider>;

@@ -52,6 +52,12 @@ dotnet run --project AgentUp.Server
 Desktop and Mobile prompt for this password when they connect. The Server still
 starts when the password is unset, but login cannot succeed until it is configured.
 
+Desktop and Mobile can save more than one Server. Switching to another saved
+Server opens that Server's workspaces as a new space on the client; the
+previous Server's local window or app state is not kept. Saved sign-in tokens
+stay on the device so the administrator password is not typed again until that
+Server rejects them.
+
 For a deliberately unauthenticated local installation, set
 `AGENTUP_AUTH_DISABLED=true` instead. Desktop and Mobile skip their login UI in
 that mode.

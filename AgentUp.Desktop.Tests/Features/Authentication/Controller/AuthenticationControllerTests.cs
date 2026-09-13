@@ -2,7 +2,6 @@ using System.Net;
 using System.Text;
 using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.Providers;
-using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Authentication.Controller;
@@ -30,8 +29,46 @@ public sealed class AuthenticationControllerTests
         Assert.That(await controller.LoginAsync("secret"), Is.EqualTo("token-1"));
     }
 
-    private static AuthenticationController CreateController(DisposableTestHttpClient http) =>
-        new(new AuthenticationService(new AuthenticationApiClient(http.Client)));
+    [Test]
+    public void SaveServer_PersistsNormalizedUrl()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var controller = AuthenticationTestController.Create(http, store);
+
+        var saved = controller.SaveServer("http://127.0.0.1:5100/", "token-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Url, Is.EqualTo("http://127.0.0.1:5100"));
+            Assert.That(controller.ListSavedServers().Servers, Has.Count.EqualTo(1));
+            Assert.That(controller.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5100"));
+        });
+    }
+
+    [Test]
+    public void ActivateServer_SelectsTheSavedConnection()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var controller = AuthenticationTestController.Create(http, store);
+        var first = controller.SaveServer("http://127.0.0.1:5000", "first");
+        var second = controller.SaveServer("http://127.0.0.1:5100", "second");
+
+        var activated = controller.ActivateServer(first.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(activated.Id, Is.EqualTo(first.Id));
+            Assert.That(controller.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5000"));
+            Assert.That(second.Url, Is.EqualTo("http://127.0.0.1:5100"));
+        });
+    }
+
+    private static AuthenticationController CreateController(DisposableTestHttpClient http)
+        => AuthenticationTestController.Create(http);
 
     private static HttpResponseMessage Json(HttpStatusCode status, string json) => new(status)
     {

@@ -11,6 +11,7 @@
         xmlns:validationVm="using:AgentUp.Desktop.Features.Validation.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
+        xmlns:authDto="using:AgentUp.Desktop.Features.Authentication.DTOs"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
         Width="1100" Height="700"
@@ -131,27 +132,30 @@
         </DataTemplate>
 
         <DataTemplate DataType="chromeVm:ChromeServerStatusViewModel">
-            <Border x:Name="ServerStatusBadge"
-                    Margin="6,0,0,0"
-                    Padding="12,5"
-                    CornerRadius="999"
-                    BorderBrush="{Binding ServerStatusColor}"
-                    BorderThickness="1"
-                    Background="#030303"
-                    VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Border Width="9"
-                            Height="9"
-                            CornerRadius="5"
-                            Background="{Binding ServerStatusColor}"
-                            VerticalAlignment="Center"/>
-                    <TextBlock x:Name="ServerStatusText"
-                               Text="{Binding ServerStatusText}"
-                               Foreground="#f5fbf7"
-                               FontSize="11"
-                               FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
+            <Button Command="{Binding OpenConnectionsCommand}"
+                    ToolTip.Tip="Switch server">
+                <Border x:Name="ServerStatusBadge"
+                        Margin="6,0,0,0"
+                        Padding="12,5"
+                        CornerRadius="999"
+                        BorderBrush="{Binding ServerStatusColor}"
+                        BorderThickness="1"
+                        Background="#030303"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border Width="9"
+                                Height="9"
+                                CornerRadius="5"
+                                Background="{Binding ServerStatusColor}"
+                                VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ServerStatusText"
+                                   Text="{Binding ServerStatusText}"
+                                   Foreground="#f5fbf7"
+                                   FontSize="11"
+                                   FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+            </Button>
         </DataTemplate>
     </Window.DataTemplates>
 
@@ -709,24 +713,66 @@
                             CornerRadius="8"
                             Padding="32">
                         <StackPanel Spacing="16">
-                            <TextBlock Text="Agent-Up Server"
+                            <TextBlock Text="{Binding Login.Title}"
                                        Foreground="#f5fbf7"
                                        FontSize="25"
                                        FontWeight="Bold"/>
-                            <TextBlock Text="Enter the administrator password to continue."
+                            <TextBlock Text="{Binding Login.Subtitle}"
                                        Foreground="#c6ddd2"
                                        FontSize="14"
                                        TextWrapping="Wrap"
                                        IsVisible="{Binding !Login.IsConnectionRetry}"/>
-                            <TextBlock Text="Could not reach the server. Check that Agent-Up Server is running and AGENTUP_SERVER_URL is correct."
+                            <TextBlock Text="Could not reach the server. Check that Agent-Up Server is running and the server URL is correct."
                                        Foreground="#c6ddd2"
                                        FontSize="14"
                                        TextWrapping="Wrap"
                                        IsVisible="{Binding Login.IsConnectionRetry}"/>
+                            <Button Command="{Binding Login.GoBackCommand}"
+                                    IsVisible="{Binding Login.CanGoBack}"
+                                    HorizontalAlignment="Left">
+                                <TextBlock Text="Back"
+                                           Foreground="#2bf27a"
+                                           FontWeight="Bold"/>
+                            </Button>
+                            <StackPanel Spacing="8" IsVisible="{Binding !Login.IsConnectionRetry}">
+                                <TextBlock Text="Server URL"
+                                           Foreground="#f5fbf7"
+                                           FontWeight="Bold"/>
+                                <TextBox Text="{Binding Login.ServerUrl, Mode=TwoWay}"
+                                         PlaceholderText="http://localhost:5000"/>
+                                <ItemsControl ItemsSource="{Binding Login.SavedServers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="authDto:SavedServerDto">
+                                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                                <Button Command="{Binding DataContext.Login.SelectSavedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding Id}"
+                                                        HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Left">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Text="{Binding Url}"
+                                                                   Foreground="#f5fbf7"
+                                                                   TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Saved sign-in"
+                                                                   Foreground="#9fb2a8"
+                                                                   FontSize="11"
+                                                                   IsVisible="{Binding HasCredential}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Grid.Column="1"
+                                                        Command="{Binding DataContext.Login.RemoveSavedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding Id}"
+                                                        ToolTip.Tip="Remove saved server">
+                                                    <TextBlock Text="Remove" Foreground="#ff6b6b"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                             <TextBox Text="{Binding Login.Password, Mode=TwoWay}"
                                      PasswordChar="●"
                                      PlaceholderText="Admin password"
-                                     IsVisible="{Binding !Login.IsConnectionRetry}"/>
+                                     IsVisible="{Binding Login.NeedsPassword}"/>
                             <Button Command="{Binding Login.RetryConnectionCommand}"
                                     IsVisible="{Binding Login.IsConnectionRetry}"
                                     HorizontalAlignment="Stretch">
@@ -739,9 +785,22 @@
                                                HorizontalAlignment="Center"/>
                                 </Border>
                             </Button>
-                            <Button Command="{Binding Login.SignInCommand}"
+                            <Button Command="{Binding Login.ConnectCommand}"
                                     IsEnabled="{Binding !Login.IsBusy}"
                                     IsVisible="{Binding !Login.IsConnectionRetry}"
+                                    HorizontalAlignment="Stretch">
+                                <Border Background="#00b850"
+                                        CornerRadius="6"
+                                        Padding="12,8">
+                                    <TextBlock Text="Connect"
+                                               Foreground="#000000"
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Center"/>
+                                </Border>
+                            </Button>
+                            <Button Command="{Binding Login.SignInCommand}"
+                                    IsEnabled="{Binding !Login.IsBusy}"
+                                    IsVisible="{Binding Login.NeedsPassword}"
                                     HorizontalAlignment="Stretch">
                                 <Border Background="#00b850"
                                         CornerRadius="6"

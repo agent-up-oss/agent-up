@@ -15,7 +15,7 @@ function workspaceStateColor(state: string): string {
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
-  const { activeServer } = useServers();
+  const { activeServer, servers, selectServer } = useServers();
   const { workspaces, selectedWorkspace, selectWorkspace } = useWorkspaces();
 
   return (
@@ -49,13 +49,33 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
       </ScrollView>
       <View style={styles.serverFooter}>
         <Text style={styles.sectionLabel}>Server</Text>
-        <Text numberOfLines={2} style={styles.serverUrl}>{activeServer?.url ?? 'Not connected'}</Text>
+        {servers.map(server => {
+          const isActive = server.id === activeServer?.id;
+          return (
+            <Pressable
+              key={server.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`Switch to ${server.url}`}
+              onPress={() => {
+                selectServer(server.id);
+                router.replace('/(main)/workspace');
+                onNavigate();
+              }}
+              style={[styles.serverRow, isActive && styles.serverRowSelected]}>
+              <Text numberOfLines={2} style={styles.serverUrl}>{server.url}</Text>
+              <Text style={styles.serverMeta}>{isActive ? 'Current' : 'Switch'}</Text>
+            </Pressable>
+          );
+        })}
+        {servers.length === 0 &&
+          <Text numberOfLines={2} style={styles.serverUrl}>{activeServer?.url ?? 'Not connected'}</Text>}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Connect to another server"
           onPress={() => router.push('/connect')}
           style={styles.footerButton}>
-          <Text style={styles.footerButtonText}>Connect server</Text>
+          <Text style={styles.footerButtonText}>Add server</Text>
         </Pressable>
       </View>
     </View>
@@ -110,7 +130,17 @@ const styles = StyleSheet.create({
   workspaceBranch: { color: '#9fb2a8', fontSize: 12 },
   empty: { color: '#aebcb3', lineHeight: 20 },
   serverFooter: { marginTop: 'auto', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#287038' },
+  serverRow: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#287038',
+    backgroundColor: '#080808',
+    gap: 2,
+  },
+  serverRowSelected: { borderColor: '#2bf27a', backgroundColor: '#08150d' },
   serverUrl: { color: '#f5fbf7', fontSize: 12, lineHeight: 16 },
+  serverMeta: { color: '#9fb2a8', fontSize: 11, fontWeight: '700' },
   footerButton: {
     minHeight: 40,
     alignItems: 'center',

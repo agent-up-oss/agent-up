@@ -38,6 +38,40 @@ export function saveServerSelection(storage: KeyValueStorage | null, selection: 
   }
 }
 
+export function upsertServer(selection: ServerSelection, url: string, accessToken?: string): ServerSelection {
+  const existing = selection.servers.find(server => server.url === url);
+  if (existing) {
+    return {
+      servers: selection.servers.map(server => server.id === existing.id
+        ? { ...server, accessToken: accessToken !== undefined ? accessToken : server.accessToken }
+        : server),
+      activeServerId: existing.id,
+    };
+  }
+
+  const server: ConfiguredServer = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    url,
+    accessToken,
+  };
+  return { servers: [...selection.servers, server], activeServerId: server.id };
+}
+
+export function selectServer(selection: ServerSelection, id: string): ServerSelection {
+  if (!selection.servers.some(server => server.id === id)) return selection;
+  return { ...selection, activeServerId: id };
+}
+
+export function removeServer(selection: ServerSelection, id: string): ServerSelection {
+  const servers = selection.servers.filter(server => server.id !== id);
+  const activeServerId = selection.activeServerId === id
+    ? servers[0]?.id ?? null
+    : servers.some(server => server.id === selection.activeServerId)
+      ? selection.activeServerId
+      : servers[0]?.id ?? null;
+  return { servers, activeServerId };
+}
+
 export function browserServerStorage(): KeyValueStorage | null {
   if (typeof window === 'undefined') return null;
   try {

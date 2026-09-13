@@ -47,7 +47,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
-    private readonly string _serverBaseUrl;
+    private string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
     private string? _activeWorkspaceId;
     private string? _activeTabKey;
@@ -185,7 +185,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         PortPane.SizeChanged += OnPortPaneSizeChanged;
-        _serverBaseUrl = serverHttp.BaseAddress?.ToString().TrimEnd('/')
+        _serverBaseUrl = NormalizeServerBaseUrl(serverHttp.BaseAddress)
             ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
         _serverHttp = serverHttp;
     }
@@ -293,6 +293,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                     _addressPollTimer.Stop();
             }))
             .DisposeWith(_subscriptions);
+        vm.ServerSessionReset.Subscribe(_ =>
+            Dispatcher.UIThread.Post(ResetBrowserSession))
+            .DisposeWith(_subscriptions);
         if (vm.ShowPortView)
             _addressPollTimer.Start();
 
@@ -310,10 +313,26 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             return;
 
         _workspaceEventClient?.Dispose();
-        var eventHttp = new HttpClient { BaseAddress = _serverHttp.BaseAddress, Timeout = Timeout.InfiniteTimeSpan };
+        var eventHttp = new HttpClient
+        {
+            BaseAddress = CreateServerScopedHttpBaseAddress(_serverBaseUrl),
+            Timeout = Timeout.InfiniteTimeSpan
+        };
         eventHttp.DefaultRequestHeaders.Authorization = _serverHttp.DefaultRequestHeaders.Authorization;
         _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
         _workspaceEventClient.Start();
+    }
+
+    internal void ResetBrowserSession()
+    {
+        DestroyWorkspaceWebViews();
+        DestroyConsoleWebView();
+        if (DataContext is MainViewModel viewModel)
+            _serverBaseUrl = ResolveSessionBaseUrl(viewModel.Login.CurrentServerUrl, _serverBaseUrl);
+        _hostMetricsController?.Dispose();
+        _hostMetricsController = MainViewModelFactory.CreateHostMetricsController(_serverHttp);
+        _hostMetricsController.Start();
+        StartAuthenticatedServices();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -486,6 +505,15 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     }
 
     private static string TabKey(string workspaceId, Uri uri) => $"{workspaceId}:{uri.Port}";
+
+    internal static string? NormalizeServerBaseUrl(Uri? baseAddress)
+        => baseAddress is null ? null : baseAddress.AbsoluteUri.TrimEnd('/');
+
+    internal static string ResolveSessionBaseUrl(string? currentServerUrl, string fallback)
+        => string.IsNullOrWhiteSpace(currentServerUrl) ? fallback : currentServerUrl;
+
+    internal static Uri CreateServerScopedHttpBaseAddress(string serverBaseUrl)
+        => new(serverBaseUrl);
 
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);

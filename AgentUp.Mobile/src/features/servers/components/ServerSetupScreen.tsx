@@ -9,7 +9,7 @@ import { getAuthenticationStatus, login, ensureCredentialTransportAllowed } from
 
 export function ServerSetupScreen() {
   const router = useRouter();
-  const { activeServer, saveServer } = useServers();
+  const { activeServer, servers, saveServer, selectServer, removeServer } = useServers();
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -17,17 +17,18 @@ export function ServerSetupScreen() {
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
   const connectionInFlight = useRef(false);
 
-  const tryAndSave = async () => {
+  const tryAndSave = async (candidate = url) => {
     if (connectionInFlight.current) return;
     connectionInFlight.current = true;
     setBusy(true); setStatus('Trying server…');
     setLoginUrl(null);
     setPassword('');
     try {
-      const normalized = normalizeServerUrl(url);
+      const normalized = normalizeServerUrl(candidate);
       const auth = await getAuthenticationStatus(normalized);
       if (auth.authenticationRequired) {
         ensureCredentialTransportAllowed(normalized);
+        setUrl(normalized);
         setLoginUrl(normalized);
         setStatus('Enter the server admin password.');
         return;
@@ -36,10 +37,22 @@ export function ServerSetupScreen() {
       void recordServerConnectionAudit(normalized, 'success');
       saveServer(normalized); setUrl(''); setStatus(`Connected to ${normalized}`); router.replace('/(main)/workspace');
     } catch (error) {
-      const candidate = tryNormalize(url);
-      if (candidate) void recordServerConnectionAudit(candidate, 'failure', error instanceof Error ? error.message : String(error));
+      const fallback = tryNormalize(candidate);
+      if (fallback) void recordServerConnectionAudit(fallback, 'failure', error instanceof Error ? error.message : String(error));
       setStatus(error instanceof Error ? error.message : 'Could not connect to the server.');
     } finally { connectionInFlight.current = false; setBusy(false); }
+  };
+
+  const openSaved = (id: string) => {
+    const saved = servers.find(server => server.id === id);
+    if (!saved || busy) return;
+    if (saved.accessToken) {
+      selectServer(saved.id);
+      router.replace('/(main)/workspace');
+      return;
+    }
+    setUrl(saved.url);
+    void tryAndSave(saved.url);
   };
 
   const signIn = async () => {
@@ -76,6 +89,27 @@ export function ServerSetupScreen() {
         <Text style={styles.buttonText}>Sign in</Text></Pressable>}
       {!!status && <Text accessibilityRole="alert" style={styles.status}>{status}</Text>}
     </View>
+    {servers.length > 0 && <View style={styles.card}>
+      <Text style={styles.heading}>Saved servers</Text>
+      <Text style={styles.detail}>Switching replaces this client's local workspace and browser state. Saved sign-in tokens stay on this device.</Text>
+      {servers.map(server => {
+        const isActive = server.id === activeServer?.id;
+        return (
+          <View key={server.id} style={[styles.savedRow, isActive && styles.savedRowActive]}>
+            <Pressable accessibilityRole="button" accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`Use server ${server.url}`} onPress={() => openSaved(server.id)}
+              disabled={busy} style={styles.savedButton}>
+              <Text numberOfLines={2} style={styles.savedUrl}>{server.url}</Text>
+              <Text style={styles.savedMeta}>{isActive ? 'Current' : server.accessToken ? 'Saved sign-in' : 'No saved sign-in'}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${server.url}`}
+              onPress={() => removeServer(server.id)} disabled={busy} style={styles.removeButton}>
+              <Text style={styles.removeText}>Remove</Text>
+            </Pressable>
+          </View>
+        );
+      })}
+    </View>}
     <View style={styles.current}><Text style={styles.currentLabel}>Current server</Text>
       <Text style={styles.currentUrl}>{activeServer?.url ?? 'No server selected'}</Text></View>
   </ScrollView></SafeAreaView>;
@@ -99,4 +133,8 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.38 }, buttonText: { color: '#000000', fontWeight: '800' }, status: { color: '#2bf27a', lineHeight: 21 },
   current: { padding: 16, borderLeftWidth: 3, borderLeftColor: '#287038', gap: 4 }, currentLabel: { color: '#aebcb3', fontSize: 12, textTransform: 'uppercase' },
   currentUrl: { color: '#f5fbf7', fontWeight: '700' },
+  savedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#287038', backgroundColor: '#080808' },
+  savedRowActive: { borderColor: '#2bf27a', backgroundColor: '#08150d' },
+  savedButton: { flex: 1, gap: 4 }, savedUrl: { color: '#f5fbf7', fontWeight: '700' }, savedMeta: { color: '#9fb2a8', fontSize: 12 },
+  removeButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 8 }, removeText: { color: '#ff6b6b', fontWeight: '700' },
 });
