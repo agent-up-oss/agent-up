@@ -30,13 +30,19 @@ flow: the client shows the sign-in URL and Codex device code from the Server
 and must not launch `xdg-open` itself. It never launches a CLI or owns an ACP session.
 
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
-the active selection in PWA local storage. Only one Server is active at a time;
-selecting another sidebar icon changes the client target and does not copy or
-own Server runtime state. A URL is saved only after the Server authentication
-status probe succeeds. If login is required, the client requests the single
-administrator password and stores the resulting access token with the Server
-selection; if authentication is disabled, it skips that login step. Remote
-servers must use HTTPS; loopback HTTP URLs remain supported for local
+the active selection in PWA local storage. Only one Server is active at a time.
+The connect screen and sidebar list saved servers so the user can switch;
+selecting another Server changes the client target and drops that client's
+local workspace state. It does not copy or own Server runtime state. A URL is
+saved only after the Server authentication status probe succeeds. If login is
+required, the client requests the single administrator password and stores the
+resulting access token with the Server selection; if authentication is
+disabled, it skips that login step. Switching back to a saved Server reuses
+that token so the password is not typed again until the Server rejects it
+with 401. That rejection returns the user to the connect screen and asks
+for the administrator password again; the saved Server URL stays.
+
+Remote servers must use HTTPS; loopback HTTP URLs remain supported for local
 development.
 
 As an explicit exception to the general application-package isolation rule,
@@ -68,13 +74,15 @@ customization requires an intentional prebuild.
 
 The mobile client is a gated stack, not a bottom-tab shell.
 
-- `/connect` is the entry screen until a Server URL is saved successfully.
+- `/connect` is the entry screen until a Server URL is saved successfully. It
+  also lists saved servers so the user can switch or add another.
 - After connect, `/(main)` renders a persistent top nav bar and a collapsible
   sidebar. Screen content renders below the nav bar. Each screen sets the nav
   title, optional right action, and optional custom sidebar content through
   `useShellConfig`.
-- The default sidebar lists workspaces for the active Server and lets the user
-  switch workspaces. The first workspace is selected automatically when the list
+- The default sidebar lists workspaces for the active Server, lets the user
+  switch workspaces, and lists saved Servers so the user can switch the
+  client target. The first workspace is selected automatically when the list
   loads.
 - Workspace routes live under `/(main)/workspace/[workspaceId]/`. The dashboard
   is the workspace home page. Agent chat and application spaces are deeper stack

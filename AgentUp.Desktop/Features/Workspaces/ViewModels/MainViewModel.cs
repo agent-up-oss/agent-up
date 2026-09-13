@@ -31,6 +31,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     private readonly PortsController _ports;
     private readonly Subject<(string? WorkspaceId, string? Url)> _addressNavigations = new();
     private readonly Subject<BrowserCommand> _browserCommands = new();
+    private readonly Subject<Unit> _serverSessionReset = new();
     // Last-visited URL per port origin (e.g. "http://localhost:10100" → "http://localhost:10100/docs/intro").
     // Used to restore the exact page when the user switches away and back to an HTTP tab.
     private readonly Dictionary<string, string> _portUrls = new();
@@ -147,12 +148,14 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ReactiveCommand<Unit, Unit> BrowserBackCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserForwardCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserReloadCommand { get; }
+    public ReactiveCommand<Unit, Unit> SwitchServerCommand { get; }
 
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
     public IObservable<(string? WorkspaceId, string? Url)> BrowserNavigation { get; }
     public IObservable<(string? WorkspaceId, string? Url)> BrowserTabNavigation { get; }
     public IObservable<BrowserCommand> BrowserCommands => _browserCommands;
+    public IObservable<Unit> ServerSessionReset => _serverSessionReset;
 
     public MainViewModel(
         WorkspaceListViewModel sidebar,
@@ -188,15 +191,17 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         if (validation is not null)
             validation.WhenAnyValue(x => x.IsCollapsed)
                 .Subscribe(_ => this.RaisePropertyChanged(nameof(IsValidationOpen)));
-        _chromeServerStatus = new ChromeServerStatusViewModel(sidebar);
-        UpdateChromeLeftItems(Login.IsVisible);
-        Login.WhenAnyValue(viewModel => viewModel.IsVisible)
-            .Subscribe(UpdateChromeLeftItems);
-
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
         BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
+        SwitchServerCommand = ReactiveCommand.Create(Login.ShowSwitcher);
+        _chromeServerStatus = new ChromeServerStatusViewModel(sidebar, SwitchServerCommand);
+        UpdateChromeLeftItems(Login.IsVisible);
+        Login.WhenAnyValue(viewModel => viewModel.IsVisible)
+            .Subscribe(UpdateChromeLeftItems);
+        Login.ServerSwitched.Subscribe(_ => OnServerSwitched());
+        Login.SessionRestored.Subscribe(_ => OnSessionRestored());
 
         SyncShellTabItem();
 
@@ -692,6 +697,36 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     {
         await Tutorial.InitializeAsync();
         await Sidebar.LoadAsync();
+        if (Sidebar.RequiresSignIn)
+            Login.ShowExpired();
+    }
+
+    internal void ResetLocalSession()
+    {
+        _portUrls.Clear();
+        AddressBarUrl = null;
+        SelectedShellTab = WorkspaceShellTab.Overview;
+        Sidebar.Disconnect();
+        Audit.Deactivate();
+        Git.Clear();
+        Validation?.Clear();
+        _ = Agent.LoadAsync(null);
+        _serverSessionReset.OnNext(Unit.Default);
+    }
+
+    private void OnServerSwitched()
+    {
+        ResetLocalSession();
+        _ = ReloadAfterSwitchAsync();
+    }
+
+    private void OnSessionRestored() => _ = ReloadAfterSwitchAsync();
+
+    private async Task ReloadAfterSwitchAsync()
+    {
+        await Sidebar.LoadAsync();
+        if (Sidebar.RequiresSignIn)
+            Login.ShowExpired();
     }
 
 

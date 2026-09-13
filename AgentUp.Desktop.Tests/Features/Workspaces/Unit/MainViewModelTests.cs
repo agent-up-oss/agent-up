@@ -1,7 +1,9 @@
+using System.Net;
 using System.Net.Http;
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
@@ -93,6 +95,131 @@ public class MainViewModelTests
 
         Assert.That(vm.Sidebar.SelectedWorkspace, Is.Not.Null);
         Assert.That(vm.Sidebar.SelectedWorkspace!.Id, Is.EqualTo("ws-1"));
+    }
+
+    [Test]
+    public async Task ResetLocalSession_clearsWorkspaceAndBrowserLocalState()
+    {
+        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
+        await vm.InitializeAsync();
+        vm.SelectedApplicationTab = vm.Applications.SelectedApplication;
+        var reset = false;
+        using var subscription = vm.ServerSessionReset.Subscribe(_ => reset = true);
+
+        vm.ResetLocalSession();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Sidebar.Workspaces, Is.Empty);
+            Assert.That(vm.Sidebar.SelectedWorkspace, Is.Null);
+            Assert.That(vm.Applications.Applications, Is.Empty);
+            Assert.That(vm.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Overview));
+            Assert.That(vm.AddressBarUrl, Is.Null);
+            Assert.That(reset, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task InitializeAsync_showsExpiredLogin_whenTheWorkspaceListRequiresSignIn()
+    {
+        var handler = new StatusCodeHandler(HttpStatusCode.Unauthorized);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var vm = CreateVm(new WorkspaceApiClient(http));
+
+        await vm.InitializeAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Sidebar.RequiresSignIn, Is.True);
+            Assert.That(vm.Login.IsVisible, Is.True);
+            Assert.That(vm.Login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid. Enter the administrator password."));
+        });
+    }
+
+    [Test]
+    public void SwitchServerCommand_opensTheSwitcherAndHidesChromeActions()
+    {
+        var vm = CreateVm(NullWorkspaceClient());
+        Assert.That(vm.Chrome.LeftItems, Has.Count.EqualTo(2));
+
+        vm.SwitchServerCommand.Execute().Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Login.IsVisible, Is.True);
+            Assert.That(vm.Login.IsSwitcher, Is.True);
+            Assert.That(vm.Chrome.LeftItems, Is.Empty);
+        });
+
+        vm.Login.Dismiss();
+        Assert.That(vm.Chrome.LeftItems, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task ConnectingToAnotherServer_resetsLocalSessionThenReloadsWorkspaces()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            HttpTestResponses.Json(new { authenticationRequired = false }));
+        var login = new LoginViewModel(AuthenticationTestController.Create(http));
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
+        var vm = CreateVm(FakeWorkspaceClient([dto]), login: login);
+        await vm.InitializeAsync();
+        login.Show();
+        login.ServerUrl = "http://127.0.0.1:5000";
+        await login.ConnectCommand.Execute().FirstAsync();
+        var reset = false;
+        using var subscription = vm.ServerSessionReset.Subscribe(_ => reset = true);
+
+        login.ShowSwitcher();
+        login.ServerUrl = "http://127.0.0.1:5100";
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.That(() => reset, Is.True.After(1000).PollEvery(20));
+        Assert.That(() => vm.Sidebar.Workspaces.Count, Is.EqualTo(1).After(1000).PollEvery(20));
+    }
+
+    [Test]
+    public async Task RestoringAnExpiredSession_reloadsWorkspacesWithoutClearingThemFirst()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            request.Method == HttpMethod.Post
+                ? HttpTestResponses.Json(new { authenticationRequired = true, accessToken = "token-1" })
+                : HttpTestResponses.Json(new { authenticationRequired = true }));
+        var login = new LoginViewModel(AuthenticationTestController.Create(http));
+        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
+        var vm = CreateVm(FakeWorkspaceClient([dto]), login: login);
+        await vm.InitializeAsync();
+        login.ShowExpired();
+        login.Password = "secret";
+        var restored = false;
+        using var subscription = login.SessionRestored.Subscribe(_ => restored = true);
+
+        await login.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(restored, Is.True);
+        Assert.That(() => vm.Sidebar.Workspaces.Count, Is.EqualTo(1).After(1000).PollEvery(20));
+        Assert.That(vm.Login.IsVisible, Is.False);
+    }
+
+    [Test]
+    public async Task ReloadingAfterASwitch_showsExpiredLoginWhenTheNewServerRequiresSignIn()
+    {
+        var handler = new StatusCodeHandler(HttpStatusCode.Unauthorized);
+        var workspaceHttp = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var authHttp = new DisposableTestHttpClient(request =>
+            request.Method == HttpMethod.Post
+                ? HttpTestResponses.Json(new { authenticationRequired = true, accessToken = "token-1" })
+                : HttpTestResponses.Json(new { authenticationRequired = true }));
+        var login = new LoginViewModel(AuthenticationTestController.Create(authHttp));
+        var vm = CreateVm(new WorkspaceApiClient(workspaceHttp), login: login);
+        await vm.InitializeAsync();
+        login.Password = "secret";
+
+        await login.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(() => login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid. Enter the administrator password.").After(1000).PollEvery(20));
+        Assert.That(login.IsVisible, Is.True);
     }
 
     [Test]
@@ -798,7 +925,8 @@ public class MainViewModelTests
     private static MainViewModel CreateVm(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient? consoleClient = null,
-        FirstRunTutorialViewModel? tutorial = null)
+        FirstRunTutorialViewModel? tutorial = null,
+        LoginViewModel? login = null)
         => MainViewModelFactory.Create(
             workspaceClient,
             consoleClient ?? NullConsoleClient(),
@@ -806,7 +934,8 @@ public class MainViewModelTests
             tutorial: tutorial,
             gitClient: NullGitClient(),
             validationClient: NullValidationClient(),
-            agentClient: NullAgentClient());
+            agentClient: NullAgentClient(),
+            login: login);
 
     private static WorkspaceApiClient NullWorkspaceClient()
     {
@@ -891,6 +1020,14 @@ public class MainViewModelTests
         var handler = new FakeHttpMessageHandler(workspaces);
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         return new WorkspaceApiClient(http);
+    }
+
+    private sealed class StatusCodeHandler(HttpStatusCode statusCode) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(statusCode));
     }
 
     private sealed class InMemoryTutorialSettingsStore(FirstRunTutorialSettings settings) : IFirstRunTutorialSettingsStore
