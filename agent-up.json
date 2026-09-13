@@ -851,9 +851,7 @@
       "AgentUp.Server/Features/Database",
       "AgentUp.Server/Features/Ports",
       "AgentUp.Desktop/Features/Browser",
-      "AgentUp.Desktop/Features/Metrics",
       "AgentUp.CLI/Features/Authentication",
-      "AgentUp.Desktop/Features/FirstRun",
       "AgentUp.Server/Features/Commits"
     ]
   }

@@ -317,13 +317,11 @@ public class WorkspaceProcessManagerTests
 
             await _manager.LaunchApplicationAsync(workspace, "Web");
 
-            await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped);
-
-            // LaunchApplicationAsync does not await the application process's own completion,
-            // and reaching the Stopped state (set from its Exited handler) does not guarantee
-            // every OutputDataReceived-triggered AppendAsync write has finished yet; poll until
-            // the application command's own (unprefixed) output shows up rather than assuming
-            // it is already there.
+            // Applications start as Stopped, so waiting for that state returns before the
+            // install+command processes have finished. Poll until the application command's
+            // own (unprefixed) output shows up. LaunchApplicationAsync holds Exited until
+            // stdout readers are attached and flushes those writes before disposing, so a
+            // fast command such as printenv still records its lines here.
             var lines = await WaitForOutputAsync(workspace.Id, "Web",
                 candidate => candidate.Any(line => !line.StartsWith("[install]", StringComparison.Ordinal)));
 
@@ -332,8 +330,10 @@ public class WorkspaceProcessManagerTests
             // [install] prefix and must all come before the application command's own.
             var lastInstallIndex = lines.FindLastIndex(line => line.StartsWith("[install]", StringComparison.Ordinal));
             var firstCommandIndex = lines.FindIndex(line => !line.StartsWith("[install]", StringComparison.Ordinal));
-            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0));
-            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(lastInstallIndex, Is.GreaterThanOrEqualTo(0),
+                "Expected [install] output before the application command. Lines: " + string.Join(" | ", lines));
+            Assert.That(firstCommandIndex, Is.GreaterThanOrEqualTo(0),
+                "Expected unprefixed application output after install. Lines: " + string.Join(" | ", lines));
             Assert.That(lastInstallIndex, Is.LessThan(firstCommandIndex));
         }
         finally
