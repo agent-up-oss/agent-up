@@ -15,8 +15,9 @@ public sealed class AuthenticationApiClient(HttpClient http)
 
     public async Task<string> LoginAsync(string password, CancellationToken cancellationToken = default)
     {
-        if (http.BaseAddress is not null)
-            SecureServerUrlProvider.EnsureCredentialTransportAllowed(http.BaseAddress);
+        var serverUri = ServerSessionProvider.CurrentUri(http);
+        if (serverUri is not null)
+            SecureServerUrlProvider.EnsureCredentialTransportAllowed(serverUri);
 
         using var response = await http.PostAsJsonAsync("/api/auth/login", new { password }, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Unauthorized)

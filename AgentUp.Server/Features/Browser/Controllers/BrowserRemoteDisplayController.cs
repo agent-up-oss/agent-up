@@ -15,7 +15,10 @@ public sealed class BrowserRemoteDisplayController(
     public async Task StreamAsync(string workspaceId)
     {
         if (!HttpContext.WebSockets.IsWebSocketRequest) { HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest; return; }
-        using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync();
+        var requestedProtocol = HttpContext.Request.Headers.SecWebSocketProtocol.ToString()
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault(value => value.StartsWith("agent-up.auth.", StringComparison.Ordinal));
+        using var ws = await HttpContext.WebSockets.AcceptWebSocketAsync(requestedProtocol);
         await sessions.StreamDisplayAsync(workspaceId, ws,
             json => inputDispatcher.DispatchAsync(workspaceId, json, HttpContext.RequestAborted),
             HttpContext.RequestAborted);

@@ -2,6 +2,10 @@ export type WorkspaceApplication = {
   name: string;
   state: string;
   kind?: 'Process' | 'Desktop';
+  allocatedPorts?: Array<{
+    allocatedPort: number;
+    protocol: string;
+  }>;
 };
 
 export type Workspace = {

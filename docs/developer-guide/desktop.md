@@ -112,7 +112,7 @@ cannot express. Catalog classes such as `wsEntry` and `appTab` get their fill,
 radius, and hover/selected treatment from `AgentUpStyles.axaml`. The docs marketing page and Mobile
 client consume the same canonical HTML/CSS contract and generated bindings.
 
-The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the reload control and is green when the Desktop can reach the Server and red when it cannot.
+The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the reload control and is green when the Desktop can reach the Server and red when it cannot. Clicking the badge opens the saved-server list so the user can switch Servers.
 
 Desktop sets a runtime `WindowIcon` from `media/logo.png` so Linux/Xorg window switchers can display the app icon. The Desktop project must also declare `ApplicationIcon` pointing at `media/logo.ico`; Windows shell surfaces such as Alt+Tab use the executable icon resource rather than only Avalonia's runtime window icon.
 
@@ -199,3 +199,12 @@ that uses the catalog sign-in card, page title, and field label, then gates the
 main UI and uses the returned bearer token for REST and
 workspace-event requests. When the Server has authentication disabled, Desktop
 opens the main window directly.
+
+Desktop remembers configured Server URLs and their access tokens in
+`connections.json` under the user's local application data directory.
+`AGENTUP_SERVER_URL` is the default when no saved connection exists. The
+sign-in page lists saved servers and accepts a Server URL. The chrome server
+badge opens that page so the user can switch. Switching replaces the workspace
+list, panel, and WebView state for the previous Server; first-run tutorial
+settings stay on the workstation. A saved token is reused until the Server
+returns 401, which shows the password field again.

@@ -73,6 +73,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         }
     }
 
+    public bool RequiresSignIn { get; private set; }
+
     public bool ShowEmptyState => _selectedWorkspace is null && _errorMessage is null && !_isLoading;
     public string ServerStatusText => _errorMessage is not null
         ? "SERVER OFFLINE"
@@ -273,6 +275,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     {
         IsLoading = true;
         ErrorMessage = null;
+        RequiresSignIn = false;
         try
         {
             var dtos = await _workspaces.ListAsync(ct);
@@ -308,6 +311,11 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             if (SelectedWorkspace is null || !Workspaces.Any(w => w.Id == SelectedWorkspace.Id))
                 SelectedWorkspace = Workspaces.FirstOrDefault();
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            ErrorMessage = "Sign in required.";
+            RequiresSignIn = true;
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             ErrorMessage = $"Could not connect to Agent-Up Server: {ex.Message}";
@@ -316,6 +324,15 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         {
             IsLoading = false;
         }
+    }
+
+    public void Disconnect()
+    {
+        Workspaces.Clear();
+        SelectedWorkspace = null;
+        ErrorMessage = null;
+        RequiresSignIn = false;
+        IsLoading = false;
     }
 
     private void ApplyWorkspaceOrder(IReadOnlyList<WorkspaceDto> orderedDtos)

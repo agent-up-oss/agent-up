@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useServers } from '@/features/servers/controllers/ServersContext';
+import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
@@ -20,6 +22,7 @@ import {
 const POLL_MS = 2500;
 
 export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?: string } = {}) {
+  const { expireActiveCredential } = useServers();
   const { server, selectedWorkspace } = useWorkspaces();
   const workspaceId = workspaceIdProp ?? selectedWorkspace?.id ?? null;
 
@@ -73,13 +76,17 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
       if (silent) setError(null);
     } catch (cause) {
       if (!treeGate.isCurrent(ticket)) return;
+      if (isUnauthorized(cause)) {
+        expireActiveCredential();
+        return;
+      }
       if (!silent) setTree(null);
       setError(cause instanceof Error ? cause.message : 'Could not load Git changes.');
     } finally {
       inflightLoads.current = Math.max(0, inflightLoads.current - 1);
       if (treeGate.isCurrent(ticket) && !silent) setLoading(false);
     }
-  }, [server, workspaceId, treeGate]);
+  }, [server, workspaceId, treeGate, expireActiveCredential]);
 
   useEffect(() => { void load(false); }, [load]);
   useEffect(() => {

@@ -30,16 +30,42 @@ flow: the client shows the sign-in URL and Codex device code from the Server
 and must not launch `xdg-open` itself. It never launches a CLI or owns an ACP session.
 
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
-the active selection in PWA local storage. Only one Server is active at a time;
-selecting another sidebar icon changes the client target and does not copy or
-own Server runtime state. A URL is saved only after the Server authentication
-status probe succeeds. If login is required, the client requests the single
-administrator password and stores the resulting access token with the Server
-selection; if authentication is disabled, it skips that login step. Remote
-servers must use HTTPS; loopback HTTP URLs remain supported for local
+the active selection in PWA local storage. Only one Server is active at a time.
+The connect screen and sidebar list saved servers so the user can switch;
+selecting another Server changes the client target and drops that client's
+local workspace state. It does not copy or own Server runtime state. A URL is
+saved only after the Server authentication status probe succeeds. If login is
+required, the client requests the single administrator password and stores the
+resulting access token with the Server selection; if authentication is
+disabled, it skips that login step. Switching back to a saved Server reuses
+that token so the password is not typed again until the Server rejects it
+with 401. That rejection returns the user to the connect screen and asks
+for the administrator password again; the saved Server URL stays.
+
+Remote servers must use HTTPS; loopback HTTP URLs remain supported for local
 development.
 
-As an explicit exception to the general application-package isolation rule,
+Application spaces render each application's own HTTP interface in a native
+WebView, or in an iframe on the installable web client. Mobile never opens
+`http://127.0.0.1:{allocatedPort}` on the device. It asks the authenticated
+Server for a short-lived single-use ticket for that workspace's allocated HTTP
+port, then navigates the WebView to `{server}/apps/{workspaceId}/{port}`. Native
+WebViews send the ticket in the `X-Agent-Up-Ticket` request header. The
+installable web client appends `#ticket=` so the secret stays off the HTTP
+request line; the Server bootstrap page reads that fragment and POSTs the
+header on the Server origin. The Server does not accept query-string tickets.
+The Server sets an HttpOnly cookie, redirects to `/`, and reverse-proxies
+unmatched HTTP and WebSocket requests to `http://127.0.0.1:{port}` so the
+WebView natively renders the application's HTML, CSS, and JavaScript. Only
+currently open allocated HTTP ports are tunneled; TCP ports and closed ports
+are rejected. Reserved Server routes such as `/api`, `/mcp`, and `/apps` are never
+proxied. The long-lived Bearer token stays on REST ticket issuance and is not
+placed in the WebView URL. Token-bearing ticket requests reject remote
+plaintext HTTP; only HTTPS and loopback HTTP development connections may
+transport credentials. The Server also rejects remote plaintext before issuing
+or accepting proxy tickets and sessions. That HTTPS check uses the TLS
+connection itself, not a client-supplied `X-Forwarded-Proto` header.
+Changing applications aborts the previous Mobile ticket request. As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose
 the injected workspace and application identity to Expo. Server connection
@@ -70,13 +96,15 @@ in GitHub Actions with `expo prebuild` and Fastlane Match; see
 
 The mobile client is a gated stack, not a bottom-tab shell.
 
-- `/connect` is the entry screen until a Server URL is saved successfully.
+- `/connect` is the entry screen until a Server URL is saved successfully. It
+  also lists saved servers so the user can switch or add another.
 - After connect, `/(main)` renders a persistent top nav bar and a collapsible
   sidebar. Screen content renders below the nav bar. Each screen sets the nav
   title, optional right action, and optional custom sidebar content through
   `useShellConfig`.
-- The default sidebar lists workspaces for the active Server and lets the user
-  switch workspaces. The first workspace is selected automatically when the list
+- The default sidebar lists workspaces for the active Server, lets the user
+  switch workspaces, and lists saved Servers so the user can switch the
+  client target. The first workspace is selected automatically when the list
   loads.
 - Workspace routes live under `/(main)/workspace/[workspaceId]/`. The dashboard
   is the workspace home page. Agent chat and application spaces are deeper stack
@@ -86,7 +114,7 @@ The mobile client is a gated stack, not a bottom-tab shell.
 
 ## Workspaces and Git slices
 
-The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary application entries retain their existing non-streaming presentation.
+The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary HTTP application entries load through the authenticated Server proxy described above.
 
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
 workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in

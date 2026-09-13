@@ -2,8 +2,10 @@ using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.WebSockets;
 
 namespace AgentUp.Server.Tests.Features.Browser.Controller;
 
@@ -77,6 +79,30 @@ public sealed class BrowserRemoteDisplayControllerTests
         });
     }
 
+    [Test]
+    public async Task StreamAsync_returnsBadRequestWhenTheRequestIsNotAWebSocket()
+    {
+        var controller = CreateController();
+
+        await controller.StreamAsync("workspace");
+
+        Assert.That(controller.Response.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task StreamAsync_acceptsTheAgentUpAuthenticationSubprotocol()
+    {
+        var feature = new StubWebSocketFeature();
+        var controller = CreateController();
+        controller.HttpContext.Features.Set<IHttpWebSocketFeature>(feature);
+        controller.HttpContext.Request.Headers.SecWebSocketProtocol = "unrelated, agent-up.auth.dG9rZW4";
+        controller.HttpContext.RequestAborted = new CancellationToken(canceled: true);
+
+        await controller.StreamAsync("workspace");
+
+        Assert.That(feature.AcceptedSubProtocol, Is.EqualTo("agent-up.auth.dG9rZW4"));
+    }
+
     private static BrowserRemoteDisplayController CreateController(
         BrowserRemoteDisplayService? display = null)
     {
@@ -98,4 +124,36 @@ public sealed class BrowserRemoteDisplayControllerTests
             display ?? new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
             ServerTestComposition.CreateStreamState(),
             NullLogger<HeadlessBrowserSessionManager>.Instance);
+
+    private sealed class StubWebSocketFeature : IHttpWebSocketFeature
+    {
+        public bool IsWebSocketRequest => true;
+        public string? AcceptedSubProtocol { get; private set; }
+
+        public Task<WebSocket> AcceptAsync() => AcceptAsync(new WebSocketAcceptContext());
+
+        public Task<WebSocket> AcceptAsync(WebSocketAcceptContext context)
+        {
+            AcceptedSubProtocol = context.SubProtocol;
+            return Task.FromResult<WebSocket>(new StubWebSocket());
+        }
+    }
+
+    private sealed class StubWebSocket : WebSocket
+    {
+        public override WebSocketCloseStatus? CloseStatus => null;
+        public override string? CloseStatusDescription => null;
+        public override WebSocketState State => WebSocketState.Open;
+        public override string? SubProtocol => null;
+        public override void Abort() { }
+        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+        public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+        public override void Dispose() { }
+        public override Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
+            => Task.FromCanceled<WebSocketReceiveResult>(cancellationToken);
+        public override Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+    }
 }

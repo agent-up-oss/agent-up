@@ -16,8 +16,11 @@ public static class AppComposition
     public static async Task InitializeDesktopAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
         var http = CreateServerHttpClient();
+        var connections = new ServerConnectionService(new FileServerConnectionStore(), http);
+        connections.RestoreActive();
         var authentication = new AuthenticationController(
-            new AuthenticationService(new AuthenticationApiClient(http)));
+            new AuthenticationService(new AuthenticationApiClient(http)),
+            connections);
         var login = new LoginViewModel(authentication);
         var (window, viewModel) = CreateMainWindow(http, login);
         desktop.MainWindow = window;
@@ -43,19 +46,30 @@ public static class AppComposition
         {
             if (!await authentication.IsRequiredAsync())
             {
+                authentication.SaveServer(authentication.CurrentServerUrl(), null);
                 login.Dismiss();
+                login.RememberConnected();
+                return true;
+            }
+
+            if (http.DefaultRequestHeaders.Authorization is not null)
+            {
+                login.Dismiss();
+                login.RememberConnected();
                 return true;
             }
 
             login.Show();
             var token = await login.WaitForSignInAsync();
-            if (string.IsNullOrWhiteSpace(token))
+            if (token is null)
             {
                 desktop.Shutdown();
                 return false;
             }
 
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            if (!string.IsNullOrWhiteSpace(token))
+                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            login.RememberConnected();
             return true;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or JsonException)
@@ -72,7 +86,7 @@ public static class AppComposition
     }
 
     private static HttpClient CreateServerHttpClient()
-        => new() { BaseAddress = SecureServerUrlProvider.ResolveServerUri() };
+        => ServerSessionProvider.CreateClient(SecureServerUrlProvider.ResolveServerUri());
 
     public static (Window Window, MainViewModel ViewModel) CreateMainWindow(HttpClient http, LoginViewModel login)
     {

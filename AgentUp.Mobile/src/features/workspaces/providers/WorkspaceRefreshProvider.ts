@@ -1,4 +1,4 @@
-import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
+import { isUnauthorized, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { Workspace } from '../models/Workspace';
 
 // Where a refresh reports its outcome. The controller supplies React state setters; keeping the
@@ -7,6 +7,7 @@ export type WorkspaceRefreshSink = {
   onLoading(loading: boolean): void;
   onWorkspaces(workspaces: Workspace[]): void;
   onError(message: string): void;
+  onUnauthorized(): void;
   onDisconnected(): void;
 };
 
@@ -33,6 +34,7 @@ export function createWorkspaceRefresh(
       && (server?.accessToken ?? null) === (active?.accessToken ?? null),
 
     async refresh(server: ServerSession | null): Promise<void> {
+      const previousUrl = active?.url ?? null;
       active = server;
       const ticket = ++generation;
       if (!server) {
@@ -40,6 +42,10 @@ export function createWorkspaceRefresh(
         sink.onLoading(false);
         return;
       }
+      // Drop the previous server's list immediately so a slow response cannot keep showing
+      // that space after the user switched. Token changes on the same URL do not clear it.
+      if (previousUrl !== null && previousUrl !== server.url)
+        sink.onDisconnected();
 
       sink.onLoading(true);
       try {
@@ -48,6 +54,10 @@ export function createWorkspaceRefresh(
         sink.onWorkspaces(loaded);
       } catch (cause) {
         if (ticket !== generation) return;
+        if (isUnauthorized(cause)) {
+          sink.onUnauthorized();
+          return;
+        }
         sink.onError(cause instanceof Error ? cause.message : 'Could not load workspaces.');
       } finally {
         if (ticket === generation) sink.onLoading(false);
