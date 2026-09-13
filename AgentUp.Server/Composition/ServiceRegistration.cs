@@ -248,6 +248,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
+        builder.Services.AddSingleton<WorkspaceCommitQueueService>();
 
         // Verification owns test selection and proof. It never reads the commit queue, so
         // the commit module stays optional; the queue contributes changed content only

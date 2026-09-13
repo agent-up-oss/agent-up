@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
-import { commitFiles, discardFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
+import type { CommitQueue } from '../models/CommitQueue';
+import { commitFiles, discardFiles, getChanges, getCommitQueue, getFileDiff } from '../providers/GitApiProvider';
 import { createRequestGate, type RequestGate } from '../providers/RequestGateProvider';
 import {
   canCommitSelection,
@@ -23,6 +24,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
   const workspaceId = workspaceIdProp ?? selectedWorkspace?.id ?? null;
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
+  const [queue, setQueue] = useState<CommitQueue | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,15 +57,20 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
     if (!server || !workspaceId) {
       selectionWorkspace.current = null;
       setTree(null);
+      setQueue(null);
       setSelected([]);
       return;
     }
     if (!silent) { setLoading(true); setError(null); }
     inflightLoads.current += 1;
     try {
-      const changes = await getChanges(server, workspaceId);
+      const [changes, proposals] = await Promise.all([
+        getChanges(server, workspaceId),
+        getCommitQueue(server, workspaceId),
+      ]);
       if (!treeGate.isCurrent(ticket)) return;
       setTree(changes);
+      setQueue(proposals);
       setSelected(current => {
         const keep = selectionWorkspace.current === workspaceId ? current : [];
         selectionWorkspace.current = workspaceId;
@@ -73,6 +80,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
     } catch (cause) {
       if (!treeGate.isCurrent(ticket)) return;
       if (!silent) setTree(null);
+      if (!silent) setQueue(null);
       setError(cause instanceof Error ? cause.message : 'Could not load Git changes.');
     } finally {
       inflightLoads.current = Math.max(0, inflightLoads.current - 1);
@@ -156,6 +164,16 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
         </View>
       </View>
 
+      {!!queue?.entries.length &&
+        <View accessibilityLabel="Agent proposal queue" style={styles.queue}>
+          <Text style={styles.queueTitle}>Agent proposal queue · generation {queue.generation}</Text>
+          {queue.entries.map((entry, index) =>
+            <View key={entry.id} style={styles.queueEntry}>
+              <Text numberOfLines={1} style={styles.queueMessage}>{index + 1}. {entry.message}</Text>
+              <Text style={styles.queueState}>{entry.state}</Text>
+            </View>)}
+        </View>}
+
       {loading && <ActivityIndicator color="#00d66b" />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
@@ -233,6 +251,11 @@ const styles = StyleSheet.create({
   discardButton: { minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#8d3c3c' },
   discardText: { color: '#e48989', fontWeight: '700', fontSize: 12 },
   summary: { color: '#789085', fontSize: 12 },
+  queue: { gap: 6, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#285c3b', backgroundColor: '#101813' },
+  queueTitle: { color: '#2bf27a', fontSize: 12, fontWeight: '800' },
+  queueEntry: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  queueMessage: { flex: 1, color: '#d5dfd8', fontSize: 12 },
+  queueState: { color: '#2bf27a', fontSize: 11, fontWeight: '700' },
   empty: { color: '#aebcb3', lineHeight: 21 },
   error: { color: '#d84f4f', lineHeight: 21 },
   status: { color: '#2bf27a', lineHeight: 21 },

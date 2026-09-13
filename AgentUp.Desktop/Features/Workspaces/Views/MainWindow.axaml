@@ -1839,6 +1839,31 @@
                                                        Text="{Binding Git.SelectionSummary}"
                                                        Foreground="#789085"
                                                        FontSize="11"/>
+                                            <Border x:Name="CommitProposalQueue"
+                                                    IsVisible="{Binding Git.HasQueuedProposals}"
+                                                    Background="#101813"
+                                                    BorderBrush="#285c3b"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="8">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="Agent proposal queue"
+                                                               Foreground="#2bf27a"
+                                                               FontWeight="Bold"
+                                                               FontSize="11"/>
+                                                    <ItemsControl ItemsSource="{Binding Git.QueueEntries}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                                                    <TextBlock Text="{Binding Slice}" Foreground="#9bcaaa" FontSize="10"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="#d5dfd8" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Grid.Column="2" Text="{Binding State}" Foreground="#2bf27a" FontSize="10"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </Border>
                                             <TextBlock x:Name="GitErrorMessage"
                                                        Text="{Binding Git.ErrorMessage}"
                                                        IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"

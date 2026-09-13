@@ -33,6 +33,25 @@ public sealed class GitApiClientTests
     }
 
     [Test]
+    public async Task GetCommitQueueAsync_readsProposalAncestryAndGeneration()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"entries":[{"slice":"Commits","message":"feat(Commits): queue","files":["a.cs"],"id":"entry-1","parentCommit":"base","proposalCommit":"tip","state":"ready"}],"unassignedFiles":[],"queueWorktreePath":"/managed/queue","baseCommit":"base","tipCommit":"tip","generation":3}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var queue = await client.GetCommitQueueAsync("ws 1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue!.Entries.Single().State, Is.EqualTo("ready"));
+            Assert.That(queue.Generation, Is.EqualTo(3));
+            Assert.That(queue.QueueWorktreePath, Is.EqualTo("/managed/queue"));
+            Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/commit-queue"));
+        });
+    }
+
+    [Test]
     public async Task GetFileDiffAsync_escapesThePathQueryParameter()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.OK,

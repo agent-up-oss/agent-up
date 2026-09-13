@@ -1,7 +1,9 @@
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using Avalonia.VisualTree;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Headless;
 
@@ -45,6 +47,23 @@ public sealed class GitPanelBehaviorTests
         await HeadlessExtensions.FlushAsync();
 
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsEffectivelyEnabled, Is.False);
+    }
+
+    [AvaloniaTest]
+    public async Task GitPanel_rendersServerOwnedProposalMessagesAndState()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        viewModel.Git.ApplyQueue(new CommitQueueDto(
+            [new CommitQueueEntryDto("Commits", "feat(Commits): queue", ["a.cs"], "entry-1", "base", "tip", "ready")],
+            [], "/managed/queue", "base", "tip", 2));
+        await HeadlessExtensions.FlushAsync();
+
+        var queue = driver.Window.FindControl<Border>("CommitProposalQueue")!;
+        Assert.That(queue.IsVisible, Is.True);
+        Assert.That(queue.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "feat(Commits): queue"), Is.True);
+        Assert.That(queue.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "ready"), Is.True);
     }
 
     [AvaloniaTest]

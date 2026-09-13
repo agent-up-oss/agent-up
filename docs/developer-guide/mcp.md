@@ -16,6 +16,8 @@ The Orchestration MCP server exposes Streamable HTTP at `/mcp/orchestration` and
 
 The Commits MCP server exposes Streamable HTTP at `/mcp/commits` and legacy SSE compatibility at `/mcp/commits/sse` plus `/mcp/commits/message`. It owns only commit queue tools and exposes no workspace resources.
 
+Human clients read the same authoritative state through `GET /api/workspaces/{workspaceId}/commit-queue`. Desktop and Mobile display the returned ordered entries and verification states; MCP agents use `get_commits_status` and must continue at the returned managed worktree path after the first Git-backed enqueue.
+
 The Browser MCP server exposes Streamable HTTP at `/mcp/browser` and legacy SSE compatibility at `/mcp/browser/sse` plus `/mcp/browser/message`. It owns browser navigation, inspection, interaction, wait, and screenshot tools.
 
 The Browser MCP endpoint also exposes `desktop_inspect`, `desktop_screenshot`, `desktop_click`, `desktop_fill`, and `desktop_press` for applications declared in `desktopApplications`. These tools address an explicit workspace application and session generation. Desktop screenshots use the Server-owned framebuffer; coordinate input from a stale generation is rejected after an application restart.

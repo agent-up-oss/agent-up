@@ -481,7 +481,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
 
-It connects to the Server and must not own runtime state. Full guide: `docs/developer-guide/desktop.md`.
+It connects to the Server and must not own runtime state. Its Git panel displays the Server-owned proposal queue, including entry order, messages, and verification state. Full guide: `docs/developer-guide/desktop.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -498,6 +498,8 @@ The mobile client is a single Expo and React Native TypeScript project that targ
 Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. The mobile client displays Server-owned state and must not own orchestration.
 
 Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
+
+Mobile's Git changes panel reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
 
 Developer guide: `docs/developer-guide/mobile.md`.
 

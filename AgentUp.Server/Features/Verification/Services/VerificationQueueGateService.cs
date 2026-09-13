@@ -4,12 +4,18 @@ using AgentUp.Verification.Features.Verification.Services;
 
 namespace AgentUp.Server.Features.Verification.Services;
 
-public sealed class VerificationQueueGateService(VerificationRunService runs, VerificationGuardService guards)
+public sealed class VerificationQueueGateService(
+    VerificationPlanService plans,
+    VerificationRunService runs,
+    VerificationGuardService guards)
 {
     public async Task<VerificationGateResult> RunAndGuardAsync(string worktreePath, CancellationToken cancellationToken = default)
     {
         try
         {
+            if (!plans.LoadConfiguration(worktreePath).IsConfigured)
+                return new VerificationGateResult(false, "commits.enabled requires a configured verification section.");
+
             var outcomes = await runs.RunAsync(worktreePath, cancellationToken);
             if (outcomes.LastOrDefault() is { Succeeded: false } failed)
                 return new VerificationGateResult(false, $"Verification check '{failed.CheckId}' failed with exit code {failed.ExitCode}.");

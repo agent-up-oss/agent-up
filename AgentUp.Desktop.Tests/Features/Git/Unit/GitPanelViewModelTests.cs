@@ -564,6 +564,33 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.Diff.Content, Is.EqualTo("+util"));
     }
 
+    [Test]
+    public async Task LoadAsync_exposesServerOwnedProposalQueue()
+    {
+        var api = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Queue = new CommitQueueDto(
+                [new CommitQueueEntryDto("Commits", "feat(Commits): queue", ["a.cs"], "entry-1", "base", "tip", "ready")],
+                [],
+                "/managed/queue",
+                "base",
+                "tip",
+                4)
+        };
+        var panel = CreatePanel(api);
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel.HasQueuedProposals, Is.True);
+            Assert.That(panel.QueueEntries.Single().State, Is.EqualTo("ready"));
+            Assert.That(panel.QueueWorktreePath, Is.EqualTo("/managed/queue"));
+            Assert.That(panel.QueueGeneration, Is.EqualTo(4));
+        });
+    }
+
     private static GitChangeTreeDto OtherWorkspaceTree()
         => new(
             "ws-2",
@@ -607,6 +634,11 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
     private TaskCompletionSource<GitFileDiffDto?>? _heldDiff;
 
     public GitChangeTreeDto? Tree { get; set; }
+
+    public CommitQueueDto? Queue { get; set; }
+
+    public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => Task.FromResult(Queue);
 
     public GitFileDiffDto? FileDiff { get; set; }
 
