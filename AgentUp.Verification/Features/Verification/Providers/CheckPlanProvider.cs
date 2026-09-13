@@ -41,19 +41,19 @@ public sealed class CheckPlanProvider(PathGlobProvider globs, IPlatformCapabilit
                 rule.Checks.Select(checkId => (CheckId: checkId, match.Path, rule.Match))))
             .ToArray();
 
+        // Declared order comes first, so a check that consumes another's output can be made
+        // to follow it whether or not it is an "always" check. Among equal orders the
         // "always" checks lead, in the order the repository declared them, because they are
         // the foundational ones: a full-solution build must precede the suites that assume
         // it compiles. Everything else follows in id order so plans stay comparable.
-        var selectedIds = selections
-            .Select(selection => selection.CheckId)
-            .Distinct(StringComparer.Ordinal)
-            .Except(configuration.Always, StringComparer.Ordinal)
-            .OrderBy(OrderOf(configuration))
-            .ThenBy(checkId => checkId, StringComparer.Ordinal);
+        var alwaysPosition = AlwaysPositionOf(configuration);
 
         var requiredIds = configuration.Always
+            .Concat(selections.Select(selection => selection.CheckId))
             .Distinct(StringComparer.Ordinal)
-            .Concat(selectedIds)
+            .OrderBy(OrderOf(configuration))
+            .ThenBy(alwaysPosition)
+            .ThenBy(checkId => checkId, StringComparer.Ordinal)
             .ToArray();
 
         var checks = requiredIds
@@ -76,6 +76,20 @@ public sealed class CheckPlanProvider(PathGlobProvider globs, IPlatformCapabilit
     /// </summary>
     private static Func<string, int> OrderOf(VerificationConfiguration configuration)
         => checkId => configuration.Checks.TryGetValue(checkId, out var check) ? check.Order : 0;
+
+    /// <summary>
+    /// A check's index in "always", or int.MaxValue for one that is not listed there, so
+    /// the declared foundational order survives the sort without hard-coding it.
+    /// </summary>
+    private static Func<string, int> AlwaysPositionOf(VerificationConfiguration configuration)
+    {
+        var positions = configuration.Always
+            .Distinct(StringComparer.Ordinal)
+            .Select((checkId, index) => (checkId, index))
+            .ToDictionary(entry => entry.checkId, entry => entry.index, StringComparer.Ordinal);
+
+        return checkId => positions.TryGetValue(checkId, out var position) ? position : int.MaxValue;
+    }
 
     private IReadOnlyList<VerificationPathRule> MatchingRules(
         VerificationConfiguration configuration,

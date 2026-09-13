@@ -11,11 +11,12 @@ public sealed class VerificationController(
     VerifyRunCommand run,
     VerifyGuardCommand guard,
     VerifyCoverageCommand coverage,
+    VerifySlicesCommand slices,
     VerifyOutputService output,
     string worktreePath)
 {
     public Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
-        => Resolve(args, plan, run, guard, coverage, output, worktreePath)(cancellationToken);
+        => Resolve(args, plan, run, guard, coverage, slices, output, worktreePath)(cancellationToken);
 
     private static Func<CancellationToken, Task<int>> Resolve(
         string[] args,
@@ -23,6 +24,7 @@ public sealed class VerificationController(
         VerifyRunCommand run,
         VerifyGuardCommand guard,
         VerifyCoverageCommand coverage,
+        VerifySlicesCommand slices,
         VerifyOutputService output,
         string worktreePath)
     {
@@ -37,6 +39,7 @@ public sealed class VerificationController(
             "run" => ct => run.RunAsync(worktreePath, FirstPositional(remaining), ct),
             "guard" => ct => guard.RunAsync(worktreePath, format, runMissing, ct),
             "coverage" => ct => coverage.RunAsync(worktreePath, ReadMinimum(args), ct),
+            "slices" => ct => slices.RunAsync(worktreePath, ReadMinimum(args), ct),
             _ => _ => Task.FromResult(WriteHelp(output))
         };
     }
@@ -80,6 +83,7 @@ public sealed class VerificationController(
                                        --run also executes what is missing
                     [--format hook]    Terse output for a Stop hook: silent when satisfied
               coverage [--min N]       Measure coverage of the changed lines against the minimum
+              slices [--min N]         Report total coverage per feature slice against the slice floor
 
             Check selection comes from the 'verification' section of agent-up.json.
             """);

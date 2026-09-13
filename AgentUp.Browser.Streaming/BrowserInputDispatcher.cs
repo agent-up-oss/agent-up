@@ -1,9 +1,7 @@
-using System.Collections.Concurrent;
 using System.Text.Json;
 using AgentUp.Browser.Streaming.Models;
 using Microsoft.Extensions.Logging;
 using PuppeteerSharp;
-using PuppeteerSharp.Input;
 
 namespace AgentUp.Browser.Streaming;
 
@@ -11,33 +9,33 @@ public sealed class BrowserInputDispatcher(
     HeadlessBrowserSessionAccessor accessor,
     HeadlessBrowserSessionManager manager,
     BrowserRemoteDisplayService display,
+    BrowserInputParser parser,
     ILogger<BrowserInputDispatcher> logger)
 {
-    private readonly ConcurrentDictionary<string, string> _lastCursorByWorkspace = new();
-
     public async Task DispatchAsync(string workspaceId, string json, CancellationToken ct)
     {
         var session = accessor.GetSession(workspaceId);
         if (session is null) return;
         try
         {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var type = root.GetProperty("type").GetString();
-            if (type is not null)
+            var command = parser.Parse(json);
+            if (command.Type is not null)
                 display.RegisterInputActivity(workspaceId);
-            await (type switch
+
+            await (command.Kind switch
             {
-                "mousemove"   => MoveMouseAsync(workspaceId, session, root, ct),
-                "mousedown"   => session.Page.Mouse.DownAsync(ClickOpts(root)).WaitAsync(ct),
-                "mouseup"     => session.Page.Mouse.UpAsync(ClickOpts(root)).WaitAsync(ct),
-                "click"       => session.Page.Mouse.ClickAsync(X(root), Y(root), ClickOpts(root)).WaitAsync(ct),
-                "wheel"       => session.Page.Mouse.WheelAsync(Delta(root, "deltaX"), Delta(root, "deltaY")).WaitAsync(ct),
-                "keydown"     => session.Page.Keyboard.DownAsync(Key(root)).WaitAsync(ct),
-                "keyup"       => session.Page.Keyboard.UpAsync(Key(root)).WaitAsync(ct),
-                "type"        => session.Page.Keyboard.TypeAsync(Text(root)).WaitAsync(ct),
-                "controlmode" => SwitchToHumanAsync(workspaceId, root, ct),
-                _             => Task.CompletedTask
+                BrowserInputKind.MouseMove => MoveMouseAsync(workspaceId, session, command, ct),
+                BrowserInputKind.MouseDown => session.Page.Mouse.DownAsync(command.ClickOptions).WaitAsync(ct),
+                BrowserInputKind.MouseUp => session.Page.Mouse.UpAsync(command.ClickOptions).WaitAsync(ct),
+                BrowserInputKind.Click => session.Page.Mouse
+                    .ClickAsync(command.X, command.Y, command.ClickOptions).WaitAsync(ct),
+                BrowserInputKind.Wheel => session.Page.Mouse
+                    .WheelAsync(command.DeltaX, command.DeltaY).WaitAsync(ct),
+                BrowserInputKind.KeyDown => session.Page.Keyboard.DownAsync(command.Key).WaitAsync(ct),
+                BrowserInputKind.KeyUp => session.Page.Keyboard.UpAsync(command.Key).WaitAsync(ct),
+                BrowserInputKind.Type => session.Page.Keyboard.TypeAsync(command.Text).WaitAsync(ct),
+                BrowserInputKind.ControlMode => SwitchToHumanAsync(workspaceId, command, ct),
+                _ => Task.CompletedTask
             });
         }
         catch (Exception ex) when (ex is PuppeteerException or JsonException or KeyNotFoundException
@@ -47,25 +45,23 @@ public sealed class BrowserInputDispatcher(
         }
     }
 
-    private async Task SwitchToHumanAsync(string workspaceId, JsonElement root, CancellationToken ct)
+    private async Task SwitchToHumanAsync(string workspaceId, BrowserInputCommand command, CancellationToken ct)
     {
         var current = manager.GetControlMode(workspaceId);
         if (current.Authority != ControlAuthority.Human)
             await manager.SetControlModeAsync(workspaceId, BrowserControlMode.DefaultHuman, ct);
-        if (root.TryGetProperty("width", out var w) && root.TryGetProperty("height", out var h))
-            await manager.TrySetViewportAsync(workspaceId, w.GetInt32(), h.GetInt32(), ct);
+        if (command.HasViewport)
+            await manager.TrySetViewportAsync(workspaceId, command.Width!.Value, command.Height!.Value, ct);
     }
 
-    private async Task MoveMouseAsync(string workspaceId, BrowserSessionState session, JsonElement root, CancellationToken ct)
+    private async Task MoveMouseAsync(string workspaceId, BrowserSessionState session, BrowserInputCommand command, CancellationToken ct)
     {
-        var x = X(root);
-        var y = Y(root);
+        var x = command.X;
+        var y = command.Y;
         await session.Page.Mouse.MoveAsync(x, y).WaitAsync(ct);
         var cursor = await ReadCursorAsync(session.Page, x, y, ct);
-        if (!_lastCursorByWorkspace.TryGetValue(workspaceId, out var last) ||
-            !string.Equals(last, cursor, StringComparison.Ordinal))
+        if (session.Cursors.ShouldBroadcast(cursor))
         {
-            _lastCursorByWorkspace[workspaceId] = cursor;
             await display.BroadcastTextAsync(workspaceId, JsonSerializer.Serialize(new
             {
                 type = "cursor",
@@ -87,36 +83,10 @@ public sealed class BrowserInputDispatcher(
             })()
             """);
         var cursor = await page.EvaluateExpressionAsync<string>(script).WaitAsync(ct);
-        return CursorKind(cursor);
+        return BrowserCursorKind.From(cursor);
     }
 
     private static string Sanitize(string id) =>
         id.Replace("\r", string.Empty, StringComparison.Ordinal)
           .Replace("\n", string.Empty, StringComparison.Ordinal);
-
-    private static string CursorKind(string? cursor)
-        => cursor switch
-        {
-            "pointer" => "pointer",
-            "text" or "vertical-text" => "text",
-            "grab" or "grabbing" => "grab",
-            _ => "default"
-        };
-
-    private static decimal X(JsonElement e) => (decimal)e.GetProperty("x").GetDouble();
-    private static decimal Y(JsonElement e) => (decimal)e.GetProperty("y").GetDouble();
-    private static decimal Delta(JsonElement e, string prop) => (decimal)e.GetProperty(prop).GetDouble();
-    private static string Key(JsonElement e) => e.GetProperty("key").GetString() ?? string.Empty;
-    private static string Text(JsonElement e) => e.GetProperty("text").GetString() ?? string.Empty;
-
-    private static ClickOptions ClickOpts(JsonElement e)
-    {
-        var button = e.TryGetProperty("button", out var b) ? b.GetString() : null;
-        var count = e.TryGetProperty("clickCount", out var c) ? c.GetInt32() : 1;
-        return new ClickOptions
-        {
-            Button = button switch { "middle" => MouseButton.Middle, "right" => MouseButton.Right, _ => MouseButton.Left },
-            Count = count
-        };
-    }
 }

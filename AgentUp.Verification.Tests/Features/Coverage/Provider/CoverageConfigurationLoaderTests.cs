@@ -102,4 +102,171 @@ public sealed class CoverageConfigurationLoaderTests
         Assert.That(new CoverageConfigurationLoader().Load(root).ReportDirectory,
             Is.EqualTo("artifacts/coverage"));
     }
+
+    [Test]
+    public void Load_readsTheSliceFloorAndItsExemptions()
+    {
+        var root = WriteRepository("""
+        {
+          "coverage": {
+            "minimum": 90,
+            "sliceMinimum": 70,
+            "include": ["AgentUp.Server/**/*.cs"],
+            "sliceExemptions": ["AgentUp.Server/Features/Ports"]
+          }
+        }
+        """);
+
+        var configuration = new CoverageConfigurationLoader().Load(root);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(configuration.SliceMinimum, Is.EqualTo(70d));
+            Assert.That(configuration.SliceExemptions,
+                Is.EqualTo(new[] { "AgentUp.Server/Features/Ports" }));
+        });
+    }
+
+    [Test]
+    public void Load_treatsAnAbsentSliceFloorAsSwitchedOff()
+    {
+        // A repository with no slice layout has no slices to hold to a floor, so the
+        // optional setting reads as zero rather than failing the load.
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "include": ["AgentUp.Server/**/*.cs"] } }
+        """);
+
+        var configuration = new CoverageConfigurationLoader().Load(root);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(configuration.SliceMinimum, Is.EqualTo(0d));
+            Assert.That(configuration.SliceExemptions, Is.Empty);
+        });
+    }
+
+    [TestCase("-1")]
+    [TestCase("101")]
+    public void Load_throwsWhenTheSliceFloorIsOutsideZeroToOneHundred(string sliceMinimum)
+    {
+        var root = WriteRepository($$"""
+        { "coverage": { "minimum": 90, "sliceMinimum": {{sliceMinimum}}, "include": ["a/**"] } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>());
+    }
+
+    [Test]
+    public void Load_throwsWhenTheSliceFloorIsNotANumber()
+    {
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "sliceMinimum": "seventy", "include": ["a/**"] } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>());
+    }
+
+    [Test]
+    public void Load_throwsWhenSliceExemptionsIsNotAnArray()
+    {
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "include": ["a/**"], "sliceExemptions": "everything" } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>());
+    }
+
+    [TestCase("AgentUp.Server/Features/")]
+    [TestCase("AgentUp.Server")]
+    [TestCase("AgentUp.Server/Features")]
+    [TestCase("AgentUp.Server/Features/Ports/Services")]
+    [TestCase("AgentUp.Server/Shared/Providers")]
+    [TestCase("AgentUp.Server/Features/**")]
+    public void Load_throwsWhenAnExemptionIsNotExactlyOneSlicePath(string entry)
+    {
+        // A glob or a type folder would silently exempt slices nobody reviewed, and could
+        // never match the exact slice paths the check reports.
+        var root = WriteRepository($$"""
+        { "coverage": { "minimum": 90, "include": ["a/**"], "sliceExemptions": ["{{entry}}"] } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>()
+                .With.Message.Contains(entry));
+    }
+
+    [Test]
+    public void Load_throwsWhenAnExemptionNamesNoProject()
+    {
+        // Asserts only the type: the path is normalised before validation, which strips the
+        // leading separator, so the message names "Features/Ports" rather than the entry as
+        // it was written.
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "include": ["a/**"], "sliceExemptions": ["/Features/Ports"] } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>());
+    }
+
+    [Test]
+    public void Load_throwsWhenAnExemptionIsNotAString()
+    {
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "include": ["a/**"], "sliceExemptions": [70] } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>());
+    }
+
+    [Test]
+    public void Load_fallsBackToTheDefaultReportDirectoryWhenItIsNotAString()
+    {
+        // A mistyped value reads as absent rather than failing the load: the default is a
+        // safe place to look, and an empty report set is caught by the gate itself.
+        var root = WriteRepository("""
+        { "coverage": { "minimum": 90, "reportDirectory": 7, "include": ["a/**"] } }
+        """);
+
+        Assert.That(new CoverageConfigurationLoader().Load(root).ReportDirectory,
+            Is.EqualTo("artifacts/coverage"));
+    }
+
+    [Test]
+    public void Load_returnsEmptyWhenThereIsNoAgentUpJsonAtAll()
+    {
+        var root = Path.Join(
+            TestContext.CurrentContext.WorkDirectory, "coverage-config-none-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        Assert.That(new CoverageConfigurationLoader().Load(root).IsConfigured, Is.False);
+    }
+
+    [Test]
+    public void Load_throwsWhenTheCoverageSectionIsNotAnObject()
+    {
+        var root = WriteRepository("""{ "coverage": "yes please" }""");
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>().With.Message.Contains("must be an object"));
+    }
+
+    [TestCase("include")]
+    [TestCase("exclude")]
+    public void Load_throwsWhenAGlobListIsNotAnArray(string name)
+    {
+        // A string where a list belongs would otherwise read as no globs at all, which
+        // silently changes what the gate measures.
+        var root = WriteRepository($$"""
+        { "coverage": { "minimum": 90, "include": ["a/**"], "{{name}}": "a/**" } }
+        """);
+
+        Assert.That(() => new CoverageConfigurationLoader().Load(root),
+            Throws.InstanceOf<CoverageConfigurationException>()
+                .With.Message.Contains($"coverage.{name}"));
+    }
 }

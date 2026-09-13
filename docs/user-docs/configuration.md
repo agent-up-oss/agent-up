@@ -108,9 +108,9 @@ versions that installment has enabled. Example:
 ```json
 [
   { "id": "dotnet", "versions": ["10.0.x"] },
-  { "id": "codex", "versions": ["dev"], "command": "/opt/agent-up/codex-acp", "arguments": [] },
-  { "id": "cursor", "versions": ["dev"], "command": "agent", "arguments": ["acp"] },
-  { "id": "claude", "versions": ["dev"], "command": "claude-agent-acp", "arguments": [] }
+  { "id": "codex", "versions": ["dev"], "command": "/opt/agent-up/bin/codex-acp", "arguments": [] },
+  { "id": "cursor", "versions": ["dev"], "command": "/opt/agent-up/bin/agent", "arguments": ["acp"] },
+  { "id": "claude", "versions": ["dev"], "command": "/opt/agent-up/bin/claude-agent-acp", "arguments": [] }
 ]
 ```
 

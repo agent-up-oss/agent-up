@@ -26,7 +26,7 @@ public sealed class PatchCoverageService(
         CancellationToken cancellationToken = default)
     {
         var configuration = loader.Load(repositoryRoot);
-        var minimum = minimumOverride ?? configuration.Minimum;
+        var minimum = minimumOverride is { } requested ? Bounded(requested) : configuration.Minimum;
 
         if (!configuration.IsConfigured)
             return PatchCoverageResult.NothingToCover(minimum);
@@ -105,4 +105,16 @@ public sealed class PatchCoverageService(
 
         return contributions.Aggregate(ChangedLines.None, (merged, next) => merged.MergeWith(next));
     }
+
+    /// <summary>
+    /// Validates a caller-supplied minimum. The configuration loader bounds the value it
+    /// reads, but --min bypasses it entirely: ReadMinimum parses any double, so a negative,
+    /// above-hundred or non-finite override would be compared against coverage directly and
+    /// make every slice pass or fail regardless of its tests.
+    /// </summary>
+    private static double Bounded(double minimum)
+        => double.IsFinite(minimum) && minimum is >= 0d and <= 100d
+            ? minimum
+            : throw new CoverageConfigurationException(
+                $"A coverage minimum must be a number between 0 and 100, not {minimum.ToString(System.Globalization.CultureInfo.InvariantCulture)}.");
 }

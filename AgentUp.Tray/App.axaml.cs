@@ -31,11 +31,10 @@ public class App : Application
             };
         }
 
-        var icon = LoadTrayIcon();
         _connection = new ServerConnectionManager();
-        _menu = new TrayMenuController(_connection, icon,
+        _menu = new TrayMenuController(_connection,
             () => (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown(0));
-        _menu.Attach(this);
+        _menu.Attach(this, LoadTrayIcon());
 
         _ = _connection.StartAsync();
 

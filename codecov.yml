@@ -21,12 +21,16 @@ comment:
   layout: "condensed_header, diff, flags, components"
   require_changes: true
 
-# Mirrors the "coverage.exclude" globs in agent-up.json. Keep the two in step: composition
-# roots and entrypoints carry no behaviour worth a coverage number.
+# Must contain every "coverage.exclude" glob in agent-up.json, or Codecov fails a change
+# the local gate passes. AgentUp.Architecture.Tests enforces that rather than trusting a
+# comment; extra entries here are fine, because agent-up.json scopes itself with
+# "coverage.include" instead.
 ignore:
   - "**/Composition/**"
   - "**/Program.cs"
   - "**/App.axaml.cs"
   - "**/Properties/**"
   - "**/Resources/**"
+  - "AgentUp.Tray/Features/AutoStart/WindowsAutoStartRegistrar.cs"
+  - "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
   - "**/*.Tests/**"

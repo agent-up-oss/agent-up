@@ -14,7 +14,8 @@ public sealed class VerifyCommandService(
     VerificationPlanService plans,
     VerificationRunService runs,
     VerificationGuardService guards,
-    PatchCoverageService coverage)
+    PatchCoverageService coverage,
+    SliceCoverageService slices)
 {
     /// <summary>
     /// Measures coverage of the changed lines. Reads the reports a previous test run wrote;
@@ -33,6 +34,26 @@ public sealed class VerifyCommandService(
         catch (CoverageConfigurationException exception)
         {
             return new VerifyCoverageResult(null, exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Measures total coverage per feature slice. Reads the same reports as
+    /// <see cref="CoverageAsync"/>, so the suites must have collected coverage first.
+    /// </summary>
+    public async Task<VerifySliceCoverageResult> SliceCoverageAsync(
+        string worktreePath,
+        double? minimumOverride,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return new VerifySliceCoverageResult(
+                await slices.MeasureAsync(worktreePath, minimumOverride, cancellationToken), null);
+        }
+        catch (CoverageConfigurationException exception)
+        {
+            return new VerifySliceCoverageResult(null, exception.Message);
         }
     }
 

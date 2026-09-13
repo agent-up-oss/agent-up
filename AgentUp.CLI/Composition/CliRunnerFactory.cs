@@ -93,13 +93,22 @@ public static class CliRunnerFactory
             new CoverageReportReader(new CoberturaReportParser()),
             [new GitChangedLineSource(new UnifiedDiffParser())],
             verificationGlobs);
+        var verificationSlices = new SliceCoverageService(
+            new CoverageConfigurationLoader(),
+            new CoverageReportReader(new CoberturaReportParser()),
+            verificationGlobs);
         var verifyCommands = new VerifyCommandService(
-            verificationPlans, verificationRuns, verificationGuards, verificationCoverage);
+            verificationPlans,
+            verificationRuns,
+            verificationGuards,
+            verificationCoverage,
+            verificationSlices);
         var verification = new VerificationController(
             new VerifyPlanCommand(verifyCommands, verifyOutput),
             new VerifyRunCommand(verifyCommands, verifyOutput),
             new VerifyGuardCommand(verifyCommands, verifyOutput),
             new VerifyCoverageCommand(verifyCommands, verifyOutput),
+            new VerifySlicesCommand(verifyCommands, verifyOutput),
             verifyOutput,
             workingDirectory);
 

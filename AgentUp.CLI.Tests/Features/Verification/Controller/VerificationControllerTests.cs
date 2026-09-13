@@ -3,6 +3,7 @@ using AgentUp.CLI.Features.Verification.Services;
 using AgentUp.CLI.Tests.Fake;
 using AgentUp.Verification.Features.Verification.Interfaces;
 using AgentUp.Verification.Features.Verification.Models;
+using AgentUp.Verification.Features.Coverage.Interfaces;
 using AgentUp.Verification.Features.Coverage.Models;
 using AgentUp.Verification.Features.Coverage.Services;
 using AgentUp.Verification.Features.Verification.Providers;
@@ -41,7 +42,8 @@ public sealed class VerificationControllerTests
         ScriptedCheckRunner runner,
         TextWriter output,
         TextWriter error,
-        IVerificationConfigurationLoader? loader = null)
+        IVerificationConfigurationLoader? loader = null,
+        ICoverageConfigurationLoader? coverageLoader = null)
     {
         var plans = new VerificationPlanService(
             loader ?? new StubVerificationConfigurationLoader(configuration),
@@ -52,17 +54,22 @@ public sealed class VerificationControllerTests
         var outputService = new VerifyOutputService(output, error);
         var globs = new PathGlobProvider();
         var coverage = new PatchCoverageService(
-            new StubCoverageConfigurationLoader(CoverageConfiguration.Empty),
+            coverageLoader ?? new StubCoverageConfigurationLoader(CoverageConfiguration.Empty),
             new StaticCoverageReportReader(CoverageReport.Empty),
             [new StaticChangedLineSource(ChangedLines.None)],
             globs);
-        var commands = new VerifyCommandService(plans, runs, guards, coverage);
+        var slices = new SliceCoverageService(
+            coverageLoader ?? new StubCoverageConfigurationLoader(CoverageConfiguration.Empty),
+            new StaticCoverageReportReader(CoverageReport.Empty),
+            globs);
+        var commands = new VerifyCommandService(plans, runs, guards, coverage, slices);
 
         return new VerificationController(
             new VerifyPlanCommand(commands, outputService),
             new VerifyRunCommand(commands, outputService),
             new VerifyGuardCommand(commands, outputService),
             new VerifyCoverageCommand(commands, outputService),
+            new VerifySlicesCommand(commands, outputService),
             outputService,
             Worktree);
     }
@@ -243,6 +250,70 @@ public sealed class VerificationControllerTests
         var code = await controller.RunAsync(["coverage", "--min", "not-a-number"]);
 
         Assert.That(code, Is.Zero, "An unparseable override falls back to the configured minimum.");
+    }
+
+    [Test]
+    public async Task RunAsync_slicesReportsThatNoReportMentionsASlice()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        var code = await controller.RunAsync(["slices"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(), Does.Contain("coverage collection"));
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_slicesAcceptsAMinimumOverride()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        var code = await controller.RunAsync(["slices", "--min", "50"]);
+
+        Assert.That(code, Is.EqualTo(1), "Nothing is measured, so the override changes nothing here.");
+    }
+
+    [TestCase("coverage")]
+    [TestCase("slices")]
+    public async Task RunAsync_reportsABrokenCoverageSectionInsteadOfPassingVacuously(string subcommand)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(
+            Rules(),
+            Changed(CliSource),
+            new InMemoryReceiptLedgerStore(),
+            new ScriptedCheckRunner(),
+            output,
+            error,
+            coverageLoader: new ThrowingCoverageConfigurationLoader("'coverage.minimum' is required."));
+
+        var code = await controller.RunAsync([subcommand]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.EqualTo(1));
+            Assert.That(error.ToString(), Does.Contain("'coverage.minimum' is required."));
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_helpMentionsTheSlicesSubcommand()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        await controller.RunAsync(["wat"]);
+
+        Assert.That(error.ToString(), Does.Contain("slices"));
     }
 
     [Test]

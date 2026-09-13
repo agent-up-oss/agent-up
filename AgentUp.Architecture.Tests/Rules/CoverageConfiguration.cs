@@ -15,6 +15,8 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class CoverageConfiguration
 {
+    private const string LocateScript = ".github/scripts/locate-coverage-reports.sh";
+
     [Test]
     public void Every_production_project_is_measured_by_a_coverage_include_glob()
     {
@@ -40,6 +42,123 @@ public sealed class CoverageConfiguration
 
         Assert.That(section.GetProperty("minimum").GetDouble(), Is.GreaterThanOrEqualTo(90d),
             "Patch coverage must stay at or above the agreed 90% floor.");
+    }
+
+    [Test]
+    public void Slice_coverage_floor_is_declared()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        using var document = ReadAgentUpJson(root);
+        var section = document.RootElement.GetProperty("coverage");
+
+        // The setting is optional in the loader, because a repository without a slice
+        // layout has no slices to hold to a floor. This one has them, so leaving it out
+        // would switch the floor off while the configuration still looked populated.
+        Assert.That(section.TryGetProperty("sliceMinimum", out var minimum), Is.True,
+            "'coverage.sliceMinimum' must be declared, or per-slice coverage measures nothing.");
+        Assert.That(minimum.GetDouble(), Is.GreaterThan(0d));
+    }
+
+    [Test]
+    public void Every_slice_coverage_exemption_names_a_slice_that_exists()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var exemptions = ReadGlobs(root, "sliceExemptions");
+        TestContext.Out.WriteLine($"Slice coverage exemptions: {exemptions.Count} entry(ies).");
+
+        // A renamed or deleted slice leaves an entry that can never match, so the list
+        // reads as accepted debt while exempting nothing.
+        var missing = exemptions
+            .Where(slice => !Directory.Exists(Path.Join(root, slice)))
+            .Order(StringComparer.Ordinal)
+            .Select(slice => $"'{slice}' is exempt from the slice floor but no such directory exists")
+            .ToArray();
+
+        Assert.That(missing, Is.Empty,
+            "Delete the entry, or correct it to the slice's current path.");
+    }
+
+    [Test]
+    public void Codecov_ignores_everything_the_local_gate_excludes()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var ignored = ReadCodecovIgnores(root);
+
+        // Codecov measures the same change from the same reports but applies its own ignore
+        // list. A glob missing here fails a pull request the local gate passed, on lines
+        // this repository has already decided carry no information - which is how a gate
+        // stops being believed. Extra entries are fine: agent-up.json narrows itself with
+        // 'coverage.include' instead, so codecov.yml has to exclude test projects by hand.
+        var missing = ReadGlobs(root, "exclude")
+            .Where(glob => !ignored.Contains(glob))
+            .Order(StringComparer.Ordinal)
+            .Select(glob => $"codecov.yml does not ignore '{glob}'")
+            .ToArray();
+
+        Assert.That(missing, Is.Empty,
+            "Add the glob to the 'ignore' list in codecov.yml so both views of coverage agree.");
+    }
+
+    /// <summary>
+    /// The quoted entries of codecov.yml's top-level "ignore" list. Read by hand rather
+    /// than with a YAML parser, which the suite would otherwise need a dependency for.
+    /// </summary>
+    private static HashSet<string> ReadCodecovIgnores(string root)
+    {
+        var path = Path.Join(root, "codecov.yml");
+        if (!File.Exists(path))
+            throw new FileNotFoundException("codecov.yml is missing.", path);
+
+        return File.ReadAllLines(path)
+            .SkipWhile(line => line.TrimEnd() != "ignore:")
+            .Skip(1)
+            .TakeWhile(line => line.StartsWith(' ') || line.Length == 0)
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("- ", StringComparison.Ordinal))
+            .Select(line => line[2..].Trim().Trim('"', '\''))
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    [Test]
+    public void Every_test_project_can_have_its_coverage_located_for_upload()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var known = ReadLocatableTestProjects(root);
+
+        // The CI job names the projects whose reports it uploads, and the locate script
+        // maps each name to the output the workflow reads. A test project missing from that
+        // map produced no output at all, silently, and the Codecov step then failed the job
+        // on an empty "files" input - which is what happened to the three test projects
+        // this branch added.
+        var missing = ArchitectureFixture.TestProjects
+            .Where(project => !known.Contains(project))
+            .Order(StringComparer.Ordinal)
+            .Select(project => $"{project} is not in all_projects in {LocateScript}")
+            .ToArray();
+
+        Assert.That(missing, Is.Empty,
+            $"Add the project to all_projects in {LocateScript}, with the output name the "
+            + "workflow's Codecov step reads.");
+    }
+
+    /// <summary>
+    /// The test project names in the locate script's all_projects map, read from the
+    /// "output_name:Project.Tests" entries.
+    /// </summary>
+    private static HashSet<string> ReadLocatableTestProjects(string root)
+    {
+        var path = Path.Join(root, LocateScript);
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"'{LocateScript}' is missing.", path);
+
+        return File.ReadAllLines(path)
+            .SkipWhile(line => line.TrimEnd() != "all_projects=(")
+            .Skip(1)
+            .TakeWhile(line => line.TrimEnd() != ")")
+            .Select(line => line.Trim())
+            .Where(line => line.Contains(':', StringComparison.Ordinal))
+            .Select(line => line[(line.IndexOf(':', StringComparison.Ordinal) + 1)..])
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     [Test]

@@ -662,6 +662,21 @@ Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for a
 
 Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` should have matching `Controller/`, `Unit/`, and `Provider/` test-kind coverage. Existing gaps are tracked as explicit architecture-test debt; new or expanded slices must not add to that baseline.
 
+Every production project owns a test project of the same name plus `.Tests`, so a change to
+it selects one suite rather than being covered incidentally by another project's tests. The
+exception is `AgentUp.InstallerApp`, `AgentUp.Packaging` and `AgentUp.PackageSmoke`: each is
+a `Program.cs` handing manifests to a LocalInstaller builder, with nothing to assert but the
+builder chain itself. `ArchitectureFixture.CompositionOnlyProjects` names them and
+`EntryPointProjects` holds them to that shape - a file with logic in one of them fails the
+rule, so the code moves to a tested project or the project gains a test project and joins
+`ProductionProjects`.
+
+A type does not get tested from another project's suite because that suite happens to
+reference it. `RepositoryDotEnv` lived in `AgentUp.InstallerConfig` and was tested from
+`AgentUp.Server.Tests/Features/Authentication/`, which left its parsing rules almost
+entirely unexercised and meant a change to it selected no suite that was actually about it.
+Tests belong with the project that owns the type.
+
 ```text
 AgentUp.Server.Tests/
   Features/
@@ -803,8 +818,58 @@ from every report, which means that suite never ran. A file whose project is cov
 which has no entry of its own simply has no executable code - a changed interface or enum
 must not fail the gate.
 
-`codecov.yml` sets the same 90% patch target so the Codecov status matches. It is
-complementary, not a substitute: Codecov cannot gate a local run.
+Within one check only the newest run is read. The test runner adds a GUID folder per run
+and never removes the previous one, so a check run twice leaves two reports; the older one
+numbers the file as it was before the edit, and merging it in would report lines that have
+since moved as uncovered. Across checks that protection does not apply, so every check that
+collects coverage has to be current - which is what `verification.always` and receipt
+staleness already guarantee. Re-running one suite by hand and then the gate does not: run
+the plan, not a single check.
+
+What `coverage.exclude` is for, and what it is not: a file belongs there when a coverage
+number about it carries no information - an entry point, generated or composition-only
+code, or a body that is nothing but a platform call which cannot be made on another host.
+`AgentUp.Tray` shows the intended shape: the Windows Run-key *format* rules and the macOS
+plist and load/unload *sequence* are injected and fully covered, while the two files that
+do nothing but call the platform (`WindowsAutoStartRegistrar.cs` reaching the registry,
+`LaunchctlProcess.cs` starting launchctl) are excluded by name. Split the decidable part
+out and cover it; never exclude a file to avoid writing a test.
+
+`codecov.yml` sets the same 90% patch target, and its `ignore` list must contain every
+`coverage.exclude` glob - `AgentUp.Architecture.Tests` enforces that, because a glob missing
+there fails a pull request the local gate passed, on lines this repository has already
+decided carry no information. The two numbers are still not identical: Codecov counts
+partially-covered branches, and this gate counts lines, so Codecov can read a little lower.
+It is complementary, not a substitute: Codecov cannot gate a local run.
+
+## Per-slice coverage
+
+`agentup verify slices [--min N]` reports total line coverage for every feature slice,
+worst first, and fails a slice below `coverage.sliceMinimum`. Patch coverage keeps each
+change honest but says nothing about a slice that was thin before the gate existed; this is
+where that debt is visible.
+
+The floor is lower than the patch minimum on purpose. Patch coverage governs new work at
+90%; the slice floor is a line under what already exists, and raising it is a decision to
+burn the remainder down.
+
+`coverage.sliceExemptions` lists the slices allowed below the floor, each as exactly
+`<Project>/Features/<Slice>` - no globs, no type folders, nothing that could silently
+exempt a slice nobody reviewed. Every entry is accepted debt, and the check **fails** once a
+listed slice reaches the floor, so the list cannot outlive what it records. The architecture
+suite additionally rejects an entry naming a slice that no longer exists.
+
+The check is `ciOnly`, and not out of convenience: the architecture suite instruments every
+production assembly and records no hits for code it never executes, so on a dev machine,
+where only the suites a change selects have run, a slice whose own suite was not selected
+reads as uncovered. Run it by hand after a full sweep - `agentup verify run` then
+`agentup verify slices` - and let CI enforce it.
+
+`AgentUp.Architecture.Tests/Rules/SliceTestCoverage.cs` is the structural half: tests exist
+in the matching test-kind folder, and more than one of them. It cannot measure coverage,
+because it runs before the suites that produce the reports. Its two baselines under
+`Baselines/` are ratchets - an entry that is already satisfied fails the suite, so burning
+debt down means deleting the line.
 
 ## Configuration
 
@@ -1021,7 +1086,7 @@ Scope commit messages to the queued slice, for example `fix(UbuntuInstallation):
 
 ## Packaging And Installers
 
-The Agent-Up main release workflow publishes `@agent-up/audit` to npm with the planned release version when `NPM_TOKEN` is configured. The same release also publishes the Server container and `agent-up-helm` chart to Docker Hub (`themassiveone/agent-up-server` and `themassiveone/agent-up-helm`) when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured. Helm `capabilities` values list every first-party capability as an object with `disabled` and `versions`, then write enabled entries to Agent-Up capability inventory the same way NixOS `services.agent-up.capabilities` does.
+The Agent-Up main release workflow publishes `@agent-up/audit` to npm with the planned release version when `NPM_TOKEN` is configured. The same release also publishes the Server container and `agent-up-helm` chart to Docker Hub (`themassiveone/agent-up-server` and `themassiveone/agent-up-helm`) when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured. Helm `capabilities` values list every first-party capability as an object with `disabled` and `versions`, plus optional `command`, `arguments`, and `versionArguments` for ACP adapters, then write enabled entries to Agent-Up capability inventory the same way NixOS `services.agent-up.capabilities` does. The Server image includes `git` and the Codex, Cursor, and Claude ACP CLIs from a repository-locked npm install and checksum-verified Node and Cursor archives; chart defaults enable those three ACP capabilities against `/opt/agent-up/bin`.
 
 Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, and PackageSmoke artifacts from the Ubuntu .NET payload job so native release runners do not restore, build, or test product .NET projects. Native package jobs wait on the payload, test, GUI test, and coverage jobs plus version. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
 

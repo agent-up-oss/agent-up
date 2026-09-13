@@ -287,7 +287,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     {
         try { await StopAsync(workspaceId, CancellationToken.None); }
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
-        { logger.LogWarning(exception, "Could not stop the agent for a removed workspace."); }
+        { logger.LogWarning(exception, "Could not stop the agent for removed workspace {WorkspaceId}.", workspaceId); }
     }
 
     private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
