@@ -1,6 +1,5 @@
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Mobile.Interfaces;
 using AgentUp.AUDebug.Shared.Interfaces;
@@ -175,17 +174,11 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
         string outputPath,
         CancellationToken cancellationToken)
     {
-        var payload = JsonSerializer.Serialize(new Dictionary<string, object?>
-        {
-            ["id"] = 2,
-            ["method"] = "Page.captureScreenshot",
-            ["params"] = new Dictionary<string, object?>
-            {
-                ["format"] = "png",
-                ["fromSurface"] = true
-            }
-        });
-        await socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, cancellationToken);
+        await socket.SendAsync(
+            Encoding.UTF8.GetBytes(ChromiumCdpMessageProvider.CaptureScreenshot()),
+            WebSocketMessageType.Text,
+            true,
+            cancellationToken);
         var buffer = new byte[1_048_576];
         using var memory = new MemoryStream();
         while (true)
@@ -196,15 +189,10 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
                 break;
         }
 
-        using var document = JsonDocument.Parse(memory.ToArray());
-        if (document.RootElement.TryGetProperty("error", out var error))
-            throw new InvalidOperationException($"Mobile open-agent screenshot failed: {error}");
-        if (!document.RootElement.TryGetProperty("result", out var body)
-            || !body.TryGetProperty("data", out var data)
-            || data.GetString() is not { Length: > 0 } png)
-            throw new InvalidOperationException("Mobile open-agent screenshot did not return an image.");
-
-        await File.WriteAllBytesAsync(outputPath, Convert.FromBase64String(png), cancellationToken);
+        await File.WriteAllBytesAsync(
+            outputPath,
+            ChromiumCdpMessageProvider.ReadPng(Encoding.UTF8.GetString(memory.ToArray())),
+            cancellationToken);
     }
 
     private static async Task EvaluateAsync(
@@ -213,26 +201,15 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
         CancellationToken cancellationToken,
         string action = "Mobile login")
     {
-        var payload = JsonSerializer.Serialize(new Dictionary<string, object?>
-        {
-            ["id"] = 1,
-            ["method"] = "Runtime.evaluate",
-            ["params"] = new Dictionary<string, object?>
-            {
-                ["expression"] = expression,
-                ["awaitPromise"] = true,
-                ["returnByValue"] = true
-            }
-        });
-        await socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, cancellationToken);
+        await socket.SendAsync(
+            Encoding.UTF8.GetBytes(ChromiumCdpMessageProvider.Evaluate(expression)),
+            WebSocketMessageType.Text,
+            true,
+            cancellationToken);
         var buffer = new byte[65536];
         var result = await socket.ReceiveAsync(buffer, cancellationToken);
-        var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-        using var document = JsonDocument.Parse(json);
-        if (document.RootElement.TryGetProperty("error", out var error))
-            throw new InvalidOperationException($"{action} CDP failed: {error}");
-        if (document.RootElement.TryGetProperty("result", out var body)
-            && body.TryGetProperty("exceptionDetails", out var details))
-            throw new InvalidOperationException($"{action} failed: {details}");
+        ChromiumCdpMessageProvider.ThrowIfEvaluateFailed(
+            Encoding.UTF8.GetString(buffer, 0, result.Count),
+            action);
     }
 }

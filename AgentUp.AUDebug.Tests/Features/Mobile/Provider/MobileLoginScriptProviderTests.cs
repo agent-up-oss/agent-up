@@ -40,4 +40,20 @@ public sealed class MobileLoginScriptProviderTests
     {
         Assert.That(ChromiumDebuggerListParser.ReadWebSocketUrl("[]"), Is.Null);
     }
+
+    [Test]
+    public void DebuggerList_skipsEntriesWithoutAUsableWebsocket()
+    {
+        var json = """
+            [
+              "skip",
+              {"id":"1"},
+              {"id":"2","webSocketDebuggerUrl":""},
+              {"id":"3","webSocketDebuggerUrl":"ws://127.0.0.1:19222/devtools/page/3"}
+            ]
+            """;
+        Assert.That(
+            ChromiumDebuggerListParser.ReadWebSocketUrl(json),
+            Is.EqualTo("ws://127.0.0.1:19222/devtools/page/3"));
+    }
 }

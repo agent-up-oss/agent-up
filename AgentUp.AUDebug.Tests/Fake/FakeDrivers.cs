@@ -10,6 +10,7 @@ public sealed class FakeMobileSurfaceDriver : IMobileSurfaceDriver
     public string? ServerUrl { get; private set; }
     public string? Password { get; private set; }
     public bool DelayUntilCanceled { get; set; }
+    public Exception? LoginException { get; set; }
 
     public string? CaptureAgentPath { get; private set; }
 
@@ -17,6 +18,8 @@ public sealed class FakeMobileSurfaceDriver : IMobileSurfaceDriver
     {
         ServerUrl = serverUrl;
         Password = password;
+        if (LoginException is not null)
+            throw LoginException;
         if (DelayUntilCanceled)
             await Task.Delay(Timeout.Infinite, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();

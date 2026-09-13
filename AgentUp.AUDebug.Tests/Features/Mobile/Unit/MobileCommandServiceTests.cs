@@ -91,6 +91,38 @@ public sealed class MobileCommandServiceTests
     }
 
     [Test]
+    public async Task Login_mapsHttpFailures()
+    {
+        var surface = new FakeMobileSurfaceDriver { LoginException = new HttpRequestException("refused") };
+        var result = await new MobileCommandService(
+            new FakeWebScreenshotDriver(),
+            surface,
+            new FakeWorkspaceClient(),
+            new FakeSessionStore(),
+            new FakeEnvironment()).LoginAsync(Command(), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Is.EqualTo("refused"));
+    }
+
+    [Test]
+    public async Task OpenAgent_mapsMalformedWorkspaceUrls()
+    {
+        var workspaces = new FakeWorkspaceClient { Error = new UriFormatException("bad workspace url") };
+        var result = await new MobileCommandService(
+            new FakeWebScreenshotDriver(),
+            new FakeMobileSurfaceDriver(),
+            workspaces,
+            new FakeSessionStore(),
+            new FakeEnvironment()).OpenAgentAsync(
+            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", "test", TimeSpan.FromSeconds(30), false),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Is.EqualTo("bad workspace url"));
+    }
+
+    [Test]
     public async Task OpenAgent_screenshotsWorkspaceAgentRoute()
     {
         var surface = new FakeMobileSurfaceDriver();
@@ -128,6 +160,23 @@ public sealed class MobileCommandServiceTests
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
         Assert.That(result.Message, Does.Contain("Timed out talking to"));
+    }
+
+    [Test]
+    public async Task OpenAgent_requiresPassword()
+    {
+        var environment = new FakeEnvironment { AdminPassword = null };
+        var result = await new MobileCommandService(
+            new FakeWebScreenshotDriver(),
+            new FakeMobileSurfaceDriver(),
+            new FakeWorkspaceClient(),
+            new FakeSessionStore(),
+            environment).OpenAgentAsync(
+            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", null, TimeSpan.FromSeconds(30), false),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("AGENTUP_ADMIN_PASSWORD"));
     }
 
     [Test]
