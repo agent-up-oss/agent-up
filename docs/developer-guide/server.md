@@ -46,8 +46,15 @@ hardcode ACP executable names. The interactive `codex` and `claude` CLIs are not
 ACP servers, and installing the Cursor IDE does not install the Cursor Agent
 CLI. Override executable names and argument arrays with
 `Agents:<Codex|Cursor|Claude>:Command` and `Agents:<...>:Arguments`. Agent-Up does
-not collect API keys or translate subscription credentials: each executable is
-responsible for its own supported interactive/pro-subscription login. An agent
+not collect API keys. When ACP reports that authentication is required, the
+session stays scheduled and `POST .../authenticate` starts that agent's
+subscription login CLI instead of asking the ACP process to open a local
+browser: `NO_OPEN_BROWSER=1 agent login` for Cursor, `codex login --device-auth`
+for Codex, and `claude setup-token` for Claude. The Server streams the printed
+sign-in URL and any device code to Desktop and Mobile, waits until the CLI
+exits, then restarts ACP against the Server data directory's `agent-cli-home`
+so the subscription session survives process restart. Override the login
+executable with `Agents:<Kind>:LoginCommand` and `LoginArguments`. An agent
 is shown as available when its capability adapter discovers the inventory
 command, or when `Agents:<Kind>:Command` points at an existing executable.
 Live-CLI Provider smoke tests discover those installed executables, and Server
@@ -57,13 +64,14 @@ inventory under `.agent-up-dev` so developer workstations can exercise the
 adapters without a packaged installment.
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP
-client cannot safely proxy an interactive terminal. It does support ACP agent-
-handled authentication methods: when `session/new` reports that authentication
-is required, the session remains scheduled, clients display the methods returned
-by `initialize`, and `POST .../authenticate` invokes only an advertised method
-before retrying `session/new`. Operators using Mobile against a remote Server
-should normally sign in on the Server machine first so browser-based login does
-not open in an unattended session.
+client cannot safely proxy an interactive terminal. ACP `authenticate` is not
+used for remote subscription login because Cursor, Codex, and Claude implement
+that as `xdg-open` on the Server host. Clients display advertised subscription
+methods (API-key methods are hidden), and `POST .../authenticate` runs the
+vendor CLI described above. Codex ChatGPT device-code login must be enabled in
+ChatGPT security settings. Claude `setup-token` stores the resulting
+`sk-ant-oat` subscription token under the Server data directory; it is not an
+Anthropic console API key.
 
 ## Responsibilities
 

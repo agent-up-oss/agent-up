@@ -49,6 +49,14 @@ cp "$manifest_dir/package.json" "$manifest_dir/package-lock.json" "$prefix/npm/"
 npm ci --omit=dev --prefix "$prefix/npm"
 
 ln -sfn "$prefix/npm/node_modules/.bin/codex-acp" "$prefix/bin/codex-acp"
+if [ -x "$prefix/npm/node_modules/.bin/codex" ]; then
+  ln -sfn "$prefix/npm/node_modules/.bin/codex" "$prefix/bin/codex"
+elif [ -f "$prefix/npm/node_modules/@openai/codex/bin/codex.js" ]; then
+  ln -sfn "$prefix/npm/node_modules/@openai/codex/bin/codex.js" "$prefix/bin/codex"
+else
+  echo "codex CLI was not installed with @agentclientprotocol/codex-acp." >&2
+  exit 1
+fi
 ln -sfn "$prefix/npm/node_modules/.bin/claude-agent-acp" "$prefix/bin/claude-agent-acp"
 
 sha_var="CURSOR_SHA256_${OS}_${ARCH}"

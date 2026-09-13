@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
@@ -20,6 +21,8 @@ public sealed class AgentSchedulingServiceTests
 {
     private AgentSchedulingService _service = null!;
     private FakeAgentProcessProvider _process = null!;
+    private FakeSubscriptionLoginProvider _login = null!;
+    private FakeClaudeCredentialStore _credentials = null!;
     private AgentEventFrameProvider _payloads = null!;
     private AgentEventService _events = null!;
     private Workspace _workspace = null!;
@@ -39,10 +42,18 @@ public sealed class AgentSchedulingServiceTests
         _payloads = new AgentEventFrameProvider();
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
         var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Agents:Codex:Command"] = command }).Build(), []);
+            new Dictionary<string, string?>
+            {
+                ["Agents:Codex:Command"] = command,
+                ["Agents:Cursor:Command"] = command,
+                ["Agents:Claude:Command"] = command
+            }).Build(), []);
         _events = new AgentEventService(_payloads);
+        _login = new FakeSubscriptionLoginProvider();
+        _credentials = new FakeClaudeCredentialStore();
         _service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), commands,
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
             _payloads, _events, NullLogger<AgentSchedulingService>.Instance);
     }
 
@@ -58,6 +69,7 @@ public sealed class AgentSchedulingServiceTests
         Assert.Multiple(() => {
             Assert.That(first.Session!.SessionId, Is.EqualTo("session-1"));
             Assert.That(_process.WorkingDirectory, Is.EqualTo("/repo"));
+            Assert.That(_process.Environment!["HOME"], Is.EqualTo("/data/agent-cli-home"));
             Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new" }));
             Assert.That(second.Error, Does.Contain("already has an agent"));
         });
@@ -153,6 +165,8 @@ public sealed class AgentSchedulingServiceTests
             Assert.That(scheduled.Session.AuthMethods.Single().Name, Is.EqualTo("ChatGPT subscription"));
             Assert.That(invalid.Error, Does.Contain("not offered"));
             Assert.That(accepted.Error, Is.Null);
+            Assert.That(_login.MethodId, Is.EqualTo("chatgpt"));
+            Assert.That(_process.Methods, Does.Not.Contain("authenticate"));
             Assert.That(_service.Get(_workspace.Id)!.SessionId, Is.EqualTo("session-1"));
         });
     }
@@ -266,7 +280,8 @@ public sealed class AgentSchedulingServiceTests
     public async Task Authenticate_returnsToAuthenticationRequiredWhenTheAgentFails()
     {
         _process.RequireAuthentication = true;
-        _process.AuthenticateFailure = new InvalidOperationException("auth failed");
+        _login.Succeeded = false;
+        _login.Error = "auth failed";
         await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
 
         var accepted = _service.Authenticate(_workspace.Id, "chatgpt");
@@ -274,6 +289,75 @@ public sealed class AgentSchedulingServiceTests
 
         Assert.That(accepted.Error, Is.Null);
         Assert.That(_service.Get(_workspace.Id)!.Error, Does.Contain("auth failed"));
+    }
+
+    [Test]
+    public async Task Authenticate_rejectsApiKeyMethods()
+    {
+        _process.RequireAuthentication = true;
+        _process.AdvertiseApiKey = true;
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        var rejected = _service.Authenticate(_workspace.Id, "api-key");
+
+        Assert.That(rejected.Error, Does.Contain("not offered"));
+        Assert.That(_service.Get(_workspace.Id)!.AuthMethods.Select(method => method.Id), Does.Not.Contain("api-key"));
+    }
+
+    [Test]
+    public async Task Authenticate_publishesTheSubscriptionLoginLinkWhileWaiting()
+    {
+        _process.RequireAuthentication = true;
+        _login.Hold = true;
+        _login.Challenge = new AgentLoginChallengeDto(
+            "https://cursor.com/loginDeepControl?challenge=abc",
+            null,
+            "Open this link and sign in with your subscription.");
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Cursor, CancellationToken.None);
+
+        var accepted = _service.Authenticate(_workspace.Id, "chatgpt");
+        await WaitUntilAsync(() => _service.Get(_workspace.Id)!.LoginChallenge?.Url is not null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted.Error, Is.Null);
+            Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("authenticating"));
+            Assert.That(_service.Get(_workspace.Id)!.LoginChallenge!.Url, Does.Contain("loginDeepControl"));
+        });
+
+        _login.Release();
+        await WaitForStateAsync("ready");
+        Assert.That(_service.Get(_workspace.Id)!.LoginChallenge, Is.Null);
+    }
+
+    [Test]
+    public async Task Schedule_offersClaudeSubscriptionLoginWhenInitializeOmitsMethods()
+    {
+        _process.RequireAuthentication = true;
+        _process.OmitAuthMethods = true;
+        var scheduled = await _service.ScheduleAsync(_workspace.Id, AgentKind.Claude, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scheduled.Session!.State, Is.EqualTo("authentication_required"));
+            Assert.That(scheduled.Session.AuthMethods.Single().Id, Is.EqualTo("claude-login"));
+            Assert.That(scheduled.Session.AuthMethods.Single().Name, Is.EqualTo("Claude Pro"));
+        });
+    }
+
+    [Test]
+    public async Task Authenticate_storesTheClaudeSubscriptionToken()
+    {
+        _process.RequireAuthentication = true;
+        _process.OmitAuthMethods = true;
+        _login.ClaudeToken = "sk-ant-oat-test-token";
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Claude, CancellationToken.None);
+
+        Assert.That(_service.Authenticate(_workspace.Id, "claude-login").Error, Is.Null);
+        await WaitForStateAsync("ready");
+
+        Assert.That(_credentials.Token, Is.EqualTo("sk-ant-oat-test-token"));
+        Assert.That(_process.StartCalls, Is.EqualTo(2));
     }
 
     [Test]
@@ -308,6 +392,12 @@ public sealed class AgentSchedulingServiceTests
         return stream.Current.Payload.GetProperty("requestId").GetString()!;
     }
 
+    private async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        while (!condition()) await Task.Delay(10, timeout.Token);
+    }
+
     private async Task WaitForStateAsync(string expected)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
@@ -329,9 +419,13 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public List<string> Methods { get; } = [];
     public List<string> Notifications { get; } = [];
     public string? WorkingDirectory { get; private set; }
+    public IReadOnlyDictionary<string, string>? Environment { get; private set; }
+    public int StartCalls { get; private set; }
     public bool HoldPrompt { get; set; }
     public bool RequireAuthentication { get; set; }
     public bool AdvertiseAuthMethods { get; set; }
+    public bool AdvertiseApiKey { get; set; }
+    public bool OmitAuthMethods { get; set; }
     public bool Authenticated { get; private set; }
     public int StopCalls { get; private set; }
     public int DisposeCalls { get; private set; }
@@ -341,7 +435,17 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public Exception? NotifyFailure { get; set; }
     public Exception? StopFailure { get; set; }
 
-    public Task StartAsync(AgentKind kind, string workingDirectory, CancellationToken cancellationToken) { WorkingDirectory = workingDirectory; return Task.CompletedTask; }
+    public Task StartAsync(
+        AgentKind kind,
+        string workingDirectory,
+        IReadOnlyDictionary<string, string> environment,
+        CancellationToken cancellationToken)
+    {
+        StartCalls++;
+        WorkingDirectory = workingDirectory;
+        Environment = environment;
+        return Task.CompletedTask;
+    }
     public async Task<JsonElement> CallAsync(string method, object? parameters, CancellationToken cancellationToken)
     {
         Methods.Add(method);
@@ -351,7 +455,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
             Authenticated = true;
             return JsonSerializer.SerializeToElement(new { });
         }
-        if (method == "session/new" && RequireAuthentication && !Authenticated) throw new InvalidOperationException("Authentication required.");
+        if (method == "session/new" && RequireAuthentication && !Authenticated && StartCalls < 2) throw new InvalidOperationException("Authentication required.");
         if (method == "session/prompt")
         {
             if (PromptFailure is not null) throw PromptFailure;
@@ -363,10 +467,20 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         }
         if (method == "session/new")
             return SessionNewResult ?? JsonSerializer.SerializeToElement(new { sessionId = "session-1" });
-        return RequireAuthentication || AdvertiseAuthMethods
-            ? JsonSerializer.SerializeToElement(new { protocolVersion = 1, authMethods = new[] { new { id = "chatgpt", name = "ChatGPT subscription", description = "Use an existing subscription." } } })
-            : JsonSerializer.SerializeToElement(new { protocolVersion = 1 });
+        return AuthMethodsPayload();
     }
+
+    private JsonElement AuthMethodsPayload()
+    {
+        if (OmitAuthMethods)
+            return JsonSerializer.SerializeToElement(new { protocolVersion = 1 });
+        if (AdvertiseApiKey)
+            return JsonSerializer.SerializeToElement(new { protocolVersion = 1, authMethods = new[] { new { id = "api-key", name = "API Key", description = "Use an API key to authenticate" } } });
+        if (RequireAuthentication || AdvertiseAuthMethods)
+            return JsonSerializer.SerializeToElement(new { protocolVersion = 1, authMethods = new[] { new { id = "chatgpt", name = "ChatGPT subscription", description = "Use an existing subscription." } } });
+        return JsonSerializer.SerializeToElement(new { protocolVersion = 1 });
+    }
+
     public Task NotifyAsync(string method, object? parameters, CancellationToken cancellationToken)
     {
         Notifications.Add(method);
@@ -390,4 +504,54 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         var handler = Request ?? throw new InvalidOperationException("Permission request handler was not registered.");
         return await handler("session/request_permission", payload);
     }
+}
+
+internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginProvider
+{
+    private TaskCompletionSource? _hold;
+
+    public string? MethodId { get; private set; }
+    public bool Hold { get; set; }
+    public bool Succeeded { get; set; } = true;
+    public string? Error { get; set; }
+    public string? ClaudeToken { get; set; }
+    public AgentLoginChallengeDto? Challenge { get; set; }
+
+    public async Task<AgentSubscriptionLoginResult> LoginAsync(
+        AgentKind kind,
+        AgentCommand acpCommand,
+        string methodId,
+        Action<AgentLoginChallengeDto> onChallenge,
+        CancellationToken cancellationToken)
+    {
+        MethodId = methodId;
+        if (Challenge is not null)
+            onChallenge(Challenge);
+        if (Hold)
+        {
+            _hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await _hold.Task.WaitAsync(cancellationToken);
+        }
+
+        if (!Succeeded)
+            return AgentSubscriptionLoginResult.Failed(Error ?? "auth failed", Challenge);
+        return AgentSubscriptionLoginResult.SucceededResult(
+            Challenge ?? new AgentLoginChallengeDto(null, null, null),
+            ClaudeToken);
+    }
+
+    public void Release() => _hold?.TrySetResult();
+}
+
+internal sealed class FakeProcessEnvironmentProvider : IAgentProcessEnvironmentProvider
+{
+    public IReadOnlyDictionary<string, string> EnvironmentFor(AgentKind kind) =>
+        new Dictionary<string, string>(StringComparer.Ordinal) { ["HOME"] = "/data/agent-cli-home" };
+}
+
+internal sealed class FakeClaudeCredentialStore : IAgentClaudeCredentialStore
+{
+    public string? Token { get; private set; }
+    public string? Read() => Token;
+    public void Write(string token) => Token = token;
 }
