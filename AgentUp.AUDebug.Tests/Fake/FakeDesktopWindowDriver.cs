@@ -36,10 +36,19 @@ public sealed class FakeDesktopWindowDriver : IDesktopWindowDriver
             await Task.Delay(Timeout.Infinite, cancellationToken);
     }
 
+    public int Opens { get; private set; }
+
     public Task LoginAsync(string password, CancellationToken cancellationToken)
     {
         Logins++;
         LastPassword = password;
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
+    }
+
+    public Task OpenAgentAsync(CancellationToken cancellationToken)
+    {
+        Opens++;
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }

@@ -12,6 +12,8 @@ import {
   activityHint,
   agentEventText,
   applyPresentedUpdate,
+  groupTranscript,
+  liveRunId,
   mergeAgentSession,
   mergeContext,
   parsePermission,
@@ -19,6 +21,7 @@ import {
   permissionOptionTone,
   presentSessionUpdate,
   resolveActivity,
+  runSummary,
   unwrapSessionUpdate,
   visibleText,
 } from '../providers/AgentEventPresentationProvider';
@@ -35,6 +38,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   const [permission, setPermission] = useState<AgentPermission | null>(null);
   const [hint, setHint] = useState<{ kind: AgentActivityKind; toolTitle?: string } | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expandedRuns, setExpandedRuns] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -82,6 +86,8 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   const activity = resolveActivity({ state: session?.state, error: session?.error, hasPermission: Boolean(permission), hint });
   const selectedAgentName = session?.agents.find(agent => agent.agent === session.agent)?.displayName ?? session?.agent ?? 'Agent';
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required';
+  const blocks = useMemo(() => groupTranscript(items), [items]);
+  const openRunId = liveRunId(blocks);
   const choose = async (agent: AgentKind) => {
     if (!server) return; setBusy(true); setError(null);
     try {
@@ -131,7 +137,24 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
             <Pressable key={agent.agent} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && auBox('choiceDisabled')]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={agent.available ? styles.available : styles.unavailable}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
           {session?.state === 'authentication_required' && <View style={styles.auth}><Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>{session.authMethods?.map(method => <Pressable key={method.id} style={styles.option} onPress={() => server && void authenticateAgent(server, workspace.id, method.id).catch(cause => setError(readError(cause)))}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}</View>}
           <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
-            {items.map(item => <TranscriptRow key={item.id} item={item} agentName={selectedAgentName} expanded={isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', expanded)} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, items.at(-1)?.id === item.id && activity.kind === 'thinking', current) }))} />)}
+            {blocks.map(block => {
+              if (block.type === 'user') {
+                return <View key={block.item.id} style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>;
+              }
+              if (block.type === 'reply') {
+                return <View key={block.item.id} style={styles.bubble}><Text style={styles.role}>{selectedAgentName}</Text><Text style={styles.body}>{visibleText(block.item.text)}</Text></View>;
+              }
+              const live = block.id === openRunId;
+              const open = live || Boolean(expandedRuns[block.id]);
+              return <View key={block.id} style={styles.run}>
+                {!live && <Pressable onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{runSummary(block.items)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
+                {open && block.items.map((item, index) => {
+                  const liveThought = live && item.role === 'thought' && index === block.items.length - 1 && activity.kind === 'thinking';
+                  const thoughtOpen = isExpanded(item, liveThought, expanded);
+                  return <TranscriptRow key={item.id} item={item} expanded={thoughtOpen} live={liveThought} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, liveThought, current) }))} />;
+                })}
+              </View>;
+            })}
           </ScrollView>
           {permission && <View style={styles.permission}>
             <Text style={styles.permissionKicker}>Decision needed</Text>
@@ -154,20 +177,20 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   </View>;
 }
 
-function TranscriptRow({ item, agentName, expanded, onToggle }: { item: TranscriptItem; agentName: string; expanded: boolean; onToggle: () => void }) {
+function TranscriptRow({ item, expanded, live, onToggle }: { item: TranscriptItem; expanded: boolean; live: boolean; onToggle: () => void }) {
   if (item.role === 'thought') {
     return <Pressable onPress={onToggle} style={styles.thought}>
-      <Text style={styles.role}>{expanded ? 'Thinking' : 'Thought'}</Text>
-      <Text style={styles.thoughtBody} numberOfLines={expanded ? undefined : 2}>{visibleText(item.text)}</Text>
+      <Text style={styles.role}>{live ? 'Thinking' : 'Thought'}</Text>
+      {expanded ? <Text style={styles.thoughtBody}>{visibleText(item.text)}</Text> : null}
     </Pressable>;
   }
   if (item.role === 'tool') {
-    return <View style={styles.tool}><View style={styles.toolHeader}><Text style={styles.role}>Tool</Text><Text style={styles.toolStatus}>{item.status ?? 'pending'}</Text></View><Text style={styles.body}>{item.title ?? item.text}</Text>{toolDetail(item) ? <Text style={styles.meta}>{toolDetail(item)}</Text> : null}</View>;
+    return <View style={styles.work}><View style={styles.toolHeader}><Text style={styles.role}>Tool</Text><Text style={styles.toolStatus}>{item.status ?? 'pending'}</Text></View><Text style={styles.workBody}>{item.title ?? item.text}</Text>{toolDetail(item) ? <Text style={styles.meta}>{toolDetail(item)}</Text> : null}</View>;
   }
   if (item.role === 'plan') {
-    return <View style={styles.plan}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.body}>{item.text}</Text>}</View>;
+    return <View style={styles.work}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.workBody}>{item.text}</Text>}</View>;
   }
-  return <View style={[styles.bubble, item.role === 'user' ? styles.user : styles.agent]}><Text style={styles.role}>{item.role === 'user' ? 'You' : agentName}</Text><Text style={styles.body}>{visibleText(item.text)}</Text></View>;
+  return <View style={styles.work}><Text style={styles.role}>Agent</Text><Text style={styles.workBody}>{visibleText(item.text)}</Text></View>;
 }
 
 function isExpanded(item: TranscriptItem, live: boolean, expanded: Record<string, boolean>) {
@@ -201,7 +224,7 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { flex: 1 },
-  chat: { flex: 1, padding: agentUpTheme.spacing[4], gap: 10 },
+  chat: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', padding: agentUpTheme.spacing[4], gap: 10 },
   changesPane: { flex: 1, paddingHorizontal: agentUpTheme.spacing[5], paddingTop: agentUpTheme.spacing[4], paddingBottom: 8 },
   heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   headingCopy: { flex: 1, minWidth: 0 },
@@ -225,16 +248,19 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   messages: { flex: 1 },
   messageContent: { gap: 10, paddingVertical: 10 },
-  bubble: { borderRadius: agentUpTheme.radii.md, padding: 12, maxWidth: '92%' },
-  user: { backgroundColor: agentUpTheme.colors.surfaceSelectedStrong, alignSelf: 'flex-end' },
-  agent: { ...auBox('card'), alignSelf: 'flex-start' },
-  thought: { backgroundColor: 'transparent', borderLeftWidth: 2, borderLeftColor: agentUpTheme.colors.borderSubtle, paddingVertical: 6, paddingHorizontal: 10 },
-  thoughtBody: { ...auText('muted'), lineHeight: 20, fontStyle: 'italic' },
-  tool: { ...auBox('card'), gap: 4 },
+  userBubble: { ...auBox('chatUser'), alignSelf: 'flex-end' },
+  userText: { ...auText('workspaceName'), lineHeight: 20 },
+  run: { gap: 8 },
+  runHeader: { ...auBox('chatRun'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  runSummary: auText('muted'),
+  bubble: auBox('card'),
+  thought: auBox('chatThought'),
+  thoughtBody: auText('chatThoughtBody'),
+  work: { ...auBox('chatWork'), gap: 2 },
   toolHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   toolStatus: { ...auText('fieldLabel'), color: agentUpTheme.colors.textWarning },
-  plan: { ...auBox('card'), gap: 4 },
   planEntry: { ...auText('muted'), lineHeight: 20 },
+  workBody: { ...auText('muted'), lineHeight: 20 },
   role: { ...auText('fieldLabel') },
   body: { ...auText('workspaceName'), lineHeight: 20 },
   meta: { ...auText('muted'), marginTop: 4 },

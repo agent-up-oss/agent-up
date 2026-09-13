@@ -72,6 +72,37 @@
         <button class="au-choice" type="button" disabled>Cursor <span class="au-muted">Not installed</span></button>
       </div>
     </article>
+    <article data-au-component="chat-thought" data-au-title="Thought" data-au-note="Inside the work log, thoughts are a quieter indented disclosure: collapsed they show only Thought, expanded they reveal muted italic body. Thinking is the live label, not the expanded label. Do not put thoughts in au-card." data-au-avalonia="Button" data-au-class="au-chat-thought">
+      <div class="au-grid">
+        <button class="au-chat-thought" type="button">
+          <span class="au-field-label">Thought</span>
+        </button>
+        <button class="au-chat-thought" type="button">
+          <span class="au-field-label">Thinking</span>
+          <p class="au-chat-thought-body">Clarifying test meaning</p>
+        </button>
+      </div>
+    </article>
+    <article data-au-component="chat-user" data-au-title="User turn" data-au-note="The human's prompt is a right-aligned selected surface, sized to the text and capped before it spans the pane. It is not a saturated green fill." data-au-avalonia="Border" data-au-class="au-chat-user">
+      <div class="au-chat-user">hey whats a good tx 1320 m3 price?</div>
+    </article>
+    <article data-au-component="chat-work" data-au-title="Work row" data-au-note="Tools, searches, edits, and other in-run steps sit on the quieter surface, not the raised result card. They live inside the work log." data-au-avalonia="Border" data-au-class="au-chat-work">
+      <div class="au-chat-work"><span class="au-field-label">Tool</span> Web search: TX 1320 M3</div>
+    </article>
+    <article data-au-component="chat-run" data-au-title="Work log" data-au-note="A finished run collapses to this disclosure after the next question. The live run stays open. Nested thoughts stay au-chat-thought. The trailing agent reply is not inside this collapse." data-au-avalonia="Button" data-au-class="au-chat-run">
+      <button class="au-chat-run" type="button">Worked · 2 tools · Thought ▸</button>
+    </article>
+    <article data-au-component="chat-transcript" data-au-title="Transcript" data-au-note="User bubble, collapsible work log, then the only raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible." data-au-avalonia="Border" data-au-class="au-chat-transcript">
+      <div class="au-chat-transcript">
+        <div class="au-chat-user">Hey, please look up TX 1320 M3 offers</div>
+        <button class="au-chat-run" type="button">Worked · 2 tools · Thought ▸</button>
+        <div class="au-chat-work"><span class="au-field-label">Tool</span> Web search: TX 1320 M3</div>
+        <button class="au-chat-thought" type="button">
+          <span class="au-field-label">Thought</span>
+        </button>
+        <div class="au-card"><span class="au-field-label">Codex</span><p>A good used price is roughly €140–200.</p></div>
+      </div>
+    </article>
     <article data-au-component="tabs" data-au-title="Tabs" data-au-note="Selected tabs use primary text and a 2px accent underline, never a green fill." data-au-avalonia="Button" data-au-class="au-tab">
       <div class="au-tabs" role="tablist">
         <button class="au-tab au-tab--selected" aria-selected="true">Browser</button>

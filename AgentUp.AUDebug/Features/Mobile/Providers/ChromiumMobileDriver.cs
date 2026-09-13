@@ -29,11 +29,14 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
     public string UserDataDirectory
         => _paths.EnsureUnderRoot(Path.Join(_paths.SessionDirectory, "chrome-mobile"));
 
+    public static bool IsPageWorldDestroyed(string cdpError)
+        => cdpError.Contains("Execution context was destroyed", StringComparison.Ordinal);
+
     public async Task LoginAsync(string serverUrl, string password, CancellationToken cancellationToken)
     {
         var userData = UserDataDirectory;
         Directory.CreateDirectory(userData);
-        var command = ChromiumCommand(userData);
+        var command = ChromiumCommand(userData, $"{DebugLayout.MobileUrl}/connect");
         using var browser = _processes.Start(command);
         try
         {
@@ -46,7 +49,26 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
         }
     }
 
-    private AllowlistedCommand ChromiumCommand(string userData)
+    public async Task CaptureAgentAsync(string outputPath, CancellationToken cancellationToken)
+    {
+        var userData = UserDataDirectory;
+        Directory.CreateDirectory(userData);
+        var destination = _paths.EnsureUnderRoot(outputPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        var command = ChromiumCommand(userData, $"{DebugLayout.MobileUrl}/");
+        using var browser = _processes.Start(command);
+        try
+        {
+            var websocketUrl = await WaitForDebuggerAsync(cancellationToken);
+            await DriveAgentAsync(websocketUrl, destination, cancellationToken);
+        }
+        finally
+        {
+            _processes.KillTree(browser.Id);
+        }
+    }
+
+    private AllowlistedCommand ChromiumCommand(string userData, string url)
     {
         var args = new[]
         {
@@ -56,7 +78,7 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
             $"--remote-debugging-port={DebuggingPort}",
             $"--user-data-dir={userData}",
             "--window-size=1280,800",
-            $"{DebugLayout.MobileUrl}/connect"
+            url
         };
         var chromium = _environment.FindOnPath("chromium")
                        ?? _environment.FindOnPath("chromium-browser")
@@ -107,13 +129,89 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
     {
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(new Uri(websocketUrl), cancellationToken);
-        await EvaluateAsync(
-            socket,
-            MobileLoginScriptProvider.Build(serverUrl, password),
-            cancellationToken);
+        try
+        {
+            await EvaluateAsync(
+                socket,
+                MobileLoginScriptProvider.Build(serverUrl, password),
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex) when (IsPageWorldDestroyed(ex.Message))
+        {
+            System.Diagnostics.Trace.WriteLine(ex.Message);
+        }
+
+        await Task.Delay(2000, cancellationToken);
     }
 
-    private static async Task EvaluateAsync(ClientWebSocket socket, string expression, CancellationToken cancellationToken)
+    private static async Task DriveAgentAsync(
+        string websocketUrl,
+        string outputPath,
+        CancellationToken cancellationToken)
+    {
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(new Uri(websocketUrl), cancellationToken);
+        try
+        {
+            await EvaluateAsync(socket, MobileOpenAgentScriptProvider.Build(), cancellationToken, "Mobile open-agent");
+            await Task.Delay(1500, cancellationToken);
+            await CapturePageAsync(socket, outputPath, cancellationToken);
+            return;
+        }
+        catch (InvalidOperationException ex) when (IsPageWorldDestroyed(ex.Message))
+        {
+            System.Diagnostics.Trace.WriteLine(ex.Message);
+        }
+
+        var next = await WaitForDebuggerAsync(cancellationToken);
+        using var captured = new ClientWebSocket();
+        await captured.ConnectAsync(new Uri(next), cancellationToken);
+        await Task.Delay(1500, cancellationToken);
+        await CapturePageAsync(captured, outputPath, cancellationToken);
+    }
+
+    private static async Task CapturePageAsync(
+        ClientWebSocket socket,
+        string outputPath,
+        CancellationToken cancellationToken)
+    {
+        var payload = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["id"] = 2,
+            ["method"] = "Page.captureScreenshot",
+            ["params"] = new Dictionary<string, object?>
+            {
+                ["format"] = "png",
+                ["fromSurface"] = true
+            }
+        });
+        await socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, cancellationToken);
+        var buffer = new byte[1_048_576];
+        using var memory = new MemoryStream();
+        while (true)
+        {
+            var result = await socket.ReceiveAsync(buffer, cancellationToken);
+            memory.Write(buffer, 0, result.Count);
+            if (result.EndOfMessage)
+                break;
+        }
+
+        using var document = JsonDocument.Parse(memory.ToArray());
+        if (document.RootElement.TryGetProperty("error", out var error))
+            throw new InvalidOperationException($"Mobile open-agent screenshot failed: {error}");
+        if (!document.RootElement.TryGetProperty("result", out var body)
+            || !body.TryGetProperty("data", out var data)
+            || data.GetString() is not { Length: > 0 } png)
+            throw new InvalidOperationException("Mobile open-agent screenshot did not return an image.");
+
+        await File.WriteAllBytesAsync(outputPath, Convert.FromBase64String(png), cancellationToken);
+    }
+
+    private static async Task EvaluateAsync(
+        ClientWebSocket socket,
+        string expression,
+        CancellationToken cancellationToken,
+        string action = "Mobile login")
     {
         var payload = JsonSerializer.Serialize(new Dictionary<string, object?>
         {
@@ -132,9 +230,9 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
         var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
         using var document = JsonDocument.Parse(json);
         if (document.RootElement.TryGetProperty("error", out var error))
-            throw new InvalidOperationException($"Mobile login CDP failed: {error}");
+            throw new InvalidOperationException($"{action} CDP failed: {error}");
         if (document.RootElement.TryGetProperty("result", out var body)
             && body.TryGetProperty("exceptionDetails", out var details))
-            throw new InvalidOperationException($"Mobile login failed: {details}");
+            throw new InvalidOperationException($"{action} failed: {details}");
     }
 }

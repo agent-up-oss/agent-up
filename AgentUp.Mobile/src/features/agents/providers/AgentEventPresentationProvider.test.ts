@@ -4,11 +4,14 @@ import {
   activityHint,
   agentEventRole,
   applyPresentedUpdate,
+  groupTranscript,
+  liveRunId,
   parsePermission,
   permissionOptionLabel,
   permissionOptionTone,
   presentSessionUpdate,
   resolveActivity,
+  runSummary,
   unwrapSessionUpdate,
   visibleText,
   mergeAgentSession,
@@ -34,6 +37,26 @@ test('keeps session chrome out of the transcript', () => {
   });
   assert.equal(presentSessionUpdate({ sessionUpdate: 'available_commands_update', availableCommands: [{ name: 'tests' }] }).kind, 'ignore');
   assert.equal(presentSessionUpdate({ sessionUpdate: 'user_message_chunk', content: { text: 'hi' } }).kind, 'ignore');
+});
+
+test('groups agent work between user questions and summarizes sealed runs', () => {
+  const items: TranscriptItem[] = [
+    { id: '1', role: 'user', text: 'First' },
+    { id: '2', role: 'thought', text: 'Looking' },
+    { id: '3', role: 'tool', text: 'Search', title: 'Search' },
+    { id: '4', role: 'agent', text: 'Done' },
+    { id: '5', role: 'user', text: 'Second' },
+  ];
+  const blocks = groupTranscript(items);
+  assert.equal(blocks.length, 4);
+  assert.equal(blocks[0]?.type, 'user');
+  assert.equal(blocks[1]?.type, 'run');
+  assert.equal(blocks[1] && blocks[1].type === 'run' ? blocks[1].items.length : 0, 2);
+  assert.equal(blocks[2]?.type, 'reply');
+  assert.equal(blocks[3]?.type, 'user');
+  assert.equal(runSummary(blocks[1] && blocks[1].type === 'run' ? blocks[1].items : []), 'Worked · 1 tool · Thought');
+  assert.equal(liveRunId(blocks), undefined);
+  assert.equal(liveRunId(blocks.slice(0, 3)), '2');
 });
 
 test('streams thoughts and upserts tool calls', () => {

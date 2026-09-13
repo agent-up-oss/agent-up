@@ -141,6 +141,91 @@
                 </StackPanel>
             </Border>
         </DataTemplate>
+        <DataTemplate DataType="agentVm:AgentChatItemViewModel">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="8*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="1"
+                        Classes="au-chat-user"
+                        HorizontalAlignment="Right">
+                    <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate DataType="agentVm:AgentRunViewModel">
+            <StackPanel Spacing="8">
+                <Button Classes="au-chat-run"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Focusable="False"
+                        IsVisible="{Binding ShowHeader}"
+                        Command="{Binding ToggleCommand}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="au-muted" Text="{Binding Summary}"/>
+                        <TextBlock Grid.Column="1" Classes="au-muted" Text="{Binding Chevron}"/>
+                    </Grid>
+                </Button>
+                <ItemsControl ItemsSource="{Binding WorkItems}"
+                              IsVisible="{Binding IsExpanded}"
+                              HorizontalAlignment="Stretch">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="4"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="agentVm:AgentChatItemViewModel">
+                            <Panel>
+                                <Button Classes="au-chat-thought"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Focusable="False"
+                                        IsVisible="{Binding IsThought}"
+                                        Command="{Binding ToggleCommand}">
+                                    <StackPanel>
+                                        <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
+                                        <TextBlock Classes="au-chat-thought-body"
+                                                   Text="{Binding VisibleText}"
+                                                   TextWrapping="Wrap"
+                                                   IsVisible="{Binding IsThoughtExpanded}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Border Classes="au-chat-work" IsVisible="{Binding IsWork}">
+                                    <StackPanel Spacing="2">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Classes="au-field-label"
+                                                       Text="{Binding Status}"
+                                                       Foreground="{DynamicResource AgentUpColorTextWarningBrush}"
+                                                       IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                        </Grid>
+                                        <TextBlock Classes="au-muted"
+                                                   Text="{Binding VisibleText}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </Panel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ContentControl Content="{Binding Reply}" IsVisible="{Binding HasReply}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate DataType="agentVm:AgentChatItemViewModel">
+                            <Border Classes="au-card">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
+                                    <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </StackPanel>
+        </DataTemplate>
     </Window.DataTemplates>
 
     <Window.Styles>
@@ -184,16 +269,16 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Strip default Button chrome without undoing catalog actions. -->
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run)">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run)">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pointerover /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pressed /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Integrated window chrome -->
@@ -1096,24 +1181,20 @@
                                         </ItemsControl>
                                     </StackPanel>
                                     <ItemsControl Grid.Row="2" ItemsSource="{Binding Agent.AuthenticationOptions}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-                                    <ListBox Grid.Row="3"
-                                             ItemsSource="{Binding Agent.Messages}"
-                                             IsVisible="{Binding Agent.HasMessages}"
-                                             Background="{DynamicResource AgentUpColorCanvasBrush}">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate DataType="agentVm:AgentChatItemViewModel">
-                                                <Border Classes="au-card" Padding="10" Margin="4">
-                                                    <StackPanel>
-                                                        <Grid ColumnDefinitions="*,Auto">
-                                                            <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
-                                                            <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontSize="10"/>
-                                                        </Grid>
-                                                        <TextBlock Text="{Binding Text}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" TextWrapping="Wrap"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                                    <ScrollViewer Grid.Row="3"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  Background="{DynamicResource AgentUpColorCanvasBrush}">
+                                        <ItemsControl x:Name="AgentTranscript"
+                                                      ItemsSource="{Binding Agent.Transcript}"
+                                                      HorizontalAlignment="Stretch">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Spacing="10"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </ScrollViewer>
                                     <StackPanel Grid.Row="4" IsVisible="{Binding Agent.HasPermission}" Spacing="8">
                                         <TextBlock Text="Decision needed" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontSize="10"/>
                                         <TextBlock Text="{Binding Agent.PermissionTitle}" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontWeight="Bold" TextWrapping="Wrap"/>

@@ -56,6 +56,24 @@ public sealed class XdoToolDesktopDriverTests
     }
 
     [Test]
+    public async Task OpenAgent_clicksAgentTab()
+    {
+        var processes = new FakeProcessRunner { NextResult = new(0, "4242\n", "") };
+        var environment = new FakeEnvironment();
+        environment.Executables["xdotool"] = "/bin/xdotool";
+        var driver = new XdoToolDesktopDriver(processes, environment, new FakePathValidator("/tmp/au-debug-desktop"));
+
+        await driver.OpenAgentAsync(CancellationToken.None);
+
+        Assert.That(
+            processes.Ran.Any(command =>
+                command.Arguments.Contains("mousemove")
+                && command.Arguments.Contains(DebugLayout.DesktopAgentTabX.ToString())
+                && command.Arguments.Contains(DebugLayout.DesktopAgentTabY.ToString())),
+            Is.True);
+    }
+
+    [Test]
     public async Task HasWindow_isFalseWhenSearchFails()
     {
         var processes = new FakeProcessRunner { NextResult = new(1, "", "missing") };

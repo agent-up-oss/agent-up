@@ -119,6 +119,23 @@ public sealed class HostControllerTests
         });
     }
 
+    [Test]
+    public async Task Build_scopedTarget_routesWithoutLaunchingLaterTargets()
+    {
+        using var output = new StringWriter();
+        var tests = new FakeTestProcessRunner();
+        var exit = await Controller(output, tests).RunAsync(["build", "design-system"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exit, Is.EqualTo(0));
+            Assert.That(output.ToString(), Does.Contain("au-debug build design-system"));
+            Assert.That(tests.Ran, Has.Count.EqualTo(1));
+            Assert.That(tests.Ran[0].FileName, Is.EqualTo("npm"));
+            Assert.That(tests.Ran[0].Arguments, Is.EqualTo(new[] { "run", "build" }));
+        });
+    }
+
     private static HostController Controller(StringWriter output, FakeTestProcessRunner? tests = null)
     {
         var sessions = new FakeSessionStore();
@@ -130,7 +147,7 @@ public sealed class HostControllerTests
         var desktop = new DesktopController(
             new DesktopCommandService(windows, new FakeWorkspaceClient(), sessions, new FakeEnvironment()));
         var mobile = new MobileController(
-            new MobileCommandService(new FakeWebScreenshotDriver(), new FakeMobileSurfaceDriver(), sessions, new FakeEnvironment()));
+            new MobileCommandService(new FakeWebScreenshotDriver(), new FakeMobileSurfaceDriver(), new FakeWorkspaceClient(), sessions, new FakeEnvironment()));
         var docs = new DocsController(
             new DocsCommandService(new FakeWebScreenshotDriver(), sessions));
         var testController = new TestController(

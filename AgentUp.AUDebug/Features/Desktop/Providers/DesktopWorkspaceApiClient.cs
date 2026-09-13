@@ -18,6 +18,14 @@ public sealed class DesktopWorkspaceApiClient : IDesktopWorkspaceClient
 
     public async Task StartByNameAsync(string workspaceName, string password, CancellationToken cancellationToken)
     {
+        var id = await FindIdByNameAsync(workspaceName, password, cancellationToken);
+        using var response = await _http.PostAsync($"/api/workspaces/{Uri.EscapeDataString(id)}/start", null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Failed to start '{workspaceName}': {(int)response.StatusCode} {response.ReasonPhrase}");
+    }
+
+    public async Task<string> FindIdByNameAsync(string workspaceName, string password, CancellationToken cancellationToken)
+    {
         var token = await LoginAsync(password, cancellationToken);
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var workspaces = await ListAsync(cancellationToken);
@@ -25,10 +33,7 @@ public sealed class DesktopWorkspaceApiClient : IDesktopWorkspaceClient
             workspace.DisplayName.Equals(workspaceName, StringComparison.OrdinalIgnoreCase));
         if (match is null)
             throw new InvalidOperationException($"No workspace named '{workspaceName}' is registered on {DebugLayout.ServerUrl}.");
-
-        using var response = await _http.PostAsync($"/api/workspaces/{Uri.EscapeDataString(match.Id)}/start", null, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Failed to start '{workspaceName}': {(int)response.StatusCode} {response.ReasonPhrase}");
+        return match.Id;
     }
 
     private async Task<string> LoginAsync(string password, CancellationToken cancellationToken)

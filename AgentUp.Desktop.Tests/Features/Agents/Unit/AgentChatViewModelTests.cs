@@ -152,8 +152,67 @@ public sealed class AgentChatViewModelTests
     [Test]
     public void ChatItem_usesDisplayRoleWhenPresent()
     {
-        Assert.That(new AgentChatItemViewModel("Agent", "Working", DisplayRole: "Codex").Label, Is.EqualTo("Codex"));
+        Assert.That(new AgentChatItemViewModel("Agent", "Working", displayRole: "Codex").Label, Is.EqualTo("Codex"));
         Assert.That(new AgentChatItemViewModel("You", "Hello").Label, Is.EqualTo("You"));
+        Assert.That(new AgentChatItemViewModel("You", "Hello").IsUser, Is.True);
+        Assert.That(new AgentChatItemViewModel("You", "Hello").IsWork, Is.False);
+    }
+
+    [Test]
+    public void Run_staysOpenUntilTheNextQuestionSealsIt()
+    {
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Thought", "Looking"));
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Search", "completed", "t1"));
+        run.Items.Add(new AgentChatItemViewModel("Agent", "Done", displayRole: "Codex"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.IsLive, Is.True);
+            Assert.That(run.ShowHeader, Is.False);
+            Assert.That(run.IsExpanded, Is.True);
+            Assert.That(run.HasReply, Is.True);
+            Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
+            Assert.That(run.WorkItems, Has.Count.EqualTo(2));
+            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
+            Assert.That(run.Chevron, Is.EqualTo("▾"));
+        });
+
+        run.Seal();
+        Assert.That(run.ShowHeader, Is.True);
+        Assert.That(run.IsExpanded, Is.False);
+        Assert.That(run.HasReply, Is.True);
+        Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
+        Assert.That(run.Chevron, Is.EqualTo("▸"));
+    }
+
+    [Test]
+    public async Task ChatItem_collapsesThoughtsUntilToggled()
+    {
+        var thought = new AgentChatItemViewModel("Thought", "**Clarifying test meaning**");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(thought.IsThought, Is.True);
+            Assert.That(thought.IsWork, Is.False);
+            Assert.That(thought.VisibleText, Is.EqualTo("Clarifying test meaning"));
+            Assert.That(thought.IsThoughtExpanded, Is.False);
+            Assert.That(thought.Label, Is.EqualTo("Thought"));
+        });
+
+        thought.SetLive(true);
+        Assert.That(thought.IsThoughtExpanded, Is.True);
+        Assert.That(thought.Label, Is.EqualTo("Thinking"));
+
+        await thought.ToggleCommand.Execute().FirstAsync();
+        Assert.That(thought.IsThoughtExpanded, Is.False);
+        Assert.That(thought.Label, Is.EqualTo("Thinking"));
+
+        thought.SetLive(false);
+        Assert.That(thought.Label, Is.EqualTo("Thought"));
+        await thought.ToggleCommand.Execute().FirstAsync();
+        Assert.That(thought.IsThoughtExpanded, Is.True);
+        Assert.That(thought.Label, Is.EqualTo("Thought"));
     }
 
     private static AgentChatViewModel CreateView(IAgentApiProvider provider)

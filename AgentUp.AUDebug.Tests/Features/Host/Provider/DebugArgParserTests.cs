@@ -30,6 +30,33 @@ public sealed class DebugArgParserTests
     }
 
     [Test]
+    public void Parse_desktopOpenAgent()
+    {
+        var (command, error) = _parser.Parse(["desktop", "open-agent"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Action, Is.EqualTo("open-agent"));
+        Assert.That(command.WorkspaceName, Is.Null);
+    }
+
+    [Test]
+    public void Parse_mobileOpenAgent_joinsName()
+    {
+        var (command, error) = _parser.Parse(["mobile", "open-agent", "Agent-Up"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Action, Is.EqualTo("open-agent"));
+        Assert.That(command.WorkspaceName, Is.EqualTo("Agent-Up"));
+    }
+
+    [Test]
+    public void Parse_mobileOpenAgent_requiresName()
+    {
+        var (_, error) = _parser.Parse(["mobile", "open-agent"]);
+        Assert.That(error, Does.Contain("requires a workspace name"));
+    }
+
+    [Test]
     public void Parse_mobileLogin_readsPassword()
     {
         var (command, error) = _parser.Parse(["mobile", "login", "--password", "test"]);
@@ -91,6 +118,37 @@ public sealed class DebugArgParserTests
     public void Parse_testExtraArgs_returnsError()
     {
         var (command, error) = _parser.Parse(["test", "design-system", "desktop"]);
+
+        Assert.That(command, Is.Null);
+        Assert.That(error, Does.Contain("at most one suite name"));
+    }
+
+    [Test]
+    public void Parse_buildDefaultsToAllAndLongerTimeout()
+    {
+        var (command, error) = _parser.Parse(["build"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Verb, Is.EqualTo("build"));
+        Assert.That(command.Suite, Is.EqualTo("all"));
+        Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.TestAllTimeoutSeconds)));
+    }
+
+    [Test]
+    public void Parse_buildScopedUsesIterationTimeout()
+    {
+        var (command, error) = _parser.Parse(["build", "design-system"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Verb, Is.EqualTo("build"));
+        Assert.That(command.Suite, Is.EqualTo("design-system"));
+        Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.TestTimeoutSeconds)));
+    }
+
+    [Test]
+    public void Parse_buildExtraArgs_returnsError()
+    {
+        var (command, error) = _parser.Parse(["build", "design-system", "mobile"]);
 
         Assert.That(command, Is.Null);
         Assert.That(error, Does.Contain("at most one suite name"));

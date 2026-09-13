@@ -89,6 +89,11 @@ test('compileable class rules become native components and Avalonia selectors', 
   assert.deepEqual(missingAvalonia, [], 'Avalonia styles dropped compileable class rules');
 });
 
+test('native font-style stays on the React Native italic/normal union', () => {
+  assert.equal(auText('chatThoughtBody').fontStyle, 'italic');
+  assert.notEqual(auText('chatThoughtBody').fontStyle, 'oblique');
+});
+
 test('catalog metadata is a complete, unique schema and Desktop aliases compile', () => {
   const surfaceIds = new Set();
   const componentIds = new Set();
@@ -178,6 +183,34 @@ test('Desktop Window.Styles does not restate visual setters already emitted by A
     }
   }
   assert.deepEqual(restated, [], 'MainWindow restates generated visual setters');
+});
+
+test('agent transcript uses catalog user bubbles, work logs, and thought hairlines', async () => {
+  assert.match(avaloniaStyles, /Selector="Button\.au-chat-thought"/);
+  assert.match(avaloniaStyles, /Selector="Button\.au-chat-thought"[\s\S]*?Property="Margin" Value="20,0,0,0"/);
+  assert.doesNotMatch(avaloniaStyles, /Value="\{DynamicResource [^"]+\},/);
+  assert.match(avaloniaStyles, /Selector="TextBlock\.au-chat-thought-body"/);
+  assert.match(avaloniaStyles, /Button\.au-chat-thought:pointerover/);
+  assert.match(avaloniaStyles, /Selector="Border\.au-chat-user"/);
+  assert.match(avaloniaStyles, /Selector="Border\.au-chat-work"/);
+  assert.match(avaloniaStyles, /Selector="Button\.au-chat-run"/);
+  assert.match(avaloniaStyles, /Selector="Border\.au-chat-transcript"/);
+  assert.equal(auText('chatThoughtBody').fontStyle, 'italic');
+  assert.equal(agentUpTheme.components.chatUser.backgroundColor, agentUpTheme.colors.surfaceSelected);
+  assert.equal(agentUpTheme.components.chatUser.maxWidth, '80%');
+  assert.equal(agentUpTheme.components.chatWork.backgroundColor, agentUpTheme.colors.surface);
+  assert.equal(agentUpTheme.components.chatThought.marginLeft, agentUpTheme.spacing[5]);
+  const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
+  assert.match(axaml, /Classes="au-chat-thought"/);
+  assert.match(axaml, /Classes="au-chat-user"/);
+  assert.match(axaml, /Classes="au-chat-run"/);
+  assert.match(axaml, /Classes="au-chat-work"/);
+  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/agents/components/AgentChatScreen.tsx'), 'utf8');
+  assert.match(mobile, /auBox\('chatThought'\)/);
+  assert.match(mobile, /auText\('chatThoughtBody'\)/);
+  assert.match(mobile, /auBox\('chatUser'\)/);
+  assert.match(mobile, /auBox\('chatRun'\)/);
+  assert.match(mobile, /auBox\('chatWork'\)/);
 });
 
 test('tappable cards are catalog buttons instead of local picker chrome', async () => {

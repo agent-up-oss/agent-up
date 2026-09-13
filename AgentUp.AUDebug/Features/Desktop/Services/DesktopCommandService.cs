@@ -33,6 +33,9 @@ public sealed class DesktopCommandService
     public Task<CommandResultDto> StartWorkspaceAsync(DebugCommandDto command, CancellationToken cancellationToken)
         => RunAsync(command, cancellationToken, ct => StartWorkspaceCoreAsync(command, ct));
 
+    public Task<CommandResultDto> OpenAgentAsync(DebugCommandDto command, CancellationToken cancellationToken)
+        => RunAsync(command, cancellationToken, OpenAgentCoreAsync);
+
     private async Task<CommandResultDto> RunAsync(
         DebugCommandDto command,
         CancellationToken cancellationToken,
@@ -47,6 +50,10 @@ public sealed class DesktopCommandService
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             return CommandResultDto.Fail($"Timed out after {(int)command.Timeout.TotalSeconds}s running desktop {command.Action}.");
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return CommandResultDto.Fail($"Timed out talking to {DebugLayout.ServerUrl}.");
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
         {
@@ -85,5 +92,13 @@ public sealed class DesktopCommandService
         var path = _sessions.ScreenshotPath("desktop");
         await _windows.CaptureAsync(path, cancellationToken);
         return CommandResultDto.Ok($"Started workspace '{command.WorkspaceName}'.", path);
+    }
+
+    private async Task<CommandResultDto> OpenAgentCoreAsync(CancellationToken cancellationToken)
+    {
+        await _windows.OpenAgentAsync(cancellationToken);
+        var path = _sessions.ScreenshotPath("desktop");
+        await _windows.CaptureAsync(path, cancellationToken);
+        return CommandResultDto.Ok("Opened the Desktop Agent tab.", path);
     }
 }

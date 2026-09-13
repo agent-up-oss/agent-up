@@ -28,8 +28,12 @@ public sealed class DebugOutputServiceTests
 
         Assert.That(exit, Is.EqualTo(0));
         Assert.That(output.ToString(), Does.Contain("mobile login"));
+        Assert.That(output.ToString(), Does.Contain("desktop open-agent"));
+        Assert.That(output.ToString(), Does.Contain("mobile open-agent"));
         Assert.That(output.ToString(), Does.Contain("status"));
         Assert.That(output.ToString(), Does.Contain("test <suite>"));
         Assert.That(output.ToString(), Does.Contain("test all"));
+        Assert.That(output.ToString(), Does.Contain("build design-system"));
+        Assert.That(output.ToString(), Does.Contain("build mobile"));
     }
 }

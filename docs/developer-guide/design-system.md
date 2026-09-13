@@ -33,8 +33,8 @@ shows the live components that surface uses.
   resources plus styles under `dist/`.
 
 Files under `AgentUp.DesignSystem/dist/` are generated definition artifacts. Do
-not edit them directly. Change the canonical CSS or HTML catalog, run the
-design-system build, and review every consumer.
+not edit them directly. Change the canonical CSS or HTML catalog, run
+`./au-debug build design-system`, and review every consumer.
 
 ## Consumer boundaries
 
@@ -64,6 +64,11 @@ Desktop is the reference rendering:
 - A tappable card, such as an agent picker row, is `.au-choice`. It is a
   catalog Button that already paints as a card, including hover and disabled
   opacity. Do not wrap `.au-card` in a platform Button.
+- Agent replies are `.au-card`. Tools and other in-run steps are `.au-chat-work`
+  on the quieter surface. The human prompt is `.au-chat-user`: a right-aligned
+  selected surface sized to the text. Finished work between questions collapses
+  to `.au-chat-run`; the trailing agent reply stays visible. Nested thoughts stay
+  `.au-chat-thought`. Do not put thoughts or tool rows in a result card.
 - Borders are **alpha hairlines**, not fixed grays. An opaque border reads about
   2.4x stronger on the canvas than on a raised surface; alpha composites, so one
   token keeps an even weight across the whole ramp. A product drawn mostly in
@@ -115,4 +120,6 @@ npm --prefix AgentUp.DesignSystem test
 ```
 
 The `check` command fails when a generated web, React Native, or Avalonia binding
-does not exactly match the canonical HTML and CSS.
+does not exactly match the canonical HTML and CSS. Native `font-style` compiles to
+React Native `italic` or `normal`; CSS `oblique` maps to `italic` because React
+Native does not accept `oblique`.

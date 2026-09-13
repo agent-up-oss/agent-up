@@ -21,6 +21,7 @@ public sealed class DesktopController
             "screenshot" => service.ScreenshotAsync(command, cancellationToken),
             "login" => service.LoginAsync(command, cancellationToken),
             "start-workspace" => service.StartWorkspaceAsync(command, cancellationToken),
+            "open-agent" => service.OpenAgentAsync(command, cancellationToken),
             _ => Task.FromResult(CommandResultDto.Fail($"Error: unknown desktop action '{command.Action}'."))
         };
 }

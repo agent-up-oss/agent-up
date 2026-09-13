@@ -15,28 +15,56 @@ public sealed class DebugTestSuiteCatalog : IDebugTestSuiteCatalog
             Npm("AgentUp.DesignSystem", "run", "build"),
             Npm("AgentUp.DesignSystem")),
         Suite("desktop", "Desktop tests", Dotnet("AgentUp.Desktop.Tests")),
-        Suite("mobile", "Mobile tests", Npm("AgentUp.Mobile")),
+        Suite(
+            "mobile",
+            "Mobile typecheck, tests, and web export",
+            Npm("AgentUp.Mobile", "run", "typecheck"),
+            Npm("AgentUp.Mobile"),
+            Npm("AgentUp.Mobile", "run", "build:web")),
         Suite("au-debug", "AUDebug tests", Dotnet("AgentUp.AUDebug.Tests")),
         Suite("architecture", "Architecture tests", Dotnet("AgentUp.Architecture.Tests")),
     ];
 
+    private static readonly DebugTestSuiteDto[] Builds =
+    [
+        Suite("design-system", "Design-system generated bindings", Npm("AgentUp.DesignSystem", "run", "build")),
+        Suite(
+            "mobile",
+            "Mobile typecheck and web export",
+            Npm("AgentUp.Mobile", "run", "typecheck"),
+            Npm("AgentUp.Mobile", "run", "build:web")),
+    ];
+
     public IReadOnlyList<string> SuiteIds { get; } = Suites.Select(suite => suite.Id).ToArray();
+    public IReadOnlyList<string> BuildIds { get; } = Builds.Select(suite => suite.Id).ToArray();
 
     public bool TryResolve(string suite, out IReadOnlyList<DebugTestSuiteDto> suites, out string? error)
+        => TryResolve(suite, Suites, SuiteIds, "test suite", out suites, out error);
+
+    public bool TryResolveBuild(string target, out IReadOnlyList<DebugTestSuiteDto> suites, out string? error)
+        => TryResolve(target, Builds, BuildIds, "build target", out suites, out error);
+
+    private static bool TryResolve(
+        string id,
+        DebugTestSuiteDto[] all,
+        IReadOnlyList<string> known,
+        string kind,
+        out IReadOnlyList<DebugTestSuiteDto> suites,
+        out string? error)
     {
-        var id = suite.Trim();
-        if (id.Length == 0 || string.Equals(id, All, StringComparison.Ordinal))
+        var key = id.Trim();
+        if (key.Length == 0 || string.Equals(key, All, StringComparison.Ordinal))
         {
-            suites = Suites;
+            suites = all;
             error = null;
             return true;
         }
 
-        var match = Suites.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.Ordinal));
+        var match = all.FirstOrDefault(item => string.Equals(item.Id, key, StringComparison.Ordinal));
         if (match is null)
         {
             suites = [];
-            error = $"Error: unknown test suite '{id}'. Choose {All} or one of: {string.Join(", ", SuiteIds)}.";
+            error = $"Error: unknown {kind} '{id}'. Choose {All} or one of: {string.Join(", ", known)}.";
             return false;
         }
 

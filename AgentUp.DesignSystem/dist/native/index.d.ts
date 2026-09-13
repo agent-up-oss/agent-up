@@ -47,6 +47,8 @@ export declare function auBox(...names: Array<string | false | null | undefined>
   height?: number;
   minHeight?: number;
   minWidth?: number;
+  maxWidth?: number | '80%';
+  marginLeft?: number;
   paddingHorizontal?: number;
   paddingVertical?: number;
   opacity?: number;
@@ -60,4 +62,5 @@ export declare function auText(...names: Array<string | false | null | undefined
   fontFamily?: string;
   textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';
   letterSpacing?: number;
+  fontStyle?: 'normal' | 'italic';
 };

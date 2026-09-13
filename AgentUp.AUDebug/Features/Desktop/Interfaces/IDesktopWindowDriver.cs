@@ -6,4 +6,5 @@ public interface IDesktopWindowDriver
     Task<bool> HasWindowAsync(CancellationToken cancellationToken);
     Task CaptureAsync(string outputPath, CancellationToken cancellationToken);
     Task LoginAsync(string password, CancellationToken cancellationToken);
+    Task OpenAgentAsync(CancellationToken cancellationToken);
 }

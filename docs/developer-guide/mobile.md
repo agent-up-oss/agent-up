@@ -16,8 +16,14 @@ orchestration must remain in `AgentUp.Server`.
 The workspace Agent screen is an ACP client UI. It selects an available Server-
 configured Codex, Cursor, or Claude adapter, sends prompts, reconnects to the SSE
 stream using the last event sequence, and presents the session as conversation,
-collapsible thoughts, tool progress, plan status, and live activity. Session
-title, mode, and token usage stay in context chrome rather than chat rows.
+collapsible thoughts, tool progress, plan status, and live activity. Transcript
+turns use catalog cards in a readable centered column; the human prompt is a
+right-aligned catalog bubble. The live agent run stays open until the next
+question, which collapses tools and thoughts to a Worked disclosure while the
+trailing agent reply stays visible. Nested thoughts stay the quieter indented
+catalog disclosure, with the body hidden until expanded and Thinking
+reserved for the live thought. Session title, mode, and token usage stay in
+context chrome rather than chat rows.
 `session/request_permission` is a blocking decision card that offers the ACP
 options instead of auto-granting. It never launches a CLI or owns an ACP session.
 
@@ -176,13 +182,9 @@ Android SDK is required for normal web/PWA development.
 
 ## Verification and web export
 
-Run TypeScript checking and create the production PWA bundle before submitting
-mobile client changes:
-
-```bash
-npm run typecheck
-npm run build:web
-```
+Run `./au-debug test mobile` before submitting mobile client changes. That suite
+runs TypeScript checking, client tests, and the production PWA bundle. Use
+`./au-debug build mobile` when you only need typecheck and the web export.
 
 Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata and
 install icons live under `public/`; `src/app/+html.tsx` links the manifest in

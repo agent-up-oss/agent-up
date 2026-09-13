@@ -84,6 +84,58 @@ export function presentSessionUpdate(update: unknown): PresentedUpdate {
   return { kind: 'ignore' };
 }
 
+export function runSummary(items: TranscriptItem[]): string {
+  const tools = items.filter(item => item.role === 'tool').length;
+  const parts = ['Worked'];
+  if (tools === 1) parts.push('1 tool');
+  else if (tools > 1) parts.push(`${tools} tools`);
+  if (items.some(item => item.role === 'thought')) parts.push('Thought');
+  return parts.join(' · ');
+}
+
+export type TranscriptBlock =
+  | { type: 'user'; item: TranscriptItem }
+  | { type: 'run'; id: string; items: TranscriptItem[] }
+  | { type: 'reply'; item: TranscriptItem };
+
+export function liveRunId(blocks: TranscriptBlock[]): string | undefined {
+  for (let i = blocks.length - 1; i >= 0; i -= 1) {
+    const block = blocks[i]!;
+    if (block.type === 'user') return undefined;
+    if (block.type === 'run') return block.id;
+  }
+  return undefined;
+}
+
+export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
+  const blocks: TranscriptBlock[] = [];
+  let run: TranscriptItem[] = [];
+  const flush = () => {
+    if (run.length === 0) return;
+    let result: TranscriptItem | undefined;
+    let work = run;
+    for (let i = run.length - 1; i >= 0; i -= 1) {
+      if (run[i]!.role !== 'agent') continue;
+      result = run[i];
+      work = run.filter((_, index) => index !== i);
+      break;
+    }
+    if (work.length > 0) blocks.push({ type: 'run', id: work[0]!.id, items: work });
+    if (result) blocks.push({ type: 'reply', item: result });
+    run = [];
+  };
+  for (const item of items) {
+    if (item.role === 'user') {
+      flush();
+      blocks.push({ type: 'user', item });
+    } else {
+      run.push(item);
+    }
+  }
+  flush();
+  return blocks;
+}
+
 export function applyPresentedUpdate(items: TranscriptItem[], id: string, presented: PresentedUpdate): TranscriptItem[] {
   if (presented.kind === 'message') {
     const last = items.at(-1);

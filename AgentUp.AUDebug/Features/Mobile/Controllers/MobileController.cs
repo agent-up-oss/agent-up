@@ -20,6 +20,7 @@ public sealed class MobileController
         {
             "screenshot" => service.ScreenshotAsync(command, cancellationToken),
             "login" => service.LoginAsync(command, cancellationToken),
+            "open-agent" => service.OpenAgentAsync(command, cancellationToken),
             _ => Task.FromResult(CommandResultDto.Fail($"Error: unknown mobile action '{command.Action}'."))
         };
 }

@@ -11,10 +11,20 @@ public sealed class FakeMobileSurfaceDriver : IMobileSurfaceDriver
     public string? Password { get; private set; }
     public bool DelayUntilCanceled { get; set; }
 
+    public string? CaptureAgentPath { get; private set; }
+
     public async Task LoginAsync(string serverUrl, string password, CancellationToken cancellationToken)
     {
         ServerUrl = serverUrl;
         Password = password;
+        if (DelayUntilCanceled)
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    public async Task CaptureAgentAsync(string outputPath, CancellationToken cancellationToken)
+    {
+        CaptureAgentPath = outputPath;
         if (DelayUntilCanceled)
             await Task.Delay(Timeout.Infinite, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();

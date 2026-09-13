@@ -30,28 +30,31 @@ public static class AuDebugRunnerFactory
         var sessions = new HostSessionStore(paths);
         var outputService = new DebugOutputService(writer);
         var windows = new XdoToolDesktopDriver(processes, environment, paths);
-        var supervisor = new HostProcessSupervisor(processes, paths, environment, writer);
+        var probe = new HostReadyProbeProvider(new HttpClient { Timeout = TimeSpan.FromSeconds(2) });
+        var supervisor = new HostProcessSupervisor(processes, paths, environment, probe, writer);
         var host = new HostCommandService(
             sessions,
             supervisor,
-            new HostReadyProbeProvider(new HttpClient { Timeout = TimeSpan.FromSeconds(2) }),
+            probe,
             windows,
             outputService);
         var screenshots = new ChromiumScreenshotDriver(processes, environment, paths);
+        var workspaces = new DesktopWorkspaceApiClient(new HttpClient
+        {
+            BaseAddress = new Uri(DebugLayout.ServerUrl),
+            Timeout = TimeSpan.FromSeconds(DebugLayout.MaxTimeoutSeconds)
+        });
         var desktop = new DesktopController(
             new DesktopCommandService(
                 windows,
-                new DesktopWorkspaceApiClient(new HttpClient
-                {
-                    BaseAddress = new Uri(DebugLayout.ServerUrl),
-                    Timeout = TimeSpan.FromSeconds(DebugLayout.DefaultTimeoutSeconds)
-                }),
+                workspaces,
                 sessions,
                 environment));
         var mobile = new MobileController(
             new MobileCommandService(
                 screenshots,
                 new ChromiumMobileDriver(processes, environment, paths),
+                workspaces,
                 sessions,
                 environment));
         var docs = new DocsController(new DocsCommandService(screenshots, sessions));

@@ -35,6 +35,24 @@ public sealed class DesktopWorkspaceApiClientTests
     }
 
     [Test]
+    public async Task FindIdByName_returnsWorkspaceId()
+    {
+        using var handler = new StubHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/auth/login")
+                return Json(new { accessToken = "tok" });
+            if (request.RequestUri.AbsolutePath == "/api/workspaces" && request.Method == HttpMethod.Get)
+                return Json(new[] { new { id = "ws-7", displayName = "Agent-Up", state = "running" } });
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+        using var http = new HttpClient(handler) { BaseAddress = new Uri(DebugLayout.ServerUrl) };
+
+        var id = await new DesktopWorkspaceApiClient(http).FindIdByNameAsync("Agent-Up", "test", CancellationToken.None);
+
+        Assert.That(id, Is.EqualTo("ws-7"));
+    }
+
+    [Test]
     public void MissingWorkspace_throws()
     {
         using var handler = new StubHandler(request =>

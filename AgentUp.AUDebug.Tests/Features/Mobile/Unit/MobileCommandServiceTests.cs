@@ -14,6 +14,7 @@ public sealed class MobileCommandServiceTests
         var result = await new MobileCommandService(
             new FakeWebScreenshotDriver(),
             new FakeMobileSurfaceDriver(),
+            new FakeWorkspaceClient(),
             new FakeSessionStore(),
             environment).LoginAsync(Command(password: null), CancellationToken.None);
 
@@ -25,7 +26,7 @@ public sealed class MobileCommandServiceTests
     {
         var surface = new FakeMobileSurfaceDriver();
         var shots = new FakeWebScreenshotDriver();
-        var result = await new MobileCommandService(shots, surface, new FakeSessionStore(), new FakeEnvironment())
+        var result = await new MobileCommandService(shots, surface, new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment())
             .LoginAsync(Command(), CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -44,7 +45,7 @@ public sealed class MobileCommandServiceTests
     {
         var surface = new FakeMobileSurfaceDriver();
         var shots = new FakeWebScreenshotDriver();
-        var result = await new MobileCommandService(shots, surface, new FakeSessionStore(), new FakeEnvironment())
+        var result = await new MobileCommandService(shots, surface, new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment())
             .ScreenshotAsync(new DebugCommandDto("mobile", "mobile", "screenshot", null, null, TimeSpan.FromSeconds(30), false), CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -62,6 +63,7 @@ public sealed class MobileCommandServiceTests
         var result = await new MobileCommandService(
             new FakeWebScreenshotDriver(),
             surface,
+            new FakeWorkspaceClient(),
             new FakeSessionStore(),
             new FakeEnvironment()).LoginAsync(
             new DebugCommandDto("mobile", "mobile", "login", null, "test", TimeSpan.FromMilliseconds(30), false),
@@ -78,6 +80,7 @@ public sealed class MobileCommandServiceTests
         var result = await new MobileCommandService(
             shots,
             new FakeMobileSurfaceDriver(),
+            new FakeWorkspaceClient(),
             new FakeSessionStore(),
             new FakeEnvironment()).ScreenshotAsync(
             new DebugCommandDto("mobile", "mobile", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
@@ -85,6 +88,62 @@ public sealed class MobileCommandServiceTests
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
         Assert.That(result.Message, Is.EqualTo("cdp failed"));
+    }
+
+    [Test]
+    public async Task OpenAgent_screenshotsWorkspaceAgentRoute()
+    {
+        var surface = new FakeMobileSurfaceDriver();
+        var workspaces = new FakeWorkspaceClient { Id = "ws-9" };
+        var result = await new MobileCommandService(
+            new FakeWebScreenshotDriver(),
+            surface,
+            workspaces,
+            new FakeSessionStore(),
+            new FakeEnvironment()).OpenAgentAsync(
+            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", "test", TimeSpan.FromSeconds(30), false),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(0));
+            Assert.That(workspaces.Name, Is.EqualTo("Agent-Up"));
+            Assert.That(surface.CaptureAgentPath, Is.Not.Null);
+            Assert.That(result.ArtifactPath, Is.EqualTo(surface.CaptureAgentPath));
+        });
+    }
+
+    [Test]
+    public async Task OpenAgent_httpClientTimeout_returnsFailure()
+    {
+        var workspaces = new FakeWorkspaceClient { Error = new TaskCanceledException() };
+        var result = await new MobileCommandService(
+            new FakeWebScreenshotDriver(),
+            new FakeMobileSurfaceDriver(),
+            workspaces,
+            new FakeSessionStore(),
+            new FakeEnvironment()).OpenAgentAsync(
+            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", "test", TimeSpan.FromSeconds(30), false),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("Timed out talking to"));
+    }
+
+    [Test]
+    public async Task OpenAgent_requiresWorkspaceName()
+    {
+        var result = await new MobileCommandService(
+            new FakeWebScreenshotDriver(),
+            new FakeMobileSurfaceDriver(),
+            new FakeWorkspaceClient(),
+            new FakeSessionStore(),
+            new FakeEnvironment()).OpenAgentAsync(
+            new DebugCommandDto("mobile", "mobile", "open-agent", null, "test", TimeSpan.FromSeconds(30), false),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("requires a workspace name"));
     }
 
     private static DebugCommandDto Command(string? password = "test")

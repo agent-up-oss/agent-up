@@ -54,8 +54,19 @@ public static class MobileLoginScriptProvider
               const save = await waitEnabled('Try and save', 8000);
               save.click();
               const secret = await waitFor('input[aria-label="Admin password"]', 20000);
-              setValue(secret, {{JsonSerializer.Serialize(password)}});
-              clickByText('Sign in');
+              const waitSignIn = async (timeoutMs) => {
+                const start = Date.now();
+                while (Date.now() - start < timeoutMs) {
+                  setValue(secret, {{JsonSerializer.Serialize(password)}});
+                  const button = [...document.querySelectorAll('[role="button"],button')].find((node) => (node.textContent || '').includes('Sign in'));
+                  if (button && button.getAttribute('aria-disabled') !== 'true' && !button.hasAttribute('disabled')) return button;
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+                }
+                throw new Error('Timed out waiting for enabled button Sign in');
+              };
+              const signIn = await waitSignIn(8000);
+              signIn.click();
+              await new Promise((resolve) => setTimeout(resolve, 3000));
               return 'ok';
             })()
             """;

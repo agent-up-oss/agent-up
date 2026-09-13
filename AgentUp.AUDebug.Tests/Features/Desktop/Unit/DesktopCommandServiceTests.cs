@@ -87,6 +87,33 @@ public sealed class DesktopCommandServiceTests
         Assert.That(result.Message, Does.Contain("requires a workspace name"));
     }
 
+    [Test]
+    public async Task StartWorkspace_httpClientTimeout_returnsFailure()
+    {
+        var client = new FakeWorkspaceClient { Error = new TaskCanceledException() };
+        var result = await Service(new FakeDesktopWindowDriver(), client, new FakeEnvironment())
+            .StartWorkspaceAsync(Command("start-workspace"), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("Timed out talking to"));
+    }
+
+    [Test]
+    public async Task OpenAgent_clicksAgentTabAndScreenshots()
+    {
+        var windows = new FakeDesktopWindowDriver();
+        var result = await Service(windows, new FakeWorkspaceClient(), new FakeEnvironment())
+            .OpenAgentAsync(Command("open-agent"), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(0));
+            Assert.That(windows.Opens, Is.EqualTo(1));
+            Assert.That(windows.Captures, Is.EqualTo(1));
+            Assert.That(result.ArtifactPath, Is.Not.Null);
+        });
+    }
+
     private static DesktopCommandService Service(
         FakeDesktopWindowDriver windows,
         FakeWorkspaceClient client,

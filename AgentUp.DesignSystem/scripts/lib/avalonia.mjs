@@ -162,6 +162,11 @@ function declarationsToSetters(declarations, tokens) {
       case 'margin':
         setters.push(['Margin', thicknessValue(value, tokens)]);
         break;
+      case 'margin-left': {
+        const length = lengthNumber(value, tokens);
+        if (length != null) setters.push(['Margin', `${formatNumber(length)},0,0,0`]);
+        break;
+      }
       case 'min-height':
         setters.push(['MinHeight', lengthValue(value, tokens)]);
         break;
@@ -169,7 +174,7 @@ function declarationsToSetters(declarations, tokens) {
         setters.push(['MinWidth', lengthValue(value, tokens)]);
         break;
       case 'width':
-        if (value.includes('%') || value.includes('min(')) break;
+        if (value.includes('%') || value.includes('min(') || /fit-content|max-content|min-content|auto/.test(value)) break;
         setters.push(['Width', lengthValue(value, tokens)]);
         break;
       case 'height':
@@ -185,6 +190,9 @@ function declarationsToSetters(declarations, tokens) {
         break;
       case 'font-weight':
         setters.push(['FontWeight', weightValue(value, tokens)]);
+        break;
+      case 'font-style':
+        setters.push(['FontStyle', fontStyleValue(value)]);
         break;
       case 'font-family':
         setters.push(['FontFamily', fontFamilyValue(value, tokens)]);
@@ -236,9 +244,9 @@ function mergeSetters(current, next) {
 
 const controlProperties = {
   Border: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
-  Button: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily']),
+  Button: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily', 'FontStyle']),
   TextBox: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily']),
-  TextBlock: new Set(['Background', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily', 'LetterSpacing', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
+  TextBlock: new Set(['Background', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily', 'FontStyle', 'LetterSpacing', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
   Window: new Set(['Background', 'Foreground', 'FontFamily', 'FontSize', 'Margin', 'Opacity', 'Width', 'Height', 'MinWidth', 'MinHeight']),
   StackPanel: new Set(['Background', 'Margin', 'Opacity', 'Width', 'Height', 'MinWidth', 'MinHeight']),
   ContentPresenter: new Set(['Background', 'Foreground', 'Padding', 'Margin', 'BorderBrush']),
@@ -359,6 +367,12 @@ function weightValue(value, tokens) {
   const token = varName(value);
   if (token?.startsWith('weight-')) return `{DynamicResource ${tokenKey(token)}}`;
   return fontWeights[value] ?? value;
+}
+
+function fontStyleValue(value) {
+  if (value === 'italic' || value === 'oblique') return 'Italic';
+  if (value === 'normal') return 'Normal';
+  return null;
 }
 
 function fontFamilyValue(value, tokens) {

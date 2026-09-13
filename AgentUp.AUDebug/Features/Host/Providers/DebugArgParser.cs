@@ -68,10 +68,10 @@ public sealed class DebugArgParser : IDebugArgParser
             return Command(verb, timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
         }
 
-        if (verb == "test")
+        if (verb is "test" or "build")
         {
             if (positionals.Count > 2)
-                return (null, "Error: 'test' takes at most one suite name.");
+                return (null, $"Error: '{verb}' takes at most one suite name.");
             var suite = positionals.Count == 2 ? positionals[1] : "all";
             var timeout = timeoutSeconds
                 ?? (suite == "all" ? DebugLayout.TestAllTimeoutSeconds : DebugLayout.TestTimeoutSeconds);
@@ -87,18 +87,18 @@ public sealed class DebugArgParser : IDebugArgParser
         var action = positionals[1];
         var allowed = verb switch
         {
-            "desktop" => action is "screenshot" or "login" or "start-workspace",
-            "mobile" => action is "screenshot" or "login",
+            "desktop" => action is "screenshot" or "login" or "start-workspace" or "open-agent",
+            "mobile" => action is "screenshot" or "login" or "open-agent",
             _ => action == "screenshot"
         };
         if (!allowed)
             return (null, $"Error: unknown {verb} action '{action}'.");
 
         string? workspaceName = null;
-        if (action == "start-workspace")
+        if (action == "start-workspace" || (verb == "mobile" && action == "open-agent"))
         {
             if (positionals.Count < 3)
-                return (null, "Error: desktop start-workspace requires a workspace name.");
+                return (null, $"Error: {verb} {action} requires a workspace name.");
             workspaceName = string.Join(' ', positionals.Skip(2));
         }
         else if (positionals.Count > 2)

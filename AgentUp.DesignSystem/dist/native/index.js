@@ -108,6 +108,7 @@ export const agentUpTheme = Object.freeze({
     }),
     display: Object.freeze({
       color: "#f5fbf7",
+      maxWidth: "19ch",
       fontSize: 44,
       fontWeight: '700',
       letterSpacing: -1.1,
@@ -138,6 +139,7 @@ export const agentUpTheme = Object.freeze({
       textTransform: 'uppercase',
     }),
     lede: Object.freeze({
+      maxWidth: 704,
       color: "#c2d2ca",
       fontSize: 16.8,
     }),
@@ -471,6 +473,7 @@ export const agentUpTheme = Object.freeze({
     workspaceDelete: Object.freeze({
       width: 24,
       height: 24,
+      marginLeft: "auto",
       paddingHorizontal: 0,
       paddingVertical: 0,
       color: "#8a9a92",
@@ -795,6 +798,60 @@ export const agentUpTheme = Object.freeze({
       backgroundColor: "#ffffff1a",
       fontWeight: '600',
     }),
+    chatThought: Object.freeze({
+      marginLeft: 20,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    chatThoughtBody: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 14,
+      fontStyle: 'italic',
+    }),
+    chatUser: Object.freeze({
+      maxWidth: "80%",
+      marginLeft: "auto",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    chatWork: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    chatRun: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    chatTranscript: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      backgroundColor: "#00000000",
+    }),
     productFrame: Object.freeze({
       minWidth: 0,
       color: "#8a9a92",
@@ -831,8 +888,8 @@ export const agentUpTheme = Object.freeze({
     }),
   }),
 });
-const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","paddingHorizontal","paddingVertical","opacity","color"]);
-const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","textTransform","letterSpacing"]);
+const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","maxWidth","marginLeft","paddingHorizontal","paddingVertical","opacity","color"]);
+const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing"]);
 function auPick(names, keys) {
   const out = {};
   for (const name of names) {

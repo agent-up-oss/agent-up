@@ -46,6 +46,27 @@ public sealed class HostCommandServiceTests
     }
 
     [Test]
+    public async Task Up_detach_reportsReusedServer()
+    {
+        var supervisor = new FakeSupervisor();
+        supervisor.Session = supervisor.Session with
+        {
+            Processes =
+            [
+                new HostedProcessDto("server", DebugLayout.ReusedProcessPid, "/repo/.git/agent-up/au-debug/logs/server.log", DebugLayout.ServerUrl),
+                supervisor.Session.Processes[1],
+                supervisor.Session.Processes[2],
+                supervisor.Session.Processes[3]
+            ]
+        };
+        var service = Service(new FakeSessionStore(), supervisor, new FakeReadyProbe());
+
+        var result = await service.UpAsync(Command(detach: true), CancellationToken.None);
+
+        Assert.That(result.Message, Does.Contain($"{DebugLayout.ServerUrl} (reused)"));
+    }
+
+    [Test]
     public async Task Up_timeout_stopsStartedSession()
     {
         var supervisor = new FakeSupervisor();

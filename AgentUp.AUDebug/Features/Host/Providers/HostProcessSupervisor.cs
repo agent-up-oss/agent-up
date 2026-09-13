@@ -11,6 +11,7 @@ public sealed class HostProcessSupervisor : IHostProcessSupervisor
     private readonly IAllowlistedProcessRunner _processes;
     private readonly IDebugPathValidator _paths;
     private readonly IDebugEnvironment _environment;
+    private readonly IHostReadyProbe _probe;
     private readonly TextWriter _output;
     private readonly List<Process> _started = [];
     private readonly List<Task> _pumps = [];
@@ -19,36 +20,38 @@ public sealed class HostProcessSupervisor : IHostProcessSupervisor
         IAllowlistedProcessRunner processes,
         IDebugPathValidator paths,
         IDebugEnvironment environment,
+        IHostReadyProbe probe,
         TextWriter output)
     {
         _processes = processes;
         _paths = paths;
         _environment = environment;
+        _probe = probe;
         _output = output;
     }
 
-    public Task<HostSessionDto> StartAsync(CancellationToken cancellationToken)
+    public async Task<HostSessionDto> StartAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(_paths.LogsDirectory);
-        var processes = new[]
+        var processes = new List<HostedProcessDto>
         {
-            Launch("server", ServerCommand(), DebugLayout.ServerUrl),
+            await ServerAsync(cancellationToken),
             Launch("desktop", DesktopCommand(), null),
             Launch("mobile", MobileCommand(), DebugLayout.MobileUrl),
             Launch("docs", DocsCommand(), DebugLayout.DocsUrl)
         };
-        return Task.FromResult(new HostSessionDto(
+        return new HostSessionDto(
             Environment.ProcessId,
             _paths.RepositoryRoot,
             _paths.SessionDirectory,
-            processes));
+            processes);
     }
 
     public Task StopAsync(HostSessionDto session, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        foreach (var hosted in session.Processes)
+        foreach (var hosted in session.Processes.Where(process => process.Pid > DebugLayout.ReusedProcessPid))
             _processes.KillTree(hosted.Pid);
         if (session.SupervisorPid != Environment.ProcessId)
             _processes.KillTree(session.SupervisorPid);
@@ -68,8 +71,24 @@ public sealed class HostProcessSupervisor : IHostProcessSupervisor
     }
 
     public bool HasLiveProcess(HostSessionDto session)
-        => session.Processes.Any(process => _processes.IsRunning(process.Pid))
+        => session.Processes.Any(process =>
+               process.Pid > DebugLayout.ReusedProcessPid && _processes.IsRunning(process.Pid))
            || _processes.IsRunning(session.SupervisorPid);
+
+    private async Task<HostedProcessDto> ServerAsync(CancellationToken cancellationToken)
+    {
+        if (await _probe.CheckAsync(DebugLayout.ServerUrl + DebugLayout.ServerReadyPath, cancellationToken))
+        {
+            var logPath = _paths.EnsureUnderRoot(Path.Join(_paths.LogsDirectory, "server.log"));
+            await File.WriteAllTextAsync(
+                logPath,
+                $"Reused Server already ready at {DebugLayout.ServerUrl}.{Environment.NewLine}",
+                cancellationToken);
+            return new HostedProcessDto("server", DebugLayout.ReusedProcessPid, logPath, DebugLayout.ServerUrl);
+        }
+
+        return Launch("server", ServerCommand(), DebugLayout.ServerUrl);
+    }
 
     private HostedProcessDto Launch(string name, AllowlistedCommand command, string? url)
     {

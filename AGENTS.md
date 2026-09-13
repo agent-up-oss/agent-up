@@ -646,12 +646,12 @@ Changes to packaging, installers, CI payload staging, Desktop startup, browser/W
 After every task that touches any production project, run the architecture tests before reporting completion:
 
 ```
-dotnet test AgentUp.Architecture.Tests/AgentUp.Architecture.Tests.csproj
+./au-debug test architecture
 ```
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
 
-Changes under `AgentUp.Mobile/` must run `npm run typecheck` and `npm run build:web` from that directory. Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
+Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, and web export). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
 Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
@@ -965,7 +965,7 @@ Read: `docs/user-docs/cli.md`.
 
 ## AUDebug
 
-`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Read: `docs/developer-guide/au-debug.md`.
+`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Rebuild generated design-system bindings with `au-debug build design-system`, and Mobile typecheck plus web export with `au-debug build mobile`. Do not invoke those npm or `dotnet test` commands directly when an `au-debug` wrap exists. Read: `docs/developer-guide/au-debug.md`.
 
 ## MCP
 

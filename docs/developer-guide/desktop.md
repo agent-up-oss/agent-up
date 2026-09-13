@@ -133,6 +133,8 @@ The left side shows workspace selection, health, branch, and running state. Runn
 
 The first tab row has two groups. Overview, Agent, and Commit are workspace surfaces. A small `|` separator follows them, then the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application. Switching to Overview, Agent, or Commit keeps the internally selected application so returning to an app tab restores its port, Console, or Metrics surface. The Validation sidebar stays open beside those surfaces and reloads for that selected application.
 
+The Agent tab streams workspace ACP events over SSE on a dedicated HTTP client with an infinite timeout, matching workspace event subscriptions, so an idle session does not drop the transcript after the default `HttpClient` timeout. Unexpected stream cancellation reconnects from the last sequence instead of leaving the list empty. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a **Worked** disclosure while the trailing agent reply stays visible as the only raised card.
+
 For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console and Metrics remain available after the port tabs.
 
 The Metrics tab shows a vertically scrollable dashboard of summary cards and time-series charts built from Server-pulled application metrics (`ports[].metrics` in `agent-up.json`). Data refreshes every 30 seconds while the tab is selected.

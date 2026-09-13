@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AgentUp.Desktop.Features.Agents.Providers;
 
@@ -103,6 +104,23 @@ public static class AgentEventPresentationProvider
             };
         }
         return state is "ready" or "idle" or null ? "Idle" : state;
+    }
+
+    public static string RunSummary(IEnumerable<string> roles)
+    {
+        var list = roles.ToArray();
+        var tools = list.Count(role => role == "Tool");
+        var parts = new List<string> { "Worked" };
+        if (tools == 1) parts.Add("1 tool");
+        else if (tools > 1) parts.Add($"{tools} tools");
+        if (list.Contains("Thought")) parts.Add("Thought");
+        return string.Join(" · ", parts);
+    }
+
+    public static string VisibleText(string text)
+    {
+        var withoutBold = Regex.Replace(text, @"\*\*(.*?)\*\*", "$1");
+        return Regex.Replace(withoutBold, @"`([^`]+)`", "$1");
     }
 
     public static string OptionLabel(string name, string? kind, string optionId)

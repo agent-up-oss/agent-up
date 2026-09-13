@@ -15,5 +15,8 @@ public static class DebugLayout
     public const int DesktopLoginFieldX = 550;
     public const int DesktopLoginFieldY = 420;
     public const int DesktopLoginButtonY = 478;
+    public const int DesktopAgentTabX = 360;
+    public const int DesktopAgentTabY = 52;
+    public const int ReusedProcessPid = 0;
     public const string ServerReadyPath = "/api/auth/status";
 }

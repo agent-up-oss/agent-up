@@ -160,6 +160,81 @@
           "html": "<div class=\"au-stack\">\n        <button class=\"au-choice\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n        <button class=\"au-choice\" type=\"button\" disabled>Cursor <span class=\"au-muted\">Not installed</span></button>\n      </div>"
         },
         {
+          "id": "chat-thought",
+          "title": "Thought",
+          "note": "Inside the work log, thoughts are a quieter indented disclosure: collapsed they show only Thought, expanded they reveal muted italic body. Thinking is the live label, not the expanded label. Do not put thoughts in au-card.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chat-thought",
+          "classes": [
+            "au-grid",
+            "au-chat-thought",
+            "au-field-label",
+            "au-chat-thought-body"
+          ],
+          "html": "<div class=\"au-grid\">\n        <button class=\"au-chat-thought\" type=\"button\">\n          <span class=\"au-field-label\">Thought</span>\n        </button>\n        <button class=\"au-chat-thought\" type=\"button\">\n          <span class=\"au-field-label\">Thinking</span>\n          <p class=\"au-chat-thought-body\">Clarifying test meaning</p>\n        </button>\n      </div>"
+        },
+        {
+          "id": "chat-user",
+          "title": "User turn",
+          "note": "The human's prompt is a right-aligned selected surface, sized to the text and capped before it spans the pane. It is not a saturated green fill.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chat-user",
+          "classes": [
+            "au-chat-user"
+          ],
+          "html": "<div class=\"au-chat-user\">hey whats a good tx 1320 m3 price?</div>"
+        },
+        {
+          "id": "chat-work",
+          "title": "Work row",
+          "note": "Tools, searches, edits, and other in-run steps sit on the quieter surface, not the raised result card. They live inside the work log.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chat-work",
+          "classes": [
+            "au-chat-work",
+            "au-field-label"
+          ],
+          "html": "<div class=\"au-chat-work\"><span class=\"au-field-label\">Tool</span> Web search: TX 1320 M3</div>"
+        },
+        {
+          "id": "chat-run",
+          "title": "Work log",
+          "note": "A finished run collapses to this disclosure after the next question. The live run stays open. Nested thoughts stay au-chat-thought. The trailing agent reply is not inside this collapse.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chat-run",
+          "classes": [
+            "au-chat-run"
+          ],
+          "html": "<button class=\"au-chat-run\" type=\"button\">Worked · 2 tools · Thought ▸</button>"
+        },
+        {
+          "id": "chat-transcript",
+          "title": "Transcript",
+          "note": "User bubble, collapsible work log, then the only raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chat-transcript",
+          "classes": [
+            "au-chat-transcript",
+            "au-chat-user",
+            "au-chat-run",
+            "au-chat-work",
+            "au-field-label",
+            "au-chat-thought",
+            "au-card"
+          ],
+          "html": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">Hey, please look up TX 1320 M3 offers</div>\n        <button class=\"au-chat-run\" type=\"button\">Worked · 2 tools · Thought ▸</button>\n        <div class=\"au-chat-work\"><span class=\"au-field-label\">Tool</span> Web search: TX 1320 M3</div>\n        <button class=\"au-chat-thought\" type=\"button\">\n          <span class=\"au-field-label\">Thought</span>\n        </button>\n        <div class=\"au-card\"><span class=\"au-field-label\">Codex</span><p>A good used price is roughly €140–200.</p></div>\n      </div>"
+        },
+        {
           "id": "tabs",
           "title": "Tabs",
           "note": "Selected tabs use primary text and a 2px accent underline, never a green fill.",

@@ -1,3 +1,4 @@
+using AgentUp.AUDebug.Features.Desktop.Interfaces;
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Host.Interfaces;
 using AgentUp.AUDebug.Features.Mobile.Interfaces;
@@ -9,17 +10,20 @@ public sealed class MobileCommandService
 {
     private readonly IWebScreenshotDriver _screenshots;
     private readonly IMobileSurfaceDriver _surface;
+    private readonly IDesktopWorkspaceClient _workspaces;
     private readonly IHostSessionStore _sessions;
     private readonly IDebugEnvironment _environment;
 
     public MobileCommandService(
         IWebScreenshotDriver screenshots,
         IMobileSurfaceDriver surface,
+        IDesktopWorkspaceClient workspaces,
         IHostSessionStore sessions,
         IDebugEnvironment environment)
     {
         _screenshots = screenshots;
         _surface = surface;
+        _workspaces = workspaces;
         _sessions = sessions;
         _environment = environment;
     }
@@ -29,6 +33,9 @@ public sealed class MobileCommandService
 
     public Task<CommandResultDto> LoginAsync(DebugCommandDto command, CancellationToken cancellationToken)
         => RunAsync(command, cancellationToken, ct => LoginCoreAsync(command, ct));
+
+    public Task<CommandResultDto> OpenAgentAsync(DebugCommandDto command, CancellationToken cancellationToken)
+        => RunAsync(command, cancellationToken, ct => OpenAgentCoreAsync(command, ct));
 
     private async Task<CommandResultDto> RunAsync(
         DebugCommandDto command,
@@ -44,6 +51,10 @@ public sealed class MobileCommandService
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             return CommandResultDto.Fail($"Timed out after {(int)command.Timeout.TotalSeconds}s running mobile {command.Action}.");
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return CommandResultDto.Fail($"Timed out talking to {DebugLayout.ServerUrl}.");
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or UriFormatException)
         {
@@ -68,5 +79,19 @@ public sealed class MobileCommandService
         var path = _sessions.ScreenshotPath("mobile");
         await _screenshots.CaptureAsync($"{DebugLayout.MobileUrl}/", path, cancellationToken, _surface.UserDataDirectory);
         return CommandResultDto.Ok("Submitted Mobile sign-in.", path);
+    }
+
+    private async Task<CommandResultDto> OpenAgentCoreAsync(DebugCommandDto command, CancellationToken cancellationToken)
+    {
+        var password = command.Password ?? _environment.AdminPassword;
+        if (string.IsNullOrWhiteSpace(password))
+            return CommandResultDto.Fail("Set AGENTUP_ADMIN_PASSWORD or pass --password to open a workspace agent.");
+        if (string.IsNullOrWhiteSpace(command.WorkspaceName))
+            return CommandResultDto.Fail("mobile open-agent requires a workspace name.");
+
+        await _workspaces.FindIdByNameAsync(command.WorkspaceName, password, cancellationToken);
+        var path = _sessions.ScreenshotPath("mobile");
+        await _surface.CaptureAgentAsync(path, cancellationToken);
+        return CommandResultDto.Ok($"Opened Mobile agent for '{command.WorkspaceName}'.", path);
     }
 }

@@ -39,6 +39,37 @@ public sealed class TestCommandServiceTests
     }
 
     [Test]
+    public async Task Build_unknownTarget_doesNotRunProcesses()
+    {
+        var runner = new FakeTestProcessRunner();
+        var result = await Service(runner).RunAsync(Command("desktop", "build"), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(1));
+            Assert.That(result.Message, Does.Contain("unknown build target"));
+            Assert.That(runner.Ran, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Build_scopedTarget_runsOnlyThatBuild()
+    {
+        var runner = new FakeTestProcessRunner();
+        var result = await Service(runner).RunAsync(Command("design-system", "build"), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(0));
+            Assert.That(result.Message, Does.Contain("build target"));
+            Assert.That(result.Message, Does.Contain("design-system"));
+            Assert.That(result.Message, Does.Not.Contain("mobile"));
+            Assert.That(runner.Ran, Has.Count.EqualTo(1));
+            Assert.That(runner.Ran[0].Arguments, Is.EqualTo(new[] { "run", "build" }));
+        });
+    }
+
+    [Test]
     public async Task Failure_stopsBeforeLaterSuites()
     {
         var runner = new FakeTestProcessRunner { NextExitCode = 1, NextOutput = "boom" };
@@ -91,6 +122,6 @@ public sealed class TestCommandServiceTests
     private static TestCommandService Service(FakeTestProcessRunner runner, TextWriter? output = null)
         => new(new DebugTestSuiteCatalog(), runner, output ?? TextWriter.Null);
 
-    private static DebugCommandDto Command(string suite)
-        => new("test", null, null, null, null, TimeSpan.FromSeconds(30), false, suite);
+    private static DebugCommandDto Command(string suite, string verb = "test")
+        => new(verb, null, null, null, null, TimeSpan.FromSeconds(30), false, suite);
 }

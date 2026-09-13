@@ -8,6 +8,8 @@ public sealed class FakeWorkspaceClient : IDesktopWorkspaceClient
     public string? Password { get; private set; }
     public Exception? Error { get; set; }
 
+    public string Id { get; set; } = "ws-1";
+
     public Task StartByNameAsync(string workspaceName, string password, CancellationToken cancellationToken)
     {
         Name = workspaceName;
@@ -16,5 +18,15 @@ public sealed class FakeWorkspaceClient : IDesktopWorkspaceClient
         if (Error is not null)
             throw Error;
         return Task.CompletedTask;
+    }
+
+    public Task<string> FindIdByNameAsync(string workspaceName, string password, CancellationToken cancellationToken)
+    {
+        Name = workspaceName;
+        Password = password;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Error is not null)
+            throw Error;
+        return Task.FromResult(Id);
     }
 }

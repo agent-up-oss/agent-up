@@ -49,6 +49,17 @@ public sealed class DesktopControllerTests
         Assert.That(result.Message, Does.Contain("Started workspace"));
     }
 
+    [Test]
+    public async Task OpenAgent_routesToWindowDriver()
+    {
+        var windows = new FakeDesktopWindowDriver();
+        var result = await Controller(windows).RunAsync(Command("open-agent"), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(0));
+        Assert.That(windows.Opens, Is.EqualTo(1));
+        Assert.That(windows.Captures, Is.EqualTo(1));
+    }
+
     private static DesktopController Controller(FakeDesktopWindowDriver windows)
         => new(new DesktopCommandService(windows, new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment()));
 

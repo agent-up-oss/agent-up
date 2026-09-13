@@ -141,7 +141,9 @@ public sealed class HostCommandService
         var lines = session.Processes
             .Select(process => process.Url is null
                 ? $"{process.Name}: pid {process.Pid} log {process.LogPath}"
-                : $"{process.Name}: {process.Url} (pid {process.Pid}) log {process.LogPath}");
+                : process.Pid <= DebugLayout.ReusedProcessPid
+                    ? $"{process.Name}: {process.Url} (reused) log {process.LogPath}"
+                    : $"{process.Name}: {process.Url} (pid {process.Pid}) log {process.LogPath}");
         return string.Join(
             Environment.NewLine,
             new[] { prefix, $"logs: {session.SessionDirectory}" }.Concat(lines));

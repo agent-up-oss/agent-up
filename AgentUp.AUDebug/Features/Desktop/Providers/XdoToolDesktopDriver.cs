@@ -63,6 +63,13 @@ public sealed class XdoToolDesktopDriver : IDesktopWindowDriver
         await ClickAsync(windowId, DebugLayout.DesktopLoginFieldX, DebugLayout.DesktopLoginButtonY, cancellationToken);
     }
 
+    public async Task OpenAgentAsync(CancellationToken cancellationToken)
+    {
+        var windowId = await RequireWindowAsync(cancellationToken);
+        await RunToolAsync("xdotool", "xdotool", ["windowactivate", "--sync", windowId], cancellationToken);
+        await ClickAsync(windowId, DebugLayout.DesktopAgentTabX, DebugLayout.DesktopAgentTabY, cancellationToken);
+    }
+
     private async Task ClickAsync(string windowId, int x, int y, CancellationToken cancellationToken)
     {
         await RunToolAsync(

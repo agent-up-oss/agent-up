@@ -31,6 +31,17 @@ public sealed class TestControllerTests
         Assert.That(result.Message, Does.Contain("au-debug"));
     }
 
+    [Test]
+    public async Task Run_unknownBuildTarget_fails()
+    {
+        var result = await Controller().RunAsync(
+            new DebugCommandDto("build", null, null, null, null, TimeSpan.FromSeconds(30), false, "desktop"),
+            CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("unknown build target"));
+    }
+
     private static TestController Controller()
         => new(new TestCommandService(new DebugTestSuiteCatalog(), new FakeTestProcessRunner(), TextWriter.Null));
 }

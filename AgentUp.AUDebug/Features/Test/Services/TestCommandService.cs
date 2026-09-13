@@ -23,7 +23,10 @@ public sealed class TestCommandService
     public async Task<CommandResultDto> RunAsync(DebugCommandDto command, CancellationToken cancellationToken)
     {
         var suite = command.Suite ?? "all";
-        if (!_catalog.TryResolve(suite, out var suites, out var error))
+        var resolved = command.Verb == "build"
+            ? _catalog.TryResolveBuild(suite, out var suites, out var error)
+            : _catalog.TryResolve(suite, out suites, out error);
+        if (!resolved)
             return CommandResultDto.Fail(error!);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -33,18 +36,19 @@ public sealed class TestCommandService
             var passed = new List<string>();
             foreach (var item in suites)
             {
-                await _output.WriteLineAsync($"au-debug test {item.Id}: {item.Title}");
+                await _output.WriteLineAsync($"au-debug {command.Verb} {item.Id}: {item.Title}");
                 var failure = await RunSuiteAsync(item, timeout.Token);
                 if (failure is not null)
                     return CommandResultDto.Fail(failure);
                 passed.Add(item.Id);
             }
 
-            return CommandResultDto.Ok($"Passed {passed.Count} test suite(s): {string.Join(", ", passed)}.");
+            var kind = command.Verb == "build" ? "build target" : "test suite";
+            return CommandResultDto.Ok($"Passed {passed.Count} {kind}(s): {string.Join(", ", passed)}.");
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
-            return CommandResultDto.Fail($"Timed out after {(int)command.Timeout.TotalSeconds}s running au-debug test {suite}.");
+            return CommandResultDto.Fail($"Timed out after {(int)command.Timeout.TotalSeconds}s running au-debug {command.Verb} {suite}.");
         }
     }
 

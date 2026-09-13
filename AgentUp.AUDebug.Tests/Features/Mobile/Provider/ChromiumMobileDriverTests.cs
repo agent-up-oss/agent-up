@@ -45,4 +45,32 @@ public sealed class ChromiumMobileDriverTests
         Assert.That(processes.Started[0].Arguments, Does.Contain("chromium"));
         Assert.That(processes.Killed, Has.Count.EqualTo(1));
     }
+
+    [Test]
+    public void PageWorldDestroyed_matchesCdpNavigationError()
+    {
+        Assert.That(
+            ChromiumMobileDriver.IsPageWorldDestroyed("Mobile login CDP failed: {\"code\":-32000,\"message\":\"Execution context was destroyed.\"}"),
+            Is.True);
+        Assert.That(ChromiumMobileDriver.IsPageWorldDestroyed("button missing"), Is.False);
+    }
+
+    [Test]
+    public void CaptureAgent_whenCanceled_killsBrowser()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-mobile", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Join(root, ".git"));
+        var processes = new FakeProcessRunner();
+        var environment = new FakeEnvironment();
+        environment.Executables["chromium"] = "/bin/chromium";
+        var driver = new ChromiumMobileDriver(processes, environment, new FakePathValidator(root));
+        using var timeout = new CancellationTokenSource();
+        timeout.Cancel();
+
+        Assert.That(
+            async () => await driver.CaptureAgentAsync(Path.Join(root, ".git", "agent-up", "au-debug", "screenshots", "mobile.png"), timeout.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(processes.Started[0].Arguments, Does.Contain($"{DebugLayout.MobileUrl}/"));
+        Assert.That(processes.Killed, Has.Count.EqualTo(1));
+    }
 }

@@ -66,7 +66,7 @@ public sealed class HostController
             "desktop" => WriteAsync(output, () => desktop.RunAsync(command, cancellationToken)),
             "mobile" => WriteAsync(output, () => mobile.RunAsync(command, cancellationToken)),
             "docs" => WriteAsync(output, () => docs.ScreenshotAsync(command, cancellationToken)),
-            "test" => WriteAsync(output, () => tests.RunAsync(command, cancellationToken)),
+            "test" or "build" => WriteAsync(output, () => tests.RunAsync(command, cancellationToken)),
             _ => Task.FromResult(output.WriteError($"Error: unknown command '{command.Verb}'."))
         };
 

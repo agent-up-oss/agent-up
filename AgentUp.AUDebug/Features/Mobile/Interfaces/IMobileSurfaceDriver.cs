@@ -4,4 +4,5 @@ public interface IMobileSurfaceDriver
 {
     string UserDataDirectory { get; }
     Task LoginAsync(string serverUrl, string password, CancellationToken cancellationToken);
+    Task CaptureAgentAsync(string outputPath, CancellationToken cancellationToken);
 }

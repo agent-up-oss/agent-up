@@ -41,10 +41,12 @@ public sealed class DebugOutputService
               desktop login              Type AGENTUP_ADMIN_PASSWORD into Desktop and click Sign in.
               desktop start-workspace <name>
                                          Start the named workspace on the repo Server and screenshot Desktop.
+              desktop open-agent         Click the Agent tab in Desktop and screenshot it.
 
             Mobile:
               mobile screenshot          Capture Mobile web and print the file path.
               mobile login               Drive the Mobile connect/login screen against the repo Server.
+              mobile open-agent <name>   Open the named workspace agent route and screenshot it.
 
             Docs:
               docs screenshot            Capture the design-system docs page and print the file path.
@@ -55,9 +57,15 @@ public sealed class DebugOutputService
               test <suite>               Run one suite: design-system, desktop, mobile,
                                          au-debug, or architecture.
 
+            Builds:
+              build                      Rebuild design-system dist and Mobile web export.
+              build all                  Same as build.
+              build design-system        npm run build in AgentUp.DesignSystem.
+              build mobile               npm run typecheck and npm run build:web in AgentUp.Mobile.
+
             Options:
               --timeout <seconds>        Watchdog for readiness, tests, and one-shot commands.
-                                         Default 30s; test defaults to 180s, test all to 600s.
+                                         Default 30s; test and build default to 180s, all to 600s.
               --detach                   After up is ready, return without following logs.
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
             """);
