@@ -101,6 +101,7 @@ public static class ServiceRegistration
     public static void Configure(WebApplicationBuilder builder, string dataDir)
     {
         builder.Services.AddControllers()
+            .AddApplicationPart(typeof(ServiceRegistration).Assembly)
             .AddJsonOptions(opts =>
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         builder.Services.AddEndpointsApiExplorer();
@@ -204,6 +205,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<PngFrameProvider>();
         builder.Services.AddSingleton<IDesktopDisplayProvider, LinuxX11DesktopDisplayProvider>();
+        builder.Services.AddSingleton<IHostedDesktopNativeLibraryProvider, HostedDesktopNativeLibraryProvider>();
         builder.Services.AddSingleton<DesktopInputMessageProvider>();
         builder.Services.AddSingleton<DesktopViewerTicketProvider>();
         builder.Services.AddSingleton<DesktopSessionService>();

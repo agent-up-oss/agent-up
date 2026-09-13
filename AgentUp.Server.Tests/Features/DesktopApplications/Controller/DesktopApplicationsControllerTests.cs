@@ -26,6 +26,7 @@ public sealed class DesktopApplicationsControllerTests
             remote,
             new DesktopInputMessageProvider(),
             new DesktopViewerTicketProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
         var workspace = new Workspace
         {
@@ -52,6 +53,14 @@ public sealed class DesktopApplicationsControllerTests
         Assert.Multiple(() =>
         {
             Assert.That(environment["DISPLAY"], Is.EqualTo(":123"));
+            Assert.That(environment["XDG_RUNTIME_DIR"], Is.EqualTo("/tmp/agentup-desktop-fake"));
+            Assert.That(environment["GDK_BACKEND"], Is.EqualTo("x11"));
+            Assert.That(environment["WAYLAND_DISPLAY"], Is.EqualTo("agentup-hosted-no-wayland"));
+            Assert.That(environment["XDG_SESSION_TYPE"], Is.EqualTo("x11"));
+            Assert.That(environment["GTK_USE_PORTAL"], Is.EqualTo("0"));
+            Assert.That(environment["QT_QPA_PLATFORM"], Is.EqualTo("xcb"));
+            Assert.That(environment["LIBGL_ALWAYS_SOFTWARE"], Is.EqualTo("1"));
+            Assert.That(environment["LD_LIBRARY_PATH"], Is.EqualTo("/nix/store/fake-fontconfig/lib"));
             Assert.That(session, Is.Not.Null);
             Assert.That(session!.Generation, Is.GreaterThan(0));
             Assert.That(session.Width, Is.EqualTo(800));
@@ -88,6 +97,7 @@ public sealed class DesktopApplicationsControllerTests
             new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
             new DesktopInputMessageProvider(),
             new DesktopViewerTicketProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
 
         Assert.Multiple(() =>
@@ -121,6 +131,12 @@ internal sealed class ClosingWebSocket : WebSocket
         Task.CompletedTask;
 }
 
+internal sealed class FakeHostedDesktopNativeLibraryProvider : IHostedDesktopNativeLibraryProvider
+{
+    public IReadOnlyDictionary<string, string> CreateEnvironment(string? searchRoot) =>
+        new Dictionary<string, string> { ["LD_LIBRARY_PATH"] = "/nix/store/fake-fontconfig/lib" };
+}
+
 internal sealed class FakeDesktopDisplayProvider : IDesktopDisplayProvider
 {
     public bool Stopped { get; private set; }
@@ -128,7 +144,7 @@ internal sealed class FakeDesktopDisplayProvider : IDesktopDisplayProvider
     public List<(string Key, bool Pressed)> KeyEvents { get; } = [];
 
     public Task<DesktopDisplayHandle> StartAsync(int width, int height, CancellationToken cancellationToken) =>
-        Task.FromResult(new DesktopDisplayHandle(":123", Process.GetCurrentProcess(), width, height));
+        Task.FromResult(new DesktopDisplayHandle(":123", Process.GetCurrentProcess(), width, height, "/tmp/agentup-desktop-fake"));
 
     public Task<byte[]> CapturePngAsync(DesktopDisplayHandle display, CancellationToken cancellationToken) =>
         Task.FromResult<byte[]>([137, 80, 78, 71]);

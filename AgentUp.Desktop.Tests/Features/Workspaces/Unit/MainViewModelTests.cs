@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
+using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Desktop.Features.FirstRun.ViewModels;
@@ -759,6 +760,37 @@ public class MainViewModelTests
         vm.SelectedShellTab = WorkspaceShellTab.Application;
 
         Assert.That(vm.ShowDatabase, Is.True);
+    }
+
+    [Test]
+    public async Task RebuildSubTabs_AddsDesktopTabFirst_WhenApplicationKindIsDesktop()
+    {
+        var workspace = new WorkspaceDto("ws-1", "Demo", "/repo", "/repo", "main", "abc", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Sample Desktop", "dotnet run", null, "Running", Kind: "Desktop")
+            ]
+        };
+        var vm = CreateVm(FakeWorkspaceClient([workspace]));
+
+        await vm.InitializeAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.SubTabs[0], Is.TypeOf<DesktopSubTabViewModel>());
+            Assert.That(vm.SelectedSubTab, Is.TypeOf<DesktopSubTabViewModel>());
+            Assert.That(vm.ShowDesktopView, Is.False);
+        });
+
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.ShowDesktopView, Is.True);
+            Assert.That(vm.ShowPortView, Is.False);
+            Assert.That(vm.SelectedSubTab!.Label, Is.EqualTo("Desktop"));
+        });
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

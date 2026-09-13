@@ -10,9 +10,21 @@ internal sealed class FakeHttpMessageHandler(
     List<WorkspaceDto> workspaces,
     Dictionary<string, List<string>>? outputLines = null) : HttpMessageHandler
 {
+    private int _viewerTicketAttempts;
+
+    public Func<int, Task<HttpResponseMessage>>? ViewerTicket { get; set; }
+
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         var path = request.RequestUri?.AbsolutePath ?? "";
+
+        if (request.Method == HttpMethod.Post && path.Contains("/viewer-ticket", StringComparison.Ordinal))
+        {
+            var attempt = Interlocked.Increment(ref _viewerTicketAttempts);
+            return ViewerTicket is null
+                ? Task.FromResult(NotFound())
+                : ViewerTicket(attempt);
+        }
 
         if (GitRoutes.IsChangesRoute(path))
         {
@@ -44,8 +56,11 @@ internal sealed class FakeHttpMessageHandler(
         return Task.FromResult(Ok(workspaces));
     }
 
-    private static HttpResponseMessage Ok<T>(T value) =>
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+    internal static HttpResponseMessage JsonOk<T>(T value) =>
         new(System.Net.HttpStatusCode.OK) { Content = JsonContent.Create(value) };
+
+    private static HttpResponseMessage Ok<T>(T value) => JsonOk(value);
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
     private static HttpResponseMessage NotFound() =>
@@ -79,6 +94,9 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
         RequestCount++;
         var path = request.RequestUri?.AbsolutePath ?? "";
         RequestPaths.Add(path);
+
+        if (request.Method == HttpMethod.Post && path.Contains("/viewer-ticket", StringComparison.Ordinal))
+            return Task.FromResult(NotFound());
 
         if (GitRoutes.IsChangesRoute(path))
         {

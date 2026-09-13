@@ -49,32 +49,67 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     {
         var webViews = new List<NativeWebView>();
         var window = await Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            var handler = new DesktopServerStub(WorkspaceId, applicationPort);
-            var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-            var workspaces = new WorkspaceApiClient(http);
-            var console = new ConsoleApiClient(http);
-            var metrics = new MetricsApiClient(http);
-            var database = new DatabaseApiClient(http);
-            var audit = new ApplicationAuditApiClient(http);
-            var viewModel = MainViewModelFactory.Create(workspaces, console, metrics, database, audit);
-            var mainWindow = new MainWindow(http) { DataContext = viewModel };
-            mainWindow.WebViewFactory = () =>
-            {
-                var webView = new NativeWebView();
-                webViews.Add(webView);
-                return webView;
-            };
-            mainWindow.Show();
-
-            // Loading the workspace list selects the application and its HTTP port sub-tab,
-            // which is what drives the Desktop browser to navigate — the same path a user takes.
-            await viewModel.InitializeAsync();
-            SelectHttpPortTab(viewModel);
-            return mainWindow;
-        });
+            await CreateWindowAsync(
+                new Uri("http://localhost:5000"),
+                webViews,
+                selectHttpPort: true,
+                new DesktopServerStub(WorkspaceId, applicationPort)));
 
         return new DesktopBrowserHarness(window, webViews);
+    }
+
+    internal static async Task<DesktopBrowserHarness> LaunchAgainstServerAsync(Uri serverUrl)
+    {
+        var webViews = new List<NativeWebView>();
+        var window = await Dispatcher.UIThread.InvokeAsync(async () =>
+            await CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
+
+        var harness = new DesktopBrowserHarness(window, webViews);
+        await harness.WaitForWorkspaceWebViewAsync();
+        return harness;
+    }
+
+    private static async Task<MainWindow> CreateWindowAsync(
+        Uri serverUrl,
+        List<NativeWebView> webViews,
+        bool selectHttpPort,
+        HttpMessageHandler? handler = null)
+    {
+        var http = handler is null
+            ? new HttpClient { BaseAddress = serverUrl }
+            : new HttpClient(handler) { BaseAddress = serverUrl };
+        var workspaces = new WorkspaceApiClient(http);
+        var console = new ConsoleApiClient(http);
+        var metrics = new MetricsApiClient(http);
+        var database = new DatabaseApiClient(http);
+        var audit = new ApplicationAuditApiClient(http);
+        var viewModel = MainViewModelFactory.Create(workspaces, console, metrics, database, audit);
+        var mainWindow = new MainWindow(http) { DataContext = viewModel };
+        mainWindow.WebViewFactory = () =>
+        {
+            var webView = new NativeWebView();
+            webViews.Add(webView);
+            return webView;
+        };
+        mainWindow.Show();
+        await viewModel.InitializeAsync();
+        if (selectHttpPort)
+            SelectHttpPortTab(viewModel);
+        return mainWindow;
+    }
+
+    internal async Task WaitForWorkspaceWebViewAsync()
+    {
+        var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (_webViews.Count > 0)
+                return;
+
+            await Task.Delay(PollInterval);
+        }
+
+        Assert.Fail("Desktop never created a NativeWebView for the workspace tab.");
     }
 
     // Runs script inside the live workspace page and returns its result as the Desktop

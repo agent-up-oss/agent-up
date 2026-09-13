@@ -120,7 +120,7 @@ Example:
 
 ## Desktop Application Object
 
-Used in `desktopApplications`. Desktop applications use the same validated executable-plus-arguments launch contract as local applications. The Server currently requires Linux with Xvfb and XTest libraries, starts an isolated virtual display for each running application, injects `DISPLAY`, and streams framebuffer updates only to ticketed viewers.
+Used in `desktopApplications`. Desktop applications use the same validated executable-plus-arguments launch contract as local applications. The Server currently requires Linux with Xvfb and XTest libraries, starts an isolated virtual display for each running application, injects `DISPLAY` and a private runtime directory so the process cannot attach to the workstation session, injects native GUI library paths so toolkits such as SkiaSharp can load, and streams framebuffer updates only to ticketed viewers.
 
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|

@@ -71,6 +71,17 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
+        if (app.Kind == ApplicationKind.Desktop && !OperatingSystem.IsLinux())
+        {
+            await _output.AppendAsync(
+                workspace.Id,
+                appName,
+                "[err] Desktop applications currently require a Linux Agent-Up Server host.",
+                ProcessOutputStream.Stderr);
+            await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
+            return;
+        }
+
         await RunInstallStepAsync(workspace, app);
 
         var process = _localProcesses.CreateApplicationProcess(workspace, app);

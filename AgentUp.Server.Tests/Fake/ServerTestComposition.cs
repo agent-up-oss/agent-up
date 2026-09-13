@@ -120,6 +120,7 @@ internal static class ServerTestComposition
             display,
             new DesktopInputMessageProvider(),
             new DesktopViewerTicketProvider(),
+            new HostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
         var registration = new OrchestrationRegistrationService(
             configuration ?? new AgentUpConfigurationProvider(),

@@ -19,6 +19,14 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
             throw new InvalidOperationException("Desktop window dimensions must be between 320x240 and 3840x2160.");
 
         var displayName = $":{RandomNumberGenerator.GetInt32(100, 60_000)}";
+        var runtimeDir = Directory.CreateTempSubdirectory("agentup-desktop-");
+        if (OperatingSystem.IsLinux())
+        {
+            File.SetUnixFileMode(
+                runtimeDir.FullName,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+
         var process = CreateDisplayProcess(displayName, width, height);
 
         try
@@ -28,16 +36,17 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
         catch (Win32Exception ex)
         {
             process.Dispose();
+            TryDeleteRuntimeDirectory(runtimeDir.FullName);
             throw new InvalidOperationException("Desktop hosting requires Xvfb on the Server host.", ex);
         }
 
-        var handle = new DesktopDisplayHandle(displayName, process, width, height);
+        var handle = new DesktopDisplayHandle(displayName, process, width, height, runtimeDir.FullName);
         try
         {
             await WaitUntilReadyAsync(handle, cancellationToken);
             return handle;
         }
-        catch (Exception ex) when (ex is InvalidOperationException or OperationCanceledException)
+        catch (Exception ex) when (ex is InvalidOperationException or OperationCanceledException or DllNotFoundException)
         {
             await StopAsync(handle, CancellationToken.None);
             throw;
@@ -64,6 +73,8 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
         process.StartInfo.ArgumentList.Add($"{width}x{height}x24");
         process.StartInfo.ArgumentList.Add("-nolisten");
         process.StartInfo.ArgumentList.Add("tcp");
+        process.StartInfo.Environment["LIBGL_ALWAYS_SOFTWARE"] = "1";
+        process.StartInfo.Environment["GALLIUM_DRIVER"] = "llvmpipe";
 
         return process;
     }
@@ -119,6 +130,20 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
             await display.DisplayProcess.WaitForExitAsync(cancellationToken);
         }
         display.DisplayProcess.Dispose();
+        TryDeleteRuntimeDirectory(display.RuntimeDirectory);
+    }
+
+    private static void TryDeleteRuntimeDirectory(string runtimeDirectory)
+    {
+        try
+        {
+            if (Directory.Exists(runtimeDirectory))
+                Directory.Delete(runtimeDirectory, recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Trace.TraceWarning(ex.Message);
+        }
     }
 
     private async Task WaitUntilReadyAsync(DesktopDisplayHandle display, CancellationToken cancellationToken)

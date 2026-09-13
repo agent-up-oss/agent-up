@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
@@ -54,6 +55,29 @@ public sealed class WorkspaceLifecycleServiceTests
             Assert.That(processes.LaunchCount, Is.EqualTo(2));
             Assert.That(processes.KillCount, Is.EqualTo(1));
             Assert.That(registry.GetById(created.Id)!.State, Is.EqualTo(WorkspaceState.Running));
+        });
+    }
+
+    [Test]
+    [Platform(Exclude = "Linux")]
+    public async Task Start_marksDesktopApplicationsFailedOffLinuxWithoutFailingTheWorkspace()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Running));
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
         });
     }
 

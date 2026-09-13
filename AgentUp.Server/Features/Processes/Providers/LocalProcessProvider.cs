@@ -184,6 +184,8 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             "bun" => ["--cwd", workingDirectory, .. arguments],
             "dotnet" when arguments.Count > 0 && arguments[0] == "run" && !arguments.Contains("--project", StringComparer.Ordinal)
                 => [.. arguments, "--project", aliasedDirectory],
+            "dotnet" when IsDotnetPositionalProjectCommand(arguments)
+                => QualifyDotnetPositionalProjectArguments(arguments, aliasedDirectory),
             "dotnet" => QualifyOptionPathArgument(arguments, "--project", aliasedDirectory),
             "gradle" => ["-p", aliasedDirectory, .. arguments],
             "make" => ["-C", aliasedDirectory, .. arguments],
@@ -216,6 +218,27 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
 
         qualified[optionIndex + 1] = Path.Join(workingDirectory, qualified[optionIndex + 1]);
         return qualified;
+    }
+
+    private static bool IsDotnetPositionalProjectCommand(IReadOnlyList<string> arguments)
+        => arguments.Count > 0 && arguments[0] is "restore" or "build" or "publish" or "pack" or "clean" or "msbuild" or "test";
+
+    private static IReadOnlyList<string> QualifyDotnetPositionalProjectArguments(
+        IReadOnlyList<string> arguments,
+        string workingDirectory)
+    {
+        var qualified = arguments.ToArray();
+        for (var index = 1; index < qualified.Length; index++)
+        {
+            if (qualified[index].StartsWith("-", StringComparison.Ordinal))
+                continue;
+            if (Path.IsPathRooted(qualified[index]))
+                return qualified;
+            qualified[index] = Path.Join(workingDirectory, qualified[index]);
+            return qualified;
+        }
+
+        return [.. arguments, workingDirectory];
     }
 
     private static string CreateWorkspaceDirectoryAlias(string workingDirectory)

@@ -96,13 +96,22 @@ public sealed class WorkspaceLifecycleService
             {
                 await _registry.ReallocatePortsAsync(id);
                 workspace = _registry.GetById(id)!;
-                foreach (var app in workspace.Applications.Where(app => app.Kind == ApplicationKind.Desktop))
+                foreach (var app in workspace.Applications.Where(app =>
+                             app.Kind == ApplicationKind.Desktop && OperatingSystem.IsLinux()))
                     app.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, app, CancellationToken.None);
                 await _processes.LaunchWorkspaceAsync(workspace);
                 await _registry.UpdateStateAsync(id, WorkspaceState.Running);
                 await _registry.UpdateLastErrorAsync(id, null);
                 foreach (var app in workspace.Applications)
+                {
+                    if (app.Kind == ApplicationKind.Desktop && !OperatingSystem.IsLinux())
+                    {
+                        await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Failed);
+                        continue;
+                    }
+
                     await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
+                }
 
                 _streamState.OnWorkspaceStarted(workspace);
                 _healthChecks.StartForWorkspace(workspace);

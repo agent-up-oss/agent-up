@@ -16,6 +16,7 @@ public sealed class DesktopSessionService(
     BrowserRemoteDisplayService remoteDisplay,
     DesktopInputMessageProvider inputMessages,
     DesktopViewerTicketProvider tickets,
+    IHostedDesktopNativeLibraryProvider nativeLibraries,
     ILogger<DesktopSessionService> logger) : IHostedService
 {
     private readonly ConcurrentDictionary<(string WorkspaceId, string Application), DesktopSession> _sessions = new();
@@ -46,11 +47,24 @@ public sealed class DesktopSessionService(
         };
         _sessions[(workspace.Id, application.Name)] = session;
         session.CaptureLoop = RunCaptureLoopAsync(session);
-        return new Dictionary<string, string>
+        var environment = new Dictionary<string, string>
         {
             ["DISPLAY"] = display.DisplayName,
-            ["NO_AT_BRIDGE"] = "0"
+            ["XDG_RUNTIME_DIR"] = display.RuntimeDirectory,
+            ["NO_AT_BRIDGE"] = "0",
+            ["GDK_BACKEND"] = "x11",
+            ["GTK_USE_PORTAL"] = "0",
+            ["XDG_SESSION_TYPE"] = "x11",
+            ["QT_QPA_PLATFORM"] = "xcb",
+            ["LIBGL_ALWAYS_SOFTWARE"] = "1",
+            ["GALLIUM_DRIVER"] = "llvmpipe",
+            // A sentinel in the private runtime dir, not empty: GTK otherwise looks up
+            // $XDG_RUNTIME_DIR/wayland-0 on the workstation session.
+            ["WAYLAND_DISPLAY"] = "agentup-hosted-no-wayland"
         };
+        foreach (var (key, value) in nativeLibraries.CreateEnvironment(workspace.WorktreePath))
+            environment[key] = value;
+        return environment;
     }
 
     public DesktopSessionDto? Get(string workspaceId, string application)

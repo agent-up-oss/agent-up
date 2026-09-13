@@ -79,6 +79,7 @@ public sealed class DesktopMcpServiceTests
             new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
             new DesktopInputMessageProvider(),
             new DesktopViewerTicketProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
         return new DesktopMcpService(controller, ServerTestComposition.CreateAuditController());
     }

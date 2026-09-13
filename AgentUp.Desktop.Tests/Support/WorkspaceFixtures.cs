@@ -38,6 +38,22 @@ internal static class WorkspaceFixtures
             ]
         };
 
+    public static WorkspaceDto WithHttpAndDesktop(
+        string id = "ws-1",
+        int port = 3000,
+        string desktopState = "Running") =>
+        new(id, id, $"/repo/{id}", $"/worktrees/{id}", "main", "abc123", "Running")
+        {
+            Applications =
+            [
+                new ApplicationDto("Example API", "cmd", null, "Running")
+                {
+                    AllocatedPorts = [new PortMappingDto(null, port, port)]
+                },
+                new ApplicationDto("Sample Desktop", "dotnet run", null, desktopState, Kind: "Desktop")
+            ]
+        };
+
     public static Dictionary<string, List<string>> OutputFor(
         string workspaceId, string appName, List<string> lines) =>
         new() { [$"{workspaceId}/{appName}"] = lines };
