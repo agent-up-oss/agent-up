@@ -1,3 +1,4 @@
+using System.Net;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
 using AgentUp.Server.Features.ApplicationProxy.Models;
 using AgentUp.Server.Features.ApplicationProxy.Services;
@@ -37,6 +38,15 @@ internal sealed class StubTimeProvider : TimeProvider
 
 internal static class ApplicationProxyHarness
 {
+    public static DefaultHttpContext LoopbackContext()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Scheme = "http";
+        context.Request.Host = new HostString("localhost");
+        context.Connection.RemoteIpAddress = IPAddress.Loopback;
+        return context;
+    }
+
     public static async Task<(ApplicationProxyService Service, string WorkspaceId, int Port, FakeLoopbackHttpPortProbe Probe, FakeApplicationHttpForwarder Forwarder, StubTimeProvider Clock, AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyTicketStore Tickets)> CreateAsync(
         string protocol = "http",
         bool portOpen = true)
@@ -73,6 +83,8 @@ internal static class ApplicationProxyHarness
             new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyCsrfGuard(),
             forwarder,
             new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyErrorWriter(),
+            new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyTransportGuard(),
+            new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyBootstrapPage(),
             clock);
         return (service, workspace.Id, port, probe, forwarder, clock, tickets);
     }

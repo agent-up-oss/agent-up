@@ -7,17 +7,21 @@ export type ApplicationProxyTicket = {
   expiresAt: string;
 };
 
+export type ApplicationProxySource = {
+  uri: string;
+  ticket: string;
+};
+
 /** Returns the first allocated HTTP port that the Server can tunnel. */
 export function applicationHttpPort(application: WorkspaceApplication): number | null {
   const port = application.allocatedPorts?.find(entry => entry.protocol.toLowerCase() === 'http');
   return port ? port.allocatedPort : null;
 }
 
-/** Builds the one-time HTTPS bootstrap URL for the native WebView. */
-export function applicationProxyUrl(server: ServerSession, ticket: ApplicationProxyTicket): string {
+/** Builds the ticketed HTTPS bootstrap source without placing the ticket in the request URL. */
+export function applicationProxySource(server: ServerSession, ticket: ApplicationProxyTicket): ApplicationProxySource {
   validateCredentialTransport(server);
-  const separator = ticket.bootstrapPath.includes('?') ? '&' : '?';
-  return `${server.url}${ticket.bootstrapPath}${separator}ticket=${encodeURIComponent(ticket.ticket)}`;
+  return { uri: `${server.url}${ticket.bootstrapPath}`, ticket: ticket.ticket };
 }
 
 /** Asks the Server for a single-use ticket that opens one allocated HTTP port. */

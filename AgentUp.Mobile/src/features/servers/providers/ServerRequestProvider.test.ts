@@ -61,8 +61,8 @@ test('caller cancellation aborts the underlying request before its timeout', asy
   );
   caller.abort();
 
-  await assert.rejects(pending, /request was cancelled/);
   assert.equal(requestAborted, true);
+  await assert.rejects(pending, /request was cancelled/);
 });
 
 test('a 204 response reads as no content', async () => {

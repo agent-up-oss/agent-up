@@ -6,6 +6,7 @@ using AgentUp.Server.Composition;
 using AgentUp.Server.Features.ApplicationProxy.Controllers;
 using AgentUp.Server.Features.Authentication.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 
 RepositoryDotEnv.LoadOptional();
 
@@ -22,6 +23,7 @@ ServiceRegistration.Configure(builder, ResolveDataDirectory());
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseWebSockets();

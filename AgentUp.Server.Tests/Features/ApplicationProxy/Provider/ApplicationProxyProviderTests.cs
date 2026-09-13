@@ -171,6 +171,94 @@ public sealed class ApplicationProxyOriginMapperTests
         Assert.That(mapper.OriginRelativeUrl(context, "//evil.example/phish"), Is.EqualTo("/evil.example/phish"));
         mapper.ApplyApplicationPath(context, "//cdn.example/app.js");
         Assert.That(context.Request.Path.Value, Is.EqualTo("/cdn.example/app.js"));
+        mapper.ApplyApplicationPath(context, @"..\windows\path");
+        Assert.That(context.Request.Path.Value, Is.EqualTo("/"));
+    }
+
+    [Test]
+    public void IsReservedFallbackPath_blocksServerOwnedPrefixes()
+    {
+        var mapper = new ApplicationProxyOriginMapper();
+        var api = new DefaultHttpContext();
+        api.Request.Path = "/api/workspaces";
+        var root = new DefaultHttpContext();
+        root.Request.Path = "/";
+
+        Assert.That(mapper.IsReservedFallbackPath(api), Is.True);
+        Assert.That(mapper.IsReservedFallbackPath(root), Is.False);
+    }
+
+    [Test]
+    public async Task RedirectToOriginRootAsync_writesALocalRootRedirect()
+    {
+        var mapper = new ApplicationProxyOriginMapper();
+        var context = new DefaultHttpContext();
+
+        await mapper.RedirectToOriginRootAsync(context);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status302Found));
+        Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/"));
+    }
+}
+
+[TestFixture]
+public sealed class ApplicationProxyTransportGuardTests
+{
+    [Test]
+    public void AllowsCredentials_acceptsHttpsAndLoopbackHttp()
+    {
+        var guard = new ApplicationProxyTransportGuard();
+        var https = new DefaultHttpContext();
+        https.Request.Scheme = "https";
+        https.Request.Host = new HostString("agent.example");
+        var loopback = ApplicationProxyHarness.LoopbackContext();
+        var remoteHttp = new DefaultHttpContext();
+        remoteHttp.Request.Scheme = "http";
+        remoteHttp.Request.Host = new HostString("192.168.1.20");
+        remoteHttp.Connection.RemoteIpAddress = IPAddress.Parse("192.168.1.20");
+
+        Assert.That(guard.AllowsCredentials(https), Is.True);
+        Assert.That(guard.AllowsCredentials(loopback), Is.True);
+        Assert.That(guard.AllowsCredentials(remoteHttp), Is.False);
+    }
+}
+
+[TestFixture]
+public sealed class ApplicationProxyCredentialsTests
+{
+    [Test]
+    public void ReadTicket_usesTheHeaderAndIgnoresTheQueryString()
+    {
+        var credentials = new ApplicationProxyCredentials(new ApplicationProxyCookieProtector(new EphemeralDataProtectionProvider()));
+        var header = new DefaultHttpContext();
+        header.Request.Headers[ApplicationProxyConstants.TicketHeader] = "from-header";
+        header.Request.QueryString = QueryString.Create(new Dictionary<string, string?> { ["ticket"] = "from-query" });
+        var queryOnly = new DefaultHttpContext();
+        queryOnly.Request.QueryString = QueryString.Create(new Dictionary<string, string?> { ["ticket"] = "from-query" });
+
+        Assert.That(credentials.ReadTicket(header), Is.EqualTo("from-header"));
+        Assert.That(credentials.ReadTicket(queryOnly), Is.Null);
+    }
+}
+
+[TestFixture]
+public sealed class ApplicationProxyBootstrapPageTests
+{
+    [Test]
+    public async Task WriteAsync_emitsAFragmentTicketConsumer()
+    {
+        var page = new ApplicationProxyBootstrapPage();
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await page.WriteAsync(context);
+        context.Response.Body.Position = 0;
+        using var reader = new StreamReader(context.Response.Body);
+        var html = await reader.ReadToEndAsync();
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        Assert.That(html, Does.Contain(ApplicationProxyConstants.TicketHeader));
+        Assert.That(html, Does.Contain("#ticket="));
     }
 }
 
@@ -260,6 +348,23 @@ public sealed class ApplicationProxyRequestTransformerTests
         Assert.That(context.Response.Headers.ContainsKey("X-Frame-Options"), Is.False);
         Assert.That(context.Response.Headers.ContentSecurityPolicy.ToString(), Does.Not.Contain("frame-ancestors"));
         Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain("Domain="));
+        Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain("sid=1"));
+    }
+
+    [Test]
+    public async Task TransformResponseAsync_dropsReservedServerCookieNames()
+    {
+        var transformer = new ApplicationProxyRequestTransformer();
+        var context = new DefaultHttpContext();
+        using var proxyResponse = new HttpResponseMessage(HttpStatusCode.OK);
+        proxyResponse.Headers.TryAddWithoutValidation("Set-Cookie", "agent-up-proxy=stolen; Path=/");
+        proxyResponse.Headers.TryAddWithoutValidation("Set-Cookie", "agent-up-other=nope; Path=/");
+        proxyResponse.Headers.TryAddWithoutValidation("Set-Cookie", "theme=dark; Path=/");
+
+        await transformer.TransformResponseAsync(context, proxyResponse, CancellationToken.None);
+
+        Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain("theme=dark"));
+        Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain("agent-up-"));
     }
 
     [Test]

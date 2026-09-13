@@ -72,7 +72,8 @@ public sealed class ApplicationProxyHttpTests
         await using var backend = await StartBackendAsync(port);
 
         var ticket = await IssueTicketAsync(client, workspace.Id, port);
-        var page = await client.GetStringAsync($"{ticket.BootstrapPath}?ticket={ticket.Ticket}");
+        using var bootstrap = await client.SendAsync(TicketRequest(HttpMethod.Get, ticket.BootstrapPath, ticket.Ticket));
+        var page = await bootstrap.Content.ReadAsStringAsync();
         var asset = await client.GetStringAsync("/assets/app.js");
         using var ping = new StringContent("ping-body");
         using var echo = await client.PostAsync("/echo", ping);
@@ -101,8 +102,8 @@ public sealed class ApplicationProxyHttpTests
         await using var backend = await StartBackendAsync(port);
         var ticket = await IssueTicketAsync(client, workspace.Id, port);
 
-        using var bootstrap = await client.GetAsync($"{ticket.BootstrapPath}?ticket={ticket.Ticket}");
-        using var replay = await client.GetAsync($"{ticket.BootstrapPath}?ticket={ticket.Ticket}");
+        using var bootstrap = await client.SendAsync(TicketRequest(HttpMethod.Get, ticket.BootstrapPath, ticket.Ticket));
+        using var replay = await client.SendAsync(TicketRequest(HttpMethod.Get, ticket.BootstrapPath, ticket.Ticket));
 
         Assert.Multiple(() =>
         {
@@ -126,7 +127,7 @@ public sealed class ApplicationProxyHttpTests
         var port = workspace.Applications[0].AllocatedPorts[0].AllocatedPort;
         await using var backend = await StartBackendAsync(port);
         var ticket = await IssueTicketAsync(client, workspace.Id, port);
-        using var bootstrap = await client.GetAsync($"{ticket.BootstrapPath}?ticket={ticket.Ticket}");
+        using var bootstrap = await client.SendAsync(TicketRequest(HttpMethod.Get, ticket.BootstrapPath, ticket.Ticket));
         using var home = await client.GetAsync(bootstrap.Headers.Location);
         using var redirect = await client.GetAsync("/go");
         using var framed = await client.GetAsync("/framed");
@@ -157,6 +158,46 @@ public sealed class ApplicationProxyHttpTests
             Assert.That(tcp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
             Assert.That(fallback.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
         });
+    }
+
+    [Test]
+    public async Task Proxy_rejectsQueryStringTickets()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = true
+        });
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest("test-password"));
+        var credentials = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", credentials!.AccessToken);
+        var workspace = await RegisterHttpWorkspaceAsync(client);
+        var port = workspace.Applications[0].AllocatedPorts[0].AllocatedPort;
+        await using var backend = await StartBackendAsync(port);
+        var ticket = await IssueTicketAsync(client, workspace.Id, port);
+        client.DefaultRequestHeaders.Authorization = null;
+
+        using var query = await client.GetAsync($"{ticket.BootstrapPath}?ticket={ticket.Ticket}");
+        using var header = await client.SendAsync(TicketRequest(HttpMethod.Get, ticket.BootstrapPath, ticket.Ticket));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(query.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(query.Content.Headers.ContentType!.MediaType, Is.EqualTo("text/html"));
+            Assert.That(query.Headers.Contains("Set-Cookie"), Is.False);
+            Assert.That(header.StatusCode, Is.EqualTo(HttpStatusCode.Redirect));
+            Assert.That(header.Headers.Location!.ToString(), Is.EqualTo("/"));
+        });
+    }
+
+    private static HttpRequestMessage TicketRequest(HttpMethod method, string path, string ticket)
+    {
+        var request = new HttpRequestMessage(method, path);
+        request.Headers.TryAddWithoutValidation("X-Agent-Up-Ticket", ticket);
+        return request;
     }
 
     private static async Task<Workspace> RegisterHttpWorkspaceAsync(HttpClient client)

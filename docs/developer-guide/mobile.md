@@ -43,16 +43,22 @@ Application spaces render each application's own HTTP interface in a native
 WebView, or in an iframe on the installable web client. Mobile never opens
 `http://127.0.0.1:{allocatedPort}` on the device. It asks the authenticated
 Server for a short-lived single-use ticket for that workspace's allocated HTTP
-port, then navigates the WebView to `{server}/apps/{workspaceId}/{port}?ticket=`.
+port, then navigates the WebView to `{server}/apps/{workspaceId}/{port}`. Native
+WebViews send the ticket in the `X-Agent-Up-Ticket` request header. The
+installable web client appends `#ticket=` so the secret stays off the HTTP
+request line; the Server bootstrap page reads that fragment and POSTs the
+header on the Server origin. The Server does not accept query-string tickets.
 The Server sets an HttpOnly cookie, redirects to `/`, and reverse-proxies
 unmatched HTTP and WebSocket requests to `http://127.0.0.1:{port}` so the
 WebView natively renders the application's HTML, CSS, and JavaScript. Only
 currently open allocated HTTP ports are tunneled; TCP ports and closed ports
-are rejected. Reserved Server routes such as `/api` and `/mcp` are never
+are rejected. Reserved Server routes such as `/api`, `/mcp`, and `/apps` are never
 proxied. The long-lived Bearer token stays on REST ticket issuance and is not
 placed in the WebView URL. Token-bearing ticket requests reject remote
 plaintext HTTP; only HTTPS and loopback HTTP development connections may
-transport credentials.
+transport credentials. The Server also rejects remote plaintext before issuing
+or accepting proxy tickets and sessions. When TLS terminates at an ingress, the
+Server honors a single `X-Forwarded-Proto` hop so the effective scheme is HTTPS.
 Changing applications aborts the previous Mobile ticket request. As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose

@@ -92,11 +92,23 @@ public sealed class ApplicationProxyRequestTransformer : HttpTransformer
             return;
 
         var rewritten = cookies
+            .Where(value => !IsReservedCookie(value))
             .Select(value => string.Join("; ", (value ?? string.Empty).Split(';', StringSplitOptions.TrimEntries)
                 .Where(part => !part.StartsWith("domain=", StringComparison.OrdinalIgnoreCase))))
+            .Where(value => value.Length > 0)
             .ToArray();
         response.Headers.Remove("Set-Cookie");
         foreach (var cookie in rewritten)
             response.Headers.Append("Set-Cookie", cookie);
+    }
+
+    private static bool IsReservedCookie(string? header)
+    {
+        var value = header ?? string.Empty;
+        var separator = value.IndexOf('=');
+        var name = (separator < 0 ? value : value[..separator]).Trim();
+        return name.Equals(ApplicationProxyConstants.CookieName, StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("agent-up-", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith(".AspNetCore", StringComparison.OrdinalIgnoreCase);
     }
 }

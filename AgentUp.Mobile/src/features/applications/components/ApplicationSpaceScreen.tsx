@@ -5,7 +5,7 @@ import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
-import { applicationProxyUrl, issueApplicationProxyTicket } from '../providers/ApplicationBrowserProvider';
+import { applicationProxySource, issueApplicationProxyTicket, type ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
 import { waitForDesktopViewerUrl } from '../providers/DesktopViewerProvider';
 import { DesktopStreamView } from './DesktopStreamView';
 import { RemoteBrowser } from './RemoteBrowser';
@@ -24,7 +24,7 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
   const { server } = useWorkspaces();
   const { activeServer } = useServers();
   const application = workspace.applications?.find(entry => entry.name === applicationName);
-  const [source, setSource] = useState<string | null>(null);
+  const [source, setSource] = useState<ApplicationProxySource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
       return () => { active = false; request.abort(); };
     }
     void issueApplicationProxyTicket(server, workspace.id, application, fetch, request.signal)
-      .then(ticket => { if (active) setSource(applicationProxyUrl(server, ticket)); })
+      .then(ticket => { if (active) setSource(applicationProxySource(server, ticket)); })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); });
     return () => { active = false; request.abort(); };
   }, [server, workspace.id, application]);

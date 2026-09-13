@@ -7,8 +7,8 @@ public sealed class ApplicationProxyCredentials(IApplicationProxyCookieProtector
 {
     public string? ReadTicket(HttpContext context)
     {
-        var ticket = context.Request.Query[ApplicationProxyConstants.TicketQuery].ToString();
-        return string.IsNullOrWhiteSpace(ticket) ? null : ticket;
+        var ticket = context.Request.Headers[ApplicationProxyConstants.TicketHeader].ToString();
+        return string.IsNullOrWhiteSpace(ticket) ? null : ticket.Trim();
     }
 
     public ApplicationProxySession? ReadSession(HttpContext context, DateTimeOffset now)

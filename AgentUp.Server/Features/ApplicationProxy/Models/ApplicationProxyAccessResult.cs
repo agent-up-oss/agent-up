@@ -6,4 +6,5 @@ public sealed class ApplicationProxyAccessResult
     public string? Title { get; init; }
     public string? Detail { get; init; }
     public ApplicationProxySession? Session { get; init; }
+    public bool ConsumedTicket { get; init; }
 }

@@ -13,6 +13,8 @@ The Mobile application display uses an authenticated HTTPS reverse proxy on the
 Server. The website continues to connect to its allocated loopback HTTP port on
 the Server; the Server forwards those HTTP responses to the Mobile WebView,
 which renders them natively. No workspace port needs to be exposed publicly.
+Mobile delivers the one-time proxy ticket in a request header or URL fragment
+rather than a query string, so access logs do not record it.
 
 Desktop and Server browser surfaces do not share cookies, local storage, session storage, IndexedDB, cache, or navigation state. Mobile WebView sessions are independent of both Desktop and the Server headless profile used by MCP.
 

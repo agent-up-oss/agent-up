@@ -10,7 +10,7 @@ public sealed class ApplicationProxyTicketsController(ApplicationProxyService pr
 {
     [HttpPost]
     public IActionResult Issue(ApplicationProxyTicketRequest request)
-        => TicketResult(this, proxy.IssueTicket(request));
+        => TicketResult(this, proxy.IssueTicket(request, HttpContext));
 
     private static IActionResult TicketResult(ControllerBase controller, ApplicationProxyTicketIssueResult result)
     {

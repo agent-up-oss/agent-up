@@ -16,10 +16,15 @@ public sealed class ApplicationProxyService(
     IApplicationProxyCsrfGuard csrf,
     IApplicationHttpForwarder forwarder,
     IApplicationProxyErrorWriter errors,
+    IApplicationProxyTransportGuard transport,
+    IApplicationProxyBootstrapPage bootstrap,
     TimeProvider clock)
 {
-    public ApplicationProxyTicketIssueResult IssueTicket(ApplicationProxyTicketRequest request)
+    public ApplicationProxyTicketIssueResult IssueTicket(ApplicationProxyTicketRequest request, HttpContext context)
     {
+        if (!transport.AllowsCredentials(context))
+            return DenyIssue(StatusCodes.Status400BadRequest, "HTTPS required", "Application proxy credentials require HTTPS except on loopback development URLs.");
+
         var access = ValidatePort(request.WorkspaceId, request.AllocatedPort);
         if (access.Session is null)
         {
@@ -49,18 +54,42 @@ public sealed class ApplicationProxyService(
 
     public async Task OpenAsync(string workspaceId, int port, string? path, HttpContext context)
     {
+        if (!transport.AllowsCredentials(context))
+        {
+            await errors.WriteAsync(context, Denied(StatusCodes.Status400BadRequest, "HTTPS required", "Application proxy credentials require HTTPS except on loopback development URLs."));
+            return;
+        }
+
         var access = Authorize(workspaceId, port, context);
         if (access.Session is null)
         {
+            if (ShouldWriteBootstrap(context, access.StatusCode))
+            {
+                await bootstrap.WriteAsync(context);
+                return;
+            }
+
             await errors.WriteAsync(context, access);
             return;
         }
 
-        await SendToApplicationAsync(context, access.Session, path ?? string.Empty);
+        await SendToApplicationAsync(context, access.Session, path ?? string.Empty, access.ConsumedTicket);
     }
 
     public async Task ForwardFallbackAsync(HttpContext context)
     {
+        if (!transport.AllowsCredentials(context))
+        {
+            await errors.WriteAsync(context, Denied(StatusCodes.Status400BadRequest, "HTTPS required", "Application proxy credentials require HTTPS except on loopback development URLs."));
+            return;
+        }
+
+        if (origin.IsReservedFallbackPath(context))
+        {
+            await errors.WriteAsync(context, Denied(StatusCodes.Status404NotFound, "Not Found", "Reserved Server routes are not proxied to workspace applications."));
+            return;
+        }
+
         var session = credentials.ReadSession(context, clock.GetUtcNow());
         if (session is null)
         {
@@ -84,7 +113,7 @@ public sealed class ApplicationProxyService(
         await forwarder.ForwardAsync(context, session.AllocatedPort);
     }
 
-    private async Task SendToApplicationAsync(HttpContext context, ApplicationProxySession session, string path)
+    private async Task SendToApplicationAsync(HttpContext context, ApplicationProxySession session, string path, bool consumedTicket)
     {
         credentials.WriteSession(context, new ApplicationProxySession
         {
@@ -94,10 +123,9 @@ public sealed class ApplicationProxyService(
         });
         credentials.StripTicketFromQuery(context);
 
-        if (origin.ShouldRedirectToOrigin(context))
+        if (consumedTicket || origin.ShouldRedirectToOrigin(context))
         {
-            context.Response.Headers.CacheControl = "no-store";
-            context.Response.Redirect(origin.OriginRelativeUrl(context, path));
+            await origin.RedirectToOriginRootAsync(context);
             return;
         }
 
@@ -140,7 +168,7 @@ public sealed class ApplicationProxyService(
             return Denied(StatusCodes.Status401Unauthorized, "Unauthorized", "The application proxy ticket is invalid or has already been used.");
         if (!string.Equals(session.WorkspaceId, workspaceId, StringComparison.Ordinal) || session.AllocatedPort != port)
             return Denied(StatusCodes.Status403Forbidden, "Forbidden", "The application proxy ticket does not match this application port.");
-        return new ApplicationProxyAccessResult { Session = session };
+        return new ApplicationProxyAccessResult { Session = session, ConsumedTicket = true };
     }
 
     private ApplicationProxyAccessResult ValidatePort(string workspaceId, int port)
@@ -170,6 +198,11 @@ public sealed class ApplicationProxyService(
         };
     }
 
+    private static bool ShouldWriteBootstrap(HttpContext context, int statusCode)
+        => statusCode == StatusCodes.Status401Unauthorized
+           && HttpMethods.IsGet(context.Request.Method)
+           && string.IsNullOrWhiteSpace(context.Request.Headers[ApplicationProxyConstants.TicketHeader]);
+
     private static PortMapping? FindHttpPort(Workspace workspace, int port)
         => workspace.Applications
             .SelectMany(application => application.AllocatedPorts)
@@ -177,5 +210,8 @@ public sealed class ApplicationProxyService(
                                        && string.Equals(mapping.Protocol, "http", StringComparison.OrdinalIgnoreCase));
 
     private static ApplicationProxyAccessResult Denied(int status, string title, string detail)
+        => new() { StatusCode = status, Title = title, Detail = detail };
+
+    private static ApplicationProxyTicketIssueResult DenyIssue(int status, string title, string detail)
         => new() { StatusCode = status, Title = title, Detail = detail };
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   applicationHttpPort,
-  applicationProxyUrl,
+  applicationProxySource,
   issueApplicationProxyTicket,
 } from './ApplicationBrowserProvider';
 
@@ -13,14 +13,15 @@ test('selects the first HTTP port without exposing a device-local URL', () => {
   assert.equal(port, 6111);
 });
 
-test('places the one-time ticket in the bootstrap query instead of the long-lived bearer token', () => {
-  const url = applicationProxyUrl(
+test('keeps the one-time ticket out of the bootstrap URL', () => {
+  const source = applicationProxySource(
     { url: 'https://agent.example', accessToken: 'a+b/c=' },
     { ticket: 'deadbeef', bootstrapPath: '/apps/work%2Ftree/6111', expiresAt: '2026-09-13T12:00:00Z' },
   );
-  assert.equal(url, 'https://agent.example/apps/work%2Ftree/6111?ticket=deadbeef');
-  assert.equal(new URL(url).searchParams.has('access_token'), false);
-  assert.equal(url.includes('a+b/c='), false);
+  assert.equal(source.uri, 'https://agent.example/apps/work%2Ftree/6111');
+  assert.equal(source.ticket, 'deadbeef');
+  assert.equal(source.uri.includes('ticket='), false);
+  assert.equal(source.uri.includes('a+b/c='), false);
 });
 
 test('asks the Server for a ticket bound to the workspace and allocated HTTP port', async () => {
@@ -60,14 +61,14 @@ test('rejects applications without an HTTP display', async () => {
 
 test('rejects proxy credentials over non-loopback HTTP', () => {
   assert.throws(
-    () => applicationProxyUrl(
+    () => applicationProxySource(
       { url: 'http://192.168.1.20:5000', accessToken: 'secret' },
       { ticket: 'abc', bootstrapPath: '/apps/workspace/8080', expiresAt: '2026-09-13T12:00:00Z' },
     ),
     /HTTPS is required/,
   );
   assert.doesNotThrow(
-    () => applicationProxyUrl(
+    () => applicationProxySource(
       { url: 'http://localhost:5000', accessToken: 'secret' },
       { ticket: 'abc', bootstrapPath: '/apps/workspace/8080', expiresAt: '2026-09-13T12:00:00Z' },
     ),
@@ -108,6 +109,6 @@ test('propagates caller cancellation to the ticket request', async () => {
     caller.signal,
   );
   caller.abort();
-  await assert.rejects(pending, /request was cancelled/);
   assert.equal(requestAborted, true);
+  await assert.rejects(pending, /request was cancelled/);
 });

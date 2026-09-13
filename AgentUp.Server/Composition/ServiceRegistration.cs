@@ -21,6 +21,7 @@ using AgentUp.Server.Features.ApplicationProxy.Controllers;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
 using AgentUp.Server.Features.ApplicationProxy.Providers;
 using AgentUp.Server.Features.ApplicationProxy.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Authentication.Providers;
 using AgentUp.Server.Features.Authentication.Interfaces;
@@ -198,7 +199,16 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IApplicationProxyTicketStore, ApplicationProxyTicketStore>();
         builder.Services.AddSingleton<IApplicationProxyCookieProtector, ApplicationProxyCookieProtector>();
         builder.Services.AddSingleton<ILoopbackHttpPortProbe, LoopbackHttpPortProbe>();
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+            options.ForwardLimit = 1;
+        });
         builder.Services.AddSingleton<IApplicationProxyCredentials, ApplicationProxyCredentials>();
+        builder.Services.AddSingleton<IApplicationProxyTransportGuard, ApplicationProxyTransportGuard>();
+        builder.Services.AddSingleton<IApplicationProxyBootstrapPage, ApplicationProxyBootstrapPage>();
         builder.Services.AddSingleton<IApplicationProxyOriginMapper, ApplicationProxyOriginMapper>();
         builder.Services.AddSingleton<IApplicationProxyCsrfGuard, ApplicationProxyCsrfGuard>();
         builder.Services.AddSingleton<IApplicationProxyErrorWriter, ApplicationProxyErrorWriter>();

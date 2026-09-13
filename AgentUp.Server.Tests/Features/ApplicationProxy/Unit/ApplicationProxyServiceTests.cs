@@ -1,3 +1,4 @@
+using System.Net;
 using AgentUp.Server.Features.ApplicationProxy.DTOs;
 using AgentUp.Server.Features.ApplicationProxy.Models;
 using AgentUp.Server.Tests.Fake;
@@ -13,7 +14,7 @@ public sealed class ApplicationProxyServiceTests
     {
         var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
 
-        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port));
+        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext());
 
         Assert.That(result.Response, Is.Not.Null);
         Assert.That(result.Response!.BootstrapPath, Is.EqualTo($"/apps/{workspaceId}/{port}"));
@@ -25,7 +26,7 @@ public sealed class ApplicationProxyServiceTests
     {
         var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync(portOpen: false);
 
-        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port));
+        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext());
 
         Assert.That(result.Response, Is.Null);
         Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
@@ -36,7 +37,7 @@ public sealed class ApplicationProxyServiceTests
     {
         var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync(protocol: "tcp");
 
-        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port));
+        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext());
 
         Assert.That(result.Response, Is.Null);
         Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
@@ -47,20 +48,33 @@ public sealed class ApplicationProxyServiceTests
     {
         var (service, _, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
 
-        var result = service.IssueTicket(new ApplicationProxyTicketRequest(Guid.NewGuid().ToString(), port));
+        var result = service.IssueTicket(new ApplicationProxyTicketRequest(Guid.NewGuid().ToString(), port), ApplicationProxyHarness.LoopbackContext());
 
         Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task IssueTicket_rejectsRemotePlaintext()
+    {
+        var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var context = RemotePlaintextContext();
+
+        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), context);
+
+        Assert.That(result.Response, Is.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        Assert.That(result.Title, Is.EqualTo("HTTPS required"));
     }
 
     [Test]
     public async Task OpenAsync_consumesATicketOnceAndRedirectsToTheOriginRoot()
     {
         var (service, workspaceId, port, _, forwarder, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port)).Response!.Ticket;
-        var context = CreateGetContext($"/apps/{workspaceId}/{port}", ticket);
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var context = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
 
         await service.OpenAsync(workspaceId, port, string.Empty, context);
-        var replay = CreateGetContext($"/apps/{workspaceId}/{port}", ticket);
+        var replay = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
         await service.OpenAsync(workspaceId, port, string.Empty, replay);
 
         Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status302Found));
@@ -70,10 +84,25 @@ public sealed class ApplicationProxyServiceTests
     }
 
     [Test]
+    public async Task OpenAsync_consumesAPostedTicketWithoutForwardingTheBootstrap()
+    {
+        var (service, workspaceId, port, _, forwarder, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var context = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
+        context.Request.Method = HttpMethods.Post;
+
+        await service.OpenAsync(workspaceId, port, string.Empty, context);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status302Found));
+        Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/"));
+        Assert.That(forwarder.Calls, Is.EqualTo(0));
+    }
+
+    [Test]
     public async Task OpenAsync_forwardsAuthenticatedNonGetRequestsWithoutRedirecting()
     {
         var (service, workspaceId, port, _, forwarder, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var context = new DefaultHttpContext();
+        var context = ApplicationProxyHarness.LoopbackContext();
         context.Request.Method = HttpMethods.Post;
         context.Request.Path = $"/apps/{workspaceId}/{port}/echo";
         context.User = AuthenticatedUser();
@@ -90,8 +119,8 @@ public sealed class ApplicationProxyServiceTests
     public async Task ForwardFallback_usesTheCookieSessionAndRejectsForeignOrigins()
     {
         var (service, workspaceId, port, _, forwarder, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port)).Response!.Ticket;
-        var bootstrap = CreateGetContext($"/apps/{workspaceId}/{port}", ticket);
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var bootstrap = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
         await service.OpenAsync(workspaceId, port, string.Empty, bootstrap);
         var cookie = bootstrap.Response.Headers.SetCookie.ToString();
 
@@ -107,11 +136,28 @@ public sealed class ApplicationProxyServiceTests
     }
 
     [Test]
+    public async Task ForwardFallback_rejectsReservedServerPaths()
+    {
+        var (service, workspaceId, port, _, forwarder, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var bootstrap = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
+        await service.OpenAsync(workspaceId, port, string.Empty, bootstrap);
+        var cookie = bootstrap.Response.Headers.SetCookie.ToString();
+        var context = CreateCookieContext(cookie, HttpMethods.Get);
+        context.Request.Path = "/api/workspaces";
+
+        await service.ForwardFallbackAsync(context);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(forwarder.Calls, Is.EqualTo(0));
+    }
+
+    [Test]
     public async Task IssueTicket_rejectsAnOutOfRangePort()
     {
         var (service, workspaceId, _, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
 
-        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, 0));
+        var result = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, 0), ApplicationProxyHarness.LoopbackContext());
 
         Assert.That(result.Response, Is.Null);
         Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
@@ -121,7 +167,7 @@ public sealed class ApplicationProxyServiceTests
     public async Task OpenAsync_rejectsAnOutOfRangePort()
     {
         var (service, workspaceId, _, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var context = new DefaultHttpContext();
+        var context = ApplicationProxyHarness.LoopbackContext();
         context.Request.Method = HttpMethods.Get;
 
         await service.OpenAsync(workspaceId, 70000, string.Empty, context);
@@ -130,15 +176,48 @@ public sealed class ApplicationProxyServiceTests
     }
 
     [Test]
-    public async Task OpenAsync_rejectsUnauthenticatedRequestsWithoutATicketOrCookie()
+    public async Task OpenAsync_servesABootstrapPageWhenGetHasNoTicket()
     {
         var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var context = new DefaultHttpContext();
+        var context = ApplicationProxyHarness.LoopbackContext();
         context.Request.Method = HttpMethods.Get;
 
         await service.OpenAsync(workspaceId, port, string.Empty, context);
 
-        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        Assert.That(context.Response.ContentType, Does.Contain("text/html"));
+    }
+
+    [Test]
+    public async Task OpenAsync_ignoresQueryStringTickets()
+    {
+        var (service, workspaceId, port, _, _, clock, tickets) = await ApplicationProxyHarness.CreateAsync();
+        var issued = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var context = ApplicationProxyHarness.LoopbackContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Path = $"/apps/{workspaceId}/{port}";
+        context.Request.QueryString = QueryString.Create(new Dictionary<string, string?> { ["ticket"] = issued });
+
+        await service.OpenAsync(workspaceId, port, string.Empty, context);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain("agent-up-proxy="));
+        Assert.That(tickets.Consume(issued, clock.GetUtcNow()), Is.Not.Null);
+    }
+
+    [Test]
+    public async Task OpenAsync_rejectsRemotePlaintextBeforeReadingATicket()
+    {
+        var (service, workspaceId, port, _, _, clock, tickets) = await ApplicationProxyHarness.CreateAsync();
+        var issued = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var context = RemotePlaintextContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Headers[ApplicationProxyConstants.TicketHeader] = issued;
+
+        await service.OpenAsync(workspaceId, port, string.Empty, context);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        Assert.That(tickets.Consume(issued, clock.GetUtcNow()), Is.Not.Null);
     }
 
     [Test]
@@ -161,8 +240,8 @@ public sealed class ApplicationProxyServiceTests
     public async Task OpenAsync_acceptsAMatchingSessionCookie()
     {
         var (service, workspaceId, port, _, forwarder, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port)).Response!.Ticket;
-        var bootstrap = CreateGetContext($"/apps/{workspaceId}/{port}", ticket);
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var bootstrap = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
         await service.OpenAsync(workspaceId, port, string.Empty, bootstrap);
         var cookie = bootstrap.Response.Headers.SetCookie.ToString();
         var context = CreateCookieContext(cookie, HttpMethods.Get);
@@ -183,7 +262,7 @@ public sealed class ApplicationProxyServiceTests
             AllocatedPort = port,
             ExpiresAt = clock.GetUtcNow().AddMinutes(1)
         });
-        var context = CreateGetContext($"/apps/{workspaceId}/{port}", ticket);
+        var context = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
 
         await service.OpenAsync(workspaceId, port, string.Empty, context);
 
@@ -194,8 +273,8 @@ public sealed class ApplicationProxyServiceTests
     public async Task ForwardFallback_rejectsACookieWhenThePortHasClosed()
     {
         var (service, workspaceId, port, probe, _, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port)).Response!.Ticket;
-        var bootstrap = CreateGetContext($"/apps/{workspaceId}/{port}", ticket);
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var bootstrap = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
         await service.OpenAsync(workspaceId, port, string.Empty, bootstrap);
         var cookie = bootstrap.Response.Headers.SetCookie.ToString();
         probe.OpenPorts.Remove(port);
@@ -206,12 +285,12 @@ public sealed class ApplicationProxyServiceTests
         Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
     }
 
-    private static DefaultHttpContext CreateGetContext(string path, string ticket)
+    private static DefaultHttpContext CreateTicketContext(string path, string ticket)
     {
-        var context = new DefaultHttpContext();
+        var context = ApplicationProxyHarness.LoopbackContext();
         context.Request.Method = HttpMethods.Get;
         context.Request.Path = path;
-        context.Request.QueryString = QueryString.Create(new Dictionary<string, string?> { ["ticket"] = ticket });
+        context.Request.Headers[ApplicationProxyConstants.TicketHeader] = ticket;
         return context;
     }
 
@@ -219,9 +298,19 @@ public sealed class ApplicationProxyServiceTests
     {
         var context = new DefaultHttpContext();
         context.Request.Method = method;
+        context.Request.Scheme = "https";
         context.Request.Path = "/";
         context.Request.Host = new HostString("agent.example");
         context.Request.Headers.Cookie = setCookie.Split(';', 2)[0];
+        return context;
+    }
+
+    private static DefaultHttpContext RemotePlaintextContext()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Scheme = "http";
+        context.Request.Host = new HostString("192.168.1.20");
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.168.1.20");
         return context;
     }
 
