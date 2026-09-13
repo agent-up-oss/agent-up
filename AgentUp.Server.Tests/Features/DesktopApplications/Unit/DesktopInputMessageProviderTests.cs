@@ -21,6 +21,8 @@ public sealed class DesktopInputMessageProviderTests
             Assert.That(message.Button, Is.EqualTo(1));
             Assert.That(message.Key, Is.EqualTo("A"));
             Assert.That(provider.Parse("{"), Is.Null);
+            Assert.That(provider.Parse("""{"type":"wheel","deltaX":1.5,"deltaY":-2}""")!.DeltaX, Is.EqualTo(1.5));
+            Assert.That(provider.Parse("""{"type":"wheel","deltaX":1.5,"deltaY":-2}""")!.DeltaY, Is.EqualTo(-2));
         });
     }
 }

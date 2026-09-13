@@ -33,6 +33,24 @@ public sealed class BrowserRemoteDisplayServiceTests
         Assert.That(service.HasSubscribers("workspace"), Is.False);
     }
 
+    [Test]
+    public async Task BroadcastFrame_swallowsAFailedSend()
+    {
+        var service = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
+        using var connection = new ThrowingSubscriberConnection();
+        using var cancellation = new CancellationTokenSource();
+        var subscription = service.ConnectAsync("workspace", connection, null, cancellation.Token);
+        await WaitUntilAsync(() => service.HasSubscribers("workspace"));
+
+        await service.BroadcastFrameAsync("workspace", [1, 2, 3], CancellationToken.None);
+        await Task.Delay(50);
+
+        await cancellation.CancelAsync();
+        await subscription;
+        Assert.That(service.TryGetLatestFrame("workspace", out var frame), Is.True);
+        Assert.That(frame, Is.EqualTo(new byte[] { 1, 2, 3 }));
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));

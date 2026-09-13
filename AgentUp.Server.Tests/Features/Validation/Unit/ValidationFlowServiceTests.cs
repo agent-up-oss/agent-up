@@ -354,9 +354,65 @@ public sealed class ValidationFlowServiceTests
         }
     }
 
+    [Test]
+    public async Task Run_rejectsUnsupportedDesktopExpectations()
+    {
+        var created = await CreateDesktopAsync(includeDesktopTools: true, initialKind: ValidationExpectation.Text);
+        try
+        {
+            var result = await created.Service.RunAsync(created.WorkspaceId, created.FlowId);
+            Assert.That(result.Message, Does.Contain("Running and framebuffer Visible"));
+        }
+        finally
+        {
+            if (created.Desktop is not null)
+                await created.Desktop.StopWorkspaceAsync(created.WorkspaceId, CancellationToken.None);
+        }
+    }
+
+    [Test]
+    public async Task Run_rejectsUnsupportedDesktopSteps()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
+        {
+            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
+        });
+        var controller = new DesktopApplicationsController(new DesktopSessionService(
+            new FakeDesktopDisplayProvider(),
+            new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
+            new DesktopInputMessageProvider(),
+            new DesktopViewerTicketProvider(),
+            new FakeHostedDesktopNativeLibraryProvider(),
+            NullLogger<DesktopSessionService>.Instance));
+        await controller.PrepareAsync(workspace, workspace.Applications.Single(), CancellationToken.None);
+        var repo = new MemoryRepository();
+        await repo.SaveAsync(workspace.Id, [
+            new ValidationFlow("flow", workspace.Id, "Editor", "Open dialog", "User opens", "",
+                [new ValidationAssertion(ValidationExpectation.Running, "true")],
+                [new ValidationStep("go", "Leave the app", ValidationAction.Navigate, Value: "/elsewhere",
+                    Expectations: [new ValidationAssertion(ValidationExpectation.Running, "true")])],
+                DateTimeOffset.UtcNow)]);
+        var service = new ValidationFlowService(
+            repo, new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter(),
+            new DesktopMcpTools(new DesktopMcpService(controller, ServerTestComposition.CreateAuditController())));
+
+        try
+        {
+            var result = await service.RunAsync(workspace.Id, "flow");
+            Assert.That(result.Message, Does.Contain("coordinate click/fill and key press"));
+        }
+        finally
+        {
+            await controller.StopWorkspaceAsync(workspace.Id, CancellationToken.None);
+        }
+    }
+
     // BrowserMcpTools is sealed with non-virtual members, so the browser-driven half of RunAsync
     // has no seam; only the two guards above are reachable without a real browser session.
-    private static async Task<(ValidationFlowService Service, string WorkspaceId, string FlowId, DesktopApplicationsController? Desktop)> CreateDesktopAsync(bool includeDesktopTools)
+    private static async Task<(ValidationFlowService Service, string WorkspaceId, string FlowId, DesktopApplicationsController? Desktop)> CreateDesktopAsync(
+        bool includeDesktopTools,
+        ValidationExpectation initialKind = ValidationExpectation.Running)
     {
         var registry = ServerTestComposition.CreateRegistry();
         var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
@@ -382,7 +438,7 @@ public sealed class ValidationFlowServiceTests
             new MemoryRepository(), new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter(), tools);
         var saved = await service.SaveAsync(workspace.Id, new SaveValidationFlowRequest(
             null, "Editor", "Open dialog", "User opens the dialog", string.Empty,
-            [new ValidationAssertion(ValidationExpectation.Running, "true")],
+            [new ValidationAssertion(initialKind, "true")],
             [
                 new ValidationStep("open", "Open the dialog", ValidationAction.Click,
                     new ValidationTarget(Name: "Open", X: 100, Y: 80),

@@ -13,14 +13,21 @@ internal sealed class FakeHostedDesktopNativeLibraryProvider : IHostedDesktopNat
 internal sealed class FakeDesktopDisplayProvider : IDesktopDisplayProvider
 {
     public bool Stopped { get; private set; }
+    public int CaptureCalls { get; private set; }
+    public Exception? CaptureError { get; set; }
     public List<(int X, int Y, int Button, bool Pressed)> PointerEvents { get; } = [];
     public List<(string Key, bool Pressed)> KeyEvents { get; } = [];
 
     public Task<DesktopDisplayHandle> StartAsync(int width, int height, CancellationToken cancellationToken) =>
         Task.FromResult(new DesktopDisplayHandle(":123", Process.GetCurrentProcess(), width, height, "/tmp/agentup-desktop-fake"));
 
-    public Task<byte[]> CapturePngAsync(DesktopDisplayHandle display, CancellationToken cancellationToken) =>
-        Task.FromResult<byte[]>([137, 80, 78, 71]);
+    public Task<byte[]> CapturePngAsync(DesktopDisplayHandle display, CancellationToken cancellationToken)
+    {
+        CaptureCalls++;
+        if (CaptureError is not null)
+            throw CaptureError;
+        return Task.FromResult<byte[]>([137, 80, 78, 71]);
+    }
 
     public Task SendPointerAsync(DesktopDisplayHandle display, int x, int y, int button, bool pressed, CancellationToken cancellationToken)
     {

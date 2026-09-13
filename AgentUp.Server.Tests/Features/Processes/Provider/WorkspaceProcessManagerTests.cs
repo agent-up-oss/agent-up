@@ -296,6 +296,48 @@ public class WorkspaceProcessManagerTests
         Assert.That(startInfo.ArgumentList[3], Is.EqualTo("--no-incremental"));
     }
 
+    [Test]
+    public async Task CreateInstallStartInfo_KeepsARootedDotnetBuildProjectPath()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Api",
+                    "dotnet run",
+                    null,
+                    Install: "dotnet build /tmp/App.csproj --nologo")
+            ]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo!.ArgumentList[1], Is.EqualTo("/tmp/App.csproj"));
+    }
+
+    [Test]
+    public async Task CreateInstallStartInfo_AppendsTheWorkingDirectoryWhenDotnetBuildHasNoProject()
+    {
+        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
+        {
+            Applications =
+            [
+                new ApplicationDefinition(
+                    "Api",
+                    "dotnet run",
+                    null,
+                    Install: "dotnet build --nologo")
+            ]
+        });
+
+        var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
+
+        Assert.That(startInfo!.ArgumentList[0], Is.EqualTo("build"));
+        Assert.That(startInfo.ArgumentList[1], Is.EqualTo("--nologo"));
+        Assert.That(startInfo.ArgumentList[2], Does.Contain(Path.Join("AgentUp", "WorkspaceDirectories")));
+    }
+
     [Test, CancelAfter(120000)]
     public async Task CreateInstallStartInfo_DotnetBuild_WritesRuntimeConfigWhenWorkingDirectoryIsNotTheProject()
     {
@@ -878,15 +920,21 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
-    [Platform(Exclude = "Linux")]
     public async Task LaunchApplication_skipsDesktopAppsOffLinux()
     {
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            NullLogger<WorkspaceProcessManager>.Instance,
+            isLinux: () => false);
         var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
         {
             DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
         });
 
-        await _manager.LaunchApplicationAsync(workspace, "Editor");
+        await manager.LaunchApplicationAsync(workspace, "Editor");
 
         var lines = await _output.GetAsync(workspace.Id, "Editor");
         Assert.Multiple(() =>

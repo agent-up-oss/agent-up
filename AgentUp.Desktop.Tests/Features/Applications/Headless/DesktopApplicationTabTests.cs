@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
@@ -50,6 +53,7 @@ public sealed class DesktopApplicationTabTests
         Assert.Multiple(() =>
         {
             Assert.That(app.Content.ShowsDesktopConnecting, Is.True);
+            Assert.That(app.Window.IsDesktopConnectingForTests, Is.True);
             Assert.That(app.Window.ArePortWebViewsHiddenForTests, Is.True);
             Assert.That(app.Content.PortPaneShowsError, Is.False);
             Assert.That(app.Content.SubNavBarLabels, Does.Contain("Desktop"));
@@ -107,6 +111,66 @@ public sealed class DesktopApplicationTabTests
             Assert.That(app.Content.PortPaneShowsError, Is.True);
             Assert.That(app.Content.WebViewErrorMessage, Does.Contain("Could not open the desktop application"));
         });
+    }
+
+    [AvaloniaTest]
+    public async Task DesktopViewerTicket_retriesHttpFailuresUntilTheServerReturnsAViewer()
+    {
+        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
+        handler.ViewerTicket = attempt =>
+        {
+            if (attempt < 3)
+                throw new HttpRequestException("desktop ticket endpoint is not ready");
+            return Task.FromResult(FakeHttpMessageHandler.JsonOk(ViewerTicket()));
+        };
+
+        await app.Content.SelectApplicationTabAsync();
+        await app.Content.SelectApplicationByIndexAsync(1);
+        await WaitUntilAsync(() => app.Window.IsDesktopWebViewVisibleForTests);
+
+        Assert.That(app.Window.IsDesktopWebViewVisibleForTests, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task DesktopViewerTicket_showsError_whenTheServerReturnsAnInvalidViewer()
+    {
+        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
+        handler.ViewerTicket = _ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("null", Encoding.UTF8, "application/json")
+        });
+
+        await app.Content.SelectApplicationTabAsync();
+        await app.Content.SelectApplicationByIndexAsync(1);
+        await WaitUntilAsync(() => app.Content.PortPaneShowsError);
+
+        Assert.That(app.Content.WebViewErrorMessage, Does.Contain("Could not open the desktop application"));
+    }
+
+    [AvaloniaTest]
+    public async Task SwitchingAwayFromDesktop_cancelsAnInFlightTicketWait()
+    {
+        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        handler.ViewerTicket = async _ =>
+        {
+            await gate.Task;
+            return FakeHttpMessageHandler.JsonOk(ViewerTicket());
+        };
+
+        await app.Content.SelectApplicationTabAsync();
+        await app.Content.SelectApplicationByIndexAsync(1);
+        await WaitUntilAsync(() => app.Content.ShowsDesktopConnecting);
+
+        await app.Content.SelectApplicationByIndexAsync(0);
+        gate.SetResult(true);
+        await HeadlessExtensions.FlushAsync();
+        await Task.Delay(50);
+
+        Assert.That(app.Window.IsDesktopWebViewVisibleForTests, Is.False);
     }
 
     private static DesktopViewerTicketResponse ViewerTicket() =>

@@ -104,6 +104,9 @@ public sealed class DesktopApplicationsControllerTests
             Assert.That(controller.CreateViewerTicket("missing", "Editor"), Is.Null);
             Assert.That(controller.GetBySessionId("missing"), Is.Null);
         });
+        using var socket = new ClosingWebSocket();
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            controller.StreamAsync("missing", socket, CancellationToken.None));
     }
 }
 

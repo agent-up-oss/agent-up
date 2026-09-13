@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Browser.Streaming;
@@ -106,6 +107,7 @@ public sealed class DesktopApplicationsHttpTests
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
         _app = builder.Build();
+        _app.UseWebSockets();
         _app.MapControllers();
         await _app.StartAsync();
         _client = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
@@ -134,12 +136,14 @@ public sealed class DesktopApplicationsHttpTests
         var sessionResponse = await _client.GetAsync($"/api/desktop-applications/{created.Id}/Editor");
         Assert.That(sessionResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var session = await sessionResponse.Content.ReadFromJsonAsync<DesktopSessionDto>(JsonOptions);
-        Assert.That(session?.Generation, Is.GreaterThan(0));
+        Assert.That(session, Is.Not.Null);
+        Assert.That(session!.Generation, Is.GreaterThan(0));
 
         var ticketResponse = await _client.PostAsync($"/api/desktop-applications/{created.Id}/Editor/viewer-ticket", null);
         Assert.That(ticketResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var ticket = await ticketResponse.Content.ReadFromJsonAsync<DesktopViewerTicketDto>(JsonOptions);
-        Assert.That(ticket?.ViewerUrl, Does.Contain(session!.SessionId));
+        Assert.That(ticket, Is.Not.Null);
+        Assert.That(ticket!.ViewerUrl, Does.Contain(session.SessionId));
 
         var viewer = await _client.GetAsync(ticket!.ViewerUrl);
         Assert.That(viewer.StatusCode, Is.EqualTo(HttpStatusCode.OK));
@@ -161,6 +165,18 @@ public sealed class DesktopApplicationsHttpTests
         Assert.That(pointerDown.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(pointerUp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(key.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        var missingTicket = await _client.GetAsync($"/api/desktop-applications/session/{session.SessionId}/display");
+        Assert.That(missingTicket.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+
+        var displayPath = ticket.ViewerUrl.Replace("/viewer?", "/display?", StringComparison.Ordinal);
+        var notWebsocket = await _client.GetAsync(displayPath);
+        Assert.That(notWebsocket.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(new UriBuilder(new Uri(_client.BaseAddress!, displayPath)) { Scheme = "ws" }.Uri, CancellationToken.None);
+        Assert.That(socket.State, Is.EqualTo(WebSocketState.Open));
+        socket.Abort();
     }
 
     private async Task<Workspace> RegisterAndStartDesktopAsync()

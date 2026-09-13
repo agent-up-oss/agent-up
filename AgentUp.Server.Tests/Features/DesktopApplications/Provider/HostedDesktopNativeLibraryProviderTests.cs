@@ -41,10 +41,30 @@ public sealed class HostedDesktopNativeLibraryProviderTests
         try
         {
             Assert.That(HostedDesktopNativeLibraryProvider.FindShellNix(nested), Is.EqualTo(shellNix));
+            Assert.That(HostedDesktopNativeLibraryProvider.FindShellNix(shellNix), Is.EqualTo(shellNix));
         }
         finally
         {
             Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void FindShellNix_skipsEmptyInvalidAndUnrelatedRoots()
+    {
+        var empty = Path.Join(Path.GetTempPath(), "agentup-noshell-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(empty);
+        try
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(HostedDesktopNativeLibraryProvider.FindShellNix(null, " ", "\0"), Is.Null);
+                Assert.That(HostedDesktopNativeLibraryProvider.FindShellNix(empty), Is.Null);
+            });
+        }
+        finally
+        {
+            Directory.Delete(empty, recursive: true);
         }
     }
 

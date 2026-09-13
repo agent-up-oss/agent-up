@@ -203,7 +203,7 @@ public sealed class DesktopSessionService(
         }
     }
 
-    private async Task DispatchInputMessageAsync(DesktopSession session, string json, CancellationToken cancellationToken)
+    internal async Task DispatchInputMessageAsync(DesktopSession session, string json, CancellationToken cancellationToken)
     {
         var message = inputMessages.Parse(json);
         if (message is null) return;

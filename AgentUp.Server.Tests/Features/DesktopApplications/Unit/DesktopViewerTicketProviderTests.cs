@@ -17,4 +17,18 @@ public sealed class DesktopViewerTicketProviderTests
         provider.RevokeSession("session-one");
         Assert.That(provider.Validate("session-one", issued.Ticket), Is.False);
     }
+
+    [Test]
+    public void Issue_removesExpiredTickets()
+    {
+        var provider = new DesktopViewerTicketProvider();
+        var expired = provider.Issue("session-one", DateTimeOffset.UtcNow.AddMinutes(-1));
+        var current = provider.Issue("session-two");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(provider.Validate("session-one", expired.Ticket), Is.False);
+            Assert.That(provider.Validate("session-two", current.Ticket), Is.True);
+        });
+    }
 }

@@ -201,7 +201,7 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
         return png ?? throw new InvalidOperationException("Could not capture the desktop framebuffer.");
     }
 
-    private static nuint ReadPixel(byte[] source, XImageData image, int x, int y)
+    internal static nuint ReadPixel(byte[] source, XImageData image, int x, int y)
     {
         var bytesPerPixel = image.BitsPerPixel / 8;
         var offset = checked(y * image.BytesPerLine + x * bytesPerPixel);
@@ -238,7 +238,7 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
         finally { XCloseDisplay(connection); }
     }
 
-    private static string NormalizeKey(string key) => key switch
+    internal static string NormalizeKey(string key) => key switch
     {
         " " => "space",
         "ArrowUp" => "Up",

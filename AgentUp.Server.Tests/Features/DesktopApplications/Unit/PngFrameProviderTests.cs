@@ -23,4 +23,10 @@ public sealed class PngFrameProviderTests
         zlib.CopyTo(raw);
         Assert.That(raw.ToArray(), Is.EqualTo(new byte[] { 0, 255, 0, 0, 0, 255, 0 }));
     }
+
+    [Test]
+    public void EncodeRgb_rejectsMismatchedDimensions()
+    {
+        Assert.Throws<ArgumentException>(() => new PngFrameProvider().EncodeRgb(0, 1, []));
+    }
 }

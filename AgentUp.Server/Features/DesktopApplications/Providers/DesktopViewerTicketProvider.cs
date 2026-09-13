@@ -8,9 +8,11 @@ public sealed class DesktopViewerTicketProvider
     private static readonly TimeSpan Lifetime = TimeSpan.FromHours(12);
     private readonly ConcurrentDictionary<string, DesktopViewerTicket> _tickets = new();
 
-    public (string Ticket, DateTimeOffset ExpiresAtUtc) Issue(string sessionId)
+    public (string Ticket, DateTimeOffset ExpiresAtUtc) Issue(string sessionId) =>
+        Issue(sessionId, DateTimeOffset.UtcNow.Add(Lifetime));
+
+    internal (string Ticket, DateTimeOffset ExpiresAtUtc) Issue(string sessionId, DateTimeOffset expiresAt)
     {
-        var expiresAt = DateTimeOffset.UtcNow.Add(Lifetime);
         var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         _tickets[ticket] = new DesktopViewerTicket(sessionId, expiresAt);
         RemoveExpired();

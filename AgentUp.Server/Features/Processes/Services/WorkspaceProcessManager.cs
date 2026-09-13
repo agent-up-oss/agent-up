@@ -24,6 +24,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private readonly IDockerProcessProvider _docker;
     private readonly ILogger<WorkspaceProcessManager> _logger;
     private readonly DesktopApplicationsController? _desktopApplications;
+    private readonly Func<bool> _isLinux;
 
     public WorkspaceProcessManager(
         WorkspaceStateController registry,
@@ -31,7 +32,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         ILocalProcessProvider localProcesses,
         IDockerProcessProvider docker,
         ILogger<WorkspaceProcessManager> logger,
-        DesktopApplicationsController? desktopApplications = null)
+        DesktopApplicationsController? desktopApplications = null,
+        Func<bool>? isLinux = null)
     {
         _registry = registry;
         _output = output;
@@ -39,6 +41,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         _docker = docker;
         _logger = logger;
         _desktopApplications = desktopApplications;
+        _isLinux = isLinux ?? OperatingSystem.IsLinux;
     }
 
     public async Task LaunchAsync(Workspace workspace)
@@ -71,7 +74,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
-        if (app.Kind == ApplicationKind.Desktop && !OperatingSystem.IsLinux())
+        if (app.Kind == ApplicationKind.Desktop && !_isLinux())
         {
             await _output.AppendAsync(
                 workspace.Id,
