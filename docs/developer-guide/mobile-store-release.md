@@ -4,14 +4,18 @@ title: Mobile store release
 
 # Mobile store release
 
-Store binaries for `AgentUp.Mobile` ship from a dedicated workflow, not from
-`ci.yml`. Dispatch [Deploy Mobile](https://github.com/themassiveone/agent-up/actions/workflows/deploy-mobile.yaml)
-on the branch that already has a product `vX.Y.Z` tag from the normal release
-pipeline.
+Store binaries for `AgentUp.Mobile` ship from
+[Mobile CI](https://github.com/themassiveone/agent-up/actions/workflows/mobile-ci.yaml),
+not from `ci.yml`.
 
-The workflow does not run tests, does not call semantic-release, and does not
-use `.releaserc.json`. Android compiles on Ubuntu. iOS compiles on macOS because
-CocoaPods and `xcodebuild` cannot run on Linux.
+A path-filtered `push` smoke-builds and signs Android and iOS. It does not upload
+to Play or App Store Connect and does not create `android-v*` / `ios-v*` GitHub
+releases. Dispatch the same workflow on the branch that already has a product
+`vX.Y.Z` tag to publish.
+
+The workflow does not run product tests, does not call semantic-release, and does
+not use `.releaserc.json`. Android compiles on Ubuntu. iOS compiles on macOS
+because CocoaPods and `xcodebuild` cannot run on Linux.
 
 ## Inputs
 
@@ -19,6 +23,9 @@ CocoaPods and `xcodebuild` cannot run on Linux.
 |---|---|---|
 | `channel` | `beta` or `prod` | Play internal vs production; TestFlight vs App Store Connect upload |
 | `platforms` | `both`, `android`, or `ios` | Which store jobs run |
+
+These inputs apply only to `workflow_dispatch`. A path-filtered `push` always
+builds both platforms and never publishes.
 
 `prod` iOS uploads the IPA to App Store Connect with metadata and screenshots
 skipped and does **not** submit for App Review. A human submits review from App
@@ -28,17 +35,18 @@ Store Connect until listing metadata exists.
 
 The `version` job is the gate for every later job.
 
-- Marketing version is the newest git tag reachable from `HEAD` that matches
-  `vX.Y.Z`. Tags named `android-v*` and `ios-v*` are ignored so this pipeline
-  cannot version from its own GitHub releases.
+- On `workflow_dispatch`, marketing version is the newest git tag reachable from
+  `HEAD` that matches `vX.Y.Z`. Tags named `android-v*` and `ios-v*` are ignored
+  so this pipeline cannot version from its own GitHub releases. The job fails if
+  this branch has no product tag; ship a normal `ci.yml` release first.
+- On `push`, marketing version is `0.0.0` so the smoke does not need a product
+  tag.
 - Play `versionCode` and iOS `CFBundleVersion` are `GITHUB_RUN_NUMBER`.
-- The job fails if this branch has no product tag. Ship a normal `ci.yml`
-  release first.
 
-Each successful platform job creates or updates a GitHub release whose tag is
-`android-v<version>` or `ios-v<version>`, with the AAB or IPA attached. Re-running
-the same marketing version replaces those assets; the stores still accept the
-binary because the build number changed.
+Each successful **dispatched** platform job creates or updates a GitHub release
+whose tag is `android-v<version>` or `ios-v<version>`, with the AAB or IPA
+attached. Re-running the same marketing version replaces those assets; the stores
+still accept the binary because the build number changed.
 
 `ci.yml` ignores `android-v*` and `ios-v*` tag pushes so those releases do not
 start the desktop CI.
@@ -46,14 +54,19 @@ start the desktop CI.
 ## Job graph
 
 ```text
-workflow_dispatch
+push (path-filtered) or workflow_dispatch
   version (ubuntu)
     android (ubuntu)
     ios (macos-15)
 ```
 
+Push runs when `AgentUp.Mobile`, `AgentUp.DesignSystem`, `AgentUp.WebAudit`, this
+workflow, the iOS certs workflow, or the mobile helper scripts change. Changing
+only `ci.yml` does not start Mobile CI.
+
 Android failure does not cancel iOS, and the reverse. A second dispatch on the
-same ref waits; it does not cancel an in-flight store upload.
+same ref waits; it does not cancel an in-flight store upload. A newer push on the
+same ref cancels an in-flight smoke, not a dispatch.
 
 ## Signing
 
@@ -102,5 +115,5 @@ These cannot be automated in the workflow:
 4. Create the Play Console app with package `com.massivecreationlab.agentup`,
    enable Play App Signing, register the upload keystore, and grant the Play
    Developer API to the service account.
-5. Dispatch Deploy Mobile with `channel: beta` after a product `vX.Y.Z` tag
-   exists on the branch.
+5. Dispatch Mobile CI with `channel: beta` after a product `vX.Y.Z` tag exists
+   on the branch.

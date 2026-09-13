@@ -1,6 +1,23 @@
-name: Deploy Mobile
+name: Mobile CI
 
 on:
+  push:
+    tags-ignore:
+      - android-v*
+      - ios-v*
+    paths:
+      - AgentUp.Mobile/**
+      - AgentUp.DesignSystem/**
+      - AgentUp.WebAudit/**
+      - .github/workflows/mobile-ci.yaml
+      - .github/workflows/mobile-ios-certs.yaml
+      - .github/scripts/install-android-ndk.sh
+      - .github/scripts/plan-mobile-version.js
+      - .github/scripts/plan-mobile-version.test.js
+      - .github/scripts/prepare-mobile-artifact.sh
+      - .github/scripts/publish-mobile-github-release.sh
+      - .github/scripts/require-env.sh
+      - .github/scripts/verify-mobile-artifact.sh
   workflow_dispatch:
     inputs:
       channel:
@@ -21,8 +38,8 @@ on:
           - ios
 
 concurrency:
-  group: deploy-mobile-${{ github.ref }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'workflow_dispatch' && format('mobile-ci-publish-{0}', github.ref) || format('mobile-ci-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
   contents: read
@@ -40,8 +57,8 @@ jobs:
       version: ${{ steps.plan.outputs.version }}
       version_code: ${{ steps.plan.outputs.version_code }}
       source_tag: ${{ steps.plan.outputs.source_tag }}
-      channel: ${{ inputs.channel }}
-      lane: ${{ inputs.channel == 'prod' && 'release' || 'beta' }}
+      channel: ${{ github.event_name == 'workflow_dispatch' && inputs.channel || '' }}
+      lane: ${{ github.event_name == 'workflow_dispatch' && (inputs.channel == 'prod' && 'release' || 'beta') || '' }}
       artifact_name: ${{ steps.artifact.outputs.name }}
     steps:
       - uses: actions/checkout@v7
@@ -57,7 +74,14 @@ jobs:
 
       - name: Plan mobile version
         id: plan
-        run: node .github/scripts/plan-mobile-version.js
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            node .github/scripts/plan-mobile-version.js
+          else
+            echo "source_tag=ci" >> "$GITHUB_OUTPUT"
+            echo "version=0.0.0" >> "$GITHUB_OUTPUT"
+            echo "version_code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Record artifact file name
         id: artifact
@@ -66,7 +90,7 @@ jobs:
   android:
     name: Android
     needs: version
-    if: ${{ inputs.platforms == 'both' || inputs.platforms == 'android' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -98,14 +122,19 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: Require Android secrets
+      - name: Require Android signing secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
           ANDROID_KEYALIAS_NAME: ${{ secrets.ANDROID_KEYALIAS_NAME }}
           ANDROID_KEYALIAS_PASS: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+        run: bash .github/scripts/require-env.sh ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASS ANDROID_KEYALIAS_NAME ANDROID_KEYALIAS_PASS
+
+      - name: Require Play upload secrets
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-        run: bash .github/scripts/require-env.sh ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASS ANDROID_KEYALIAS_NAME ANDROID_KEYALIAS_PASS GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+        run: bash .github/scripts/require-env.sh GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
 
       - name: Install Android SDK packages
         run: |
@@ -176,6 +205,7 @@ jobs:
             "$RUNNER_TEMP/bundletool.jar"
 
       - name: Write Play service account
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -183,6 +213,7 @@ jobs:
           python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$RUNNER_TEMP/google-play.json"
 
       - name: Upload to Google Play
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         working-directory: AgentUp.Mobile
         env:
           ANDROID_AAB_PATH: ${{ github.workspace }}/artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab
@@ -191,6 +222,7 @@ jobs:
         run: bundle exec fastlane android ${{ needs.version.outputs.lane }}
 
       - name: Publish android-v GitHub release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -206,7 +238,7 @@ jobs:
   ios:
     name: iOS
     needs: version
-    if: ${{ inputs.platforms == 'both' || inputs.platforms == 'ios' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios' }}
     runs-on: macos-15
     timeout-minutes: 150
     permissions:
@@ -287,6 +319,7 @@ jobs:
             ipa
 
       - name: Upload to App Store Connect
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         working-directory: AgentUp.Mobile
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
@@ -296,6 +329,7 @@ jobs:
         run: bundle exec fastlane ios ${{ needs.version.outputs.lane }}
 
       - name: Publish ios-v GitHub release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -203,7 +203,7 @@ Cloudflare Pages must use `AgentUp.Mobile/` as its root directory, run
 `npm run build:cloudflare` as the build command, and publish `dist/`. This is
 the sole public mobile npm script that does not enter `shell.nix`, because the
 Cloudflare build image supplies Node.js but does not supply Nix. Store CI in
-`.github/workflows/deploy-mobile.yaml` likewise invokes Expo and Fastlane
+`.github/workflows/mobile-ci.yaml` likewise invokes Expo and Fastlane
 directly on GitHub-hosted runners; do not add public npm scripts for those
 commands. The export
 entrypoint passes Agent-Up audit environment variables into the Metro bundle
