@@ -8,14 +8,11 @@ public sealed class ApplicationProxyOriginMapper : IApplicationProxyOriginMapper
         => HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method);
 
     public string OriginRelativeUrl(HttpContext context, string path)
-    {
-        var relative = string.IsNullOrEmpty(path) ? "/" : path.StartsWith('/') ? path : "/" + path;
-        return relative + context.Request.QueryString.Value;
-    }
+        => Normalize(path) + context.Request.QueryString.Value;
 
     public void ApplyApplicationPath(HttpContext context, string path)
-    {
-        var relative = string.IsNullOrEmpty(path) ? "/" : path.StartsWith('/') ? path : "/" + path;
-        context.Request.Path = relative;
-    }
+        => context.Request.Path = Normalize(path);
+
+    private static string Normalize(string path)
+        => string.IsNullOrEmpty(path) ? "/" : "/" + path.TrimStart('/');
 }

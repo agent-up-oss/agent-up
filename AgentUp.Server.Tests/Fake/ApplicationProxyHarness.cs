@@ -37,7 +37,7 @@ internal sealed class StubTimeProvider : TimeProvider
 
 internal static class ApplicationProxyHarness
 {
-    public static async Task<(ApplicationProxyService Service, string WorkspaceId, int Port, FakeLoopbackHttpPortProbe Probe, FakeApplicationHttpForwarder Forwarder, StubTimeProvider Clock)> CreateAsync(
+    public static async Task<(ApplicationProxyService Service, string WorkspaceId, int Port, FakeLoopbackHttpPortProbe Probe, FakeApplicationHttpForwarder Forwarder, StubTimeProvider Clock, AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyTicketStore Tickets)> CreateAsync(
         string protocol = "http",
         bool portOpen = true)
     {
@@ -60,7 +60,7 @@ internal static class ApplicationProxyHarness
             probe.OpenPorts.Add(port);
         var forwarder = new FakeApplicationHttpForwarder();
         var clock = new StubTimeProvider();
-        var tickets = new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyTicketStore();
+        var tickets = new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyTicketStore(clock);
         var cookies = new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyCookieProtector(
             new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider());
         var credentials = new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyCredentials(cookies);
@@ -74,6 +74,6 @@ internal static class ApplicationProxyHarness
             forwarder,
             new AgentUp.Server.Features.ApplicationProxy.Providers.ApplicationProxyErrorWriter(),
             clock);
-        return (service, workspace.Id, port, probe, forwarder, clock);
+        return (service, workspace.Id, port, probe, forwarder, clock, tickets);
     }
 }

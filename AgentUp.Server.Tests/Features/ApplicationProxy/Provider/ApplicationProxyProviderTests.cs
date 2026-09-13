@@ -2,8 +2,11 @@ using System.Net;
 using System.Net.Sockets;
 using AgentUp.Server.Features.ApplicationProxy.Models;
 using AgentUp.Server.Features.ApplicationProxy.Providers;
+using AgentUp.Server.Tests.Fake;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
+using Yarp.ReverseProxy.Forwarder;
 
 namespace AgentUp.Server.Tests.Features.ApplicationProxy.Provider;
 
@@ -29,6 +32,25 @@ public sealed class ApplicationProxyTicketStoreTests
         var ticket = store.Issue(session);
 
         Assert.That(store.Consume(ticket, session.ExpiresAt.AddSeconds(1)), Is.Null);
+    }
+
+    [Test]
+    public void Issue_evictsAbandonedExpiredTickets()
+    {
+        var clock = new StubTimeProvider { UtcNow = new DateTimeOffset(2026, 9, 13, 12, 0, 0, TimeSpan.Zero) };
+        var store = new ApplicationProxyTicketStore(clock);
+        var stale = store.Issue(new ApplicationProxySession
+        {
+            WorkspaceId = "workspace-1",
+            AllocatedPort = 1,
+            ExpiresAt = clock.UtcNow.AddSeconds(-1)
+        });
+
+        clock.UtcNow = clock.UtcNow.AddMinutes(1);
+        var fresh = store.Issue(SessionFactory.Session(2));
+
+        Assert.That(store.Consume(stale, clock.UtcNow), Is.Null);
+        Assert.That(store.Consume(fresh, clock.UtcNow.AddMinutes(-1))!.AllocatedPort, Is.EqualTo(2));
     }
 }
 
@@ -56,6 +78,28 @@ public sealed class ApplicationProxyCookieProtectorTests
         Assert.That(protector.Unprotect("", DateTimeOffset.UtcNow), Is.Null);
         Assert.That(protector.Unprotect("not-protected", DateTimeOffset.UtcNow), Is.Null);
     }
+
+    [Test]
+    public void Unprotect_rejectsMalformedPayloads()
+    {
+        var provider = new EphemeralDataProtectionProvider();
+        var protector = new ApplicationProxyCookieProtector(provider);
+        var inner = provider.CreateProtector("AgentUp.ApplicationProxy.v1");
+        var now = DateTimeOffset.UtcNow;
+
+        Assert.That(protector.Unprotect(inner.Protect("workspace"), now), Is.Null);
+        Assert.That(protector.Unprotect(inner.Protect("workspace\nnot-a-port\n1"), now), Is.Null);
+        Assert.That(protector.Unprotect(inner.Protect("workspace\n0\n1"), now), Is.Null);
+        Assert.That(protector.Unprotect(inner.Protect("workspace\n8080\nnot-a-unix-time"), now), Is.Null);
+    }
+
+    [Test]
+    public void Unprotect_returnsNullWhenUnprotectThrowsFormatException()
+    {
+        var protector = new ApplicationProxyCookieProtector(new FormatThrowingProtection());
+
+        Assert.That(protector.Unprotect("token", DateTimeOffset.UtcNow), Is.Null);
+    }
 }
 
 [TestFixture]
@@ -78,6 +122,15 @@ public sealed class LoopbackHttpPortProbeTests
     public void IsListening_rejectsOutOfRangePorts()
     {
         Assert.That(new LoopbackHttpPortProbe().IsListening(0), Is.False);
+    }
+
+    [Test]
+    public void IsListening_rejectsPortsOutsideTheTcpRange()
+    {
+        var probe = new LoopbackHttpPortProbe();
+
+        Assert.That(probe.IsListening(-1), Is.False);
+        Assert.That(probe.IsListening(65536), Is.False);
     }
 }
 
@@ -108,6 +161,17 @@ public sealed class ApplicationProxyOriginMapperTests
         mapper.ApplyApplicationPath(context, "assets/app.js");
         Assert.That(context.Request.Path.Value, Is.EqualTo("/assets/app.js"));
     }
+
+    [Test]
+    public void OriginRelativeUrl_collapsesLeadingSlashesToStayOnTheServerOrigin()
+    {
+        var mapper = new ApplicationProxyOriginMapper();
+        var context = new DefaultHttpContext();
+
+        Assert.That(mapper.OriginRelativeUrl(context, "//evil.example/phish"), Is.EqualTo("/evil.example/phish"));
+        mapper.ApplyApplicationPath(context, "//cdn.example/app.js");
+        Assert.That(context.Request.Path.Value, Is.EqualTo("/cdn.example/app.js"));
+    }
 }
 
 [TestFixture]
@@ -126,6 +190,16 @@ public sealed class ApplicationProxyCsrfGuardTests
     }
 
     [Test]
+    public void IsForeignOrigin_blocksWritesFromADifferentPortOnTheSameHost()
+    {
+        var guard = new ApplicationProxyCsrfGuard();
+        var context = WriteContext(HttpMethods.Post, "https://agent.example:8443");
+        context.Request.Host = new HostString("agent.example");
+
+        Assert.That(guard.IsForeignOrigin(context), Is.True);
+    }
+
+    [Test]
     public void IsForeignOrigin_blocksCrossSiteWrites()
     {
         var guard = new ApplicationProxyCsrfGuard();
@@ -140,6 +214,8 @@ public sealed class ApplicationProxyCsrfGuardTests
         var context = new DefaultHttpContext();
         context.Request.Method = method;
         context.Request.Headers.Origin = origin;
+        if (Uri.TryCreate(origin, UriKind.Absolute, out var parsed))
+            context.Request.Scheme = parsed.Scheme;
         return context;
     }
 }
@@ -156,7 +232,7 @@ public sealed class ApplicationProxyRequestTransformerTests
         context.Request.Path = "/";
         context.Request.Headers.Authorization = "Bearer secret";
         context.Request.Headers.Cookie = "agent-up-proxy=hidden; theme=dark";
-        var proxyRequest = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:10100/");
+        using var proxyRequest = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:10100/");
 
         await transformer.TransformRequestAsync(context, proxyRequest, "http://127.0.0.1:10100", CancellationToken.None);
 
@@ -185,6 +261,124 @@ public sealed class ApplicationProxyRequestTransformerTests
         Assert.That(context.Response.Headers.ContentSecurityPolicy.ToString(), Does.Not.Contain("frame-ancestors"));
         Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain("Domain="));
     }
+
+    [Test]
+    public async Task TransformRequestAsync_leavesRequestsWithoutCookiesUnchanged()
+    {
+        var transformer = new ApplicationProxyRequestTransformer();
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Path = "/";
+        using var proxyRequest = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:10100/");
+
+        await transformer.TransformRequestAsync(context, proxyRequest, "http://127.0.0.1:10100", CancellationToken.None);
+
+        Assert.That(proxyRequest.Headers.Contains("Cookie"), Is.False);
+    }
+
+    [Test]
+    public async Task TransformResponseAsync_keepsRelativeAndNonLoopbackLocations()
+    {
+        var transformer = new ApplicationProxyRequestTransformer();
+        var missingPort = new DefaultHttpContext();
+        missingPort.Request.Scheme = "https";
+        missingPort.Request.Host = new HostString("agent.example");
+        using var relative = new HttpResponseMessage(HttpStatusCode.Found);
+        relative.Headers.Location = new Uri("/login", UriKind.Relative);
+        var relativeContext = new DefaultHttpContext();
+        relativeContext.Request.Scheme = "https";
+        relativeContext.Request.Host = new HostString("agent.example");
+        relativeContext.Items[ApplicationProxyConstants.DestinationPortItem] = 10100;
+        var external = new DefaultHttpContext();
+        external.Request.Scheme = "https";
+        external.Request.Host = new HostString("agent.example");
+        external.Items[ApplicationProxyConstants.DestinationPortItem] = 10100;
+        using var externalResponse = new HttpResponseMessage(HttpStatusCode.Found);
+        externalResponse.Headers.Location = new Uri("https://example.test/login");
+
+        await transformer.TransformResponseAsync(missingPort, relative, CancellationToken.None);
+        await transformer.TransformResponseAsync(relativeContext, relative, CancellationToken.None);
+        await transformer.TransformResponseAsync(external, externalResponse, CancellationToken.None);
+        await transformer.TransformResponseAsync(external, null, CancellationToken.None);
+
+        Assert.That(missingPort.Response.Headers.Location.ToString(), Is.EqualTo("/login"));
+        Assert.That(relativeContext.Response.Headers.Location.ToString(), Is.EqualTo("/login"));
+        Assert.That(external.Response.Headers.Location.ToString(), Is.EqualTo("https://example.test/login"));
+    }
+}
+
+[TestFixture]
+public sealed class ApplicationHttpForwarderTests
+{
+    [Test]
+    public async Task ForwardAsync_returnsWhenTheProxyCompletes()
+    {
+        var yarp = new FakeYarpHttpForwarder();
+        using var forwarder = new ApplicationHttpForwarder(yarp, HttpTransformer.Default);
+        var context = new DefaultHttpContext();
+
+        await forwarder.ForwardAsync(context, 10100);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        Assert.That(context.Items[ApplicationProxyConstants.DestinationPortItem], Is.EqualTo(10100));
+    }
+
+    [Test]
+    public async Task ForwardAsync_writesBadGatewayWhenTheForwarderReportsAnError()
+    {
+        var yarp = new FakeYarpHttpForwarder { Error = ForwarderError.RequestTimedOut };
+        using var forwarder = new ApplicationHttpForwarder(yarp, HttpTransformer.Default);
+        var context = new DefaultHttpContext();
+
+        await forwarder.ForwardAsync(context, 10100);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status502BadGateway));
+    }
+
+    [Test]
+    public async Task ForwardAsync_doesNotOverwriteAResponseThatAlreadyStarted()
+    {
+        var yarp = new FakeYarpHttpForwarder { Error = ForwarderError.RequestTimedOut, StartResponse = true };
+        using var forwarder = new ApplicationHttpForwarder(yarp, HttpTransformer.Default);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await forwarder.ForwardAsync(context, 10100);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+    }
+
+    [TestCase(typeof(HttpRequestException))]
+    [TestCase(typeof(SocketException))]
+    [TestCase(typeof(IOException))]
+    public async Task ForwardAsync_writesUnavailableWhenTheDestinationCannotBeReached(Type exceptionType)
+    {
+        var yarp = new FakeYarpHttpForwarder { Exception = (Exception)Activator.CreateInstance(exceptionType)! };
+        using var forwarder = new ApplicationHttpForwarder(yarp, HttpTransformer.Default);
+        var context = new DefaultHttpContext();
+
+        await forwarder.ForwardAsync(context, 10100);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status502BadGateway));
+        Assert.That(context.Response.Headers.CacheControl.ToString(), Is.EqualTo("no-store"));
+    }
+
+    [Test]
+    public async Task ForwardAsync_ignoresDestinationFailuresAfterTheResponseHasStarted()
+    {
+        var yarp = new FakeYarpHttpForwarder
+        {
+            Exception = new IOException("reset"),
+            StartResponse = true
+        };
+        using var forwarder = new ApplicationHttpForwarder(yarp, HttpTransformer.Default);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await forwarder.ForwardAsync(context, 10100);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+    }
 }
 
 file static class SessionFactory
@@ -196,4 +390,61 @@ file static class SessionFactory
             AllocatedPort = port,
             ExpiresAt = new DateTimeOffset(2026, 9, 13, 13, 0, 0, TimeSpan.Zero)
         };
+}
+
+file sealed class FormatThrowingProtection : IDataProtectionProvider, IDataProtector
+{
+    public IDataProtector CreateProtector(string purpose) => this;
+
+    public byte[] Protect(byte[] plaintext) => plaintext;
+
+    public byte[] Unprotect(byte[] protectedData) => throw new FormatException();
+}
+
+file sealed class FakeYarpHttpForwarder : IHttpForwarder
+{
+    public ForwarderError Error { get; set; } = ForwarderError.None;
+    public Exception? Exception { get; set; }
+    public bool StartResponse { get; set; }
+
+    public ValueTask<ForwarderError> SendAsync(
+        HttpContext context,
+        string destinationPrefix,
+        HttpMessageInvoker httpClient,
+        ForwarderRequestConfig requestConfig,
+        HttpTransformer transformer)
+        => SendAsync(context, destinationPrefix, httpClient, requestConfig, transformer, CancellationToken.None);
+
+    public ValueTask<ForwarderError> SendAsync(
+        HttpContext context,
+        string destinationPrefix,
+        HttpMessageInvoker httpClient,
+        ForwarderRequestConfig requestConfig,
+        HttpTransformer transformer,
+        CancellationToken cancellationToken)
+    {
+        if (StartResponse)
+            context.Features.Set<IHttpResponseFeature>(new StartedHttpResponseFeature(context.Response));
+        if (Exception is not null)
+            throw Exception;
+        return ValueTask.FromResult(Error);
+    }
+}
+
+file sealed class StartedHttpResponseFeature : IHttpResponseFeature
+{
+    public StartedHttpResponseFeature(HttpResponse response)
+    {
+        StatusCode = response.StatusCode;
+        Headers = response.Headers;
+        Body = response.Body;
+    }
+
+    public int StatusCode { get; set; }
+    public string? ReasonPhrase { get; set; }
+    public IHeaderDictionary Headers { get; set; }
+    public Stream Body { get; set; }
+    public bool HasStarted => true;
+    public void OnStarting(Func<object, Task> callback, object state) { }
+    public void OnCompleted(Func<object, Task> callback, object state) { }
 }

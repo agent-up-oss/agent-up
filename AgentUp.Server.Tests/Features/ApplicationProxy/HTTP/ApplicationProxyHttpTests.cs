@@ -74,7 +74,8 @@ public sealed class ApplicationProxyHttpTests
         var ticket = await IssueTicketAsync(client, workspace.Id, port);
         var page = await client.GetStringAsync($"{ticket.BootstrapPath}?ticket={ticket.Ticket}");
         var asset = await client.GetStringAsync("/assets/app.js");
-        using var echo = await client.PostAsync("/echo", new StringContent("ping-body"));
+        using var ping = new StringContent("ping-body");
+        using var echo = await client.PostAsync("/echo", ping);
         var echoed = await echo.Content.ReadAsStringAsync();
         var authorization = await client.GetStringAsync("/incoming-authorization");
 

@@ -18,6 +18,23 @@ public sealed class ApplicationProxyCsrfGuard : IApplicationProxyCsrfGuard
             return false;
 
         return !Uri.TryCreate(origin, UriKind.Absolute, out var parsed)
-               || !string.Equals(parsed.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase);
+               || !OriginsMatch(parsed, context.Request);
     }
+
+    private static bool OriginsMatch(Uri origin, HttpRequest request)
+    {
+        if (!string.Equals(origin.Scheme, request.Scheme, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (!string.Equals(origin.Host, request.Host.Host, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var originPort = origin.IsDefaultPort ? DefaultPort(origin.Scheme) : origin.Port;
+        var requestPort = request.Host.Port ?? DefaultPort(request.Scheme);
+        return originPort == requestPort;
+    }
+
+    private static int DefaultPort(string scheme)
+        => string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ? 443
+            : string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ? 80
+            : -1;
 }

@@ -63,7 +63,7 @@ public sealed class HeadlessBrowserCommandDispatcher(
 
             if (command is null) continue;
 
-            _ = Task.Run(() => ExecuteAndCompleteAsync(command, ct), ct);
+            _ = Task.Run(() => ExecuteAndCompleteAsync(command, ct));
         }
     }
 
@@ -77,7 +77,9 @@ public sealed class HeadlessBrowserCommandDispatcher(
         try { await gate.WaitAsync(executionToken); }
         catch (OperationCanceledException)
         {
-            store.CompleteCommand(Fail(command, "Browser navigation was superseded by a newer request."));
+            store.CompleteCommand(Fail(command, ct.IsCancellationRequested
+                ? "Browser command was cancelled during shutdown."
+                : "Browser navigation was superseded by a newer request."));
             return;
         }
 

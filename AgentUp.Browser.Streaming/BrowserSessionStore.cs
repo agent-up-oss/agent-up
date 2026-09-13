@@ -18,8 +18,6 @@ public sealed class BrowserSessionStore
         var tcs = new TaskCompletionSource<BrowserCommandResultDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         _pending[command.CommandId] = tcs;
-        if (command.Kind == BrowserCommandKind.Navigate)
-            RegisterNavigation(command, ct);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
         linked.CancelAfter(timeout);
 
@@ -48,6 +46,9 @@ public sealed class BrowserSessionStore
             _pending.TryRemove(command.CommandId, out _);
             return Timeout(command);
         }
+
+        if (command.Kind == BrowserCommandKind.Navigate)
+            RegisterNavigation(command, ct);
 
         try
         {
@@ -100,11 +101,16 @@ public sealed class BrowserSessionStore
     }
 
     public CancellationToken SupersessionToken(BrowserCommandDto command)
-        => command.Kind == BrowserCommandKind.Navigate
-           && _latestNavigations.TryGetValue(command.WorkspaceId, out var request)
-           && request.CommandId == command.CommandId
-            ? request.Cancellation.Token
-            : new CancellationToken(canceled: command.Kind == BrowserCommandKind.Navigate);
+    {
+        if (command.Kind != BrowserCommandKind.Navigate)
+            return CancellationToken.None;
+        if (_latestNavigations.TryGetValue(command.WorkspaceId, out var request)
+            && request.CommandId == command.CommandId)
+            return request.Cancellation.Token;
+        return _latestNavigations.ContainsKey(command.WorkspaceId)
+            ? new CancellationToken(canceled: true)
+            : CancellationToken.None;
+    }
 
     private void RegisterNavigation(BrowserCommandDto command, CancellationToken requestCancellation)
     {
@@ -117,7 +123,6 @@ public sealed class BrowserSessionStore
             (_, previous) =>
             {
                 previous.Cancellation.Cancel();
-                previous.Cancellation.Dispose();
                 return replacement;
             });
     }

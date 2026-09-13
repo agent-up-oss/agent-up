@@ -29,6 +29,36 @@ public sealed class BrowserSessionStoreSupersessionTests
     }
 
     [Test]
+    public async Task FailedEnqueueDoesNotSupersedeAPreviouslyQueuedNavigation()
+    {
+        var store = new BrowserSessionStore();
+        var first = Navigate("workspace");
+        _ = store.DispatchAsync(first, TimeSpan.FromSeconds(5), CancellationToken.None);
+        var firstToken = store.SupersessionToken(first);
+        for (var i = 0; i < 9; i++)
+            _ = store.DispatchAsync(Click("workspace"), TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        var result = await store.DispatchAsync(Navigate("workspace"), TimeSpan.FromMilliseconds(40), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstToken.IsCancellationRequested, Is.False);
+            Assert.That(result.Error, Does.Contain("timed out"));
+        });
+    }
+
+    [Test]
+    public void ConcurrentNavigationsDoNotDisposeCancellationSourcesWhileCallbacksRun()
+    {
+        var store = new BrowserSessionStore();
+
+        Assert.DoesNotThrow(() => Parallel.For(0, 32, _ =>
+        {
+            var pending = store.DispatchAsync(Navigate("workspace"), TimeSpan.FromSeconds(1), CancellationToken.None);
+        }));
+    }
+
+    [Test]
     public async Task CallerCancellationCancelsNavigationExecution()
     {
         var store = new BrowserSessionStore();
@@ -49,4 +79,7 @@ public sealed class BrowserSessionStoreSupersessionTests
 
     private static BrowserCommandDto Navigate(string workspaceId) =>
         new(Guid.NewGuid(), workspaceId, BrowserCommandKind.Navigate, "http://127.0.0.1:5000", null, null, null, 100);
+
+    private static BrowserCommandDto Click(string workspaceId) =>
+        new(Guid.NewGuid(), workspaceId, BrowserCommandKind.Click, null, "#save", null, null, 100);
 }

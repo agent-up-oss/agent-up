@@ -141,8 +141,11 @@ and require HTTPS outside loopback hosts.
 Allocated HTTP application ports stay bound on the Server host. Remote clients
 reach them through `POST /api/apps/tickets` and the `/apps/{workspaceId}/{port}`
 bootstrap, which sets an HttpOnly cookie and reverse-proxies unmatched paths
-to `http://127.0.0.1:{port}`. That cookie does not authorize REST or MCP
-routes. Only currently listening allocated HTTP ports are forwarded.
+to `http://127.0.0.1:{port}`. Bootstrap redirects stay on the Server origin.
+Unsafe proxied writes require an Origin that matches the Server scheme, host,
+and port. Abandoned tickets expire after 30 seconds and are evicted on later
+issue or consume. That cookie does not authorize REST or MCP routes. Only
+currently listening allocated HTTP ports are forwarded.
 
 The REST API permits cross-origin browser requests from any HTTP or HTTPS
 origin, so the Mobile web/PWA client can reach a Server the user points it at

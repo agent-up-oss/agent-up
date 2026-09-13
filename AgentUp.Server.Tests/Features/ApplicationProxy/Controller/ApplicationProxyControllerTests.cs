@@ -12,7 +12,7 @@ public sealed class ApplicationProxyTicketsControllerTests
     [Test]
     public async Task Issue_returnsTheTicketForAnOpenHttpPort()
     {
-        var (service, workspaceId, port, _, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
         var controller = new ApplicationProxyTicketsController(service);
 
         var result = controller.Issue(new ApplicationProxyTicketRequest(workspaceId, port));
@@ -25,7 +25,7 @@ public sealed class ApplicationProxyTicketsControllerTests
     [Test]
     public async Task Issue_returnsAProblemWhenThePortIsClosed()
     {
-        var (service, workspaceId, port, _, _, _) = await ApplicationProxyHarness.CreateAsync(portOpen: false);
+        var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync(portOpen: false);
         var controller = new ApplicationProxyTicketsController(service);
 
         var result = controller.Issue(new ApplicationProxyTicketRequest(workspaceId, port));
@@ -40,7 +40,7 @@ public sealed class ApplicationProxyControllerTests
     [Test]
     public async Task OpenRoot_redirectsAValidTicketToTheOriginRoot()
     {
-        var (service, workspaceId, port, _, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
         var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port)).Response!.Ticket;
         var controller = new ApplicationProxyController(service)
         {
@@ -56,9 +56,27 @@ public sealed class ApplicationProxyControllerTests
     }
 
     [Test]
+    public async Task Open_redirectsAValidTicketToTheRequestedApplicationPath()
+    {
+        var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port)).Response!.Ticket;
+        var controller = new ApplicationProxyController(service)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+        controller.HttpContext.Request.Method = HttpMethods.Get;
+        controller.HttpContext.Request.QueryString = QueryString.Create(new Dictionary<string, string?> { ["ticket"] = ticket });
+
+        await controller.Open(workspaceId, port, "login");
+
+        Assert.That(controller.HttpContext.Response.StatusCode, Is.EqualTo(StatusCodes.Status302Found));
+        Assert.That(controller.HttpContext.Response.Headers.Location.ToString(), Is.EqualTo("/login"));
+    }
+
+    [Test]
     public async Task ForwardFallback_returnsNotFoundWithoutASessionCookie()
     {
-        var (service, _, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var (service, _, _, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
         var controller = new ApplicationProxyFallbackController(service);
         var context = new DefaultHttpContext();
 
