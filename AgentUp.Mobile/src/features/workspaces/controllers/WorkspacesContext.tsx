@@ -26,7 +26,7 @@ type WorkspacesController = {
 const Context = createContext<WorkspacesController | null>(null);
 
 export function WorkspacesProvider({ children }: PropsWithChildren) {
-  const { activeServer } = useServers();
+  const { activeServer, expireActiveCredential, requiresSignIn } = useServers();
   // The URL and the token both matter to a request, so the effect below re-runs when either
   // changes: signing in must reload the workspaces that were refused while unauthenticated.
   const serverUrl = activeServer?.url ?? null;
@@ -60,6 +60,12 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
       setWorkspaces([]);
       setError(message);
     },
+    onUnauthorized: () => {
+      expireActiveCredential();
+      setWorkspaces([]);
+      setSelectedId(null);
+      setError(null);
+    },
     onDisconnected: () => {
       setWorkspaces([]);
       setSelectedId(null);
@@ -76,7 +82,10 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
 
   const refresh = useCallback(() => refresherRef.current!.refresh(server), [server]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (requiresSignIn) return;
+    void refresh();
+  }, [refresh, requiresSignIn]);
 
   const controller = useMemo<WorkspacesController>(() => ({
     server,

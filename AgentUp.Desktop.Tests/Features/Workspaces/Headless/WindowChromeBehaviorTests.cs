@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 using AgentUp.Desktop.Shared.Models;
 
@@ -118,5 +119,38 @@ public class WindowChromeBehaviorTests
 
         Assert.That(ChromeTestSupport.FindDescendantByName<TextBlock>(app.Window, "ServerStatusText")?.Text, Is.EqualTo("SERVER OFFLINE"));
         Assert.That(ChromeTestSupport.FindDescendantByName<Border>(app.Window, "ServerStatusBadge")?.BorderBrush?.ToString(), Is.EqualTo("#ffd84f4f"));
+    }
+
+    [AvaloniaTest]
+    public async Task ServerBadge_opensTheSwitcher()
+    {
+        var app = await AppDriver.LaunchEmptyAsync();
+        var badge = ChromeTestSupport.FindDescendantByName<Border>(app.Window, "ServerStatusBadge")
+            ?? throw new InvalidOperationException("Server status badge was not found.");
+        var button = badge.GetVisualAncestors().OfType<Button>().FirstOrDefault()
+            ?? throw new InvalidOperationException("Server status button was not found.");
+
+        await app.Window.ClickControlAsync(button);
+
+        var vm = (MainViewModel)app.Window.DataContext!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Login.IsVisible, Is.True);
+            Assert.That(vm.Login.IsSwitcher, Is.True);
+            Assert.That(vm.Login.Title, Is.EqualTo("Switch server"));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task ResetBrowserSession_rebindsAuthenticatedServicesWithoutThrowing()
+    {
+        var app = await AppDriver.LaunchEmptyAsync();
+        var vm = (MainViewModel)app.Window.DataContext!;
+
+        vm.ResetLocalSession();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(vm.Login.CurrentServerUrl, Is.Not.Empty);
+        Assert.That(vm.Sidebar.Workspaces, Is.Empty);
     }
 }

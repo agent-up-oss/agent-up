@@ -20,6 +20,12 @@ public sealed class SecureServerUrlProviderTests
     }
 
     [Test]
+    public void Normalize_TrimsTrailingSlash()
+    {
+        Assert.That(SecureServerUrlProvider.Normalize("http://localhost:5000/"), Is.EqualTo("http://localhost:5000"));
+    }
+
+    [Test]
     public void ResolveServerUri_RejectsRemoteHttp()
     {
         Assert.Throws<InvalidOperationException>(() =>

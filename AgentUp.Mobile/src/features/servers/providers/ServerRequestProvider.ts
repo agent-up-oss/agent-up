@@ -102,3 +102,7 @@ export function toReadableError(error: unknown, serverUrl: string): Error {
     return new Error(`Could not reach ${serverUrl}. Check that Agent-Up Server is running and reachable from this device.`);
   return error instanceof Error ? error : new Error(String(error));
 }
+
+export function isUnauthorized(error: unknown): boolean {
+  return error instanceof ServerRequestError && error.status === 401;
+}
