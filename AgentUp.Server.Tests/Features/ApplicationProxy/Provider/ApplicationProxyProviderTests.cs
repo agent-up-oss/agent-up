@@ -205,20 +205,28 @@ public sealed class ApplicationProxyOriginMapperTests
 public sealed class ApplicationProxyTransportGuardTests
 {
     [Test]
-    public void AllowsCredentials_acceptsHttpsAndLoopbackHttp()
+    public void AllowsCredentials_requiresTlsOrALoopbackPeer()
     {
         var guard = new ApplicationProxyTransportGuard();
-        var https = new DefaultHttpContext();
-        https.Request.Scheme = "https";
-        https.Request.Host = new HostString("agent.example");
-        var loopback = ApplicationProxyHarness.LoopbackContext();
+        var claimedHttps = new DefaultHttpContext();
+        claimedHttps.Request.Scheme = "https";
+        claimedHttps.Request.Host = new HostString("agent.example");
+        var missingPeer = ApplicationProxyHarness.LoopbackContext();
+        missingPeer.Connection.RemoteIpAddress = null;
+        var spoofedHost = new DefaultHttpContext();
+        spoofedHost.Request.Scheme = "http";
+        spoofedHost.Request.Host = new HostString("localhost");
+        spoofedHost.Connection.RemoteIpAddress = IPAddress.Parse("192.168.1.20");
         var remoteHttp = new DefaultHttpContext();
         remoteHttp.Request.Scheme = "http";
         remoteHttp.Request.Host = new HostString("192.168.1.20");
         remoteHttp.Connection.RemoteIpAddress = IPAddress.Parse("192.168.1.20");
 
-        Assert.That(guard.AllowsCredentials(https), Is.True);
-        Assert.That(guard.AllowsCredentials(loopback), Is.True);
+        Assert.That(guard.AllowsCredentials(ApplicationProxyHarness.TlsContext()), Is.True);
+        Assert.That(guard.AllowsCredentials(ApplicationProxyHarness.LoopbackContext()), Is.True);
+        Assert.That(guard.AllowsCredentials(claimedHttps), Is.False);
+        Assert.That(guard.AllowsCredentials(missingPeer), Is.False);
+        Assert.That(guard.AllowsCredentials(spoofedHost), Is.False);
         Assert.That(guard.AllowsCredentials(remoteHttp), Is.False);
     }
 }
@@ -292,6 +300,17 @@ public sealed class ApplicationProxyCsrfGuardTests
     {
         var guard = new ApplicationProxyCsrfGuard();
         var context = WriteContext(HttpMethods.Post, "https://evil.example");
+        context.Request.Host = new HostString("agent.example");
+
+        Assert.That(guard.IsForeignOrigin(context), Is.True);
+    }
+
+    [Test]
+    public void IsForeignOrigin_blocksUnsafeRequestsWithoutOrigin()
+    {
+        var guard = new ApplicationProxyCsrfGuard();
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Post;
         context.Request.Host = new HostString("agent.example");
 
         Assert.That(guard.IsForeignOrigin(context), Is.True);

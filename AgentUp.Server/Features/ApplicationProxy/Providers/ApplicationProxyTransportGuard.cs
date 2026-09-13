@@ -1,12 +1,20 @@
 using System.Net;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace AgentUp.Server.Features.ApplicationProxy.Providers;
 
 public sealed class ApplicationProxyTransportGuard : IApplicationProxyTransportGuard
 {
     public bool AllowsCredentials(HttpContext context)
-        => context.Request.IsHttps || (IsLoopbackHost(context.Request.Host.Host) && IsLoopbackAddress(context.Connection.RemoteIpAddress));
+        => HasTlsConnection(context) || IsLoopbackPeer(context);
+
+    private static bool HasTlsConnection(HttpContext context)
+        => context.Features.Get<ITlsConnectionFeature>() is not null;
+
+    private static bool IsLoopbackPeer(HttpContext context)
+        => IsLoopbackHost(context.Request.Host.Host)
+           && IsLoopbackAddress(context.Connection.RemoteIpAddress);
 
     private static bool IsLoopbackHost(string host)
     {
@@ -18,5 +26,5 @@ public sealed class ApplicationProxyTransportGuard : IApplicationProxyTransportG
     }
 
     private static bool IsLoopbackAddress(IPAddress? address)
-        => address is null || IPAddress.IsLoopback(address);
+        => address is not null && IPAddress.IsLoopback(address);
 }

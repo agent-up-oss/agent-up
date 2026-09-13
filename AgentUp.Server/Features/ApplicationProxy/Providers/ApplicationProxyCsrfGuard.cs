@@ -13,9 +13,9 @@ public sealed class ApplicationProxyCsrfGuard : IApplicationProxyCsrfGuard
             return false;
         }
 
-        var origin = context.Request.Headers.Origin.ToString();
+        var origin = context.Request.Headers.Origin;
         if (string.IsNullOrEmpty(origin))
-            return false;
+            return true;
 
         return !Uri.TryCreate(origin, UriKind.Absolute, out var parsed)
                || !OriginsMatch(parsed, context.Request);

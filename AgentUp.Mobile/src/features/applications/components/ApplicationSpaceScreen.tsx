@@ -5,7 +5,7 @@ import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
-import { applicationProxySource, issueApplicationProxyTicket, type ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
+import { applicationHttpPort, applicationProxySource, issueApplicationProxyTicket, type ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
 import { waitForDesktopViewerUrl } from '../providers/DesktopViewerProvider';
 import { DesktopStreamView } from './DesktopStreamView';
 import { RemoteBrowser } from './RemoteBrowser';
@@ -24,15 +24,19 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
   const { server } = useWorkspaces();
   const { activeServer } = useServers();
   const application = workspace.applications?.find(entry => entry.name === applicationName);
+  const allocatedHttpPort = application ? applicationHttpPort(application) : null;
+  const applicationKind = application?.kind;
   const [source, setSource] = useState<ApplicationProxySource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const applicationState = useRef(application?.state);
+  const applicationRef = useRef(application);
   applicationState.current = application?.state;
+  applicationRef.current = application;
 
   useEffect(() => {
-    if (application?.kind !== 'Desktop' || !activeServer) return;
+    if (applicationKind !== 'Desktop' || !activeServer) return;
     const controller = new AbortController();
     setViewerUrl(null);
     setViewerError(null);
@@ -46,25 +50,26 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
         setViewerError(caught instanceof Error ? caught.message : String(caught));
       });
     return () => controller.abort();
-  }, [activeServer, application?.kind, applicationName, workspace.id]);
+  }, [activeServer, applicationKind, applicationName, workspace.id]);
 
   useEffect(() => {
-    if (application?.kind === 'Desktop') return;
+    if (applicationKind === 'Desktop') return;
     let active = true;
     const request = new AbortController();
     setSource(null);
     setError(null);
-    if (!server || !application) {
-      setError(application ? 'No Server connection is available.' : 'The application no longer exists.');
+    const current = applicationRef.current;
+    if (!server || !current) {
+      setError(current ? 'No Server connection is available.' : 'The application no longer exists.');
       return () => { active = false; request.abort(); };
     }
-    void issueApplicationProxyTicket(server, workspace.id, application, fetch, request.signal)
+    void issueApplicationProxyTicket(server, workspace.id, current, fetch, request.signal)
       .then(ticket => { if (active) setSource(applicationProxySource(server, ticket)); })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); });
     return () => { active = false; request.abort(); };
-  }, [server, workspace.id, application]);
+  }, [server, workspace.id, applicationName, allocatedHttpPort, applicationKind]);
 
-  if (application?.kind === 'Desktop') {
+  if (applicationKind === 'Desktop') {
     if (viewerError) {
       return (
         <View style={styles.center}>

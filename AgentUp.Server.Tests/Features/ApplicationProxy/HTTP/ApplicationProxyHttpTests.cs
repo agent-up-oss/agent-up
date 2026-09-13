@@ -10,9 +10,11 @@ using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Tests.Features.ApplicationProxy.HTTP;
@@ -30,9 +32,7 @@ public sealed class ApplicationProxyHttpTests
     [SetUp]
     public void SetUp()
     {
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?> { ["AGENTUP_AUTH_DISABLED"] = "true" })));
+        _factory = CreateFactory(new Dictionary<string, string?> { ["AGENTUP_AUTH_DISABLED"] = "true" });
     }
 
     [TearDown]
@@ -41,9 +41,7 @@ public sealed class ApplicationProxyHttpTests
     [Test]
     public async Task Tickets_requireAuthenticationWhenTheServerEnforcesLogin()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
+        using var factory = CreateFactory(new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" });
         using var client = factory.CreateClient();
 
         var anonymous = await client.PostAsJsonAsync("/api/apps/tickets", new ApplicationProxyTicketRequest("ws", 10100));
@@ -76,7 +74,9 @@ public sealed class ApplicationProxyHttpTests
         var page = await bootstrap.Content.ReadAsStringAsync();
         var asset = await client.GetStringAsync("/assets/app.js");
         using var ping = new StringContent("ping-body");
-        using var echo = await client.PostAsync("/echo", ping);
+        using var echoRequest = new HttpRequestMessage(HttpMethod.Post, "/echo") { Content = ping };
+        echoRequest.Headers.TryAddWithoutValidation("Origin", client.BaseAddress!.GetLeftPart(UriPartial.Authority));
+        using var echo = await client.SendAsync(echoRequest);
         var echoed = await echo.Content.ReadAsStringAsync();
         var authorization = await client.GetStringAsync("/incoming-authorization");
 
@@ -163,9 +163,7 @@ public sealed class ApplicationProxyHttpTests
     [Test]
     public async Task Proxy_rejectsQueryStringTickets()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
+        using var factory = CreateFactory(new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
@@ -222,6 +220,13 @@ public sealed class ApplicationProxyHttpTests
         return (await response.Content.ReadFromJsonAsync<ApplicationProxyTicketResponse>())!;
     }
 
+    private static WebApplicationFactory<Program> CreateFactory(Dictionary<string, string?> settings)
+        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(settings));
+            builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, LoopbackRemoteAddressStartupFilter>());
+        });
+
     private static async Task<WebApplication> StartBackendAsync(int port)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -249,4 +254,19 @@ public sealed class ApplicationProxyHttpTests
         await app.StartAsync();
         return app;
     }
+}
+
+file sealed class LoopbackRemoteAddressStartupFilter : IStartupFilter
+{
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+        => app =>
+        {
+            app.Use(async (context, nextMiddleware) =>
+            {
+                context.Connection.RemoteIpAddress ??= IPAddress.Loopback;
+                context.Connection.LocalIpAddress ??= IPAddress.Loopback;
+                await nextMiddleware();
+            });
+            next(app);
+        };
 }

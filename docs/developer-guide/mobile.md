@@ -57,8 +57,8 @@ proxied. The long-lived Bearer token stays on REST ticket issuance and is not
 placed in the WebView URL. Token-bearing ticket requests reject remote
 plaintext HTTP; only HTTPS and loopback HTTP development connections may
 transport credentials. The Server also rejects remote plaintext before issuing
-or accepting proxy tickets and sessions. When TLS terminates at an ingress, the
-Server honors a single `X-Forwarded-Proto` hop so the effective scheme is HTTPS.
+or accepting proxy tickets and sessions. That HTTPS check uses the TLS
+connection itself, not a client-supplied `X-Forwarded-Proto` header.
 Changing applications aborts the previous Mobile ticket request. As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose

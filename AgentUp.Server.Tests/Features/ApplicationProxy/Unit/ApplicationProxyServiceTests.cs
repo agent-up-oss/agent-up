@@ -90,6 +90,7 @@ public sealed class ApplicationProxyServiceTests
         var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
         var context = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
         context.Request.Method = HttpMethods.Post;
+        context.Request.Headers.Origin = "http://localhost";
 
         await service.OpenAsync(workspaceId, port, string.Empty, context);
 
@@ -105,6 +106,7 @@ public sealed class ApplicationProxyServiceTests
         var context = ApplicationProxyHarness.LoopbackContext();
         context.Request.Method = HttpMethods.Post;
         context.Request.Path = $"/apps/{workspaceId}/{port}/echo";
+        context.Request.Headers.Origin = "http://localhost";
         context.User = AuthenticatedUser();
 
         await service.OpenAsync(workspaceId, port, "echo", context);
@@ -125,6 +127,7 @@ public sealed class ApplicationProxyServiceTests
         var cookie = bootstrap.Response.Headers.SetCookie.ToString();
 
         var sameOrigin = CreateCookieContext(cookie, HttpMethods.Post);
+        sameOrigin.Request.Headers.Origin = "https://agent.example";
         await service.ForwardFallbackAsync(sameOrigin);
         var foreign = CreateCookieContext(cookie, HttpMethods.Post);
         foreign.Request.Headers.Origin = "https://evil.example";
@@ -133,6 +136,22 @@ public sealed class ApplicationProxyServiceTests
         Assert.That(sameOrigin.Response.StatusCode, Is.EqualTo(StatusCodes.Status204NoContent));
         Assert.That(forwarder.LastPort, Is.EqualTo(port));
         Assert.That(foreign.Response.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task ForwardFallback_rejectsUnsafeWritesWithoutOrigin()
+    {
+        var (service, workspaceId, port, _, forwarder, _, _) = await ApplicationProxyHarness.CreateAsync();
+        var ticket = service.IssueTicket(new ApplicationProxyTicketRequest(workspaceId, port), ApplicationProxyHarness.LoopbackContext()).Response!.Ticket;
+        var bootstrap = CreateTicketContext($"/apps/{workspaceId}/{port}", ticket);
+        await service.OpenAsync(workspaceId, port, string.Empty, bootstrap);
+        var cookie = bootstrap.Response.Headers.SetCookie.ToString();
+        var context = CreateCookieContext(cookie, HttpMethods.Post);
+
+        await service.ForwardFallbackAsync(context);
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        Assert.That(forwarder.Calls, Is.EqualTo(0));
     }
 
     [Test]
@@ -224,10 +243,8 @@ public sealed class ApplicationProxyServiceTests
     public async Task OpenAsync_rejectsCrossOriginWrites()
     {
         var (service, workspaceId, port, _, _, _, _) = await ApplicationProxyHarness.CreateAsync();
-        var context = new DefaultHttpContext();
+        var context = ApplicationProxyHarness.TlsContext();
         context.Request.Method = HttpMethods.Post;
-        context.Request.Scheme = "https";
-        context.Request.Host = new HostString("agent.example");
         context.Request.Headers.Origin = "https://evil.example";
         context.User = AuthenticatedUser();
 
@@ -296,11 +313,9 @@ public sealed class ApplicationProxyServiceTests
 
     private static DefaultHttpContext CreateCookieContext(string setCookie, string method)
     {
-        var context = new DefaultHttpContext();
+        var context = ApplicationProxyHarness.TlsContext();
         context.Request.Method = method;
-        context.Request.Scheme = "https";
         context.Request.Path = "/";
-        context.Request.Host = new HostString("agent.example");
         context.Request.Headers.Cookie = setCookie.Split(';', 2)[0];
         return context;
     }

@@ -1,10 +1,12 @@
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
 using AgentUp.Server.Features.ApplicationProxy.Models;
 using AgentUp.Server.Features.ApplicationProxy.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace AgentUp.Server.Tests.Fake;
 
@@ -36,6 +38,14 @@ internal sealed class StubTimeProvider : TimeProvider
     public override DateTimeOffset GetUtcNow() => UtcNow;
 }
 
+internal sealed class StubTlsConnectionFeature : ITlsConnectionFeature
+{
+    public X509Certificate2? ClientCertificate { get; set; }
+
+    public Task<X509Certificate2?> GetClientCertificateAsync(CancellationToken cancellationToken)
+        => Task.FromResult<X509Certificate2?>(null);
+}
+
 internal static class ApplicationProxyHarness
 {
     public static DefaultHttpContext LoopbackContext()
@@ -44,6 +54,15 @@ internal static class ApplicationProxyHarness
         context.Request.Scheme = "http";
         context.Request.Host = new HostString("localhost");
         context.Connection.RemoteIpAddress = IPAddress.Loopback;
+        return context;
+    }
+
+    public static DefaultHttpContext TlsContext(string host = "agent.example")
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Scheme = "https";
+        context.Request.Host = new HostString(host);
+        context.Features.Set<ITlsConnectionFeature>(new StubTlsConnectionFeature());
         return context;
     }
 
