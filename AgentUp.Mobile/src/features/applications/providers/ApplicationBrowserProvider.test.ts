@@ -44,3 +44,28 @@ test('rejects applications without an HTTP display', async () => {
     /does not expose an HTTP port/,
   );
 });
+
+test('rejects viewer credentials over non-loopback HTTP', () => {
+  assert.throws(
+    () => browserViewerUrl({ url: 'http://192.168.1.20:5000', accessToken: 'secret' }, 'workspace'),
+    /HTTPS is required/,
+  );
+  assert.doesNotThrow(
+    () => browserViewerUrl({ url: 'http://localhost:5000', accessToken: 'secret' }, 'workspace'),
+  );
+});
+
+test('rejects navigation credentials over non-loopback HTTP before making a request', async () => {
+  let called = false;
+  const request = (async () => { called = true; return new Response(null, { status: 204 }); }) as typeof fetch;
+  await assert.rejects(
+    navigateApplicationBrowser(
+      { url: 'http://server.example:5000', accessToken: 'secret' },
+      'workspace',
+      { name: 'web', state: 'Running', allocatedPorts: [{ allocatedPort: 8080, protocol: 'http' }] },
+      request,
+    ),
+    /HTTPS is required/,
+  );
+  assert.equal(called, false);
+});

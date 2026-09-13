@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+/** Hosts the same-origin remote browser viewer in the installable web client. */
 export function RemoteBrowser({ source }: { source: string }) {
   return (
     <View style={styles.container}>

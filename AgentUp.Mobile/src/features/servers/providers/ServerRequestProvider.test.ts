@@ -41,6 +41,30 @@ test('a body that arrives within the timeout is returned', async () => {
   assert.deepEqual(body, { ok: true });
 });
 
+test('caller cancellation aborts the underlying request before its timeout', async () => {
+  const caller = new AbortController();
+  let requestAborted = false;
+  const pendingFetch = (async (_url: string | URL | Request, init: RequestInit = {}) => {
+    return await new Promise<Response>((_resolve, reject) =>
+      init.signal?.addEventListener('abort', () => {
+        requestAborted = true;
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+      }, { once: true }));
+  }) as typeof fetch;
+
+  const pending = requestServerJson(
+    { url: 'http://localhost:5000' },
+    '/api/workspaces',
+    { signal: caller.signal },
+    2_000,
+    pendingFetch,
+  );
+  caller.abort();
+
+  await assert.rejects(pending, /request was cancelled/);
+  assert.equal(requestAborted, true);
+});
+
 test('a 204 response reads as no content', async () => {
   const noContentFetch = (async () => new Response(null, { status: 204 })) as unknown as typeof fetch;
 

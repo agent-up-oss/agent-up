@@ -489,6 +489,7 @@ The mobile client is a single Expo and React Native TypeScript project that targ
 Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. The mobile client displays Server-owned state and must not own orchestration.
 
 Mobile application spaces use the authenticated Server headless-browser remote display over HTTPS/WSS. Allocated application ports remain private to the Server; clients must not construct device-local port URLs or expose dynamic ports through the public reverse proxy. Viewer credentials belong in a URL fragment, never a query string, and protected browser HTTP and WebSocket endpoints must validate the Server session.
+Application navigation requests must be superseded per workspace on both Mobile and Server so a delayed request cannot move the shared browser back to an application the user already left. Token-bearing remote viewer requests must reject plaintext HTTP except for loopback development URLs.
 
 Developer guide: `docs/developer-guide/mobile.md`.
 

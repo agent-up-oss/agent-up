@@ -36,6 +36,13 @@
   // WebSocket subprotocol because the browser WebSocket API cannot set Authorization headers.
   const accessToken = new URLSearchParams(location.hash.slice(1)).get('access_token') || '';
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  const loopback = location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1'
+    || location.hostname === '::1';
+  if (accessToken && location.protocol !== 'https:' && !(location.protocol === 'http:' && loopback)) {
+    document.body.textContent = 'HTTPS is required when connecting to a remote Agent-Up Server.';
+    return;
+  }
   const pageInstanceId =
     Math.random().toString(36).slice(2, 10) +
     Math.random().toString(36).slice(2, 10);

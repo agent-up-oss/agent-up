@@ -43,7 +43,11 @@ history immediately; browser WebSockets authenticate with a base64url token in t
 negotiated subprotocol because the WebSocket browser API cannot set an Authorization
 header. The static viewer shell is public, but frame, input, navigation, and stream
 endpoints remain protected by the normal Server authorization policy.
-
+Changing applications aborts the previous Mobile request, and the Server also
+supersedes older navigation commands per workspace. This Server-side ordering is
+required because client cancellation can arrive after a command has already been
+queued. Token-bearing viewer and navigation requests reject remote plaintext HTTP;
+only HTTPS and loopback HTTP development connections may transport credentials.
 As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose

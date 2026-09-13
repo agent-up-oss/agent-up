@@ -69,24 +69,34 @@ public sealed class HeadlessBrowserCommandDispatcher(
 
     private async Task ExecuteAndCompleteAsync(BrowserCommandDto command, CancellationToken ct)
     {
+        using var execution = CancellationTokenSource.CreateLinkedTokenSource(
+            ct,
+            store.SupersessionToken(command));
+        var executionToken = execution.Token;
         var gate = _workspaceLocks.GetOrAdd(command.WorkspaceId, _ => new SemaphoreSlim(1, 1));
-        try { await gate.WaitAsync(ct); }
-        catch (OperationCanceledException) { return; }
+        try { await gate.WaitAsync(executionToken); }
+        catch (OperationCanceledException)
+        {
+            store.CompleteCommand(Fail(command, "Browser navigation was superseded by a newer request."));
+            return;
+        }
 
         BrowserCommandResultDto result;
         try
         {
             var session = command.Kind == BrowserCommandKind.Navigate
-                ? await sessionManager.EnsureSessionAsync(command.WorkspaceId, ct)
+                ? await sessionManager.EnsureSessionAsync(command.WorkspaceId, executionToken)
                 : sessionManager.GetSession(command.WorkspaceId);
 
             result = session is null
                 ? Fail(command, $"No browser session for workspace '{command.WorkspaceId}'. Navigate to a URL first.")
-                : await executor.ExecuteAsync(session, command, ct);
+                : await executor.ExecuteAsync(session, command, executionToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (executionToken.IsCancellationRequested)
         {
-            return;
+            result = Fail(command, ct.IsCancellationRequested
+                ? "Browser command was cancelled during shutdown."
+                : "Browser navigation was superseded by a newer request.");
         }
         catch (Exception ex) when (ex is PuppeteerException or ProcessException or InvalidOperationException or IOException or TimeoutException)
         {

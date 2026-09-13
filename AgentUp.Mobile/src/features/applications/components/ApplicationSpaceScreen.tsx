@@ -8,6 +8,7 @@ import { RemoteBrowser } from './RemoteBrowser';
 
 type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: string };
 
+/** Displays an application's authenticated Server-owned browser session. */
 export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
   const { server } = useWorkspaces();
   const [ready, setReady] = useState(false);
@@ -19,16 +20,17 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
 
   useEffect(() => {
     let active = true;
+    const request = new AbortController();
     setReady(false);
     setError(null);
     if (!server || !application) {
       setError(application ? 'No Server connection is available.' : 'The application no longer exists.');
-      return () => { active = false; };
+      return () => { active = false; request.abort(); };
     }
-    void navigateApplicationBrowser(server, workspace.id, application)
+    void navigateApplicationBrowser(server, workspace.id, application, fetch, request.signal)
       .then(() => { if (active) setReady(true); })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); });
-    return () => { active = false; };
+    return () => { active = false; request.abort(); };
   }, [server, workspace.id, application]);
 
   return (
