@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using AgentUp.TestAgents.Features.IdentityProvider.Models;
+using AgentUp.TestAgents.Features.IdentityProvider.Providers;
 using AgentUp.TestAgents.Shared.Providers;
 
 namespace AgentUp.TestAgents.Features.IdentityProvider.Services;
