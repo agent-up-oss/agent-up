@@ -12,13 +12,13 @@ public sealed class AgentLoginCommandProvider(IConfiguration configuration, Agen
 
         var configured = ReadConfigured(kind);
         if (configured is not null)
-            return WithLoginEnvironment(configured);
+            return WithLoginEnvironment(kind, configured);
 
         return kind switch
         {
-            AgentKind.Cursor => WithLoginEnvironment(new AgentLoginCommand(acpCommand.FileName, LoginArguments(acpCommand.Arguments, "login"), new Dictionary<string, string>())),
-            AgentKind.Codex => WithLoginEnvironment(new AgentLoginCommand(ResolveSiblingOrPath(kind, acpCommand.FileName, "codex"), ["login", "--device-auth"], new Dictionary<string, string>())),
-            AgentKind.Claude => WithLoginEnvironment(new AgentLoginCommand(ResolveSiblingOrPath(kind, acpCommand.FileName, "claude"), ["setup-token"], new Dictionary<string, string>())),
+            AgentKind.Cursor => WithLoginEnvironment(kind, new AgentLoginCommand(acpCommand.FileName, LoginArguments(acpCommand.Arguments, "login"), new Dictionary<string, string>())),
+            AgentKind.Codex => WithLoginEnvironment(kind, new AgentLoginCommand(ResolveSiblingOrPath(kind, acpCommand.FileName, "codex"), ["login", "--device-auth"], new Dictionary<string, string>())),
+            AgentKind.Claude => WithLoginEnvironment(kind, new AgentLoginCommand(ResolveSiblingOrPath(kind, acpCommand.FileName, "claude"), ["setup-token"], new Dictionary<string, string>())),
             _ => throw new InvalidOperationException("The requested agent kind is not supported.")
         };
     }
@@ -32,14 +32,36 @@ public sealed class AgentLoginCommandProvider(IConfiguration configuration, Agen
         return new AgentLoginCommand(configured, arguments, new Dictionary<string, string>());
     }
 
-    private static AgentLoginCommand WithLoginEnvironment(AgentLoginCommand command)
+    /// <summary>
+    /// Nothing is watching a browser on the Server host, so ask the CLI not to open one. Both
+    /// variables are best-effort: CLIs that ignore them still work, because the sign-in is driven
+    /// from the link they print rather than from a browser they launch. Anything a specific
+    /// deployment or a specific CLI build needs on top goes in
+    /// <c>Agents:{kind}:LoginEnvironment</c>.
+    /// </summary>
+    private AgentLoginCommand WithLoginEnvironment(AgentKind kind, AgentLoginCommand command)
     {
         var environment = new Dictionary<string, string>(command.Environment, StringComparer.Ordinal)
         {
             ["NO_OPEN_BROWSER"] = "1",
-            ["AGENT_CLI_CREDENTIAL_STORE"] = "file"
+            ["BROWSER"] = "true"
         };
+        foreach (var pair in ReadLoginEnvironment(kind))
+            environment[pair.Key] = pair.Value;
         return command with { Environment = environment };
+    }
+
+    private IReadOnlyDictionary<string, string> ReadLoginEnvironment(AgentKind kind)
+    {
+        var section = configuration.GetSection($"Agents:{kind}:LoginEnvironment");
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in section.GetChildren())
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Value))
+                environment[entry.Key] = entry.Value;
+        }
+
+        return environment;
     }
 
     private static IReadOnlyList<string> LoginArguments(IReadOnlyList<string> acpArguments, string verb)

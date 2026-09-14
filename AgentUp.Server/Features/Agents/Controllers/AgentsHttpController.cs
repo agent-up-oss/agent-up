@@ -26,6 +26,20 @@ public sealed class AgentsHttpController(AgentsController agents) : ControllerBa
     public IActionResult Authenticate(string workspaceId, AgentAuthenticationRequest request) =>
         ActionResult(this, agents.Authenticate(workspaceId, request.MethodId), accepted: true);
 
+    /// <summary>A code the user copied out of the provider page, for a CLI waiting on stdin.</summary>
+    [HttpPost("login/code")]
+    public IActionResult SubmitLoginCode(string workspaceId, AgentLoginCodeRequest request) =>
+        ActionResult(this, agents.SubmitLoginCode(workspaceId, request.Code), accepted: true);
+
+    /// <summary>
+    /// A redirect the client intercepted on the agent CLI's behalf. The CLI listens on loopback
+    /// on this host, so when the browser is on another device the redirect only gets here if the
+    /// client hands it back.
+    /// </summary>
+    [HttpPost("login/callback")]
+    public IActionResult SubmitLoginCallback(string workspaceId, AgentLoginCallbackRequest request) =>
+        ActionResult(this, agents.SubmitLoginCallback(workspaceId, request.Url), accepted: true);
+
     private static async Task<IActionResult> PromptRequestAsync(
         AgentsHttpController controller,
         AgentsController agents,

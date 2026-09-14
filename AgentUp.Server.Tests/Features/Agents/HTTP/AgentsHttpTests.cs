@@ -137,6 +137,40 @@ public sealed class AgentsHttpTests
     }
 
     [Test]
+    public async Task SubmitLoginCode_withoutScheduledAgentReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsJsonAsync($"/api/workspaces/{workspace.Id}/agent/login/code", new { code = "ABCD-EFGHI" });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task SubmitLoginCallback_withoutScheduledAgentReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/login/callback",
+            new { url = "http://localhost:1455/auth/callback?code=abc" });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task SubmitLoginCode_rejectsAnEmptyCode()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsJsonAsync($"/api/workspaces/{workspace.Id}/agent/login/code", new { code = "" });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task SubmitLoginCallback_rejectsAnEmptyUrl()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsJsonAsync($"/api/workspaces/{workspace.Id}/agent/login/callback", new { url = "" });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
     public async Task Prompt_unknownSessionReturnsNotFound()
     {
         var workspace = await RegisterAsync();

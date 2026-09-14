@@ -10,5 +10,6 @@ public interface IAgentSubscriptionLoginProvider
         AgentCommand acpCommand,
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
+        AgentLoginInbox inbox,
         CancellationToken cancellationToken);
 }

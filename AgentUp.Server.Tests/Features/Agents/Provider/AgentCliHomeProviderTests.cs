@@ -104,7 +104,8 @@ public sealed class AgentCliHomeProviderTests
                 Assert.That(claude["HOME"], Is.EqualTo(home.HomePath));
                 Assert.That(claude["CLAUDE_CODE_OAUTH_TOKEN"], Is.EqualTo("sk-ant-oat01-secret"));
                 Assert.That(cursor.ContainsKey("CLAUDE_CODE_OAUTH_TOKEN"), Is.False);
-                Assert.That(cursor["AGENT_CLI_CREDENTIAL_STORE"], Is.EqualTo("file"));
+                Assert.That(cursor["HOME"], Is.EqualTo(home.HomePath),
+                    "Every agent CLI keeps its credentials under the Server data directory");
             });
         }
         finally
