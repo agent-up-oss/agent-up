@@ -23,6 +23,10 @@ export type NativePlatform = {
 
 export function createNativeLoginPort(platform: NativePlatform): AgentLoginPort {
   return {
+    // An in-app WebView sees every navigation its own content makes, so this platform can catch
+    // the loopback redirect and hand it back.
+    canInterceptRedirect: true,
+
     async openUrl(url) {
       await platform.openUrl(url);
     },

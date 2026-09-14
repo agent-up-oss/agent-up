@@ -69,7 +69,9 @@ for (const scenario of SCENARIOS) {
         challenge => challenge.url !== null && challenge.transport === scenario.transport,
       );
 
-      // The sign-in opens in a popup on the web, so it is awaited rather than assumed.
+      // The sign-in opens in a new tab. For the redirect shape the browser cannot hand the
+      // callback back — it is on another origin — so nothing is posted: the redirect reaches the
+      // agent CLI's own listener directly, because this browser is on the Server's host.
       const opened = page.waitForEvent('popup').catch(() => null);
       await page.getByTestId('agent-signin-open').click();
       await opened;

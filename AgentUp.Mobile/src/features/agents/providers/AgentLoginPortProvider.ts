@@ -1,5 +1,7 @@
+import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { createNativeLoginPort } from '@agent-up/agent-auth/native';
+import { createWebLoginPort } from '@agent-up/agent-auth/web';
 import type { AgentLoginPort } from '@agent-up/agent-auth';
 
 /**
@@ -24,6 +26,10 @@ export type AgentLoginPortOptions = {
 };
 
 export function createAgentLoginPort(options: AgentLoginPortOptions): AgentLoginPort {
+  // react-native-web has no WebView that can observe navigations, so the installable web build
+  // falls back to the browser port, which is explicit about not intercepting.
+  if (Platform.OS === 'web') return createWebLoginPort();
+
   return createNativeLoginPort({
     openUrl: url => Linking.openURL(url),
     copy: options.copy,

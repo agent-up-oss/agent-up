@@ -37,6 +37,14 @@ export async function runAction(
       return { kind: 'awaitingCode' };
 
     case 'interceptRedirect': {
+      // A platform that cannot watch navigations just opens the link. The redirect still reaches
+      // the agent CLI's own listener whenever the browser is on the Server's host, which is the
+      // only case in which a browser-based client can complete this sign-in at all.
+      if (!port.canInterceptRedirect) {
+        await port.openUrl(action.url);
+        return { kind: 'opened' };
+      }
+
       const callback = await port.openInterceptingRedirect(action.url, action.redirectUri);
       if (!callback) return { kind: 'abandoned' };
       await api.submitCallback(callback);

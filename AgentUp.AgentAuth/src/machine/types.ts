@@ -44,8 +44,20 @@ export type AgentLoginPort = {
   /** Open a URL in whatever browser the platform offers. */
   openUrl(url: string): Promise<void>;
   /**
+   * Whether this platform can observe a redirect to the agent CLI's loopback address and hand it
+   * back.
+   *
+   * An in-app WebView can: it sees every navigation its own content makes. A browser cannot: the
+   * callback is on a different origin from the page, so its location is unreadable, and there is
+   * no way to inject script into a page the agent CLI serves. Clients on such a platform open the
+   * link and rely on the redirect reaching the CLI directly, which it does whenever the browser is
+   * on the same host as the Server.
+   */
+  readonly canInterceptRedirect: boolean;
+  /**
    * Open a URL somewhere navigations can be observed, resolving with the first navigation whose
-   * URL starts with `redirectUri`. Resolves null when the user gives up.
+   * URL starts with `redirectUri`. Resolves null when the user gives up. Only called when
+   * {@link canInterceptRedirect} is true.
    */
   openInterceptingRedirect(url: string, redirectUri: string): Promise<string | null>;
   /** Put a value on the clipboard, for a link or code the user has to carry by hand. */

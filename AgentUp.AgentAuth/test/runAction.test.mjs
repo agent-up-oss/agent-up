@@ -9,6 +9,7 @@ function recordingPort(overrides = {}) {
   return {
     calls,
     port: {
+      canInterceptRedirect: overrides.canInterceptRedirect ?? true,
       async openUrl(url) {
         calls.opened.push(url);
       },
@@ -115,6 +116,31 @@ test('a redirect the user abandons reports that, and posts nothing', async () =>
   );
 
   assert.equal(outcome.kind, 'abandoned');
+  assert.deepEqual(apiCalls.callbacks, []);
+});
+
+// A browser cannot read a cross-origin popup's location, so it must not pretend to intercept.
+// Opening the link is enough: the redirect reaches the agent CLI's listener directly whenever the
+// browser is on the Server's host, which is the only case a browser can complete this at all.
+test('a platform that cannot intercept just opens the link and posts nothing', async () => {
+  const { calls, port } = recordingPort({ canInterceptRedirect: false });
+  const { calls: apiCalls, api } = recordingApi();
+
+  const outcome = await runAction(
+    resolveAction({
+      url: 'https://auth.openai.com/oauth/authorize',
+      code: null,
+      instructions: null,
+      transport: 'redirect',
+      redirectUri: 'http://localhost:1455/auth/callback',
+    }),
+    port,
+    api,
+  );
+
+  assert.equal(outcome.kind, 'opened');
+  assert.deepEqual(calls.opened, ['https://auth.openai.com/oauth/authorize']);
+  assert.deepEqual(calls.intercepted, [], 'it must not attempt an interception it cannot perform');
   assert.deepEqual(apiCalls.callbacks, []);
 });
 
