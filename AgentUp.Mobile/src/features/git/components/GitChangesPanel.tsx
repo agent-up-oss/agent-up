@@ -182,6 +182,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
             </View>)}
         </View>}
 
+
       {loading && <ActivityIndicator color={agentUpTheme.colors.accentSoft} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
