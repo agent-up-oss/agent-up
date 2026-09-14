@@ -61,6 +61,17 @@ export const SIGN_IN_FLOWS = Object.freeze({
   },
 });
 
+/**
+ * True when a challenge carries the transport a scenario expects.
+ *
+ * The Server serialises the transport as its enum member name, so the wire carries 'Code' where
+ * the client's own contract says 'code'. The client already folds case before branching; this
+ * folds it the same way rather than pinning the suite to one spelling of the same value.
+ */
+export function hasTransport(challenge, transport) {
+  return (challenge?.transport ?? '').toLowerCase() === transport;
+}
+
 /** Reads an agent session off the Server. */
 export async function readSession(serverUrl, workspaceId) {
   const response = await fetch(`${serverUrl}/api/workspaces/${encodeURIComponent(workspaceId)}/agent`);
@@ -71,29 +82,51 @@ export async function readSession(serverUrl, workspaceId) {
 /** Waits for the Server to report a given agent state, with the last state named on failure. */
 export async function waitForAgentState(serverUrl, workspaceId, expected, options = {}) {
   let seen = 'none';
+  let last = null;
   try {
     return await waitFor(
       `the agent to reach '${expected}'`,
       async () => {
         const session = await readSession(serverUrl, workspaceId);
         seen = session.state;
+        last = session;
         return session.state === expected ? session : false;
       },
       options,
     );
   } catch (cause) {
-    throw new Error(`${cause.message} The agent was last seen in '${seen}'.`);
+    throw new Error(`${cause.message} The agent was last seen in '${seen}'.${describe(last)}`);
   }
 }
 
 /** Waits for a sign-in challenge that carries everything the client needs to act on it. */
-export function waitForChallenge(serverUrl, workspaceId, predicate, options = {}) {
-  return waitFor(
-    'the agent to publish a usable sign-in challenge',
-    async () => {
-      const session = await readSession(serverUrl, workspaceId);
-      return session.loginChallenge && predicate(session.loginChallenge) ? session : false;
-    },
-    options,
-  );
+export async function waitForChallenge(serverUrl, workspaceId, predicate, options = {}) {
+  let last = null;
+  try {
+    return await waitFor(
+      'the agent to publish a usable sign-in challenge',
+      async () => {
+        const session = await readSession(serverUrl, workspaceId);
+        last = session;
+        return session.loginChallenge && predicate(session.loginChallenge) ? session : false;
+      },
+      options,
+    );
+  } catch (cause) {
+    throw new Error(`${cause.message}${describe(last)}`);
+  }
+}
+
+/**
+ * What the Server last reported, for a wait that gave up.
+ *
+ * A sign-in that fails leaves its reason on the session, so a timeout that does not carry it
+ * turns every failure into a fresh investigation.
+ */
+function describe(session) {
+  if (!session) return ' The Server was never read successfully.';
+  const parts = [`state '${session.state}'`];
+  if (session.error) parts.push(`error '${session.error}'`);
+  parts.push(`challenge ${JSON.stringify(session.loginChallenge ?? null)}`);
+  return ` The Server last reported ${parts.join(', ')}.`;
 }

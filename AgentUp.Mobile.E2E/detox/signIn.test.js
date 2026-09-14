@@ -77,7 +77,7 @@ describe('agent sign-in', () => {
       const session = await harness.waitForChallenge(
         stack.serverUrl,
         stack.workspace.id,
-        challenge => challenge.url !== null && challenge.transport === scenario.transport,
+        challenge => challenge.url !== null && harness.hasTransport(challenge, scenario.transport),
       );
 
       await tap('agent-signin-open');

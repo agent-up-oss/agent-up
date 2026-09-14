@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
+import { hasTransport } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostOriginFor, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { waitFor } from '../harness/wait.mjs';
@@ -118,4 +119,16 @@ test('a wait reports the last error it saw rather than swallowing it', async () 
     () => waitFor('a reachable service', () => { throw new Error('connection refused'); }, { timeoutMs: 60, intervalMs: 10 }),
     /Last error: connection refused/,
   );
+});
+
+// The Server serialises the transport as its enum member name, so the wire carries 'Code' where
+// both the client's contract and these scenarios say 'code'. Comparing the two raw is how every
+// scenario timed out waiting for a challenge that had already arrived.
+test('a challenge matches its transport whichever way the Server spelled it', () => {
+  assert.equal(hasTransport({ transport: 'Code' }, 'code'), true);
+  assert.equal(hasTransport({ transport: 'code' }, 'code'), true);
+  assert.equal(hasTransport({ transport: 'Redirect' }, 'redirect'), true);
+  assert.equal(hasTransport({ transport: 'Poll' }, 'code'), false);
+  assert.equal(hasTransport({ transport: null }, 'code'), false);
+  assert.equal(hasTransport(null, 'code'), false);
 });
