@@ -2,7 +2,6 @@
   "name": "agent-up-mobile-e2e",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "End-to-end agent sign-in tests for the Agent-Up mobile client on iOS, Android, and the installable web build",
   "scripts": {
     "test:harness": "node --test test/*.test.mjs",
