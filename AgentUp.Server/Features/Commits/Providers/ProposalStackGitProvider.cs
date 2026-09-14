@@ -73,13 +73,13 @@ public sealed class ProposalStackGitProvider(ICommitsGitProvider diffs, string? 
         catch (InvalidOperationException)
         {
             if (firstEntry)
-                _ = await RemoveFailedWorktreeAsync(repositoryRoot, queueWorktree);
+                await RevertFailedFirstEntryAsync(repositoryRoot, queueWorktree, queueRef);
             throw;
         }
         catch (IOException)
         {
             if (firstEntry)
-                _ = await RemoveFailedWorktreeAsync(repositoryRoot, queueWorktree);
+                await RevertFailedFirstEntryAsync(repositoryRoot, queueWorktree, queueRef);
             throw;
         }
     }
@@ -98,12 +98,33 @@ public sealed class ProposalStackGitProvider(ICommitsGitProvider diffs, string? 
         var start = StartInfo(worktree, ["apply", "--index", "--binary", "--whitespace=nowarn"]);
         start.RedirectStandardInput = true;
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Failed to start Git patch application.");
-        await process.StandardInput.WriteAsync(patch.AsMemory(), cancellationToken);
-        process.StandardInput.Close();
-        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"Could not apply the proposal patch: {error.Trim()}");
+        try
+        {
+            await process.StandardInput.WriteAsync(patch.AsMemory(), cancellationToken);
+            process.StandardInput.Close();
+            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"Could not apply the proposal patch: {error.Trim()}");
+        }
+        catch (OperationCanceledException)
+        {
+            Terminate(process);
+            throw;
+        }
+    }
+
+    private static async Task RevertFailedFirstEntryAsync(string repositoryRoot, string queueWorktree, string queueRef)
+    {
+        _ = await RemoveFailedWorktreeAsync(repositoryRoot, queueWorktree);
+        try
+        {
+            await GitAsync(repositoryRoot, ["update-ref", "-d", queueRef], CancellationToken.None);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
     }
 
     private static async Task<bool> RemoveFailedWorktreeAsync(string repositoryRoot, string queueWorktree)
@@ -124,12 +145,37 @@ public sealed class ProposalStackGitProvider(ICommitsGitProvider diffs, string? 
     {
         using var process = Process.Start(StartInfo(worktree, arguments))
             ?? throw new InvalidOperationException("Failed to start Git.");
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"Proposal queue Git operation failed: {error.Trim()}");
-        return output.Trim();
+        try
+        {
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"Proposal queue Git operation failed: {error.Trim()}");
+            return output.Trim();
+        }
+        catch (OperationCanceledException)
+        {
+            Terminate(process);
+            throw;
+        }
+    }
+
+    private static void Terminate(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return;
+        }
     }
 
     private static ProcessStartInfo StartInfo(string worktree, IReadOnlyList<string> arguments)

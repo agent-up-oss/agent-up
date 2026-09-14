@@ -52,6 +52,39 @@ public sealed class GitApiClientTests
     }
 
     [Test]
+    public async Task GetCommitQueueAsync_returnsNullWhenTheWorkspaceIsUnknown()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        Assert.That(await client.GetCommitQueueAsync("ws-1"), Is.Null);
+    }
+
+    [Test]
+    public void CommitQueueDto_roundTripsProposalMetadata()
+    {
+        var queue = new CommitQueueDto(
+            [new CommitQueueEntryDto("Commits", "feat(Commits): queue", ["a.cs"], "entry-1", "base", "tip", "ready")],
+            ["loose.cs"],
+            "/managed/queue",
+            "base",
+            "tip",
+            4);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.UnassignedFiles, Is.EqualTo(new[] { "loose.cs" }));
+            Assert.That(queue.BaseCommit, Is.EqualTo("base"));
+            Assert.That(queue.TipCommit, Is.EqualTo("tip"));
+            Assert.That(queue.Entries.Single().Files, Is.EqualTo(new[] { "a.cs" }));
+            Assert.That(queue.Entries.Single().Id, Is.EqualTo("entry-1"));
+            Assert.That(queue.Entries.Single().ParentCommit, Is.EqualTo("base"));
+            Assert.That(queue.Entries.Single().ProposalCommit, Is.EqualTo("tip"));
+        });
+    }
+
+    [Test]
     public async Task GetFileDiffAsync_escapesThePathQueryParameter()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.OK,

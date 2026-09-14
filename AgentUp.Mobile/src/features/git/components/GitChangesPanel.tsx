@@ -68,19 +68,28 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
     if (!silent) { setLoading(true); setError(null); }
     inflightLoads.current += 1;
     try {
-      const [changes, proposals] = await Promise.all([
-        getChanges(server, workspaceId),
-        getCommitQueue(server, workspaceId),
-      ]);
+      const changes = await getChanges(server, workspaceId);
       if (!treeGate.isCurrent(ticket)) return;
       setTree(changes);
-      setQueue(proposals);
       setSelected(current => {
         const keep = selectionWorkspace.current === workspaceId ? current : [];
         selectionWorkspace.current = workspaceId;
         return retainSelectedPaths(flattenChangeTree(changes), keep);
       });
       if (silent) setError(null);
+      try {
+        const proposals = await getCommitQueue(server, workspaceId);
+        if (!treeGate.isCurrent(ticket)) return;
+        setQueue(proposals);
+      } catch (cause) {
+        if (!treeGate.isCurrent(ticket)) return;
+        if (isUnauthorized(cause)) {
+          expireActiveCredential();
+          return;
+        }
+        setQueue(null);
+        setError(cause instanceof Error ? cause.message : 'Could not load the agent proposal queue.');
+      }
     } catch (cause) {
       if (!treeGate.isCurrent(ticket)) return;
       if (isUnauthorized(cause)) {

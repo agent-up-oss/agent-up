@@ -50,7 +50,8 @@ public sealed class CommitsService
 
                 commitPolicy.Validate(request.Slice, request.Message, request.Files);
                 EnsureReviewIssueIsUnassigned(current, request.ReviewIssueId);
-                var useProposalStack = proposals is not null && configuration?.IsGitQueueEnabled(worktreePath) is true;
+                var useProposalStack = proposals is not null
+                    && (configuration?.IsGitQueueEnabled(worktreePath) is true || current.QueueId is not null);
                 if (useProposalStack)
                 {
                     var gate = verification is null

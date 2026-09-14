@@ -237,17 +237,30 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         }
         try
         {
-            var treeTask = _git.GetChangesAsync(workspaceId, cancellationToken);
-            var queueTask = _git.GetCommitQueueAsync(workspaceId, cancellationToken);
-            await Task.WhenAll(treeTask, queueTask);
-            var tree = await treeTask;
-            var queue = await queueTask;
+            var tree = await _git.GetChangesAsync(workspaceId, cancellationToken);
+            CommitQueueDto? queue = null;
+            string? queueError = null;
+            try
+            {
+                queue = await _git.GetCommitQueueAsync(workspaceId, cancellationToken);
+            }
+            catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+            {
+                queueError = ex.Message;
+            }
+
             if (request == _treeRequest)
             {
-                if (silent)
+                if (silent && queueError is null)
                     ErrorMessage = null;
                 ApplyTree(tree, preserveSelection: sameWorkspace);
                 ApplyQueue(queue);
+                if (queueError is not null)
+                    ErrorMessage = $"Could not load the agent proposal queue: {queueError}";
             }
         }
         catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)

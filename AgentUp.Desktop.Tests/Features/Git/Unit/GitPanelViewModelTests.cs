@@ -411,6 +411,18 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_keepsGitChangesWhenTheProposalQueueFails()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree(), QueueFailure = "queue unavailable" });
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.FileCount, Is.EqualTo(3));
+        Assert.That(panel.HasQueuedProposals, Is.False);
+        Assert.That(panel.ErrorMessage, Does.Contain("queue unavailable"));
+    }
+
+    [Test]
     public async Task LoadAsync_clearsASilentPollingErrorAfterRecovery()
     {
         var client = new FakeGitApiProvider { Tree = SampleTree(), ChangesFailure = "Connection refused" };
@@ -637,8 +649,14 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public CommitQueueDto? Queue { get; set; }
 
+    public string? QueueFailure { get; set; }
+
     public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
-        => Task.FromResult(Queue);
+    {
+        if (QueueFailure is not null)
+            return Task.FromException<CommitQueueDto?>(new HttpRequestException(QueueFailure));
+        return Task.FromResult(Queue);
+    }
 
     public GitFileDiffDto? FileDiff { get; set; }
 
