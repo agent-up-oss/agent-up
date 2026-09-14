@@ -1,0 +1,44 @@
+using AgentUp.TestAgents.Features.Authentication.Interfaces;
+using AgentUp.TestAgents.Features.Host.Models;
+
+namespace AgentUp.TestAgents.Features.Authentication.Providers;
+
+/// <summary>
+/// Where a test agent keeps its credentials, under <c>HOME</c> the way the real CLIs do. The
+/// Server redirects <c>HOME</c> into its data directory, so this is also what proves the Server's
+/// redirection works: an agent that signed in finds its token again on the next launch.
+/// </summary>
+public sealed class TestAgentCredentialStore(TestAgentSchema schema) : ITestAgentCredentialStore
+{
+    private string Path =>
+        System.IO.Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            $".agent-up-{schema.ToString().ToLowerInvariant()}-credentials");
+
+    public string? Read()
+    {
+        try
+        {
+            var path = Path;
+            if (!File.Exists(path))
+                return null;
+            var token = File.ReadAllText(path).Trim();
+            return token.Length == 0 ? null : token;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    public void Write(string token)
+    {
+        var path = Path;
+        var directory = System.IO.Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+        File.WriteAllText(path, token);
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    }
+}

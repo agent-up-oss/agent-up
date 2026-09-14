@@ -361,6 +361,14 @@
         "tier": "fast",
         "ciOnly": true,
         "order": 101
+      },
+      "test-agents": {
+        "command": "dotnet test AgentUp.TestAgents.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/test-agents",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.TestAgents",
+          "AgentUp.TestAgents.Tests"
+        ]
       }
     },
     "paths": [
@@ -825,6 +833,20 @@
         "match": "au-debug",
         "checks": [
           "au-debug"
+        ]
+      },
+      {
+        "match": "AgentUp.TestAgents/**",
+        "checks": [
+          "test-agents",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.TestAgents.Tests/**",
+        "checks": [
+          "test-agents",
+          "patch-coverage"
         ]
       }
     ]
