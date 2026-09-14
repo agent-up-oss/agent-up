@@ -73,3 +73,21 @@ A client must not open a sign-in link the user did not ask it to open.
 provider behind them, so the whole path is exercised without signing in to a real vendor.
 `AgentUp.Mobile.E2E` drives them through the real mobile client on an iOS simulator, an Android
 emulator, and the installable web build. See the Testing section of `AGENTS.md`.
+
+### Keeping the suites quick
+
+Compiling the client is nearly all of what those jobs cost, and most pushes do not change the
+client: they change the Server, the test agents, or the suites. So the compiled app is cached
+under a key covering every tracked file that ends up bundled into it - the client, the shared
+sign-in module, the design system, the audit package - and a push that touches none of them
+reuses it and skips the prebuild, the pods, and the build outright. `mobile-app-key.sh` computes
+that key from git's own blob hashes.
+
+**If you add a source tree that gets bundled into the app, add it there too.** A key that does not
+cover something the app contains will serve a stale app, and the suite will test the wrong build
+without saying so.
+
+The pods and their object files are cached separately, under the dependency set alone, so a change
+to the client relinks rather than recompiling every dependency. Both are saved immediately after
+the build rather than at the end of the job, because a run whose tests fail would otherwise throw
+the build away - which is exactly when the next push is about to need it.

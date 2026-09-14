@@ -108,18 +108,38 @@ async function registerWorkspace(serverUrl, worktree) {
 }
 
 /**
- * An ephemeral port the OS just handed back.
+ * Ports for one stack.
  *
- * Fixed ports collide with whatever else a CI runner is doing, and a collision looks exactly like
- * a flaky test, so nothing in this suite hardcodes one.
+ * Asking the OS for port 0 and closing the probe leaves a window in which something else can take
+ * the port, and scenarios now run side by side, so that window is a collision waiting to happen -
+ * which would read as a flaky test rather than as what it is. Instead each worker owns a disjoint
+ * window of ports and walks it, never handing out the same one twice and never reaching into
+ * another worker's window.
  */
-export function freePort() {
-  return new Promise((resolve, reject) => {
+const WINDOW = 4000;
+const WORKERS = 8;
+const BASE =
+  20_000 +
+  (Number(process.env.TEST_PARALLEL_INDEX ?? process.env.JEST_WORKER_ID ?? 0) % WORKERS || 0) * WINDOW;
+
+let offset = 0;
+
+export async function freePort() {
+  for (let attempt = 0; attempt < WINDOW; attempt++) {
+    const port = BASE + (offset++ % WINDOW);
+    if (await isFree(port)) return port;
+  }
+
+  throw new Error(`No port between ${BASE} and ${BASE + WINDOW} was free.`);
+}
+
+/** The window this worker hands ports out of, so a test can assert workers cannot overlap. */
+export const portWindow = { base: BASE, size: WINDOW };
+
+function isFree(port) {
+  return new Promise(resolve => {
     const probe = createServer();
-    probe.on('error', reject);
-    probe.listen(0, '127.0.0.1', () => {
-      const { port } = probe.address();
-      probe.close(() => resolve(port));
-    });
+    probe.once('error', () => resolve(false));
+    probe.listen(port, '127.0.0.1', () => probe.close(() => resolve(true)));
   });
 }

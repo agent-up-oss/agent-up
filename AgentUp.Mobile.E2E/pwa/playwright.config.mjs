@@ -4,14 +4,18 @@ import { defineConfig, devices } from '@playwright/test';
  * The installable web build of the same client, served as real static files over real HTTP and
  * driven in a real browser.
  *
- * Pinned, serial, and with no retries: a retry would hide a flake rather than surface it, and
- * this suite exists to make instability visible.
+ * No retries: a retry would hide a flake rather than surface it, and this suite exists to make
+ * instability visible.
+ *
+ * Scenarios do run side by side. Each brings up its own stack on ports the OS handed out, so
+ * they share nothing and cannot collide, and running them one after another only made the suite
+ * take four times as long as it needed to.
  */
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.mjs',
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers: 2,
   retries: 0,
   timeout: 180_000,
   expect: { timeout: 30_000 },

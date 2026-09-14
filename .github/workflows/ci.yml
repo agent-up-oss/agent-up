@@ -855,6 +855,11 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            AgentUp.Mobile/package-lock.json
+            AgentUp.AgentAuth/package-lock.json
+            AgentUp.WebAudit/package-lock.json
 
       - name: Publish the Server and test agents
         run: ./.github/scripts/build-mobile-e2e-stack.sh
@@ -865,6 +870,13 @@ jobs:
       - name: Export the installable web build
         working-directory: AgentUp.Mobile
         run: npx expo export --platform web --output-dir dist
+
+      # The browser is a fixed ~140MB download that changes only when Playwright does.
+      - name: Restore the browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('AgentUp.Mobile.E2E/package.json') }}
 
       - name: Install Playwright
         working-directory: AgentUp.Mobile.E2E
@@ -907,11 +919,21 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            AgentUp.Mobile/package-lock.json
+            AgentUp.AgentAuth/package-lock.json
+            AgentUp.WebAudit/package-lock.json
 
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
+
+      - name: Describe what the app is built from
+        id: app
+        shell: bash
+        run: ./.github/scripts/mobile-app-key.sh
 
       - name: Enable KVM for the emulator
         run: |
@@ -920,25 +942,80 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The app is a function of the client's sources and its dependency set, so a push that
+      # changed neither - the Server, the test agents, the suites themselves - reuses the one the
+      # last run compiled instead of spending ten minutes reaching the same bytes.
+      - name: Restore the app under test
+        id: apk
+        uses: actions/cache/restore@v4
+        with:
+          path: AgentUp.Mobile/android/app/build/outputs/apk
+          key: android-app-${{ steps.app.outputs.key }}
+
       - name: Publish the Server and test agents
         run: ./.github/scripts/build-mobile-e2e-stack.sh
 
+      # Only the build needs the client's dependencies, so a run that reuses the app skips them.
       - name: Install mobile dependencies
+        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
         run: ./.github/scripts/install-mobile-deps.sh
 
+
       - name: Generate the native project
+        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
         working-directory: AgentUp.Mobile
         run: npx expo prebuild --platform android --no-install
 
       - uses: gradle/actions/setup-gradle@v4
+        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
+        with:
+          # Off by default on anything but the default branch, which means a branch never seeds
+          # the cache it is about to need. These jobs do not run on main, so nothing would.
+          cache-read-only: false
 
       - name: Install the end-to-end runner
         working-directory: AgentUp.Mobile.E2E
         run: npm install --no-audit --no-fund
 
       - name: Build the app under test
+        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
         working-directory: AgentUp.Mobile.E2E
         run: npx detox build --configuration android.emu.release
+
+      # Saved here rather than at the end of the job: a run whose tests fail would otherwise throw
+      # the build away and recompile it on the next push, which is exactly when iteration is
+      # happening and speed matters most.
+      - name: Keep the app under test
+        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: AgentUp.Mobile/android/app/build/outputs/apk
+          key: android-app-${{ steps.app.outputs.key }}
+
+      - name: Restore the emulator
+        id: avd
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api35-google_apis-x86_64-pixel_6
+
+      # Creating the image and letting it write a snapshot costs minutes. Doing it in its own step
+      # means it happens once per image, not once per run.
+      - name: Create the emulator
+        if: ${{ steps.avd.outputs.cache-hit != 'true' }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          avd-name: agent_up_e2e
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Emulator image created."
 
       - name: Run sign-in end-to-end
         uses: reactivecircus/android-emulator-runner@v2
@@ -948,7 +1025,8 @@ jobs:
           arch: x86_64
           profile: pixel_6
           avd-name: agent_up_e2e
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: cd AgentUp.Mobile.E2E && npx detox test --configuration android.emu.release --headless
 
@@ -981,18 +1059,56 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            AgentUp.Mobile/package-lock.json
+            AgentUp.AgentAuth/package-lock.json
+            AgentUp.WebAudit/package-lock.json
+
+      - name: Describe what the app is built from
+        id: app
+        shell: bash
+        run: ./.github/scripts/mobile-app-key.sh
+
+      # The app is a function of the client's sources and its dependency set, so a push that
+      # changed neither - the Server, the test agents, the suites themselves - reuses the one the
+      # last run compiled instead of spending eighteen minutes reaching the same bytes.
+      - name: Restore the app under test
+        id: built-app
+        uses: actions/cache/restore@v4
+        with:
+          path: AgentUp.Mobile/ios/build/Build/Products/Release-iphonesimulator
+          key: ios-app-${{ steps.app.outputs.key }}
 
       - name: Publish the Server and test agents
         run: ./.github/scripts/build-mobile-e2e-stack.sh
 
+      # Only the build needs the client's dependencies, so a run that reuses the app skips them.
       - name: Install mobile dependencies
+        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
         run: ./.github/scripts/install-mobile-deps.sh
 
+
       - name: Generate the native project
+        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
         working-directory: AgentUp.Mobile
         run: npx expo prebuild --platform ios --no-install
 
+      # Pods and their compiled objects are the bulk of that build and change only when the
+      # dependency set does, so a client-only change relinks instead of recompiling the world.
+      - name: Restore the pods and their objects
+        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        id: pods
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            AgentUp.Mobile/ios/Pods
+            AgentUp.Mobile/ios/build/Build/Intermediates.noindex
+            ~/Library/Caches/CocoaPods
+          key: ios-pods-${{ steps.app.outputs.dependencies }}
+
       - name: Install pods
+        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
         working-directory: AgentUp.Mobile/ios
         run: pod install
 
@@ -1018,8 +1134,29 @@ jobs:
           echo "AGENTUP_E2E_IOS_DEVICE=$device" >> "$GITHUB_ENV"
 
       - name: Build the app under test
+        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
         working-directory: AgentUp.Mobile.E2E
         run: npx detox build --configuration ios.sim.release
+
+      # Saved here rather than at the end of the job: a run whose tests fail would otherwise throw
+      # the build away and recompile it on the next push, which is exactly when iteration is
+      # happening and speed matters most.
+      - name: Keep the app under test
+        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: AgentUp.Mobile/ios/build/Build/Products/Release-iphonesimulator
+          key: ios-app-${{ steps.app.outputs.key }}
+
+      - name: Keep the pods and their objects
+        if: ${{ steps.built-app.outputs.cache-hit != 'true' && steps.pods.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            AgentUp.Mobile/ios/Pods
+            AgentUp.Mobile/ios/build/Build/Intermediates.noindex
+            ~/Library/Caches/CocoaPods
+          key: ios-pods-${{ steps.app.outputs.dependencies }}
 
       - name: Run sign-in end-to-end
         working-directory: AgentUp.Mobile.E2E
@@ -1032,7 +1169,6 @@ jobs:
           path: AgentUp.Mobile.E2E/artifacts
           if-no-files-found: ignore
           retention-days: 7
-
   docs:
     name: Docs
     runs-on: ubuntu-latest

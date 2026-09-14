@@ -5,6 +5,7 @@ import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
 import { hasTransport } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostOriginFor, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
+import { freePort, portWindow } from '../harness/stack.mjs';
 import { waitFor } from '../harness/wait.mjs';
 
 test('each stack serves three agent kinds, with the Codex slot chosen explicitly', () => {
@@ -131,4 +132,16 @@ test('a challenge matches its transport whichever way the Server spelled it', ()
   assert.equal(hasTransport({ transport: 'Poll' }, 'code'), false);
   assert.equal(hasTransport({ transport: null }, 'code'), false);
   assert.equal(hasTransport(null, 'code'), false);
+});
+
+// Scenarios run side by side, so two stacks asking for a port at the same moment must not be
+// able to receive the same one. Each worker walks its own window and never repeats.
+test('a worker hands out distinct ports from a window it owns alone', async () => {
+  const ports = [];
+  for (let index = 0; index < 5; index++) ports.push(await freePort());
+
+  assert.equal(new Set(ports).size, ports.length);
+  for (const port of ports) {
+    assert.ok(port >= portWindow.base && port < portWindow.base + portWindow.size, `${port} is outside the window`);
+  }
 });
