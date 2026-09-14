@@ -53,9 +53,11 @@ for (const scenario of SCENARIOS) {
       await page.getByTestId('server-url-input').fill(stack.serverOriginForClient);
       await page.getByTestId('server-connect').click();
 
-      // Workspaces are chosen from the shell's sidebar, which starts closed.
+      // Workspaces are chosen from the shell's sidebar, which starts closed, and land on the
+      // workspace dashboard. The agent chat is one step further in.
       await page.getByTestId('open-sidebar').click();
       await page.getByTestId(`workspace-${stack.workspace.id}`).click();
+      await page.getByTestId('open-workspace-agent').click();
       await page.getByTestId(`agent-picker-${scenario.kind}`).click();
 
       const offered = await waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');

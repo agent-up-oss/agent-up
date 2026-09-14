@@ -61,9 +61,11 @@ describe('agent sign-in', () => {
       const flow = harness.SIGN_IN_FLOWS[scenario.flow];
       await flow.beforeStart?.({ control: stack.control });
 
-      // Workspaces are chosen from the shell's sidebar, which starts closed.
+      // Workspaces are chosen from the shell's sidebar, which starts closed, and land on the
+      // workspace dashboard. The agent chat is one step further in.
       await tap('open-sidebar', 60_000);
       await tap(`workspace-${stack.workspace.id}`, 60_000);
+      await tap('open-workspace-agent', 60_000);
       await tap(`agent-picker-${scenario.kind}`, 60_000);
 
       const offered = await harness.waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');

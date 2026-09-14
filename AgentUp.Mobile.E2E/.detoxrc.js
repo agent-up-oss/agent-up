@@ -35,7 +35,10 @@ module.exports = {
   devices: {
     simulator: {
       type: 'ios.simulator',
-      device: { type: 'iPhone 16', os: 'iOS 18.4' },
+      // The device type is resolved from what the runner image actually ships and passed in, then
+      // logged by the job that chose it. Pinning a runtime version here instead was worse than
+      // not pinning: when the image moved on, Detox could not find the device at all.
+      device: { type: process.env.AGENTUP_E2E_IOS_DEVICE || 'iPhone 16' },
     },
     emulator: {
       type: 'android.emulator',

@@ -956,6 +956,17 @@ jobs:
           brew trust wix/brew
           brew install applesimutils
 
+      - name: Choose the simulator
+        shell: bash
+        run: |
+          # Pinning a runtime version fails outright when the runner image moves on, so the newest
+          # iPhone the image ships is resolved and logged instead. The choice is recorded in the
+          # run, so a behaviour change between runs is still traceable.
+          device="$(xcrun simctl list devicetypes --json \
+            | python3 -c "import json,sys;print(max((d['name'] for d in json.load(sys.stdin)['devicetypes'] if d['name'].startswith('iPhone')), key=lambda n:[int(p) for p in n.split() if p.isdigit()] or [0]))")"
+          echo "Using simulator: $device"
+          echo "AGENTUP_E2E_IOS_DEVICE=$device" >> "$GITHUB_ENV"
+
       - name: Build the app under test
         working-directory: AgentUp.Mobile.E2E
         run: npx detox build --configuration ios.sim.release
