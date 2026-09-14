@@ -347,7 +347,10 @@ public sealed class AgentSchedulingServiceTests
             AgentLoginTransport.Code,
             CanSubmitCode: true);
         await _service.ScheduleAsync(_workspace.Id, AgentKind.Claude, CancellationToken.None);
-        _service.Authenticate(_workspace.Id, "claude-login");
+        // The fake agent advertises the chatgpt method id for every kind; Authenticate validates
+        // the id against what was advertised, not against the kind.
+        var started = _service.Authenticate(_workspace.Id, "chatgpt");
+        Assert.That(started.Error, Is.Null);
         await WaitForStateAsync("authenticating");
 
         var accepted = _service.SubmitLoginCode(_workspace.Id, "code-from-the-browser#state");
