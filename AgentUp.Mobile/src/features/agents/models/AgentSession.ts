@@ -1,7 +1,13 @@
+/**
+ * The sign-in challenge shape comes from the shared module so mobile and the installable web
+ * client agree on it, and so the transport stays the only thing either of them branches on.
+ */
+import type { AgentLoginChallenge, AgentLoginTransport } from '@agent-up/agent-auth';
+
 export type AgentKind = 'Codex' | 'Cursor' | 'Claude';
 export type AgentDescriptor = { agent: AgentKind; available: boolean; displayName: string };
 export type AgentAuthMethod = { id: string; name: string; description: string | null };
-export type AgentLoginChallenge = { url: string | null; code: string | null; instructions: string | null };
+export type { AgentLoginChallenge, AgentLoginTransport };
 export type AgentSession = { workspaceId: string; agent: AgentKind | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[]; loginChallenge?: AgentLoginChallenge | null };
 export type AgentEvent = { sequence: number; type: string; payload: unknown; timestamp: string };
 export type AgentPermissionOption = { optionId: string; name: string; kind?: string };

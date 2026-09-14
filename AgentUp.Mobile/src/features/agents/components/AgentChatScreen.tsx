@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GitChangesPanel } from '@/features/git/components/GitChangesPanel';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
@@ -7,7 +8,8 @@ import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesConte
 import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import type { AgentActivityKind, AgentEvent, AgentKind, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
-import { authenticateAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents } from '../providers/AgentApiProvider';
+import { authenticateAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
+import { AgentSignIn } from './AgentSignIn';
 import {
   activityHint,
   agentEventText,
@@ -83,11 +85,18 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
     return () => { disposed = true; controller.abort(); };
   }, [server, workspace.id, applyEvent]);
 
-  const loginUrl = session?.loginChallenge?.url;
-  useEffect(() => {
-    if (!loginUrl) return;
-    void Linking.openURL(loginUrl).catch(() => undefined);
-  }, [loginUrl]);
+  // Adapts this client's own authenticated transport into the shared module's interface, so the
+  // sign-in module never has to know how mobile reaches its Server.
+  const loginApi = useMemo(
+    () => server
+      ? {
+          submitCode: async (code: string) => { await submitAgentLoginCode(server, workspace.id, code); },
+          submitCallback: async (url: string) => { await submitAgentLoginCallback(server, workspace.id, url); },
+        }
+      : null,
+    [server, workspace.id],
+  );
+  const copyToClipboard = useCallback((value: string) => Clipboard.setStringAsync(value), []);
 
   const activity = resolveActivity({ state: session?.state, error: session?.error, hasPermission: Boolean(permission), hint });
   const selectedAgentName = session?.agents.find(agent => agent.agent === session.agent)?.displayName ?? session?.agent ?? 'Agent';
@@ -143,10 +152,8 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
             <Pressable key={agent.agent} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && auBox('choiceDisabled')]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={agent.available ? styles.available : styles.unavailable}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
           {(session?.state === 'authentication_required' || session?.state === 'authenticating') && <View style={styles.auth}>
             <Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>
-            {session.loginChallenge?.instructions ? <Text style={styles.permissionDetail}>{session.loginChallenge.instructions}</Text> : null}
-            {session.loginChallenge?.url ? <Pressable onPress={() => void Linking.openURL(session.loginChallenge!.url!).catch(() => undefined)}><Text style={styles.loginUrl}>{session.loginChallenge.url}</Text></Pressable> : null}
-            {session.loginChallenge?.code ? <Text style={styles.loginCode}>{session.loginChallenge.code}</Text> : null}
-            {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} style={styles.option} onPress={() => server && void authenticateAgent(server, workspace.id, method.id).catch(cause => setError(readError(cause)))}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
+            {session.state === 'authenticating' && loginApi && <AgentSignIn challenge={session.loginChallenge} api={loginApi} copy={copyToClipboard} onError={setError} />}
+            {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} testID={`agent-auth-method-${method.id}`} style={styles.option} onPress={() => server && void authenticateAgent(server, workspace.id, method.id).catch(cause => setError(readError(cause)))}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
           </View>}
           <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
             {blocks.map(block => {

@@ -17,6 +17,17 @@ export async function sendAgentMessage(server: ServerSession, workspaceId: strin
 export async function authenticateAgent(server: ServerSession, workspaceId: string, methodId: string, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, `${root(workspaceId)}/authenticate`, jsonBody({ methodId }), undefined, request);
 }
+/** A code the user copied out of the provider page, for an agent CLI waiting on one. */
+export async function submitAgentLoginCode(server: ServerSession, workspaceId: string, code: string, request: typeof fetch = fetch) {
+  return requestServerJson<null>(server, `${root(workspaceId)}/login/code`, jsonBody({ code }), undefined, request);
+}
+/**
+ * A redirect this client intercepted. The agent CLI listens on loopback on the Server host, so
+ * when the browser is here on the phone the redirect only gets back to it through this call.
+ */
+export async function submitAgentLoginCallback(server: ServerSession, workspaceId: string, url: string, request: typeof fetch = fetch) {
+  return requestServerJson<null>(server, `${root(workspaceId)}/login/callback`, jsonBody({ url }), undefined, request);
+}
 export async function decideAgentPermission(server: ServerSession, workspaceId: string, requestId: string, optionId: string, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, `${root(workspaceId)}/permissions`, jsonBody({ requestId, optionId }), undefined, request);
 }
