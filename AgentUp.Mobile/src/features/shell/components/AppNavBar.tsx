@@ -11,6 +11,7 @@ export function AppNavBar() {
   return (
     <View style={[styles.bar, { paddingTop: insets.top + 8 }]}>
       <Pressable
+        testID="open-sidebar"
         accessibilityRole="button"
         accessibilityLabel="Open sidebar"
         onPress={openSidebar}

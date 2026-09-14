@@ -283,6 +283,7 @@ jobs:
             AgentUp.AUDebug.Tests \
             AgentUp.InstallerConfig.Tests \
             AgentUp.Server.Tests \
+            AgentUp.TestAgents.Tests \
             AgentUp.Tray.Tests \
             AgentUp.Verification.Tests
 
@@ -429,6 +430,18 @@ jobs:
           name: AgentUp.Server.Tests
           fail_ci_if_error: true
           disable_search: true
+
+      - name: Upload AgentUp.TestAgents.Tests coverage
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_test_agents_tests }}
+          flags: agentup-test-agents-tests
+          name: AgentUp.TestAgents.Tests
+          fail_ci_if_error: true
+          disable_search: true
+          verbose: true
 
       - name: Upload AgentUp.Verification.Tests coverage
         if: ${{ !cancelled() }}
@@ -937,7 +950,10 @@ jobs:
         working-directory: AgentUp.Mobile.E2E
         run: |
           npm install --no-audit --no-fund
+          # Detox needs applesimutils to drive the simulator. Homebrew refuses formulae from a
+          # third-party tap until the tap is trusted.
           brew tap wix/brew
+          brew trust wix/brew
           brew install applesimutils
 
       - name: Build the app under test

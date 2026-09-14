@@ -19,7 +19,7 @@ dotnet publish AgentUp.TestAgents/AgentUp.TestAgents.csproj \
   --output "$out/test-agents"
 
 server_dll="$(cd "$out/server" && pwd)/AgentUp.Server.dll"
-test_agent="$(cd "$out/test-agents" && pwd)/agent-up-test-agent"
+test_agent="$(cd "$out/test-agents" && pwd)/AgentUp.TestAgents"
 
 if [ ! -f "$server_dll" ]; then
   echo "Server publish did not produce $server_dll" >&2

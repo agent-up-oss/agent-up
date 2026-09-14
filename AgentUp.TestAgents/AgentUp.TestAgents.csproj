@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
-    <AssemblyName>agent-up-test-agent</AssemblyName>
     <RootNamespace>AgentUp.TestAgents</RootNamespace>
   </PropertyGroup>
 
