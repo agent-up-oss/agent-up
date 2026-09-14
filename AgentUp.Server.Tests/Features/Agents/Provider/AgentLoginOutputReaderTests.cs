@@ -47,7 +47,8 @@ public sealed class AgentLoginOutputReaderTests
     {
         var segments = new List<string>();
         var surfaced = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var reader = new AgentLoginOutputReader(new StallingReader("Paste code here: "), Idle);
+        using var source = new StallingReader("Paste code here: ");
+        var reader = new AgentLoginOutputReader(source, Idle);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
         var reading = reader.ReadAsync(
@@ -70,7 +71,8 @@ public sealed class AgentLoginOutputReaderTests
     [Test]
     public void ReadAsync_stopsWhenCancelled()
     {
-        var reader = new AgentLoginOutputReader(new NeverEndingReader(), Idle);
+        using var source = new NeverEndingReader();
+        var reader = new AgentLoginOutputReader(source, Idle);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
 
         Assert.CatchAsync<OperationCanceledException>(async () =>
@@ -80,7 +82,8 @@ public sealed class AgentLoginOutputReaderTests
     private static async Task<List<string>> ReadAsync(string output)
     {
         var segments = new List<string>();
-        var reader = new AgentLoginOutputReader(new StringReader(output), Idle);
+        using var source = new StringReader(output);
+        var reader = new AgentLoginOutputReader(source, Idle);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await reader.ReadAsync(segments.Add, cancellation.Token);
         return segments;

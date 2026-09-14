@@ -86,10 +86,11 @@ public sealed class AcpAgentServiceTests
     {
         using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var input = new StringReader("\n{ not json }\n");
         await new AcpAgentService().RunAsync(
             TestAgentSchema.DeviceCode,
             new FakeCredentialStore(null),
-            new StringReader("\n{ not json }\n"),
+            input,
             output,
             cancellation.Token);
 
@@ -100,10 +101,11 @@ public sealed class AcpAgentServiceTests
     {
         using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var input = new StringReader(frame + "\n");
         await new AcpAgentService().RunAsync(
             schema,
             new FakeCredentialStore(credential),
-            new StringReader(frame + "\n"),
+            input,
             output,
             cancellation.Token);
         var written = output.ToString().Trim();

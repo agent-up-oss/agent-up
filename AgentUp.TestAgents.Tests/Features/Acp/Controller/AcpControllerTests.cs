@@ -55,10 +55,11 @@ public sealed class AcpControllerTests
         using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
+        using var input = new StringReader(string.Empty);
         await new AcpController(new AcpAgentService()).ServeAsync(
             TestAgentSchema.SilentPoll,
             new StubCredentialStore(null),
-            new StringReader(string.Empty),
+            input,
             output,
             cancellation.Token);
 
@@ -70,10 +71,11 @@ public sealed class AcpControllerTests
         using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
+        using var input = new StringReader(frame + "\n");
         await new AcpController(new AcpAgentService()).ServeAsync(
             schema,
             new StubCredentialStore(credential),
-            new StringReader(frame + "\n"),
+            input,
             output,
             cancellation.Token);
 

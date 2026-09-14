@@ -38,7 +38,7 @@ public sealed class TestIdentityProviderServiceTests
     [SetUp]
     public async Task Reset()
     {
-        using var response = await _client.PostAsync($"{_origin}/test/reset", new StringContent(string.Empty));
+        using var response = await FormPost.SendAsync(_client, $"{_origin}/test/reset");
         Assert.That(response.IsSuccessStatusCode, Is.True, "The provider must be reachable before each test");
     }
 
@@ -53,10 +53,11 @@ public sealed class TestIdentityProviderServiceTests
 
         // Approve through the control plane rather than waiting on a poll interval.
         var userCode = await WaitForUserCodeAsync(output, cancellation.Token);
-        using var approved = await _client.PostAsync(
+        using var approved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("user_code", userCode)]),
-            cancellation.Token);
+            cancellation.Token,
+            ("user_code", userCode));
 
         Assert.That(approved.IsSuccessStatusCode, Is.True);
         var token = await login;
@@ -74,9 +75,10 @@ public sealed class TestIdentityProviderServiceTests
     {
         // Pre-approving means the authorization request redirects straight back, so the agent's
         // real callback listener runs without a browser having to click anything.
-        using var preApproved = await _client.PostAsync(
+        using var preApproved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/pre-approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", "test-agent1")]));
+            ("client_id", "test-agent1"));
         Assert.That(preApproved.IsSuccessStatusCode, Is.True);
 
         var flow = new LoopbackRedirectLoginFlow(_client, _origin);
@@ -98,9 +100,10 @@ public sealed class TestIdentityProviderServiceTests
     [Test]
     public async Task PastedCodeFlow_signsInWhenTheCodeIsPastedBack()
     {
-        using var preApproved = await _client.PostAsync(
+        using var preApproved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/pre-approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", "test-agent3")]));
+            ("client_id", "test-agent3"));
         Assert.That(preApproved.IsSuccessStatusCode, Is.True);
 
         var flow = new PastedCodeLoginFlow(_client, _origin);
@@ -141,10 +144,11 @@ public sealed class TestIdentityProviderServiceTests
 
         var loginUrl = await output.WaitForLineContainingAsync("/login/", cancellation.Token);
         var loginId = loginUrl.Split('/')[^1];
-        using var approved = await _client.PostAsync(
+        using var approved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("login_id", loginId)]),
-            cancellation.Token);
+            cancellation.Token,
+            ("login_id", loginId));
 
         Assert.That(approved.IsSuccessStatusCode, Is.True);
         var token = await login;
@@ -155,9 +159,10 @@ public sealed class TestIdentityProviderServiceTests
     [Test]
     public async Task Token_refusesAReplayedAuthorizationCode()
     {
-        using var preApproved = await _client.PostAsync(
+        using var preApproved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/pre-approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", "replay-test")]));
+            ("client_id", "replay-test"));
         Assert.That(preApproved.IsSuccessStatusCode, Is.True);
 
         var verifier = PkceVerifier.Secret();
@@ -178,9 +183,10 @@ public sealed class TestIdentityProviderServiceTests
     [Test]
     public async Task Token_refusesAMismatchedPkceVerifier()
     {
-        using var preApproved = await _client.PostAsync(
+        using var preApproved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/pre-approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", "pkce-test")]));
+            ("client_id", "pkce-test"));
         Assert.That(preApproved.IsSuccessStatusCode, Is.True);
 
         using var browser = new HttpClient();
@@ -205,13 +211,12 @@ public sealed class TestIdentityProviderServiceTests
 
     private async Task<HttpStatusCode> ExchangeAsync(string code, string verifier)
     {
-        using var response = await _client.PostAsync(
+        using var response = await FormPost.SendAsync(
+            _client,
             $"{_origin}/oauth/token",
-            new FormUrlEncodedContent([
-                new KeyValuePair<string, string>("grant_type", "authorization_code"),
-                new KeyValuePair<string, string>("code", code),
-                new KeyValuePair<string, string>("code_verifier", verifier)
-            ]));
+            ("grant_type", "authorization_code"),
+            ("code", code),
+            ("code_verifier", verifier));
         return response.StatusCode;
     }
 

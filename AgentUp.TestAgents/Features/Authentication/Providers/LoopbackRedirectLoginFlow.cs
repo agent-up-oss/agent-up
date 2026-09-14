@@ -51,14 +51,15 @@ public sealed class LoopbackRedirectLoginFlow(HttpClient client, string identity
             if (code is null)
                 return null;
 
+            using var request = new FormUrlEncodedContent([
+                new KeyValuePair<string, string>("grant_type", "authorization_code"),
+                new KeyValuePair<string, string>("client_id", ClientId),
+                new KeyValuePair<string, string>("code", code),
+                new KeyValuePair<string, string>("code_verifier", verifier)
+            ]);
             using var response = await client.PostAsync(
                 $"{identityProviderUrl}/oauth/token",
-                new FormUrlEncodedContent([
-                    new KeyValuePair<string, string>("grant_type", "authorization_code"),
-                    new KeyValuePair<string, string>("client_id", ClientId),
-                    new KeyValuePair<string, string>("code", code),
-                    new KeyValuePair<string, string>("code_verifier", verifier)
-                ]),
+                request,
                 cancellationToken);
 
             var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);

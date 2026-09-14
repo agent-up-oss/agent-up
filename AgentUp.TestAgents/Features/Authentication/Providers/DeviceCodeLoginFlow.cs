@@ -18,9 +18,10 @@ public sealed class DeviceCodeLoginFlow(HttpClient client, string identityProvid
 
     public async Task<string?> RunAsync(TextWriter output, TextReader input, CancellationToken cancellationToken)
     {
+        using var request = new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", ClientId)]);
         using var started = await client.PostAsync(
             $"{identityProviderUrl}/oauth/device/code",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", ClientId)]),
+            request,
             cancellationToken);
         if (!started.IsSuccessStatusCode)
         {
@@ -50,12 +51,13 @@ public sealed class DeviceCodeLoginFlow(HttpClient client, string identityProvid
     {
         while (!cancellationToken.IsCancellationRequested)
         {
+            using var request = new FormUrlEncodedContent([
+                new KeyValuePair<string, string>("client_id", ClientId),
+                new KeyValuePair<string, string>("device_code", deviceCode)
+            ]);
             using var response = await client.PostAsync(
                 $"{identityProviderUrl}/oauth/device/token",
-                new FormUrlEncodedContent([
-                    new KeyValuePair<string, string>("client_id", ClientId),
-                    new KeyValuePair<string, string>("device_code", deviceCode)
-                ]),
+                request,
                 cancellationToken);
 
             var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);

@@ -21,9 +21,10 @@ public sealed class SilentPollLoginFlow(HttpClient client, string identityProvid
 
     public async Task<string?> RunAsync(TextWriter output, TextReader input, CancellationToken cancellationToken)
     {
+        using var request = new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", ClientId)]);
         using var started = await client.PostAsync(
             $"{identityProviderUrl}/login/start",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", ClientId)]),
+            request,
             cancellationToken);
         if (!started.IsSuccessStatusCode)
         {

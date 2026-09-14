@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { extname, join, normalize, resolve, sep } from 'node:path';
+import { extname, join, resolve as resolvePath, sep } from 'node:path';
 
 import { freePort } from './stack.mjs';
 
@@ -26,7 +26,7 @@ const TYPES = {
  * from an origin, rather than through a dev server that resolves modules differently.
  */
 export async function startStaticServer(exportDir) {
-  const root = resolve(exportDir);
+  const root = resolvePath(exportDir);
   const port = await freePort();
 
   const server = createServer(async (request, response) => {
@@ -49,22 +49,36 @@ export async function startStaticServer(exportDir) {
   };
 }
 
+/**
+ * The file a request maps to, or null.
+ *
+ * Every path handed to the filesystem is built from segments that cannot escape the export: the
+ * request is reduced to plain names, so no '..' ever reaches a join, and the result is checked
+ * against the root again before it is read. A traversal here would silently serve the repository.
+ */
 async function resolveFile(root, requested) {
-  const candidate = normalize(join(root, requested));
-  // Never serve outside the export: a traversal here would silently read the repository.
-  if (candidate !== root && !candidate.startsWith(root + sep)) return null;
+  const candidate = join(root, ...safeSegments(requested));
 
-  const direct = await fileOrNull(candidate);
+  const direct = await fileWithin(root, candidate);
   if (direct) return direct;
 
-  const index = await fileOrNull(join(candidate, 'index.html'));
+  const index = await fileWithin(root, join(candidate, 'index.html'));
   if (index) return index;
 
   // The client is a single-page app, so unknown paths fall back to its entry document.
-  return fileOrNull(join(root, 'index.html'));
+  return fileWithin(root, join(root, 'index.html'));
 }
 
-async function fileOrNull(path) {
+/** The request path reduced to names, with anything that could climb out removed. */
+export function safeSegments(requested) {
+  return requested
+    .split('/')
+    .filter(segment => segment.length > 0 && segment !== '.' && segment !== '..')
+    .map(segment => segment.replaceAll('\\', ''));
+}
+
+async function fileWithin(root, path) {
+  if (path !== root && !path.startsWith(root + sep)) return null;
   try {
     return (await stat(path)).isFile() ? path : null;
   } catch {

@@ -45,10 +45,11 @@ public sealed class AuthenticationControllerTests
         // Approve through the provider's control plane rather than driving a browser, which is
         // what keeps this bounded by a deadline instead of by a poll interval.
         var loginUrl = await output.WaitForLineContainingAsync("/login/", cancellation.Token);
-        using var approved = await _client.PostAsync(
+        using var approved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("login_id", loginUrl.Split('/')[^1])]),
-            cancellation.Token);
+            cancellation.Token,
+            ("login_id", loginUrl.Split('/')[^1]));
         Assert.That(approved.IsSuccessStatusCode, Is.True);
 
         Assert.That(await login, Is.Not.Null.And.StartWith("test-oat-"));
@@ -59,9 +60,10 @@ public sealed class AuthenticationControllerTests
     [Test]
     public async Task SignInAsync_signsInAsTheAgentTheSchemaNames()
     {
-        using var preApproved = await _client.PostAsync(
+        using var preApproved = await FormPost.SendAsync(
+            _client,
             $"{_origin}/test/pre-approve",
-            new FormUrlEncodedContent([new KeyValuePair<string, string>("client_id", "test-agent1")]));
+            ("client_id", "test-agent1"));
         Assert.That(preApproved.IsSuccessStatusCode, Is.True);
 
         var controller = new AuthenticationController(new TestAgentSignInService());
