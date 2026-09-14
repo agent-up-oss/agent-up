@@ -8,12 +8,24 @@ namespace AgentUp.TestAgents.Features.Authentication.Providers;
 /// Server redirects <c>HOME</c> into its data directory, so this is also what proves the Server's
 /// redirection works: an agent that signed in finds its token again on the next launch.
 /// </summary>
-public sealed class TestAgentCredentialStore(TestAgentSchema schema) : ITestAgentCredentialStore
+public sealed class TestAgentCredentialStore : ITestAgentCredentialStore
 {
-    private string Path =>
-        System.IO.Path.Join(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            $".agent-up-{schema.ToString().ToLowerInvariant()}-credentials");
+    private readonly string _path;
+
+    /// <param name="schema">Which agent this is; each keeps its own credential.</param>
+    /// <param name="home">
+    /// Where to keep it. Passed in rather than read from the environment on every access, because
+    /// the runtime caches the resolved home directory and a test that changed it afterwards would
+    /// be reading a stale path.
+    /// </param>
+    public TestAgentCredentialStore(TestAgentSchema schema, string? home = null)
+    {
+        var root = home ?? Environment.GetEnvironmentVariable("HOME")
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _path = System.IO.Path.Join(root, $".agent-up-{schema.ToString().ToLowerInvariant()}-credentials");
+    }
+
+    private string Path => _path;
 
     public string? Read()
     {

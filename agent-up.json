@@ -900,7 +900,8 @@
       "AgentUp.Capabilities.Claude/**/*.cs",
       "AgentUp.Browser.Streaming/**/*.cs",
       "AgentUp.Tray/**/*.cs",
-      "AgentUp.InstallerConfig/**/*.cs"
+      "AgentUp.InstallerConfig/**/*.cs",
+      "AgentUp.TestAgents/**/*.cs"
     ],
     "exclude": [
       "**/Composition/**",
