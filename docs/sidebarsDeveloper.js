@@ -9,6 +9,7 @@ const sidebars = {
         'design-principles',
         'architecture',
         'server',
+        'agent-sign-in',
         'desktop',
         'desktop-app-hosting-assessment',
         'au-debug',

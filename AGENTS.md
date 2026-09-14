@@ -551,7 +551,7 @@ Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent
 
 The `redirect` transport must open an in-app WebView, not the system browser. The agent CLI's callback is bound to loopback on the Server host, so a client only completes that sign-in by observing the navigation and posting it to `POST agent/login/callback`; `Linking.openURL` hands the URL to Safari or Chrome and nothing comes back. A client must not open a sign-in link the user did not ask it to open.
 
-Developer guide: `docs/developer-guide/mobile.md`.
+Developer guides: `docs/developer-guide/mobile.md`, and `docs/developer-guide/agent-sign-in.md` for the sign-in transports.
 
 ## MCP
 
