@@ -228,7 +228,7 @@ jobs:
 
       - name: Upload AgentUp.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_tests }}
@@ -288,7 +288,7 @@ jobs:
 
       - name: Upload AgentUp.Architecture.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_architecture_tests }}
@@ -300,7 +300,7 @@ jobs:
 
       - name: Upload AgentUp.CLI.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_cli_tests }}
@@ -311,7 +311,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
@@ -322,7 +322,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
@@ -333,7 +333,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Claude.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_claude_tests }}
@@ -344,7 +344,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Codex.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_codex_tests }}
@@ -355,7 +355,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_cursor_tests }}
@@ -366,7 +366,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Docker.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_docker_tests }}
@@ -377,7 +377,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_dotnet_tests }}
@@ -388,7 +388,7 @@ jobs:
 
       - name: Upload AgentUp.CommitPolicy.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_commit_policy_tests }}
@@ -399,7 +399,7 @@ jobs:
 
       - name: Upload AgentUp.Desktop.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
@@ -410,7 +410,7 @@ jobs:
 
       - name: Upload AgentUp.AUDebug.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_audebug_tests }}
@@ -421,7 +421,7 @@ jobs:
 
       - name: Upload AgentUp.Server.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_server_tests }}
@@ -432,7 +432,7 @@ jobs:
 
       - name: Upload AgentUp.Verification.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
@@ -443,7 +443,7 @@ jobs:
 
       - name: Upload AgentUp.Browser.Streaming.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_browser_streaming_tests }}
@@ -454,7 +454,7 @@ jobs:
 
       - name: Upload AgentUp.Tray.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_tray_tests }}
@@ -465,7 +465,7 @@ jobs:
 
       - name: Upload AgentUp.InstallerConfig.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_installer_config_tests }}
