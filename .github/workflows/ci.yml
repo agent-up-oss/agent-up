@@ -574,7 +574,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: DeterminateSystems/nix-installer-action@v23
         if: ${{ matrix.use-nix }}
 
       - uses: actions/download-artifact@v8
