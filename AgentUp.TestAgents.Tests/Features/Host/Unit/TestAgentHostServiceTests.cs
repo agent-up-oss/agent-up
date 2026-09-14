@@ -1,5 +1,11 @@
+using AgentUp.TestAgents.Features.Acp.Controllers;
+using AgentUp.TestAgents.Features.Acp.Services;
+using AgentUp.TestAgents.Features.Authentication.Controllers;
+using AgentUp.TestAgents.Features.Authentication.Services;
 using AgentUp.TestAgents.Features.Host.Models;
 using AgentUp.TestAgents.Features.Host.Services;
+using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
+using AgentUp.TestAgents.Features.IdentityProvider.Services;
 
 namespace AgentUp.TestAgents.Tests.Features.Host.Unit;
 
@@ -14,7 +20,7 @@ public sealed class TestAgentHostServiceTests
     {
         var command = new TestAgentCommand(TestAgentSchema.DeviceCode, TestAgentVerb.Login, null, 0, null);
 
-        var exitCode = await new TestAgentHostService().RunAsync(command, CancellationToken.None);
+        var exitCode = await Host().RunAsync(command, CancellationToken.None);
 
         Assert.That(exitCode, Is.EqualTo(2));
     }
@@ -24,7 +30,7 @@ public sealed class TestAgentHostServiceTests
     {
         var command = new TestAgentCommand(TestAgentSchema.PastedCode, TestAgentVerb.Login, "   ", 0, null);
 
-        var exitCode = await new TestAgentHostService().RunAsync(command, CancellationToken.None);
+        var exitCode = await Host().RunAsync(command, CancellationToken.None);
 
         Assert.That(exitCode, Is.EqualTo(2));
     }
@@ -44,4 +50,10 @@ public sealed class TestAgentHostServiceTests
             Assert.That(command.PublicOrigin, Is.EqualTo("http://10.0.2.2:9000"));
         });
     }
+
+    /// <summary>The host as the entrypoint composes it, reaching each slice through its controller.</summary>
+    private static TestAgentHostService Host() => new(
+        new AcpController(new AcpAgentService()),
+        new AuthenticationController(new TestAgentSignInService()),
+        new IdentityProviderController(new IdentityProviderHostService()));
 }

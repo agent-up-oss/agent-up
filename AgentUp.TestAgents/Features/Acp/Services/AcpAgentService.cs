@@ -13,12 +13,21 @@ namespace AgentUp.TestAgents.Features.Acp.Services;
 /// credential exists on disk. That refusal is what drives the Server into
 /// <c>authentication_required</c>, so the whole sign-in path downstream of it is real.
 /// </para>
+/// <para>
+/// Stateless: which agent this is and where its credential lives arrive per call, so the service
+/// can be composed once at startup.
+/// </para>
 /// </summary>
-public sealed class AcpAgentService(TestAgentSchema schema, ITestAgentCredentialStore credentials)
+public sealed class AcpAgentService
 {
     private const int AuthRequired = -32000;
 
-    public async Task RunAsync(TextReader input, TextWriter output, CancellationToken cancellationToken)
+    public async Task RunAsync(
+        TestAgentSchema schema,
+        ITestAgentCredentialStore credentials,
+        TextReader input,
+        TextWriter output,
+        CancellationToken cancellationToken)
     {
         while (await input.ReadLineAsync(cancellationToken) is { } line)
         {
@@ -38,12 +47,11 @@ public sealed class AcpAgentService(TestAgentSchema schema, ITestAgentCredential
             if (frame is null)
                 continue;
 
-            var id = frame["id"];
             var method = frame["method"]?.GetValue<string>();
             if (method is null)
                 continue;
 
-            var response = Respond(method, id);
+            var response = Respond(schema, credentials, method, frame["id"]);
             if (response is null)
                 continue;
 
@@ -52,16 +60,20 @@ public sealed class AcpAgentService(TestAgentSchema schema, ITestAgentCredential
         }
     }
 
-    private JsonNode? Respond(string method, JsonNode? id) => method switch
+    private static JsonNode? Respond(
+        TestAgentSchema schema,
+        ITestAgentCredentialStore credentials,
+        string method,
+        JsonNode? id) => method switch
     {
-        "initialize" => Result(id, Initialize()),
-        "session/new" => NewSession(id),
+        "initialize" => Result(id, Initialize(schema)),
+        "session/new" => NewSession(credentials, id),
         "session/prompt" => Result(id, new JsonObject { ["stopReason"] = "end_turn" }),
         "session/cancel" => null,
         _ => Result(id, new JsonObject())
     };
 
-    private JsonObject Initialize() => new()
+    private static JsonObject Initialize(TestAgentSchema schema) => new()
     {
         ["protocolVersion"] = 1,
         ["agentCapabilities"] = new JsonObject { ["loadSession"] = false },
@@ -69,14 +81,14 @@ public sealed class AcpAgentService(TestAgentSchema schema, ITestAgentCredential
         {
             new JsonObject
             {
-                ["id"] = MethodId(),
-                ["name"] = MethodName(),
+                ["id"] = MethodId(schema),
+                ["name"] = MethodName(schema),
                 ["description"] = "Open the sign-in link and sign in with your subscription."
             }
         }
     };
 
-    private JsonNode NewSession(JsonNode? id)
+    private static JsonNode NewSession(ITestAgentCredentialStore credentials, JsonNode? id)
     {
         // No credential yet: refuse the way an unauthenticated agent does, which is what puts the
         // Server into authentication_required.
@@ -90,7 +102,7 @@ public sealed class AcpAgentService(TestAgentSchema schema, ITestAgentCredential
     /// Method ids mirror the real agents so the Server's subscription filtering sees the same
     /// shapes it sees in production.
     /// </summary>
-    internal string MethodId() => schema switch
+    internal static string MethodId(TestAgentSchema schema) => schema switch
     {
         TestAgentSchema.LoopbackRedirect => "chatgpt",
         TestAgentSchema.DeviceCode => "chatgpt",
@@ -98,7 +110,7 @@ public sealed class AcpAgentService(TestAgentSchema schema, ITestAgentCredential
         _ => "cursor_login"
     };
 
-    internal string MethodName() => schema switch
+    internal static string MethodName(TestAgentSchema schema) => schema switch
     {
         TestAgentSchema.LoopbackRedirect or TestAgentSchema.DeviceCode => "ChatGPT",
         TestAgentSchema.PastedCode => "Claude Pro",

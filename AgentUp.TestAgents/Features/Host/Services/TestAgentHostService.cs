@@ -14,11 +14,6 @@ public sealed class TestAgentHostService(
     AuthenticationController authentication,
     IdentityProviderController identityProvider)
 {
-    public TestAgentHostService()
-        : this(new AcpController(), new AuthenticationController(), new IdentityProviderController())
-    {
-    }
-
     public async Task<int> RunAsync(TestAgentCommand command, CancellationToken cancellationToken)
     {
         if (command.Verb == TestAgentVerb.IdentityProvider)

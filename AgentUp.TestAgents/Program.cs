@@ -1,3 +1,4 @@
+using AgentUp.TestAgents.Composition;
 using AgentUp.TestAgents.Features.Host.Controllers;
 
 // Test agents: real processes implementing each sign-in shape the vendor agent CLIs use, so the
@@ -14,7 +15,7 @@ try
 {
     var programName = Environment.GetCommandLineArgs().FirstOrDefault() ?? string.Empty;
     var command = TestAgentCommandParser.Parse(programName, args);
-    return await new TestAgentHostController().RunAsync(command, lifetime.Token);
+    return await TestAgentHostComposition.Host().RunAsync(command, lifetime.Token);
 }
 catch (InvalidOperationException exception)
 {

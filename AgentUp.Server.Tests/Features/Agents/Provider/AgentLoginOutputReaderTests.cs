@@ -60,7 +60,9 @@ public sealed class AgentLoginOutputReaderTests
 
         await surfaced.Task.WaitAsync(TimeSpan.FromSeconds(10));
         await cancellation.CancelAsync();
-        try { await reading; } catch (OperationCanceledException) { /* expected */ }
+        // The reader only ends by being cancelled: its source never closes, the way a CLI
+        // waiting on stdin never does.
+        Assert.CatchAsync<OperationCanceledException>(async () => await reading);
 
         Assert.That(segments, Is.EqualTo(new[] { "Paste code here: " }));
     }

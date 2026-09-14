@@ -5,7 +5,7 @@ using AgentUp.TestAgents.Features.Host.Models;
 namespace AgentUp.TestAgents.Features.Acp.Controllers;
 
 /// <summary>The ACP slice's boundary: serving the protocol over stdio.</summary>
-public sealed class AcpController
+public sealed class AcpController(AcpAgentService agent)
 {
     public Task ServeAsync(
         TestAgentSchema schema,
@@ -13,5 +13,5 @@ public sealed class AcpController
         TextReader input,
         TextWriter output,
         CancellationToken cancellationToken) =>
-        new AcpAgentService(schema, credentials).RunAsync(input, output, cancellationToken);
+        agent.RunAsync(schema, credentials, input, output, cancellationToken);
 }

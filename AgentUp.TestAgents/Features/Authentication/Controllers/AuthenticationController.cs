@@ -1,15 +1,14 @@
 using AgentUp.TestAgents.Features.Authentication.Interfaces;
-using AgentUp.TestAgents.Features.Authentication.Providers;
+using AgentUp.TestAgents.Features.Authentication.Services;
 using AgentUp.TestAgents.Features.Host.Models;
 
 namespace AgentUp.TestAgents.Features.Authentication.Controllers;
 
 /// <summary>The authentication slice's boundary: signing an agent in and keeping its credential.</summary>
-public sealed class AuthenticationController
+public sealed class AuthenticationController(TestAgentSignInService signIn)
 {
-    public ITestAgentCredentialStore Credentials(TestAgentSchema schema) => new TestAgentCredentialStore(schema);
+    public ITestAgentCredentialStore Credentials(TestAgentSchema schema) => signIn.Credentials(schema);
 
-    /// <summary>Runs the sign-in this agent implements, returning its token or null on failure.</summary>
     public Task<string?> SignInAsync(
         TestAgentSchema schema,
         HttpClient client,
@@ -17,5 +16,5 @@ public sealed class AuthenticationController
         TextWriter output,
         TextReader input,
         CancellationToken cancellationToken) =>
-        TestAgentLoginFlowFactory.Create(schema, client, identityProviderUrl).RunAsync(output, input, cancellationToken);
+        signIn.SignInAsync(schema, client, identityProviderUrl, output, input, cancellationToken);
 }

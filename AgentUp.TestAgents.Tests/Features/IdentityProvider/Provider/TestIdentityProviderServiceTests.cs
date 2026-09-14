@@ -4,6 +4,7 @@ using System.Text.Json;
 using AgentUp.TestAgents.Features.Authentication.Providers;
 using AgentUp.TestAgents.Shared.Providers;
 using AgentUp.TestAgents.Features.IdentityProvider.Services;
+using AgentUp.TestAgents.Tests.Support;
 
 namespace AgentUp.TestAgents.Tests.Features.IdentityProvider.Provider;
 
@@ -83,7 +84,7 @@ public sealed class TestIdentityProviderServiceTests
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var login = flow.RunAsync(output, TextReader.Null, cancellation.Token);
-        var authorizeUrl = await WaitForLineContainingAsync(output, "/oauth/authorize", cancellation.Token);
+        var authorizeUrl = await output.WaitForLineContainingAsync("/oauth/authorize", cancellation.Token);
 
         // Stand in for the browser: follow the link, which redirects onto the agent's listener.
         using var browser = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
@@ -109,7 +110,7 @@ public sealed class TestIdentityProviderServiceTests
 
         var login = flow.RunAsync(output, input, cancellation.Token);
 
-        var authorizeUrl = await WaitForLineContainingAsync(output, "/oauth/authorize", cancellation.Token);
+        var authorizeUrl = await output.WaitForLineContainingAsync("/oauth/authorize", cancellation.Token);
         using var browser = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         using var page = await browser.GetAsync(authorizeUrl, cancellation.Token);
         Assert.That(page.StatusCode, Is.EqualTo(HttpStatusCode.OK));
@@ -138,7 +139,7 @@ public sealed class TestIdentityProviderServiceTests
 
         var login = flow.RunAsync(output, TextReader.Null, cancellation.Token);
 
-        var loginUrl = await WaitForLineContainingAsync(output, "/login/", cancellation.Token);
+        var loginUrl = await output.WaitForLineContainingAsync("/login/", cancellation.Token);
         var loginId = loginUrl.Split('/')[^1];
         using var approved = await _client.PostAsync(
             $"{_origin}/test/approve",
@@ -216,67 +217,7 @@ public sealed class TestIdentityProviderServiceTests
 
     private static async Task<string> WaitForUserCodeAsync(AgentOutput output, CancellationToken cancellationToken)
     {
-        var line = await WaitForLineContainingAsync(output, "one-time code:", cancellationToken);
+        var line = await output.WaitForLineContainingAsync("one-time code:", cancellationToken);
         return line.Split(':')[^1].Trim();
-    }
-
-    /// <summary>
-    /// Waits for the agent to print something, polling its output rather than sleeping a fixed
-    /// amount, so the test is bounded by a deadline instead of by a guess.
-    /// </summary>
-    private static async Task<string> WaitForLineContainingAsync(AgentOutput output, string needle, CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            var match = output.ToString()
-                .Split('\n')
-                .Select(line => line.Trim())
-                .FirstOrDefault(line => line.Contains(needle, StringComparison.Ordinal));
-            if (match is not null)
-                return match.Contains("http", StringComparison.Ordinal)
-                    ? match[match.IndexOf("http", StringComparison.Ordinal)..]
-                    : match;
-            await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
-        }
-
-        throw new TimeoutException($"The agent never printed a line containing '{needle}'. Output so far:\n{output}");
-    }
-
-    /// <summary>
-    /// The agent writes this from its own task while the test reads it, so every access is
-    /// synchronized. An unsynchronized StringWriter here would be a genuine flake source.
-    /// </summary>
-    private sealed class AgentOutput : TextWriter
-    {
-        private readonly System.Text.StringBuilder _written = new();
-        private readonly Lock _gate = new();
-
-        public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
-
-        public override void Write(char value)
-        {
-            lock (_gate) _written.Append(value);
-        }
-
-        public override void Write(string? value)
-        {
-            lock (_gate) _written.Append(value);
-        }
-
-        public override string ToString()
-        {
-            lock (_gate) return _written.ToString();
-        }
-    }
-
-    /// <summary>A reader a test can push a line into once the agent has asked for one.</summary>
-    private sealed class PipedReader : TextReader
-    {
-        private readonly TaskCompletionSource<string> _line = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public void Write(string value) => _line.TrySetResult(value);
-
-        public override async ValueTask<string?> ReadLineAsync(CancellationToken cancellationToken) =>
-            await _line.Task.WaitAsync(cancellationToken);
     }
 }

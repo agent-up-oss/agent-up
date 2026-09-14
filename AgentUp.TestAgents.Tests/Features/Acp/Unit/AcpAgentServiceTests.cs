@@ -15,11 +15,11 @@ public sealed class AcpAgentServiceTests
         {
             // The Server filters auth methods by id and name, so these have to match the shapes
             // it sees in production or the test agents would exercise a different branch.
-            Assert.That(Service(TestAgentSchema.DeviceCode).MethodId(), Is.EqualTo("chatgpt"));
-            Assert.That(Service(TestAgentSchema.LoopbackRedirect).MethodId(), Is.EqualTo("chatgpt"));
-            Assert.That(Service(TestAgentSchema.PastedCode).MethodId(), Is.EqualTo("claude-login"));
-            Assert.That(Service(TestAgentSchema.SilentPoll).MethodId(), Is.EqualTo("cursor_login"));
-            Assert.That(Service(TestAgentSchema.PastedCode).MethodName(), Is.EqualTo("Claude Pro"));
+            Assert.That(AcpAgentService.MethodId(TestAgentSchema.DeviceCode), Is.EqualTo("chatgpt"));
+            Assert.That(AcpAgentService.MethodId(TestAgentSchema.LoopbackRedirect), Is.EqualTo("chatgpt"));
+            Assert.That(AcpAgentService.MethodId(TestAgentSchema.PastedCode), Is.EqualTo("claude-login"));
+            Assert.That(AcpAgentService.MethodId(TestAgentSchema.SilentPoll), Is.EqualTo("cursor_login"));
+            Assert.That(AcpAgentService.MethodName(TestAgentSchema.PastedCode), Is.EqualTo("Claude Pro"));
         });
     }
 
@@ -86,20 +86,26 @@ public sealed class AcpAgentServiceTests
     {
         using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        await new AcpAgentService(TestAgentSchema.DeviceCode, new FakeCredentialStore(null))
-            .RunAsync(new StringReader("\n{ not json }\n"), output, cancellation.Token);
+        await new AcpAgentService().RunAsync(
+            TestAgentSchema.DeviceCode,
+            new FakeCredentialStore(null),
+            new StringReader("\n{ not json }\n"),
+            output,
+            cancellation.Token);
 
         Assert.That(output.ToString(), Is.Empty);
     }
-
-    private static AcpAgentService Service(TestAgentSchema schema) => new(schema, new FakeCredentialStore(null));
 
     private static async Task<JsonNode?> ExchangeAsync(TestAgentSchema schema, string frame, string? credential = null)
     {
         using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        await new AcpAgentService(schema, new FakeCredentialStore(credential))
-            .RunAsync(new StringReader(frame + "\n"), output, cancellation.Token);
+        await new AcpAgentService().RunAsync(
+            schema,
+            new FakeCredentialStore(credential),
+            new StringReader(frame + "\n"),
+            output,
+            cancellation.Token);
         var written = output.ToString().Trim();
         return written.Length == 0 ? null : JsonNode.Parse(written);
     }
