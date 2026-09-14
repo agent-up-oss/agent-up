@@ -369,6 +369,22 @@
           "AgentUp.TestAgents",
           "AgentUp.TestAgents.Tests"
         ]
+      },
+      "agent-auth": {
+        "command": "npm test",
+        "workingDirectory": "AgentUp.AgentAuth",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.AgentAuth"
+        ]
+      },
+      "mobile-e2e-harness": {
+        "command": "node scripts/forbid-sleep.mjs && node --test test/*.test.mjs",
+        "workingDirectory": "AgentUp.Mobile.E2E",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Mobile.E2E"
+        ]
       }
     },
     "paths": [
@@ -847,6 +863,19 @@
         "checks": [
           "test-agents",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.AgentAuth/**",
+        "checks": [
+          "agent-auth",
+          "mobile"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile.E2E/**",
+        "checks": [
+          "mobile-e2e-harness"
         ]
       }
     ]

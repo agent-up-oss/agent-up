@@ -47,7 +47,7 @@ export function WorkspaceListScreen() {
 
       {workspaces.map(workspace => {
         const isSelected = selectedWorkspace?.id === workspace.id;
-        return <Pressable key={workspace.id} accessibilityRole="button"
+        return <Pressable key={workspace.id} testID={`workspace-${workspace.id}`} accessibilityRole="button"
           accessibilityState={{ selected: isSelected }}
           accessibilityLabel={`Select workspace ${workspace.displayName}`}
           onPress={() => selectWorkspace(workspace.id)}

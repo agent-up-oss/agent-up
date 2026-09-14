@@ -73,6 +73,18 @@ AgentUp.Desktop/
 AgentUp.Mobile/
   package.json
 
+AgentUp.Mobile.E2E/
+  package.json
+
+AgentUp.AgentAuth/
+  package.json
+
+AgentUp.TestAgents/
+  AgentUp.TestAgents.csproj
+
+AgentUp.TestAgents.Tests/
+  AgentUp.TestAgents.Tests.csproj
+
 AgentUp.DesignSystem/
   package.json
 
@@ -535,6 +547,10 @@ Mobile application spaces load each application's HTTP interface in a native Web
 
 Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
 
+Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent-auth`). It branches on the transport the Server reports - `poll`, `code`, or `redirect` - and never on which agent is signing in, so the real Claude, Codex, and Cursor CLIs and the test agents drive one code path rather than parallel ones. Platform behavior lives in an adapter behind a port; the state machine stays free of React and React Native imports so it is tested under plain Node.
+
+The `redirect` transport must open an in-app WebView, not the system browser. The agent CLI's callback is bound to loopback on the Server host, so a client only completes that sign-in by observing the navigation and posting it to `POST agent/login/callback`; `Linking.openURL` hands the URL to Safari or Chrome and nothing comes back. A client must not open a sign-in link the user did not ask it to open.
+
 Developer guide: `docs/developer-guide/mobile.md`.
 
 ## MCP
@@ -657,6 +673,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.AUDebug` | `AgentUp.AUDebug.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
+| `AgentUp.TestAgents` | `AgentUp.TestAgents.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
 | `LocalInstaller.Packaging` | `LocalInstaller.Packaging.Tests` |
@@ -675,6 +692,16 @@ After every task that touches any production project, run the architecture tests
 ```
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+
+`AgentUp.Mobile.E2E` is the mobile end-to-end project. It drives agent sign-in through the real client on a real iOS simulator (Detox, `macos-latest`), a real Android emulator (Detox, `ubuntu-latest` with KVM), and the installable web export (Playwright), against a real Agent-Up Server process, the real test agent CLIs from `AgentUp.TestAgents`, and the real identity provider behind them. Nothing in it is in-process, headless-only, or faked.
+
+`AgentUp.TestAgents` publishes one binary launched through a per-agent shim: `test-agent1` (loopback redirect, the `codex login` shape), `test-agent2` (device code, `codex login --device-auth`), `test-agent3` (pasted code with an unterminated prompt, `claude setup-token`), `test-agent4` (silent polling, `cursor-agent login`), and `test-idp`. Each speaks real ACP v1 over stdio and refuses `session/new` until it holds a credential. There are four sign-in shapes but only three agent kinds, so the loopback-redirect and device-code agents share the Codex slot and the stack starts twice rather than letting them collide.
+
+These tests must not be flaky, and that is enforced rather than hoped for. No fixed delays: `AgentUp.Mobile.E2E/scripts/forbid-sleep.mjs` fails the build on `setTimeout`, `device.sleep`, or `page.waitForTimeout` outside the wait helper, and every wait is a condition plus a deadline that names what it was waiting for. Approval is a control-plane call to the test identity provider at a moment the test chooses, never a wait on a polling interval and never a click driven into a browser's DOM. Ports are ephemeral, versions are pinned (simulator runtime, system image, API level, Detox, Playwright), app state is reset per case, and there are no retries: a retry hides a flake instead of surfacing it.
+
+The mobile CI jobs sit at the same dependency tier as `docs` and `jetbrains-plugin`, depending only on `version`, and each publishes the Server and test agents itself instead of taking an artifact from the .NET chain. That publish runs while the job is already provisioning an emulator or an Xcode toolchain; an artifact dependency would serialise the mobile suite behind the slowest jobs in the pipeline.
+
+Expo generates `AgentUp.Mobile/ios/` and `AgentUp.Mobile/android/` during those jobs and they stay uncommitted. `.github/scripts/install-mobile-deps.sh` installs mobile dependencies for CI without the `nix-shell` wrapper the repository npm scripts use: those runners have no Nix and do have Xcode and Android toolchains that the wrapper's replaced `PATH` would break. It runs the same underlying commands; only the shell wrapper is skipped. This is the second documented exception alongside `build:cloudflare`.
 
 Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, and web export). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
