@@ -22,7 +22,8 @@ public sealed class TestAgentCredentialStore : ITestAgentCredentialStore
     {
         var root = home ?? Environment.GetEnvironmentVariable("HOME")
             ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        _path = System.IO.Path.Join(root, $".agent-up-{schema.ToString().ToLowerInvariant()}-credentials");
+        var name = schema.ToString().ToLowerInvariant();
+        _path = System.IO.Path.Join(root, $".agent-up-{name}-credentials");
     }
 
     private string Path => _path;

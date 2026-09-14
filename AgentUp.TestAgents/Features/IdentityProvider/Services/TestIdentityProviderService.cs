@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using AgentUp.TestAgents.Features.IdentityProvider.Models;
-using AgentUp.TestAgents.Features.IdentityProvider.Providers;
+using AgentUp.TestAgents.Shared.Providers;
 
 namespace AgentUp.TestAgents.Features.IdentityProvider.Services;
 
@@ -415,6 +415,12 @@ public sealed class TestIdentityProviderService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        StopListening();
+        await DrainAsync();
+    }
+
+    private void StopListening()
+    {
         try
         {
             _listener.Stop();
@@ -422,19 +428,24 @@ public sealed class TestIdentityProviderService : IAsyncDisposable
         }
         catch (Exception exception) when (exception is ObjectDisposedException or HttpListenerException)
         {
-            // Already torn down.
+            // Already torn down, so there is nothing left to stop. The accept loop is still
+            // drained by the caller.
+            return;
         }
+    }
 
-        if (_accepting is not null)
+    private async Task DrainAsync()
+    {
+        if (_accepting is null)
+            return;
+
+        try
         {
-            try
-            {
-                await _accepting;
-            }
-            catch (Exception exception) when (exception is OperationCanceledException or HttpListenerException or ObjectDisposedException)
-            {
-                // Shutting down.
-            }
+            await _accepting;
+        }
+        catch (Exception exception) when (exception is OperationCanceledException or HttpListenerException or ObjectDisposedException)
+        {
+            return;
         }
     }
 }

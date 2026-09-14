@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.TestAgents.Features.Authentication.Interfaces;
-using AgentUp.TestAgents.Features.IdentityProvider.Providers;
+using AgentUp.TestAgents.Shared.Providers;
 
 namespace AgentUp.TestAgents.Features.Authentication.Providers;
 

@@ -84,7 +84,7 @@ public sealed class AcpAgentServiceTests
     [Test]
     public async Task Run_ignoresBlankAndUnparseableFrames()
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await new AcpAgentService(TestAgentSchema.DeviceCode, new FakeCredentialStore(null))
             .RunAsync(new StringReader("\n{ not json }\n"), output, cancellation.Token);
@@ -96,7 +96,7 @@ public sealed class AcpAgentServiceTests
 
     private static async Task<JsonNode?> ExchangeAsync(TestAgentSchema schema, string frame, string? credential = null)
     {
-        var output = new StringWriter();
+        using var output = new StringWriter();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await new AcpAgentService(schema, new FakeCredentialStore(credential))
             .RunAsync(new StringReader(frame + "\n"), output, cancellation.Token);

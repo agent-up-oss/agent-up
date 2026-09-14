@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using AgentUp.TestAgents.Features.IdentityProvider.Models;
+using AgentUp.TestAgents.Shared.Providers;
 
 namespace AgentUp.TestAgents.Features.IdentityProvider.Providers;
 

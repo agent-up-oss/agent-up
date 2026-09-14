@@ -1,4 +1,6 @@
-namespace AgentUp.TestAgents.Features.IdentityProvider.Providers;
+using AgentUp.TestAgents.Shared.Providers;
+
+namespace AgentUp.TestAgents.Shared.Providers;
 
 /// <summary>
 /// Reads <c>application/x-www-form-urlencoded</c> payloads and query strings, which is all the

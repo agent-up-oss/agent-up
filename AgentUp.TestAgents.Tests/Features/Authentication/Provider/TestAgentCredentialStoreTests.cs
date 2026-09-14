@@ -26,6 +26,7 @@ public sealed class TestAgentCredentialStoreTests
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             // A leftover temp directory is not worth failing a test over.
+            TestContext.WriteLine($"Could not remove {_home}: {exception.Message}");
         }
     }
 

@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.TestAgents.Features.Authentication.Providers;
-using AgentUp.TestAgents.Features.IdentityProvider.Providers;
+using AgentUp.TestAgents.Shared.Providers;
 using AgentUp.TestAgents.Features.IdentityProvider.Services;
 
 namespace AgentUp.TestAgents.Tests.Features.IdentityProvider.Provider;
@@ -45,7 +45,7 @@ public sealed class TestIdentityProviderServiceTests
     public async Task DeviceCodeFlow_signsInOnceTheUserCodeIsApproved()
     {
         var flow = new DeviceCodeLoginFlow(_client, _origin);
-        var output = new AgentOutput();
+        using var output = new AgentOutput();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var login = flow.RunAsync(output, TextReader.Null, cancellation.Token);
@@ -79,7 +79,7 @@ public sealed class TestIdentityProviderServiceTests
         Assert.That(preApproved.IsSuccessStatusCode, Is.True);
 
         var flow = new LoopbackRedirectLoginFlow(_client, _origin);
-        var output = new AgentOutput();
+        using var output = new AgentOutput();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var login = flow.RunAsync(output, TextReader.Null, cancellation.Token);
@@ -103,8 +103,8 @@ public sealed class TestIdentityProviderServiceTests
         Assert.That(preApproved.IsSuccessStatusCode, Is.True);
 
         var flow = new PastedCodeLoginFlow(_client, _origin);
-        var output = new AgentOutput();
-        var input = new PipedReader();
+        using var output = new AgentOutput();
+        using var input = new PipedReader();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var login = flow.RunAsync(output, input, cancellation.Token);
@@ -133,7 +133,7 @@ public sealed class TestIdentityProviderServiceTests
     public async Task SilentPollFlow_signsInOnceTheLoginIsApprovedAndShowsNoUserCode()
     {
         var flow = new SilentPollLoginFlow(_client, _origin);
-        var output = new AgentOutput();
+        using var output = new AgentOutput();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var login = flow.RunAsync(output, TextReader.Null, cancellation.Token);

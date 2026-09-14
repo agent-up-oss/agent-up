@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace AgentUp.TestAgents.Features.IdentityProvider.Providers;
+using AgentUp.TestAgents.Shared.Providers;
+
+namespace AgentUp.TestAgents.Shared.Providers;
 
 /// <summary>
 /// PKCE S256 as RFC 7636 defines it. Real, not stubbed: a test agent that computed its challenge

@@ -53,15 +53,10 @@ public sealed class AgentLoginCommandProvider(IConfiguration configuration, Agen
 
     private IReadOnlyDictionary<string, string> ReadLoginEnvironment(AgentKind kind)
     {
-        var section = configuration.GetSection($"Agents:{kind}:LoginEnvironment");
-        var environment = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var entry in section.GetChildren())
-        {
-            if (!string.IsNullOrWhiteSpace(entry.Value))
-                environment[entry.Key] = entry.Value;
-        }
-
-        return environment;
+        return configuration.GetSection($"Agents:{kind}:LoginEnvironment")
+            .GetChildren()
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Value))
+            .ToDictionary(entry => entry.Key, entry => entry.Value!, StringComparer.Ordinal);
     }
 
     private static IReadOnlyList<string> LoginArguments(IReadOnlyList<string> acpArguments, string verb)

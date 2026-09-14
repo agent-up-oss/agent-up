@@ -1,56 +1,49 @@
-using AgentUp.TestAgents.Features.Acp.Services;
-using AgentUp.TestAgents.Features.Authentication.Providers;
+using AgentUp.TestAgents.Features.Acp.Controllers;
+using AgentUp.TestAgents.Features.Authentication.Controllers;
 using AgentUp.TestAgents.Features.Host.Models;
-using AgentUp.TestAgents.Features.IdentityProvider.Services;
+using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
 
 namespace AgentUp.TestAgents.Features.Host.Services;
 
-/// <summary>Runs whichever verb the process was started for.</summary>
-public sealed class TestAgentHostService
+/// <summary>
+/// Runs whichever verb the process was started for, reaching every other slice through its
+/// controller rather than its internals.
+/// </summary>
+public sealed class TestAgentHostService(
+    AcpController acp,
+    AuthenticationController authentication,
+    IdentityProviderController identityProvider)
 {
+    public TestAgentHostService()
+        : this(new AcpController(), new AuthenticationController(), new IdentityProviderController())
+    {
+    }
+
     public async Task<int> RunAsync(TestAgentCommand command, CancellationToken cancellationToken)
     {
         if (command.Verb == TestAgentVerb.IdentityProvider)
-            return await RunIdentityProviderAsync(command, cancellationToken);
-
-        var credentials = new TestAgentCredentialStore(command.Schema);
-        if (command.Verb == TestAgentVerb.Acp)
         {
-            await new AcpAgentService(command.Schema, credentials)
-                .RunAsync(Console.In, Console.Out, cancellationToken);
+            // The port goes to stdout as the first line so a harness that asked for an ephemeral
+            // one can read back the port it actually got, rather than guessing or scanning.
+            await identityProvider.ServeAsync(
+                command.Port,
+                command.PublicOrigin,
+                port =>
+                {
+                    Console.WriteLine(port);
+                    Console.Out.Flush();
+                },
+                cancellationToken);
             return 0;
         }
 
-        return await RunLoginAsync(command, credentials, cancellationToken);
-    }
-
-    private static async Task<int> RunIdentityProviderAsync(TestAgentCommand command, CancellationToken cancellationToken)
-    {
-        await using var provider = new TestIdentityProviderService(command.Port, command.PublicOrigin);
-        provider.Start();
-
-        // The port is written to stdout as the first line so a harness that asked for port 0 can
-        // read back the one it actually got, rather than guessing or scanning.
-        Console.WriteLine(provider.Port);
-        Console.Out.Flush();
-
-        try
+        var credentials = authentication.Credentials(command.Schema);
+        if (command.Verb == TestAgentVerb.Acp)
         {
-            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            // Asked to stop.
+            await acp.ServeAsync(command.Schema, credentials, Console.In, Console.Out, cancellationToken);
+            return 0;
         }
 
-        return 0;
-    }
-
-    private static async Task<int> RunLoginAsync(
-        TestAgentCommand command,
-        TestAgentCredentialStore credentials,
-        CancellationToken cancellationToken)
-    {
         if (string.IsNullOrWhiteSpace(command.IdentityProviderUrl))
         {
             await Console.Error.WriteLineAsync(
@@ -59,11 +52,15 @@ public sealed class TestAgentHostService
         }
 
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        var flow = TestAgentLoginFlowFactory.Create(command.Schema, client, command.IdentityProviderUrl.TrimEnd('/'));
-
         try
         {
-            var token = await flow.RunAsync(Console.Out, Console.In, cancellationToken);
+            var token = await authentication.SignInAsync(
+                command.Schema,
+                client,
+                command.IdentityProviderUrl.TrimEnd('/'),
+                Console.Out,
+                Console.In,
+                cancellationToken);
             if (token is null)
                 return 1;
             credentials.Write(token);
