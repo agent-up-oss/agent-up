@@ -3,6 +3,7 @@ using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Shared.Models;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 
@@ -34,6 +35,7 @@ public sealed class WorkspaceOverviewViewModelTests
             Assert.That(view.ProcessCount, Is.EqualTo("3"));
             Assert.That(view.ApplicationCount, Is.EqualTo("4"));
             Assert.That(view.Commit, Is.EqualTo("abcdef12"));
+            Assert.That(view.StateColor, Is.EqualTo(AgentUpThemeColors.StatusHealthy));
         });
     }
 
@@ -75,6 +77,7 @@ public sealed class WorkspaceOverviewViewModelTests
             Assert.That(view.ShowSkeleton, Is.False);
             Assert.That(view.DisplayName, Is.EqualTo("Other"));
             Assert.That(view.Cpu, Is.EqualTo("1.0%"));
+            Assert.That(view.StateColor, Is.EqualTo(AgentUpThemeColors.TextMuted));
         });
     }
 

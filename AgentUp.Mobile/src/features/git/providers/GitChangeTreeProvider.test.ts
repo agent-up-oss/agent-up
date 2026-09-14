@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { agentUpTheme } from '@agent-up/design-system/native';
 import type { GitChangeTree } from '../models/GitChanges';
 import {
   allFilePaths,
@@ -158,6 +159,6 @@ test('status glyphs and colors distinguish the change kinds', () => {
   assert.equal(statusGlyph('Added'), '+');
   assert.equal(statusGlyph('Deleted'), '−');
   assert.equal(statusGlyph(null), '▸');
-  assert.equal(statusColor('Deleted'), '#d84f4f');
-  assert.equal(statusColor(null), '#789085');
+  assert.equal(statusColor('Deleted'), agentUpTheme.colors.statusDanger);
+  assert.equal(statusColor(null), agentUpTheme.colors.textMuted);
 });

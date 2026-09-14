@@ -6,6 +6,8 @@ title: Desktop
 
 `AgentUp.Desktop` is the human UI for Agent-Up.
 
+For visual comparison against Mobile and the docs design-system page during UI work, use [`au-debug`](au-debug.md) rather than a packaged Desktop install.
+
 Technology:
 
 - .NET 10
@@ -62,6 +64,8 @@ Selecting a file name opens its diff in a modal over the window. Selecting a dir
 
 `GitPanelViewModel` owns selection propagation between directory and file rows; the flattened rows keep the Avalonia list simple while the Server keeps the tree shape. The panel reloads whenever the selected workspace changes, after a successful commit or discard, and on a short poll while it is open. Checkboxes for files that are still present are kept across those reloads. The same view-model also drives the workspace branch dropdown and create-branch field.
 
+The same refresh requests `/api/workspaces/{workspaceId}/commit-queue` and displays the ordered Server-owned proposal entries with their messages and verification states. Desktop treats the returned generation, ancestry, and managed-worktree path as authoritative and does not reconstruct queue state from the working tree.
+
 ## First-Run Tutorial
 
 On first start, the Desktop shows a required setup tutorial over the normal application shell unless the user has already completed or skipped it. Tutorial progress is stored in the Desktop user settings file under the user's local application data directory.
@@ -99,9 +103,18 @@ Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1` so onboarding d
 
 ## Browser Experience
 
-The desktop should visually align with the interactive demo on the docs marketing page: compact dark chrome with no outer frame border, subtle internal dividers where needed, green/teal active states and indicators, rounded workspace entries, and a browser-first runtime surface.
+Desktop is the reference rendering for the shared
+[`@agent-up/design-system`](./design-system.md): compact dark chrome with no outer
+frame border, neutral internal dividers, semantic green active states and health
+indicators, rounded workspace entries, and a browser-first runtime surface. Desktop
+applies generated Avalonia styles inferred from the HTML/CSS catalog rather than
+restating that structure as a second theme. `MainWindow` may keep Fluent
+ControlTemplates, caret/selection brushes, and optical glyph margins that CSS
+cannot express. Catalog classes such as `wsEntry` and `appTab` get their fill,
+radius, and hover/selected treatment from `AgentUpStyles.axaml`. The docs marketing page and Mobile
+client consume the same canonical HTML/CSS contract and generated bindings.
 
-The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the reload control and is green when the Desktop can reach the Server and red when it cannot.
+The app owns its window chrome. Do not rely on the host Xorg/desktop title bar for primary controls. Workspace reload, Server connection badge, title, and window controls are built into the top navigation area so screenshots and the real desktop app use the same frame. Window controls sit on the top right in Windows order: minimize, restore, close. The Server badge sits on the left after the reload control and is green when the Desktop can reach the Server and red when it cannot. Clicking the badge opens the saved-server list so the user can switch Servers.
 
 Desktop sets a runtime `WindowIcon` from `media/logo.png` so Linux/Xorg window switchers can display the app icon. The Desktop project must also declare `ApplicationIcon` pointing at `media/logo.ico`; Windows shell surfaces such as Alt+Tab use the executable icon resource rather than only Avalonia's runtime window icon.
 
@@ -121,6 +134,8 @@ The left side shows workspace selection, health, branch, and running state. Runn
 ## Workspace Tabs
 
 The first tab row has two groups. Overview, Agent, and Commit are workspace surfaces. A small `|` separator follows them, then the applications configured for the selected workspace. Selecting an application rebuilds the second tab row for that application. Switching to Overview, Agent, or Commit keeps the internally selected application so returning to an app tab restores its port, Console, or Metrics surface. The Validation sidebar stays open beside those surfaces and reloads for that selected application.
+
+The Agent tab streams workspace ACP events over SSE on a dedicated HTTP client with an infinite timeout, matching workspace event subscriptions, so an idle session does not drop the transcript after the default `HttpClient` timeout. Unexpected stream cancellation reconnects from the last sequence instead of leaving the list empty. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a **Worked** disclosure while the trailing agent reply stays visible as the only raised card.
 
 For applications with configured ports, the second row starts with ports in `agent-up.json` order and automatically selects the first configured port. This makes the app's primary browser surface the default when switching between applications. Console and Metrics remain available after the port tabs.
 
@@ -182,6 +197,16 @@ registers no chrome items.
 
 Desktop queries `/api/auth/status` before loading workspace state. When the
 Server requires authentication it shows an in-window administrator sign-in page
-that gates the main UI and uses the returned bearer token for REST and
+that uses the catalog sign-in card, page title, and field label, then gates the
+main UI and uses the returned bearer token for REST and
 workspace-event requests. When the Server has authentication disabled, Desktop
 opens the main window directly.
+
+Desktop remembers configured Server URLs and their access tokens in
+`connections.json` under the user's local application data directory.
+`AGENTUP_SERVER_URL` is the default when no saved connection exists. The
+sign-in page lists saved servers and accepts a Server URL. The chrome server
+badge opens that page so the user can switch. Switching replaces the workspace
+list, panel, and WebView state for the previous Server; first-run tutorial
+settings stay on the workstation. A saved token is reused until the Server
+returns 401, which shows the password field again.

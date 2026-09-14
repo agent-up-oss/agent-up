@@ -4,6 +4,7 @@ import { useServers } from '@/features/servers/controllers/ServersContext';
 import { AppShellProvider } from '../controllers/AppShellContext';
 import { AppNavBar } from './AppNavBar';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
+import { agentUpTheme } from '@agent-up/design-system/native';
 
 function AuthenticatedShell() {
   const { activeServer } = useServers();
@@ -14,7 +15,7 @@ function AuthenticatedShell() {
       <View style={styles.shell}>
         <AppNavBar />
         <View style={styles.content}>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#000000' } }} />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: agentUpTheme.colors.canvas } }} />
         </View>
         <WorkspaceSidebar />
       </View>
@@ -27,6 +28,6 @@ export function AppShellLayout() {
 }
 
 const styles = StyleSheet.create({
-  shell: { flex: 1, backgroundColor: '#000000' },
+  shell: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { flex: 1 },
 });

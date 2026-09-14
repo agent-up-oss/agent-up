@@ -1,23 +1,19 @@
+using AgentUp.Desktop.Features.Authentication.Providers;
+
 namespace AgentUp.Desktop.Tests.Support;
 
 internal sealed class DisposableTestHttpClient : IDisposable
 {
-    private readonly StubHandler _handler;
     private readonly HttpClient _client;
 
     public DisposableTestHttpClient(Func<HttpRequestMessage, HttpResponseMessage> response, string baseAddress = "http://127.0.0.1:5000")
     {
-        _handler = new StubHandler(response);
-        _client = new HttpClient(_handler) { BaseAddress = new Uri(baseAddress) };
+        _client = ServerSessionProvider.CreateClient(new Uri(baseAddress), new StubHandler(response));
     }
 
     public HttpClient Client => _client;
 
-    public void Dispose()
-    {
-        _client.Dispose();
-        _handler.Dispose();
-    }
+    public void Dispose() => _client.Dispose();
 
     private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> response) : HttpMessageHandler
     {

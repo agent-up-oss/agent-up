@@ -16,12 +16,15 @@ public sealed class AgentChatViewModel : ReactiveObject
     private string _state = "idle";
     private string _activityLabel = "Idle";
     private bool _isVisible, _isBusy;
+    private AgentRunViewModel? _currentRun;
     private CancellationTokenSource? _stream;
     private Task? _streamLoop;
     private int _loadGeneration;
     private long _lastSequence;
     private Task _stopStream = Task.CompletedTask;
-    public ObservableCollection<AgentChatItemViewModel> Messages { get; } = [];
+    public ObservableCollection<object> Transcript { get; } = [];
+    public IEnumerable<AgentChatItemViewModel> Messages => Transcript.OfType<AgentChatItemViewModel>()
+        .Concat(Transcript.OfType<AgentRunViewModel>().SelectMany(run => run.Items));
     public ObservableCollection<AgentDescriptorDto> Agents { get; } = [];
     public ObservableCollection<AgentOptionViewModel> PermissionOptions { get; } = [];
     public ObservableCollection<AgentOptionViewModel> AuthenticationOptions { get; } = [];
@@ -48,6 +51,13 @@ public sealed class AgentChatViewModel : ReactiveObject
     public bool HasSession => _sessionId is not null;
     public bool HasPermission => PermissionOptions.Count > 0;
     public bool HasContext => !string.IsNullOrWhiteSpace(ContextLine);
+    public bool HasMessages => Transcript.Count > 0;
+    public string? SelectedAgentDisplayName =>
+        Agents.FirstOrDefault(agent => string.Equals(agent.Agent, SelectedAgent, StringComparison.Ordinal))?.DisplayName
+        ?? SelectedAgent;
+    public string StatusLine => HasAgent
+        ? $"{SelectedAgentDisplayName} · {ActivityLabel}"
+        : ActivityLabel;
     public ReactiveCommand<string, Unit> SelectAgentCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
@@ -58,6 +68,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         SelectAgentCommand = ReactiveCommand.CreateFromTask<string>(SelectAsync);
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync);
+        Transcript.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasMessages));
     }
 
     public async Task LoadAsync(string? workspaceId)
@@ -69,7 +80,9 @@ public sealed class AgentChatViewModel : ReactiveObject
 
         _workspaceId = workspaceId;
         _lastSequence = 0;
-        Messages.Clear(); PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear();
+        Transcript.Clear();
+        _currentRun = null;
+        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear();
         SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = _hintKind = _hintTool = null;
         NotifyComputedChatState();
         RefreshActivity();
@@ -94,7 +107,13 @@ public sealed class AgentChatViewModel : ReactiveObject
         var text = Message?.Trim(); if (string.IsNullOrEmpty(text) || HasPermission) return;
         Message = null; await RunAsync(id => _controller.SendAsync(id, text, CancellationToken.None));
     }
-    private async Task StopAsync() => await RunAsync(async id => { await _controller.StopAsync(id, CancellationToken.None); Apply(null); });
+    private async Task StopAsync() => await RunAsync(async id =>
+    {
+        await _controller.StopAsync(id, CancellationToken.None);
+        Transcript.Clear();
+        _currentRun = null;
+        Apply(null);
+    });
     private async Task RunAsync(Func<string, Task> action)
     {
         if (_workspaceId is null || IsBusy) return; IsBusy = true; Error = null;
@@ -109,8 +128,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         AuthenticationOptions.Clear();
         if (session is not null)
         {
-            Agents.Clear();
-            foreach (var agent in session.Agents) Agents.Add(agent);
+            if (session.Agents.Count > 0)
+            {
+                Agents.Clear();
+                foreach (var agent in session.Agents)
+                    Agents.Add(agent);
+            }
             if (session.State == "authentication_required")
                 foreach (var method in session.AuthMethods ?? []) AuthenticationOptions.Add(new(method.Id, method.Name, ReactiveCommand.CreateFromTask(() => AuthenticateAsync(method.Id))));
             Error = session.Error;
@@ -140,12 +163,16 @@ public sealed class AgentChatViewModel : ReactiveObject
                     await Dispatcher.UIThread.InvokeAsync(() => Accept(item));
                 await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
+            catch (TaskCanceledException)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            }
             catch (Exception exception) when (exception is HttpRequestException or IOException or JsonException)
             {
                 await Dispatcher.UIThread.InvokeAsync(() => Error = exception.Message);
                 await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
         }
     }
     private void Accept(AgentEventDto item)
@@ -154,7 +181,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             return;
         _lastSequence = item.Sequence;
         if (item.Type == "state") { Apply(item.Payload.Deserialize<AgentSessionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })); return; }
-        if (item.Type == "user_message") { Messages.Add(new("You", Text(item.Payload))); return; }
+        if (item.Type == "user_message") { AddUser(Text(item.Payload)); return; }
         if (item.Type == "permission_request") { AddPermission(item.Payload); return; }
         if (item.Type != "session_update") return;
         ApplyPresented(AgentEventPresentationProvider.Present(AgentEventPresentationProvider.Unwrap(item.Payload)));
@@ -177,9 +204,9 @@ public sealed class AgentChatViewModel : ReactiveObject
         if (presented.Kind == "plan")
         {
             var text = presented.Text ?? "";
-            var existing = Messages.ToList().FindIndex(item => item.Role == "Plan");
-            var next = new AgentChatItemViewModel("Plan", text);
-            if (existing < 0) Messages.Add(next); else Messages[existing] = next;
+            var existing = CurrentRun().Items.ToList().FindIndex(item => item.Role == "Plan");
+            if (existing < 0) CurrentRun().Items.Add(new("Plan", text));
+            else CurrentRun().Items[existing].Text = text;
             _hintKind = "Plan"; RefreshActivity(); return;
         }
         if (presented.Kind == "message" && !string.IsNullOrWhiteSpace(presented.Text) && presented.Role is not null)
@@ -191,14 +218,20 @@ public sealed class AgentChatViewModel : ReactiveObject
     }
     private void UpsertTool(PresentedAgentUpdate presented)
     {
-        var existing = Messages.ToList().FindIndex(item => item.Role == "Tool" && item.ToolCallId == presented.ToolCallId);
-        var previous = existing >= 0 ? Messages[existing] : null;
+        var run = CurrentRun();
+        var existing = run.Items.ToList().FindIndex(item => item.Role == "Tool" && item.ToolCallId == presented.ToolCallId);
+        var previous = existing >= 0 ? run.Items[existing] : null;
         var title = presented.Title ?? previous?.Text.Split('\n')[0] ?? "Tool";
         var status = presented.Status ?? previous?.Status ?? "pending";
         var body = presented.Text ?? (previous is null ? "" : string.Join('\n', previous.Text.Split('\n').Skip(1)));
         var text = string.IsNullOrWhiteSpace(body) ? title : $"{title}\n{body}";
-        var next = new AgentChatItemViewModel("Tool", text, status, presented.ToolCallId);
-        if (existing < 0) Messages.Add(next); else Messages[existing] = next;
+        if (previous is null)
+            run.Items.Add(new("Tool", text, status, presented.ToolCallId));
+        else
+        {
+            previous.Text = text;
+            previous.Status = status;
+        }
     }
     private void AddPermission(JsonElement payload)
     {
@@ -230,14 +263,58 @@ public sealed class AgentChatViewModel : ReactiveObject
     private void Append(string role, string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
-        var last = Messages.LastOrDefault();
+        var run = CurrentRun();
+        var last = run.Items.LastOrDefault();
         if (last is { } item && item.Role == role && role is "Agent" or "Thought")
-            Messages[^1] = item with { Text = item.Text + text };
-        else Messages.Add(new(role, text));
+            item.Text += text;
+        else
+            run.Items.Add(new(role, text, displayRole: role == "Agent" ? SelectedAgentDisplayName : null));
     }
     private void RefreshActivity()
     {
         ActivityLabel = AgentEventPresentationProvider.ActivityLabel(State, HasPermission, null, _hintKind, _hintTool);
+        this.RaisePropertyChanged(nameof(StatusLine));
+        RefreshThoughts();
+    }
+
+    private void RefreshThoughts()
+    {
+        var run = _currentRun;
+        if (run is null)
+            return;
+        for (var i = 0; i < run.WorkItems.Count; i++)
+        {
+            var item = run.WorkItems[i];
+            if (!item.IsThought)
+                continue;
+            item.SetLive(run.IsLive && i == run.WorkItems.Count - 1 && State == "running" && _hintKind == "Thought");
+        }
+    }
+
+    private void AddUser(string text)
+    {
+        SealCurrentRun();
+        Transcript.Add(new AgentChatItemViewModel("You", text));
+    }
+
+    private AgentRunViewModel CurrentRun()
+    {
+        if (_currentRun is not null)
+            return _currentRun;
+        _currentRun = new AgentRunViewModel();
+        Transcript.Add(_currentRun);
+        return _currentRun;
+    }
+
+    private void SealCurrentRun()
+    {
+        if (_currentRun is null)
+            return;
+        if (_currentRun.Items.Count == 0)
+            Transcript.Remove(_currentRun);
+        else
+            _currentRun.Seal();
+        _currentRun = null;
     }
 
     private Task StopStreamAsync()
@@ -274,6 +351,9 @@ public sealed class AgentChatViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(HasPermission));
         this.RaisePropertyChanged(nameof(HasAgent));
         this.RaisePropertyChanged(nameof(HasSession));
+        this.RaisePropertyChanged(nameof(HasMessages));
+        this.RaisePropertyChanged(nameof(SelectedAgentDisplayName));
+        this.RaisePropertyChanged(nameof(StatusLine));
         this.RaisePropertyChanged(nameof(ContextLine));
         this.RaisePropertyChanged(nameof(HasContext));
         this.RaisePropertyChanged(nameof(HasLoginChallenge));

@@ -1,0 +1,416 @@
+/*
+ * Agent-Up canonical design contract.
+ *
+ * This CSS file is the single source of truth for foundations and shared
+ * interface primitives. Product surfaces live in product.css; campaign
+ * compositions live in marketing.css. scripts/build.mjs compiles custom
+ * properties and class rules into React Native and Avalonia bindings.
+ * Never edit files under dist/ by hand.
+ */
+:root,
+.au-theme {
+  color-scheme: dark;
+
+  /*
+   * Color. Three separate jobs, deliberately kept apart:
+   *   surface-*  the plane an element sits on
+   *   state-*    hover and pressed. Neutral light, never the brand colour.
+   *   accent/selected-*  meaning: action, selection, progress, health.
+   * Painting the accent into hover is what makes a product look like
+   * Material. Keep interaction neutral and let green carry meaning.
+   */
+  --au-color-canvas: #0a0b0c;
+  --au-color-surface: #121416;
+  --au-color-surface-raised: #191c1f;
+  --au-color-surface-overlay: #202428;
+  --au-color-surface-hover: #202224;
+  --au-color-surface-input: #17191b;
+  --au-color-surface-danger: #261a1c;
+
+  /* Neutral interaction layers. Alpha so they composite on any surface. */
+  --au-color-state-hover: #ffffff0f;
+  --au-color-state-active: #ffffff1a;
+
+  /* Selection tints. Opaque: a selected row always sits on canvas or surface. */
+  --au-color-surface-selected-soft: #11211b;
+  --au-color-surface-selected: #10281d;
+  --au-color-surface-selected-strong: #0f3220;
+
+  /*
+   * Borders are hairlines in alpha, not fixed grays. An opaque line reads
+   * 2.4x stronger on the canvas than on a raised surface; alpha composites,
+   * so one token holds an even weight across the whole ramp.
+   */
+  --au-color-border-subtle: #ffffff14;
+  --au-color-border-strong: #ffffff29;
+  --au-color-border-selected: #00b85059;
+  --au-color-border-danger: #d84f4f4d;
+  --au-color-text-primary: #f5fbf7;
+  --au-color-text-secondary: #c2d2ca;
+  --au-color-text-muted: #8a9a92;
+  --au-color-text-faint: #718077;
+  --au-color-text-danger: #e48989;
+  --au-color-text-warning: #ffd66b;
+  --au-color-text-info: #8bb7ff;
+  --au-color-accent: #00b850;
+  --au-color-accent-bright: #00d66b;
+  --au-color-accent-soft: #2bf27a;
+  --au-color-accent-hover: #13a35d;
+  --au-color-accent-dark: #0a8c3c;
+  --au-color-accent-line: #00c257;
+  --au-color-status-healthy: #22c55e;
+  --au-color-status-info: #4fa3d8;
+  --au-color-status-warning: #e0a128;
+  --au-color-status-danger: #d84f4f;
+  --au-color-focus: #00a8e8;
+  --au-color-on-accent: #000000;
+  --au-color-scrim: #0a0b0cb8;
+  --au-color-overlay: #0a0b0c73;
+  --au-color-transparent: #00000000;
+
+  /* Typography. Native bindings use platform sans-serif at these sizes. */
+  --au-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --au-font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  /* Content tier: docs, marketing, reading surfaces. */
+  --au-font-size-xs: 0.75rem;
+  --au-font-size-sm: 0.875rem;
+  --au-font-size-md: 1rem;
+  --au-font-size-lg: 1.25rem;
+  --au-font-size-xl: 1.75rem;
+  --au-font-size-display: clamp(2.75rem, 7vw, 5.25rem);
+
+  /*
+   * UI tier: the dense chrome sizes Desktop and Mobile actually need.
+   * The content scale cannot express 11/13/22, which is why Desktop drifted
+   * into hardcoded FontSize literals. These are the rungs it was missing.
+   */
+  --au-font-size-ui-xs: 0.6875rem;
+  --au-font-size-ui-sm: 0.75rem;
+  --au-font-size-ui-md: 0.8125rem;
+  --au-font-size-ui-lg: 0.875rem;
+  --au-font-size-ui-xl: 1.375rem;
+  --au-line-tight: 1.08;
+  --au-line-normal: 1.5;
+  --au-line-relaxed: 1.7;
+  --au-weight-regular: 400;
+  --au-weight-medium: 500;
+  --au-weight-semibold: 600;
+  --au-weight-bold: 700;
+  --au-weight-black: 800;
+  /*
+   * Weight roles for product chrome. Uniform 700 on 11-13px labels is what
+   * reads as a template; UI labels sit at 500 and only the selected or
+   * primary state steps up to 600. 700+ stays for content and marketing.
+   */
+  --au-weight-ui: 500;
+  --au-weight-ui-strong: 600;
+
+  /* Space and shape. */
+  --au-space-1: 0.25rem;
+  --au-space-2: 0.5rem;
+  --au-space-3: 0.75rem;
+  --au-space-4: 1rem;
+  --au-space-5: 1.25rem;
+  --au-space-6: 1.5rem;
+  --au-space-8: 2rem;
+  --au-space-10: 2.5rem;
+  --au-space-12: 3rem;
+  --au-space-16: 4rem;
+  /*
+   * Radius scales with the object. An 8px corner reads as rounded on a chip
+   * and as square on a 900px pane, so containers take lg and xl.
+   *   xs/sm  controls        md  rows, buttons, inputs
+   *   lg     panels, cards   xl  panes, dialogs, frames
+   */
+  --au-radius-xs: 0.25rem;
+  --au-radius-sm: 0.375rem;
+  --au-radius-md: 0.5rem;
+  --au-radius-lg: 0.75rem;
+  --au-radius-xl: 1rem;
+  --au-radius-pill: 999px;
+  --au-stroke: 1px;
+  --au-stroke-strong: 2px;
+  --au-control-height-compact: 2rem;
+  --au-control-height: 2.75rem;
+  --au-control-height-touch: 2.75rem;
+  --au-content-width: 76rem;
+  --au-reading-width: 46rem;
+  --au-transition-fast: 120ms ease;
+  --au-transition-normal: 200ms ease;
+  /* Elevation. Each step pairs a cast shadow with a light top edge so a
+     raised surface reads as lifted rather than merely darker. */
+  --au-shadow-sm: 0 1px 2px #00000066;
+  --au-shadow-md: 0 6px 20px -6px #00000099, 0 0 0 1px #ffffff0d;
+  --au-shadow-overlay: 0 32px 80px -16px #000000cc, 0 0 0 1px #ffffff14;
+  --au-shadow-raised: 0 18px 56px rgba(0, 0, 0, 0.52);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+.au-theme {
+  margin: 0;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+  font-family: var(--au-font-sans);
+  font-size: var(--au-font-size-md);
+  line-height: var(--au-line-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+.au-theme :focus-visible {
+  outline: 2px solid var(--au-color-focus);
+  outline-offset: 2px;
+}
+
+.au-container { width: min(100% - 2rem, var(--au-content-width)); margin-inline: auto; }
+.au-stack { display: flex; flex-direction: column; gap: var(--au-space-4); }
+.au-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--au-space-3); }
+.au-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: var(--au-space-4); }
+.au-section { padding-block: clamp(3rem, 8vw, 7rem); border-top: 1px solid var(--au-color-border-subtle); }
+.au-reading { max-width: var(--au-reading-width); }
+
+.au-eyebrow {
+  margin: 0 0 var(--au-space-3);
+  color: var(--au-color-accent-soft);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.au-display, .au-title, .au-heading { margin: 0; color: var(--au-color-text-primary); letter-spacing: -0.025em; }
+.au-display { max-width: 19ch; font-size: var(--au-font-size-display); line-height: 0.98; font-weight: var(--au-weight-bold); letter-spacing: -0.035em; }
+.au-title { font-size: clamp(2rem, 5vw, 3.5rem); line-height: var(--au-line-tight); font-weight: var(--au-weight-bold); letter-spacing: -0.03em; }
+.au-heading { font-size: var(--au-font-size-lg); font-weight: var(--au-weight-bold); }
+.au-page-title { margin: 0; color: var(--au-color-text-primary); font-size: var(--au-font-size-ui-xl); line-height: 1.25; font-weight: var(--au-weight-ui-strong); letter-spacing: -0.02em; }
+.au-field-label {
+  display: block;
+  margin: 0;
+  color: var(--au-color-text-faint);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.au-lede { max-width: 44rem; color: var(--au-color-text-secondary); font-size: clamp(1.05rem, 2vw, 1.25rem); line-height: 1.65; }
+.au-muted { color: var(--au-color-text-muted); }
+.au-mono { font-family: var(--au-font-mono); }
+.au-accent { color: var(--au-color-accent-soft); }
+
+.au-card {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-raised);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-lg);
+  padding: var(--au-space-4);
+}
+.au-card--selected {
+  background: var(--au-color-surface-selected-soft);
+  border-color: var(--au-color-border-subtle);
+}
+.au-card--danger {
+  background: var(--au-color-surface-danger);
+  border-color: var(--au-color-border-danger);
+}
+
+.au-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--au-space-4);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-raised);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-lg);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--au-transition-fast);
+}
+.au-choice:hover { background: var(--au-color-surface-hover); }
+.au-choice:disabled { opacity: 0.45; }
+
+.au-button {
+  min-height: var(--au-control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--au-space-2);
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--au-color-transparent);
+  border-radius: var(--au-radius-md);
+  color: var(--au-color-on-accent);
+  background: var(--au-color-accent);
+  font-family: var(--au-font-sans);
+  font-size: var(--au-font-size-ui-lg);
+  font-weight: var(--au-weight-ui-strong);
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--au-shadow-sm);
+  transition: background var(--au-transition-fast), border-color var(--au-transition-fast), color var(--au-transition-fast);
+}
+.au-button:hover { color: var(--au-color-on-accent); background: var(--au-color-accent-bright); }
+.au-button:disabled { opacity: 0.38; }
+.au-button--secondary { color: var(--au-color-text-primary); background: var(--au-color-surface-raised); border-color: var(--au-color-border-strong); }
+.au-button--secondary:hover { color: var(--au-color-text-primary); background: var(--au-color-state-active); border-color: var(--au-color-border-strong); }
+.au-button--danger { color: var(--au-color-text-primary); background: var(--au-color-status-danger); }
+.au-button--danger:hover { background: var(--au-color-text-danger); }
+.au-button--compact { min-height: var(--au-control-height-compact); padding: 0.5rem 0.875rem; font-size: var(--au-font-size-xs); }
+
+.au-input {
+  width: 100%;
+  min-height: var(--au-control-height);
+  padding: 0.75rem 1rem;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-input);
+  border: 1px solid var(--au-color-border-strong);
+  border-radius: var(--au-radius-md);
+  font-family: var(--au-font-sans);
+  font-size: var(--au-font-size-sm);
+}
+.au-input::placeholder { color: var(--au-color-text-faint); }
+.au-input:focus { border-color: var(--au-color-focus); box-shadow: 0 0 0 3px #00a8e833; }
+
+.au-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--au-space-2);
+  min-height: 1.75rem;
+  padding: 0.25rem 0.65rem;
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-strong);
+  border-radius: var(--au-radius-pill);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-badge--healthy { color: var(--au-color-text-primary); border-color: var(--au-color-status-healthy); }
+.au-badge--warning { color: var(--au-color-text-warning); border-color: var(--au-color-status-warning); }
+.au-badge--danger { color: var(--au-color-text-danger); border-color: var(--au-color-status-danger); }
+.au-badge--info { color: var(--au-color-text-info); border-color: var(--au-color-status-info); }
+
+.au-status-dot { width: 0.5rem; height: 0.5rem; flex: 0 0 auto; border-radius: 50%; background: var(--au-color-text-muted); }
+.au-status-dot--healthy { background: var(--au-color-status-healthy); }
+.au-status-dot--warning { background: var(--au-color-status-warning); }
+.au-status-dot--danger { background: var(--au-color-status-danger); }
+.au-status-dot--info { background: var(--au-color-status-info); }
+
+.au-checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  background: var(--au-color-transparent);
+  border: 1px solid var(--au-color-border-strong);
+  border-radius: var(--au-radius-xs);
+}
+.au-checkbox--checked {
+  background: var(--au-color-accent);
+  border-color: var(--au-color-accent);
+}
+
+.au-tabs {
+  display: flex;
+  gap: var(--au-space-2);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+.au-tab {
+  min-height: var(--au-control-height-compact);
+  padding: 0.5rem 0.75rem;
+  color: var(--au-color-text-muted);
+  border: 0;
+  border-bottom: 2px solid var(--au-color-transparent);
+  background: var(--au-color-transparent);
+  font-family: var(--au-font-sans);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--au-transition-fast), border-color var(--au-transition-fast);
+}
+.au-tab:hover { color: var(--au-color-text-secondary); }
+.au-tab[aria-selected='true'],
+.au-tab--selected {
+  color: var(--au-color-text-primary);
+  font-weight: var(--au-weight-ui-strong);
+  border-bottom: 2px solid var(--au-color-accent-line);
+}
+
+.au-callout {
+  padding: var(--au-space-4);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-subtle);
+  border-left: 2px solid var(--au-color-accent-line);
+  border-radius: var(--au-radius-lg);
+}
+.au-callout--danger { border-left-color: var(--au-color-status-danger); background: var(--au-color-surface-danger); }
+.au-callout--warning { border-left-color: var(--au-color-status-warning); }
+
+.au-code {
+  overflow-x: auto;
+  padding: var(--au-space-4);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-swatch {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--au-color-border-strong);
+  border-radius: var(--au-radius-md);
+}
+.au-example {
+  display: grid;
+  gap: var(--au-space-3);
+}
+.au-example__preview {
+  min-height: 6rem;
+  padding: var(--au-space-5);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-lg);
+}
+.au-example__meta {
+  margin: 0;
+  color: var(--au-color-text-muted);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-xs);
+}
+.au-panel {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-lg);
+}
+
+/*
+ * A working region inset on the canvas. Full-bleed panels butted together at
+ * 1px lines are what read as a grid of rectangles; a pane floats instead.
+ */
+.au-pane {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-lg);
+  box-shadow: var(--au-shadow-md);
+}
+.au-overlay-panel {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-overlay);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-xl);
+  box-shadow: var(--au-shadow-overlay);
+}
+.au-divider { height: 1px; background: var(--au-color-border-subtle); border: 0; }
+.au-scrim { background: var(--au-color-scrim); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

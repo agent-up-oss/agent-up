@@ -40,7 +40,7 @@ public sealed class AgentChatViewModelStreamTests
         var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
 
         await view.LoadAsync("ws-1");
-        await WaitUntilAsync(() => view.HasPermission && view.Messages.Count >= 4);
+        await WaitUntilAsync(() => view.HasPermission && view.Messages.Count() >= 4);
 
         Assert.Multiple(() =>
         {
@@ -79,6 +79,31 @@ public sealed class AgentChatViewModelStreamTests
         await view.AuthenticationOptions[0].Command.Execute().FirstAsync();
 
         Assert.That(fake.Authenticated, Is.EqualTo(("ws-1", "chatgpt")));
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
+    [AvaloniaTest]
+    public async Task Stream_keepsTheLiveThoughtExpandedUntilAnotherTurnArrives()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "state", """{"workspaceId":"ws-1","agent":"Codex","state":"running","sessionId":"s1","error":null,"agents":[{"agent":"Codex","available":true,"displayName":"Codex"}],"authMethods":[]}"""),
+                Event(2, "session_update", """{"sessionUpdate":"agent_thought_chunk","content":{"text":"**Clarifying test meaning**"}}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Messages.Any(item => item.Role == "Thought" && item.IsThoughtExpanded));
+
+        Assert.That(view.Messages.Single().VisibleText, Is.EqualTo("Clarifying test meaning"));
+        Assert.That(view.Messages.Single().Label, Is.EqualTo("Thinking"));
+
         hang.TrySetResult();
         await view.LoadAsync(null);
     }
@@ -148,6 +173,69 @@ public sealed class AgentChatViewModelStreamTests
             Assert.That(view.HasPermission, Is.False);
             Assert.That(view.Messages.Count(item => item.Role == "Plan"), Is.EqualTo(1));
             Assert.That(view.Messages.Any(item => item.Role == "You" && item.Text.Contains("A")), Is.True);
+            Assert.That(view.Messages.Single(item => item.Role == "Thought").IsThoughtExpanded, Is.False);
+            Assert.That(view.Messages.Single(item => item.Role == "Thought").Label, Is.EqualTo("Thought"));
+            Assert.That(view.Messages.Single(item => item.Role == "Thought").VisibleText, Is.EqualTo("Hmm..."));
+        });
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
+    [AvaloniaTest]
+    public async Task Stream_reconnectsAfterAnIdleHttpTimeout()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            FirstEventsFailure = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout."),
+            Events =
+            [
+                Event(1, "user_message", """{"text":"Hello"}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Messages.Any(item => item.Role == "You" && item.Text == "Hello"));
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+        Assert.That(view.Error, Is.Null);
+    }
+
+    [AvaloniaTest]
+    public async Task Stream_collapsesAFinishedRunWhenTheNextQuestionArrives()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "user_message", """{"text":"First"}"""),
+                Event(2, "session_update", """{"sessionUpdate":"agent_thought_chunk","content":{"text":"Looking"}}"""),
+                Event(3, "session_update", """{"sessionUpdate":"tool_call","toolCallId":"t1","title":"Search","status":"completed"}"""),
+                Event(4, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":"Done"}}"""),
+                Event(5, "user_message", """{"text":"Second"}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Messages.Count(item => item.Role == "You") == 2);
+
+        var run = view.Transcript.OfType<AgentRunViewModel>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.ShowHeader, Is.True);
+            Assert.That(run.IsExpanded, Is.False);
+            Assert.That(run.HasReply, Is.True);
+            Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
+            Assert.That(run.WorkItems.Select(item => item.Role), Is.EqualTo(["Thought", "Tool"]));
+            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
+            Assert.That(view.Messages.Single(item => item.Role == "Agent").Text, Is.EqualTo("Done"));
         });
 
         hang.TrySetResult();
@@ -223,6 +311,7 @@ internal sealed class StreamApiFake : IAgentApiProvider
 {
     public Exception? GetFailure { get; set; }
     public Exception? EventsFailure { get; set; }
+    public Exception? FirstEventsFailure { get; set; }
     public TaskCompletionSource? EventsHang { get; set; }
     public List<AgentEventDto> Events { get; init; } = [];
     public AgentSessionDto? Session { get; set; }
@@ -277,6 +366,12 @@ internal sealed class StreamApiFake : IAgentApiProvider
         long after,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        if (FirstEventsFailure is not null)
+        {
+            var failure = FirstEventsFailure;
+            FirstEventsFailure = null;
+            throw failure;
+        }
         if (EventsFailure is not null)
             throw EventsFailure;
         foreach (var item in Events.Where(item => item.Sequence > after))

@@ -31,6 +31,18 @@
 
   // ─── Identity ──────────────────────────────────────────────────────────
   const workspaceId = new URLSearchParams(location.search).get('workspaceId') || '';
+  // The credential lives in the fragment: browsers never send it in the viewer HTTP request,
+  // reverse-proxy logs, Referer headers, or WebSocket URL. The API bearer is encoded as a
+  // WebSocket subprotocol because the browser WebSocket API cannot set Authorization headers.
+  const accessToken = new URLSearchParams(location.hash.slice(1)).get('access_token') || '';
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  const loopback = location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1'
+    || location.hostname === '::1';
+  if (accessToken && location.protocol !== 'https:' && !(location.protocol === 'http:' && loopback)) {
+    document.body.textContent = 'HTTPS is required when connecting to a remote Agent-Up Server.';
+    return;
+  }
   const pageInstanceId =
     Math.random().toString(36).slice(2, 10) +
     Math.random().toString(36).slice(2, 10);
@@ -56,6 +68,20 @@
   let reconnectTimer = 0;
   let serverReportedActive = false;
 
+  function authHeaders(headers) {
+    return accessToken
+      ? Object.assign({ Authorization: `Bearer ${accessToken}` }, headers || {})
+      : (headers || {});
+  }
+
+  function websocketProtocols() {
+    if (!accessToken) return [];
+    const bytes = new TextEncoder().encode(accessToken);
+    let binary = '';
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return [`agent-up.auth.${btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`];
+  }
+
   // ─── Audit trail (diagnostic only, does not drive lifecycle) ───────────
   function auditMarker(action, outcome, extra) {
     try {
@@ -66,7 +92,7 @@
       }, extra || {});
       fetch('/api/audit/record', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           Kind: 'stream', Source: 'viewer', Action: action,
           Outcome: outcome, WorkspaceId: workspaceId, Details: details,
@@ -121,7 +147,7 @@
   function openWebSocket() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     try {
-      ws = new WebSocket(streamUrl);
+      ws = new WebSocket(streamUrl, websocketProtocols());
     } catch (_) {
       transitionTo('disconnected', 'ws_ctor_threw');
       return;
@@ -184,7 +210,7 @@
   // ─── Polling fallback ──────────────────────────────────────────────────
   async function pollFrame() {
     try {
-      const res = await fetch(`${pollUrlBase}?t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`${pollUrlBase}?t=${Date.now()}`, { cache: 'no-store', headers: authHeaders() });
       if (!res.ok) return;
       drawBlob(await res.blob());
     } catch (_) {}
@@ -271,7 +297,7 @@
     };
     fetch('/api/audit/record', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         Kind: 'stream', Source: 'viewer', Action: 'heartbeat',
         Outcome: outcome, WorkspaceId: workspaceId, Details: details,

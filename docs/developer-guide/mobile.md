@@ -6,7 +6,8 @@ title: Mobile development
 
 `AgentUp.Mobile/` is a single Expo and React Native TypeScript client for
 Android, iOS, and the installable web PWA. It lives at the repository root but
-is not part of `agent-up.sln`.
+is not part of `agent-up.sln`. Use [`au-debug`](au-debug.md) to host Mobile web
+next to Desktop and docs when comparing product UI.
 
 The client follows the same ownership model as Desktop: it displays
 Server-owned state and submits requests to the Server. Runtime state and
@@ -15,24 +16,56 @@ orchestration must remain in `AgentUp.Server`.
 The workspace Agent screen is an ACP client UI. It selects an available Server-
 configured Codex, Cursor, or Claude adapter, sends prompts, reconnects to the SSE
 stream using the last event sequence, and presents the session as conversation,
-collapsible thoughts, tool progress, plan status, and live activity. Session
-title, mode, and token usage stay in context chrome rather than chat rows.
+collapsible thoughts, tool progress, plan status, and live activity. Transcript
+turns use catalog cards in a readable centered column; the human prompt is a
+right-aligned catalog bubble. The live agent run stays open until the next
+question, which collapses tools and thoughts to a Worked disclosure while the
+trailing agent reply stays visible. Nested thoughts stay the quieter indented
+catalog disclosure, with the body hidden until expanded and Thinking
+reserved for the live thought. Session title, mode, and token usage stay in
+context chrome rather than chat rows.
 `session/request_permission` is a blocking decision card that offers the ACP
 options instead of auto-granting. Subscription login is a Server-owned CLI
 flow: the client shows the sign-in URL and Codex device code from the Server
 and must not launch `xdg-open` itself. It never launches a CLI or owns an ACP session.
 
 The Servers client slice stores configured HTTP or HTTPS Server base URLs and
-the active selection in PWA local storage. Only one Server is active at a time;
-selecting another sidebar icon changes the client target and does not copy or
-own Server runtime state. A URL is saved only after the Server authentication
-status probe succeeds. If login is required, the client requests the single
-administrator password and stores the resulting access token with the Server
-selection; if authentication is disabled, it skips that login step. Remote
-servers must use HTTPS; loopback HTTP URLs remain supported for local
+the active selection in PWA local storage. Only one Server is active at a time.
+The connect screen and sidebar list saved servers so the user can switch;
+selecting another Server changes the client target and drops that client's
+local workspace state. It does not copy or own Server runtime state. A URL is
+saved only after the Server authentication status probe succeeds. If login is
+required, the client requests the single administrator password and stores the
+resulting access token with the Server selection; if authentication is
+disabled, it skips that login step. Switching back to a saved Server reuses
+that token so the password is not typed again until the Server rejects it
+with 401. That rejection returns the user to the connect screen and asks
+for the administrator password again; the saved Server URL stays.
+
+Remote servers must use HTTPS; loopback HTTP URLs remain supported for local
 development.
 
-As an explicit exception to the general application-package isolation rule,
+Application spaces render each application's own HTTP interface in a native
+WebView, or in an iframe on the installable web client. Mobile never opens
+`http://127.0.0.1:{allocatedPort}` on the device. It asks the authenticated
+Server for a short-lived single-use ticket for that workspace's allocated HTTP
+port, then navigates the WebView to `{server}/apps/{workspaceId}/{port}`. Native
+WebViews send the ticket in the `X-Agent-Up-Ticket` request header. The
+installable web client appends `#ticket=` so the secret stays off the HTTP
+request line; the Server bootstrap page reads that fragment and POSTs the
+header on the Server origin. The Server does not accept query-string tickets.
+The Server sets an HttpOnly cookie, redirects to `/`, and reverse-proxies
+unmatched HTTP and WebSocket requests to `http://127.0.0.1:{port}` so the
+WebView natively renders the application's HTML, CSS, and JavaScript. Only
+currently open allocated HTTP ports are tunneled; TCP ports and closed ports
+are rejected. Reserved Server routes such as `/api`, `/mcp`, and `/apps` are never
+proxied. The long-lived Bearer token stays on REST ticket issuance and is not
+placed in the WebView URL. Token-bearing ticket requests reject remote
+plaintext HTTP; only HTTPS and loopback HTTP development connections may
+transport credentials. The Server also rejects remote plaintext before issuing
+or accepting proxy tickets and sessions. That HTTPS check uses the TLS
+connection itself, not a client-supplied `X-Forwarded-Proto` header.
+Changing applications aborts the previous Mobile ticket request. As an explicit exception to the general application-package isolation rule,
 Mobile consumes `@agent-up/audit` from the local `AgentUp.WebAudit/` package
 until registry publication is enabled. Agent-Up-managed web launches expose
 the injected workspace and application identity to Expo. Server connection
@@ -41,9 +74,12 @@ Server's injected audit endpoint. Outside a managed launch, audit delivery
 falls back to the Server URL being tested;
 audit delivery must never replace the connection result shown to the user.
 
-Mobile surfaces follow the docs site's black, green, off-white, and muted
-gray-green visual system, including its compact 8px card and control radii.
-Root application surfaces remain black through device safe areas so
+Mobile surfaces consume the canonical `@agent-up/design-system` React Native
+binding generated from the shared HTML/CSS contract. Screens apply `auBox` and
+`auText` for catalog components (workspace rows, sign-in card, page title,
+field labels, buttons, inputs, tabs) instead of restating fill, radius, or
+green borders from color tokens. Connect uses the same centered sign-in card
+as Desktop. Root application surfaces remain black through device safe areas so
 iOS status-bar and Dynamic Island insets do not expose a different background.
 
 ## Project structure
@@ -58,13 +94,15 @@ customization requires an intentional prebuild.
 
 The mobile client is a gated stack, not a bottom-tab shell.
 
-- `/connect` is the entry screen until a Server URL is saved successfully.
+- `/connect` is the entry screen until a Server URL is saved successfully. It
+  also lists saved servers so the user can switch or add another.
 - After connect, `/(main)` renders a persistent top nav bar and a collapsible
   sidebar. Screen content renders below the nav bar. Each screen sets the nav
   title, optional right action, and optional custom sidebar content through
   `useShellConfig`.
-- The default sidebar lists workspaces for the active Server and lets the user
-  switch workspaces. The first workspace is selected automatically when the list
+- The default sidebar lists workspaces for the active Server, lets the user
+  switch workspaces, and lists saved Servers so the user can switch the
+  client target. The first workspace is selected automatically when the list
   loads.
 - Workspace routes live under `/(main)/workspace/[workspaceId]/`. The dashboard
   is the workspace home page. Agent chat and application spaces are deeper stack
@@ -74,7 +112,7 @@ The mobile client is a gated stack, not a bottom-tab shell.
 
 ## Workspaces and Git slices
 
-The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary application entries retain their existing non-streaming presentation.
+The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary HTTP application entries load through the authenticated Server proxy described above.
 
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
 workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in
@@ -89,6 +127,8 @@ while it is open and keeps checkboxes for files that are still present. Tree
 flattening and directory/file selection are pure functions in
 `providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
 renderer.
+
+Each poll also requests the selected workspace's Server-owned proposal queue. The panel displays its ordered messages, generation, and verification states; Mobile never derives ancestry or readiness locally.
 
 Both slices reach the Server through
 `src/features/servers/providers/ServerRequestProvider.ts`. The servers slice
@@ -129,7 +169,10 @@ Every public npm script except `build:cloudflare` enters the repository `shell.n
 shell is a development requirement and supplies Node.js and the native
 Linux libraries required by Expo's downloaded React Native DevTools binary on
 NixOS. It also fetches the DotSlash-managed binary when needed and patches its
-Electron executables to use the Nix dynamic linker.
+Electron executables to use the Nix dynamic linker. Start, Android, iOS, and web
+scripts invoke the Expo CLI from `AgentUp.Mobile/node_modules/.bin`, and TypeScript
+commands through `npx`, because `nix-shell` replaces `PATH` and a global `expo`
+or `tsc` command is not present.
 
 Start the web client, which is the default local development path on every
 supported desktop operating system:
@@ -173,13 +216,9 @@ Android SDK is required for normal web/PWA development.
 
 ## Verification and web export
 
-Run TypeScript checking and create the production PWA bundle before submitting
-mobile client changes:
-
-```bash
-npm run typecheck
-npm run build:web
-```
+Run `./au-debug test mobile` before submitting mobile client changes. That suite
+runs TypeScript checking, client tests, and the production PWA bundle. Use
+`./au-debug build mobile` when you only need typecheck and the web export.
 
 Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata and
 install icons live under `public/`; `src/app/+html.tsx` links the manifest in

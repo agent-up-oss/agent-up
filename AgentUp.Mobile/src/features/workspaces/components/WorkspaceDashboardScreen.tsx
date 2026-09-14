@@ -5,6 +5,7 @@ import { WorkspaceBranchPicker } from '@/features/git/components/WorkspaceBranch
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 type WorkspaceDashboardScreenProps = {
   workspace: Workspace;
@@ -41,7 +42,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>{workspace.state}</Text>
 
-      {loading && <ActivityIndicator color="#00d66b" />}
+      {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
       <Pressable accessibilityRole="button" accessibilityLabel="Open workspace agent chat" onPress={openAgent} style={styles.agentCard}>
@@ -86,7 +87,7 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Open application ${application.name}`} onPress={onPress} style={styles.listCard}>
       <View style={styles.listHeader}>
-        <View style={[styles.stateDot, { backgroundColor: applicationStateColor(application.state) }]} />
+        <View style={applicationDot(application.state)} />
         <Text style={styles.listTitle}>{application.name}</Text>
       </View>
       <Text style={styles.listDetail}>{application.state}</Text>
@@ -94,41 +95,26 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
   );
 }
 
-function applicationStateColor(state: string): string {
-  if (state === 'Running') return '#00d66b';
-  if (state === 'Starting' || state === 'Stopping') return '#e0a33c';
-  if (state === 'Failed') return '#d84f4f';
-  return '#718077';
+function applicationDot(state: string) {
+  if (state === 'Running') return auBox('statusDot', 'statusDotHealthy');
+  if (state === 'Starting' || state === 'Stopping') return auBox('statusDot', 'statusDotWarning');
+  if (state === 'Failed') return auBox('statusDot', 'statusDotDanger');
+  return auBox('statusDot');
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 32, gap: 18 },
-  subtitle: { color: '#aebcb3', fontSize: 14 },
-  error: { color: '#d84f4f', lineHeight: 21 },
-  agentCard: {
-    padding: 18,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#2bf27a',
-    backgroundColor: '#08150d',
-    gap: 8,
-  },
-  agentTitle: { color: '#f5fbf7', fontSize: 22, fontWeight: '800' },
-  agentDetail: { color: '#aebcb3', lineHeight: 21 },
-  agentAction: { color: '#2bf27a', fontWeight: '700' },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  subtitle: auText('muted'),
+  error: auText('badgeDanger'),
+  agentCard: { ...auBox('card'), gap: agentUpTheme.spacing[2], alignSelf: 'stretch' },
+  agentTitle: auText('pageTitle'),
+  agentDetail: auText('muted'),
+  agentAction: auText('accent'),
   section: { gap: 10 },
-  sectionTitle: { color: '#f5fbf7', fontSize: 18, fontWeight: '800' },
-  empty: { color: '#aebcb3', lineHeight: 21 },
-  listCard: {
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#287038',
-    backgroundColor: '#050505',
-    gap: 4,
-  },
-  listHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stateDot: { width: 8, height: 8, borderRadius: 4 },
-  listTitle: { color: '#f5fbf7', fontSize: 16, fontWeight: '700' },
-  listDetail: { color: '#9fb2a8', fontSize: 13 },
+  sectionTitle: auText('fieldLabel'),
+  empty: auText('muted'),
+  listCard: { ...auBox('workspace'), flexDirection: 'column', gap: 2 },
+  listHeader: { flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
+  listTitle: auText('workspaceName'),
+  listDetail: auText('workspaceBranch'),
 });

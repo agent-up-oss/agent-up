@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { browserServerStorage, loadServerSelection, saveServerSelection, type KeyValueStorage } from './ServerStorageProvider';
+import {
+  browserServerStorage,
+  clearActiveCredential,
+  loadServerSelection,
+  removeServer,
+  saveServerSelection,
+  selectServer,
+  upsertServer,
+  type KeyValueStorage,
+  type ServerSelection,
+} from './ServerStorageProvider';
 
 class MemoryStorage implements KeyValueStorage {
   value: string | null = null;
@@ -33,4 +43,44 @@ test('unavailable browser storage returns null', () => {
   Object.defineProperty(globalThis.window, 'localStorage', { configurable: true, get: () => { throw new Error('denied'); } });
   assert.equal(browserServerStorage(), null);
   Reflect.deleteProperty(globalThis, 'window');
+});
+
+const empty: ServerSelection = { servers: [], activeServerId: null };
+
+test('upsertServer adds a new server and selects it', () => {
+  const next = upsertServer(empty, 'http://localhost:5000', 'token-1');
+  assert.equal(next.servers.length, 1);
+  assert.equal(next.servers[0].url, 'http://localhost:5000');
+  assert.equal(next.servers[0].accessToken, 'token-1');
+  assert.equal(next.activeServerId, next.servers[0].id);
+});
+
+test('upsertServer keeps the saved token when reconnecting without a new one', () => {
+  const saved = upsertServer(empty, 'http://localhost:5000', 'token-1');
+  const next = upsertServer(saved, 'http://localhost:5000');
+  assert.equal(next.servers.length, 1);
+  assert.equal(next.servers[0].accessToken, 'token-1');
+  assert.equal(next.activeServerId, saved.servers[0].id);
+});
+
+test('selectServer ignores unknown ids', () => {
+  const saved = upsertServer(empty, 'http://localhost:5000');
+  assert.deepEqual(selectServer(saved, 'missing'), saved);
+});
+
+test('clearActiveCredential drops the saved token but keeps the server', () => {
+  const saved = upsertServer(empty, 'http://localhost:5000', 'token-1');
+  const next = clearActiveCredential(saved);
+  assert.equal(next.servers.length, 1);
+  assert.equal(next.servers[0].accessToken, undefined);
+  assert.equal(next.activeServerId, saved.activeServerId);
+});
+
+test('removeServer drops the entry and repoints the active selection', () => {
+  const first = upsertServer(empty, 'http://localhost:5000', 'one');
+  const both = upsertServer(first, 'https://agent-up.example.com', 'two');
+  const remaining = removeServer(both, both.activeServerId!);
+  assert.equal(remaining.servers.length, 1);
+  assert.equal(remaining.servers[0].url, 'http://localhost:5000');
+  assert.equal(remaining.activeServerId, remaining.servers[0].id);
 });

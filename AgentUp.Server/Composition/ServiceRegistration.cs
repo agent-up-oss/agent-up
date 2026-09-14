@@ -17,6 +17,11 @@ using AgentUp.Capabilities.Docker.Features.DockerCapability.Services;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
 using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
+using AgentUp.Server.Features.ApplicationProxy.Controllers;
+using AgentUp.Server.Features.ApplicationProxy.Interfaces;
+using AgentUp.Server.Features.ApplicationProxy.Providers;
+using AgentUp.Server.Features.ApplicationProxy.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Authentication.Providers;
 using AgentUp.Server.Features.Authentication.Interfaces;
@@ -188,6 +193,27 @@ public static class ServiceRegistration
                 sp.GetRequiredService<IPortAvailabilityProvider>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PortAllocationService>>()));
         builder.Services.AddSingleton<PortsController>();
+        builder.Services.AddHttpForwarder();
+        builder.Services.AddDataProtection();
+        builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+        builder.Services.AddSingleton<IApplicationProxyTicketStore, ApplicationProxyTicketStore>();
+        builder.Services.AddSingleton<IApplicationProxyCookieProtector, ApplicationProxyCookieProtector>();
+        builder.Services.AddSingleton<ILoopbackHttpPortProbe, LoopbackHttpPortProbe>();
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit = 1;
+        });
+        builder.Services.AddSingleton<IApplicationProxyCredentials, ApplicationProxyCredentials>();
+        builder.Services.AddSingleton<IApplicationProxyTransportGuard, ApplicationProxyTransportGuard>();
+        builder.Services.AddSingleton<IApplicationProxyBootstrapPage, ApplicationProxyBootstrapPage>();
+        builder.Services.AddSingleton<IApplicationProxyOriginMapper, ApplicationProxyOriginMapper>();
+        builder.Services.AddSingleton<IApplicationProxyCsrfGuard, ApplicationProxyCsrfGuard>();
+        builder.Services.AddSingleton<IApplicationProxyErrorWriter, ApplicationProxyErrorWriter>();
+        builder.Services.AddSingleton<Yarp.ReverseProxy.Forwarder.HttpTransformer, ApplicationProxyRequestTransformer>();
+        builder.Services.AddSingleton<IApplicationHttpForwarder, ApplicationHttpForwarder>();
+        builder.Services.AddSingleton<ApplicationProxyService>();
+        builder.Services.AddSingleton<ApplicationProxyFallbackController>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<IDotnetVersionProvider, DotnetVersionProvider>();
@@ -243,9 +269,12 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
         builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
+        builder.Services.AddSingleton<IProposalStackGitProvider, ProposalStackGitProvider>();
+        builder.Services.AddSingleton<ICommitQueueConfigurationProvider, CommitQueueConfigurationProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
+        builder.Services.AddSingleton<WorkspaceCommitQueueService>();
 
         // Verification owns test selection and proof. It never reads the commit queue, so
         // the commit module stays optional; the queue contributes changed content only
@@ -265,6 +294,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<VerificationRunService>();
         builder.Services.AddSingleton<VerificationGuardService>();
         builder.Services.AddSingleton<VerificationReportService>();
+        builder.Services.AddSingleton<VerificationQueueGateService>();
+        builder.Services.AddSingleton<VerificationController>();
         builder.Services.AddSingleton<VerificationMcpService>();
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();

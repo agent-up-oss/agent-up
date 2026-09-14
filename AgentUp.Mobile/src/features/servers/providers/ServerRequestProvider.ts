@@ -11,8 +11,19 @@ export type ServerSession = {
   accessToken?: string;
 };
 
+/** Rejects credential transport over plaintext non-loopback connections. */
+export function ensureCredentialTransportAllowed(url: string): void {
+  const parsed = new URL(url);
+  const loopback = parsed.hostname.toLowerCase() === 'localhost'
+    || parsed.hostname === '127.0.0.1'
+    || parsed.hostname === '::1';
+  if (parsed.protocol === 'https:' || (parsed.protocol === 'http:' && loopback)) return;
+  throw new Error('HTTPS is required for remote Agent-Up server URLs.');
+}
+
 // fetch resolves as soon as response headers arrive, so the body is read inside the same timeout
 // window. Clearing the timer earlier would let a server that stalls its body hang the client.
+/** Performs one authenticated Server JSON request with timeout and caller cancellation. */
 export async function requestServerJson<T>(
   server: ServerSession,
   path: string,
@@ -20,8 +31,12 @@ export async function requestServerJson<T>(
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
   request: typeof fetch = fetch,
 ): Promise<T | null> {
+  if (server.accessToken) ensureCredentialTransportAllowed(server.url);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const abortFromCaller = () => controller.abort();
+  if (init.signal?.aborted) controller.abort();
+  else init.signal?.addEventListener('abort', abortFromCaller, { once: true });
   try {
     const response = await request(`${server.url}${path}`, {
       ...init,
@@ -35,9 +50,12 @@ export async function requestServerJson<T>(
     if (!response.ok) throw new ServerRequestError(await readProblemDetail(response), response.status);
     return await readJsonBody<T>(response);
   } catch (error) {
+    if (init.signal?.aborted && error instanceof Error && error.name === 'AbortError')
+      throw new Error('The request was cancelled.');
     throw toReadableError(error, server.url);
   } finally {
     clearTimeout(timeout);
+    init.signal?.removeEventListener('abort', abortFromCaller);
   }
 }
 
@@ -83,4 +101,8 @@ export function toReadableError(error: unknown, serverUrl: string): Error {
   if (error instanceof TypeError)
     return new Error(`Could not reach ${serverUrl}. Check that Agent-Up Server is running and reachable from this device.`);
   return error instanceof Error ? error : new Error(String(error));
+}
+
+export function isUnauthorized(error: unknown): boolean {
+  return error instanceof ServerRequestError && error.status === 401;
 }

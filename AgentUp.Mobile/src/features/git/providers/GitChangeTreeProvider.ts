@@ -1,3 +1,4 @@
+import { agentUpTheme } from '@agent-up/design-system/native';
 import type { GitChangeDirectory, GitChangeNode, GitChangeTree } from '../models/GitChanges';
 
 // Flattens the Server-owned directory tree into indented rows: directories first, then files,
@@ -95,17 +96,17 @@ export function statusColor(status: GitChangeNode['status']): string {
   switch (status) {
     case 'Added':
     case 'Untracked':
-      return '#2bf27a';
+      return agentUpTheme.colors.accentSoft;
     case 'Deleted':
-      return '#d84f4f';
+      return agentUpTheme.colors.statusDanger;
     case 'Renamed':
-      return '#4fa3d8';
+      return agentUpTheme.colors.statusInfo;
     case 'Conflicted':
-      return '#e0a33c';
+      return agentUpTheme.colors.statusWarning;
     case 'Modified':
-      return '#c6ddd2';
+      return agentUpTheme.colors.textSecondary;
     default:
-      return '#789085';
+      return agentUpTheme.colors.textMuted;
   }
 }
 

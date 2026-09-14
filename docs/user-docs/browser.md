@@ -9,7 +9,14 @@ Every workspace uses two separate browser surfaces:
 - **Desktop embedded browser:** Avalonia `NativeWebView` instances that connect directly to each application's allocated HTTP port.
 - **Server headless browser:** Chromium automation sessions stored under `browser-profiles/{workspaceId}` and used by MCP browser tools.
 
-These surfaces do not share cookies, local storage, session storage, IndexedDB, cache, or navigation state. Logging in through Desktop does not authenticate the agent headless session, and agent navigation does not change what Desktop shows.
+The Mobile application display uses an authenticated HTTPS reverse proxy on the
+Server. The website continues to connect to its allocated loopback HTTP port on
+the Server; the Server forwards those HTTP responses to the Mobile WebView,
+which renders them natively. No workspace port needs to be exposed publicly.
+Mobile delivers the one-time proxy ticket in a request header or URL fragment
+rather than a query string, so access logs do not record it.
+
+Desktop and Server browser surfaces do not share cookies, local storage, session storage, IndexedDB, cache, or navigation state. Mobile WebView sessions are independent of both Desktop and the Server headless profile used by MCP.
 
 Each surface still keeps its own state per workspace. Browser state includes:
 

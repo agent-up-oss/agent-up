@@ -1,5 +1,6 @@
 import { jsonBody, requestServerJson, ServerRequestError, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { GitChangeTree, GitCommitResult, GitFileDiff, GitHeadState, GitMutationResult } from '../models/GitChanges';
+import type { CommitQueue } from '../models/CommitQueue';
 
 const COMMIT_TIMEOUT_MS = 60000;
 
@@ -11,6 +12,18 @@ export async function getChanges(
   return readOrNull<GitChangeTree>(
     server,
     `/api/workspaces/${encodeURIComponent(workspaceId)}/git/changes`,
+    request,
+  );
+}
+
+export async function getCommitQueue(
+  server: ServerSession,
+  workspaceId: string,
+  request: typeof fetch = fetch,
+): Promise<CommitQueue | null> {
+  return readOrNull<CommitQueue>(
+    server,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/commit-queue`,
     request,
   );
 }

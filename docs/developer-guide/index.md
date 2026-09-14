@@ -13,8 +13,10 @@ Agent-Up is a workspace manager, not an application framework. The Server owns o
 
 - [Design Principles](./design-principles.md) defines the constraints that shape the implementation.
 - [Architecture](./architecture.md) explains the major components and ownership boundaries.
+- [AUDebug](./au-debug.md) hosts repo Desktop, Mobile, and docs for visual inspection.
 - [Server](./server.md) describes the single source of truth.
 - [MCP](./mcp.md) covers the automation interface.
+- [Commit Merge Queue Assessment](./commit-merge-queue-assessment.md) evaluates a Git-backed, incrementally dependent proposal queue with per-entry verification and human-controlled integration.
 - [Event Recording](./event-recording.md) and [Playwright Generation](./playwright.md) describe validation and test generation.
 - [CI Configuration](./ci-configuration.md) documents repository secrets and variables for signing and release.
 - [Product telemetry](./telemetry.md) describes Sentry error reporting for Agent-Up processes.

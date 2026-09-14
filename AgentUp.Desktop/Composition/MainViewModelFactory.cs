@@ -120,8 +120,7 @@ public static class MainViewModelFactory
             tutorial ?? new FirstRunTutorialViewModel(
                 new FileFirstRunTutorialSettingsStore(),
                 new FirstRunTutorialChecks(workspaces, new FirstRunProcessProvider())),
-            login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
-                new AuthenticationApiClient(DefaultAuthHttpClient)))),
+            login ?? CreateLogin(DefaultAuthHttpClient),
             ports,
             new ValidationViewModel(validationApi, validationReplay),
             validationReplay);
@@ -137,11 +136,19 @@ public static class MainViewModelFactory
             new ApplicationAuditApiClient(http),
             new ValidationFlowApiClient(http),
             gitClient: new GitApiClient(http),
-            agentClient: new AgentApiClient(http),
-            login: login ?? new LoginViewModel(new AuthenticationController(new AuthenticationService(
-                new AuthenticationApiClient(http)))));
+            agentClient: new AgentApiClient(http, new HttpClient
+            {
+                BaseAddress = http.BaseAddress,
+                Timeout = Timeout.InfiniteTimeSpan
+            }),
+            login: login ?? CreateLogin(http));
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>
         new(new HostMetricsReporter(new HostMetricsApiClient(http)));
+
+    private static LoginViewModel CreateLogin(HttpClient http)
+        => new(new AuthenticationController(
+            new AuthenticationService(new AuthenticationApiClient(http)),
+            new ServerConnectionService(new InMemoryServerConnectionStore(), http)));
 }
