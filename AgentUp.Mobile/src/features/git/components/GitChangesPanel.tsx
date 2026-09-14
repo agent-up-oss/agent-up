@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   queue: { ...auBox('card'), gap: 6, padding: 10 },
   queueTitle: { ...auText('accent'), fontSize: 12, fontWeight: '800' },
   queueEntry: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  queueMessage: { ...auText('body'), flex: 1, fontSize: 12 },
+  queueMessage: { ...auText('workspaceName'), flex: 1, fontSize: 12 },
   queueState: { ...auText('accent'), fontSize: 11, fontWeight: '700' },
   empty: { ...auText('muted'), lineHeight: 21 },
   error: { ...auText('badgeDanger'), lineHeight: 21 },
