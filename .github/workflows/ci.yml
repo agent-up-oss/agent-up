@@ -266,6 +266,18 @@ jobs:
         shell: bash
         run: ./.github/scripts/run-dotnet-tests.sh
 
+      # The eighteen uploads below push the failure out of the retrievable tail of this job's log,
+      # so a failing run keeps its results where they can still be read afterwards. The step
+      # summary names the tests; this keeps the full TRX for anything the summary does not say.
+      - name: Keep test results on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-coverage-test-results
+          path: "**/*.trx"
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Locate module coverage reports
         id: coverage-reports
         if: ${{ !cancelled() }}
