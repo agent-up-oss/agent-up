@@ -19,6 +19,7 @@
       "output": "single"
     },
     "plugins": [
+      "./plugins/withExactDetoxVersion",
       "@config-plugins/detox",
       "./plugins/withDetoxAndroidTestManifest",
       "./plugins/withoutReleaseLint"

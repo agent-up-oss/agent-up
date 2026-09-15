@@ -30,6 +30,7 @@
   "devDependencies": {
     "@config-plugins/detox": "^11.0.0",
     "@types/react": "~19.2.2",
+    "detox": "20.42.0",
     "typescript": "~6.0.3"
   }
 }
