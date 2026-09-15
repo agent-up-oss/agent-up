@@ -954,22 +954,27 @@ jobs:
           path: AgentUp.Mobile/android/app/build/outputs/apk
           key: android-app-${{ steps.app.outputs.key }}
 
+      - name: Check the restored app is complete
+        id: restored
+        shell: bash
+        run: ./.github/scripts/mobile-app-restored.sh android
+
       - name: Publish the Server and test agents
         run: ./.github/scripts/build-mobile-e2e-stack.sh
 
       # Only the build needs the client's dependencies, so a run that reuses the app skips them.
       - name: Install mobile dependencies
-        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         run: ./.github/scripts/install-mobile-deps.sh
 
 
       - name: Generate the native project
-        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         working-directory: AgentUp.Mobile
         run: npx expo prebuild --platform android --no-install
 
       - uses: gradle/actions/setup-gradle@v4
-        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         with:
           # Off by default on anything but the default branch, which means a branch never seeds
           # the cache it is about to need. These jobs do not run on main, so nothing would.
@@ -980,7 +985,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Build the app under test
-        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         working-directory: AgentUp.Mobile.E2E
         run: npx detox build --configuration android.emu.release
 
@@ -988,7 +993,7 @@ jobs:
       # the build away and recompile it on the next push, which is exactly when iteration is
       # happening and speed matters most.
       - name: Keep the app under test
-        if: ${{ steps.apk.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         uses: actions/cache/save@v4
         with:
           path: AgentUp.Mobile/android/app/build/outputs/apk
@@ -1083,24 +1088,29 @@ jobs:
           path: AgentUp.Mobile/ios/build/Build/Products/Release-iphonesimulator
           key: ios-app-${{ steps.app.outputs.key }}
 
+      - name: Check the restored app is complete
+        id: restored
+        shell: bash
+        run: ./.github/scripts/mobile-app-restored.sh ios
+
       - name: Publish the Server and test agents
         run: ./.github/scripts/build-mobile-e2e-stack.sh
 
       # Only the build needs the client's dependencies, so a run that reuses the app skips them.
       - name: Install mobile dependencies
-        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         run: ./.github/scripts/install-mobile-deps.sh
 
 
       - name: Generate the native project
-        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         working-directory: AgentUp.Mobile
         run: npx expo prebuild --platform ios --no-install
 
       # Pods and their compiled objects are the bulk of that build and change only when the
       # dependency set does, so a client-only change relinks instead of recompiling the world.
       - name: Restore the pods and their objects
-        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         id: pods
         uses: actions/cache/restore@v4
         with:
@@ -1111,7 +1121,7 @@ jobs:
           key: ios-pods-${{ steps.app.outputs.dependencies }}
 
       - name: Install pods
-        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         working-directory: AgentUp.Mobile/ios
         run: pod install
 
@@ -1137,7 +1147,7 @@ jobs:
           echo "AGENTUP_E2E_IOS_DEVICE=$device" >> "$GITHUB_ENV"
 
       - name: Build the app under test
-        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         working-directory: AgentUp.Mobile.E2E
         run: npx detox build --configuration ios.sim.release
 
@@ -1145,14 +1155,14 @@ jobs:
       # the build away and recompile it on the next push, which is exactly when iteration is
       # happening and speed matters most.
       - name: Keep the app under test
-        if: ${{ steps.built-app.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' }}
         uses: actions/cache/save@v4
         with:
           path: AgentUp.Mobile/ios/build/Build/Products/Release-iphonesimulator
           key: ios-app-${{ steps.app.outputs.key }}
 
       - name: Keep the pods and their objects
-        if: ${{ steps.built-app.outputs.cache-hit != 'true' && steps.pods.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restored.outputs.usable != 'true' && steps.pods.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
         with:
           path: |

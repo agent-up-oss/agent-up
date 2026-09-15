@@ -18,6 +18,7 @@ paths=(
   ".github/scripts/install-mobile-deps.sh"
   ".github/scripts/mobile-e2e-scope.sh"
   ".github/scripts/mobile-app-key.sh"
+  ".github/scripts/mobile-app-restored.sh"
 )
 
 before="${GITHUB_EVENT_BEFORE:-}"
