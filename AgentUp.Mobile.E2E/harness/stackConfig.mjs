@@ -28,8 +28,17 @@ export function profilesFor(codexSchema) {
  * described without writing a settings file. Every agent kind gets its ACP command, its login
  * command, and the transport that login actually implements, which is what stops the Server
  * having to guess the shape from terminal output.
+ *
+ * The completion window is deliberately longer than any wait in the suites. It is the Server's
+ * patience with a sign-in that is under way, not an assertion, and nothing here tests it - so the
+ * moment it is the shorter of the two deadlines, it is the one that fires, and a scenario reports
+ * "the sign-in was not completed within 2 minutes" instead of what the test was actually waiting
+ * for. That is how the device-code scenario failed on a simulator whose browser had never been
+ * launched before: opening the sign-in page took long enough, cold, to spend the window before the
+ * code was ever approved. A person on a warm phone does not wait that long, and the suite is not
+ * there to find out what happens when they do.
  */
-export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, dataDir, urls, challengeTimeoutSeconds = 30, completionTimeoutSeconds = 120 }) {
+export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, dataDir, urls, challengeTimeoutSeconds = 30, completionTimeoutSeconds = 300 }) {
   const environment = {
     ASPNETCORE_URLS: urls,
     // The subject under test is agent sign-in, not Server sign-in.

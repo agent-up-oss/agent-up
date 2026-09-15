@@ -29,9 +29,13 @@ test('the app under test carries the same Detox the runner drives it with', () =
 // for com.wix:detox by that exact number, because com.wix:detox also exists on Maven Central as an
 // abandoned 0.1.1 stub that a `+` range resolves to silently.
 test('the Android build asks for that Detox by version rather than by range', () => {
-  assert.ok(
-    app.expo === undefined,
-    'Expo config belongs in app.json for this app; the test below reads it from there.',
+  // package.json may carry an expo key - autolinking options are only read from there - but the
+  // app config, plugins included, belongs in app.json, which is where this reads it from. A
+  // plugins list in both places would leave this test passing on the half nobody builds.
+  assert.equal(
+    app.expo?.plugins,
+    undefined,
+    'The plugins list belongs in app.json, not package.json, or this checks the wrong one.',
   );
 
   const plugins = json('../../AgentUp.Mobile.E2E.App/app.json').expo.plugins;
