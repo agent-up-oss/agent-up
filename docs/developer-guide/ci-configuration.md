@@ -105,6 +105,31 @@ If those secrets are missing, the GitHub release still succeeds until semantic-r
 
 LocalInstaller NuGet publishing is optional. Add `NUGET_API_KEY` to publish `LocalInstaller.Core`, `LocalInstaller.App`, `LocalInstaller.Packaging`, and `LocalInstaller.Smoke` packages from the `localinstaller.yml` release job; when the secret is absent, the GitHub release still publishes the NuGet package files and separately labeled sample installer assets.
 
+## Mobile store release
+
+Native mobile binaries are built by `.github/workflows/mobile-ci.yaml`. Path-filtered
+pushes smoke-build and sign. Store upload and `android-v*` / `ios-v*` GitHub
+releases run only on `workflow_dispatch`. Missing required secrets fail the job;
+they do not skip the upload. Play upload secrets are required only on dispatch.
+The same Apple Match secret names as other MassiveCreationLab iOS apps can be
+copied onto this repository. Full flow: [Mobile store release](./mobile-store-release.md).
+
+| Secret | Value |
+|---|---|
+| `MATCH_REPOSITORY` | Match git store as `org/repo`, typically `MassiveCreationLab/certificates` |
+| `MATCH_PASSWORD` | OpenSSL passphrase for encrypted Match files |
+| `MATCH_DEPLOY_KEY` | SSH deploy key for the certificates repository |
+| `APPSTORE_KEY_ID` | App Store Connect API key id |
+| `APPSTORE_ISSUER_ID` | App Store Connect API issuer id |
+| `APPSTORE_P8` | App Store Connect API private key contents |
+| `GH_PAT` | GitHub token used only by Mobile iOS certificates `init_ci` |
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded Play upload keystore |
+| `ANDROID_KEYSTORE_PASS` | Upload keystore password |
+| `ANDROID_KEYALIAS_NAME` | Upload key alias |
+| `ANDROID_KEYALIAS_PASS` | Upload key password |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Play Developer API service-account JSON |
+| `SENTRY_DSN_MOBILE` | Optional `agent-up-mobile` DSN baked into native store builds |
+
 ## Sentry product telemetry
 
 The GitOps `sentry-configurator` Job creates `agent-up-server`,
@@ -113,7 +138,8 @@ Sentry and writes their DSNs to Secret `agent-up-sentry-dsn`. Copy the
 packaged Desktop, CLI, and Server keys into GitHub Actions secrets. Cluster
 Helm Server does **not** use a GitHub secret: it reads `SENTRY_DSN` from that
 generated Secret. Mobile production web builds read `SENTRY_DSN_MOBILE` from
-Cloudflare Pages, not GitHub Actions.
+Cloudflare Pages, not GitHub Actions. Native store builds also read the GitHub
+Actions secret `SENTRY_DSN_MOBILE` when it is set.
 
 CI passes `SENTRY_DSN_DESKTOP` and `SENTRY_DSN_CLI` into .NET publish, and
 `SENTRY_DSN_SERVER` into native packaging. Unset secrets leave those

@@ -88,7 +88,9 @@ Use Expo Router for route entrypoints under `src/app/`. Put client behavior and
 UI under product-meaningful slices in `src/features/`, following the same
 feature-oriented convention as the .NET projects. Do not commit generated
 `android/` or `ios/` projects; Expo owns those platform details until a native
-customization requires an intentional prebuild.
+customization requires an intentional prebuild. Store AABs and IPAs are produced
+in GitHub Actions with `expo prebuild` and Fastlane Match; see
+[Mobile store release](./mobile-store-release.md).
 
 ## Navigation
 
@@ -219,7 +221,8 @@ runs TypeScript checking, client tests, and the production PWA bundle. Use
 `./au-debug build mobile` when you only need typecheck and the web export.
 
 Expo writes the static web output to `AgentUp.Mobile/dist/`. The PWA metadata and
-install icons live under `public/`; `src/app/+html.tsx` links the manifest in
+install icons live under `public/`; store icons in `assets/` are 1024px scales of
+`public/agent-up-icon-512.png`. `src/app/+html.tsx` links the manifest in
 production exports. The mobile client does not register a custom service worker.
 Installed and Agent-Up-served builds load the current static export from the
 network on each visit.
@@ -227,7 +230,10 @@ network on each visit.
 Cloudflare Pages must use `AgentUp.Mobile/` as its root directory, run
 `npm run build:cloudflare` as the build command, and publish `dist/`. This is
 the sole public mobile npm script that does not enter `shell.nix`, because the
-Cloudflare build image supplies Node.js but does not supply Nix. The export
+Cloudflare build image supplies Node.js but does not supply Nix. Store CI in
+`.github/workflows/mobile-ci.yaml` likewise invokes Expo and Fastlane
+directly on GitHub-hosted runners; do not add public npm scripts for those
+commands. The export
 entrypoint passes Agent-Up audit environment variables into the Metro bundle
 when present. Add `SENTRY_DSN_MOBILE` under
 **Settings → Environment variables** so production exports initialize Sentry.

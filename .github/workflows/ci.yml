@@ -1,6 +1,12 @@
 name: Agent-Up CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - android-v*
+      - ios-v*
 
 concurrency:
   group: >-

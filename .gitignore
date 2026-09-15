@@ -1,7 +1,10 @@
 .idea/
 node_modules
 AgentUp.Mobile/.expo/
+AgentUp.Mobile/android/
+AgentUp.Mobile/ios/
 AgentUp.Mobile/dist/
+AgentUp.Mobile/dist-native/
 docs/build
 .docusaurus
 artifacts/

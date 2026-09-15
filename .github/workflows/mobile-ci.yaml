@@ -1,0 +1,342 @@
+name: Mobile CI
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - AgentUp.Mobile/**
+      - AgentUp.DesignSystem/**
+      - AgentUp.WebAudit/**
+      - .github/workflows/mobile-ci.yaml
+      - .github/workflows/mobile-ios-certs.yaml
+      - .github/scripts/install-android-ndk.sh
+      - .github/scripts/plan-mobile-version.js
+      - .github/scripts/plan-mobile-version.test.js
+      - .github/scripts/prepare-mobile-artifact.sh
+      - .github/scripts/publish-mobile-github-release.sh
+      - .github/scripts/require-env.sh
+      - .github/scripts/verify-mobile-artifact.sh
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Store channel
+        type: choice
+        required: true
+        options:
+          - beta
+          - prod
+      platforms:
+        description: Platforms to ship
+        type: choice
+        required: true
+        default: both
+        options:
+          - both
+          - android
+          - ios
+
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && format('mobile-ci-publish-{0}', github.ref) || format('mobile-ci-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+
+permissions:
+  contents: read
+
+env:
+  MOBILE_STORE_ID: com.massivecreationlab.agentup
+  BUNDLETOOL_VERSION: "1.18.1"
+
+jobs:
+  version:
+    name: Determine version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      version_code: ${{ steps.plan.outputs.version_code }}
+      source_tag: ${{ steps.plan.outputs.source_tag }}
+      channel: ${{ github.event_name == 'workflow_dispatch' && inputs.channel || '' }}
+      lane: ${{ github.event_name == 'workflow_dispatch' && (inputs.channel == 'prod' && 'release' || 'beta') || '' }}
+      artifact_name: ${{ steps.artifact.outputs.name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Verify version planner
+        run: node --test .github/scripts/plan-mobile-version.test.js
+
+      - name: Plan mobile version
+        id: plan
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            node .github/scripts/plan-mobile-version.js
+          else
+            echo "source_tag=ci" >> "$GITHUB_OUTPUT"
+            echo "version=0.0.0" >> "$GITHUB_OUTPUT"
+            echo "version_code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record artifact file name
+        id: artifact
+        run: echo "name=Agent-Up-${{ steps.plan.outputs.version }}-${{ steps.plan.outputs.version_code }}" >> "$GITHUB_OUTPUT"
+
+  android:
+    name: Android
+    needs: version
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    env:
+      AGENTUP_MOBILE_VERSION: ${{ needs.version.outputs.version }}
+      AGENTUP_MOBILE_VERSION_CODE: ${{ needs.version.outputs.version_code }}
+      EXPO_NO_TELEMETRY: "1"
+      GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: AgentUp.Mobile/package-lock.json
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: AgentUp.Mobile
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Require Android signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEYALIAS_NAME: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          ANDROID_KEYALIAS_PASS: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+        run: bash .github/scripts/require-env.sh ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASS ANDROID_KEYALIAS_NAME ANDROID_KEYALIAS_PASS
+
+      - name: Require Play upload secrets
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bash .github/scripts/require-env.sh GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install \
+            "platforms;android-35" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "build-tools;36.0.0" \
+            "cmake;3.22.1"
+
+      - name: Install JavaScript dependencies
+        run: |
+          node AgentUp.DesignSystem/scripts/build.mjs
+          npm ci --prefix AgentUp.Mobile
+
+      - name: Decode Android upload keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/android-upload.keystore"
+          test -s "$RUNNER_TEMP/android-upload.keystore"
+
+      - name: Prebuild Android
+        working-directory: AgentUp.Mobile
+        env:
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN_MOBILE }}
+          EXPO_PUBLIC_SENTRY_RELEASE: ${{ needs.version.outputs.version }}
+        run: npx expo prebuild --platform android --clean --non-interactive
+
+      - name: Install generated NDK and write SDK path
+        working-directory: AgentUp.Mobile
+        run: bash ../.github/scripts/install-android-ndk.sh android
+
+      - name: Build signed AAB
+        working-directory: AgentUp.Mobile
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/android-upload.keystore
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEYALIAS_NAME: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          ANDROID_KEYALIAS_PASS: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+        run: bundle exec fastlane android build
+
+      - name: Prepare Android artifact
+        working-directory: AgentUp.Mobile
+        run: |
+          mapfile -t aabs < <(find android/app/build/outputs/bundle -name '*.aab' -type f)
+          if [ "${#aabs[@]}" -ne 1 ]; then
+            echo "Expected exactly one AAB, found ${#aabs[@]}" >&2
+            find android/app/build/outputs/bundle -type f -print >&2 || true
+            exit 1
+          fi
+          bash ../.github/scripts/prepare-mobile-artifact.sh \
+            "${aabs[0]}" \
+            "../artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab"
+
+      - name: Download bundletool
+        run: |
+          curl -fsSL \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar" \
+            -o "$RUNNER_TEMP/bundletool.jar"
+          test -s "$RUNNER_TEMP/bundletool.jar"
+
+      - name: Validate Android artifact
+        run: |
+          bash .github/scripts/verify-mobile-artifact.sh \
+            "artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab" \
+            aab \
+            "$RUNNER_TEMP/bundletool.jar"
+
+      - name: Write Play service account
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/google-play.json"
+          python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$RUNNER_TEMP/google-play.json"
+
+      - name: Upload to Google Play
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        working-directory: AgentUp.Mobile
+        env:
+          ANDROID_AAB_PATH: ${{ github.workspace }}/artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab
+          ANDROID_PACKAGE_NAME: com.massivecreationlab.agentup
+          GOOGLE_PLAY_KEY_FILE_PATH: ${{ runner.temp }}/google-play.json
+        run: bundle exec fastlane android ${{ needs.version.outputs.lane }}
+
+      - name: Publish android-v GitHub release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash .github/scripts/publish-mobile-github-release.sh \
+            android \
+            "${{ needs.version.outputs.version }}" \
+            "${{ needs.version.outputs.version_code }}" \
+            "${{ needs.version.outputs.channel }}" \
+            "${{ needs.version.outputs.source_tag }}" \
+            "artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab" \
+            "artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab.sha256"
+
+  ios:
+    name: iOS
+    needs: version
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios' }}
+    runs-on: macos-15
+    timeout-minutes: 150
+    permissions:
+      contents: write
+    env:
+      AGENTUP_MOBILE_VERSION: ${{ needs.version.outputs.version }}
+      AGENTUP_MOBILE_VERSION_CODE: ${{ needs.version.outputs.version_code }}
+      EXPO_NO_TELEMETRY: "1"
+      IOS_BUNDLE_ID: com.massivecreationlab.agentup
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: AgentUp.Mobile/package-lock.json
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.4"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: AgentUp.Mobile
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_DEPLOY_KEY }}
+
+      - name: Require iOS secrets
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
+          MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
+        run: bash .github/scripts/require-env.sh APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_P8 MATCH_PASSWORD MATCH_REPOSITORY MATCH_DEPLOY_KEY
+
+      - name: Install JavaScript dependencies
+        run: |
+          node AgentUp.DesignSystem/scripts/build.mjs
+          npm ci --prefix AgentUp.Mobile
+
+      - name: Prebuild iOS
+        working-directory: AgentUp.Mobile
+        env:
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN_MOBILE }}
+          EXPO_PUBLIC_SENTRY_RELEASE: ${{ needs.version.outputs.version }}
+        run: npx expo prebuild --platform ios --clean --non-interactive
+
+      - name: Build signed IPA
+        working-directory: AgentUp.Mobile
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
+          MOBILE_OUTPUT_DIR: dist-native
+          IOS_OUTPUT_NAME: ${{ needs.version.outputs.artifact_name }}
+        run: bundle exec fastlane ios build
+
+      - name: Prepare iOS artifact
+        working-directory: AgentUp.Mobile
+        run: |
+          bash ../.github/scripts/prepare-mobile-artifact.sh \
+            "dist-native/${{ needs.version.outputs.artifact_name }}.ipa" \
+            "../artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa"
+
+      - name: Validate iOS artifact
+        run: |
+          bash .github/scripts/verify-mobile-artifact.sh \
+            "artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa" \
+            ipa
+
+      - name: Upload to App Store Connect
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        working-directory: AgentUp.Mobile
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+          IOS_IPA_PATH: ${{ github.workspace }}/artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa
+        run: bundle exec fastlane ios ${{ needs.version.outputs.lane }}
+
+      - name: Publish ios-v GitHub release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash .github/scripts/publish-mobile-github-release.sh \
+            ios \
+            "${{ needs.version.outputs.version }}" \
+            "${{ needs.version.outputs.version_code }}" \
+            "${{ needs.version.outputs.channel }}" \
+            "${{ needs.version.outputs.source_tag }}" \
+            "artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa" \
+            "artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa.sha256"

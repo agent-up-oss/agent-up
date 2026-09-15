@@ -12,6 +12,7 @@ const sidebars = {
         'desktop',
         'desktop-app-hosting-assessment',
         'au-debug',
+        'mobile',
         'packaging',
       ],
     },
@@ -31,6 +32,7 @@ const sidebars = {
       label: 'Operations',
       items: [
         'ci-configuration',
+        'mobile-store-release',
       ],
     },
   ],
