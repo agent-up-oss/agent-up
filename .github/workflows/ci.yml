@@ -858,6 +858,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             AgentUp.Mobile/package-lock.json
+            AgentUp.Mobile.E2E/package-lock.json
             AgentUp.AgentAuth/package-lock.json
             AgentUp.WebAudit/package-lock.json
 
@@ -922,6 +923,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             AgentUp.Mobile/package-lock.json
+            AgentUp.Mobile.E2E/package-lock.json
             AgentUp.AgentAuth/package-lock.json
             AgentUp.WebAudit/package-lock.json
 
@@ -1062,6 +1064,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             AgentUp.Mobile/package-lock.json
+            AgentUp.Mobile.E2E/package-lock.json
             AgentUp.AgentAuth/package-lock.json
             AgentUp.WebAudit/package-lock.json
 
