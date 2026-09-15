@@ -5,9 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { createIdpControl } from './idpControl.mjs';
+import { supervise } from './supervise.mjs';
 import { writeShims } from './shims.mjs';
 import { hostOriginFor, profilesFor, serverEnvironment } from './stackConfig.mjs';
-import { waitFor, waitForHttpOk } from './wait.mjs';
+
 
 /**
  * Brings up a real Agent-Up stack for one end-to-end run: the real Server process, the real test
@@ -34,19 +35,20 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
   try {
     const idpPort = await freePort();
     const idpPublicOrigin = hostOriginFor(platform, idpPort);
-    const idp = spawn(join(binDir, 'test-idp'), ['--port', String(idpPort), '--public-origin', idpPublicOrigin], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    processes.push(idp);
-    idp.stderr.on('data', chunk => process.stderr.write(`[test-idp] ${chunk}`));
+    const idp = supervise('test-idp', spawn(
+      join(binDir, 'test-idp'),
+      ['--port', String(idpPort), '--public-origin', idpPublicOrigin],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    ));
+    processes.push(idp.child);
 
     const idpUrl = `http://localhost:${idpPort}`;
     const control = createIdpControl(idpUrl);
-    await waitFor('the test identity provider to answer', () => control.health());
+    await idp.answers('the test identity provider to answer', () => control.health());
 
     const serverPort = await freePort();
     const serverUrl = `http://localhost:${serverPort}`;
-    const server = spawn('dotnet', [serverDll], {
+    const server = supervise('server', spawn('dotnet', [serverDll], {
       env: {
         ...process.env,
         PATH: `${binDir}:${process.env.PATH ?? ''}`,
@@ -61,12 +63,13 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
         }),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    processes.push(server);
-    server.stdout.on('data', chunk => process.stdout.write(`[server] ${chunk}`));
-    server.stderr.on('data', chunk => process.stderr.write(`[server] ${chunk}`));
+    }));
+    processes.push(server.child);
 
-    await waitForHttpOk('the Agent-Up Server to answer', `${serverUrl}/api/workspaces`);
+    await server.answers('the Agent-Up Server to answer', async () => {
+      const response = await fetch(`${serverUrl}/api/workspaces`);
+      return response.ok ? response : false;
+    });
 
     const workspace = await registerWorkspace(serverUrl, worktree);
 

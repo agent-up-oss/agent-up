@@ -6,6 +6,12 @@
  * fixed sleep is the single most common reason an end-to-end suite becomes flaky.
  */
 
+/**
+ * Thrown by a condition that has established the thing being waited for is never going to happen.
+ * Waiting out the deadline after that only delays the report and buries the reason.
+ */
+export class NeverGoingToHappen extends Error {}
+
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_INTERVAL_MS = 100;
 
@@ -18,6 +24,7 @@ export async function waitFor(description, condition, { timeoutMs = DEFAULT_TIME
       const value = await condition();
       if (value) return value;
     } catch (cause) {
+      if (cause instanceof NeverGoingToHappen) throw cause;
       lastError = cause;
     }
 
