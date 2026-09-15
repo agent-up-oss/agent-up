@@ -25,9 +25,12 @@ hash_of() {
 }
 
 # The app under test is the chat harness, so this is its dependency set and its sources - plus
-# every module it mounts, because a change in any of them changes the bundle.
+# every module it mounts, because a change in any of them changes the bundle, and .detoxrc.js,
+# which holds the command that compiles it. A binary is a function of what goes into it and of how
+# it was built, and leaving the second one out is how a cache starts handing back an app nobody
+# would get by building.
 dependencies="$(hash_of AgentUp.Mobile.E2E.App/package-lock.json AgentUp.Mobile.E2E.App/package.json AgentUp.Mobile.E2E.App/app.json)"
-contents="$(hash_of AgentUp.Mobile.E2E.App AgentUp.Chat AgentUp.AgentAuth AgentUp.ServerClient AgentUp.DesignSystem)"
+contents="$(hash_of AgentUp.Mobile.E2E.App AgentUp.Chat AgentUp.AgentAuth AgentUp.ServerClient AgentUp.DesignSystem AgentUp.Mobile.E2E/.detoxrc.js)"
 
 {
   echo "dependencies=$dependencies"
