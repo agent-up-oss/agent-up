@@ -93,6 +93,14 @@ describe('agent sign-in', () => {
 
       const carriedCode = await flow.approve?.({ control: stack.control, session });
       if (carriedCode) {
+        // Opening the sign-in page handed the foreground to the browser, which is what this shape
+        // is: the page issues a code and the person carries it back. What a person does next is
+        // switch back to the app, and until something does, there is no app to type into - iOS
+        // suspends what is not in front, so it stops answering Detox at all. That reads as a tap
+        // that was never delivered rather than as anything the client did, and it is exactly how
+        // this scenario failed while the other three passed: they never return to the app.
+        await device.launchApp({ newInstance: false });
+
         // The pasted-code shape: the value travels back through the client, exactly as a user
         // carries it out of the browser.
         await waitFor(element(by.id('agent-signin-code-input'))).toBeVisible().withTimeout(30_000);
