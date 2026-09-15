@@ -56,23 +56,6 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-  mobile-scope:
-    name: Mobile scope
-    runs-on: ubuntu-latest
-    outputs:
-      affected: ${{ steps.changes.outputs.affected }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Decide whether the mobile end-to-end suites need to run
-        id: changes
-        shell: bash
-        env:
-          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
-        run: ./.github/scripts/mobile-e2e-scope.sh
-
   helm-chart:
     name: Helm chart
     runs-on: ubuntu-latest
@@ -837,8 +820,7 @@ jobs:
   mobile-e2e-pwa:
     name: Mobile E2E (installable web)
     runs-on: ubuntu-latest
-    needs: [version, mobile-scope]
-    if: ${{ needs.mobile-scope.outputs.affected == 'true' }}
+    needs: version
     # These hold a runner for tens of minutes. The workflow-level group keeps every branch run
     # alive on purpose, so without this a run's worth of them survived each push and they stacked
     # up until the runners were saturated.
@@ -902,8 +884,7 @@ jobs:
   mobile-e2e-android:
     name: Mobile E2E (Android)
     runs-on: ubuntu-latest
-    needs: [version, mobile-scope]
-    if: ${{ needs.mobile-scope.outputs.affected == 'true' }}
+    needs: version
     # These hold a runner for tens of minutes. The workflow-level group keeps every branch run
     # alive on purpose, so without this a run's worth of them survived each push and they stacked
     # up until the runners were saturated.
@@ -1010,8 +991,22 @@ jobs:
 
       # Creating the image and letting it write a snapshot costs minutes. Doing it in its own step
       # means it happens once per image, not once per run.
+      # Verified, not trusted: a restore that came back short would otherwise skip the creation
+      # that would have fixed it, which is exactly how the app cache failed.
+      - name: Check the restored emulator is complete
+        id: emulator
+        shell: bash
+        run: |
+          if [ -f ~/.android/avd/agent_up_e2e.ini ] && [ -d ~/.android/avd/agent_up_e2e.avd ]; then
+            echo "present: the agent_up_e2e emulator image"
+            echo "usable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "MISSING: the agent_up_e2e emulator image; creating it."
+            echo "usable=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create the emulator
-        if: ${{ steps.avd.outputs.cache-hit != 'true' }}
+        if: ${{ steps.emulator.outputs.usable != 'true' }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -1048,8 +1043,7 @@ jobs:
   mobile-e2e-ios:
     name: Mobile E2E (iOS)
     runs-on: macos-latest
-    needs: [version, mobile-scope]
-    if: ${{ needs.mobile-scope.outputs.affected == 'true' }}
+    needs: version
     # These hold a runner for tens of minutes. The workflow-level group keeps every branch run
     # alive on purpose, so without this a run's worth of them survived each push and they stacked
     # up until the runners were saturated.

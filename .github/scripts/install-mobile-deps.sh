@@ -14,4 +14,8 @@ npm --prefix AgentUp.WebAudit run build
 npm --prefix AgentUp.AgentAuth install --no-audit --no-fund
 npm --prefix AgentUp.AgentAuth run build
 
-npm --prefix AgentUp.Mobile install --no-audit --no-fund --package-lock=false
+# The lockfile governs, deliberately. Installing without it resolves the ranges afresh - which
+# moved 77 packages the last time the two were compared - so the app CI built was not the app the
+# lockfile describes, while the cache key hashes that lockfile. A key that cannot predict the
+# bytes it stands for is worse than no cache at all.
+npm --prefix AgentUp.Mobile install --no-audit --no-fund
