@@ -109,6 +109,9 @@ AgentUp.Browser.Streaming.Benchmarks/
 AgentUp.Server.Benchmarks/
   AgentUp.Server.Benchmarks.csproj
 
+AgentUp.Desktop.Benchmarks/
+  AgentUp.Desktop.Benchmarks.csproj
+
 AgentUp.Verification.Benchmarks/
   AgentUp.Verification.Benchmarks.csproj
 
@@ -165,6 +168,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
 | `AgentUp.Browser.Streaming.Benchmarks` | BenchmarkDotNet measurements for designated performance-sensitive browser streaming paths; runs as a receipt-backed slow verification check |
 | `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements for Server hot paths such as diagnostics shaping and validation export |
+| `AgentUp.Desktop.Benchmarks` | BenchmarkDotNet measurements for Desktop view-state projection, including agent activity and idle presentation |
 | `AgentUp.Verification.Benchmarks` | BenchmarkDotNet measurements for changed-file matching, diff parsing, and coverage ingestion |
 | `AgentUp.CommitPolicy.Benchmarks` | BenchmarkDotNet measurements for commit classification and slice-boundary validation |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
@@ -773,7 +777,7 @@ Use layered tests with clear ownership:
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
 - Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
 - Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them. Codex, Cursor, and Claude Provider smoke tests discover the ACP CLIs declared in capability inventory and present on the machine, and assert both the installed and missing outcomes; Server Agents HTTP smoke uses those same live adapters and asserts the workspace agent picker matches that discovery. These tests must not skip based on whether a CLI is present.
-- Benchmark projects use BenchmarkDotNet under `Features/<Slice>/Benchmark/` to measure designated performance-sensitive paths across Server runtime transformations, verification and coverage processing, commit policy, and browser streaming. Their verification checks use the `slow` tier and name production plus benchmark inputs so content-addressed receipts are invalidated whenever either side changes. Architecture enforcement requires an executable `[Benchmark]` method and a selecting slow check; an empty folder is not benchmark coverage.
+- Benchmark projects use BenchmarkDotNet under `Features/<Slice>/Benchmark/` to measure designated performance-sensitive paths across Server agents, diagnostics, metrics, background process output and runtime transformations; Desktop view-state and idle presentation; verification and coverage processing; commit policy; and browser streaming. Mobile uses Mitata under the same feature-local `benchmark/` convention for agent transcript, plan, and Git-tree view projection. Their verification checks use the `slow` tier and name production plus benchmark inputs so content-addressed receipts are invalidated whenever either side changes. Architecture enforcement requires an executable benchmark and a selecting slow check; an empty folder is not benchmark coverage.
 - Headless tests verify Avalonia UI behavior without native display dependencies.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 

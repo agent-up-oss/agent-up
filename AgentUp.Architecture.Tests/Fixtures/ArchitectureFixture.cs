@@ -76,6 +76,7 @@ internal static class ArchitectureFixture
     [
         "AgentUp.Browser.Streaming.Benchmarks",
         "AgentUp.CommitPolicy.Benchmarks",
+        "AgentUp.Desktop.Benchmarks",
         "AgentUp.Server.Benchmarks",
         "AgentUp.Verification.Benchmarks"
     ];

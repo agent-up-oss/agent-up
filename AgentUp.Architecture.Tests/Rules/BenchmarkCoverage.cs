@@ -30,6 +30,30 @@ public sealed class BenchmarkCoverage
             "AgentUp.Server.Benchmarks/Features/Validation/Benchmark/PlaywrightFlowExporterBenchmarks.cs",
             "server-benchmarks"),
         new(
+            "AgentUp.Server/Features/Agents/Providers/AgentEventFrameProvider.cs",
+            "AgentUp.Server.Benchmarks/Features/Agents/Benchmark/AgentEventFrameBenchmarks.cs",
+            "server-benchmarks"),
+        new(
+            "AgentUp.Server/Shared/Providers/ConsoleSecretRedactor.cs",
+            "AgentUp.Server.Benchmarks/Features/Diagnostics/Benchmark/DiagnosticRedactionBenchmarks.cs",
+            "server-benchmarks"),
+        new(
+            "AgentUp.Server/Features/Metrics/Providers/ProcessMetricsSampler.cs",
+            "AgentUp.Server.Benchmarks/Features/Metrics/Benchmark/ProcessMetricsBenchmarks.cs",
+            "server-benchmarks"),
+        new(
+            "AgentUp.Server/Features/Processes/Services/ProcessOutputService.cs",
+            "AgentUp.Server.Benchmarks/Features/Processes/Benchmark/BackgroundProcessOutputBenchmarks.cs",
+            "server-benchmarks"),
+        new(
+            "AgentUp.Desktop/Features/Agents/Providers/AgentEventPresentationProvider.cs",
+            "AgentUp.Desktop.Benchmarks/Features/Agents/Benchmark/AgentPresentationBenchmarks.cs",
+            "desktop-benchmarks"),
+        new(
+            "AgentUp.Mobile/src/features/agents/providers/AgentEventPresentationProvider.ts",
+            "AgentUp.Mobile/src/features/agents/benchmark/MobileViewBenchmarks.ts",
+            "mobile-benchmarks"),
+        new(
             "AgentUp.Verification/Features/Coverage/Providers/UnifiedDiffParser.cs",
             "AgentUp.Verification.Benchmarks/Features/Coverage/Benchmark/CoverageParserBenchmarks.cs",
             "verification-benchmarks"),
@@ -74,11 +98,12 @@ public sealed class BenchmarkCoverage
     }
 
     private static bool HasBenchmarkMethod(string path)
-        => File.Exists(path)
-           && ArchitectureFixture.ParseSourceFile(path).Root.DescendantNodes()
+        => File.Exists(path) && (Path.GetExtension(path) == ".ts"
+            ? File.ReadAllText(path).Contains("bench(", StringComparison.Ordinal)
+            : ArchitectureFixture.ParseSourceFile(path).Root.DescendantNodes()
                .OfType<MethodDeclarationSyntax>()
                .Any(method => method.AttributeLists.SelectMany(list => list.Attributes)
-                   .Any(attribute => ArchitectureFixture.FinalTypeSegment(attribute.Name) == "Benchmark"));
+                   .Any(attribute => ArchitectureFixture.FinalTypeSegment(attribute.Name) == "Benchmark")));
 
     private static bool ProductionRuleSelects(System.Text.Json.JsonElement rule, BenchmarkTarget target)
         => target.ProductionPath.StartsWith(

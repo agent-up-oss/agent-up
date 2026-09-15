@@ -277,6 +277,14 @@
           "AgentUp.InstallerConfig"
         ]
       },
+      "desktop-benchmarks": {
+        "command": "dotnet run -c Release --project AgentUp.Desktop.Benchmarks -- --filter *",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Desktop",
+          "AgentUp.Desktop.Benchmarks"
+        ]
+      },
       "cli": {
         "command": "dotnet test AgentUp.CLI.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cli",
         "tier": "fast",
@@ -312,6 +320,14 @@
         "command": "npm test",
         "workingDirectory": "AgentUp.Mobile",
         "tier": "fast",
+        "inputs": [
+          "AgentUp.Mobile"
+        ]
+      },
+      "mobile-benchmarks": {
+        "command": "npm run benchmark",
+        "workingDirectory": "AgentUp.Mobile",
+        "tier": "slow",
         "inputs": [
           "AgentUp.Mobile"
         ]
@@ -587,9 +603,17 @@
       {
         "match": "AgentUp.Desktop/**",
         "checks": [
+          "desktop-benchmarks",
           "desktop",
           "cross-product-e2e",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Desktop.Benchmarks/**",
+        "checks": [
+          "desktop-benchmarks",
+          "architecture"
         ]
       },
       {
@@ -729,6 +753,7 @@
       {
         "match": "AgentUp.Mobile/**",
         "checks": [
+          "mobile-benchmarks",
           "mobile"
         ]
       },

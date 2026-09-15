@@ -1,3 +1,4 @@
 using BenchmarkDotNet.Running;
 
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+BenchmarkSwitcher.FromAssembly(
+    typeof(AgentUp.Server.Benchmarks.Features.Applications.Benchmark.MetricsResponseParserBenchmarks).Assembly).Run(args);
