@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace AgentUp.Tests.Fixtures.MacOs;
 
 public sealed class MacOsDesktopFixtureAdapter : IDesktopFixtureAdapter
@@ -16,10 +14,8 @@ public sealed class MacOsDesktopFixtureAdapter : IDesktopFixtureAdapter
     {
         if (!OperatingSystem.IsMacOS())
             throw new PlatformNotSupportedException("The macOS desktop fixture can only run on macOS.");
-        var session = CGSessionCopyCurrentDictionary();
-        if (session == IntPtr.Zero)
+        if (!Environment.UserInteractive)
             throw new InvalidOperationException(StartupFailureHint);
-        CFRelease(session);
 
         _fixtureHome = Directory.CreateTempSubdirectory("agentup-e2e-macos-");
         _originalHome = Environment.GetEnvironmentVariable("HOME");
@@ -36,9 +32,4 @@ public sealed class MacOsDesktopFixtureAdapter : IDesktopFixtureAdapter
         _fixtureHome?.Delete(recursive: true);
     }
 
-    [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
-    private static extern IntPtr CGSessionCopyCurrentDictionary();
-
-    [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
-    private static extern void CFRelease(IntPtr value);
 }

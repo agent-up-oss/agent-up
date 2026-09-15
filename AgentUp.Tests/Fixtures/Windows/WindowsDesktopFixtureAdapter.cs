@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace AgentUp.Tests.Fixtures.Windows;
 
 public sealed class WindowsDesktopFixtureAdapter : IDesktopFixtureAdapter
@@ -18,18 +16,19 @@ public sealed class WindowsDesktopFixtureAdapter : IDesktopFixtureAdapter
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("The Windows desktop fixture can only run on Windows.");
 
-        var desktop = OpenInputDesktop(0, false, DesktopReadObjects | DesktopSwitchDesktop);
-        if (desktop == IntPtr.Zero)
+        if (!Environment.UserInteractive)
             throw new InvalidOperationException(StartupFailureHint);
-        CloseDesktop(desktop);
 
         _fixtureProfile = Directory.CreateTempSubdirectory("agentup-e2e-windows-");
         _originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
         _originalAppData = Environment.GetEnvironmentVariable("APPDATA");
         _originalWebViewData = Environment.GetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER");
-        Environment.SetEnvironmentVariable("LOCALAPPDATA", Path.Join(_fixtureProfile.FullName, "Local"));
-        Environment.SetEnvironmentVariable("APPDATA", Path.Join(_fixtureProfile.FullName, "Roaming"));
-        Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", Path.Join(_fixtureProfile.FullName, "WebView2"));
+        var localAppData = Directory.CreateDirectory(Path.Join(_fixtureProfile.FullName, "Local"));
+        var appData = Directory.CreateDirectory(Path.Join(_fixtureProfile.FullName, "Roaming"));
+        var webViewData = Directory.CreateDirectory(Path.Join(_fixtureProfile.FullName, "WebView2"));
+        Environment.SetEnvironmentVariable("LOCALAPPDATA", localAppData.FullName);
+        Environment.SetEnvironmentVariable("APPDATA", appData.FullName);
+        Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", webViewData.FullName);
         Environment.SetEnvironmentVariable("AGENTUP_E2E_PLATFORM", "windows");
     }
 
@@ -40,14 +39,4 @@ public sealed class WindowsDesktopFixtureAdapter : IDesktopFixtureAdapter
         Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", _originalWebViewData);
         _fixtureProfile?.Delete(recursive: true);
     }
-
-    private const uint DesktopReadObjects = 0x0001;
-    private const uint DesktopSwitchDesktop = 0x0100;
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint desiredAccess);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool CloseDesktop(IntPtr desktop);
 }
