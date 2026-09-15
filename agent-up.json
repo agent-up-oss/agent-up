@@ -179,6 +179,14 @@
           "AgentUp.Browser.Streaming.Tests"
         ]
       },
+      "browser-streaming-benchmarks": {
+        "command": "dotnet run -c Release --project AgentUp.Browser.Streaming.Benchmarks -- --filter *",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Browser.Streaming",
+          "AgentUp.Browser.Streaming.Benchmarks"
+        ]
+      },
       "capabilities-codex": {
         "command": "dotnet test AgentUp.Capabilities.Codex.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-codex",
         "tier": "fast",
@@ -587,9 +595,17 @@
       {
         "match": "AgentUp.Browser.Streaming/**",
         "checks": [
+          "browser-streaming-benchmarks",
           "browser-streaming",
           "server",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Browser.Streaming.Benchmarks/**",
+        "checks": [
+          "browser-streaming-benchmarks",
+          "architecture"
         ]
       },
       {
