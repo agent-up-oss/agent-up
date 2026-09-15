@@ -1,6 +1,9 @@
 /**
  * Agent sign-in, end to end, on a real simulator and a real emulator.
  *
+ * The app under test is the chat harness: the real chat module and the real sign-in module with
+ * no shell around them. Every line these tests drive is a line the shipping client runs.
+ *
  * A real Agent-Up Server process, the real test agent CLIs as separate processes on a PATH the
  * Server resolves them from, and a real OAuth identity provider behind them. The only thing
  * standing in for a person is the approval, which the test performs through the provider's
@@ -56,18 +59,14 @@ describe('agent sign-in', () => {
       // Fresh app state per case: a credential left over from a previous one would make this pass
       // for the wrong reason.
       await device.launchApp({ delete: true, newInstance: true });
-      await connectTo(stack.serverOriginForClient);
+      await connectTo(stack.serverOriginForClient, stack.workspace.id);
     });
 
     it('signs the agent in and leaves the session ready', async () => {
       const flow = harness.SIGN_IN_FLOWS[scenario.flow];
       await flow.beforeStart?.({ control: stack.control });
 
-      // Workspaces are chosen from the shell's sidebar, which starts closed, and land on the
-      // workspace dashboard. The agent chat is one step further in.
-      await tap('open-sidebar', 60_000);
-      await tap(`workspace-${stack.workspace.id}`, 60_000);
-      await tap('open-workspace-agent', 60_000);
+      // The harness mounts the chat directly, so the agent picker is the first thing here.
       await tap(`agent-picker-${scenario.kind}`, 60_000);
 
       const offered = await harness.waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');
@@ -98,9 +97,10 @@ describe('agent sign-in', () => {
   });
 });
 
-async function connectTo(serverUrl) {
+async function connectTo(serverUrl, workspaceId) {
   await waitFor(element(by.id('server-url-input'))).toBeVisible().withTimeout(60_000);
   await element(by.id('server-url-input')).replaceText(serverUrl);
+  await element(by.id('workspace-id-input')).replaceText(workspaceId);
   await tap('server-connect');
 }
 

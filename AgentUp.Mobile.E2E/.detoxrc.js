@@ -1,5 +1,10 @@
 /**
- * Detox drives the real app on a real simulator and a real emulator.
+ * Detox drives the chat harness app on a real simulator and a real emulator.
+ *
+ * The app is AgentUp.Mobile.E2E.App: the real chat module and the real sign-in module, mounted
+ * with nothing around them. Everything these tests exercise is code the real client runs; what is
+ * missing is only the shell, the sidebar and the workspace navigation, none of which has anything
+ * to do with signing an agent in.
  *
  * Detox rather than a black-box driver on purpose: it synchronises with the React Native runtime,
  * so it waits on pending timers, in-flight requests, and animations instead of guessing. For a
@@ -16,21 +21,21 @@ module.exports = {
   apps: {
     'ios.release': {
       type: 'ios.app',
-      binaryPath: '../AgentUp.Mobile/ios/build/Build/Products/Release-iphonesimulator/AgentUp.app',
+      binaryPath: '../AgentUp.Mobile.E2E.App/ios/build/Build/Products/Release-iphonesimulator/AgentUpChatHarness.app',
       build:
-        'xcodebuild -workspace ../AgentUp.Mobile/ios/AgentUp.xcworkspace -scheme AgentUp ' +
-        '-configuration Release -sdk iphonesimulator -derivedDataPath ../AgentUp.Mobile/ios/build ' +
-        '-quiet CODE_SIGNING_ALLOWED=NO',
+        'xcodebuild -workspace ../AgentUp.Mobile.E2E.App/ios/AgentUpChatHarness.xcworkspace ' +
+        '-scheme AgentUpChatHarness -configuration Release -sdk iphonesimulator ' +
+        '-derivedDataPath ../AgentUp.Mobile.E2E.App/ios/build -quiet CODE_SIGNING_ALLOWED=NO',
     },
     'android.release': {
       type: 'android.apk',
-      binaryPath: '../AgentUp.Mobile/android/app/build/outputs/apk/release/app-release.apk',
+      binaryPath: '../AgentUp.Mobile.E2E.App/android/app/build/outputs/apk/release/app-release.apk',
       testBinaryPath:
-        '../AgentUp.Mobile/android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
+        '../AgentUp.Mobile.E2E.App/android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
       // --build-cache and --parallel: a cold build of this takes the better part of an hour on a
       // hosted runner, and the cache the CI job persists is only consulted when it is asked for.
       build:
-        'cd ../AgentUp.Mobile/android && ./gradlew assembleRelease assembleAndroidTest ' +
+        'cd ../AgentUp.Mobile.E2E.App/android && ./gradlew assembleRelease assembleAndroidTest ' +
         '-DtestBuildType=release --build-cache --parallel',
     },
   },

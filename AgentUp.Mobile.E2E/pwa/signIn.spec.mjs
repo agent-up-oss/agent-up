@@ -18,7 +18,7 @@ const SCENARIOS = [
   { name: 'loopback redirect', flow: 'redirect', codexSchema: 'redirect', kind: 'Codex', transport: 'redirect' },
 ];
 
-const EXPORT_DIR = process.env.AGENTUP_E2E_WEB_EXPORT ?? '../AgentUp.Mobile/dist';
+const EXPORT_DIR = process.env.AGENTUP_E2E_WEB_EXPORT ?? '../AgentUp.Mobile.E2E.App/dist';
 
 for (const scenario of SCENARIOS) {
   test.describe(scenario.name, () => {
@@ -51,13 +51,8 @@ for (const scenario of SCENARIOS) {
 
       await page.goto(site.url);
       await page.getByTestId('server-url-input').fill(stack.serverOriginForClient);
+      await page.getByTestId('workspace-id-input').fill(stack.workspace.id);
       await page.getByTestId('server-connect').click();
-
-      // Workspaces are chosen from the shell's sidebar, which starts closed, and land on the
-      // workspace dashboard. The agent chat is one step further in.
-      await page.getByTestId('open-sidebar').click();
-      await page.getByTestId(`workspace-${stack.workspace.id}`).click();
-      await page.getByTestId('open-workspace-agent').click();
       await page.getByTestId(`agent-picker-${scenario.kind}`).click();
 
       const offered = await waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');

@@ -1,0 +1,41 @@
+{
+  "name": "@agent-up/chat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Agent-Up agent chat: transcript, permissions, and subscription sign-in, with no dependency on the app hosting it",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "tsx --test src/providers/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@agent-up/agent-auth": "file:../AgentUp.AgentAuth",
+    "@agent-up/design-system": "file:../AgentUp.DesignSystem",
+    "@agent-up/server-client": "file:../AgentUp.ServerClient"
+  },
+  "peerDependencies": {
+    "expo-clipboard": "*",
+    "expo-linking": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-safe-area-context": "*",
+    "react-native-webview": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "~19.2.2",
+    "expo": "~57.0.14",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.3"
+  }
+}

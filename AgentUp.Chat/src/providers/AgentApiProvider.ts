@@ -1,6 +1,5 @@
-import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
-import { jsonBody, requestServerJson } from '@/features/servers/providers/ServerRequestProvider';
-import { ensureCredentialTransportAllowed } from '@/features/authentication/providers/AuthenticationProvider';
+import type { ServerSession } from '@agent-up/server-client';
+import { ensureCredentialTransportAllowed, jsonBody, requestServerJson } from '@agent-up/server-client';
 import type { AgentEvent, AgentKind, AgentSession } from '../models/AgentSession';
 
 const root = (workspaceId: string) => `/api/workspaces/${encodeURIComponent(workspaceId)}/agent`;

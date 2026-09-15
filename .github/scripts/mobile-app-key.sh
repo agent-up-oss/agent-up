@@ -9,8 +9,8 @@
 #
 # `key` covers those plus every source file that ends up bundled into the app. An exact hit means
 # the app the previous run compiled is the app this run would compile, so the build is skipped
-# outright - which is most pushes here, because they touch the Server, the test agents, or the
-# suites rather than the client.
+# outright - which is most runs of this workflow, because the Server and the test agents are in
+# its paths filter and neither of them is in the bundle.
 #
 # Content, not timestamps: git already knows the blob hash of every tracked file, so this is both
 # exact and nearly free.
@@ -24,8 +24,10 @@ hash_of() {
   git ls-files -s -- "$@" | sum | cut -c1-16
 }
 
-dependencies="$(hash_of AgentUp.Mobile/package-lock.json AgentUp.Mobile/package.json AgentUp.Mobile/app.json)"
-contents="$(hash_of AgentUp.Mobile AgentUp.AgentAuth AgentUp.DesignSystem AgentUp.WebAudit)"
+# The app under test is the chat harness, so this is its dependency set and its sources - plus
+# every module it mounts, because a change in any of them changes the bundle.
+dependencies="$(hash_of AgentUp.Mobile.E2E.App/package-lock.json AgentUp.Mobile.E2E.App/package.json AgentUp.Mobile.E2E.App/app.json)"
+contents="$(hash_of AgentUp.Mobile.E2E.App AgentUp.Chat AgentUp.AgentAuth AgentUp.ServerClient AgentUp.DesignSystem)"
 
 {
   echo "dependencies=$dependencies"

@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GitChangesPanel } from '@/features/git/components/GitChangesPanel';
-import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
-import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import type { Workspace } from '@/features/workspaces/models/Workspace';
+import type { ServerSession } from '@agent-up/server-client';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import type { AgentActivityKind, AgentEvent, AgentKind, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
 import { authenticateAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
@@ -30,9 +27,24 @@ import {
 
 type AgentTab = 'chat' | 'changes';
 
-export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
+/** All this screen needs of a workspace: which one to talk about, and what to call it. */
+export type ChatWorkspace = { id: string; displayName: string };
+
+export type AgentChatScreenProps = {
+  workspace: ChatWorkspace;
+  /** The Server this workspace lives on, or null while the host is still connecting. */
+  server: ServerSession | null;
+  /**
+   * Rendered behind the Changes tab. A host that has nothing to show there omits it and the tab
+   * bar goes with it, which is what lets this screen stand alone in a harness app.
+   */
+  changesPanel?: ReactNode;
+  /** Lets a host title its own chrome while this screen is mounted. */
+  onPresent?: (presentation: { title: string }) => void;
+};
+
+export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: AgentChatScreenProps) {
   const insets = useSafeAreaInsets();
-  const { server } = useWorkspaces();
   const [tab, setTab] = useState<AgentTab>('chat');
   const [session, setSession] = useState<AgentSession | null>(null);
   const [items, setItems] = useState<TranscriptItem[]>([]);
@@ -45,7 +57,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const lastSequence = useRef(0);
-  useShellConfig(useMemo(() => ({ title: 'Workspace agent', rightAction: null, sidebarContent: null }), []));
+  useEffect(() => { onPresent?.({ title: 'Workspace agent' }); }, [onPresent]);
 
   const applyEvent = useCallback((event: AgentEvent) => {
     if (typeof event.sequence === 'number') lastSequence.current = Math.max(lastSequence.current, event.sequence);
@@ -126,8 +138,8 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
   };
 
   return <View style={styles.screen}>
-    <View style={styles.content}>{tab === 'changes'
-      ? <View style={styles.changesPane}><GitChangesPanel workspaceId={workspace.id} /></View>
+    <View style={styles.content}>{tab === 'changes' && changesPanel
+      ? <View style={styles.changesPane}>{changesPanel}</View>
       : <View style={styles.chat}>
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
@@ -192,7 +204,7 @@ export function AgentChatScreen({ workspace }: { workspace: Workspace }) {
           </View>}
         </View>}
     </View>
-    <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}><TabButton label="Chat" active={tab === 'chat'} onPress={() => setTab('chat')} /><TabButton label="Changes" active={tab === 'changes'} onPress={() => setTab('changes')} /></View>
+    {changesPanel ? <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}><TabButton label="Chat" active={tab === 'chat'} onPress={() => setTab('chat')} /><TabButton label="Changes" active={tab === 'changes'} onPress={() => setTab('changes')} /></View> : null}
   </View>;
 }
 

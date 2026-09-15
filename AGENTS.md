@@ -76,7 +76,16 @@ AgentUp.Mobile/
 AgentUp.Mobile.E2E/
   package.json
 
+AgentUp.Mobile.E2E.App/
+  package.json
+
+AgentUp.Chat/
+  package.json
+
 AgentUp.AgentAuth/
+  package.json
+
+AgentUp.ServerClient/
   package.json
 
 AgentUp.TestAgents/
@@ -693,7 +702,15 @@ After every task that touches any production project, run the architecture tests
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
 
-`AgentUp.Mobile.E2E` is the mobile end-to-end project. It drives agent sign-in through the real client on a real iOS simulator (Detox, `macos-latest`), a real Android emulator (Detox, `ubuntu-latest` with KVM), and the installable web export (Playwright), against a real Agent-Up Server process, the real test agent CLIs from `AgentUp.TestAgents`, and the real identity provider behind them. Nothing in it is in-process, headless-only, or faked.
+`AgentUp.Mobile.E2E` is the mobile end-to-end project. It drives agent sign-in on a real iOS simulator (Detox, `macos-latest`), a real Android emulator (Detox, `ubuntu-latest` with KVM), and the installable web export (Playwright), against a real Agent-Up Server process, the real test agent CLIs from `AgentUp.TestAgents`, and the real identity provider behind them. Nothing in it is in-process, headless-only, or faked.
+
+The app it drives is `AgentUp.Mobile.E2E.App`: the real `AgentUp.Chat` and `AgentUp.AgentAuth` modules mounted with nothing around them. It exists so the suite tests sign-in rather than navigation - reaching the chat in the full client took four taps through the sidebar, a workspace list and a dashboard, every one of them a way for an unrelated change to fail this suite - and so the app it compiles is small enough to build often. The code under test is the same module the shipping client mounts; only the shell around it is missing.
+
+`AgentUp.Chat` is that module: the transcript, the permission prompts and the subscription sign-in, with no import from any app. Which workspace, which Server, and what sits behind the Changes tab all arrive as props, which is what lets the client and the harness run one implementation instead of two. It reaches a Server through `AgentUp.ServerClient`, the transport the client's own slices use.
+
+Both modules are consumed as `file:` dependencies and ship TypeScript sources, so every app that mounts them needs the `metro.config.js` dedupe they come with: Metro resolves a symlinked package's imports from its own `node_modules` first, and a second copy of `react` there means the module's hooks read a different dispatcher than the app rendered with and throw on mount. `AgentUp.Mobile.E2E/pwa/mounts.spec.mjs` is what catches that, because it happened.
+
+Sign-in runs in its own workflow, `.github/workflows/mobile-agent-auth-ci.yml`, scoped by path to the things it tests. That filter is the whole correctness argument for the gate, and it includes `AgentUp.Server` and `AgentUp.TestAgents` alongside the client modules: the Server drives every one of these sign-ins and the test agents implement them, so a change to either is exactly what this suite exists to catch. A nightly run covers whatever the filter misses.
 
 `AgentUp.TestAgents` publishes one binary launched through a per-agent shim: `test-agent1` (loopback redirect, the `codex login` shape), `test-agent2` (device code, `codex login --device-auth`), `test-agent3` (pasted code with an unterminated prompt, `claude setup-token`), `test-agent4` (silent polling, `cursor-agent login`), and `test-idp`. Each speaks real ACP v1 over stdio and refuses `session/new` until it holds a credential. There are four sign-in shapes but only three agent kinds, so the loopback-redirect and device-code agents share the Codex slot and the stack starts twice rather than letting them collide.
 
