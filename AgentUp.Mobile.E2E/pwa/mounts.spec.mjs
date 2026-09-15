@@ -22,11 +22,16 @@ test('the chat module mounts without a Server', async ({ page }) => {
   try {
     await page.goto(site.url);
     await page.getByTestId('server-url-input').fill('http://127.0.0.1:1');
-    await page.getByTestId('workspace-id-input').fill('not-a-real-workspace');
+    await page.getByTestId('workspace-id-input').fill('a-workspace-no-server-serves');
     await page.getByTestId('server-connect').click();
 
-    // It cannot reach that Server, so it says so. Reaching the point of saying so is the assertion.
-    await expect(page.getByTestId('agent-picker-Codex')).toBeVisible({ timeout: 30_000 });
+    // Nothing answers on that port, so the screen stays empty of anything the Server supplies -
+    // there is no agent list and so no agent buttons. What it does render is its own chrome: the
+    // workspace it was handed, and the failure to reach the Server. That is the assertion, because
+    // it is exactly what the duplicate-react bug destroyed: the hooks threw on mount and the body
+    // came back empty while the connect screen before it had looked perfectly healthy.
+    await expect(page.getByText('a-workspace-no-server-serves')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/choose an acp agent/i)).toBeVisible({ timeout: 30_000 });
     expect(thrown, 'the chat module threw while mounting').toEqual([]);
   } finally {
     await site.dispose();
