@@ -71,13 +71,6 @@ public sealed class DeviceCodeLoginFlow(HttpClient client, string identityProvid
                 continue;
             }
 
-            if (error == "slow_down")
-            {
-                interval += TimeSpan.FromSeconds(1);
-                await Task.Delay(interval, cancellationToken);
-                continue;
-            }
-
             await output.WriteLineAsync($"Sign-in failed: {error}.");
             return null;
         }

@@ -129,4 +129,27 @@ public sealed class TestAgentLoginFlowRefusalTests
             Assert.That(output.ToString(), Does.Contain("did not carry a matching state"));
         });
     }
+
+    // A sign-in whose grant the provider no longer knows about has to end, not poll forever: the
+    // Server is waiting on this process to exit so it can report the failure.
+    [Test]
+    public async Task SilentPoll_stopsWhenTheProviderForgetsTheSignIn()
+    {
+        using var output = new AgentOutput();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+        var login = new SilentPollLoginFlow(_client, _origin).RunAsync(output, TextReader.Null, cancellation.Token);
+
+        await output.WaitForLineContainingAsync("/login/", cancellation.Token);
+        using var reset = await FormPost.SendAsync(_client, $"{_origin}/test/reset", cancellation.Token);
+        Assert.That(reset.IsSuccessStatusCode, Is.True);
+
+        var token = await login;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(token, Is.Null);
+            Assert.That(output.ToString(), Does.Contain("Sign-in failed"));
+        });
+    }
 }
