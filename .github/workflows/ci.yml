@@ -834,6 +834,11 @@ jobs:
         working-directory: AgentUp.Mobile.E2E
         run: node scripts/forbid-sleep.mjs
 
+      # The sign-in jobs run these on a macOS runner, whose bash is 3.2. A construct newer than
+      # that fails there and nowhere else, at the first step that uses it.
+      - name: Check the CI shell scripts run on the macOS runner's bash
+        run: node .github/scripts/check-shell-portability.mjs
+
       - name: Test the end-to-end harness
         working-directory: AgentUp.Mobile.E2E
         run: node --test test/*.test.mjs
