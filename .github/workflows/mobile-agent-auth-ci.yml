@@ -62,10 +62,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          # What these jobs install, which is the harness app and the modules it mounts - not
+          # the full client, which this workflow never builds.
           cache-dependency-path: |
-            AgentUp.Mobile/package-lock.json
+            AgentUp.Mobile.E2E.App/package-lock.json
             AgentUp.Mobile.E2E/package-lock.json
+            AgentUp.Chat/package-lock.json
             AgentUp.AgentAuth/package-lock.json
+            AgentUp.ServerClient/package-lock.json
             AgentUp.WebAudit/package-lock.json
 
       - name: Publish the Server and test agents
@@ -119,10 +123,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          # What these jobs install, which is the harness app and the modules it mounts - not
+          # the full client, which this workflow never builds.
           cache-dependency-path: |
-            AgentUp.Mobile/package-lock.json
+            AgentUp.Mobile.E2E.App/package-lock.json
             AgentUp.Mobile.E2E/package-lock.json
+            AgentUp.Chat/package-lock.json
             AgentUp.AgentAuth/package-lock.json
+            AgentUp.ServerClient/package-lock.json
             AgentUp.WebAudit/package-lock.json
 
       - uses: actions/setup-java@v6
@@ -271,10 +279,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          # What these jobs install, which is the harness app and the modules it mounts - not
+          # the full client, which this workflow never builds.
           cache-dependency-path: |
-            AgentUp.Mobile/package-lock.json
+            AgentUp.Mobile.E2E.App/package-lock.json
             AgentUp.Mobile.E2E/package-lock.json
+            AgentUp.Chat/package-lock.json
             AgentUp.AgentAuth/package-lock.json
+            AgentUp.ServerClient/package-lock.json
             AgentUp.WebAudit/package-lock.json
 
       - name: Describe what the app is built from
