@@ -28,6 +28,7 @@ on:
       # The pipeline that runs it, and the scripts it runs.
       - ".github/workflows/mobile-agent-auth-ci.yml"
       - ".github/scripts/install-mobile-deps.sh"
+      - ".github/scripts/install-android-ndk.sh"
       - ".github/scripts/build-mobile-e2e-stack.sh"
       - ".github/scripts/mobile-app-key.sh"
       - ".github/scripts/mobile-app-restored.sh"
@@ -178,6 +179,12 @@ jobs:
         if: ${{ steps.restored.outputs.usable != 'true' }}
         working-directory: AgentUp.Mobile.E2E.App
         run: npx expo prebuild --platform android --no-install
+
+      # Nothing on the runner preinstalls the NDK this build wants, so Gradle fetches it mid-build
+      # in one attempt. Here it is a step that can be retried instead of a build that cannot.
+      - name: Install the Android NDK the build will ask for
+        if: ${{ steps.restored.outputs.usable != 'true' }}
+        run: ./.github/scripts/install-android-ndk.sh AgentUp.Mobile.E2E.App
 
       - uses: gradle/actions/setup-gradle@v4
         if: ${{ steps.restored.outputs.usable != 'true' }}
