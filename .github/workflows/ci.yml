@@ -111,6 +111,7 @@ jobs:
             mkdir -p "$target/tools/$rid" "$target/payloads"
             cp -a "artifacts/dotnet-ci/tools/$rid/packaging" "$target/tools/$rid/"
             cp -a "artifacts/dotnet-ci/tools/$rid/package-smoke" "$target/tools/$rid/"
+            cp -a "artifacts/dotnet-ci/tools/$rid/agent-up-tests" "$target/tools/$rid/"
             cp -a "artifacts/dotnet-ci/payloads/$rid" "$target/payloads/"
           done
 
@@ -539,6 +540,7 @@ jobs:
     permissions:
       contents: read
       actions: write
+      checks: write
       id-token: write
     strategy:
       fail-fast: false
@@ -599,12 +601,35 @@ jobs:
           if [ "${{ runner.os }}" != "Windows" ]; then
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging" || true
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke" || true
+            chmod +x "dotnet-ci/tools/${{ matrix.rid }}/agent-up-tests/AgentUp.Tests" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/installer/AgentUp.InstallerApp" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/desktop/AgentUp.Desktop" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/server/AgentUp.Server" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/cli/AgentUp.CLI" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/tray/AgentUp.Tray" || true
           fi
+
+      - name: Run native platform E2E tests
+        if: ${{ matrix.platform == 'macos' || matrix.platform == 'windows' }}
+        shell: bash
+        run: |
+          mkdir -p artifacts/platform-tests
+          suffix=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            suffix=".exe"
+          fi
+          "dotnet-ci/tools/${{ matrix.rid }}/agent-up-tests/AgentUp.Tests$suffix" \
+            --workers=0 \
+            --where="cat != HeadlessE2E" \
+            --result="artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3"
+
+      - name: Native platform E2E test report
+        uses: dorny/test-reporter@v3
+        if: ${{ !cancelled() && (matrix.platform == 'macos' || matrix.platform == 'windows') }}
+        with:
+          name: Native E2E Tests (${{ matrix.rid }})
+          path: artifacts/platform-tests/*.xml
+          reporter: dotnet-nunit
 
       - name: Sign macOS payload binaries
         if: ${{ matrix.platform == 'macos' && (vars.MACOS_SIGNING_ENABLED == 'true' || vars.SIGNING_SMOKE_TEST == 'true') }}

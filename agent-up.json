@@ -301,12 +301,11 @@
         ]
       },
       "linux-smoke": {
-        "command": "./.github/scripts/smoke-package.sh ubuntu linux-x64 release-artifacts",
+        "command": "./scripts/verify-linux-smoke.sh",
         "tier": "platform",
         "platforms": [
           "linux"
         ],
-        "ciOnly": true,
         "inputs": [
           "packaging",
           "scripts",

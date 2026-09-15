@@ -57,6 +57,7 @@ for rid in "${rids[@]}"; do
   restore_runtime "$rid"
   publish_project "$root/AgentUp.Packaging/AgentUp.Packaging.csproj" "$rid" "$output_dir/tools/$rid/packaging"
   publish_project "$root/AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj" "$rid" "$output_dir/tools/$rid/package-smoke"
+  publish_project "$root/AgentUp.Tests/AgentUp.Tests.csproj" "$rid" "$output_dir/tools/$rid/agent-up-tests"
   publish_project "$root/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj" "$rid" "$output_dir/payloads/$rid/installer"
   publish_project "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" "$rid" "$output_dir/payloads/$rid/desktop"
   publish_project "$root/AgentUp.Server/AgentUp.Server.csproj" "$rid" "$output_dir/payloads/$rid/server"
