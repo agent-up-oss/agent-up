@@ -30,6 +30,20 @@ module.exports = {
     'android.release': {
       type: 'android.apk',
       binaryPath: '../AgentUp.Mobile.E2E.App/android/app/build/outputs/apk/release/app-release.apk',
+      // Detox's Android idling resources are built at startup, and the network one reads React
+      // Native's OkHttp client by reflecting for a field the New Architecture no longer has. It
+      // gets null, dereferences it, and the app dies before a single test body runs:
+      //
+      //   java.lang.NullPointerException
+      //     at ...idlingresources.network.NetworkIdlingResource.<init>(NetworkIdlingResource.kt:24)
+      //
+      // Detox 20.51.4 compiles that constructor to the same bytes, so upgrading is not the answer.
+      // This argument is read before any idling resource is built - it is the one way past it from
+      // outside Detox - and nothing here wants those resources anyway: every wait in these suites
+      // is on an element being visible or on Server state, never on Detox's idea of idle. That is
+      // the same reason iOS excludes the agent event stream from synchronisation, which is a
+      // stream designed never to end.
+      launchArgs: { detoxEnableSynchronization: 0 },
       testBinaryPath:
         '../AgentUp.Mobile.E2E.App/android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
       // --build-cache and --parallel: a cold build of this takes the better part of an hour on a

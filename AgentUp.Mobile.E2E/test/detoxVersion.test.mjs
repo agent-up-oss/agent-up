@@ -44,3 +44,24 @@ test('the Android build asks for that Detox by version rather than by range', ()
     'withExactDetoxVersion is what replaces com.wix:detox:+ with the installed version.',
   );
 });
+
+// Removing this reintroduces a crash, not a slowdown, so it is worth a test of its own: without it
+// Detox builds its network idling resource at startup, reflects into React Native for a field the
+// New Architecture does not have, and takes the app down before any scenario runs.
+test('Android launches with Detox synchronisation off', async () => {
+  const { default: config } = await import('../.detoxrc.js');
+
+  assert.equal(
+    config.apps['android.release'].launchArgs?.detoxEnableSynchronization,
+    0,
+    'Android must launch with detoxEnableSynchronization 0; see the comment in .detoxrc.js.',
+  );
+
+  // iOS keeps synchronisation, and excludes only the event stream at runtime, so this says so
+  // rather than leaving the difference between the two platforms to be rediscovered.
+  assert.equal(
+    config.apps['ios.release'].launchArgs,
+    undefined,
+    'iOS synchronises normally; only the agent event stream is excluded, in the suite itself.',
+  );
+});
