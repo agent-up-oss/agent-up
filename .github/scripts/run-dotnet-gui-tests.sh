@@ -84,4 +84,8 @@ else
   fi
 fi
 
+if [ "$failed" -ne 0 ]; then
+  node ./.github/scripts/report-failed-tests.mjs artifacts/test-results
+fi
+
 exit "$failed"

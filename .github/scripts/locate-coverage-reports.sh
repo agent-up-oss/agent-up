@@ -21,6 +21,7 @@ add_reports() {
 
 all_projects=(
   agentup_architecture_tests:AgentUp.Architecture.Tests
+  agentup_test_agents_tests:AgentUp.TestAgents.Tests
   agentup_browser_streaming_tests:AgentUp.Browser.Streaming.Tests
   agentup_cli_tests:AgentUp.CLI.Tests
   agentup_capabilities_abstractions_tests:AgentUp.Capabilities.Abstractions.Tests

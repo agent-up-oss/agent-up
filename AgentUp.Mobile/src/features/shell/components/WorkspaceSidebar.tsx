@@ -28,6 +28,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
           return (
             <Pressable
               key={workspace.id}
+              testID={`workspace-${workspace.id}`}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
               accessibilityLabel={`Open workspace ${workspace.displayName}`}
