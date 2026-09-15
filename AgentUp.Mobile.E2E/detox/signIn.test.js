@@ -59,6 +59,14 @@ describe('agent sign-in', () => {
       // Fresh app state per case: a credential left over from a previous one would make this pass
       // for the wrong reason.
       await device.launchApp({ delete: true, newInstance: true });
+      // The chat holds a server-sent event stream open for as long as it is mounted, and Detox
+      // treats an in-flight network request as the app being busy: it will not return from an
+      // action until the app goes idle. That stream is designed never to end, so the very tap that
+      // mounts the chat never reports back and every scenario dies on the hook timeout - which is
+      // exactly what happened the first time these suites reached a simulator. Excluding the
+      // stream from synchronisation costs nothing else: every wait in these tests is a condition
+      // on Server state or on an element being visible, never on Detox's idle heuristic.
+      await device.setURLBlacklist(['.*/agent/events.*']);
       await connectTo(stack.serverOriginForClient, stack.workspace.id);
     });
 
