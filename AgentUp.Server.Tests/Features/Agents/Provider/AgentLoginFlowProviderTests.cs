@@ -75,4 +75,35 @@ public sealed class AgentLoginFlowProviderTests
         var values = settings.ToDictionary(setting => setting.Key, setting => (string?)setting.Value);
         return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
     }
+
+    // Every spelling a deployment might reasonably write. These exist so an operator pointing a
+    // kind at a different CLI does not have to guess the exact word, and a spelling that quietly
+    // stopped being accepted would break that deployment's sign-in with a startup error.
+    [TestCase("poll", AgentLoginTransport.Poll)]
+    [TestCase("device", AgentLoginTransport.Code)]
+    [TestCase("devicecode", AgentLoginTransport.Code)]
+    [TestCase("device-code", AgentLoginTransport.Code)]
+    [TestCase("paste", AgentLoginTransport.Code)]
+    [TestCase("pastedcode", AgentLoginTransport.Code)]
+    [TestCase("pasted-code", AgentLoginTransport.Code)]
+    [TestCase("code", AgentLoginTransport.Code)]
+    [TestCase("redirect", AgentLoginTransport.Redirect)]
+    [TestCase("loopback", AgentLoginTransport.Redirect)]
+    [TestCase("  Redirect  ", AgentLoginTransport.Redirect)]
+    public void FromName_acceptsEverySpellingItDocuments(string configured, AgentLoginTransport expected)
+    {
+        Assert.That(AgentLoginFlowProvider.FromName(configured).Transport, Is.EqualTo(expected));
+    }
+
+    // The two code shapes differ in which way the code travels, and only one of them waits on
+    // stdin. Reading the wrong one leaves the Server waiting for input nothing will send.
+    [Test]
+    public void FromName_distinguishesACodeTheUserTypesFromOneTheyPasteBack()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AgentLoginFlowProvider.FromName("device").NeedsCodeInput, Is.False);
+            Assert.That(AgentLoginFlowProvider.FromName("paste").NeedsCodeInput, Is.True);
+        });
+    }
 }

@@ -182,4 +182,39 @@ public sealed class AgentSubscriptionLoginParserTests
 
         Assert.That(parser.Challenge.Url, Does.Contain("loginDeepControl"));
     }
+
+    // A CLI says a lot after it prints the link. Neither a second loopback address nor an
+    // ordinary link may replace the callback the client is already watching for, or the redirect
+    // it carries back goes to the wrong place.
+    [Test]
+    public void Append_keepsTheFirstCallbackAddressItLearned()
+    {
+        var parser = new AgentSubscriptionLoginParser(AgentLoginFlow.Redirect());
+        parser.Append("Open http://localhost:9001/oauth/authorize?client_id=codex"
+            + "&redirect_uri=http%3A%2F%2F127.0.0.1%3A1455%2Fauth%2Fcallback");
+        parser.Append("Still waiting on http://127.0.0.1:9999/some/other/loopback");
+        parser.Append("Docs at https://example.com/help");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(parser.Challenge.RedirectUri, Is.EqualTo("http://127.0.0.1:1455/auth/callback"));
+            Assert.That(parser.Challenge.Url, Does.Contain("/oauth/authorize"));
+        });
+    }
+
+    // A link that is not the sign-in and not a loopback address tells us nothing, so it must not
+    // be adopted as a callback the client would then wait for forever.
+    [Test]
+    public void Append_doesNotTreatAnOrdinaryLinkAsACallbackAddress()
+    {
+        var parser = new AgentSubscriptionLoginParser(AgentLoginFlow.Redirect());
+        parser.Append("See https://example.com/troubleshooting first");
+        parser.Append("Open https://auth.openai.com/oauth/authorize?client_id=codex");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(parser.Challenge.Url, Does.StartWith("https://auth.openai.com"));
+            Assert.That(parser.Challenge.RedirectUri, Is.Null);
+        });
+    }
 }
