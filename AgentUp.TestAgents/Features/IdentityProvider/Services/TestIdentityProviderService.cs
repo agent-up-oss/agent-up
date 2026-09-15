@@ -21,51 +21,56 @@ public sealed class TestIdentityProviderService : IAsyncDisposable
 {
     private static readonly TimeSpan GrantLifetime = TimeSpan.FromMinutes(15);
 
-    private readonly HttpListener _listener = new();
     private readonly TestIdentityStore _store = new();
-    private readonly string _publicOrigin;
+    private readonly int _requestedPort;
+    private readonly string? _requestedOrigin;
+    private HttpListener? _listener;
+    private string? _publicOrigin;
     private Task? _accepting;
 
     public TestIdentityProviderService(int port, string? publicOrigin)
     {
-        Port = port == 0 ? FreePort() : port;
-        // Bound on every interface: an Android emulator reaches its host as 10.0.2.2 and an iOS
-        // simulator as localhost, and the same provider has to answer both.
-        _listener.Prefixes.Add($"http://+:{Port}/");
-        _publicOrigin = (publicOrigin ?? $"http://localhost:{Port}").TrimEnd('/');
+        _requestedPort = port;
+        _requestedOrigin = publicOrigin;
     }
 
-    public int Port { get; }
+    /// <summary>The port it bound, which is only known once it has started.</summary>
+    public int Port { get; private set; }
 
     /// <summary>The origin to write into links, which is not always the one it bound.</summary>
-    public string PublicOrigin => _publicOrigin;
+    public string PublicOrigin => _publicOrigin ?? throw NotStarted();
 
     public void Start()
     {
-        try
-        {
-            _listener.Start();
-        }
-        catch (HttpListenerException)
-        {
-            // Binding every interface needs a URL reservation on Windows; loopback always works.
-            _listener.Prefixes.Clear();
-            _listener.Prefixes.Add($"http://127.0.0.1:{Port}/");
-            _listener.Prefixes.Add($"http://localhost:{Port}/");
-            _listener.Start();
-        }
+        // The port is claimed by this listener or not at all. Asking for a free one and binding it
+        // a moment later is a race the suites would read as flakiness.
+        var (listener, port) = LoopbackListener.Start(_requestedPort, EveryInterface, Loopback);
+        (_listener, Port) = (listener, port);
 
+        _publicOrigin = (_requestedOrigin ?? $"http://localhost:{Port}").TrimEnd('/');
         _accepting = AcceptAsync();
     }
 
+    // Bound on every interface: an Android emulator reaches its host as 10.0.2.2 and an iOS
+    // simulator as localhost, and the same provider has to answer both.
+    private static IEnumerable<string> EveryInterface(int port) => [$"http://+:{port}/"];
+
+    // Binding every interface needs a URL reservation on Windows; loopback always works.
+    private static IEnumerable<string> Loopback(int port) =>
+        [$"http://127.0.0.1:{port}/", $"http://localhost:{port}/"];
+
+    private static InvalidOperationException NotStarted() =>
+        new("The identity provider has not been started, so it has not bound an origin yet.");
+
     private async Task AcceptAsync()
     {
-        while (_listener.IsListening)
+        var listener = _listener!;
+        while (listener.IsListening)
         {
             HttpListenerContext context;
             try
             {
-                context = await _listener.GetContextAsync();
+                context = await listener.GetContextAsync();
             }
             catch (Exception exception) when (exception is HttpListenerException or ObjectDisposedException or InvalidOperationException)
             {
@@ -405,15 +410,6 @@ public sealed class TestIdentityProviderService : IAsyncDisposable
         context.Response.Close();
     }
 
-    private static int FreePort()
-    {
-        using var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        var port = ((IPEndPoint)probe.LocalEndpoint).Port;
-        probe.Stop();
-        return port;
-    }
-
     public async ValueTask DisposeAsync()
     {
         StopListening();
@@ -422,6 +418,9 @@ public sealed class TestIdentityProviderService : IAsyncDisposable
 
     private void StopListening()
     {
+        if (_listener is null)
+            return;
+
         try
         {
             _listener.Stop();

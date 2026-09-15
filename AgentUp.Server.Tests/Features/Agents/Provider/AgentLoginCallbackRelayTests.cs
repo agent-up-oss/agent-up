@@ -1,5 +1,5 @@
-using System.Net;
 using AgentUp.Server.Features.Agents.Providers;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Agents.Provider;
@@ -63,10 +63,7 @@ public sealed class AgentLoginCallbackRelayTests
     [Test]
     public async Task RelayAsync_deliversTheRedirectToTheListenerTheCliOpened()
     {
-        using var listener = new HttpListener();
-        var port = FreePort();
-        listener.Prefixes.Add($"http://localhost:{port}/auth/callback/");
-        listener.Start();
+        var (listener, port) = LoopbackListener.Start(bound => $"http://localhost:{bound}/auth/callback/");
         var received = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         _ = Task.Run(async () =>
         {
@@ -90,7 +87,7 @@ public sealed class AgentLoginCallbackRelayTests
         }
         finally
         {
-            listener.Stop();
+            listener.Close();
         }
     }
 
@@ -102,15 +99,6 @@ public sealed class AgentLoginCallbackRelayTests
         var relayed = await relay.RelayAsync(Expected, "http://example.com/auth/callback?code=abc", CancellationToken.None);
 
         Assert.That(relayed, Is.False);
-    }
-
-    private static int FreePort()
-    {
-        using var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        var port = ((IPEndPoint)probe.LocalEndpoint).Port;
-        probe.Stop();
-        return port;
     }
 
     private sealed class SingleClientFactory : IHttpClientFactory

@@ -24,13 +24,11 @@ public sealed class LoopbackRedirectLoginFlow(HttpClient client, string identity
     {
         var verifier = PkceVerifier.Secret();
         var state = PkceVerifier.Secret(16);
-        var port = FreePort();
+        // The listener claims the port itself. Picking a free one and binding it a moment later is
+        // a race against everything else on the machine, and losing it fails a sign-in that was
+        // never wrong.
+        var (listener, port) = LoopbackListener.Start(0, Callback);
         var redirectUri = $"http://localhost:{port}/auth/callback";
-
-        using var listener = new HttpListener();
-        listener.Prefixes.Add($"http://localhost:{port}/auth/callback/");
-        listener.Prefixes.Add($"http://127.0.0.1:{port}/auth/callback/");
-        listener.Start();
 
         try
         {
@@ -75,7 +73,7 @@ public sealed class LoopbackRedirectLoginFlow(HttpClient client, string identity
         }
         finally
         {
-            listener.Stop();
+            listener.Close();
         }
     }
 
@@ -117,12 +115,6 @@ public sealed class LoopbackRedirectLoginFlow(HttpClient client, string identity
         return null;
     }
 
-    private static int FreePort()
-    {
-        using var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        var port = ((IPEndPoint)probe.LocalEndpoint).Port;
-        probe.Stop();
-        return port;
-    }
+    private static IEnumerable<string> Callback(int port) =>
+        [$"http://localhost:{port}/auth/callback/", $"http://127.0.0.1:{port}/auth/callback/"];
 }

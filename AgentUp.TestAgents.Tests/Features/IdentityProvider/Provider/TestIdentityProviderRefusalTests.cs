@@ -260,6 +260,20 @@ public sealed class TestIdentityProviderRefusalTests
         Assert.That(page.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    // The origin is what every link the agents print is built from, and it is not known until the
+    // listener has bound. Reading it early has to say so rather than hand back a wrong one.
+    [Test]
+    public async Task ItsOrigin_isNotAvailableBeforeItHasBound()
+    {
+        await using var unstarted = new TestIdentityProviderService(0, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(unstarted.Port, Is.Zero);
+            Assert.That(() => unstarted.PublicOrigin, Throws.InstanceOf<InvalidOperationException>());
+        });
+    }
+
     private static async Task<string?> ErrorOf(HttpResponseMessage response)
     {
         var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
