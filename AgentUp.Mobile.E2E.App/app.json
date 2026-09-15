@@ -17,6 +17,9 @@
     "web": {
       "bundler": "metro",
       "output": "single"
-    }
+    },
+    "plugins": [
+      "@config-plugins/detox"
+    ]
   }
 }

@@ -28,6 +28,7 @@
     "react-native-webview": "13.16.0"
   },
   "devDependencies": {
+    "@config-plugins/detox": "^11.0.0",
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   }
