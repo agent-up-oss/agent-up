@@ -19,8 +19,8 @@ public sealed class LoopbackListenerTests
         {
             Assert.That(listener.IsListening, Is.True);
             Assert.That(listener.Prefixes.Single(), Is.EqualTo($"http://127.0.0.1:{port}/agentup-test/"));
-            Assert.That(Occupy(port), Throws.InstanceOf<SocketException>(),
-                "The port is held by the listener, not merely known to have been free a moment ago");
+            // Held, not merely known to have been free a moment ago: nothing else can take it.
+            Assert.That(() => Occupy(port), Throws.InstanceOf<SocketException>());
         });
     }
 
@@ -88,11 +88,11 @@ public sealed class LoopbackListenerTests
         return listener;
     }
 
-    private static TestDelegate Occupy(int port) => () =>
+    private static void Occupy(int port)
     {
         using var listener = new TcpListener(IPAddress.Loopback, port);
         listener.Start();
-    };
+    }
 
     private static int FreePort()
     {
