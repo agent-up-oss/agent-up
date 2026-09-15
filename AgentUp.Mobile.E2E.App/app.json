@@ -20,7 +20,8 @@
     },
     "plugins": [
       "@config-plugins/detox",
-      "./plugins/withDetoxAndroidTestManifest"
+      "./plugins/withDetoxAndroidTestManifest",
+      "./plugins/withoutReleaseLint"
     ]
   }
 }
