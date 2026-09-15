@@ -74,7 +74,10 @@ internal static class ArchitectureFixture
 
     public static readonly string[] BenchmarkProjects =
     [
-        "AgentUp.Browser.Streaming.Benchmarks"
+        "AgentUp.Browser.Streaming.Benchmarks",
+        "AgentUp.CommitPolicy.Benchmarks",
+        "AgentUp.Server.Benchmarks",
+        "AgentUp.Verification.Benchmarks"
     ];
 
     public static readonly string[] AllowedFeatureTypeFolders =

@@ -16,7 +16,27 @@ public sealed class BenchmarkCoverage
         new(
             "AgentUp.Browser.Streaming/BrowserInputParser.cs",
             "AgentUp.Browser.Streaming.Benchmarks/Features/Input/Benchmark/BrowserInputParserBenchmarks.cs",
-            "browser-streaming-benchmarks")
+            "browser-streaming-benchmarks"),
+        new(
+            "AgentUp.CommitPolicy/Features/CommitPolicy/Providers/CommitPolicyProvider.cs",
+            "AgentUp.CommitPolicy.Benchmarks/Features/CommitPolicy/Benchmark/CommitPolicyBenchmarks.cs",
+            "commit-policy-benchmarks"),
+        new(
+            "AgentUp.Server/Features/Applications/Providers/MetricsResponseParser.cs",
+            "AgentUp.Server.Benchmarks/Features/Applications/Benchmark/MetricsResponseParserBenchmarks.cs",
+            "server-benchmarks"),
+        new(
+            "AgentUp.Server/Features/Validation/Providers/PlaywrightFlowExporter.cs",
+            "AgentUp.Server.Benchmarks/Features/Validation/Benchmark/PlaywrightFlowExporterBenchmarks.cs",
+            "server-benchmarks"),
+        new(
+            "AgentUp.Verification/Features/Coverage/Providers/UnifiedDiffParser.cs",
+            "AgentUp.Verification.Benchmarks/Features/Coverage/Benchmark/CoverageParserBenchmarks.cs",
+            "verification-benchmarks"),
+        new(
+            "AgentUp.Verification/Shared/Providers/PathGlobProvider.cs",
+            "AgentUp.Verification.Benchmarks/Features/Verification/Benchmark/PathGlobBenchmarks.cs",
+            "verification-benchmarks")
     ];
 
     [Test]

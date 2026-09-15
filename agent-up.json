@@ -118,12 +118,28 @@
           "AgentUp.Verification.Tests"
         ]
       },
+      "verification-benchmarks": {
+        "command": "dotnet run -c Release --project AgentUp.Verification.Benchmarks -- --filter *",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Verification",
+          "AgentUp.Verification.Benchmarks"
+        ]
+      },
       "commit-policy": {
         "command": "dotnet test AgentUp.CommitPolicy.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/commit-policy",
         "tier": "fast",
         "inputs": [
           "AgentUp.CommitPolicy",
           "AgentUp.CommitPolicy.Tests"
+        ]
+      },
+      "commit-policy-benchmarks": {
+        "command": "dotnet run -c Release --project AgentUp.CommitPolicy.Benchmarks -- --filter *",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.CommitPolicy",
+          "AgentUp.CommitPolicy.Benchmarks"
         ]
       },
       "capabilities-abstractions": {
@@ -234,6 +250,14 @@
           "AgentUp.Capabilities.Codex",
           "AgentUp.Capabilities.Cursor",
           "AgentUp.Capabilities.Claude"
+        ]
+      },
+      "server-benchmarks": {
+        "command": "dotnet run -c Release --project AgentUp.Server.Benchmarks -- --filter *",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.Server.Benchmarks"
         ]
       },
       "tray": {
@@ -375,10 +399,18 @@
       {
         "match": "AgentUp.Verification/**",
         "checks": [
+          "verification-benchmarks",
           "verification",
           "server",
           "cli",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Verification.Benchmarks/**",
+        "checks": [
+          "verification-benchmarks",
+          "architecture"
         ]
       },
       {
@@ -391,10 +423,18 @@
       {
         "match": "AgentUp.CommitPolicy/**",
         "checks": [
+          "commit-policy-benchmarks",
           "commit-policy",
           "server",
           "cli",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.CommitPolicy.Benchmarks/**",
+        "checks": [
+          "commit-policy-benchmarks",
+          "architecture"
         ]
       },
       {
@@ -524,9 +564,17 @@
       {
         "match": "AgentUp.Server/**",
         "checks": [
+          "server-benchmarks",
           "server",
           "cross-product-e2e",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Server.Benchmarks/**",
+        "checks": [
+          "server-benchmarks",
+          "architecture"
         ]
       },
       {
