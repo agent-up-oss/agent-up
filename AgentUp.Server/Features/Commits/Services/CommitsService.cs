@@ -2,11 +2,39 @@ using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
+using AgentUp.Server.Features.Verification.Controllers;
 
 namespace AgentUp.Server.Features.Commits.Services;
 
-public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git, CommitPolicyProvider commitPolicy)
+public sealed class CommitsService
 {
+    private readonly ICommitsQueueProvider queue;
+    private readonly ICommitsGitProvider git;
+    private readonly CommitPolicyProvider commitPolicy;
+    private readonly IProposalStackGitProvider? proposals;
+    private readonly ICommitQueueConfigurationProvider? configuration;
+    private readonly VerificationController? verification;
+
+    public CommitsService(ICommitsQueueProvider queue, ICommitsGitProvider git, CommitPolicyProvider commitPolicy)
+        : this(queue, git, commitPolicy, null, null, null)
+    {
+    }
+
+    public CommitsService(
+        ICommitsQueueProvider queue,
+        ICommitsGitProvider git,
+        CommitPolicyProvider commitPolicy,
+        IProposalStackGitProvider? proposals,
+        ICommitQueueConfigurationProvider? configuration,
+        VerificationController? verification)
+    {
+        this.queue = queue;
+        this.git = git;
+        this.commitPolicy = commitPolicy;
+        this.proposals = proposals;
+        this.configuration = configuration;
+        this.verification = verification;
+    }
 
     public async Task<CommitsEnqueueResult> EnqueueAsync(string worktreePath, EnqueueRequest request, CancellationToken cancellationToken = default)
     {
@@ -22,6 +50,45 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
 
                 commitPolicy.Validate(request.Slice, request.Message, request.Files);
                 EnsureReviewIssueIsUnassigned(current, request.ReviewIssueId);
+                var useProposalStack = proposals is not null
+                    && (configuration?.IsGitQueueEnabled(worktreePath) is true || current.QueueId is not null);
+                if (useProposalStack)
+                {
+                    var gate = verification is null
+                        ? null
+                        : await verification.RunAndGuardAsync(worktreePath, ct);
+                    if (gate is not null && !gate.Succeeded)
+                        throw new InvalidOperationException(gate.Message);
+
+                    var queueId = current.QueueId ?? Guid.NewGuid().ToString("N");
+                    var proposal = await proposals!.EnqueueAsync(worktreePath, current, queueId, request.Message, request.Files, ct);
+                    var proposalEntryId = Guid.NewGuid().ToString("N");
+                    var proposalEntry = new CommitEntry(
+                        request.Slice,
+                        request.Message,
+                        request.Files,
+                        proposalEntryId,
+                        proposalEntryId,
+                        NormalizeOptional(request.ReviewIssueId),
+                        proposal.ParentCommit,
+                        proposal.Commit,
+                        gate is null ? "unverified" : "ready");
+                    await queue.SavePatchAsync(worktreePath, proposalEntry.PatchKey, proposal.Patch, ct);
+                    var proposalQueue = current with
+                    {
+                        Version = 3,
+                        Commits = [.. current.Commits, proposalEntry],
+                        QueueId = queueId,
+                        BaseCommit = proposal.BaseCommit,
+                        TipCommit = proposal.Commit,
+                        QueueWorktreePath = proposal.QueueWorktreePath,
+                        Generation = current.Generation + 1
+                    };
+                    await queue.WriteAsync(worktreePath, proposalQueue, ct);
+                    queueSize = proposalQueue.Commits.Count;
+                    return true;
+                }
+
                 var owners = current.Commits
                     .SelectMany(e => e.Files.Select(f => (File: f, Entry: e)))
                     .ToList();
@@ -57,7 +124,14 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
                 return true;
             }, cancellationToken);
 
-            return new CommitsEnqueueResult(true, EnqueuedMessage(request.Slice, queueSize), queueSize);
+            var stored = await queue.ReadAsync(worktreePath, cancellationToken);
+            var proposalStackEnabled = stored.QueueWorktreePath is not null;
+            var message = !proposalStackEnabled
+                ? EnqueuedMessage(request.Slice, queueSize)
+                : stored.Commits.Last().State == "ready"
+                    ? $"Enqueued and verified '{request.Slice}' as proposal {stored.TipCommit}. Continue dependent work in {stored.QueueWorktreePath}."
+                    : $"Enqueued '{request.Slice}' as unverified proposal {stored.TipCommit}. Continue dependent work in {stored.QueueWorktreePath}.";
+            return new CommitsEnqueueResult(true, message, queueSize, stored.QueueWorktreePath, stored.Generation);
         }
         catch (InvalidOperationException ex)
         {
@@ -86,9 +160,9 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             : new CommitsStatusSession(current.ActiveSession.EntryId, current.ActiveSession.Files);
         var operation = await git.GetOperationStateAsync(worktreePath, cancellationToken);
         var entries = current.Commits
-            .Select(e => new CommitEntryDto(e.Slice, e.Message, e.Files, e.Id, e.PatchId, e.ReviewIssueId))
+            .Select(e => new CommitEntryDto(e.Slice, e.Message, e.Files, e.Id, e.PatchId, e.ReviewIssueId, e.ParentCommit, e.ProposalCommit, e.State))
             .ToList();
-        return new CommitsStatusResult(entries, unassigned, session, operation);
+        return new CommitsStatusResult(entries, unassigned, session, operation, current.QueueWorktreePath, current.BaseCommit, current.TipCommit, current.Generation);
     }
 
     public async Task<CommitChangesResult> GetChangesAsync(string worktreePath, CancellationToken cancellationToken = default)

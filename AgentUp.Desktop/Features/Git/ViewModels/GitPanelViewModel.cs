@@ -33,6 +33,11 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     public ObservableCollection<GitChangeNodeViewModel> Nodes { get; } = [];
     public ObservableCollection<string> LocalBranches { get; } = [];
+    public ObservableCollection<CommitQueueEntryDto> QueueEntries { get; } = [];
+
+    public string? QueueWorktreePath { get; private set; }
+    public long QueueGeneration { get; private set; }
+    public bool HasQueuedProposals => QueueEntries.Count > 0;
 
     public GitFileDiffViewModel Diff { get; } = new();
 
@@ -195,6 +200,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
         _workspaceId = workspaceId;
         Nodes.Clear();
+        ClearQueue();
         SelectedFileCount = 0;
         CancelDiscardConfirm();
         Diff.Hide();
@@ -232,11 +238,29 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         try
         {
             var tree = await _git.GetChangesAsync(workspaceId, cancellationToken);
+            CommitQueueDto? queue = null;
+            string? queueError = null;
+            try
+            {
+                queue = await _git.GetCommitQueueAsync(workspaceId, cancellationToken);
+            }
+            catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+            {
+                queueError = ex.Message;
+            }
+
             if (request == _treeRequest)
             {
-                if (silent)
+                if (silent && queueError is null)
                     ErrorMessage = null;
                 ApplyTree(tree, preserveSelection: sameWorkspace);
+                ApplyQueue(queue);
+                if (queueError is not null)
+                    ErrorMessage = $"Could not load the agent proposal queue: {queueError}";
             }
         }
         catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -268,9 +292,24 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         }
     }
 
+    internal void ApplyQueue(CommitQueueDto? queue)
+    {
+        QueueEntries.Clear();
+        foreach (var entry in queue?.Entries ?? [])
+            QueueEntries.Add(entry);
+        QueueWorktreePath = queue?.QueueWorktreePath;
+        QueueGeneration = queue?.Generation ?? 0;
+        this.RaisePropertyChanged(nameof(QueueWorktreePath));
+        this.RaisePropertyChanged(nameof(QueueGeneration));
+        this.RaisePropertyChanged(nameof(HasQueuedProposals));
+    }
+
+    private void ClearQueue() => ApplyQueue(null);
+
     public void Clear()
     {
         Nodes.Clear();
+        ClearQueue();
         LocalBranches.Clear();
         SetBranch(string.Empty);
         SelectedFileCount = 0;

@@ -5,7 +5,8 @@ import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvid
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
-import { commitFiles, discardFiles, getChanges, getFileDiff } from '../providers/GitApiProvider';
+import type { CommitQueue } from '../models/CommitQueue';
+import { commitFiles, discardFiles, getChanges, getCommitQueue, getFileDiff } from '../providers/GitApiProvider';
 import { createRequestGate, type RequestGate } from '../providers/RequestGateProvider';
 import {
   canCommitSelection,
@@ -27,6 +28,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
   const workspaceId = workspaceIdProp ?? selectedWorkspace?.id ?? null;
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
+  const [queue, setQueue] = useState<CommitQueue | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,6 +61,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
     if (!server || !workspaceId) {
       selectionWorkspace.current = null;
       setTree(null);
+      setQueue(null);
       setSelected([]);
       return;
     }
@@ -74,6 +77,19 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
         return retainSelectedPaths(flattenChangeTree(changes), keep);
       });
       if (silent) setError(null);
+      try {
+        const proposals = await getCommitQueue(server, workspaceId);
+        if (!treeGate.isCurrent(ticket)) return;
+        setQueue(proposals);
+      } catch (cause) {
+        if (!treeGate.isCurrent(ticket)) return;
+        if (isUnauthorized(cause)) {
+          expireActiveCredential();
+          return;
+        }
+        setQueue(null);
+        setError(cause instanceof Error ? cause.message : 'Could not load the agent proposal queue.');
+      }
     } catch (cause) {
       if (!treeGate.isCurrent(ticket)) return;
       if (isUnauthorized(cause)) {
@@ -81,6 +97,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
         return;
       }
       if (!silent) setTree(null);
+      if (!silent) setQueue(null);
       setError(cause instanceof Error ? cause.message : 'Could not load Git changes.');
     } finally {
       inflightLoads.current = Math.max(0, inflightLoads.current - 1);
@@ -164,6 +181,17 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
         </View>
       </View>
 
+      {!!queue?.entries.length &&
+        <View accessibilityLabel="Agent proposal queue" style={styles.queue}>
+          <Text style={styles.queueTitle}>Agent proposal queue · generation {queue.generation}</Text>
+          {queue.entries.map((entry, index) =>
+            <View key={entry.id} style={styles.queueEntry}>
+              <Text numberOfLines={1} style={styles.queueMessage}>{index + 1}. {entry.message}</Text>
+              <Text style={styles.queueState}>{entry.state}</Text>
+            </View>)}
+        </View>}
+
+
       {loading && <ActivityIndicator color={agentUpTheme.colors.accentSoft} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
@@ -241,6 +269,11 @@ const styles = StyleSheet.create({
   discardButton: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   discardText: auText('button', 'buttonCompact'),
   summary: auText('muted'),
+  queue: { ...auBox('card'), gap: 6, padding: 10 },
+  queueTitle: { ...auText('accent'), fontSize: 12, fontWeight: '800' },
+  queueEntry: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  queueMessage: { ...auText('workspaceName'), flex: 1, fontSize: 12 },
+  queueState: { ...auText('accent'), fontSize: 11, fontWeight: '700' },
   empty: { ...auText('muted'), lineHeight: 21 },
   error: { ...auText('badgeDanger'), lineHeight: 21 },
   status: { ...auText('accent'), lineHeight: 21 },

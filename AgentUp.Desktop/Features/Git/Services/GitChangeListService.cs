@@ -15,6 +15,9 @@ public sealed class GitChangeListService
     public async Task<GitChangeTreeDto?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _client.GetChangesAsync(workspaceId, cancellationToken);
 
+    public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => _client.GetCommitQueueAsync(workspaceId, cancellationToken);
+
     public async Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken cancellationToken = default)
         => await _client.GetFileDiffAsync(workspaceId, path, cancellationToken);
 

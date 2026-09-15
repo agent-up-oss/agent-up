@@ -6,19 +6,34 @@ internal sealed record CommitsQueueJson(
     int Version,
     List<CommitEntryJson> Commits,
     CommitEditSessionJson? ActiveSession,
-    List<ArchivedCommitEntryJson>? Archive)
+    List<ArchivedCommitEntryJson>? Archive,
+    string? QueueId,
+    string? BaseCommit,
+    string? TipCommit,
+    string? QueueWorktreePath,
+    long Generation)
 {
     public CommitsQueue ToModel() => new(
         Version,
         Commits.Select(e => e.ToModel()).ToList(),
         ActiveSession?.ToModel(),
-        Archive?.Select(a => a.ToModel()).ToList());
+        Archive?.Select(a => a.ToModel()).ToList(),
+        QueueId,
+        BaseCommit,
+        TipCommit,
+        QueueWorktreePath,
+        Generation);
 
     public static CommitsQueueJson FromModel(CommitsQueue q) => new(
-        Math.Max(2, q.Version),
+        Math.Max(3, q.Version),
         q.Commits.Select(CommitEntryJson.FromModel).ToList(),
         q.ActiveSession is null ? null : CommitEditSessionJson.FromModel(q.ActiveSession),
-        q.Archived.Select(ArchivedCommitEntryJson.FromModel).ToList());
+        q.Archived.Select(ArchivedCommitEntryJson.FromModel).ToList(),
+        q.QueueId,
+        q.BaseCommit,
+        q.TipCommit,
+        q.QueueWorktreePath,
+        q.Generation);
 }
 
 internal sealed record CommitEditSessionJson(string EntryId, string OriginalPatchKey, List<string> Files)

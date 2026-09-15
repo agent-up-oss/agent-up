@@ -15,6 +15,9 @@ public sealed class GitController
     public async Task<GitChangeTreeDto?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _changes.GetChangesAsync(workspaceId, cancellationToken);
 
+    public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => _changes.GetCommitQueueAsync(workspaceId, cancellationToken);
+
     public async Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken cancellationToken = default)
         => await _changes.GetFileDiffAsync(workspaceId, path, cancellationToken);
 

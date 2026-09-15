@@ -5,6 +5,8 @@ using AgentUp.Server.Features.Commits.Models;
 public interface ICommitsGitProvider
 {
     Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default);
+    Task<string> GetRepositoryIdentityAsync(string worktreePath, CancellationToken cancellationToken = default)
+        => GetRepoRootAsync(worktreePath, cancellationToken);
     Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default);
