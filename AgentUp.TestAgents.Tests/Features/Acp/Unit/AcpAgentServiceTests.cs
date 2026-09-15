@@ -20,6 +20,8 @@ public sealed class AcpAgentServiceTests
             Assert.That(AcpAgentService.MethodId(TestAgentSchema.PastedCode), Is.EqualTo("claude-login"));
             Assert.That(AcpAgentService.MethodId(TestAgentSchema.SilentPoll), Is.EqualTo("cursor_login"));
             Assert.That(AcpAgentService.MethodName(TestAgentSchema.PastedCode), Is.EqualTo("Claude Pro"));
+            Assert.That(AcpAgentService.MethodName(TestAgentSchema.SilentPoll), Is.EqualTo("Cursor Login"));
+            Assert.That(AcpAgentService.MethodName(TestAgentSchema.DeviceCode), Is.EqualTo("ChatGPT"));
         });
     }
 
@@ -110,6 +112,37 @@ public sealed class AcpAgentServiceTests
             cancellation.Token);
         var written = output.ToString().Trim();
         return written.Length == 0 ? null : JsonNode.Parse(written);
+    }
+
+    // A cancel is a notification: it carries no id and nothing answers it. Replying anyway would
+    // put a response on the wire the Server never asked for.
+    [Test]
+    public async Task Cancel_isNotAnsweredAtAll()
+    {
+        var response = await ExchangeAsync(
+            TestAgentSchema.DeviceCode,
+            """{"jsonrpc":"2.0","method":"session/cancel","params":{"sessionId":"s1"}}""",
+            "test-oat-already-signed-in");
+
+        Assert.That(response, Is.Null);
+    }
+
+    // ACP grows methods over time. An agent that went quiet on one it does not implement would
+    // hang whatever asked, so it answers rather than ignoring.
+    [Test]
+    public async Task AnUnknownMethod_isStillAnswered()
+    {
+        var response = await ExchangeAsync(
+            TestAgentSchema.DeviceCode,
+            """{"jsonrpc":"2.0","id":9,"method":"session/somethingNewer","params":{}}""",
+            "test-oat-already-signed-in");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response!["id"]!.GetValue<int>(), Is.EqualTo(9));
+            Assert.That(response["result"], Is.Not.Null);
+            Assert.That(response["error"], Is.Null);
+        });
     }
 
     /// <summary>Keeps this unit test off the real home directory.</summary>
