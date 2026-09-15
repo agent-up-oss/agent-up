@@ -3,6 +3,7 @@ using AgentUp.TestAgents.Features.Acp.Services;
 using AgentUp.TestAgents.Features.Authentication.Controllers;
 using AgentUp.TestAgents.Features.Authentication.Services;
 using AgentUp.TestAgents.Features.Host.Controllers;
+using AgentUp.TestAgents.Features.Host.Models;
 using AgentUp.TestAgents.Features.Host.Services;
 using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
 using AgentUp.TestAgents.Features.IdentityProvider.Services;
@@ -19,5 +20,6 @@ public static class TestAgentHostComposition
         new TestAgentHostService(
             new AcpController(new AcpAgentService()),
             new AuthenticationController(new TestAgentSignInService()),
-            new IdentityProviderController(new IdentityProviderHostService())));
+            new IdentityProviderController(new IdentityProviderHostService()),
+            new TestAgentConsole(Console.In, Console.Out, Console.Error)));
 }

@@ -136,4 +136,50 @@ public sealed class AgentSubscriptionLoginParserTests
                 Does.Contain("sign-in link"));
         });
     }
+
+    // What the redirect transport actually looked like on the wire: the agent announced the
+    // loopback address it was listening on after printing the link that starts the sign-in, and
+    // the later line won. The user was handed a page nothing serves until the sign-in has already
+    // finished, and the client lost the redirect it has to watch for.
+    [Test]
+    public void Append_keepsTheLinkThatStartsTheSignInWhenTheCallbackAddressComesAfterIt()
+    {
+        var parser = new AgentSubscriptionLoginParser(AgentLoginFlow.Redirect());
+        parser.Append("Sign in with your subscription:");
+        parser.Append("  http://localhost:9001/oauth/authorize?response_type=code&client_id=test-agent1"
+            + "&redirect_uri=http%3A%2F%2Flocalhost%3A44839%2Fauth%2Fcallback&code_challenge_method=S256");
+        parser.Append("Waiting for the sign-in to come back to http://localhost:44839/auth/callback");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(parser.Challenge.Url, Does.Contain("/oauth/authorize"));
+            Assert.That(parser.Challenge.RedirectUri, Is.EqualTo("http://localhost:44839/auth/callback"),
+                "The client can only recognise the redirect it must carry back if it knows the address");
+        });
+    }
+
+    [Test]
+    public void Append_takesTheLinkThatStartsTheSignInEvenWhenTheCallbackAddressCameFirst()
+    {
+        var parser = new AgentSubscriptionLoginParser(AgentLoginFlow.Redirect());
+        parser.Append("Started a local login server on http://127.0.0.1:1455/auth/callback");
+        parser.Append("Open https://auth.openai.com/oauth/authorize?client_id=codex&response_type=code");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(parser.Challenge.Url, Does.StartWith("https://auth.openai.com/oauth/authorize"));
+            Assert.That(parser.Challenge.RedirectUri, Is.EqualTo("http://127.0.0.1:1455/auth/callback"),
+                "A CLI that keeps its callback out of the authorization query still says it out loud");
+        });
+    }
+
+    [Test]
+    public void Append_ignoresALaterUnrelatedLinkOnceTheSignInLinkIsKnown()
+    {
+        var parser = new AgentSubscriptionLoginParser(AgentLoginFlow.Poll());
+        parser.Append("Please visit: https://cursor.com/loginDeepControl?challenge=abc");
+        parser.Append("Having trouble? See https://docs.cursor.com/troubleshooting");
+
+        Assert.That(parser.Challenge.Url, Does.Contain("loginDeepControl"));
+    }
 }

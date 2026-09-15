@@ -27,6 +27,7 @@ public sealed class AgentSubscriptionLoginParser(AgentLoginFlow flow)
     private DateTimeOffset? _expiresAt;
     private bool _mentionsCode;
     private bool _awaitingCodeInput;
+    private bool _urlStartsTheSignIn;
 
     public AgentLoginChallengeDto Challenge =>
         new(_url,
@@ -50,12 +51,8 @@ public sealed class AgentSubscriptionLoginParser(AgentLoginFlow flow)
             _mentionsCode = true;
 
         var url = ChooseUrl(line);
-        if (url is not null && !string.Equals(_url, url, StringComparison.Ordinal))
-        {
-            _url = url;
-            _redirectUri = ReadRedirectUri(url);
+        if (url is not null && Read(url))
             changed = true;
-        }
 
         if (flow.Transport == AgentLoginTransport.Code && !flow.NeedsCodeInput && _mentionsCode && _code is null)
         {
@@ -100,6 +97,50 @@ public sealed class AgentSubscriptionLoginParser(AgentLoginFlow flow)
         return trimmed.Contains("code", StringComparison.OrdinalIgnoreCase)
             || trimmed.Contains("paste", StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// Takes what a URL tells us, and reports whether anything changed.
+    /// </summary>
+    /// <remarks>
+    /// A CLI prints more than one. codex announces the loopback address it is listening on as
+    /// well as the link that starts the sign-in, and it does not always print them in that order.
+    /// Letting the last one win handed the user the callback address - a page nothing serves
+    /// until the sign-in is already finished - and lost the redirect the client has to watch for,
+    /// so once the link that starts the sign-in has been seen, nothing displaces it.
+    /// </remarks>
+    private bool Read(string url)
+    {
+        if (string.Equals(_url, url, StringComparison.Ordinal))
+            return false;
+
+        var startsTheSignIn = IsPreferredLoginUrl(url);
+        if (!_urlStartsTheSignIn || startsTheSignIn)
+        {
+            var displaced = _url;
+            _url = url;
+            _urlStartsTheSignIn = startsTheSignIn;
+            // Keep a callback address rather than lose it: the one this URL carries, else the
+            // loopback address this URL just displaced, else whatever was already known.
+            _redirectUri = ReadRedirectUri(url) ?? Loopback(displaced) ?? _redirectUri;
+            return true;
+        }
+
+        // "Waiting for the sign-in to come back to http://localhost:1455/callback": a CLI that
+        // keeps its callback address out of the authorization query still says it out loud, and
+        // the client cannot recognise the redirect it must carry back without it.
+        if (_redirectUri is null && IsLoopback(url))
+        {
+            _redirectUri = url;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string? Loopback(string? url) => url is not null && IsLoopback(url) ? url : null;
+
+    private static bool IsLoopback(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var parsed) && parsed.IsLoopback;
 
     internal static string? ChooseUrl(string line)
     {

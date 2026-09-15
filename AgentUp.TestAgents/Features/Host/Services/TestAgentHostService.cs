@@ -12,7 +12,8 @@ namespace AgentUp.TestAgents.Features.Host.Services;
 public sealed class TestAgentHostService(
     AcpController acp,
     AuthenticationController authentication,
-    IdentityProviderController identityProvider)
+    IdentityProviderController identityProvider,
+    TestAgentConsole console)
 {
     public async Task<int> RunAsync(TestAgentCommand command, CancellationToken cancellationToken)
     {
@@ -25,8 +26,8 @@ public sealed class TestAgentHostService(
                 command.PublicOrigin,
                 port =>
                 {
-                    Console.WriteLine(port);
-                    Console.Out.Flush();
+                    console.Out.WriteLine(port);
+                    console.Out.Flush();
                 },
                 cancellationToken);
             return 0;
@@ -35,13 +36,13 @@ public sealed class TestAgentHostService(
         var credentials = authentication.Credentials(command.Schema);
         if (command.Verb == TestAgentVerb.Acp)
         {
-            await acp.ServeAsync(command.Schema, credentials, Console.In, Console.Out, cancellationToken);
+            await acp.ServeAsync(command.Schema, credentials, console.In, console.Out, cancellationToken);
             return 0;
         }
 
         if (string.IsNullOrWhiteSpace(command.IdentityProviderUrl))
         {
-            await Console.Error.WriteLineAsync(
+            await console.Error.WriteLineAsync(
                 "No identity provider was configured. Pass --idp or set AGENTUP_TEST_IDP_URL.");
             return 2;
         }
@@ -53,8 +54,8 @@ public sealed class TestAgentHostService(
                 command.Schema,
                 client,
                 command.IdentityProviderUrl.TrimEnd('/'),
-                Console.Out,
-                Console.In,
+                console.Out,
+                console.In,
                 cancellationToken);
             if (token is null)
                 return 1;
@@ -67,7 +68,7 @@ public sealed class TestAgentHostService(
         }
         catch (HttpRequestException exception)
         {
-            await Console.Error.WriteLineAsync($"Could not reach the identity provider: {exception.Message}");
+            await console.Error.WriteLineAsync($"Could not reach the identity provider: {exception.Message}");
             return 3;
         }
     }

@@ -55,5 +55,6 @@ public sealed class TestAgentHostServiceTests
     private static TestAgentHostService Host() => new(
         new AcpController(new AcpAgentService()),
         new AuthenticationController(new TestAgentSignInService()),
-        new IdentityProviderController(new IdentityProviderHostService()));
+        new IdentityProviderController(new IdentityProviderHostService()),
+        new TestAgentConsole(TextReader.Null, TextWriter.Null, TextWriter.Null));
 }

@@ -39,14 +39,25 @@ internal sealed class AgentOutput : TextWriter
     /// Polls the output rather than sleeping a fixed amount, so a test is bounded by a deadline
     /// instead of by a guess about how fast the agent got there.
     /// </remarks>
-    public async Task<string> WaitForLineContainingAsync(string needle, CancellationToken cancellationToken)
+    public Task<string> WaitForLineContainingAsync(string needle, CancellationToken cancellationToken) =>
+        WaitForLineAsync(
+            line => line.Contains(needle, StringComparison.Ordinal),
+            $"a line containing '{needle}'",
+            cancellationToken);
+
+    /// <summary>Waits for the first printed line the caller recognises.</summary>
+    public async Task<string> WaitForLineAsync(
+        Func<string, bool> wanted,
+        string description,
+        CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             var match = ToString()
                 .Split('\n')
                 .Select(line => line.Trim())
-                .FirstOrDefault(line => line.Contains(needle, StringComparison.Ordinal));
+                .Where(line => line.Length > 0)
+                .FirstOrDefault(wanted);
             if (match is not null)
                 return match.Contains("http", StringComparison.Ordinal)
                     ? match[match.IndexOf("http", StringComparison.Ordinal)..]
@@ -54,6 +65,6 @@ internal sealed class AgentOutput : TextWriter
             await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
         }
 
-        throw new TimeoutException($"The agent never printed a line containing '{needle}'. Output so far:\n{this}");
+        throw new TimeoutException($"The agent never printed {description}. Output so far:\n{this}");
     }
 }
