@@ -818,6 +818,7 @@ jobs:
 
       - name: Typecheck the chat module and the app that harnesses it
         run: |
+          npm --prefix AgentUp.Chat run typecheck
           npm --prefix AgentUp.Mobile.E2E.App install --no-audit --no-fund
           npx --prefix AgentUp.Mobile.E2E.App tsc --noEmit -p AgentUp.Mobile.E2E.App/tsconfig.json
 

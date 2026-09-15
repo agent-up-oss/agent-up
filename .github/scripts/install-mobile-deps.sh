@@ -19,6 +19,12 @@ npm --prefix AgentUp.WebAudit run build
 npm --prefix AgentUp.AgentAuth install --no-audit --no-fund
 npm --prefix AgentUp.AgentAuth run build
 
+# Source-only modules. They need their own file: dependencies on disk or nothing can resolve
+# @agent-up/* from inside them - the bundler reads a module's imports from where the module lives,
+# not from where the app does. Their .npmrc keeps the peers out, so no second react comes with it.
+npm --prefix AgentUp.ServerClient install --no-audit --no-fund
+npm --prefix AgentUp.Chat install --no-audit --no-fund
+
 # The lockfile governs, deliberately. Installing without it resolves the ranges afresh - which
 # moved 77 packages the last time the two were compared - so the app CI built was not the app the
 # lockfile describes, while the cache key hashes that lockfile. A key that cannot predict the

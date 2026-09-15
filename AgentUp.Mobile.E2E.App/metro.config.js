@@ -27,9 +27,15 @@ const inherited = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const resolve = inherited ?? context.resolveRequest;
-  if (!SINGLETONS.has(moduleName) && !moduleName.startsWith('react-native/'))
-    return resolve(context, moduleName, platform);
-  return resolve({ ...context, originModulePath: appEntry }, moduleName, platform);
+  const fromApp =
+    SINGLETONS.has(moduleName) ||
+    moduleName.startsWith('react-native/') ||
+    // The workspace modules too: this app declares every one of them, and resolving them from here
+    // keeps one copy of each in the bundle however deep the import chain goes.
+    moduleName.startsWith('@agent-up/');
+  return fromApp
+    ? resolve({ ...context, originModulePath: appEntry }, moduleName, platform)
+    : resolve(context, moduleName, platform);
 };
 
 module.exports = config;
