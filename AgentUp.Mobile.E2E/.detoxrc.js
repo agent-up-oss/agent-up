@@ -27,9 +27,11 @@ module.exports = {
       binaryPath: '../AgentUp.Mobile/android/app/build/outputs/apk/release/app-release.apk',
       testBinaryPath:
         '../AgentUp.Mobile/android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
+      // --build-cache and --parallel: a cold build of this takes the better part of an hour on a
+      // hosted runner, and the cache the CI job persists is only consulted when it is asked for.
       build:
         'cd ../AgentUp.Mobile/android && ./gradlew assembleRelease assembleAndroidTest ' +
-        '-DtestBuildType=release',
+        '-DtestBuildType=release --build-cache --parallel',
     },
   },
   devices: {

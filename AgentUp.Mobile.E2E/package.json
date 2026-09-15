@@ -5,8 +5,8 @@
   "description": "End-to-end agent sign-in tests for the Agent-Up mobile client on iOS, Android, and the installable web build",
   "scripts": {
     "test:harness": "node --test test/*.test.mjs",
-    "test:ios": "detox test --configuration ios.sim.release",
-    "test:android": "detox test --configuration android.emu.release",
+    "test:ios": "NODE_OPTIONS=--experimental-vm-modules detox test --configuration ios.sim.release",
+    "test:android": "NODE_OPTIONS=--experimental-vm-modules detox test --configuration android.emu.release",
     "test:pwa": "playwright test --config pwa/playwright.config.mjs",
     "build:ios": "detox build --configuration ios.sim.release",
     "build:android": "detox build --configuration android.emu.release",

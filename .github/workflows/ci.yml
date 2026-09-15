@@ -1028,7 +1028,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: cd AgentUp.Mobile.E2E && npx detox test --configuration android.emu.release --headless
+          script: cd AgentUp.Mobile.E2E && npm run test:android -- --headless
 
       - uses: actions/upload-artifact@v7
         if: ${{ failure() }}
@@ -1160,7 +1160,7 @@ jobs:
 
       - name: Run sign-in end-to-end
         working-directory: AgentUp.Mobile.E2E
-        run: npx detox test --configuration ios.sim.release --headless
+        run: npm run test:ios -- --headless
 
       - uses: actions/upload-artifact@v7
         if: ${{ failure() }}

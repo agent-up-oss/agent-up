@@ -25,7 +25,9 @@ describe('agent sign-in', () => {
   let harness;
 
   beforeAll(async () => {
-    // The harness is ESM and this runner is CommonJS, so it is brought in dynamically.
+    // The harness is ESM and this runner is CommonJS, so it is brought in dynamically. That
+    // needs Node's VM module support, which the test:ios and test:android scripts turn on -
+    // without it every scenario fails here, before its body ever runs.
     const [stack, flows] = await Promise.all([
       import('../harness/stack.mjs'),
       import('../harness/signInFlows.mjs'),
