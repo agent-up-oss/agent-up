@@ -577,7 +577,7 @@ jobs:
   platform:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    needs: [dotnet-build, dotnet-tests, dotnet-gui-tests, dotnet-coverage, version]
+    needs: [dotnet-build, dotnet-tests, dotnet-gui-tests, dotnet-coverage, performance-gates, version]
     permissions:
       contents: read
       actions: write
@@ -823,7 +823,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [platform, docs, jetbrains-plugin, version, helm-chart]
+    needs: [platform, performance-gates, docs, jetbrains-plugin, version, helm-chart]
     if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
     permissions:
       actions: write

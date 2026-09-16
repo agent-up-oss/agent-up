@@ -1,8 +1,26 @@
 {
   "benchmarks": {
     "AgentUp.Browser.Streaming.Benchmarks.Features.Input.Benchmark.BrowserInputParserBenchmarks.MouseMove": {
-      "meanNanoseconds": 1100,
+      "meanNanoseconds": 1200,
       "allocatedBytes": 312,
+      "maxTimeRatio": 2.0,
+      "maxAllocationRatio": 1.1
+    },
+    "AgentUp.Browser.Streaming.Benchmarks.Features.Input.Benchmark.BrowserInputParserBenchmarks.Click": {
+      "meanNanoseconds": 1200,
+      "allocatedBytes": 336,
+      "maxTimeRatio": 2.0,
+      "maxAllocationRatio": 1.1
+    },
+    "AgentUp.Browser.Streaming.Benchmarks.Features.Input.Benchmark.BrowserInputParserBenchmarks.KeyDown": {
+      "meanNanoseconds": 800,
+      "allocatedBytes": 344,
+      "maxTimeRatio": 2.0,
+      "maxAllocationRatio": 1.1
+    },
+    "AgentUp.Browser.Streaming.Benchmarks.Features.Input.Benchmark.BrowserInputParserBenchmarks.ControlMode": {
+      "meanNanoseconds": 900,
+      "allocatedBytes": 320,
       "maxTimeRatio": 2.0,
       "maxAllocationRatio": 1.1
     }

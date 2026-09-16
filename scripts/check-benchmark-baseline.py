@@ -13,7 +13,11 @@ for result in report['Benchmarks']:
     seen.add(name)
     expected = baseline[name]
     mean = result['Statistics']['Mean']
-    allocated = result.get('Memory', {}).get('BytesAllocatedPerOperation', 0)
+    memory = result.get('Memory')
+    if not isinstance(memory, dict) or 'BytesAllocatedPerOperation' not in memory:
+        failures.append(f'{name} did not report allocated bytes per operation')
+        continue
+    allocated = memory['BytesAllocatedPerOperation']
     time_limit = expected['meanNanoseconds'] * expected['maxTimeRatio']
     allocation_limit = expected['allocatedBytes'] * expected['maxAllocationRatio']
     print(f'{name}: {mean:.1f} ns (limit {time_limit:.1f}), {allocated:.0f} B (limit {allocation_limit:.0f})')

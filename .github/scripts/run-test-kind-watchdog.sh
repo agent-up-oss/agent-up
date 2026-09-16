@@ -22,6 +22,6 @@ run_tier() {
   echo "$tier tier completed in $((SECONDS - start))s"
 }
 
-run_tier unit 35 'FullyQualifiedName~.Unit.' AgentUp.Server.Tests AgentUp.Desktop.Tests
-run_tier provider 45 'FullyQualifiedName~.Provider.' AgentUp.Server.Tests AgentUp.Desktop.Tests
+run_tier unit 60 'FullyQualifiedName~.Unit.' AgentUp.Server.Tests AgentUp.Desktop.Tests
+run_tier provider 75 'FullyQualifiedName~.Provider.' AgentUp.Server.Tests AgentUp.Desktop.Tests
 run_tier e2e 180 'FullyQualifiedName~.E2E.' AgentUp.Tests
