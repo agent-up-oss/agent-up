@@ -74,6 +74,9 @@ public sealed class InstalledAgentCapabilityHttpTests
         builder.Services.AddSingleton<IAgentClaudeCredentialStore, AgentClaudeCredentialStore>();
         builder.Services.AddSingleton<IAgentProcessEnvironmentProvider, AgentProcessEnvironmentProvider>();
         builder.Services.AddSingleton<AgentLoginCommandProvider>();
+        builder.Services.AddSingleton<AgentLoginFlowProvider>();
+        builder.Services.AddHttpClient("agent-login-callback");
+        builder.Services.AddSingleton<AgentLoginCallbackRelay>();
         builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();

@@ -25,6 +25,7 @@
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
     <ProjectReference Include="..\AgentUp.InstallerApp\AgentUp.InstallerApp.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
+    <ProjectReference Include="..\AgentUp.TestAgents\AgentUp.TestAgents.csproj" />
     <ProjectReference Include="..\AgentUp.Tray\AgentUp.Tray.csproj" />
   </ItemGroup>
 
