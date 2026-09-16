@@ -118,28 +118,12 @@
           "AgentUp.Verification.Tests"
         ]
       },
-      "verification-benchmarks": {
-        "command": "dotnet run -c Release --project AgentUp.Verification.Benchmarks -- --filter *",
-        "tier": "slow",
-        "inputs": [
-          "AgentUp.Verification",
-          "AgentUp.Verification.Benchmarks"
-        ]
-      },
       "commit-policy": {
         "command": "dotnet test AgentUp.CommitPolicy.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/commit-policy",
         "tier": "fast",
         "inputs": [
           "AgentUp.CommitPolicy",
           "AgentUp.CommitPolicy.Tests"
-        ]
-      },
-      "commit-policy-benchmarks": {
-        "command": "dotnet run -c Release --project AgentUp.CommitPolicy.Benchmarks -- --filter *",
-        "tier": "slow",
-        "inputs": [
-          "AgentUp.CommitPolicy",
-          "AgentUp.CommitPolicy.Benchmarks"
         ]
       },
       "capabilities-abstractions": {
@@ -196,7 +180,7 @@
         ]
       },
       "browser-streaming-benchmarks": {
-        "command": "dotnet run -c Release --project AgentUp.Browser.Streaming.Benchmarks -- --filter *",
+        "command": "./scripts/run-benchmark-gate.sh browser",
         "tier": "slow",
         "inputs": [
           "AgentUp.Browser.Streaming",
@@ -253,7 +237,7 @@
         ]
       },
       "server-benchmarks": {
-        "command": "dotnet run -c Release --project AgentUp.Server.Benchmarks -- --filter *",
+        "command": "./scripts/run-benchmark-gate.sh server",
         "tier": "slow",
         "inputs": [
           "AgentUp.Server",
@@ -275,14 +259,6 @@
           "AgentUp.Desktop",
           "AgentUp.Desktop.Tests",
           "AgentUp.InstallerConfig"
-        ]
-      },
-      "desktop-benchmarks": {
-        "command": "dotnet run -c Release --project AgentUp.Desktop.Benchmarks -- --filter *",
-        "tier": "slow",
-        "inputs": [
-          "AgentUp.Desktop",
-          "AgentUp.Desktop.Benchmarks"
         ]
       },
       "cli": {
@@ -413,20 +389,88 @@
     },
     "paths": [
       {
+        "match": "AgentUp.Browser.Streaming/BrowserInputParser.cs",
+        "checks": [
+          "browser-streaming-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Browser.Streaming.Benchmarks/**",
+        "checks": [
+          "browser-streaming-benchmarks",
+          "architecture"
+        ]
+      },
+      {
+        "match": "AgentUp.Server/Features/Agents/Providers/AgentEventFrameProvider.cs",
+        "checks": [
+          "server-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Server.Benchmarks/**",
+        "checks": [
+          "server-benchmarks",
+          "architecture"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile/src/features/agents/providers/AgentEventPresentationProvider.ts",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile/src/features/git/providers/GitChangeTreeProvider.ts",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile/src/features/agents/benchmark/**",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "benchmarks/baselines/browser-streaming.json",
+        "checks": [
+          "browser-streaming-benchmarks"
+        ]
+      },
+      {
+        "match": "benchmarks/baselines/server-agents.json",
+        "checks": [
+          "server-benchmarks"
+        ]
+      },
+      {
+        "match": "benchmarks/baselines/mobile.json",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "scripts/run-benchmark-gate.sh",
+        "checks": [
+          "browser-streaming-benchmarks",
+          "server-benchmarks"
+        ]
+      },
+      {
+        "match": "scripts/check-benchmark-baseline.py",
+        "checks": [
+          "browser-streaming-benchmarks",
+          "server-benchmarks"
+        ]
+      },
+      {
         "match": "AgentUp.Verification/**",
         "checks": [
-          "verification-benchmarks",
           "verification",
           "server",
           "cli",
           "patch-coverage"
-        ]
-      },
-      {
-        "match": "AgentUp.Verification.Benchmarks/**",
-        "checks": [
-          "verification-benchmarks",
-          "architecture"
         ]
       },
       {
@@ -439,18 +483,10 @@
       {
         "match": "AgentUp.CommitPolicy/**",
         "checks": [
-          "commit-policy-benchmarks",
           "commit-policy",
           "server",
           "cli",
           "patch-coverage"
-        ]
-      },
-      {
-        "match": "AgentUp.CommitPolicy.Benchmarks/**",
-        "checks": [
-          "commit-policy-benchmarks",
-          "architecture"
         ]
       },
       {
@@ -580,7 +616,6 @@
       {
         "match": "AgentUp.Server/**",
         "checks": [
-          "server-benchmarks",
           "server",
           "cross-product-e2e",
           "patch-coverage"
@@ -589,7 +624,6 @@
       {
         "match": "AgentUp.Server.Benchmarks/**",
         "checks": [
-          "server-benchmarks",
           "architecture"
         ]
       },
@@ -603,17 +637,9 @@
       {
         "match": "AgentUp.Desktop/**",
         "checks": [
-          "desktop-benchmarks",
           "desktop",
           "cross-product-e2e",
           "patch-coverage"
-        ]
-      },
-      {
-        "match": "AgentUp.Desktop.Benchmarks/**",
-        "checks": [
-          "desktop-benchmarks",
-          "architecture"
         ]
       },
       {
@@ -667,7 +693,6 @@
       {
         "match": "AgentUp.Browser.Streaming/**",
         "checks": [
-          "browser-streaming-benchmarks",
           "browser-streaming",
           "server",
           "patch-coverage"
@@ -676,7 +701,6 @@
       {
         "match": "AgentUp.Browser.Streaming.Benchmarks/**",
         "checks": [
-          "browser-streaming-benchmarks",
           "architecture"
         ]
       },
@@ -753,7 +777,6 @@
       {
         "match": "AgentUp.Mobile/**",
         "checks": [
-          "mobile-benchmarks",
           "mobile"
         ]
       },

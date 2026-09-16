@@ -190,6 +190,48 @@ jobs:
           path: "**/test-results.trx"
           reporter: dotnet-trx
 
+  performance-gates:
+    name: Performance gates
+    runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: AgentUp.Mobile/package-lock.json
+
+      - name: Install GUI watchdog dependencies
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
+
+      - name: Restore .NET projects
+        run: dotnet restore agent-up.sln
+
+      - name: Build Release test payloads
+        run: dotnet build agent-up.sln --configuration Release --no-restore
+
+      - name: Run .NET performance regression gates
+        run: |
+          ./scripts/run-benchmark-gate.sh browser
+          ./scripts/run-benchmark-gate.sh server
+
+      - name: Run Mobile performance regression gate
+        working-directory: AgentUp.Mobile
+        run: |
+          npm ci --ignore-scripts
+          npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts
+
+      - name: Enforce test-kind wall-clock budgets
+        run: ./.github/scripts/run-test-kind-watchdog.sh
+
   dotnet-gui-tests:
     name: .NET GUI tests
     runs-on: ubuntu-latest

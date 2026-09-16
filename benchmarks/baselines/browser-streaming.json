@@ -1,0 +1,10 @@
+{
+  "benchmarks": {
+    "AgentUp.Browser.Streaming.Benchmarks.Features.Input.Benchmark.BrowserInputParserBenchmarks.MouseMove": {
+      "meanNanoseconds": 1100,
+      "allocatedBytes": 312,
+      "maxTimeRatio": 2.0,
+      "maxAllocationRatio": 1.1
+    }
+  }
+}

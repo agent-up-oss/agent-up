@@ -109,15 +109,6 @@ AgentUp.Browser.Streaming.Benchmarks/
 AgentUp.Server.Benchmarks/
   AgentUp.Server.Benchmarks.csproj
 
-AgentUp.Desktop.Benchmarks/
-  AgentUp.Desktop.Benchmarks.csproj
-
-AgentUp.Verification.Benchmarks/
-  AgentUp.Verification.Benchmarks.csproj
-
-AgentUp.CommitPolicy.Benchmarks/
-  AgentUp.CommitPolicy.Benchmarks.csproj
-
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
 
@@ -167,10 +158,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
 | `AgentUp.Browser.Streaming.Benchmarks` | BenchmarkDotNet measurements for designated performance-sensitive browser streaming paths; runs as a receipt-backed slow verification check |
-| `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements for Server hot paths such as diagnostics shaping and validation export |
-| `AgentUp.Desktop.Benchmarks` | BenchmarkDotNet measurements for Desktop view-state projection, including agent activity and idle presentation |
-| `AgentUp.Verification.Benchmarks` | BenchmarkDotNet measurements for changed-file matching, diff parsing, and coverage ingestion |
-| `AgentUp.CommitPolicy.Benchmarks` | BenchmarkDotNet measurements for commit classification and slice-boundary validation |
+| `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements and stored regression baseline for live agent event framing |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
 | `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, install planning, capability inventory, and CLI executable discovery used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
@@ -777,7 +765,7 @@ Use layered tests with clear ownership:
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
 - Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
 - Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them. Codex, Cursor, and Claude Provider smoke tests discover the ACP CLIs declared in capability inventory and present on the machine, and assert both the installed and missing outcomes; Server Agents HTTP smoke uses those same live adapters and asserts the workspace agent picker matches that discovery. These tests must not skip based on whether a CLI is present.
-- Benchmark projects use BenchmarkDotNet under `Features/<Slice>/Benchmark/` to measure designated performance-sensitive paths across Server agents, diagnostics, metrics, background process output and runtime transformations; Desktop view-state and idle presentation; verification and coverage processing; commit policy; and browser streaming. Mobile uses Mitata under the same feature-local `benchmark/` convention for agent transcript, plan, and Git-tree view projection. Their verification checks use the `slow` tier and name production plus benchmark inputs so content-addressed receipts are invalidated whenever either side changes. Architecture enforcement requires an executable benchmark and a selecting slow check; an empty folder is not benchmark coverage.
+- Performance gates cover only repeated hot paths with stored numeric baselines: streamed pointer-input decoding, live agent-event framing, and Mobile transcript/Git-tree projection. .NET gates compare BenchmarkDotNet mean time and allocation against versioned baselines; Mobile compares trimmed timing samples against its versioned baseline. A gate fails above its declared relative tolerance. Exact-file path rules select the relevant `slow` check, and CI runs every gate. Do not add one-shot, constant-return, OS-counter, no-op-provider, or external-I/O microbenchmarks; profile or soak-test those workloads instead.
 - Headless tests verify Avalonia UI behavior without native display dependencies.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 
@@ -786,6 +774,8 @@ Use layered tests with clear ownership:
 Avoid duplicate tests that assert the same rule through multiple layers.
 
 NUnit tests default to a 30-second per-test timeout from `coverlet.runsettings`. Tests that must run longer, such as capability CLI smoke and native-display E2E, set `[Timeout]` / `[CancelAfter]` on the fixture or method. A 1-minute testhost hang dump aborts a stuck session so a single hung test cannot run forever; it is not a 1-minute budget for a full project run.
+
+CI additionally enforces Linux Release wall-clock budgets by test kind: 35 seconds for the combined Server/Desktop `Unit` tier, 45 seconds for `Provider`, and 180 seconds for cross-product `E2E`. Update a budget only from a recorded CI baseline and explain the changed workload; never raise it merely to make a regression green.
 
 # Verification
 
