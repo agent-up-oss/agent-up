@@ -76,7 +76,7 @@ cat > "$output_dir/manifest.json" <<JSON
   "commit": "${GITHUB_SHA:-local}",
   "runtimes": ["linux-x64", "win-x64", "osx-arm64", "osx-x64"],
   "payloadLayout": "payloads/{rid}/{installer,desktop,server,cli,tray}",
-  "toolLayout": "tools/{rid}/{packaging,package-smoke}",
+  "toolLayout": "tools/{rid}/{packaging,package-smoke,agent-up-tests}",
   "checksums": "checksums.sha256"
 }
 JSON

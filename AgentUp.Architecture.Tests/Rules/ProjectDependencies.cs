@@ -2,6 +2,7 @@ using AgentUp.Architecture.Tests.Fixtures;
 using ArchUnitNET.Fluent;
 using ArchUnitNET.NUnit;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Xml.Linq;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace AgentUp.Architecture.Tests.Rules;
@@ -9,6 +10,24 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class ProjectDependencies
 {
+    [Test]
+    public void LocalInstaller_package_references_use_the_central_version_property()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var invalidReferences = Directory
+            .EnumerateFiles(root, "*.csproj", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .SelectMany(path => XDocument.Load(path)
+                .Descendants("PackageReference")
+                .Where(reference => reference.Attribute("Include")?.Value.StartsWith("LocalInstaller.", StringComparison.Ordinal) == true)
+                .Where(reference => reference.Attribute("Version")?.Value != "$(LocalInstallerVersion)")
+                .Select(reference => $"{Path.GetRelativePath(root, path)}: {reference}"))
+            .ToArray();
+
+        Assert.That(invalidReferences, Is.Empty,
+            "Every LocalInstaller package must use the centrally pinned LocalInstallerVersion property.");
+    }
+
     [Test]
     public void Production_project_dependencies_follow_ownership_boundaries()
     {

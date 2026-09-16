@@ -39,7 +39,7 @@ publish_payload AgentUp.Packaging "$tool_root/packaging"
 publish_payload AgentUp.PackageSmoke "$tool_root/package-smoke"
 
 export AGENTUP_PACKAGING_COMMAND="$tool_root/packaging/AgentUp.Packaging"
-./scripts/package-release.sh ubuntu "$rid" "$version" "$artifact_dir" \
+./scripts/package-ubuntu.sh "$rid" "$version" "$artifact_dir" \
   --payload-root "$payload_root"
 export AGENTUP_PACKAGE_SMOKE_COMMAND="$tool_root/package-smoke/AgentUp.PackageSmoke"
 ./.github/scripts/smoke-package.sh ubuntu "$rid" "$artifact_dir"

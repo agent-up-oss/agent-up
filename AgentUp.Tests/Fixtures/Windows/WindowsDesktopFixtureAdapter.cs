@@ -16,9 +16,6 @@ public sealed class WindowsDesktopFixtureAdapter : IDesktopFixtureAdapter
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("The Windows desktop fixture can only run on Windows.");
 
-        if (!Environment.UserInteractive)
-            throw new InvalidOperationException(StartupFailureHint);
-
         _fixtureProfile = Directory.CreateTempSubdirectory("agentup-e2e-windows-");
         _originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
         _originalAppData = Environment.GetEnvironmentVariable("APPDATA");
@@ -37,6 +34,21 @@ public sealed class WindowsDesktopFixtureAdapter : IDesktopFixtureAdapter
         Environment.SetEnvironmentVariable("LOCALAPPDATA", _originalLocalAppData);
         Environment.SetEnvironmentVariable("APPDATA", _originalAppData);
         Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", _originalWebViewData);
-        _fixtureProfile?.Delete(recursive: true);
+        DeleteFixtureDirectory(_fixtureProfile);
+    }
+
+    private static void DeleteFixtureDirectory(DirectoryInfo? directory)
+    {
+        if (directory is null)
+            return;
+
+        try
+        {
+            directory.Delete(recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            TestContext.Progress.WriteLine($"Could not remove Windows fixture directory '{directory.FullName}': {ex.Message}");
+        }
     }
 }

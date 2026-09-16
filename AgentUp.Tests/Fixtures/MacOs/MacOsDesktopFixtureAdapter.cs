@@ -14,9 +14,6 @@ public sealed class MacOsDesktopFixtureAdapter : IDesktopFixtureAdapter
     {
         if (!OperatingSystem.IsMacOS())
             throw new PlatformNotSupportedException("The macOS desktop fixture can only run on macOS.");
-        if (!Environment.UserInteractive)
-            throw new InvalidOperationException(StartupFailureHint);
-
         _fixtureHome = Directory.CreateTempSubdirectory("agentup-e2e-macos-");
         _originalHome = Environment.GetEnvironmentVariable("HOME");
         _originalTmpDir = Environment.GetEnvironmentVariable("TMPDIR");
@@ -29,7 +26,21 @@ public sealed class MacOsDesktopFixtureAdapter : IDesktopFixtureAdapter
     {
         Environment.SetEnvironmentVariable("HOME", _originalHome);
         Environment.SetEnvironmentVariable("TMPDIR", _originalTmpDir);
-        _fixtureHome?.Delete(recursive: true);
+        DeleteFixtureDirectory(_fixtureHome);
     }
 
+    private static void DeleteFixtureDirectory(DirectoryInfo? directory)
+    {
+        if (directory is null)
+            return;
+
+        try
+        {
+            directory.Delete(recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            TestContext.Progress.WriteLine($"Could not remove macOS fixture directory '{directory.FullName}': {ex.Message}");
+        }
+    }
 }
