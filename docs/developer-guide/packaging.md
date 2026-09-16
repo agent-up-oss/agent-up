@@ -160,6 +160,6 @@ Installer changes follow the same production/test pairing rule as other projects
 - Nix wrapper changes require tests that pin the wrapper and shell contract.
 - Platform smoke tests remain the integration coverage for services, package managers, PATH, and launcher registration.
 
-Native package runners consume only artifacts cross-published by the Ubuntu payload job. In addition to packaging and smoke tools and product payloads, the macOS and Windows transfers contain the self-contained `AgentUp.Tests` NUnitLite runner. Native jobs execute its `E2E` category before invoking native packaging tools and package/installer smoke validation; they do not restore or build product .NET projects.
+Native package runners consume only artifacts cross-published by the Ubuntu payload job. In addition to packaging and smoke tools and product payloads, the macOS and Windows transfers contain the framework-dependent `AgentUp.Tests` NUnitLite runner, which needs the matching .NET runtime those jobs install. Native jobs execute its `E2E` category before invoking native packaging tools and package/installer smoke validation; they do not restore or build product .NET projects.
 
 Prefer feature-sliced tests under `LocalInstaller.Core.Tests/Features/` that match the owning installer feature.

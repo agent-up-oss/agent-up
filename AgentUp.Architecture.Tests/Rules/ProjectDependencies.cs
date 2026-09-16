@@ -19,7 +19,7 @@ public sealed class ProjectDependencies
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .SelectMany(path => XDocument.Load(path)
                 .Descendants("PackageReference")
-                .Where(reference => reference.Attribute("Include")?.Value.StartsWith("LocalInstaller.", StringComparison.Ordinal) == true)
+                .Where(reference => reference.Attribute("Include")?.Value.StartsWith("LocalInstaller.", StringComparison.OrdinalIgnoreCase) == true)
                 .Where(reference => reference.Attribute("Version")?.Value != "$(LocalInstallerVersion)")
                 .Select(reference => $"{Path.GetRelativePath(root, path)}: {reference}"))
             .ToArray();
