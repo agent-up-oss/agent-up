@@ -81,6 +81,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     {
         async Task<MainWindow> OnUiThread() => await Dispatcher.UIThread.InvokeAsync(create);
 
+        TestContext.Progress.WriteLine("Desktop harness: asking the UI thread to show MainWindow.");
         var launch = OnUiThread();
         if (await Task.WhenAny(launch, Task.Delay(LaunchTimeout)) != launch)
             throw new TimeoutException(
@@ -88,6 +89,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
                 + "The platform WebView attaches through a native control host on the Avalonia UI thread, so a "
                 + "WebView backend that never finishes initializing stops the run here with no test having started.");
 
+        TestContext.Progress.WriteLine("Desktop harness: MainWindow shown.");
         return await launch;
     }
 
@@ -113,8 +115,11 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
             webViews.Add(webView);
             return webView;
         };
+        TestContext.Progress.WriteLine("Desktop harness: MainWindow.Show() -- attaching the platform WebView.");
         mainWindow.Show();
+        TestContext.Progress.WriteLine("Desktop harness: MainWindow.Show() returned; initializing the view model.");
         await viewModel.InitializeAsync();
+        TestContext.Progress.WriteLine("Desktop harness: view model initialized.");
         if (selectHttpPort)
             SelectHttpPortTab(viewModel);
         return mainWindow;

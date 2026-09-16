@@ -103,8 +103,11 @@ public sealed class DesktopWebViewFilePickerTests
         await File.WriteAllTextAsync(_notePath, NoteContent, new UTF8Encoding(false));
         await File.WriteAllTextAsync(_diagramPath, DiagramContent, new UTF8Encoding(false));
 
+        TestContext.Progress.WriteLine("File picker E2E: starting the loopback page server.");
         _server = new HtmlAppServer(PageHtml);
+        TestContext.Progress.WriteLine($"File picker E2E: loopback page server listening on {_server.Port}.");
         _desktop = await DesktopBrowserHarness.LaunchAsync(_server.Port);
+        TestContext.Progress.WriteLine("File picker E2E: Desktop harness ready.");
     }
 
     [OneTimeTearDown]
