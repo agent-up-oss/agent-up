@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using AgentUp.Desktop.Features.Agents.Providers;
 using AgentUp.Desktop.Tests.Support;
 
@@ -7,6 +9,44 @@ namespace AgentUp.Desktop.Tests.Features.Agents.Provider;
 [TestFixture]
 public sealed class AgentApiClientTests
 {
+    [Test]
+    public async Task EventsAsync_readsAfterTheCommandClientWouldHaveTimedOut()
+    {
+        using var handler = new DelayedAgentHandler(TimeSpan.FromMilliseconds(250));
+        using var commands = new HttpClient(handler, disposeHandler: false)
+        {
+            BaseAddress = new Uri("http://localhost"),
+            Timeout = TimeSpan.FromMilliseconds(80)
+        };
+        using var events = new HttpClient(handler, disposeHandler: false)
+        {
+            BaseAddress = new Uri("http://localhost"),
+            Timeout = Timeout.InfiniteTimeSpan
+        };
+        var client = new AgentApiClient(commands, events);
+        var items = new List<long>();
+
+        await foreach (var item in client.EventsAsync("ws", 0, CancellationToken.None))
+            items.Add(item.Sequence);
+
+        Assert.That(items, Is.EqualTo(new[] { 5L }));
+    }
+
+    [Test]
+    public async Task EventsAsync_copiesAuthorizationOntoTheEventClient()
+    {
+        using var handler = new AgentHandler();
+        using var commands = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        using var events = new HttpClient(new AgentHandler(), disposeHandler: true) { BaseAddress = new Uri("http://localhost") };
+        commands.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "token");
+        var client = new AgentApiClient(commands, events);
+
+        await foreach (var _ in client.EventsAsync("ws", 0, CancellationToken.None))
+            break;
+
+        Assert.That(events.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("token"));
+    }
+
     [Test]
     public async Task EventsAsync_parsesSseDataAndEscapesWorkspaceId()
     {
@@ -104,5 +144,18 @@ internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, st
         var text = body ?? "id: 5\nevent: state\ndata: {\"sequence\":5,\"type\":\"state\",\"payload\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}\n\n";
         var mediaType = eventStream || body is null ? "text/event-stream" : "application/problem+json";
         return Task.FromResult(HttpTestResponses.Text(status, text, mediaType));
+    }
+}
+
+internal sealed class DelayedAgentHandler(TimeSpan delay) : HttpMessageHandler
+{
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        await Task.Delay(delay, cancellationToken);
+        const string text = "id: 5\nevent: state\ndata: {\"sequence\":5,\"type\":\"state\",\"payload\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}\n\n";
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(text, Encoding.UTF8, "text/event-stream")
+        };
     }
 }

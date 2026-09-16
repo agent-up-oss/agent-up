@@ -82,6 +82,8 @@ The Server manages:
 - Git working-tree review and commits.
 - Process lifecycle.
 - Port allocation.
+- Authenticated HTTPS forwarding of allocated HTTP application ports.
+- Hosted Linux desktop application sessions.
 - Docker lifecycle.
 - Browser lifecycle.
 - Browser profiles.
@@ -136,6 +138,22 @@ LAN REST access while MCP remains localhost-only at the request boundary.
 
 Desktop and Mobile reject remote `http://` Server URLs for administrator login
 and require HTTPS outside loopback hosts.
+
+Allocated HTTP application ports stay bound on the Server host. Remote clients
+reach them through `POST /api/apps/tickets` and the `/apps/{workspaceId}/{port}`
+bootstrap. The ticket travels in `X-Agent-Up-Ticket` or a URL fragment consumed
+by a Server-owned bootstrap page, never as a query string. Bootstrap sets an
+HttpOnly cookie and reverse-proxies unmatched paths to `http://127.0.0.1:{port}`.
+GET and ticket-consuming bootstrap requests redirect to `/` on the Server origin.
+Unsafe proxied writes require an Origin that matches the Server scheme, host,
+and port; writes without an Origin are rejected. Abandoned tickets expire after 30 seconds and are evicted on later
+issue or consume. That cookie does not authorize REST or MCP routes. Reserved
+Server prefixes such as `/api`, `/mcp`, and `/apps` are never forwarded to a
+workspace application. Proxied `Set-Cookie` values cannot overwrite `agent-up-`
+or ASP.NET cookies. Only currently listening allocated HTTP ports are forwarded.
+Ticket issuance and ticket or session acceptance require a TLS connection to the
+Server, except for loopback development peers. Client-supplied forwarded scheme
+headers cannot satisfy that check.
 
 The REST API permits cross-origin browser requests from any HTTP or HTTPS
 origin, so the Mobile web/PWA client can reach a Server the user points it at

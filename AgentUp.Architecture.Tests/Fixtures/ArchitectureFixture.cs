@@ -22,6 +22,7 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Claude",
         "AgentUp.Desktop",
         "AgentUp.CLI",
+        "AgentUp.AUDebug",
         "AgentUp.InstallerConfig"
     ];
 
@@ -66,6 +67,7 @@ internal static class ArchitectureFixture
         "AgentUp.Desktop.Tests",
         "AgentUp.InstallerConfig.Tests",
         "AgentUp.CLI.Tests",
+        "AgentUp.AUDebug.Tests",
         "AgentUp.Tests",
         "AgentUp.Architecture.Tests"
     ];

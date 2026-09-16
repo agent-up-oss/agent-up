@@ -12,6 +12,12 @@ public static class SecureServerUrlProvider
         return uri;
     }
 
+    public static string Normalize(Uri serverUri)
+        => serverUri.AbsoluteUri.TrimEnd('/');
+
+    public static string Normalize(string serverUrl)
+        => Normalize(ResolveServerUri(serverUrl));
+
     public static void EnsureCredentialTransportAllowed(Uri serverUri)
     {
         if (serverUri.Scheme == Uri.UriSchemeHttps)

@@ -11,6 +11,7 @@ const sidebars = {
         'server',
         'desktop',
         'desktop-app-hosting-assessment',
+        'au-debug',
         'packaging',
       ],
     },

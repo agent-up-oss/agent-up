@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Shared.Models;
 using System.Collections.ObjectModel;
 using AgentUp.Desktop.Features.Validation.DTOs;
 using AgentUp.Desktop.Features.Validation.Models;
@@ -42,10 +43,10 @@ public sealed class ValidationStageViewModel : ReactiveObject
 
     public string StatusColor => State switch
     {
-        ValidationRunState.Passed => "#2bf27a",
-        ValidationRunState.Failed => "#d84f4f",
-        ValidationRunState.Running => "#f5d042",
-        _ => "#789085"
+        ValidationRunState.Passed => AgentUpThemeColors.AccentSoft,
+        ValidationRunState.Failed => AgentUpThemeColors.StatusDanger,
+        ValidationRunState.Running => AgentUpThemeColors.StatusWarning,
+        _ => AgentUpThemeColors.TextMuted
     };
 
     internal void Reset()

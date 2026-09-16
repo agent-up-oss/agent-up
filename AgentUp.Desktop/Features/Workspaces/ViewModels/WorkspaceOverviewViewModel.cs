@@ -1,5 +1,7 @@
+using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Shared.Models;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -12,6 +14,7 @@ public sealed class WorkspaceOverviewViewModel : ReactiveObject
     private bool _showSkeleton;
     private string _displayName = string.Empty;
     private string _state = string.Empty;
+    private string _stateColor = AgentUpThemeColors.TextMuted;
     private string _repositoryPath = string.Empty;
     private string _worktreePath = string.Empty;
     private string _commit = string.Empty;
@@ -37,7 +40,17 @@ public sealed class WorkspaceOverviewViewModel : ReactiveObject
     public string State
     {
         get => _state;
-        private set => this.RaiseAndSetIfChanged(ref _state, value);
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _state, value);
+            StateColor = AppHealthLedRules.StateColor(value);
+        }
+    }
+
+    public string StateColor
+    {
+        get => _stateColor;
+        private set => this.RaiseAndSetIfChanged(ref _stateColor, value);
     }
 
     public string RepositoryPath

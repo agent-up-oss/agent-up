@@ -1,0 +1,35 @@
+using Avalonia.Controls;
+using Avalonia.Headless.NUnit;
+using Avalonia.VisualTree;
+using AgentUp.Desktop.Features.Agents.DTOs;
+using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Tests.Support;
+
+namespace AgentUp.Desktop.Tests.Features.Agents.Headless;
+
+[TestFixture]
+public sealed class AgentPickerPanelTests
+{
+    [AvaloniaTest]
+    public async Task AgentPicker_usesCatalogChoiceButtonsInsteadOfWrappedCards()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
+        viewModel.Agent.Agents.Add(new AgentDescriptorDto("Codex", true, "Codex"));
+        viewModel.Agent.Agents.Add(new AgentDescriptorDto("Cursor", false, "Cursor"));
+        await HeadlessExtensions.FlushAsync();
+
+        var picker = app.Window.FindControl<ItemsControl>("AgentPicker")!;
+        var buttons = picker.GetVisualDescendants().OfType<Button>().Where(button => button.Classes.Contains("au-choice")).ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(picker.IsVisible, Is.True);
+            Assert.That(buttons, Has.Count.EqualTo(2));
+            Assert.That(buttons.Any(button => button.GetVisualDescendants().OfType<Border>().Any(border => border.Classes.Contains("au-card"))), Is.False);
+            Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Codex" }).IsEnabled, Is.True);
+            Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Cursor" }).IsEnabled, Is.False);
+        });
+    }
+}

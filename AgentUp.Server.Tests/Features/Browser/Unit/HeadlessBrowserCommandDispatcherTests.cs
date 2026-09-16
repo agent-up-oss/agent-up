@@ -54,6 +54,23 @@ public sealed class HeadlessBrowserCommandDispatcherTests
             "the second stop should have cancelled the restarted loop");
     }
 
+    [Test]
+    public async Task NewerNavigationSupersedesQueuedNavigationForTheWorkspace()
+    {
+        var store = new BrowserSessionStore();
+        var dispatcher = CreateDispatcher(store);
+        var stale = store.DispatchAsync(
+            Navigate("http://127.0.0.1:5001"), TimeSpan.FromSeconds(5), CancellationToken.None);
+        _ = store.DispatchAsync(
+            Navigate("http://127.0.0.1:5002"), TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        await dispatcher.StartAsync(CancellationToken.None);
+        var result = await stale;
+        await dispatcher.StopAsync(CancellationToken.None);
+
+        Assert.That(result.Error, Does.Contain("superseded"));
+    }
+
     // The session manager is never started, so its directory arguments stay untouched names and
     // GetSession is a plain miss — which is what makes a drained command answer with the
     // no-session failure instead of reaching a real browser.
@@ -80,6 +97,9 @@ public sealed class HeadlessBrowserCommandDispatcherTests
     // Click routes to the session lookup, not to Navigate, so no browser is ever launched.
     private static BrowserCommandDto Command() =>
         new(Guid.NewGuid(), "workspace", BrowserCommandKind.Click, null, "#save", null, null, 100);
+
+    private static BrowserCommandDto Navigate(string url) =>
+        new(Guid.NewGuid(), "workspace", BrowserCommandKind.Navigate, url, null, null, null, 100);
 
     private sealed class FakeStreamSessionEventSink : IStreamSessionEventSink
     {

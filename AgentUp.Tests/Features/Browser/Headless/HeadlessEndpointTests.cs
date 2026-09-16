@@ -59,6 +59,9 @@ public sealed class HeadlessEndpointTests : IDisposable
             Assert.That(body, Does.Contain("id=\"ai-badge\""));
             // connectStream() was replaced by the JS state machine (window.__viewer).
             Assert.That(body, Does.Contain("window.__viewer"));
+            Assert.That(body, Does.Contain("location.hash.slice(1)"));
+            Assert.That(body, Does.Contain("agent-up.auth."));
+            Assert.That(body, Does.Contain("Authorization"));
             Assert.That(body, Does.Contain("setTimeout"));
         });
     }

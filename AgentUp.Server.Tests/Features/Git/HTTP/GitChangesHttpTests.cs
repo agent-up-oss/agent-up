@@ -63,6 +63,30 @@ public sealed class GitChangesHttpTests
     }
 
     [Test]
+    public async Task CommitQueue_returnsNotFoundForAnUnknownWorkspace()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/workspaces/missing/commit-queue");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task CommitQueue_returnsServerOwnedQueueForDesktopAndMobileClients()
+    {
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        var queue = await client.GetFromJsonAsync<AgentUp.Server.Features.Commits.DTOs.CommitsStatusResult>(
+            $"/api/workspaces/{workspaceId}/commit-queue", Json);
+
+        Assert.That(queue, Is.Not.Null);
+        Assert.That(queue!.Entries, Is.Empty);
+        Assert.That(queue.Generation, Is.Zero);
+    }
+
+    [Test]
     public async Task Changes_returnsTheDirectoryTreeForTheWorkspaceWorktree()
     {
         using var client = _factory.CreateClient();

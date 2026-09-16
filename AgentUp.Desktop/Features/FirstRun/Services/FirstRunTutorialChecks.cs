@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Shared.Models;
 using System.Diagnostics;
 using System.Text.Json;
 using AgentUp.Desktop.Features.FirstRun.DTOs;
@@ -580,7 +581,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         <script type="module" src="/src-App.jsx"></script>
         """;
 
-    private const string WebAppJsx = """
+    private static readonly string WebAppJsx = $$"""
         import React, { useEffect, useMemo, useState } from 'react';
         import { createRoot } from 'react-dom/client';
 
@@ -720,8 +721,8 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
         const styles = `
           :root {
-            color: #f5fbf7;
-            background: #000000;
+            color: {{AgentUpThemeColors.TextPrimary}};
+            background: {{AgentUpThemeColors.Canvas}};
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           }
 
@@ -737,9 +738,9 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
             min-height: 100vh;
             padding: 32px;
             background:
-              linear-gradient(135deg, rgba(0, 214, 107, 0.16), transparent 32%),
-              linear-gradient(315deg, rgba(43, 242, 122, 0.08), transparent 28%),
-              #000000;
+              linear-gradient(135deg, transparent, transparent 32%),
+              linear-gradient(315deg, transparent, transparent 28%),
+              {{AgentUpThemeColors.Canvas}};
           }
 
           .topbar {
@@ -752,7 +753,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
           .eyebrow {
             margin: 0 0 8px;
-            color: #2bf27a;
+            color: {{AgentUpThemeColors.AccentSoft}};
             font-size: 12px;
             font-weight: 800;
             letter-spacing: 0;
@@ -765,14 +766,14 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
           h1 {
             margin-bottom: 10px;
-            color: #f5fbf7;
+            color: {{AgentUpThemeColors.TextPrimary}};
             font-size: 34px;
             line-height: 1.1;
           }
 
           .lede {
             max-width: 760px;
-            color: #b9c8c0;
+            color: {{AgentUpThemeColors.TextSecondary}};
             font-size: 16px;
             line-height: 1.55;
           }
@@ -783,27 +784,27 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
             gap: 10px;
             flex: 0 0 auto;
             padding: 10px 14px;
-            border: 1px solid #287038;
+            border: 1px solid {{AgentUpThemeColors.BorderSubtle}};
             border-radius: 999px;
-            background: rgba(5, 5, 5, 0.88);
-            color: #c7d9d0;
+            background: color-mix(in srgb, {{AgentUpThemeColors.Surface}} 88%, transparent);
+            color: {{AgentUpThemeColors.TextSecondary}};
             font-weight: 700;
-            box-shadow: 0 10px 28px rgba(0, 214, 107, 0.16);
+            box-shadow: none;
           }
 
           .status-pill span {
             width: 9px;
             height: 9px;
             border-radius: 50%;
-            background: #f59e0b;
+            background: {{AgentUpThemeColors.StatusWarning}};
           }
 
           .status-pill.ready span {
-            background: #00d66b;
+            background: {{AgentUpThemeColors.Accent}};
           }
 
           .status-pill.error span {
-            background: #ef4444;
+            background: {{AgentUpThemeColors.StatusDanger}};
           }
 
           .metrics-grid {
@@ -815,15 +816,15 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
           .metric-card {
             padding: 18px;
-            border: 1px solid #287038;
+            border: 1px solid {{AgentUpThemeColors.BorderSubtle}};
             border-radius: 8px;
-            background: rgba(5, 5, 5, 0.92);
-            box-shadow: 0 14px 32px rgba(0, 214, 107, 0.12);
+            background: color-mix(in srgb, {{AgentUpThemeColors.Surface}} 92%, transparent);
+            box-shadow: none;
           }
 
           .metric-card span {
             display: block;
-            color: #9fb2a8;
+            color: {{AgentUpThemeColors.TextMuted}};
             font-size: 12px;
             font-weight: 800;
             text-transform: uppercase;
@@ -832,12 +833,12 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
           .metric-card strong {
             display: block;
             margin: 10px 0 4px;
-            color: #f5fbf7;
+            color: {{AgentUpThemeColors.TextPrimary}};
             font-size: 28px;
           }
 
           .metric-card small {
-            color: #9fb2a8;
+            color: {{AgentUpThemeColors.TextMuted}};
           }
 
           .notice {
@@ -845,18 +846,18 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
             gap: 12px;
             margin-bottom: 20px;
             padding: 14px 16px;
-            border: 1px solid #fecaca;
+            border: 1px solid {{AgentUpThemeColors.TextDanger}};
             border-radius: 8px;
-            background: #2a0f12;
-            color: #fecaca;
+            background: {{AgentUpThemeColors.SurfaceDanger}};
+            color: {{AgentUpThemeColors.TextDanger}};
           }
 
           .table-panel {
             overflow: hidden;
-            border: 1px solid #287038;
+            border: 1px solid {{AgentUpThemeColors.BorderSubtle}};
             border-radius: 8px;
-            background: #050505;
-            box-shadow: 0 20px 48px rgba(0, 214, 107, 0.14);
+            background: {{AgentUpThemeColors.Surface}};
+            box-shadow: none;
           }
 
           .table-header {
@@ -865,25 +866,25 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
             justify-content: space-between;
             gap: 16px;
             padding: 20px 22px;
-            border-bottom: 1px solid #184820;
+            border-bottom: 1px solid {{AgentUpThemeColors.BorderSubtle}};
           }
 
           .table-header h2 {
             margin-bottom: 4px;
-            color: #f5fbf7;
+            color: {{AgentUpThemeColors.TextPrimary}};
             font-size: 20px;
           }
 
           .table-header p {
             margin-bottom: 0;
-            color: #9fb2a8;
+            color: {{AgentUpThemeColors.TextMuted}};
           }
 
           button {
             padding: 10px 14px;
-            border: 1px solid #0f7a45;
+            border: 1px solid {{AgentUpThemeColors.SurfaceSelectedStrong}};
             border-radius: 7px;
-            background: #0f7a45;
+            background: {{AgentUpThemeColors.SurfaceSelectedStrong}};
             color: white;
             font-weight: 800;
             cursor: pointer;
@@ -901,22 +902,22 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
           th, td {
             padding: 14px 16px;
-            border-bottom: 1px solid #184820;
+            border-bottom: 1px solid {{AgentUpThemeColors.BorderSubtle}};
             text-align: left;
             vertical-align: middle;
             white-space: nowrap;
           }
 
           th {
-            background: #080808;
-            color: #c7d9d0;
+            background: {{AgentUpThemeColors.SurfaceRaised}};
+            color: {{AgentUpThemeColors.TextSecondary}};
             font-size: 12px;
             font-weight: 800;
             text-transform: uppercase;
           }
 
           td {
-            color: #c7d9d0;
+            color: {{AgentUpThemeColors.TextSecondary}};
           }
 
           td strong, td span {
@@ -925,12 +926,12 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
 
           td span {
             margin-top: 3px;
-            color: #9fb2a8;
+            color: {{AgentUpThemeColors.TextMuted}};
             font-size: 13px;
           }
 
           .sku {
-            color: #00d66b;
+            color: {{AgentUpThemeColors.Accent}};
             font-weight: 800;
           }
 
@@ -943,20 +944,20 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
             width: max-content;
             padding: 5px 9px;
             border-radius: 999px;
-            background: #07120a;
-            color: #2bf27a;
+            background: {{AgentUpThemeColors.SurfaceSelectedSoft}};
+            color: {{AgentUpThemeColors.AccentSoft}};
             font-size: 12px;
             font-weight: 800;
           }
 
           .badge.at-risk {
-            background: #3a2d09;
-            color: #ffd66b;
+            background: {{AgentUpThemeColors.SurfaceDanger}};
+            color: {{AgentUpThemeColors.TextWarning}};
           }
 
           .badge.priority {
-            background: #ccffe0;
-            color: #084f2d;
+            background: {{AgentUpThemeColors.AccentSoft}};
+            color: {{AgentUpThemeColors.OnAccent}};
           }
 
           @media (max-width: 860px) {
@@ -1000,7 +1001,7 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
         }
         """;
 
-    private const string ApiServerJs = """
+    private static readonly string ApiServerJs = $$"""
         const fs = require('fs/promises');
         const path = require('path');
         const express = require('express');
@@ -1150,23 +1151,23 @@ public sealed class FirstRunTutorialChecks : IFirstRunTutorialChecks
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <title>Agent-Up Product API</title>
           <style>
-            :root { color: #f5fbf7; background: #000000; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+            :root { color: {{AgentUpThemeColors.TextPrimary}}; background: {{AgentUpThemeColors.Canvas}}; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
             * { box-sizing: border-box; }
             body { margin: 0; }
             main { min-height: 100vh; padding: 32px; }
             header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
-            h1 { margin: 0 0 8px; color: #f5fbf7; font-size: 34px; line-height: 1.1; }
-            p { margin: 0; color: #b9c8c0; line-height: 1.55; }
-            .pill { padding: 9px 12px; border-radius: 999px; background: #ccffe0; color: #084f2d; font-weight: 800; white-space: nowrap; }
+            h1 { margin: 0 0 8px; color: {{AgentUpThemeColors.TextPrimary}}; font-size: 34px; line-height: 1.1; }
+            p { margin: 0; color: {{AgentUpThemeColors.TextSecondary}}; line-height: 1.55; }
+            .pill { padding: 9px 12px; border-radius: 999px; background: {{AgentUpThemeColors.AccentSoft}}; color: {{AgentUpThemeColors.OnAccent}}; font-weight: 800; white-space: nowrap; }
             .layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr); gap: 20px; align-items: start; }
-            section { border: 1px solid #287038; border-radius: 8px; background: #050505; box-shadow: 0 18px 44px rgba(0, 184, 80, 0.16); overflow: hidden; }
-            .section-head { padding: 18px 20px; border-bottom: 1px solid #184820; }
-            .section-head h2 { margin: 0 0 4px; color: #f5fbf7; font-size: 18px; }
-            .endpoint { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 16px 20px; border-bottom: 1px solid #184820; }
-            .method { width: max-content; padding: 6px 10px; border-radius: 999px; background: #07120a; color: #2bf27a; font-weight: 900; font-size: 12px; }
-            code { color: #00d66b; font-weight: 800; }
-            button { border: 1px solid #0f7a45; border-radius: 7px; background: #0f7a45; color: white; padding: 9px 13px; font-weight: 800; cursor: pointer; }
-            pre { margin: 0; padding: 18px; overflow: auto; color: #c7d9d0; background: #000000; font-size: 13px; line-height: 1.5; min-height: 240px; }
+            section { border: 1px solid {{AgentUpThemeColors.BorderSubtle}}; border-radius: 8px; background: {{AgentUpThemeColors.Surface}}; box-shadow: none; overflow: hidden; }
+            .section-head { padding: 18px 20px; border-bottom: 1px solid {{AgentUpThemeColors.BorderSubtle}}; }
+            .section-head h2 { margin: 0 0 4px; color: {{AgentUpThemeColors.TextPrimary}}; font-size: 18px; }
+            .endpoint { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 16px 20px; border-bottom: 1px solid {{AgentUpThemeColors.BorderSubtle}}; }
+            .method { width: max-content; padding: 6px 10px; border-radius: 999px; background: {{AgentUpThemeColors.SurfaceSelectedSoft}}; color: {{AgentUpThemeColors.AccentSoft}}; font-weight: 900; font-size: 12px; }
+            code { color: {{AgentUpThemeColors.Accent}}; font-weight: 800; }
+            button { border: 1px solid {{AgentUpThemeColors.SurfaceSelectedStrong}}; border-radius: 7px; background: {{AgentUpThemeColors.SurfaceSelectedStrong}}; color: white; padding: 9px 13px; font-weight: 800; cursor: pointer; }
+            pre { margin: 0; padding: 18px; overflow: auto; color: {{AgentUpThemeColors.TextSecondary}}; background: {{AgentUpThemeColors.Canvas}}; font-size: 13px; line-height: 1.5; min-height: 240px; }
             .spec pre { max-height: 620px; }
             @media (max-width: 900px) { main { padding: 20px; } header, .layout { display: block; } .pill { display: inline-flex; margin-top: 16px; } section { margin-top: 18px; } .endpoint { grid-template-columns: 1fr; } }
           </style>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { requestServerJson, ServerRequestError } from './ServerRequestProvider';
+import { requestServerJson, ServerRequestError, isUnauthorized } from './ServerRequestProvider';
 
 // Mimics fetch: it resolves once headers exist, and its body stream fails when the request signal
 // aborts. A server that stalls the body must therefore still hit the request timeout.
@@ -39,6 +39,30 @@ test('a body that arrives within the timeout is returned', async () => {
     { url: 'http://localhost:5000' }, '/api/workspaces', { method: 'GET' }, 2000, slowBodyFetch);
 
   assert.deepEqual(body, { ok: true });
+});
+
+test('caller cancellation aborts the underlying request before its timeout', async () => {
+  const caller = new AbortController();
+  let requestAborted = false;
+  const pendingFetch = (async (_url: string | URL | Request, init: RequestInit = {}) => {
+    return await new Promise<Response>((_resolve, reject) =>
+      init.signal?.addEventListener('abort', () => {
+        requestAborted = true;
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+      }, { once: true }));
+  }) as typeof fetch;
+
+  const pending = requestServerJson(
+    { url: 'http://localhost:5000' },
+    '/api/workspaces',
+    { signal: caller.signal },
+    2_000,
+    pendingFetch,
+  );
+  caller.abort();
+
+  assert.equal(requestAborted, true);
+  await assert.rejects(pending, /request was cancelled/);
 });
 
 test('a 204 response reads as no content', async () => {
@@ -100,4 +124,10 @@ test('a session without an access token sends no authorization header', async ()
   await requestServerJson({ url: 'http://localhost:5000' }, '/api/workspaces', { method: 'GET' }, 2000, recordingFetch);
 
   assert.equal('Authorization' in (recorded[0].headers as Record<string, string>), false);
+});
+
+test('isUnauthorized is true only for HTTP 401', () => {
+  assert.equal(isUnauthorized(new ServerRequestError('The server returned 401.', 401)), true);
+  assert.equal(isUnauthorized(new ServerRequestError('Branch must be a valid Git branch name.', 400)), false);
+  assert.equal(isUnauthorized(new Error('The server returned 401.')), false);
 });

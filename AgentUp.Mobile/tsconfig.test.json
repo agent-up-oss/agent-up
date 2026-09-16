@@ -7,11 +7,12 @@
   },
   "include": [
     "src/features/servers/**/*.ts",
+    "src/features/authentication/**/*.ts",
     "src/features/workspaces/**/*.ts",
     "src/features/git/**/*.ts",
     "src/features/agents/**/*.ts",
-    "src/features/telemetry/**/*.ts",
-    "src/features/applications/**/*.ts"
+    "src/features/applications/**/*.ts",
+    "src/features/telemetry/**/*.ts"
   ],
   "exclude": []
 }

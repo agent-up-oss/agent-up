@@ -32,6 +32,7 @@ all_projects=(
   agentup_capabilities_dotnet_tests:AgentUp.Capabilities.Dotnet.Tests
   agentup_commit_policy_tests:AgentUp.CommitPolicy.Tests
   agentup_desktop_tests:AgentUp.Desktop.Tests
+  agentup_audebug_tests:AgentUp.AUDebug.Tests
   agentup_installer_config_tests:AgentUp.InstallerConfig.Tests
   agentup_server_tests:AgentUp.Server.Tests
   agentup_tests:AgentUp.Tests

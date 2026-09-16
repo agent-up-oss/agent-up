@@ -77,4 +77,19 @@ public sealed class AuthenticationHttpTests
             Assert.That(workspaces.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         });
     }
+
+    [Test]
+    public async Task BrowserViewerShell_IsPublic_ButBrowserFramesRemainProtected()
+    {
+        using var client = _factory.CreateClient();
+        var viewer = await client.GetAsync("/api/browser/rdp-viewer?workspaceId=workspace");
+        var frame = await client.GetAsync("/api/browser/rdp/workspace/frame");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewer.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(viewer.Headers.CacheControl?.NoStore, Is.True);
+            Assert.That(frame.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        });
+    }
 }

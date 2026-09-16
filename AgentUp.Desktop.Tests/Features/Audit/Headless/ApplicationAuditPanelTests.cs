@@ -25,6 +25,8 @@ public sealed class ApplicationAuditPanelTests
         Assert.Multiple(() =>
         {
             Assert.That(app.Window.FindControl<Grid>("AuditPanel")!.IsVisible, Is.True);
+            Assert.That(app.Window.FindControl<Button>("AuditStreamingButton")!.Classes.Contains("au-button"), Is.True);
+            Assert.That(app.Window.FindControl<Button>("AuditRefreshButton")!.Classes.Contains("au-button"), Is.True);
             Assert.That(app.Window.FindControl<ItemsControl>("AuditEventList"), Is.Not.Null);
             Assert.That(app.Window.FindControl<Button>("AuditFirstPageButton"), Is.Not.Null);
             Assert.That(app.Window.FindControl<Button>("AuditPreviousPageButton"), Is.Not.Null);

@@ -47,6 +47,7 @@ Used at the root to declare build and test commands the local commit queue (`age
 
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
+| `enabled` | boolean | No | `false` | Enables the Server-owned Git proposal queue. Enqueue creates a private managed worktree and a linear sequence of dependent proposal commits without moving the developer branch. Verification must pass before each proposal is recorded. |
 | `build` | array of strings | No | `[]` | General commands that apply to every queued entry, such as building the solution. |
 | `test` | array of strings | No | `[]` | General test commands that apply to every queued entry, such as an architecture test suite. |
 | `projects` | object of [Commits Project](#commits-project-object) | No | `{}` | Per-project test commands, keyed by the top-level project directory a changed file falls under (the first path segment). |
@@ -65,6 +66,7 @@ Example:
 ```json
 {
   "commits": {
+    "enabled": true,
     "build": ["dotnet build agent-up.sln"],
     "test": ["dotnet test AgentUp.Architecture.Tests"],
     "projects": {

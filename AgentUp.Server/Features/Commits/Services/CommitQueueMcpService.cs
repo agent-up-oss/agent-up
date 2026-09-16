@@ -28,7 +28,7 @@ public sealed class CommitQueueMcpService(CommitsController commits)
             if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
                 return new McpToolResult(false, "Commit queue operation failed.");
 
-            return new McpToolResult(result.Succeeded, result.Message);
+            return new McpToolResult(result.Succeeded, result.Message, result);
         }
         catch (IOException)
         {
@@ -65,7 +65,7 @@ public sealed class CommitQueueMcpService(CommitsController commits)
             if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
                 return new McpToolResult(false, "Commit queue operation failed.");
 
-            return new McpToolResult(result.Succeeded, result.Message);
+            return new McpToolResult(result.Succeeded, result.Message, result);
         }
         catch (IOException)
         {
@@ -116,8 +116,10 @@ public sealed class CommitQueueMcpService(CommitsController commits)
         try
         {
             var result = await commits.GuardAsync(worktreePath, cancellationToken);
-            var message = result.Success
-                ? "Commit queue guard passed. It is safe to start a new task."
+            var message = result.Success && result.ContinueWorktreePath is not null
+                ? $"Commit queue guard passed. Continue dependent work in {result.ContinueWorktreePath}."
+                : result.Success
+                    ? "Commit queue guard passed. It is safe to start a new task."
                 : "Commit queue guard blocked starting new work. Stop unless the user asked to inspect, debug, or continue the existing queued or working-tree changes.";
             return new McpToolResult(result.Success, message, result);
         }

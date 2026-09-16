@@ -1,34 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
+import { agentUpTheme, auText } from '@agent-up/design-system/native';
+import { applicationHttpPort, applicationProxySource, issueApplicationProxyTicket, type ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
 import { waitForDesktopViewerUrl } from '../providers/DesktopViewerProvider';
 import { DesktopStreamView } from './DesktopStreamView';
+import { RemoteBrowser } from './RemoteBrowser';
 
-type ApplicationSpaceScreenProps = {
-  workspace: Workspace;
-  applicationName: string;
-};
+type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: string };
 
+/** Displays an HTTP application through the Server proxy, or a desktop application through the ticketed viewer. */
 export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
   const shellConfig = useMemo(() => ({
     title: applicationName,
     rightAction: null,
     sidebarContent: null,
   }), [applicationName]);
-
   useShellConfig(shellConfig);
 
-  const application = workspace.applications?.find(entry => entry.name === applicationName);
+  const { server } = useWorkspaces();
   const { activeServer } = useServers();
+  const application = workspace.applications?.find(entry => entry.name === applicationName);
+  const allocatedHttpPort = application ? applicationHttpPort(application) : null;
+  const applicationKind = application?.kind;
+  const [source, setSource] = useState<ApplicationProxySource | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const applicationState = useRef(application?.state);
+  const applicationRef = useRef(application);
   applicationState.current = application?.state;
+  applicationRef.current = application;
 
   useEffect(() => {
-    if (application?.kind !== 'Desktop' || !activeServer) return;
+    if (applicationKind !== 'Desktop' || !activeServer) return;
     const controller = new AbortController();
     setViewerUrl(null);
     setViewerError(null);
@@ -37,14 +45,31 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
       signal: controller.signal,
     })
       .then(url => { if (!controller.signal.aborted) setViewerUrl(url); })
-      .catch(error => {
-        if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) return;
-        setViewerError(error instanceof Error ? error.message : String(error));
+      .catch(caught => {
+        if (controller.signal.aborted || (caught instanceof Error && caught.name === 'AbortError')) return;
+        setViewerError(caught instanceof Error ? caught.message : String(caught));
       });
     return () => controller.abort();
-  }, [activeServer, application?.kind, applicationName, workspace.id]);
+  }, [activeServer, applicationKind, applicationName, workspace.id]);
 
-  if (application?.kind === 'Desktop') {
+  useEffect(() => {
+    if (applicationKind === 'Desktop') return;
+    let active = true;
+    const request = new AbortController();
+    setSource(null);
+    setError(null);
+    const current = applicationRef.current;
+    if (!server || !current) {
+      setError(current ? 'No Server connection is available.' : 'The application no longer exists.');
+      return () => { active = false; request.abort(); };
+    }
+    void issueApplicationProxyTicket(server, workspace.id, current, fetch, request.signal)
+      .then(ticket => { if (active) setSource(applicationProxySource(server, ticket)); })
+      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); });
+    return () => { active = false; request.abort(); };
+  }, [server, workspace.id, applicationName, allocatedHttpPort, applicationKind]);
+
+  if (applicationKind === 'Desktop') {
     if (viewerError) {
       return (
         <View style={styles.center}>
@@ -55,7 +80,7 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
     if (!viewerUrl) {
       return (
         <View style={styles.center}>
-          <ActivityIndicator color="#00d66b" />
+          <ActivityIndicator color={agentUpTheme.colors.accent} />
           <Text style={styles.status}>Connecting to the desktop application...</Text>
         </View>
       );
@@ -64,22 +89,34 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <Text style={styles.subtitle}>{workspace.displayName}</Text>
-      <Text style={styles.placeholder}>
-        The application space for {applicationName} will be implemented here.
-      </Text>
-      {application && <Text style={styles.status}>Current state: {application.state}</Text>}
-    </ScrollView>
+    <View style={styles.container}>
+      {!source && !error && (
+        <View style={styles.center}>
+          <ActivityIndicator color={agentUpTheme.colors.accent} />
+          <Text style={styles.status}>Opening the application…</Text>
+        </View>
+      )}
+      {!!error && (
+        <View style={styles.center}>
+          <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
+        </View>
+      )}
+      {source && <RemoteBrowser source={source} />}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 32, gap: 12 },
-  subtitle: { color: '#aebcb3', fontSize: 14 },
-  placeholder: { color: '#f5fbf7', lineHeight: 22, fontSize: 16 },
-  status: { color: '#9fb2a8' },
-  desktop: { flex: 1, backgroundColor: '#111111' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111111', padding: 24, gap: 12 },
-  error: { color: '#e48989', textAlign: 'center' },
+  container: { flex: 1, minHeight: 400, backgroundColor: agentUpTheme.colors.canvas },
+  desktop: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: agentUpTheme.colors.canvas,
+    padding: agentUpTheme.spacing[6],
+    gap: agentUpTheme.spacing[3],
+  },
+  status: auText('muted'),
+  error: { ...auText('badgeDanger'), textAlign: 'center' },
 });
