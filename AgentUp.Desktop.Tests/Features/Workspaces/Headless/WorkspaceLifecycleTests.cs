@@ -1,4 +1,5 @@
 using Avalonia.Headless.NUnit;
+using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
@@ -8,6 +9,17 @@ public class WorkspaceLifecycleTests
 {
     // WorkspaceFixtures.Multiple() sorts to [API Gateway (Running), My App (Running), Auth Service (Stopped)]
     // once loaded: active workspaces first, ties broken alphabetically.
+
+    [AvaloniaTest]
+    public async Task Launch_loadsTheProposalQueueWithoutFailingTheWorkspace()
+    {
+        var app = await AppDriver.LaunchWithWorkspacesAsync(WorkspaceFixtures.Multiple());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+
+        Assert.That(() => viewModel.Git.IsLoading, Is.False.After(1000).PollEvery(20));
+        Assert.That(viewModel.Git.ErrorMessage, Is.Null);
+        Assert.That(viewModel.Git.HasQueuedProposals, Is.False);
+    }
 
     [AvaloniaTest]
     public async Task StartButton_startsStoppedWorkspace()
