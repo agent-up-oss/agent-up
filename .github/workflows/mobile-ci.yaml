@@ -86,9 +86,50 @@ jobs:
         id: artifact
         run: echo "name=Agent-Up-${{ steps.plan.outputs.version }}-${{ steps.plan.outputs.version_code }}" >> "$GITHUB_OUTPUT"
 
+  tests:
+    name: Mobile tests
+    runs-on: ubuntu-latest
+    needs: version
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: AgentUp.Mobile/package-lock.json
+
+      - name: Install JavaScript dependencies
+        run: |
+          node AgentUp.DesignSystem/scripts/build.mjs
+          npm ci --prefix AgentUp.Mobile
+
+      - name: Typecheck
+        working-directory: AgentUp.Mobile
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: AgentUp.Mobile
+        run: |
+          npx tsc --noEmit -p tsconfig.test.json
+          npx tsx --test \
+            src/features/servers/providers/*.test.ts \
+            src/features/authentication/providers/*.test.ts \
+            src/features/workspaces/providers/*.test.ts \
+            src/features/git/providers/*.test.ts \
+            src/features/agents/providers/*.test.ts \
+            src/features/applications/providers/*.test.ts \
+            src/features/telemetry/providers/*.test.ts
+          node --test scripts/*.test.mjs
+
+      - name: Export web application
+        working-directory: AgentUp.Mobile
+        run: node scripts/export-web.mjs
+
   android:
     name: Android
-    needs: version
+    needs: [version, tests]
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -236,7 +277,7 @@ jobs:
 
   ios:
     name: iOS
-    needs: version
+    needs: [version, tests]
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios' }}
     runs-on: macos-15
     timeout-minutes: 150
