@@ -1,0 +1,26 @@
+{
+  "name": "@agent-up/server-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Transport for the Agent-Up Server REST API, shared by every client that talks to it",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "tsc --noEmit -p tsconfig.json && tsx --test src/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.3"
+  }
+}

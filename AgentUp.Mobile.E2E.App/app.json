@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Agent-Up Chat Harness",
+    "slug": "agent-up-chat-harness",
+    "version": "0.1.0",
+    "scheme": "agent-up-chat",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.agentup.chatharness"
+    },
+    "android": {
+      "package": "com.agentup.chatharness",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "./plugins/withExactDetoxVersion",
+      "@config-plugins/detox",
+      "./plugins/withDetoxAndroidTestManifest",
+      "./plugins/withoutReleaseLint"
+    ]
+  }
+}

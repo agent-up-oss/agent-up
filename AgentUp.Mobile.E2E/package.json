@@ -1,0 +1,21 @@
+{
+  "name": "agent-up-mobile-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end agent sign-in tests for the Agent-Up mobile client on iOS, Android, and the installable web build",
+  "scripts": {
+    "test:harness": "node --test test/*.test.mjs",
+    "test:ios": "NODE_OPTIONS=--experimental-vm-modules detox test --configuration ios.sim.release",
+    "test:android": "NODE_OPTIONS=--experimental-vm-modules detox test --configuration android.emu.release",
+    "test:pwa": "playwright test --config pwa/playwright.config.mjs",
+    "build:ios": "detox build --configuration ios.sim.release",
+    "build:android": "detox build --configuration android.emu.release",
+    "lint:no-sleep": "node scripts/forbid-sleep.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.1",
+    "detox": "20.42.0",
+    "jest": "30.2.0",
+    "jest-junit": "16.0.0"
+  }
+}

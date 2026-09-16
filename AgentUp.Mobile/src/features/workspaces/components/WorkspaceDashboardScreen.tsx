@@ -45,7 +45,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
       {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
-      <Pressable accessibilityRole="button" accessibilityLabel="Open workspace agent chat" onPress={openAgent} style={styles.agentCard}>
+      <Pressable testID="open-workspace-agent" accessibilityRole="button" accessibilityLabel="Open workspace agent chat" onPress={openAgent} style={styles.agentCard}>
         <Text style={styles.agentTitle}>Workspace agent</Text>
         <Text style={styles.agentDetail}>Open the agent chat for this workspace.</Text>
         <Text style={styles.agentAction}>Open chat →</Text>

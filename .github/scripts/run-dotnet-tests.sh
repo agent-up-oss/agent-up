@@ -35,4 +35,8 @@ if [ "$found_tests" = false ]; then
   exit 1
 fi
 
+if [ "$failed" -ne 0 ]; then
+  node ./.github/scripts/report-failed-tests.mjs artifacts/test-results
+fi
+
 exit "$failed"
