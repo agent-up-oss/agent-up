@@ -209,9 +209,6 @@ jobs:
           cache: npm
           cache-dependency-path: AgentUp.Mobile/package-lock.json
 
-      - name: Install GUI watchdog dependencies
-        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
-
       - name: Restore .NET projects
         run: dotnet restore agent-up.sln
 
@@ -229,8 +226,38 @@ jobs:
           npm ci --ignore-scripts
           npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts
 
+  test-kind-watchdog:
+    name: Test-kind watchdog
+    runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install GUI watchdog dependencies
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
+
+      - name: Restore .NET projects
+        run: dotnet restore agent-up.sln
+
+      - name: Build Release test payloads
+        run: dotnet build agent-up.sln --configuration Release --no-restore
+
       - name: Enforce test-kind wall-clock budgets
         run: ./.github/scripts/run-test-kind-watchdog.sh
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: test-kind-watchdog-results
+          path: artifacts/test-kind-watchdog/*.trx
+          if-no-files-found: error
+          retention-days: 7
 
   dotnet-gui-tests:
     name: .NET GUI tests
@@ -577,7 +604,7 @@ jobs:
   platform:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    needs: [dotnet-build, dotnet-tests, dotnet-gui-tests, dotnet-coverage, performance-gates, version]
+    needs: [dotnet-build, dotnet-tests, dotnet-gui-tests, dotnet-coverage, performance-gates, test-kind-watchdog, version]
     permissions:
       contents: read
       actions: write
@@ -823,7 +850,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [platform, performance-gates, docs, jetbrains-plugin, version, helm-chart]
+    needs: [platform, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, version, helm-chart]
     if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
     permissions:
       actions: write

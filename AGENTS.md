@@ -775,7 +775,7 @@ Avoid duplicate tests that assert the same rule through multiple layers.
 
 NUnit tests default to a 30-second per-test timeout from `coverlet.runsettings`. Tests that must run longer, such as capability CLI smoke and native-display E2E, set `[Timeout]` / `[CancelAfter]` on the fixture or method. A 1-minute testhost hang dump aborts a stuck session so a single hung test cannot run forever; it is not a 1-minute budget for a full project run.
 
-CI additionally enforces Linux Release wall-clock budgets by test kind: 60 seconds for the combined Server/Desktop `Unit` tier, 75 seconds for `Provider`, and 180 seconds for cross-product `E2E`. Update a budget only from a recorded CI baseline and explain the changed workload; never raise it merely to make a regression green.
+CI additionally enforces Linux Release wall-clock budgets in an independent watchdog job: 60 seconds for the combined Server/Desktop `Unit` tier, 75 seconds for `Provider`, and 180 seconds for cross-product `E2E`. The watchdog runs display-dependent Provider and E2E tests under Xvfb, rejects filters that execute zero tests, and uploads TRX diagnostics. Update a budget only from a recorded CI baseline and explain the changed workload; never raise it merely to make a regression green.
 
 # Verification
 

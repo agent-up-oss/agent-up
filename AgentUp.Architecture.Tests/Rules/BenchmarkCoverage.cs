@@ -102,7 +102,7 @@ public sealed class BenchmarkCoverage
             "./scripts/run-benchmark-gate.sh server",
             "MobilePerformanceGate.ts",
             "./.github/scripts/run-test-kind-watchdog.sh",
-            "needs: [platform, performance-gates, docs, jetbrains-plugin, version, helm-chart]"
+            "needs: [platform, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, version, helm-chart]"
         };
 
         var missing = requiredCommands.Where(command => !workflow.Contains(command, StringComparison.Ordinal)).ToArray();
