@@ -647,6 +647,9 @@ jobs:
 
       - name: Run macOS native E2E tests
         if: ${{ matrix.platform == 'macos' }}
+        # The suite takes seconds. A fixture that blocks the Avalonia UI thread waits on it
+        # forever, so cap the step rather than let a hang hold the runner for the job default.
+        timeout-minutes: 10
         shell: bash
         run: |
           mkdir -p artifacts/platform-tests
@@ -658,6 +661,7 @@ jobs:
 
       - name: Run Windows native E2E tests
         if: ${{ matrix.platform == 'windows' }}
+        timeout-minutes: 10
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts/platform-tests | Out-Null
