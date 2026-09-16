@@ -115,6 +115,7 @@ jobs:
             mkdir -p "$target/tools/$rid" "$target/payloads"
             cp -a "artifacts/dotnet-ci/tools/$rid/packaging" "$target/tools/$rid/"
             cp -a "artifacts/dotnet-ci/tools/$rid/package-smoke" "$target/tools/$rid/"
+            cp -a "artifacts/dotnet-ci/tools/$rid/agent-up-tests" "$target/tools/$rid/"
             cp -a "artifacts/dotnet-ci/payloads/$rid" "$target/payloads/"
           done
 
@@ -568,6 +569,7 @@ jobs:
     permissions:
       contents: read
       actions: write
+      checks: write
       id-token: write
     strategy:
       fail-fast: false
@@ -606,6 +608,13 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v23
         if: ${{ matrix.use-nix }}
 
+      # The native E2E host below is published framework-dependent, so these runners need the
+      # shared framework it targets. Only macOS and Windows run that step.
+      - uses: actions/setup-dotnet@v6
+        if: ${{ matrix.platform == 'macos' || matrix.platform == 'windows' }}
+        with:
+          dotnet-version: "10.0.x"
+
       - uses: actions/download-artifact@v8
         with:
           name: dotnet-ci-${{ matrix.platform }}-${{ matrix.rid }}
@@ -628,12 +637,58 @@ jobs:
           if [ "${{ runner.os }}" != "Windows" ]; then
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/packaging/AgentUp.Packaging" || true
             chmod +x "dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke" || true
+            chmod +x "dotnet-ci/tools/${{ matrix.rid }}/agent-up-tests/AgentUp.Tests" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/installer/AgentUp.InstallerApp" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/desktop/AgentUp.Desktop" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/server/AgentUp.Server" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/cli/AgentUp.CLI" || true
             chmod +x "dotnet-ci/payloads/${{ matrix.rid }}/tray/AgentUp.Tray" || true
           fi
+
+      - name: Run macOS native E2E tests
+        if: ${{ matrix.platform == 'macos' }}
+        # The suite takes seconds. A fixture that blocks the Avalonia UI thread waits on it
+        # forever, so cap the step rather than let a hang hold the runner for the job default.
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          mkdir -p artifacts/platform-tests
+          ./dotnet-ci/tools/${{ matrix.rid }}/agent-up-tests/AgentUp.Tests \
+            --workers=0 \
+            --where="cat == E2E" \
+            --result="artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3" \
+            2>&1 | tee "artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.log"
+
+      - name: Run Windows native E2E tests
+        if: ${{ matrix.platform == 'windows' }}
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/platform-tests | Out-Null
+          & "dotnet-ci/tools/${{ matrix.rid }}/agent-up-tests/AgentUp.Tests.exe" `
+              --workers=0 `
+              "--where=cat == E2E" `
+              "--result=artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3" `
+              2>&1 | Tee-Object "artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.log"
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) { exit $testExitCode }
+
+      - name: Native platform E2E test report
+        uses: dorny/test-reporter@v3
+        if: ${{ !cancelled() && (matrix.platform == 'macos' || matrix.platform == 'windows') && hashFiles('artifacts/platform-tests/*.xml') != '' }}
+        with:
+          name: Native E2E Tests (${{ matrix.rid }})
+          path: artifacts/platform-tests/*.xml
+          reporter: dotnet-nunit
+
+      - name: Upload native platform E2E diagnostics
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && (matrix.platform == 'macos' || matrix.platform == 'windows') }}
+        with:
+          name: native-e2e-${{ matrix.rid }}
+          path: artifacts/platform-tests
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Sign macOS payload binaries
         if: ${{ matrix.platform == 'macos' && (vars.MACOS_SIGNING_ENABLED == 'true' || vars.SIGNING_SMOKE_TEST == 'true') }}
