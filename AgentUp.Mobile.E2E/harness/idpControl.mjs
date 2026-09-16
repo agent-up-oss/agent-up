@@ -34,6 +34,19 @@ export function createIdpControl(idpUrl, request = fetch) {
     /** Approves a poll-until-approved sign-in by the id in its deep link. */
     approveLogin: loginId => post('/test/approve', { login_id: loginId }),
 
+    /**
+     * The same page, on the origin this process can reach.
+     *
+     * A link in a challenge is minted for the person, and on a device that is somewhere this host
+     * is not: 10.0.2.2 is the emulator's name for the machine these tests run on, and nothing here
+     * answers to it. Standing in for their browser therefore means opening the same path from
+     * where we actually are, which is what this is for.
+     */
+    reachable: url => {
+      const target = new URL(url);
+      return `${origin}${target.pathname}${target.search}`;
+    },
+
     /** The code most recently issued to a client, for a test that has to paste it back. */
     latestCode: async clientId => {
       const response = await request(`${origin}/test/latest-code?client_id=${encodeURIComponent(clientId)}`);

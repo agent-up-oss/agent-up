@@ -48,6 +48,22 @@ test('the Server is told each agent command, login command, and the transport it
   assert.equal(environment.AGENTUP_AUTH_DISABLED, 'true');
 });
 
+// The mirror of what the agents do: a link is minted for the person, and neither the agent nor
+// this harness is the person. Both keep the path and drop the host.
+test('the control plane can reach a page the device was pointed at', () => {
+  const control = createIdpControl('http://localhost:9000');
+
+  assert.equal(
+    control.reachable('http://10.0.2.2:9000/oauth/authorize?client_id=test-agent3&state=abc'),
+    'http://localhost:9000/oauth/authorize?client_id=test-agent3&state=abc',
+  );
+  // Already reachable is left exactly as it was, so the simulator and the web build are untouched.
+  assert.equal(
+    control.reachable('http://localhost:9000/login/xyz'),
+    'http://localhost:9000/login/xyz',
+  );
+});
+
 test('the Server is given deadlines short enough to fail a hung sign-in legibly', () => {
   const environment = serverEnvironment({
     profiles: profilesFor('redirect'),

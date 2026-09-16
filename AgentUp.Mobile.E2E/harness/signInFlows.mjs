@@ -41,7 +41,9 @@ export const SIGN_IN_FLOWS = Object.freeze({
      */
     async approve({ control, session }) {
       await control.preApprove('test-agent3');
-      const page = await fetch(session.loginChallenge.url);
+      // The link is the one the device was shown, so it is on the device's origin; this is not the
+      // device. Same page, from here.
+      const page = await fetch(control.reachable(session.loginChallenge.url));
       if (!page.ok) throw new Error(`The sign-in page answered ${page.status}.`);
       return control.latestCode('test-agent3');
     },
