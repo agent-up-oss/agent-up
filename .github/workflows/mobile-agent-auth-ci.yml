@@ -29,6 +29,7 @@ on:
       - ".github/workflows/mobile-agent-auth-ci.yml"
       - ".github/scripts/install-mobile-deps.sh"
       - ".github/scripts/install-android-ndk.sh"
+      - ".github/scripts/wake-android-emulator.sh"
       - ".github/scripts/build-mobile-e2e-stack.sh"
       - ".github/scripts/mobile-app-key.sh"
       - ".github/scripts/mobile-app-restored.sh"
@@ -262,7 +263,9 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: cd AgentUp.Mobile.E2E && npm run test:android -- --headless
+          script: |
+            ./.github/scripts/wake-android-emulator.sh
+            cd AgentUp.Mobile.E2E && npm run test:android -- --headless
 
       - uses: actions/upload-artifact@v7
         if: ${{ failure() }}
