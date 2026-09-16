@@ -21,6 +21,12 @@ public sealed class AgentSessionState
     public string? Error { get; set; }
     public IReadOnlyList<AgentAuthMethodDto> AuthMethods { get; set; } = [];
     public AgentLoginChallengeDto? LoginChallenge { get; set; }
+
+    /// <summary>
+    /// Open while a sign-in is running, so a code or an intercepted redirect posted over HTTP
+    /// reaches the CLI that is already waiting for it.
+    /// </summary>
+    public AgentLoginInbox? LoginInbox { get; set; }
     public SemaphoreSlim PromptGate { get; } = new(1, 1);
     public ConcurrentDictionary<string, PendingAgentPermission> Permissions { get; } = new();
     public CancellationTokenSource Lifetime { get; } = new();

@@ -305,7 +305,8 @@
         "workingDirectory": "AgentUp.Mobile",
         "tier": "slow",
         "inputs": [
-          "AgentUp.Mobile"
+          "AgentUp.Mobile",
+          "AgentUp.Chat"
         ]
       },
       "web-audit": {
@@ -385,6 +386,30 @@
         "tier": "fast",
         "ciOnly": true,
         "order": 101
+      },
+      "test-agents": {
+        "command": "dotnet test AgentUp.TestAgents.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/test-agents",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.TestAgents",
+          "AgentUp.TestAgents.Tests"
+        ]
+      },
+      "agent-auth": {
+        "command": "npm test",
+        "workingDirectory": "AgentUp.AgentAuth",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.AgentAuth"
+        ]
+      },
+      "mobile-e2e-harness": {
+        "command": "node scripts/forbid-sleep.mjs && node --test test/*.test.mjs",
+        "workingDirectory": "AgentUp.Mobile.E2E",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Mobile.E2E"
+        ]
       }
     },
     "paths": [
@@ -415,7 +440,7 @@
         ]
       },
       {
-        "match": "AgentUp.Mobile/src/features/agents/providers/AgentEventPresentationProvider.ts",
+        "match": "AgentUp.Chat/src/providers/AgentEventPresentationProvider.ts",
         "checks": [
           "mobile-benchmarks"
         ]
@@ -938,6 +963,33 @@
         "checks": [
           "au-debug"
         ]
+      },
+      {
+        "match": "AgentUp.TestAgents/**",
+        "checks": [
+          "test-agents",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.TestAgents.Tests/**",
+        "checks": [
+          "test-agents",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.AgentAuth/**",
+        "checks": [
+          "agent-auth",
+          "mobile"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile.E2E/**",
+        "checks": [
+          "mobile-e2e-harness"
+        ]
       }
     ]
   },
@@ -961,7 +1013,8 @@
       "AgentUp.Capabilities.Claude/**/*.cs",
       "AgentUp.Browser.Streaming/**/*.cs",
       "AgentUp.Tray/**/*.cs",
-      "AgentUp.InstallerConfig/**/*.cs"
+      "AgentUp.InstallerConfig/**/*.cs",
+      "AgentUp.TestAgents/**/*.cs"
     ],
     "exclude": [
       "**/Composition/**",

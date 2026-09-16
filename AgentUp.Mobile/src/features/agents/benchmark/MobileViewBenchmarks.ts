@@ -1,6 +1,6 @@
 import { bench, run } from 'mitata';
-import { groupTranscript } from '../providers/AgentEventPresentationProvider';
-import type { TranscriptItem } from '../models/AgentSession';
+import { groupTranscript } from '../../../../../AgentUp.Chat/src/providers/AgentEventPresentationProvider';
+import type { TranscriptItem } from '../../../../../AgentUp.Chat/src/models/AgentSession';
 import { flattenChangeTree } from '../../git/providers/GitChangeTreeProvider';
 import type { GitChangeTree } from '../../git/models/GitChanges';
 
@@ -17,7 +17,7 @@ const tree: GitChangeTree = {
     files: Array.from({ length: 50 }, (_, file) => ({ name: `file-${file}.ts`, path: `slice-${directory}/file-${file}.ts`, status: 'Modified' })),
   })), files: [] },
 };
-bench('group 1,000 agent transcript items for the mobile view', () => groupTranscript(transcript));
-bench('flatten a 1,000-file Git tree for the mobile view', () => flattenChangeTree(tree));
+bench('groupTranscript1000', () => groupTranscript(transcript));
+bench('flattenGitTree1000', () => flattenChangeTree(tree));
 
 void run();

@@ -336,6 +336,84 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task SubmitLoginCode_reachesTheSignInThatIsWaitingForIt()
+    {
+        _process.RequireAuthentication = true;
+        _login.Hold = true;
+        _login.Challenge = new AgentLoginChallengeDto(
+            "https://claude.ai/oauth/authorize?code=true",
+            null,
+            "Open this link, sign in, then paste the code it gives you back here.",
+            AgentLoginTransport.Code,
+            CanSubmitCode: true);
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Claude, CancellationToken.None);
+        // The fake agent advertises the chatgpt method id for every kind; Authenticate validates
+        // the id against what was advertised, not against the kind.
+        var started = _service.Authenticate(_workspace.Id, "chatgpt");
+        Assert.That(started.Error, Is.Null);
+        await WaitForStateAsync("authenticating");
+
+        var accepted = _service.SubmitLoginCode(_workspace.Id, "code-from-the-browser#state");
+        await WaitUntilAsync(() => _login.Submissions.Count > 0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted.Error, Is.Null);
+            Assert.That(_login.Submissions[0].Kind, Is.EqualTo(AgentLoginSubmissionKind.Code));
+            Assert.That(_login.Submissions[0].Value, Is.EqualTo("code-from-the-browser#state"));
+        });
+
+        _login.Release();
+        await WaitForStateAsync("ready");
+    }
+
+    [Test]
+    public async Task SubmitLoginCallback_reachesTheSignInThatIsWaitingForIt()
+    {
+        _process.RequireAuthentication = true;
+        _login.Hold = true;
+        _login.Challenge = new AgentLoginChallengeDto(
+            "https://auth.openai.com/oauth/authorize",
+            null,
+            "Open this link and sign in.",
+            AgentLoginTransport.Redirect,
+            RedirectUri: "http://localhost:1455/auth/callback");
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        _service.Authenticate(_workspace.Id, "chatgpt");
+        await WaitForStateAsync("authenticating");
+
+        var accepted = _service.SubmitLoginCallback(_workspace.Id, "http://localhost:1455/auth/callback?code=abc");
+        await WaitUntilAsync(() => _login.Submissions.Count > 0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted.Error, Is.Null);
+            Assert.That(_login.Submissions[0].Kind, Is.EqualTo(AgentLoginSubmissionKind.Callback));
+            Assert.That(_login.Submissions[0].Value, Does.Contain("code=abc"));
+        });
+
+        _login.Release();
+        await WaitForStateAsync("ready");
+    }
+
+    [Test]
+    public async Task SubmitLoginCode_isRefusedWhenNoSignInIsRunning()
+    {
+        _process.RequireAuthentication = true;
+        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+
+        var refused = _service.SubmitLoginCode(_workspace.Id, "ABCD-EFGHI");
+
+        Assert.That(refused.Error, Does.Contain("not signing in"));
+    }
+
+    [Test]
+    public void SubmitLoginCode_isNotFoundForAWorkspaceWithNoAgent()
+    {
+        Assert.That(_service.SubmitLoginCode(_workspace.Id, "ABCD-EFGHI").Found, Is.False);
+    }
+
+    [Test]
     public async Task Schedule_offersClaudeSubscriptionLoginWhenInitializeOmitsMethods()
     {
         _process.RequireAuthentication = true;
@@ -572,12 +650,14 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
     public string? ClaudeToken { get; set; }
     public AgentLoginChallengeDto? Challenge { get; set; }
     public Exception? Failure { get; set; }
+    public List<AgentLoginSubmission> Submissions { get; } = [];
 
     public async Task<AgentSubscriptionLoginResult> LoginAsync(
         AgentKind kind,
         AgentCommand acpCommand,
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
+        AgentLoginInbox inbox,
         CancellationToken cancellationToken)
     {
         MethodId = methodId;
@@ -588,7 +668,10 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
         if (Hold)
         {
             _hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var draining = DrainAsync(inbox, cancellationToken);
             await _hold.Task.WaitAsync(cancellationToken);
+            inbox.Complete();
+            await draining;
         }
 
         if (!Succeeded)
@@ -599,6 +682,19 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
     }
 
     public void Release() => _hold?.TrySetResult();
+
+    private async Task DrainAsync(AgentLoginInbox inbox, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var submission in inbox.ReadAllAsync(cancellationToken))
+                Submissions.Add(submission);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+    }
 }
 
 internal sealed class FakeProcessEnvironmentProvider : IAgentProcessEnvironmentProvider

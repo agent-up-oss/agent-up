@@ -8,7 +8,14 @@ mkdir -p "$results_root"
 if [[ -f /tmp/chromium-install.pid ]]; then
   chromium_pid="$(cat /tmp/chromium-install.pid)"
   echo "Waiting for background Chromium installation (PID $chromium_pid)"
-  while kill -0 "$chromium_pid" 2>/dev/null; do sleep 2; done
+  install_deadline=$((SECONDS + 120))
+  while kill -0 "$chromium_pid" 2>/dev/null; do
+    if (( SECONDS >= install_deadline )); then
+      echo "Chromium installation did not finish within 120 seconds" >&2
+      exit 1
+    fi
+    sleep 2
+  done
   cat /tmp/chromium-install.log
 fi
 export PUPPETEER_EXECUTABLE_PATH="${PUPPETEER_EXECUTABLE_PATH:-$(command -v google-chrome-stable 2>/dev/null || command -v google-chrome 2>/dev/null || command -v chromium 2>/dev/null || command -v chromium-browser 2>/dev/null || true)}"

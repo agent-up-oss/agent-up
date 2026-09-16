@@ -1,7 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import { readFileSync } from 'node:fs';
-import { groupTranscript } from '../providers/AgentEventPresentationProvider';
-import type { TranscriptItem } from '../models/AgentSession';
+import { groupTranscript } from '../../../../../AgentUp.Chat/src/providers/AgentEventPresentationProvider';
+import type { TranscriptItem } from '../../../../../AgentUp.Chat/src/models/AgentSession';
 import { flattenChangeTree } from '../../git/providers/GitChangeTreeProvider';
 import type { GitChangeTree } from '../../git/models/GitChanges';
 

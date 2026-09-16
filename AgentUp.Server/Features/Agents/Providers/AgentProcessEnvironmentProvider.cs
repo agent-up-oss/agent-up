@@ -10,10 +10,11 @@ public sealed class AgentProcessEnvironmentProvider(
     public IReadOnlyDictionary<string, string> EnvironmentFor(AgentKind kind)
     {
         home.Ensure();
+        // HOME is redirected so every agent CLI keeps its credentials inside the Server data
+        // directory rather than in the service account's real home.
         var environment = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["HOME"] = home.HomePath,
-            ["AGENT_CLI_CREDENTIAL_STORE"] = "file"
+            ["HOME"] = home.HomePath
         };
         if (kind == AgentKind.Claude)
         {

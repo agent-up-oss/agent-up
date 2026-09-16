@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Text.RegularExpressions;
+using YamlDotNet.RepresentationModel;
 
 namespace AgentUp.Architecture.Tests.Rules;
 
@@ -28,8 +29,8 @@ public sealed class BenchmarkCoverage
             "AgentUp.Server.Benchmarks.Features.Agents.Benchmark.AgentEventFrameBenchmarks.SerializeFourKilobyteAgentEvent",
             "server-benchmarks"),
         new(
-            "AgentUp.Mobile/src/features/agents/providers/AgentEventPresentationProvider.ts",
-            "AgentUp.Mobile",
+            "AgentUp.Chat/src/providers/AgentEventPresentationProvider.ts",
+            "AgentUp.Chat",
             "AgentUp.Mobile/src/features/agents/benchmark/MobileViewBenchmarks.ts",
             "AgentUp.Mobile",
             "benchmarks/baselines/mobile.json",
@@ -63,9 +64,8 @@ public sealed class BenchmarkCoverage
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var violations = RequiredBenchmarks
-            .Select(target => target.BenchmarkPath)
-            .Distinct(StringComparer.Ordinal)
-            .Where(path => !HasExecutableBenchmark(Path.Join(root, path)))
+            .Where(target => !HasExecutableBenchmark(Path.Join(root, target.BenchmarkPath), target.BenchmarkId))
+            .Select(target => $"{target.BenchmarkPath} must register executable benchmark '{target.BenchmarkId}'")
             .ToArray();
 
         Assert.That(violations, Is.Empty,
@@ -95,17 +95,23 @@ public sealed class BenchmarkCoverage
     public void Ci_executes_every_performance_gate_and_the_test_kind_watchdog()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
-        var workflow = File.ReadAllText(Path.Join(root, ".github", "workflows", "ci.yml"));
-        var requiredCommands = new[]
+        using var reader = File.OpenText(Path.Join(root, ".github", "workflows", "ci.yml"));
+        var workflow = new YamlStream();
+        workflow.Load(reader);
+        var rootNode = (YamlMappingNode)workflow.Documents[0].RootNode;
+        var jobs = GetMapping(rootNode, "jobs");
+        var performanceRuns = GetStepRuns(GetMapping(jobs, "performance-gates"));
+        var watchdogRuns = GetStepRuns(GetMapping(jobs, "test-kind-watchdog"));
+        var releaseNeeds = GetSequenceValues(GetMapping(jobs, "release"), "needs");
+        var missing = new[]
         {
-            "./scripts/run-benchmark-gate.sh browser",
-            "./scripts/run-benchmark-gate.sh server",
-            "MobilePerformanceGate.ts",
-            "./.github/scripts/run-test-kind-watchdog.sh",
-            "needs: [platform, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, version, helm-chart]"
-        };
-
-        var missing = requiredCommands.Where(command => !workflow.Contains(command, StringComparison.Ordinal)).ToArray();
+            (performanceRuns.Any(run => run.Contains("./scripts/run-benchmark-gate.sh browser", StringComparison.Ordinal)), "browser performance command"),
+            (performanceRuns.Any(run => run.Contains("./scripts/run-benchmark-gate.sh server", StringComparison.Ordinal)), "server performance command"),
+            (performanceRuns.Any(run => run.Contains("MobilePerformanceGate.ts", StringComparison.Ordinal)), "mobile performance command"),
+            (watchdogRuns.Any(run => run.Contains("./.github/scripts/run-test-kind-watchdog.sh", StringComparison.Ordinal)), "test-kind watchdog command"),
+            (releaseNeeds.Contains("performance-gates", StringComparer.Ordinal), "release performance-gates dependency"),
+            (releaseNeeds.Contains("test-kind-watchdog", StringComparer.Ordinal), "release test-kind-watchdog dependency")
+        }.Where(requirement => !requirement.Item1).Select(requirement => requirement.Item2).ToArray();
 
         Assert.That(missing, Is.Empty,
             "CI must execute every performance gate and prevent release when a gate fails.");
@@ -150,12 +156,13 @@ public sealed class BenchmarkCoverage
                && paths.Any(rule => RuleSelectsPath(rule, target.BenchmarkPath, target.CheckId));
     }
 
-    private static bool HasExecutableBenchmark(string path)
+    private static bool HasExecutableBenchmark(string path, string benchmarkId)
         => Path.GetExtension(path) == ".ts"
-            ? HasMitataBenchmark(File.ReadAllText(path))
+            ? HasMitataBenchmark(File.ReadAllText(path), benchmarkId)
             : ArchitectureFixture.ParseSourceFile(path).Root.DescendantNodes()
                 .OfType<MethodDeclarationSyntax>()
-                .Any(IsExecutableBenchmarkMethod);
+                .Any(method => method.Identifier.ValueText == benchmarkId.Split('.').Last()
+                               && IsExecutableBenchmarkMethod(method));
 
     private static bool IsExecutableBenchmarkMethod(MethodDeclarationSyntax method)
     {
@@ -175,7 +182,7 @@ public sealed class BenchmarkCoverage
                && declaringType.Modifiers.All(modifier => !modifier.IsKind(SyntaxKind.SealedKeyword));
     }
 
-    private static bool HasMitataBenchmark(string source)
+    private static bool HasMitataBenchmark(string source, string benchmarkId)
     {
         var withoutComments = Regex.Replace(source, @"/\*[\s\S]*?\*/|//[^\r\n]*", string.Empty);
         var importsBench = Regex.IsMatch(
@@ -184,9 +191,27 @@ public sealed class BenchmarkCoverage
             RegexOptions.CultureInvariant);
         return importsBench && Regex.IsMatch(
             withoutComments,
-            @"(?:^|[;{}])\s*bench\s*\(",
+            @"(?:^|[;{}])\s*bench\s*\(\s*['""]" + Regex.Escape(benchmarkId) + @"['""]\s*,",
             RegexOptions.CultureInvariant);
     }
+
+    private static YamlMappingNode GetMapping(YamlMappingNode parent, string key)
+        => (YamlMappingNode)parent.Children[new YamlScalarNode(key)];
+
+    private static string[] GetStepRuns(YamlMappingNode job)
+    {
+        var steps = (YamlSequenceNode)job.Children[new YamlScalarNode("steps")];
+        return steps.Children.OfType<YamlMappingNode>()
+            .Where(step => step.Children.TryGetValue(new YamlScalarNode("run"), out _))
+            .Select(step => ((YamlScalarNode)step.Children[new YamlScalarNode("run")]).Value ?? string.Empty)
+            .ToArray();
+    }
+
+    private static string[] GetSequenceValues(YamlMappingNode parent, string key)
+        => ((YamlSequenceNode)parent.Children[new YamlScalarNode(key)]).Children
+            .OfType<YamlScalarNode>()
+            .Select(value => value.Value ?? string.Empty)
+            .ToArray();
 
     private static bool RuleSelectsPath(System.Text.Json.JsonElement rule, string path, string checkId)
         => path.StartsWith((rule.GetProperty("match").GetString() ?? string.Empty).TrimEnd('*'), StringComparison.Ordinal)

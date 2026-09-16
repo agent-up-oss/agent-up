@@ -129,9 +129,34 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             return AgentActionResult.Failed("Agent-Up signs agents in with a ChatGPT, Cursor, or Claude subscription, not an API key.");
         state.State = "authenticating";
         state.Error = null;
+        state.LoginInbox = new AgentLoginInbox();
         events.Publish(workspaceId, "state", Get(workspaceId)!);
         _ = RunAuthenticationAsync(workspaceId, state, methodId);
         return AgentActionResult.Success();
+    }
+
+    /// <summary>
+    /// Hands a code the user copied out of the provider page to the CLI that is waiting on it.
+    /// </summary>
+    public AgentActionResult SubmitLoginCode(string workspaceId, string code) =>
+        Submit(workspaceId, new AgentLoginSubmission(AgentLoginSubmissionKind.Code, code));
+
+    /// <summary>
+    /// Hands back a redirect the client intercepted, so it can be replayed against the loopback
+    /// address the agent CLI is listening on. This is what lets a phone finish a sign-in whose
+    /// callback would otherwise land on the Server host and be lost.
+    /// </summary>
+    public AgentActionResult SubmitLoginCallback(string workspaceId, string url) =>
+        Submit(workspaceId, new AgentLoginSubmission(AgentLoginSubmissionKind.Callback, url));
+
+    private AgentActionResult Submit(string workspaceId, AgentLoginSubmission submission)
+    {
+        if (!_sessions.TryGetValue(workspaceId, out var state)) return AgentActionResult.NotFound();
+        if (state.LoginInbox is not { } inbox || state.State != "authenticating")
+            return AgentActionResult.Failed("The workspace agent is not signing in.");
+        return inbox.TrySubmit(submission)
+            ? AgentActionResult.Success()
+            : AgentActionResult.Failed("The sign-in is no longer accepting input.");
     }
 
     private async Task RunAuthenticationAsync(string workspaceId, AgentSessionState state, string methodId)
@@ -140,6 +165,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         {
             var acpCommand = await commands.ResolveAsync(state.Kind, state.Lifetime.Token)
                 ?? throw new InvalidOperationException($"{state.Kind} ACP executable is not installed or is not on PATH.");
+            var inbox = state.LoginInbox ??= new AgentLoginInbox();
             var result = await login.LoginAsync(
                 state.Kind,
                 acpCommand,
@@ -150,6 +176,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                     var pending = Get(workspaceId);
                     if (pending is not null) events.Publish(workspaceId, "state", pending);
                 },
+                inbox,
                 state.Lifetime.Token);
             if (!result.Succeeded)
             {
@@ -174,6 +201,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         }
         finally
         {
+            state.LoginInbox?.Complete();
+            state.LoginInbox = null;
             var snapshot = Get(workspaceId);
             if (snapshot is not null) events.Publish(workspaceId, "state", snapshot);
         }
