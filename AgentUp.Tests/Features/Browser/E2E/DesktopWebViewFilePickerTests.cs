@@ -131,9 +131,13 @@ public sealed class DesktopWebViewFilePickerTests
     [SetUp]
     public async Task LoadFreshPage()
     {
+        TestContext.Progress.WriteLine($"File picker E2E: [SetUp] navigating to {_server.BaseUrl}.");
         await _desktop.NavigateAsync(_server.BaseUrl);
+        TestContext.Progress.WriteLine("File picker E2E: [SetUp] navigated; waiting for the upload bridge.");
         await _desktop.WaitForFilePickerBridgeAsync();
+        TestContext.Progress.WriteLine("File picker E2E: [SetUp] bridge installed; waiting for an empty request map.");
         await _desktop.WaitForScriptAsync("window.__pending()", "0", "The page did not start with an empty request map");
+        TestContext.Progress.WriteLine("File picker E2E: [SetUp] complete.");
     }
 
     [Test, CancelAfter(60000), Timeout(60000)]
