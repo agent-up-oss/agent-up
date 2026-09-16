@@ -608,6 +608,13 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v23
         if: ${{ matrix.use-nix }}
 
+      # The native E2E host below is published framework-dependent, so these runners need the
+      # shared framework it targets. Only macOS and Windows run that step.
+      - uses: actions/setup-dotnet@v6
+        if: ${{ matrix.platform == 'macos' || matrix.platform == 'windows' }}
+        with:
+          dotnet-version: "10.0.x"
+
       - uses: actions/download-artifact@v8
         with:
           name: dotnet-ci-${{ matrix.platform }}-${{ matrix.rid }}

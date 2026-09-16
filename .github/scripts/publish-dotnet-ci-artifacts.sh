@@ -55,14 +55,20 @@ publish_test_runner() {
   local rid="$2"
   local destination="$3"
 
-  # Keep the native E2E host as a normal self-contained directory. Avalonia and the
-  # platform WebView load native/runtime assets by path, which is not reliable after
-  # single-file extraction on hosted Windows runners.
+  # Keep the native E2E host as a plain directory: Avalonia and the platform WebView load
+  # native/runtime assets by path, which is not reliable after single-file extraction on
+  # hosted Windows runners.
+  #
+  # Framework-dependent, not self-contained. A self-contained publish of a test project
+  # dropped System.Memory.dll from the runtime closure, so the host died before the first
+  # test on every non-Linux RID: NUnitLite's option parser needs SearchValues<T> through
+  # System.Text.RegularExpressions, and Avalonia's FontFamily cctor needs it too. The
+  # platform runners install the matching .NET, so the shared framework supplies the BCL.
   dotnet publish "$project" \
     --configuration "$configuration" \
     --runtime "$rid" \
     --no-restore \
-    --self-contained true \
+    --self-contained false \
     -p:PublishSingleFile=false \
     -p:DebugType=none \
     -p:DebugSymbols=false \
