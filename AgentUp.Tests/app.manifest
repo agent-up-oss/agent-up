@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <assemblyIdentity version="1.0.0.0" name="AgentUp.Tests" />
+
+  <!-- Without a supportedOS entry Windows reports a shimmed version to the process, and
+       Avalonia's Win32 native control host then fails to create the child window the
+       WebView is hosted in: "Unable to create child window for native control host.
+       Application manifest with supported OS list might be required." That is what the
+       E2E WebView fixtures hit on the hosted Windows runner. .NET 10 runs on Windows 10
+       and later, so that is the only version worth declaring. -->
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 and Windows 11 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+    </application>
+  </compatibility>
+
+  <!-- Supplying a manifest replaces the SDK default, so its DPI settings are restated. -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2,permonitor</dpiAwareness>
+    </windowsSettings>
+  </application>
+</assembly>
