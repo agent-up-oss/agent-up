@@ -56,7 +56,10 @@ public sealed class TestAgentHostService(
                 command.IdentityProviderUrl.TrimEnd('/'),
                 console.Out,
                 console.In,
-                cancellationToken);
+                cancellationToken,
+                // Only the links printed for a person use this; what the agent fetches keeps going
+                // to the URL above, which is the one it can route to from where it runs.
+                command.PublicOrigin?.TrimEnd('/'));
             if (token is null)
                 return 1;
             credentials.Write(token);

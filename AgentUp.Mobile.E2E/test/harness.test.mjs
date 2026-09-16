@@ -38,6 +38,12 @@ test('the Server is told each agent command, login command, and the transport it
   // The login process needs to know which provider to sign in against and which agent it is.
   assert.equal(environment.Agents__Claude__LoginEnvironment__AGENTUP_TEST_IDP_URL, 'http://localhost:9000');
   assert.equal(environment.Agents__Claude__LoginEnvironment__AGENTUP_TEST_AGENT, 'test-agent3');
+  // And where the person reaches it, which on a device is somewhere else entirely. Without this
+  // an agent prints a link on its own origin and the device cannot open it.
+  assert.equal(
+    environment.Agents__Claude__LoginEnvironment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN,
+    'http://10.0.2.2:9000',
+  );
   // Agent sign-in is the subject; Server sign-in is not.
   assert.equal(environment.AGENTUP_AUTH_DISABLED, 'true');
 });

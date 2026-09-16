@@ -14,7 +14,15 @@ namespace AgentUp.TestAgents.Features.Authentication.Providers;
 /// agent existing.
 /// </para>
 /// </summary>
-public sealed class PastedCodeLoginFlow(HttpClient client, string identityProviderUrl) : ITestAgentLoginFlow
+/// <param name="publicOrigin">
+/// Where the person opening the link reaches the identity provider, when that differs from where
+/// this agent reaches it. Only the printed link uses it; the token exchange below stays on
+/// <paramref name="identityProviderUrl"/>. Defaults to that.
+/// </param>
+public sealed class PastedCodeLoginFlow(
+    HttpClient client,
+    string identityProviderUrl,
+    string? publicOrigin = null) : ITestAgentLoginFlow
 {
     public string ClientId => "test-agent3";
 
@@ -23,7 +31,7 @@ public sealed class PastedCodeLoginFlow(HttpClient client, string identityProvid
         var verifier = PkceVerifier.Secret();
         var state = PkceVerifier.Secret(16);
         var authorize =
-            $"{identityProviderUrl}/oauth/authorize" +
+            $"{publicOrigin ?? identityProviderUrl}/oauth/authorize" +
             $"?response_type=code&client_id={Uri.EscapeDataString(ClientId)}" +
             $"&state={Uri.EscapeDataString(state)}" +
             $"&code_challenge={Uri.EscapeDataString(PkceVerifier.Challenge(verifier))}" +

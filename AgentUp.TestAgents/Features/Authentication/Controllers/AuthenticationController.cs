@@ -15,6 +15,7 @@ public sealed class AuthenticationController(TestAgentSignInService signIn)
         string identityProviderUrl,
         TextWriter output,
         TextReader input,
-        CancellationToken cancellationToken) =>
-        signIn.SignInAsync(schema, client, identityProviderUrl, output, input, cancellationToken);
+        CancellationToken cancellationToken,
+        string? publicOrigin = null) =>
+        signIn.SignInAsync(schema, client, identityProviderUrl, output, input, cancellationToken, publicOrigin);
 }

@@ -33,8 +33,13 @@ public sealed class SilentPollLoginFlow(HttpClient client, string identityProvid
         }
 
         var grant = await started.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        // The link is for the person, so it comes back on whatever origin they reach the provider
+        // at. The status URL comes back on that same origin and is for this agent, which may not
+        // be able to route to it at all - on an Android emulator the person's origin is 10.0.2.2,
+        // and nothing on the host answers there. So the path is kept and the base is not: polling
+        // goes where this agent already knows it can reach.
         var loginUrl = grant.GetProperty("login_url").GetString()!;
-        var statusUrl = grant.GetProperty("status_url").GetString()!;
+        var statusUrl = Reachable(grant.GetProperty("status_url").GetString()!);
 
         await output.WriteLineAsync("Failed to open browser for login. Please visit:");
         await output.WriteLineAsync($"  {loginUrl}");
@@ -67,4 +72,10 @@ public sealed class SilentPollLoginFlow(HttpClient client, string identityProvid
 
         return null;
     }
+
+    /// <summary>The same endpoint, on the origin this agent can reach rather than the one it was told.</summary>
+    private string Reachable(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var absolute)
+            ? $"{identityProviderUrl}{absolute.PathAndQuery}"
+            : url;
 }

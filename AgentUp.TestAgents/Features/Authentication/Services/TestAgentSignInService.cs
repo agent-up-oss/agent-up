@@ -17,8 +17,12 @@ public sealed class TestAgentSignInService(string? home = null)
     public ITestAgentCredentialStore Credentials(TestAgentSchema schema) => new TestAgentCredentialStore(schema, home);
 
     /// <summary>The sign-in this agent implements, as its own flow.</summary>
-    public ITestAgentLoginFlow Flow(TestAgentSchema schema, HttpClient client, string identityProviderUrl) =>
-        TestAgentLoginFlowFactory.Create(schema, client, identityProviderUrl);
+    public ITestAgentLoginFlow Flow(
+        TestAgentSchema schema,
+        HttpClient client,
+        string identityProviderUrl,
+        string? publicOrigin = null) =>
+        TestAgentLoginFlowFactory.Create(schema, client, identityProviderUrl, publicOrigin);
 
     /// <summary>Runs the sign-in this agent implements, returning its token or null on failure.</summary>
     public Task<string?> SignInAsync(
@@ -27,6 +31,7 @@ public sealed class TestAgentSignInService(string? home = null)
         string identityProviderUrl,
         TextWriter output,
         TextReader input,
-        CancellationToken cancellationToken) =>
-        Flow(schema, client, identityProviderUrl).RunAsync(output, input, cancellationToken);
+        CancellationToken cancellationToken,
+        string? publicOrigin = null) =>
+        Flow(schema, client, identityProviderUrl, publicOrigin).RunAsync(output, input, cancellationToken);
 }

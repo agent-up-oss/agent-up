@@ -60,6 +60,12 @@ export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, data
     environment[`Agents__${profile.kind}__LoginChallengeTimeoutSeconds`] = String(challengeTimeoutSeconds);
     environment[`Agents__${profile.kind}__LoginCompletionTimeoutSeconds`] = String(completionTimeoutSeconds);
     environment[`Agents__${profile.kind}__LoginEnvironment__AGENTUP_TEST_IDP_URL`] = idpUrl;
+    // Two origins, because the agent and the person are not in the same place. The agent runs on
+    // this host and reaches the provider at idpUrl; the person is on a simulator or an emulator,
+    // for which 10.0.2.2 is this host and localhost is the device. A link printed on the agent's
+    // own origin is one the device cannot open, which is exactly how the loopback-redirect
+    // scenario failed on Android while the others happened not to need the link to work.
+    environment[`Agents__${profile.kind}__LoginEnvironment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN`] = publicOrigin;
     environment[`Agents__${profile.kind}__LoginEnvironment__AGENTUP_TEST_AGENT`] = profile.agent;
   }
 

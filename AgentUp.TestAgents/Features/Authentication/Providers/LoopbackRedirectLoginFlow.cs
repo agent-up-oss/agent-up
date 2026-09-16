@@ -16,7 +16,17 @@ namespace AgentUp.TestAgents.Features.Authentication.Providers;
 /// callback relay is what does that, and this agent is how that path gets exercised.
 /// </para>
 /// </summary>
-public sealed class LoopbackRedirectLoginFlow(HttpClient client, string identityProviderUrl) : ITestAgentLoginFlow
+/// <param name="publicOrigin">
+/// Where the person opening the link reaches the identity provider, when that is somewhere other
+/// than where this agent reaches it - an emulator, say, for which the host is 10.0.2.2 and
+/// localhost is the emulator itself. Only the link printed for them uses it; everything this agent
+/// fetches keeps going to <paramref name="identityProviderUrl"/>, which is the one it can route to.
+/// Defaults to that, so a setup where the two are the same says nothing about it.
+/// </param>
+public sealed class LoopbackRedirectLoginFlow(
+    HttpClient client,
+    string identityProviderUrl,
+    string? publicOrigin = null) : ITestAgentLoginFlow
 {
     public string ClientId => "test-agent1";
 
@@ -33,7 +43,7 @@ public sealed class LoopbackRedirectLoginFlow(HttpClient client, string identity
         try
         {
             var authorize =
-                $"{identityProviderUrl}/oauth/authorize" +
+                $"{publicOrigin ?? identityProviderUrl}/oauth/authorize" +
                 $"?response_type=code&client_id={Uri.EscapeDataString(ClientId)}" +
                 $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
                 $"&state={Uri.EscapeDataString(state)}" +
